@@ -200,4 +200,126 @@ describe("RasterSamplingWorkerPool", () => {
     await expect(replacementJob).resolves.toMatchObject({ workerId: 2 });
     await pool.close();
   });
+
+  describe("when workers cannot start", () => {
+    // A worker whose entry point is missing dies without ever posting a message. Node surfaces
+    // that asynchronously as "error", so it looks identical to a crash apart from the silence.
+    const failToStart = (worker: FakeWorker) =>
+      worker.emit(
+        "error",
+        Object.assign(new Error("Cannot find module"), { code: "MODULE_NOT_FOUND" })
+      );
+
+    const makeFailingPool = (overrides = {}) => {
+      const created: FakeWorker[] = [];
+      const pool = new RasterSamplingWorkerPool({
+        size: 1,
+        maxStartupFailures: 3,
+        respawnDelayMs: 1,
+        unavailableRetryAfterMs: 10_000,
+        workerFactory: () => {
+          const worker = new FakeWorker();
+          created.push(worker);
+          // Fail on the next tick so the factory returns before the error arrives, matching Node.
+          queueMicrotask(() => failToStart(worker));
+          return worker;
+        },
+        ...overrides,
+      });
+      return { pool, created };
+    };
+
+    const flush = async (iterations = 40) => {
+      for (let index = 0; index < iterations; index += 1)
+        await new Promise((r) => setTimeout(r, 2));
+    };
+
+    // The first run() creates the pool's workers, which then die while idle. That job is rejected
+    // by the worker it was dispatched to; the interesting behavior is what happens afterwards.
+    const primeAndSettle = async (pool: RasterSamplingWorkerPool) => {
+      await expect(pool.run(descriptor, path, [2])).rejects.toBeInstanceOf(
+        RasterSamplingWorkerPoolUnavailableError
+      );
+      await flush();
+    };
+
+    it("stops respawning after repeated startup failures instead of looping", async () => {
+      const { pool, created } = makeFailingPool();
+      await primeAndSettle(pool);
+
+      // Bounded by maxStartupFailures rather than growing without limit. Without this guard the
+      // same scenario spawns threads continuously for as long as the process runs.
+      expect(created.length).toBeLessThanOrEqual(4);
+      const settled = created.length;
+      await flush();
+      expect(created.length).toBe(settled);
+      await pool.close();
+    });
+
+    it("fails fast without creating workers while unavailable", async () => {
+      const { pool, created } = makeFailingPool();
+      await primeAndSettle(pool);
+      const afterGivingUp = created.length;
+
+      await expect(pool.run(descriptor, path, [2])).rejects.toThrow(/failed to start/);
+      expect(created.length).toBe(afterGivingUp);
+      await pool.close();
+    });
+
+    it("retries once the unavailable window has elapsed", async () => {
+      const { pool, created } = makeFailingPool({ unavailableRetryAfterMs: 0 });
+      await primeAndSettle(pool);
+      const afterGivingUp = created.length;
+
+      await expect(pool.run(descriptor, path, [2])).rejects.toBeInstanceOf(
+        RasterSamplingWorkerPoolUnavailableError
+      );
+      expect(created.length).toBeGreaterThan(afterGivingUp);
+      await pool.close();
+    });
+
+    it("does not spawn threads unboundedly when the entry point is permanently missing", async () => {
+      // Regression guard for the thread-spawn loop: an unresolvable worker entry point used to
+      // respawn immediately on every failure, saturating every core for the life of the process.
+      const { pool, created } = makeFailingPool({
+        size: 3,
+        maxStartupFailures: 5,
+        unavailableRetryAfterMs: 10_000,
+      });
+      await primeAndSettle(pool);
+      await flush(100);
+
+      // Three initial workers plus a bounded number of replacements, not hundreds.
+      expect(created.length).toBeLessThan(12);
+      await pool.close();
+    });
+
+    it("keeps replacing a worker that crashes after it has responded", async () => {
+      const workers = [new FakeWorker(), new FakeWorker(), new FakeWorker()];
+      const created: FakeWorker[] = [];
+      const pool = new RasterSamplingWorkerPool({
+        size: 1,
+        maxStartupFailures: 3,
+        workerFactory: () => {
+          const worker = workers.shift()!;
+          created.push(worker);
+          return worker;
+        },
+      });
+
+      // Each worker completes a job (proving startup) and only then crashes.
+      for (let index = 0; index < 2; index += 1) {
+        const job = pool.run(descriptor, path, [2]);
+        created[index].succeed();
+        await job;
+        created[index].emit("error", new Error("decoder crashed"));
+      }
+
+      // Startup never failed, so the pool must not have given up.
+      const job = pool.run(descriptor, path, [2]);
+      created[2].succeed();
+      await expect(job).resolves.toMatchObject({ workerId: 3 });
+      await pool.close();
+    });
+  });
 });

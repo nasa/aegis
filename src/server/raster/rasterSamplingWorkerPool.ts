@@ -2,6 +2,8 @@ import { availableParallelism } from "node:os";
 import { performance } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
 
+import { serverLogger } from "utils/logging/serverLogger";
+
 import type { RasterProfileSamplingResult } from "./sampleRasterProfile";
 
 export type RasterSamplingWorkerRequest = {
@@ -57,6 +59,8 @@ type WorkerSlot = {
   startedAt?: number;
   timeout?: NodeJS.Timeout;
   shutdownComplete?: (error?: Error) => void;
+  // Set once the worker sends any message, which proves its entry point loaded.
+  everResponded?: boolean;
 };
 
 export type RasterSamplingWorkerResult = RasterProfileSamplingResult & {
@@ -79,6 +83,9 @@ type RasterSamplingWorkerPoolOptions = {
   maxQueueSize?: number;
   jobTimeoutMs?: number;
   workerFactory?: () => WorkerLike;
+  maxStartupFailures?: number;
+  respawnDelayMs?: number;
+  unavailableRetryAfterMs?: number;
 };
 
 const positiveIntegerFromEnvironment = (name: string, fallback: number): number => {
@@ -91,6 +98,22 @@ const positiveIntegerFromEnvironment = (name: string, fallback: number): number 
 const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
 const WORKER_SHUTDOWN_TIMEOUT_MS = 5_000;
 
+// A worker that dies without ever sending a message never finished starting. Replacing it cannot
+// succeed when the cause is permanent, such as a missing or unloadable worker entry point, and an
+// immediate replacement turns that into a thread-spawn loop that saturates every core. After this
+// many consecutive startup failures the pool stops replacing workers and reports itself
+// unavailable instead.
+const MAX_CONSECUTIVE_STARTUP_FAILURES = 5;
+// Replacement of a worker that failed to start is delayed, doubling per consecutive failure, so
+// even a misdiagnosed permanent fault cannot spin. Workers that crash after starting are replaced
+// immediately, because that path is already bounded by the work that triggered the crash.
+const RESPAWN_BASE_DELAY_MS = 100;
+const RESPAWN_MAX_DELAY_MS = 5_000;
+// How long the pool stays unavailable before one more round of workers is attempted. This lets a
+// deploy that repairs the worker entry point recover without restarting the API, while keeping
+// retries rare enough to stay cheap.
+const UNAVAILABLE_RETRY_AFTER_MS = 60_000;
+
 /**
  * Runs CPU-heavy raster profile sampling outside the API event loop.
  *
@@ -101,12 +124,20 @@ const WORKER_SHUTDOWN_TIMEOUT_MS = 5_000;
  * A failed or timed-out worker is removed and replaced. Only its active job fails; queued jobs
  * continue on healthy workers. Call close() during server shutdown to reject outstanding work,
  * close each worker-local raster cache, and terminate every thread.
+ *
+ * Replacement is not unconditional. Workers that repeatedly die before ever responding indicate a
+ * permanent fault that respawning cannot fix, so the pool gives up, rejects work immediately, and
+ * retries only occasionally. This keeps a broken worker entry point degrading elevation sampling
+ * rather than consuming every core.
  */
 export class RasterSamplingWorkerPool {
   private readonly size: number;
   private readonly maxQueueSize: number;
   private readonly jobTimeoutMs: number;
   private readonly workerFactory: () => WorkerLike;
+  private readonly maxStartupFailures: number;
+  private readonly respawnDelayMs: number;
+  private readonly unavailableRetryAfterMs: number;
   private readonly workers: WorkerSlot[] = [];
   private readonly queue: Job[] = [];
   private nextJobId = 1;
@@ -114,6 +145,12 @@ export class RasterSamplingWorkerPool {
   private started = false;
   private closing = false;
   private closePromise?: Promise<void>;
+  // Counts workers that died before responding. Any successful start resets it to zero.
+  private consecutiveStartupFailures = 0;
+  // Set when startup failures exceed the limit. Cleared by the next retry attempt.
+  private unavailableSince?: number;
+  private unavailableReason?: string;
+  private readonly respawnTimers = new Set<NodeJS.Timeout>();
 
   constructor(options: RasterSamplingWorkerPoolOptions = {}) {
     this.size =
@@ -127,6 +164,14 @@ export class RasterSamplingWorkerPool {
       options.workerFactory ??
       // esbuild emits the worker entry point beside api.js in development and production.
       (() => new Worker(new URL("./rasterSamplingWorker.js", import.meta.url)) as WorkerLike);
+    this.maxStartupFailures =
+      options.maxStartupFailures ??
+      positiveIntegerFromEnvironment(
+        "RASTER_SAMPLING_MAX_STARTUP_FAILURES",
+        MAX_CONSECUTIVE_STARTUP_FAILURES
+      );
+    this.respawnDelayMs = options.respawnDelayMs ?? RESPAWN_BASE_DELAY_MS;
+    this.unavailableRetryAfterMs = options.unavailableRetryAfterMs ?? UNAVAILABLE_RETRY_AFTER_MS;
   }
 
   /** Submits a raster profile and resolves when a worker returns its result. */
@@ -139,6 +184,18 @@ export class RasterSamplingWorkerPool {
       return Promise.reject(
         new RasterSamplingWorkerPoolUnavailableError("Raster sampling workers are closed")
       );
+    }
+    // Workers are known to be unable to start. Fail fast rather than queueing work that cannot
+    // run, until enough time has passed to justify another attempt.
+    if (this.unavailableSince !== undefined) {
+      if (performance.now() - this.unavailableSince < this.unavailableRetryAfterMs) {
+        return Promise.reject(
+          new RasterSamplingWorkerPoolUnavailableError(
+            this.unavailableReason ?? "Raster sampling workers are unavailable"
+          )
+        );
+      }
+      this.clearUnavailable();
     }
     this.start();
     // Each worker owns its own raster cache and decoder. Dispatching whole profiles avoids
@@ -173,6 +230,8 @@ export class RasterSamplingWorkerPool {
     const closedError = new RasterSamplingWorkerPoolUnavailableError(
       "Raster sampling workers are closed"
     );
+    this.respawnTimers.forEach((timer) => clearTimeout(timer));
+    this.respawnTimers.clear();
     this.queue.splice(0).forEach((job) => job.reject(closedError));
     this.workers.forEach((slot) => {
       if (slot.timeout) clearTimeout(slot.timeout);
@@ -190,6 +249,37 @@ export class RasterSamplingWorkerPool {
     if (this.started) return;
     this.started = true;
     for (let index = 0; index < this.size; index += 1) this.addWorker();
+  }
+
+  /** Re-arms the pool for one more round of workers after an unavailable period. */
+  private clearUnavailable(): void {
+    this.unavailableSince = undefined;
+    this.unavailableReason = undefined;
+    this.consecutiveStartupFailures = 0;
+    // start() is one-shot, so it must be re-armed for the retry to create workers.
+    this.started = false;
+  }
+
+  /**
+   * Stops replacing workers and fails outstanding and incoming work until the retry window
+   * elapses. Entering this state is logged once, because the condition is persistent and the
+   * per-request 503s alone do not identify the cause.
+   */
+  private markUnavailable(error: Error): void {
+    this.unavailableSince = performance.now();
+    this.unavailableReason = `Raster sampling workers failed to start ${this.consecutiveStartupFailures} times in a row: ${error.message}`;
+    this.started = false;
+    serverLogger.error(
+      {
+        logId: "raster",
+        logValue: `${this.unavailableReason}. Elevation sampling is disabled for ${Math.round(
+          this.unavailableRetryAfterMs / 1000
+        )}s.`,
+      },
+      error
+    );
+    const unavailableError = new RasterSamplingWorkerPoolUnavailableError(this.unavailableReason);
+    this.queue.splice(0).forEach((job) => job.reject(unavailableError));
   }
 
   private addWorker(): void {
@@ -230,6 +320,12 @@ export class RasterSamplingWorkerPool {
   }
 
   private handleResponse(slot: WorkerSlot, response: RasterSamplingWorkerResponse): void {
+    // Any message proves the entry point loaded and the thread reached its message handler, so
+    // later failures on this worker are crashes rather than startup faults.
+    if (!slot.everResponded) {
+      slot.everResponded = true;
+      this.consecutiveStartupFailures = 0;
+    }
     if (response.status === "closed" || response.status === "close-error") {
       slot.shutdownComplete?.(
         response.status === "close-error" ? this.deserializeError(response.error) : undefined
@@ -272,16 +368,52 @@ export class RasterSamplingWorkerPool {
     if (index !== -1) this.workers.splice(index, 1);
     else if (!this.closing) return;
     if (slot.timeout) clearTimeout(slot.timeout);
+    const hadJob = slot.job !== undefined;
     slot.job?.reject(
       error instanceof RasterSamplingWorkerPoolUnavailableError
         ? error
         : new RasterSamplingWorkerPoolUnavailableError(error.message)
     );
     if (!this.closing) {
-      this.addWorker();
-      this.dispatchQueuedJobs();
+      // A worker that died while idle, having never sent a message, failed to start: no job of
+      // ours can explain its death. Node reports an unresolvable entry point asynchronously on
+      // "error", which is otherwise indistinguishable from a crash. A worker holding a job is
+      // attributed to that job instead, since bad raster input must not disable the pool.
+      const failedToStart = !slot.everResponded && !hadJob;
+      if (failedToStart) {
+        this.consecutiveStartupFailures += 1;
+        if (this.consecutiveStartupFailures >= this.maxStartupFailures) {
+          this.markUnavailable(error);
+        } else {
+          this.scheduleRespawn();
+        }
+      } else {
+        // Only a worker that actually responded proves the entry point is loadable. A worker that
+        // died holding its first job is replaced immediately, but must not clear the count, or a
+        // steady trickle of requests would keep resetting it and the loop would never be caught.
+        if (slot.everResponded) this.consecutiveStartupFailures = 0;
+        this.addWorker();
+        this.dispatchQueuedJobs();
+      }
     }
     slot.shutdownComplete?.(error);
+  }
+
+  /** Replaces a worker that failed to start, after a delay that doubles per consecutive failure. */
+  private scheduleRespawn(): void {
+    const delay = Math.min(
+      this.respawnDelayMs * 2 ** (this.consecutiveStartupFailures - 1),
+      RESPAWN_MAX_DELAY_MS
+    );
+    const timer = setTimeout(() => {
+      this.respawnTimers.delete(timer);
+      if (this.closing || this.unavailableSince !== undefined) return;
+      this.addWorker();
+      this.dispatchQueuedJobs();
+    }, delay);
+    // Never hold the process open purely to retry a worker that is failing to start.
+    timer.unref();
+    this.respawnTimers.add(timer);
   }
 
   private async shutdownWorker(slot: WorkerSlot): Promise<void> {
