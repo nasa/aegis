@@ -3,7 +3,13 @@ import {
   setMissionAutomergeDocHandle,
   withMissionChange,
 } from "client/automergeDocHandles";
-import { applyUpsertEva, applyUpdateEvaByField } from "operations/apply/apply-eva";
+import {
+  applyUpsertEva,
+  applyUpdateEvaByField,
+  applyInsertEvaSequenceItems,
+  applySwapEvaSequenceItems,
+  applySpliceEvaSequence,
+} from "operations/apply/apply-eva";
 import { generateBlankEVA } from "store/storeUtils/eva";
 
 const getMission = (): Mission => getMissionDocHandle().doc();
@@ -85,6 +91,30 @@ describe("apply-eva", () => {
         applyUpdateEvaByField(m, { evaUuid: "missing", fieldName: "name", value: "X" })
       );
       expect(Object.keys(getMission().evas).length).toBe(0);
+    });
+  });
+
+  describe("applyInsertEvaSequenceItems()", () => {
+    it("is a no-op when EVA doesn't exist", () => {
+      withMissionChange((m) =>
+        applyInsertEvaSequenceItems(m, { evaUuid: "missing", insertAt: 2, items: [] })
+      );
+    });
+  });
+
+  describe("applySwapEvaSequenceItems()", () => {
+    it("is a no-op when EVA doesn't exist", () => {
+      withMissionChange((m) =>
+        applySwapEvaSequenceItems(m, { evaUuid: "missing", indexA: 1, indexB: 1 })
+      );
+    });
+  });
+
+  describe("applySpliceEvaSequence()", () => {
+    it("is a no-op when EVA doesn't exist", () => {
+      withMissionChange((m) =>
+        applySpliceEvaSequence(m, { evaUuid: "missing", start: 1, deleteCount: 1 })
+      );
     });
   });
 });

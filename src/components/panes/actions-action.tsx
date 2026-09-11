@@ -338,29 +338,25 @@ const RightAction: FunctionComponent<{
                       className={actionStyles.actionDualButtons}
                       style={{ cursor: editMode ? "pointer" : "default" }}
                     >
-                      {action.enabled ? (
-                        <>
-                          <div
-                            className={`${actionStyles.actionDualButtonsLeft} ${crewLeftStyle}`}
-                            onClick={() => {
-                              if (editMode) toggleCrewAssigned("EV1");
-                            }}
-                          >
-                            1
-                          </div>
+                      <>
+                        <div
+                          className={`${actionStyles.actionDualButtonsLeft} ${crewLeftStyle}`}
+                          onClick={() => {
+                            if (editMode) toggleCrewAssigned("EV1");
+                          }}
+                        >
+                          1
+                        </div>
 
-                          <div
-                            className={`${actionStyles.actionDualButtonsRight} ${crewRightStyle}`}
-                            onClick={() => {
-                              if (editMode) toggleCrewAssigned("EV2");
-                            }}
-                          >
-                            2
-                          </div>
-                        </>
-                      ) : (
-                        <div className={actionStyles.actionDualButtonsDisabled}></div>
-                      )}
+                        <div
+                          className={`${actionStyles.actionDualButtonsRight} ${crewRightStyle}`}
+                          onClick={() => {
+                            if (editMode) toggleCrewAssigned("EV2");
+                          }}
+                        >
+                          2
+                        </div>
+                      </>
                     </div>
                   </div>
                 )}

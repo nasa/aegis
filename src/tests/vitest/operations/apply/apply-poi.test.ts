@@ -85,5 +85,13 @@ describe("apply-poi", () => {
         )
       ).not.toThrow();
     });
+
+    it("does nothing when poi does not exist", () => {
+      expect(() =>
+        withMissionChange((m) =>
+          applyUpdatePoiByField(m, { poiUuid: "not-uuid", fieldName: "name", value: "x" })
+        )
+      ).not.toThrow();
+    });
   });
 });

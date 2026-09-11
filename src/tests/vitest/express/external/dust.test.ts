@@ -86,7 +86,7 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Dust Mission 1",
-      isArchived: false,
+      archivedAt: null,
       evas: {
         [eva.uuid]: eva,
         [rexEva.uuid]: rexEva,
@@ -103,7 +103,7 @@ beforeAll(async () => {
     {
       id: testAutomergeDocListings[1].missionId,
       name: "Vitest Dust Mission 2",
-      isArchived: false,
+      archivedAt: null,
       evas: {},
       traverses: {},
       rexes: {},
