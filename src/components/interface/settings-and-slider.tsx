@@ -176,6 +176,7 @@ const Settings_subpanel: FunctionComponent<{
           name="opacity"
           value={getPercentOrDefault(layerStyle?.opacity)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "opacity")}
+          tooltip={"Stroke Opacity"}
         />
       )}
       {showSliders.weight && (
@@ -187,6 +188,7 @@ const Settings_subpanel: FunctionComponent<{
           min={1}
           max={5}
           unit={"px"}
+          tooltip={"Stroke Weight"}
         />
       )}
       {showSliders.showLabels && (
@@ -254,7 +256,7 @@ const Settings_subpanel: FunctionComponent<{
           min={0}
           max={10}
           unit={"px"}
-          tooltip={"size"}
+          tooltip={"Halo Size"}
         />
       )}
       {showSliders.showLabels &&
@@ -267,7 +269,7 @@ const Settings_subpanel: FunctionComponent<{
               (layerStyle?.labelHaloOpacity ?? styleDefaults.labelHaloOpacity) * 100
             )}
             onChange={(e) => setStyle(Number(e.target.value) / 100, "labelHaloOpacity")}
-            tooltip={"opacity"}
+            tooltip={"Halo Opacity"}
           />
         )}
       {showSliders.isDashed && (
@@ -326,6 +328,7 @@ const Settings_subpanel: FunctionComponent<{
           name="fillOpacity"
           value={getPercentOrDefault(layerStyle?.fillOpacity)}
           onChange={(e) => setStyle(Number(e.target.value) / 100, "fillOpacity")}
+          tooltip={"Fill Opacity"}
         />
       )}
       {showSliders.blendMode && (
