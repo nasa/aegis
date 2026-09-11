@@ -226,7 +226,6 @@ const MissionList = ({
       if (missionDocHandle) {
         missionDocHandle.change((mission: Mission) => {
           mission.archivedAt = archive ? new Date().getTime() : null;
-          mission.updatedAt = new Date().getTime();
         });
       }
       loadMissions();
@@ -256,9 +255,11 @@ const MissionList = ({
             <td style={{ whiteSpace: "nowrap" }}>
               {mission.createdAt ? new Date(mission.createdAt).toLocaleString() : "—"}
             </td>
-            <td style={{ whiteSpace: "nowrap" }}>
-              {mission.archivedAt ? new Date(mission.archivedAt).toLocaleString() : "—"}
-            </td>
+            {archivedAtTable ? (
+              <td style={{ whiteSpace: "nowrap", fontWeight: 600 }}>
+                {mission.archivedAt ? new Date(mission.archivedAt).toLocaleString() : "—"}
+              </td>
+            ) : null}
             <td>
               <div className={styles.missionActions}>
                 <button

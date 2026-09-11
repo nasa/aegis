@@ -784,6 +784,7 @@ getORM()
     const automergeMigration20260909AddArchivedAt = async (docHandle: DocHandle<Mission>) => {
       docHandle.change((mission: Mission) => {
         if ("isArchived" in mission) {
+          mission.archivedAt = mission.isArchived ? mission.updatedAt : null;
           delete mission.isArchived;
         }
 

@@ -57,7 +57,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     stmLevel3Name: "Investigation",
     updatedAt: getAccurateNow().getTime(),
     createdAt: getAccurateNow().getTime(),
-    archivedAt: getAccurateNow().getTime(),
+    archivedAt: null,
   };
   return { ...defaultNewMission, ...partialMission };
 };
