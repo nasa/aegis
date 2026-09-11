@@ -155,26 +155,24 @@ const MissionSelect = ({ appUser }: { appUser: AppUser }) => {
   }, [appUser]);
 
   return (
-    <>
+    <div className={styles.missionSelect}>
       <div className={styles.title}>Select a Mission</div>
-      <div>
-        <div className={`${styles.container}`}>
-          <table className={styles.table}>
-            <tbody>
-              {missionHomepageItems &&
-                missionHomepageItems.map((missionHomepageItem) => {
-                  return (
-                    <MissionHomepageItem
-                      key={missionHomepageItem.id}
-                      missionHomepageItem={missionHomepageItem}
-                    />
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
+      <div className={`${styles.container}`}>
+        <table className={styles.table}>
+          <tbody>
+            {missionHomepageItems &&
+              missionHomepageItems.map((missionHomepageItem) => {
+                return (
+                  <MissionHomepageItem
+                    key={missionHomepageItem.id}
+                    missionHomepageItem={missionHomepageItem}
+                  />
+                );
+              })}
+          </tbody>
+        </table>
       </div>
-    </>
+    </div>
   );
 };
 
@@ -384,16 +382,6 @@ const Left: FunctionComponent = () => {
                 </li>
                 <li>
                   <div className={styles.creditHeading}>
-                    <a className={styles.teamName} href={"mailto:luke.a.mcsherry@nasa.gov"}>
-                      {" "}
-                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
-                      Luke McSherry
-                    </a>
-                  </div>
-                  <div className={styles.teamTitle}>Software Engineering</div>
-                </li>
-                <li>
-                  <div className={styles.creditHeading}>
                     <a className={styles.teamName} href={"mailto:omar.a.baig@nasa.gov"}>
                       {" "}
                       <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
@@ -425,16 +413,6 @@ const Left: FunctionComponent = () => {
                     </a>
                   </div>
                   <div className={styles.teamTitle}>Interaction and Visual Design</div>
-                </li>
-                <li>
-                  <div className={styles.creditHeading}>
-                    <a className={styles.teamName} href={"mailto:jacob.r.keller@nasa.gov"}>
-                      {" "}
-                      <FontAwesomeIcon className={styles.emailIcon} icon={faEnvelope} size={"xs"} />
-                      Jacob Keller
-                    </a>
-                  </div>
-                  <div className={styles.teamTitle}>Mission Support</div>
                 </li>
                 <li>
                   <div className={styles.creditHeading}>
