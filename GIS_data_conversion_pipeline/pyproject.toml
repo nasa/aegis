@@ -11,9 +11,9 @@ requires-python = ">=3.10"
 #   uv run --with rasterio --with fiona --with pyproj python <script>.py
 # (uv pulls prebuilt wheels for these on most platforms), or just use pixi.
 dependencies = [
-    "pmtiles>=3.2.0",
-    "mapbox-vector-tile>=2.2.0",
-    "pillow>=12.2.0",
+    "pmtiles==3.7.0",
+    "mapbox-vector-tile==2.2.0",
+    "pillow==12.2.0",
 ]
 
 # NOTE: the pipeline scripts are run by path (e.g.
@@ -23,7 +23,7 @@ dependencies = [
 # below exists only to pull the pure-Python PyPI deps via pixi.
 
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools==84.0.0"]
 build-backend = "setuptools.build_meta"
 
 # Nothing here is an importable package — the pipeline lives in the hyphenated
