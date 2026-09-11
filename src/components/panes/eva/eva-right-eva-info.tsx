@@ -16,6 +16,7 @@ import {
   getISOStringFromDateAndTime,
   isISOString,
   numericDatetimeToISO,
+  roundUpSecondsFromISOString,
   toDecimal,
   toNumericDatetime,
 } from "utils/formatting";
@@ -125,9 +126,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       let parsedEvaTime = "";
       const isoDatetime = numericDatetimeToISO(selectedEva?.datetime);
       if (isoDatetime && isISOString(isoDatetime)) {
-        const [date, time] = getDateAndTimeFromISOString(isoDatetime);
+        const roundedIsoDateTime = roundUpSecondsFromISOString(isoDatetime);
+        const [date, time] = getDateAndTimeFromISOString(roundedIsoDateTime);
         parsedEvaDate = date;
-        parsedEvaTime = time.split(".")[0];
+        parsedEvaTime = time;
       }
       setEvaDate(parsedEvaDate);
       setEvaTime(parsedEvaTime);
