@@ -23,7 +23,7 @@ import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 
 import { selectAsPlannedStations } from "store/selectors";
-import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
+import { createFolderOrganizedDropdownOptions } from "utils/dropdown-options";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { canMoveStation, isXgressIndex } from "operations/helpers/evaSequence";
 

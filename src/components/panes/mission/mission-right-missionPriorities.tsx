@@ -22,7 +22,7 @@ import {
   opDeleteMissionPriority,
   opDeleteMissionPriorityCategory,
 } from "operations/op-missionPriority";
-import { buildMissionPriorityName } from "store/storeUtils/mission";
+import { createDropdownWithHeadings } from "utils/dropdown-options";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 
 /**
@@ -51,7 +51,7 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
   return (
     <div className={paneStyles.rightBody}>
       <div className={paneStyles.rightBodyTitle} aria-label="rightBodyTitle">
-        Mission Priorities
+        Mission Priority Identifiers
       </div>
       <div className={paneStyles.rightBodyBody}>
         {categories.map((category) => (
@@ -264,8 +264,8 @@ const MissionPriorityItem: FunctionComponent<{
 const MemoizedMissionPriorityItem = memo(MissionPriorityItem);
 
 /**
- * Single-select dropdown listing every mission priority as "<trace> | <category>", ordered by
- * trace. Shared by the action panel and the action template panel.
+ * Single-select dropdown listing every mission priority trace, grouped under its category
+ * heading and ordered by trace within each group.
  */
 export const MissionPriorityDropdown: FunctionComponent<{
   selectedUuid: string | null;
@@ -277,13 +277,25 @@ export const MissionPriorityDropdown: FunctionComponent<{
     deepEqual
   );
 
-  const sortedMissionPriorities = sortMissionPriorities(missionPriorities);
-  const selected = selectedUuid ? missionPriorities?.[selectedUuid] : null;
+  const selectedMissionPriority = selectedUuid ? missionPriorities?.[selectedUuid] : null;
+
+  // The category is carried by the optgroup heading, so each option shows only its trace.
+  const missionPriorityOptions = createDropdownWithHeadings({
+    items: sortMissionPriorities(missionPriorities).map(([uuid, missionPriority]) => ({
+      uuid,
+      name: missionPriority.trace,
+      category: missionPriority.category,
+    })),
+    getHeading: (item) => item.category,
+    compareItems: (a, b) => a.name.localeCompare(b.name),
+  });
 
   if (!editMode) {
     return (
       <div className={paneStyles.displayFieldValue}>
-        {selected ? buildMissionPriorityName(selected) : "Not set"}
+        {selectedMissionPriority
+          ? `${selectedMissionPriority.trace} | ${selectedMissionPriority.category}`
+          : "Not set"}
       </div>
     );
   }
@@ -292,16 +304,12 @@ export const MissionPriorityDropdown: FunctionComponent<{
     <Dropdown
       selected={selectedUuid ?? ""}
       onChange={(val) => onSelect(val || null)}
-      toolTip="Mission Priority"
+      toolTip="Mission Priority Identifier"
       arrowStyle={{ color: "var(--grey5)" }}
       containerStyle={{ justifyContent: "flex-start", width: "inherit" }}
     >
       <option value="">Not set</option>
-      {sortedMissionPriorities.map(([uuid, missionPriority]) => (
-        <option key={uuid} value={uuid}>
-          {buildMissionPriorityName(missionPriority)}
-        </option>
-      ))}
+      {missionPriorityOptions}
     </Dropdown>
   );
 };
