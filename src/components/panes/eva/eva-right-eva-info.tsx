@@ -77,6 +77,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       stations: selectEvaStations(mission, selectedEvaUuid),
       traverses: selectEvaTraverses(mission, selectedEvaUuid),
       defaultTraverseColor: mission.evas?.[selectedEvaUuid]?.traverseColor ?? undefined,
+      time: numericDatetimeToISO(mission.evas?.[selectedEvaUuid]?.datetime) ?? undefined,
     });
   }, deepEqual);
 

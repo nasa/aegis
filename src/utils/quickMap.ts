@@ -12,6 +12,10 @@ export interface QuickMapLinkState {
   resolutionMetersPerPixel: number;
   layerIds: string[];
   geometries: QuickMapGeometry[];
+  /** Optional ISO 8601 time state understood by QuickMap's Cesium viewer. */
+  time?: string;
+  startTime?: string;
+  stopTime?: string;
 }
 
 export interface QuickMapLinkResult {
@@ -127,6 +131,14 @@ function createBaseUrl(baseUrl: string, state: QuickMapLinkState): URL {
   if (state.layerIds.length > 0) {
     url.searchParams.set("stack", state.layerIds.join(","));
   }
+  if (state.time) {
+    url.searchParams.set("time", state.time);
+  }
+  // QuickMap enables bounded playback only when both ends are supplied.
+  if (state.startTime && state.stopTime) {
+    url.searchParams.set("startTime", state.startTime);
+    url.searchParams.set("stopTime", state.stopTime);
+  }
   return url;
 }
 
@@ -163,12 +175,18 @@ export function createQuickMapLinkState({
   stations = [],
   traverses = [],
   defaultTraverseColor,
+  time,
+  startTime,
+  stopTime,
 }: {
   center: AEGISPoint;
   additionalPoints?: QuickMapPoint[];
   stations?: Station[];
   traverses?: Traverse[];
   defaultTraverseColor?: string;
+  time?: string;
+  startTime?: string;
+  stopTime?: string;
 }): QuickMapLinkState {
   const { layerIds, resolutionMetersPerPixel } = getQuickMapConfig();
   const additionalPointGeometries = additionalPoints.flatMap((point): QuickMapGeometry[] => {
@@ -219,6 +237,9 @@ export function createQuickMapLinkState({
     resolutionMetersPerPixel,
     layerIds,
     geometries: [...additionalPointGeometries, ...stationGeometries, ...traverseGeometries],
+    time,
+    startTime,
+    stopTime,
   };
 }
 
