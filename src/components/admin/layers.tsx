@@ -19,6 +19,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
+import { toast } from "react-toastify";
 
 const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
@@ -264,7 +265,11 @@ const LayerList = (props: {
   async function delSubLayer(sublayer: Sublayer) {
     if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
       const res: WrappedResponse<null> = await deleteSublayers([sublayer.uuid]);
-      alert(`Delete sublayer ${res.status} - ${res.message}`);
+      if (res.status !== "success") {
+        toast.error(`Delete sublayer ${res.status} - ${res.message}`);
+      } else {
+        toast.success(`Delete sublayer ${res.status} - ${res.message}`);
+      }
       props.refreshLayerList(); //reload layer listing in parent component.
     }
   }
@@ -272,12 +277,16 @@ const LayerList = (props: {
   async function delLayer(layer: Layer) {
     if (confirm("Are you sure you want to delete layer " + layer.name)) {
       if (props.sublayers.some((sublayer) => sublayer.layerUuid === layer.uuid)) {
-        alert(
+        toast.error(
           `Error: Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first`
         );
       } else {
         const res: WrappedResponse<null> = await deleteLayers([layer.uuid]);
-        alert(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
+        if (res.status !== "success") {
+          toast.error(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
+        } else {
+          toast.success(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
+        }
         props.refreshLayerList(); //reload layer listing in parent component.
       }
     }

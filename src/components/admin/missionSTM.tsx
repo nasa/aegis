@@ -18,6 +18,7 @@ import { type AutomergeUrl, isValidAutomergeUrl } from "@automerge/automerge-rep
 import { getAutomergeDocListing } from "http-client/docListing";
 import { useDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
+import { toast } from "react-toastify";
 
 const MissionSTM: FunctionComponent<{
   missionId: number;
@@ -79,14 +80,14 @@ const MissionSTM: FunctionComponent<{
         }
       }
       if (alertMsg.length > 0) {
-        alert(`Cannot delete ${stmType}. ${alertMsg}`);
+        toast.error(`Cannot delete ${stmType}. ${alertMsg}`);
         return;
       }
       try {
         await deleteSTMs(missionId, stmType, [uuid]);
         await loadSTMFromDB(missionId);
       } catch {
-        alert(`Unknown error deleting ${stmType}: ${uuid}`);
+        toast.error(`Unknown error deleting ${stmType}: ${uuid}`);
       }
     }
   }
@@ -207,7 +208,7 @@ const Level1List: FunctionComponent<{
                   saveFunction={async (stm) => {
                     const res = await upsertSTMs(partialMission.id, [stm] as STMLevel1[], "Level1");
                     if (res.status !== "success") {
-                      alert(`${res.status} saving STM: ${res.message}`);
+                      toast.error(`${res.status} saving STM: ${res.message}`);
                     }
                   }}
                 />
@@ -293,7 +294,7 @@ const Level2List: FunctionComponent<{
                   saveFunction={async (stm) => {
                     const res = await upsertSTMs(missionId, [stm] as STMLevel2[], "Level2");
                     if (res.status !== "success") {
-                      alert(`${res.status} saving STM: ${res.message}`);
+                      toast.error(`${res.status} saving STM: ${res.message}`);
                     }
                   }}
                 />
@@ -341,7 +342,7 @@ const Level3List: FunctionComponent<{
                   saveFunction={async (stm) => {
                     const res = await upsertSTMs(missionId, [stm] as STMLevel3[], "Level3");
                     if (res.status !== "success") {
-                      alert(`${res.status} saving STM: ${res.message}`);
+                      toast.error(`${res.status} saving STM: ${res.message}`);
                     }
                   }}
                 />

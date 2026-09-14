@@ -14,6 +14,7 @@ import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { setAppUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { clientLogger } from "utils/logging/clientLogger";
+import { toast } from "react-toastify";
 import isEqual from "lodash/isEqual";
 
 const Login = () => {
@@ -467,7 +468,7 @@ const Home: React.FunctionComponent = () => {
       } else {
         const serverAppVersion: AppVersion = await res.json();
         if (!isEqual(clientAppVersion, serverAppVersion)) {
-          alert(
+          toast.info(
             `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${clientAppVersion.version}/${clientAppVersion.gitCommit}/${clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid}`
           );
           // Redirect to version check page with version info and return URL

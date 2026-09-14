@@ -1,6 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
+import { toast } from "react-toastify";
 
 type ActionDefPrintableListItem = {
   parentType: "Action in Station" | "Rule in STM Item" | "Action Template";
@@ -80,7 +81,7 @@ export const thunkDocDeleteActionDefItem = appCreateAsyncThunk<
     printableList.forEach((item) => {
       alertMessage += `${item.parentType}: ${item.parentName}\n`;
     });
-    alert(alertMessage);
+    toast.error(alertMessage);
     return;
   }
 

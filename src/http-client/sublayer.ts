@@ -1,3 +1,5 @@
+import { toast } from "react-toastify";
+
 export async function getSublayers(
   mission: number,
   uuid?: string
@@ -40,7 +42,7 @@ export async function upsertSublayers(sublayers: Sublayer[]): Promise<WrappedRes
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error saving sublayers to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
@@ -69,7 +71,7 @@ export async function deleteSublayers(sublayerUuids: string[]): Promise<WrappedR
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error deleting sublayers from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };

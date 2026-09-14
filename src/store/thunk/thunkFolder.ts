@@ -12,6 +12,7 @@ import Cookies from "js-cookie";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { clientLogger } from "utils/logging/clientLogger";
+import { toast } from "react-toastify";
 
 export const thunkCreateFolder = appCreateAsyncThunk<{ type: FolderType }>(
   "thunkCreateFolder",
@@ -115,7 +116,7 @@ export const thunkDeleteFolder = appCreateAsyncThunk<{ folderUuid: string }>(
     if (!folder) return;
 
     if (folder.items.length > 0) {
-      alert("Cannot delete folder with items in it");
+      toast.error("Cannot delete folder with items in it");
       return;
     }
 

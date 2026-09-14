@@ -18,6 +18,7 @@ import {
   applyUpdateEquipmentItemByField,
 } from "operations/apply/apply-mission-equipment";
 import { withMissionChange } from "client/automergeDocHandles";
+import { toast } from "react-toastify";
 
 const Equipment_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const missionEquipItems: EquipmentItems = useMissionDocSelector(
@@ -195,7 +196,7 @@ const EquipmentItem: FunctionComponent<{
                     thunkDocDeleteEquipmentItem({ equipmentItemUuid: uuid })
                   );
                   if (thunkDocDeleteEquipmentItem.rejected.match(result) && result.payload) {
-                    alert(result.payload);
+                    toast.error(result.payload);
                   }
                 }}
                 aria-label="deleteButton"

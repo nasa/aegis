@@ -1,3 +1,5 @@
+import { toast } from "react-toastify";
+
 export async function getMissions(): Promise<WrappedResponse<Mission[]>> {
   const res = await fetch(`/api/v1/missionAutomerge`);
   if (res.status !== 200) {
@@ -49,7 +51,9 @@ export async function createMission(
     } catch {
       /* response body is not JSON */
     }
-    alert(`Error creating mission. Please let the AEGIS developers know. Status ${errorMessage}`);
+    toast.error(
+      `Error creating mission. Please let the AEGIS developers know. Status ${errorMessage}`
+    );
     return { status: "error", message: errorMessage };
   }
   const response: WrappedResponse<AutomergeDocListing> = await res.json();
@@ -72,7 +76,7 @@ export async function duplicateMission(missionId: number): Promise<WrappedRespon
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error duplicating mission. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
@@ -97,7 +101,9 @@ export async function deleteMissions(missionIds: number[]): Promise<WrappedRespo
     } catch {
       /* response body is not JSON */
     }
-    alert(`Error deleting mission. Please let the AEGIS developers know. Status ${errorMessage}`);
+    toast.error(
+      `Error deleting mission. Please let the AEGIS developers know. Status ${errorMessage}`
+    );
     return { status: "error", message: errorMessage };
   }
   const response: WrappedResponse<number[]> = await res.json();
@@ -116,7 +122,9 @@ export async function dumpMission(missionId: number): Promise<WrappedResponse<Mi
     } catch {
       /* response body is not JSON */
     }
-    alert(`Error dumping mission. Please let the AEGIS developers know. Status ${errorMessage}`);
+    toast.error(
+      `Error dumping mission. Please let the AEGIS developers know. Status ${errorMessage}`
+    );
     return { status: "error", message: errorMessage };
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
