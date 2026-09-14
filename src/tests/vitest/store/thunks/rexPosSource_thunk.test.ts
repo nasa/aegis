@@ -4,8 +4,9 @@ import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { v4 as uuidv4 } from "uuid";
+import { setupToastSpies, resetToastSpies, type ToastSpies } from "tests/vitest/helpers/mockToasts";
 
-const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => true);
+let toastSpies: ToastSpies;
 
 const getMission = (): Mission => getMissionDocHandle().doc();
 
@@ -15,6 +16,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  toastSpies = setupToastSpies();
   getMissionDocHandle().change((m) => {
     m.rexes = {};
     m.evas = {};
@@ -23,7 +25,7 @@ beforeEach(() => {
 
 afterAll(() => {
   vi.restoreAllMocks();
-  alertSpy.mockRestore();
+  resetToastSpies(toastSpies);
 });
 
 describe("Thunk Rex PosSource Tests", () => {
@@ -78,7 +80,7 @@ describe("Thunk Rex PosSource Tests", () => {
       });
 
       await store.dispatch(thunkDocCreatePosSource());
-      expect(alertSpy).toHaveBeenCalled();
+      expect(toastSpies.error).toHaveBeenCalled();
       expect(getMission().rexes[rex.uuid].posSources.length).toBe(4);
     });
 

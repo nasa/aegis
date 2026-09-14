@@ -7,8 +7,9 @@ import { generateBlankActionTemplate } from "store/storeUtils/mission";
 import { upsertSTMRules } from "store/stm";
 import { v4 as uuidv4 } from "uuid";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import { resetToastSpies, setupToastSpies, type ToastSpies } from "tests/vitest/helpers/mockToasts";
 
-const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+let toastSpies: ToastSpies;
 
 let store: StoreType;
 
@@ -24,10 +25,11 @@ beforeAll(() => {
 beforeEach(() => {
   vi.clearAllMocks();
   store = createTestStoreWithAutomergeMission();
+  toastSpies = setupToastSpies();
 });
 
 afterAll(() => {
-  alertSpy.mockRestore();
+  resetToastSpies(toastSpies);
 });
 
 describe("Thunk Action Definition Item Tests", () => {
@@ -50,7 +52,7 @@ describe("Thunk Action Definition Item Tests", () => {
     });
 
     await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(toastSpies.error).toHaveBeenCalledTimes(1);
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       actionDefinitionsCount
     ); // Deletion should be blocked
@@ -66,7 +68,7 @@ describe("Thunk Action Definition Item Tests", () => {
     ).length;
 
     await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).not.toHaveBeenCalled();
+    expect(toastSpies.error).not.toHaveBeenCalled();
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       actionDefinitionsCount - 1
     );
@@ -85,7 +87,7 @@ describe("Thunk Action Definition Item Tests", () => {
     store.dispatch(upsertSTMRules([rule]));
 
     await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(toastSpies.error).toHaveBeenCalledTimes(1);
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       countBefore
     );
@@ -108,7 +110,7 @@ describe("Thunk Action Definition Item Tests", () => {
     });
 
     await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(toastSpies.error).toHaveBeenCalledTimes(1);
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       countBefore
     );
@@ -143,8 +145,8 @@ describe("Thunk Action Definition Item Tests", () => {
     });
 
     await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    const alertMsg = alertSpy.mock.calls[0][0] as string;
+    expect(toastSpies.error).toHaveBeenCalledTimes(1);
+    const alertMsg = toastSpies.error.mock.calls[0][0] as string;
     expect(alertMsg).toContain("Action in Station");
     expect(alertMsg).toContain("Rule in STM Item");
     expect(alertMsg).toContain("Action Template");
