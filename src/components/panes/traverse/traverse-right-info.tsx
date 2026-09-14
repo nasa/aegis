@@ -130,7 +130,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   }
 
   const handlePathEdit = async () => {
-    dispatch(setOriginalPoints(selectedTraverse.path));
     dispatch(
       thunkUpdateMapDirective({
         uuid: selectedTraverse.uuid,
@@ -138,6 +137,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
         mapAction: "editPolyline",
       })
     );
+    dispatch(setOriginalPoints(selectedTraverse.path));
   };
 
   const handlePathFinished = async () => {
@@ -165,6 +165,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
 
   const handlePathReset = async () => {
     //reset path to stations endpoints
+    dispatch(setOriginalPoints([]));
     dispatch(thunkDocResetTraverse({ traverseUuid: selectedTraverse.uuid }));
   };
 

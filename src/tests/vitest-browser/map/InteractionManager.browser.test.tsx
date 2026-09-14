@@ -15,8 +15,8 @@
  *  - editMarker: adds Translate interaction when feature found on map
  *  - editMarker: clears directive when feature not found
  *  - saveEditPolyline: clears directive
- *  - cancelEditPolyline traverse: dispatches revertTraversePath + clears directive
- *  - cancelEditPolyline walkback: dispatches revertWalkbackPath + clears directive
+ *  - cancelEditPolyline traverse: restores the pre-edit path + clears directive
+ *  - cancelEditPolyline walkback: restores the pre-edit path + clears directive
  *  - InteractionManager renders null (no DOM output)
  */
 
@@ -398,8 +398,69 @@ describe("InteractionManager", () => {
     expect(store.getState().map.mapDirective).toBeNull();
   });
 
-  it("cancelEditPolyline for traverse dispatches thunkDocResetTraverse and clears directive", async () => {
-    const { thunkDocResetTraverse } = await import("store/thunk/thunkTraverse");
+  it("cancelEditPolyline for traverse restores the pre-edit path and clears directive", async () => {
+    const { thunkDocUpdateTraverse } = await import("store/thunk/thunkTraverse");
+    const originalPoints = [
+      { lat: 1, lng: 1 },
+      { lat: 2, lng: 2 },
+      { lat: 3, lng: 3 },
+    ];
+
+    store = makeStore({
+      map: {
+        ...mapSlice.getInitialState(),
+        originalPoints,
+        mapDirective: {
+          uuid: "traverse-1",
+          mapItemType: "traverse",
+          mapAction: "cancelEditPolyline",
+        },
+      },
+    } as PartialPreloadedState);
+
+    renderInteractionManager();
+
+    // directive cleared, which also clears the snapshot
+    expect(store.getState().map.mapDirective).toBeNull();
+    expect(store.getState().map.originalPoints).toEqual([]);
+    // pre-edit path written back (NOT a straight-line reset)
+    expect(vi.mocked(thunkDocUpdateTraverse)).toHaveBeenCalledWith({
+      traverseUuid: "traverse-1",
+      path: originalPoints,
+    });
+  });
+
+  it("cancelEditPolyline for walkback restores the pre-edit path and clears directive", async () => {
+    const { thunkDocUpdateWalkback } = await import("store/thunk/thunkStation");
+    const originalPoints = [
+      { lat: 4, lng: 4 },
+      { lat: 5, lng: 5 },
+    ];
+
+    store = makeStore({
+      map: {
+        ...mapSlice.getInitialState(),
+        originalPoints,
+        mapDirective: {
+          uuid: "station-1",
+          mapItemType: "walkback",
+          mapAction: "cancelEditPolyline",
+        },
+      },
+    } as PartialPreloadedState);
+
+    renderInteractionManager();
+
+    expect(store.getState().map.mapDirective).toBeNull();
+    expect(store.getState().map.originalPoints).toEqual([]);
+    expect(vi.mocked(thunkDocUpdateWalkback)).toHaveBeenCalledWith({
+      stationUuid: "station-1",
+      path: originalPoints,
+    });
+  });
+
+  it("cancelEditPolyline with no snapshot leaves the path untouched", async () => {
+    const { thunkDocUpdateTraverse } = await import("store/thunk/thunkTraverse");
 
     store = makeStore({
       map: {
@@ -413,11 +474,9 @@ describe("InteractionManager", () => {
     } as PartialPreloadedState);
 
     renderInteractionManager();
-
-    // directive cleared
+    // Directive clearned and thunkDocUpdateTraverse dispatched
     expect(store.getState().map.mapDirective).toBeNull();
-    // thunkDocResetTraverse dispatched
-    expect(vi.mocked(thunkDocResetTraverse)).toHaveBeenCalledWith({ traverseUuid: "traverse-1" });
+    expect(vi.mocked(thunkDocUpdateTraverse)).not.toHaveBeenCalled();
   });
 
   it("cursor is cleared on unmount", () => {
