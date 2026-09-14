@@ -10,6 +10,7 @@ import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUsers } from "@fortawesome/free-solid-svg-icons";
+import { toast } from "react-toastify";
 import adminCommon from "./adminCommon.module.css";
 
 const User: React.FunctionComponent = () => {
@@ -94,7 +95,7 @@ const User: React.FunctionComponent = () => {
       setUserList(userList.filter((u) => u.id !== user.id));
       setDeleteTarget(null);
     } else {
-      alert("There was an error deleting user");
+      toast.error("There was an error deleting user");
       setDeleteTarget(null);
     }
   };

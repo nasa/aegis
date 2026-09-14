@@ -1,3 +1,5 @@
+import { toast } from "react-toastify";
+
 export async function getLayers(mission: number, uuid?: string): Promise<WrappedResponse<Layer[]>> {
   let params = `missionId=${mission}`;
   if (uuid) params += `&uuid=${uuid}`;
@@ -37,7 +39,7 @@ export async function upsertLayers(layers: Layer[]): Promise<WrappedResponse<Lay
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error saving layers to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
@@ -66,7 +68,7 @@ export async function deleteLayers(layerUuids: string[]): Promise<WrappedRespons
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error deleting layers from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
