@@ -3,7 +3,11 @@ import { getAutomergeDocListing } from "../../express/routes/docListing";
 import type { DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
-import type { MaestroVersionDebugInfo, MaestroVisitorDebugEntry } from "./types/socketioMaestro";
+import type {
+  ExecuteUuidMap,
+  MaestroVersionDebugInfo,
+  MaestroVisitorDebugEntry,
+} from "./types/socketioMaestro";
 import { onChangeListener, setMaestroSnapshot, clearMaestroSnapshot } from "./onChangeListener";
 
 /**
@@ -140,4 +144,19 @@ export const buildDebugInfo = (): MaestroVersionDebugInfo => {
     }));
   }
   return { docListenerMissionIds, evaSubscriptions, visitors };
+};
+
+export const getExecuteUuids = (missionId: number, rexUuid: string): ExecuteUuidMap => {
+  const docHandle = globalValues.maestroV2.docHandles.get(missionId);
+  if (!docHandle) {
+    serverLogger.warning({
+      logId: "socket-maestro-v2",
+      logValue: `getExecuteUuids - no doc handle available for mission ${missionId}`,
+    });
+    throw new Error(`No doc handle available for mission ${missionId}`);
+  }
+  const mission = docHandle.doc();
+
+
+  return {};
 };

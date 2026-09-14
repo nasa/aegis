@@ -14,6 +14,7 @@ import {
   addMaestroDocListenerForMission,
   buildDebugInfo,
   cleanupMaestro,
+  getExecuteUuids,
   removeEvaFromSubscriptions,
 } from "server/maestro/v2/sockets-maestro-emitters";
 import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
@@ -99,32 +100,15 @@ export const setupMaestroNamespace = (
           .emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
 
-      socket.on("subscribeToEva", async (missionId: number, evaUuid: string, callback) => {
-        // Validate evaUuid exists
-        const docHandle = globalValues.maestroV2.docHandles.get(missionId);
-        if (!docHandle) {
-          callback?.({ status: "error", message: "Document handle not found for missionId" });
-          return;
-        }
-        const mission = docHandle.doc();
-        if (!mission.evas[evaUuid]) {
-          callback?.({ status: "error", message: "Eva not found in mission" });
-          return;
-        }
-
-        const subscriptions = globalValues.maestroV2.evaSubscriptions.get(missionId) ?? [];
-        if (!subscriptions.includes(evaUuid)) {
-          subscriptions.push(evaUuid);
-          globalValues.maestroV2.evaSubscriptions.set(missionId, subscriptions);
-        }
-        callback?.({ status: "success" });
-      });
-
-      socket.on("unsubscribeToEva", (missionId: number, evaUuid: string) => {
-        removeEvaFromSubscriptions(missionId, [evaUuid]);
-      });
-
       socket.on("missionLeave", (missionId: number) => {
+        if (!missionId || isNaN(missionId)) {
+          serverLogger.warning({
+            logId: "socket-maestro-v2",
+            logValue: `missionLeave - invalid missionId ${missionId}`,
+          });
+          return;
+        }
+
         const roomName = getMaestroSocketRoomName(missionId);
         socket.leave(roomName);
 
@@ -145,27 +129,53 @@ export const setupMaestroNamespace = (
           .emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
 
-      socket.on("disconnect", () => {
-        // Remove this socket from any maestro mission rooms they happened to be in
-        for (const missionId in globalValues.maestroV2.visitorData) {
-          const visitors = globalValues.maestroV2.visitorData[missionId];
-          const removed = remove(visitors, (item) => item.socketId === socket.id);
-          // If we removed the last visitor and the room is now empty, delete the key and cleanup
-          if (removed.length > 0 && visitors.length === 0) {
-            delete globalValues.maestroV2.visitorData[missionId];
-            if (missionId != null) cleanupMaestro(+missionId);
-          }
+      socket.on("subscribeToEva", async (missionId: number, evaUuid: string, callback) => {
+        if (!missionId || isNaN(missionId)) {
+          serverLogger.warning({
+            logId: "socket-maestro-v2",
+            logValue: `subscribeToEva - invalid missionId ${missionId}`,
+          });
+          return;
         }
 
-        // Update the inspector room on the default namespace
-        globalValues.socketio
-          .to("inspector")
-          .emit("inspectorUpdate", globalValues.serverSocketStatus);
+        // Validate evaUuid exists
+        const docHandle = globalValues.maestroV2.docHandles.get(missionId);
+        if (!docHandle) {
+          callback?.({ status: "error", message: "Document handle not found for missionId" });
+          return;
+        }
+        const mission = docHandle.doc();
+        if (!mission.evas[evaUuid]) {
+          callback?.({ status: "error", message: "Eva not found in mission" });
+          return;
+        }
+
+        // Subscribe to the EVA. If it's already there, do nothing and respond success
+        const subscriptions = globalValues.maestroV2.evaSubscriptions.get(missionId) ?? [];
+        if (!subscriptions.includes(evaUuid)) {
+          subscriptions.push(evaUuid);
+          globalValues.maestroV2.evaSubscriptions.set(missionId, subscriptions);
+        }
+        callback?.({ status: "success" });
+      });
+
+      socket.on("unsubscribeToEva", (missionId: number, evaUuid: string) => {
+        if (!missionId || isNaN(missionId)) {
+          serverLogger.warning({
+            logId: "socket-maestro-v2",
+            logValue: `unsubscribeToEva - invalid missionId ${missionId}`,
+          });
+          return;
+        }
+        removeEvaFromSubscriptions(missionId, [evaUuid]);
       });
 
       socket.on("getEverything", async (missionId: number, callback) => {
         if (!missionId || isNaN(missionId)) {
-          callback({ status: "failure", message: "Invalid mission ID" });
+          serverLogger.warning({
+            logId: "socket-maestro-v2",
+            logValue: `getEverything - invalid missionId ${missionId}`,
+          });
           return;
         }
         try {
@@ -262,9 +272,48 @@ export const setupMaestroNamespace = (
         }
       });
 
+      socket.on("getExecuteUuids", (missionId: number, rexUuid: string, callback) => {
+        if (!missionId || isNaN(missionId)) {
+          serverLogger.warning({
+            logId: "socket-maestro-v2",
+            logValue: `getExecuteUuids - invalid missionId ${missionId}`,
+          });
+          return;
+        }
+
+        try {
+          const executeUuidMap = getExecuteUuids(missionId, rexUuid);
+          callback?.({ status: "success", executeUuidMap });
+        } catch (error) {
+          serverLogger.error(
+            { logId: "socket-maestro-v2", logValue: "SocketIO - getExecuteUuids" },
+            error instanceof Error ? error : new Error(String(error))
+          );
+          callback?.({ status: "error", message: `Error processing getExecuteUuids: ${error}` });
+        }
+      });
+
       // Summary of Maestro v2 information for the admin inspector
       socket.on("getDebugInfo", (callback) => {
         callback(buildDebugInfo());
+      });
+
+      socket.on("disconnect", () => {
+        // Remove this socket from any maestro mission rooms they happened to be in
+        for (const missionId in globalValues.maestroV2.visitorData) {
+          const visitors = globalValues.maestroV2.visitorData[missionId];
+          const removed = remove(visitors, (item) => item.socketId === socket.id);
+          // If we removed the last visitor and the room is now empty, delete the key and cleanup
+          if (removed.length > 0 && visitors.length === 0) {
+            delete globalValues.maestroV2.visitorData[missionId];
+            if (missionId != null) cleanupMaestro(+missionId);
+          }
+        }
+
+        // Update the inspector room on the default namespace
+        globalValues.socketio
+          .to("inspector")
+          .emit("inspectorUpdate", globalValues.serverSocketStatus);
       });
     }
   );
