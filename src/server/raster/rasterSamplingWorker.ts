@@ -60,3 +60,5 @@ const handleMessage = async (request: RasterSamplingWorkerMessage): Promise<void
 workerPort.on("message", (request: RasterSamplingWorkerMessage) => {
   processing = processing.then(() => handleMessage(request));
 });
+
+workerPort.postMessage({ status: "ready" } satisfies RasterSamplingWorkerResponse);
