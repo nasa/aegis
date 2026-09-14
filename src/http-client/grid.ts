@@ -1,3 +1,5 @@
+import { toast } from "react-toastify";
+
 export async function getGrid(
   missionId: number,
   getFullGrid: boolean = false
@@ -38,7 +40,7 @@ export async function upsertGrid(
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error saving grid to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
@@ -64,7 +66,7 @@ export async function deleteGrid(missionId: number): Promise<WrappedResponse<nul
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error deleting grid from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };

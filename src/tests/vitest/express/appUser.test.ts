@@ -6,6 +6,13 @@ import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
+import type { Mock } from "vitest";
+import { resetToastSpies, setupToastSpies, type ToastSpies } from "../helpers/mockToasts";
+import { deleteAppUsers, upsertAppUsers } from "http-client/appUser";
+
+global.fetch = vi.fn();
+
+let toastSpies: ToastSpies;
 
 let testAppUser: App_User_db;
 let testSuperAdmin: App_User_db;
@@ -22,6 +29,15 @@ beforeAll(async () => {
     username: "Vitest super admin",
     isSuperAdmin: true,
   });
+});
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  toastSpies = setupToastSpies();
+});
+
+afterAll(() => {
+  resetToastSpies(toastSpies);
 });
 
 describe("AppUser API Endpoint", () => {
@@ -161,6 +177,21 @@ describe("AppUser API Endpoint", () => {
         expect(res.body.data[0]).not.toBeNull();
         expect(res.body.data[0].username).toEqual("Vitest new user Modified");
       });
+
+      test("Displays toast error if res status not 200", async () => {
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+        });
+
+        newUser.username = "Vitest new user Modified";
+        const users = [newUser];
+        const result = await upsertAppUsers(users);
+
+        expect(result.status).toBe("error");
+        expect(toastSpies.error).toHaveBeenCalledTimes(1);
+        expect(toastSpies.error.mock.calls[0][0]).toContain("Error saving users to database.");
+      });
     });
 
     describe("DELETE request", () => {
@@ -175,6 +206,20 @@ describe("AppUser API Endpoint", () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
+      });
+
+      test("Displays toast error if res status not 200", async () => {
+        (global.fetch as Mock).mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+        });
+
+        const userIds = [1, 2, 3];
+        const result = await deleteAppUsers(userIds);
+
+        expect(result.status).toBe("error");
+        expect(toastSpies.error).toHaveBeenCalledTimes(1);
+        expect(toastSpies.error.mock.calls[0][0]).toContain("Error deleting users from database.");
       });
     });
   });

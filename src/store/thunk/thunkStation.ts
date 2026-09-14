@@ -33,6 +33,7 @@ import {
   areTraverseProfileUpdatesCurrent,
   getNextTraverseProfileRevisions,
 } from "operations/helpers/traverseProfileRevision";
+import { toast } from "react-toastify";
 
 const latestIssuedStationLocationRevisionByStation = new Map<string, number>();
 const latestIssuedWalkbackProfileRevisionByStation = new Map<string, number>();
@@ -404,7 +405,7 @@ export const thunkDocDeleteStations = appCreateAsyncThunk<
       const message =
         "Cannot delete an EVA's egress or ingress location directly.\nStation not deleted.\n" +
         "Change the EVA's egress/ingress location instead.";
-      alert(message);
+      toast.error(message);
       return rejectWithValue(message);
     }
 
@@ -420,7 +421,7 @@ export const thunkDocDeleteStations = appCreateAsyncThunk<
           if (sequenceItem) {
             const stationName = allStations[sequenceItem.uuid]?.name;
             const message = `Cannot delete a station that is being used by an EVA.\nStation not deleted.\nEVA ${eva.name} is using this station ${stationName}`;
-            alert(message);
+            toast.error(message);
             return rejectWithValue(message);
           }
         }

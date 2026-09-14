@@ -11,6 +11,7 @@ import { useNavigate } from "react-router";
 import prettyBytes from "pretty-bytes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
+import { toast } from "react-toastify";
 
 const FileManager: FunctionComponent<{
   missionId: number;
@@ -140,7 +141,7 @@ const FileManager: FunctionComponent<{
       return file.type === "dir" && !isUsed?.(file.name);
     });
     if (unusedFolders.length === 0) {
-      alert("No unused folders to delete");
+      toast.info("No unused folders to delete");
       return;
     }
     const confirmDelete = confirm(
