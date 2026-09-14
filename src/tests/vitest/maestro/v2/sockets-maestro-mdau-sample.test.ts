@@ -2,7 +2,7 @@
  * Data-driven integration test for the Maestro v2 `sendMDAU` pipeline.
  *
  * Loads a `sendMDAU` payload from `fixtures/mdau-sample.json`,
- * builds a mission Automerge doc whose entities carry the data
+ * builds a mission Automerge doc whose entities carry the uuids
  * referenced in that payload, then runs `opUpdateMdau` and asserts
  * that a sampling of fields from every entity type (station, traverse, eva,
  * action, rex) was written back into the doc.
@@ -18,7 +18,7 @@ import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
+import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import type { DocHandle } from "@automerge/automerge-repo";
 import type { MDAU } from "server/maestro/v2/types/mdau";
@@ -37,221 +37,90 @@ const mdau = sample.mdau;
 
 interface BuiltMission {
   handle: DocHandle<Mission>;
-  /** refUuid → as-planned uuid, per entity kind */
-  stationUuidByRef: Map<string, string>;
-  traverseUuidByRef: Map<string, string>;
-  actionUuidByRef: Map<string, string>;
-  asPlannedEvaUuid: string | undefined;
-  /** refUuid → rex-scoped uuid, per entity kind */
-  rexStationUuidByRef: Map<string, string>;
-  rexTraverseUuidByRef: Map<string, string>;
-  rexActionUuidByRef: Map<string, string>;
+  evaUuid: string | undefined;
   rexUuid: string | undefined;
-  rexEvaUuid: string | undefined;
   /**
-   * As-planned traverse refUuids that sit immediately before/after a station
-   * in the EVA sequence and thus get renamed when that station is renamed.
+   * Traverse uuids that sit immediately before/after a station in the EVA
+   * sequence and thus get renamed when that station is renamed.
    */
-  adjacentTraverseRefUuids: string[];
+  adjacentTraverseUuids: string[];
 }
 
 /**
- * Build an sequence of station/traverse sequence items from an EVA's
- * `sequenceRefUuids`, resolving each refUuid to the uuid registered in the
- * given maps. Items whose refUuid is not in the maps are skipped.
- */
-function buildEvaSequence(
-  sequenceRefUuids: MDAU.MdauEva["sequenceRefUuids"] | undefined,
-  stationUuidByRef: Map<string, string>,
-  traverseUuidByRef: Map<string, string>
-): { type: "station" | "traverse"; uuid: string }[] {
-  const seq: { type: "station" | "traverse"; uuid: string }[] = [];
-  for (const item of sequenceRefUuids ?? []) {
-    const uuid =
-      item.type === "station"
-        ? stationUuidByRef.get(item.refUuid)
-        : traverseUuidByRef.get(item.refUuid);
-    if (uuid) seq.push({ type: item.type, uuid });
-  }
-  return seq;
-}
-
-/**
- * Build a mission doc whose entities match the refUuids in the sample.
+ * Build a mission doc whose entities carry the exact uuids used in the sample.
  *
- * Two EVA scopes are constructed so both the top-level entity updates and the
- * rex entry-map updates resolve:
- *   1. An **as-planned** EVA carrying stations/traverses/actions for the
- *      `aegisStations` / `aegisTraverse` / `aegisEva` / `aegisAction` updates.
- *   2. A **rex-owned** EVA duplicating the same sequence (fresh uuids, same
- *      refUuids) so the `aegisRexes` entry maps resolve in rex scope.
+ * Maestro now addresses every entity by its AEGIS uuid, which is globally
+ * unique, so a single EVA scope covers both the top-level entity updates and
+ * the rex entry-map updates. The EVA is owned by the sample's REX so the
+ * `aegisRexes` payload resolves.
  */
 function buildMissionFromSample(): BuiltMission {
-  const stationUuidByRef = new Map<string, string>();
-  const traverseUuidByRef = new Map<string, string>();
-  const actionUuidByRef = new Map<string, string>();
-  const rexStationUuidByRef = new Map<string, string>();
-  const rexTraverseUuidByRef = new Map<string, string>();
-  const rexActionUuidByRef = new Map<string, string>();
-
   const stations: Station[] = [];
   const traverses: Traverse[] = [];
   const actions: Action[] = [];
   const evas: Eva[] = [];
   const rexes: Rex[] = [];
 
-  // Map each station/traverse refUuid → the ordered action refUuids that hang
-  // off it, so the as-planned entities carry a matching actionOrder length
-  // (Maestro may only reorder, not add/remove).
-  const stationActionRefs = mdau.aegisStations ?? {};
-  const traverseActionRefs = mdau.aegisTraverse ?? {};
+  const sampleStations = mdau.aegisStations ?? {};
+  const sampleTraverses = mdau.aegisTraverse ?? {};
 
-  // ── As-planned scope ───────────────────────────────────────────────────────
-  const asPlannedSequence: { type: "station" | "traverse"; uuid: string }[] = [];
-
-  for (const refUuid in stationActionRefs) {
+  for (const uuid in sampleStations) {
     // A non-null location is required so adjacent-traverse renames can compute
     // the "<before> to <after>" name from station endpoints.
     const station = generateBlankStation({
-      refUuid,
-      name: `orig-${refUuid.slice(0, 6)}`,
+      uuid,
+      name: `orig-${uuid.slice(0, 6)}`,
       location: { lat: 1, lng: 1 },
     });
-    const orderRefs = stationActionRefs[refUuid].actionOrderRefUuids ?? [];
-    const orderUuids: string[] = [];
-    for (const actionRef of orderRefs) {
-      const action = generateBlankAction({ refUuid: actionRef, stationUuid: station.uuid });
-      actions.push(action);
-      actionUuidByRef.set(actionRef, action.uuid);
-      orderUuids.push(action.uuid);
-    }
-    station.actionOrderUuids = orderUuids;
+    // Seed a matching action for each entry in the incoming order, since
+    // Maestro may only reorder, not add or remove.
+    station.actionOrderUuids = (sampleStations[uuid].actionOrderUuids ?? []).map((actionUuid) => {
+      actions.push(generateBlankAction({ uuid: actionUuid, stationUuid: station.uuid }));
+      return actionUuid;
+    });
     stations.push(station);
-    stationUuidByRef.set(refUuid, station.uuid);
   }
 
-  for (const refUuid in traverseActionRefs) {
-    const traverse = generateBlankTraverse({ refUuid, name: `orig-${refUuid.slice(0, 6)}` });
-    const orderRefs = traverseActionRefs[refUuid].actionOrderRefUuids ?? [];
-    const orderUuids: string[] = [];
-    for (const actionRef of orderRefs) {
-      const action = generateBlankAction({ refUuid: actionRef, traverseUuid: traverse.uuid });
-      actions.push(action);
-      actionUuidByRef.set(actionRef, action.uuid);
-      orderUuids.push(action.uuid);
-    }
-    traverse.actionOrderUuids = orderUuids;
+  for (const uuid in sampleTraverses) {
+    const traverse = generateBlankTraverse({ uuid, name: `orig-${uuid.slice(0, 6)}` });
+    traverse.actionOrderUuids = (sampleTraverses[uuid].actionOrderUuids ?? []).map((actionUuid) => {
+      actions.push(generateBlankAction({ uuid: actionUuid, traverseUuid: traverse.uuid }));
+      return actionUuid;
+    });
     traverses.push(traverse);
-    traverseUuidByRef.set(refUuid, traverse.uuid);
   }
 
-  // As-planned EVA: use the first aegisEva refUuid (if any) so the eva update
-  // resolves against the as-planned EVA. Order the sequence from the EVA's real
-  // `sequenceRefUuids` so stations are correctly flanked by traverses — this is
-  // what drives the adjacent-traverse rename cascade.
-  const evaRefUuid = mdau.aegisEva ? Object.keys(mdau.aegisEva)[0] : undefined;
-  const evaSample = evaRefUuid ? mdau.aegisEva![evaRefUuid] : undefined;
-  const adjacentTraverseRefUuids: string[] = [];
-  let asPlannedEva: Eva | undefined;
-  if (evaRefUuid) {
-    const orderedSeq = buildEvaSequence(
-      evaSample?.sequenceRefUuids,
-      stationUuidByRef,
-      traverseUuidByRef
-    );
-    // Fall back to an arbitrary order if the sample carried no EVA sequence.
-    asPlannedSequence.push(...(orderedSeq.length > 0 ? orderedSeq : []));
+  // Build the EVA from the sample's own sequence so stations are correctly
+  // flanked by traverses — this is what drives the adjacent-traverse rename.
+  const evaUuid = mdau.aegisEva ? Object.keys(mdau.aegisEva)[0] : undefined;
+  const evaSample = evaUuid ? mdau.aegisEva![evaUuid] : undefined;
+  const adjacentTraverseUuids: string[] = [];
+  let eva: Eva | undefined;
+  if (evaUuid) {
+    const knownUuids = new Set([...Object.keys(sampleStations), ...Object.keys(sampleTraverses)]);
+    const sequence = (evaSample?.sequence ?? [])
+      .filter((item) => knownUuids.has(item.uuid))
+      .map((item) => ({ type: item.type, uuid: item.uuid }));
 
-    // Record which traverse refUuids are adjacent to a station in the sequence.
-    const seqRefs = evaSample?.sequenceRefUuids ?? [];
-    for (let i = 0; i < seqRefs.length; i++) {
-      if (seqRefs[i].type !== "station") continue;
-      const before = seqRefs[i - 1];
-      const after = seqRefs[i + 1];
-      if (before?.type === "traverse") adjacentTraverseRefUuids.push(before.refUuid);
-      if (after?.type === "traverse") adjacentTraverseRefUuids.push(after.refUuid);
+    for (let i = 0; i < sequence.length; i++) {
+      if (sequence[i].type !== "station") continue;
+      const before = sequence[i - 1];
+      const after = sequence[i + 1];
+      if (before?.type === "traverse") adjacentTraverseUuids.push(before.uuid);
+      if (after?.type === "traverse") adjacentTraverseUuids.push(after.uuid);
     }
 
-    asPlannedEva = generateBlankEVA({
-      refUuid: evaRefUuid,
-      name: "orig-eva",
-      sequence: asPlannedSequence,
-    });
-    evas.push(asPlannedEva);
+    eva = generateBlankEVA({ uuid: evaUuid, name: "orig-eva", sequence });
+    evas.push(eva);
   }
 
-  // ── Rex-owned scope ──────────────────────────────────────────────────────────
-  // Duplicate the sequence with fresh uuids but the SAME refUuids so the rex's
-  // entry maps resolve in rex scope. Only needed when the sample has rexes.
+  // The sample's REX owns that EVA so the rex entry maps resolve.
   const rexSample = mdau.aegisRexes ? Object.values(mdau.aegisRexes)[0] : undefined;
-  let rexEva: Eva | undefined;
   let rex: Rex | undefined;
-  let rexEgressStation: Station | undefined;
-  let rexIngressStation: Station | undefined;
-  if (rexSample) {
-    const rexSequence: { type: "station" | "traverse"; uuid: string }[] = [];
-    rexEgressStation = generateLanderXgressStation({
-      xgressType: "egress",
-      name: "rex-egress",
-      missionId: 0,
-      location: { lat: 0, lng: 0 },
-      elevation: null,
-    });
-    rexIngressStation = generateLanderXgressStation({
-      xgressType: "ingress",
-      name: "rex-ingress",
-      missionId: 0,
-      location: { lat: 0, lng: 0 },
-      elevation: null,
-    });
-    stations.push(rexEgressStation, rexIngressStation);
-    rexSequence.push({ type: "station", uuid: rexEgressStation.uuid });
-
-    for (const refUuid in stationActionRefs) {
-      const station = generateBlankStation({ refUuid, name: `rex-${refUuid.slice(0, 6)}` });
-      const orderRefs = stationActionRefs[refUuid].actionOrderRefUuids ?? [];
-      const orderUuids: string[] = [];
-      for (const actionRef of orderRefs) {
-        const action = generateBlankAction({ refUuid: actionRef, stationUuid: station.uuid });
-        actions.push(action);
-        rexActionUuidByRef.set(actionRef, action.uuid);
-        orderUuids.push(action.uuid);
-      }
-      station.actionOrderUuids = orderUuids;
-      stations.push(station);
-      rexStationUuidByRef.set(refUuid, station.uuid);
-      rexSequence.push({ type: "station", uuid: station.uuid });
-    }
-
-    for (const refUuid in traverseActionRefs) {
-      const traverse = generateBlankTraverse({ refUuid, name: `rex-${refUuid.slice(0, 6)}` });
-      const orderRefs = traverseActionRefs[refUuid].actionOrderRefUuids ?? [];
-      const orderUuids: string[] = [];
-      for (const actionRef of orderRefs) {
-        const action = generateBlankAction({ refUuid: actionRef, traverseUuid: traverse.uuid });
-        actions.push(action);
-        rexActionUuidByRef.set(actionRef, action.uuid);
-        orderUuids.push(action.uuid);
-      }
-      traverse.actionOrderUuids = orderUuids;
-      traverses.push(traverse);
-      rexTraverseUuidByRef.set(refUuid, traverse.uuid);
-      rexSequence.push({ type: "traverse", uuid: traverse.uuid });
-    }
-
-    rexSequence.push({ type: "station", uuid: rexIngressStation.uuid });
-
-    // The rex-owned EVA shares the aegisEva refUuid (its dedicated instance).
-    rexEva = generateBlankEVA({
-      refUuid: evaRefUuid ?? "rex-eva-ref",
-      name: "rex-eva",
-      sequence: rexSequence,
-    });
-    evas.push(rexEva);
-
+  if (rexSample && eva) {
     rex = generateBlankRex({
       uuid: rexSample.uuid,
-      evaUuid: rexEva.uuid,
+      evaUuid: eva.uuid,
       isRunning: false,
       posEntries: [],
     });
@@ -269,19 +138,7 @@ function buildMissionFromSample(): BuiltMission {
     m.landerLocation = { lat: 0, lng: 0 };
   });
 
-  return {
-    handle,
-    stationUuidByRef,
-    traverseUuidByRef,
-    actionUuidByRef,
-    asPlannedEvaUuid: asPlannedEva?.uuid,
-    rexStationUuidByRef,
-    rexTraverseUuidByRef,
-    rexActionUuidByRef,
-    rexUuid: rex?.uuid,
-    rexEvaUuid: rexEva?.uuid,
-    adjacentTraverseRefUuids,
-  };
+  return { handle, evaUuid: eva?.uuid, rexUuid: rex?.uuid, adjacentTraverseUuids };
 }
 
 // ── Test lifecycle ───────────────────────────────────────────────────────────
@@ -327,12 +184,10 @@ describe("sendMDAU sample payload — stations", () => {
 
   it("writes name / duration for every sampled station", () => {
     const doc = built.handle.doc();
-    for (const refUuid in mdau.aegisStations) {
-      const src = mdau.aegisStations[refUuid];
-      const uuid = built.stationUuidByRef.get(refUuid);
-      expect(uuid, `station uuid for refUuid ${refUuid}`).toBeDefined();
-      const station = doc.stations[uuid!];
-      expect(station).toBeDefined();
+    for (const uuid in mdau.aegisStations) {
+      const src = mdau.aegisStations[uuid];
+      const station = doc.stations[uuid];
+      expect(station, `station ${uuid}`).toBeDefined();
       expect(station.name).toBe(src.name);
       expect(station.duration).toBe(src.duration);
       expect(station.updatedAt).toBe(src.updatedAt);
@@ -343,12 +198,10 @@ describe("sendMDAU sample payload — stations", () => {
 describe("sendMDAU sample payload — traverses", () => {
   it("writes duration for every sampled traverse", () => {
     const doc = built.handle.doc();
-    for (const refUuid in mdau.aegisTraverse) {
-      const src = mdau.aegisTraverse[refUuid];
-      const uuid = built.traverseUuidByRef.get(refUuid);
-      expect(uuid, `traverse uuid for refUuid ${refUuid}`).toBeDefined();
-      const traverse = doc.traverses[uuid!];
-      expect(traverse).toBeDefined();
+    for (const uuid in mdau.aegisTraverse) {
+      const src = mdau.aegisTraverse[uuid];
+      const traverse = doc.traverses[uuid];
+      expect(traverse, `traverse ${uuid}`).toBeDefined();
       expect(traverse.duration).toBe(src.duration);
       expect(typeof traverse.updatedAt).toBe("number");
     }
@@ -357,15 +210,13 @@ describe("sendMDAU sample payload — traverses", () => {
   it("cascades adjacent traverse renames when a station name changes", () => {
     // This scenario requires the sample to rename at least one station that is
     // flanked by a traverse in the EVA sequence.
-    if (built.adjacentTraverseRefUuids.length === 0) return;
+    if (built.adjacentTraverseUuids.length === 0) return;
 
     const doc = built.handle.doc();
     // At least one adjacent traverse should now carry the renamed station's
     // name in its recomputed "<before> to <after>" label. Seeded traverse names
     // are `orig-*`, so any change away from that proves the cascade ran.
-    const renamed = built.adjacentTraverseRefUuids.some((traverseRef) => {
-      const uuid = built.traverseUuidByRef.get(traverseRef);
-      if (!uuid) return false;
+    const renamed = built.adjacentTraverseUuids.some((uuid) => {
       const name = doc.traverses[uuid]?.name ?? "";
       return name.length > 0 && !name.startsWith("orig-");
     });
@@ -374,12 +225,11 @@ describe("sendMDAU sample payload — traverses", () => {
 });
 
 describe("sendMDAU sample payload — evas", () => {
-  it("writes name / datetime for the as-planned eva", () => {
-    if (!mdau.aegisEva || !built.asPlannedEvaUuid) return;
+  it("writes name / datetime for the eva", () => {
+    if (!mdau.aegisEva || !built.evaUuid) return;
     const doc = built.handle.doc();
-    const refUuid = Object.keys(mdau.aegisEva)[0];
-    const src = mdau.aegisEva[refUuid];
-    const eva = doc.evas[built.asPlannedEvaUuid];
+    const src = mdau.aegisEva[built.evaUuid];
+    const eva = doc.evas[built.evaUuid];
     expect(eva).toBeDefined();
     expect(typeof eva.name).toBe("string");
     expect(eva.name).toBe(src.name);
@@ -391,12 +241,10 @@ describe("sendMDAU sample payload — evas", () => {
 describe("sendMDAU sample payload — actions", () => {
   it("writes crewAssigned (actors) for every sampled action", () => {
     const doc = built.handle.doc();
-    for (const refUuid in mdau.aegisAction) {
-      const src = mdau.aegisAction[refUuid];
-      const uuid = built.actionUuidByRef.get(refUuid);
-      expect(uuid, `action uuid for refUuid ${refUuid}`).toBeDefined();
-      const action = doc.actions[uuid!];
-      expect(action).toBeDefined();
+    for (const uuid in mdau.aegisAction) {
+      const src = mdau.aegisAction[uuid];
+      const action = doc.actions[uuid];
+      expect(action, `action ${uuid}`).toBeDefined();
       expect(action.crewAssigned).toEqual(src.actors);
     }
   });
@@ -429,33 +277,34 @@ describe("sendMDAU sample payload — rexes", () => {
     expect(rex.petValueAtStartStop).toBe(src.petValueAtStartStop);
   });
 
-  it("resolves station / traverse / action entry maps to uuids", () => {
+  it("writes the station / traverse / action entry maps", () => {
     if (!mdau.aegisRexes || !built.rexUuid) return;
     const doc = built.handle.doc();
     const src = Object.values(mdau.aegisRexes)[0];
     const rex = doc.rexes[built.rexUuid];
 
-    for (const refUuid in src.stationEntriesByRefUuid) {
-      const uuid = built.rexStationUuidByRef.get(refUuid);
-      expect(uuid, `rex station entry uuid for refUuid ${refUuid}`).toBeDefined();
-      expect(rex.stationEntries?.[uuid!]?.rexStatus).toBe(
-        src.stationEntriesByRefUuid[refUuid].rexStatus
-      );
+    for (const uuid in src.stationEntries) {
+      expect(rex.stationEntries?.[uuid]?.rexStatus).toBe(src.stationEntries[uuid].rexStatus);
     }
 
-    for (const refUuid in src.traverseEntriesByRefUuid) {
-      const uuid = built.rexTraverseUuidByRef.get(refUuid);
-      expect(uuid, `rex traverse entry uuid for refUuid ${refUuid}`).toBeDefined();
-      expect(rex.traverseEntries?.[uuid!]?.rexStatus).toBe(
-        src.traverseEntriesByRefUuid[refUuid].rexStatus
-      );
+    for (const uuid in src.traverseEntries) {
+      expect(rex.traverseEntries?.[uuid]?.rexStatus).toBe(src.traverseEntries[uuid].rexStatus);
     }
 
-    for (const refUuid in src.actionEntriesByRefUuid) {
-      const uuid = built.rexActionUuidByRef.get(refUuid);
-      expect(uuid, `rex action entry uuid for refUuid ${refUuid}`).toBeDefined();
-      expect(rex.actionEntries?.[uuid!]?.rexStatus).toBe(
-        src.actionEntriesByRefUuid[refUuid].rexStatus
+    for (const uuid in src.actionEntries) {
+      expect(rex.actionEntries?.[uuid]?.rexStatus).toBe(src.actionEntries[uuid].rexStatus);
+    }
+  });
+
+  it("writes maestroActivityProperties keyed by sequence uuid", () => {
+    if (!mdau.aegisRexes || !built.rexUuid) return;
+    const doc = built.handle.doc();
+    const src = Object.values(mdau.aegisRexes)[0];
+    const rex = doc.rexes[built.rexUuid];
+
+    for (const uuid in src.maestroActivityProperties) {
+      expect(rex.maestroActivityProperties?.[uuid]?.color).toBe(
+        src.maestroActivityProperties[uuid].color
       );
     }
   });

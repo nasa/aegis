@@ -83,8 +83,8 @@ import type { MDAU } from "server/maestro/v2/types/mdau";
 const MISSION_ID = 9999;
 
 // Shared mutable EVA registry used by the mockGetAutomergeMissions implementation.
-// Tests populate this with { [evaUuid]: { uuid, refUuid } } entries before calling handlers.
-let evaRegistry: Record<string, { uuid: string; refUuid: string }> = {};
+// Tests populate this with { [evaUuid]: { uuid } } entries before calling handlers.
+let evaRegistry: Record<string, { uuid: string }> = {};
 
 const createMockMaestroNamespace = () => {
   const rooms = new Map<string, Set<string>>();
@@ -116,14 +116,14 @@ beforeEach(() => {
   };
   globalValues.automergeRepo = { find: vi.fn().mockResolvedValue(defaultDocHandle) } as never;
   mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://default-url" }]);
-  // Mock em.fork() so getEvaUuid resolves evaRefUuid directly as the evaUuid.
+  // Mock em.fork() so getEvaUuid resolves evaUuid directly as the evaUuid.
   const mockEm = {
     find: vi.fn().mockImplementation((_entity: unknown, where: Record<string, unknown>) => {
       // For Rex_db lookup (evaUuid: { $in: [...] }) return empty — no rexes exist
       if (where?.evaUuid) return Promise.resolve([]);
-      // For Eva_db lookup by refUuid, return a fake eva whose uuid === refUuid
-      const refUuid = where?.refUuid as string | undefined;
-      if (refUuid) return Promise.resolve([{ uuid: refUuid }]);
+      // For Eva_db lookup by uuid, echo the requested uuid back as a fake eva
+      const uuid = where?.uuid as string | undefined;
+      if (uuid) return Promise.resolve([{ uuid }]);
       return Promise.resolve([]);
     }),
     findOne: vi.fn().mockResolvedValue(null),
@@ -239,116 +239,113 @@ describe("maestro namespace socket handlers", () => {
   });
 
   describe("subscribeToEva", () => {
-    it("adds EVA refUuid to evaSubscriptions for the mission", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
+    it("adds EVA uuid to evaSubscriptions for the mission", async () => {
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
-      expect(subs).toContain(evaRefUuid);
+      expect(subs).toContain(evaUuid);
     });
 
-    it("does not duplicate EVA refUuid on repeated subscribe", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
+    it("does not duplicate EVA uuid on repeated subscribe", async () => {
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
-      expect(subs.filter((u: string) => u === evaRefUuid)).toHaveLength(1);
+      expect(subs.filter((u: string) => u === evaUuid)).toHaveLength(1);
     });
 
     it("supports multiple EVA subscriptions for the same mission", async () => {
-      const evaRefUuid1 = uuidv4();
-      const evaRefUuid2 = uuidv4();
-      evaRegistry[evaRefUuid1] = { uuid: evaRefUuid1, refUuid: evaRefUuid1 };
-      evaRegistry[evaRefUuid2] = { uuid: evaRefUuid2, refUuid: evaRefUuid2 };
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid1, null);
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid2, null);
+      const evaUuid1 = uuidv4();
+      const evaUuid2 = uuidv4();
+      evaRegistry[evaUuid1] = { uuid: evaUuid1 };
+      evaRegistry[evaUuid2] = { uuid: evaUuid2 };
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid1);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid2);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
       expect(subs).toHaveLength(2);
-      expect(subs).toContain(evaRefUuid1);
-      expect(subs).toContain(evaRefUuid2);
+      expect(subs).toContain(evaUuid1);
+      expect(subs).toContain(evaUuid2);
     });
 
     it("calls the callback with a success response when the eva is found", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
       const callback = vi.fn();
 
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null, callback);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid, callback);
 
       expect(callback).toHaveBeenCalledWith({ status: "success" });
     });
 
     it("calls the callback with an error response when the eva cannot be resolved", async () => {
-      const evaRefUuid = uuidv4();
-      // Not added to evaRegistry, so getEvaUuid will fail to resolve it
+      const evaUuid = uuidv4();
+      // Not added to evaRegistry, so the existence check fails
       const callback = vi.fn();
 
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null, callback);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid, callback);
 
       expect(callback).toHaveBeenCalledWith({
         status: "error",
         message: expect.any(String),
       });
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
-      expect(subs ?? []).not.toContain(evaRefUuid);
+      expect(subs ?? []).not.toContain(evaUuid);
     });
 
     it("does not throw when no callback is provided", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
 
       await expect(
-        mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null)
+        mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid)
       ).resolves.not.toThrow();
     });
   });
 
   describe("unsubscribeToEva", () => {
-    it("removes the EVA refUuid from subscriptions", async () => {
-      const evaRefUuid = uuidv4();
-      // evaSubscriptions stores the resolved evaUuid; via our mock, that equals evaRefUuid
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
-      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaRefUuid]);
+    it("removes the EVA uuid from subscriptions", () => {
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaUuid]);
 
-      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid, null);
+      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaUuid);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
       expect(subs).toBeUndefined();
     });
 
-    it("deletes the mission entry when last subscription is removed", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
-      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaRefUuid]);
+    it("deletes the mission entry when last subscription is removed", () => {
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaUuid]);
 
-      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid, null);
+      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaUuid);
 
       expect(globalValues.maestroV2.evaSubscriptions.has(MISSION_ID)).toBe(false);
     });
 
-    it("only removes the specified EVA when multiple are subscribed", async () => {
-      const evaRefUuid1 = uuidv4();
-      const evaRefUuid2 = uuidv4();
-      evaRegistry[evaRefUuid1] = { uuid: evaRefUuid1, refUuid: evaRefUuid1 };
-      evaRegistry[evaRefUuid2] = { uuid: evaRefUuid2, refUuid: evaRefUuid2 };
-      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaRefUuid1, evaRefUuid2]);
+    it("only removes the specified EVA when multiple are subscribed", () => {
+      const evaUuid1 = uuidv4();
+      const evaUuid2 = uuidv4();
+      evaRegistry[evaUuid1] = { uuid: evaUuid1 };
+      evaRegistry[evaUuid2] = { uuid: evaUuid2 };
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaUuid1, evaUuid2]);
 
-      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid1, null);
+      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaUuid1);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
-      expect(subs).not.toContain(evaRefUuid1);
-      expect(subs).toContain(evaRefUuid2);
+      expect(subs).not.toContain(evaUuid1);
+      expect(subs).toContain(evaUuid2);
       expect(subs).toHaveLength(1);
     });
 
-    it("does nothing when there are no subscriptions for the mission", async () => {
-      await expect(
-        mockSocket._handlers["unsubscribeToEva"](MISSION_ID, uuidv4(), null)
-      ).resolves.not.toThrow();
+    it("does nothing when there are no subscriptions for the mission", () => {
+      expect(() => mockSocket._handlers["unsubscribeToEva"](MISSION_ID, uuidv4())).not.toThrow();
     });
   });
 
@@ -620,11 +617,11 @@ describe("maestro namespace socket handlers", () => {
     it("calls opUpdateMdau with the resolved doc handle and the full mdau payload", () => {
       const mdau: MDAU.MaestroDataAegisUses = {
         aegisStations: {
-          "ref-uuid-1": {
-            refUuid: "ref-uuid-1",
+          "station-uuid-9": {
+            uuid: "station-uuid-9",
             name: "Vitest Station",
             duration: 30,
-            actionOrderRefUuids: null,
+            actionOrderUuids: null,
             updatedAt: Date.now(),
           },
         },
@@ -671,50 +668,47 @@ describe("maestro namespace socket handlers", () => {
       // Build a full MDAU sample that exercises every top-level collection and
       // every field of every sub-type defined in MDAU.MaestroDataAegisUses.
       const now = Date.now();
-      const stationRefUuid = "station-ref-1";
-      const traverseRefUuid = "traverse-ref-1";
-      const evaRefUuid = "eva-ref-1";
-      const actionRefUuid = "action-ref-1";
+      const stationUuid = "station-uuid-1";
+      const traverseUuid = "traverse-uuid-1";
+      const evaUuid = "eva-uuid-1";
+      const actionUuid = "action-uuid-1";
       const rexUuid = "rex-uuid-1";
 
       const fullMdau: MDAU.MaestroDataAegisUses = {
         aegisStations: {
-          [stationRefUuid]: {
-            refUuid: stationRefUuid,
+          [stationUuid]: {
+            uuid: stationUuid,
             name: "Vitest Full Station",
             duration: 42,
-            actionOrderRefUuids: [actionRefUuid],
+            actionOrderUuids: [actionUuid],
             updatedAt: now,
-            rexUuid,
           },
         },
         aegisTraverse: {
-          [traverseRefUuid]: {
-            refUuid: traverseRefUuid,
+          [traverseUuid]: {
+            uuid: traverseUuid,
             duration: 15,
-            actionOrderRefUuids: null,
+            actionOrderUuids: null,
             updatedAt: now,
-            rexUuid,
           },
         },
         aegisEva: {
-          [evaRefUuid]: {
-            refUuid: evaRefUuid,
+          [evaUuid]: {
+            uuid: evaUuid,
             name: "Vitest Full EVA",
             maestroEventId: "maestro-event-1",
             maestroEventUrl: "https://maestro.example/events/1",
-            sequenceRefUuids: [
-              { type: "station", refUuid: stationRefUuid },
-              { type: "traverse", refUuid: traverseRefUuid },
+            sequence: [
+              { type: "station", uuid: stationUuid },
+              { type: "traverse", uuid: traverseUuid },
             ],
             datetime: now,
             updatedAt: now,
-            rexUuid,
           },
         },
         aegisAction: {
-          [actionRefUuid]: {
-            refUuid: actionRefUuid,
+          [actionUuid]: {
+            uuid: actionUuid,
             name: "Vitest Full Action",
             descriptionTask: "Collect the sample",
             duration: 12,
@@ -723,7 +717,6 @@ describe("maestro namespace socket handlers", () => {
             actors: ["EV1"],
             enabled: true,
             updatedAt: now,
-            rexUuid,
           },
         },
         aegisRexes: {
@@ -735,26 +728,26 @@ describe("maestro namespace socket handlers", () => {
             isRunning: true,
             maestroControlled: true,
             updatedAt: now,
-            maestroActivityPropertiesByRefUuid: {
-              [stationRefUuid]: { color: "#ff0000", number: "1" },
-              [traverseRefUuid]: { color: "#00ff00", number: "2" },
+            maestroActivityProperties: {
+              [stationUuid]: { color: "#ff0000", number: "1" },
+              [traverseUuid]: { color: "#00ff00", number: "2" },
             },
-            stationEntriesByRefUuid: {
-              [stationRefUuid]: {
+            stationEntries: {
+              [stationUuid]: {
                 rexStatus: "in-progress",
                 maestroPercentCompleteEv1: 50,
                 maestroPercentCompleteEv2: 25,
               },
             },
-            traverseEntriesByRefUuid: {
-              [traverseRefUuid]: {
+            traverseEntries: {
+              [traverseUuid]: {
                 rexStatus: "pending",
                 maestroPercentCompleteEv1: 0,
                 maestroPercentCompleteEv2: 0,
               },
             },
-            actionEntriesByRefUuid: {
-              [actionRefUuid]: {
+            actionEntries: {
+              [actionUuid]: {
                 rexStatus: "complete",
                 markerId: "M-001",
                 containerId: "C-001",

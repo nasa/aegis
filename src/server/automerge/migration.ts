@@ -31,19 +31,6 @@ import {
 } from "server/database/models/_allModels";
 
 /**
- * A REX plus the legacy `xgressEntries` map.
- *
- * `xgressEntries` was removed from `Rex` when egress/ingress became real
- * stations, but it still exists as a `rex_db` column and on docs that predate
- * the xgress-station migration. This type carries it through the DB seed step
- * so that migration can resolve each entry onto its station and then strip the
- * field.
- */
-type RexWithLegacyXgressEntries = Rex & {
-  xgressEntries?: { [role: string]: { rexStatus: RexStatus } } | null;
-};
-
-/**
  * An EVA plus the legacy egress/ingress location and duration fields.
  *
  * These were removed from `Eva` when egress/ingress became real stations at the
@@ -367,15 +354,16 @@ getORM()
         }
       }
 
-      // Seeded as the legacy shape: `xgressEntries` rides along so the fold
-      // migration can resolve it onto the xgress stations, which do not exist
-      // in the sequence yet at this point.
-      let rexesRecord: Record<string, RexWithLegacyXgressEntries> | undefined;
+      // Seeded as the legacy shape: `xgressEntries` and
+      // `maestroActivityPropertiesByRefUuid` ride along so their migrations
+      // can convert them. The xgress stations they resolve against do not
+      // exist in the sequence yet at this point.
+      let rexesRecord: Record<string, RexWithLegacyFields> | undefined;
       if (needsRexes) {
         const dbRexes = await em.find(Rex_db, { missionId: docListing.missionId });
         rexesRecord = {};
         for (const dbRex of dbRexes) {
-          const convertedRex: RexWithLegacyXgressEntries = {
+          const convertedRex: RexWithLegacyFields = {
             uuid: dbRex.uuid,
             ownerId: dbRex.ownerId,
             missionId: dbRex.missionId,
@@ -396,6 +384,7 @@ getORM()
             maestroControlled: dbRex.maestroControlled,
             maestroEventId: dbRex.maestroEventId,
             maestroEventUrl: dbRex.maestroEventUrl,
+            maestroActivityProperties: null,
             maestroActivityPropertiesByRefUuid: dbRex.maestroActivityPropertiesByRefUuid,
             createdAt: dbRex.createdAt.getTime(), // Make dates numeric
             updatedAt: dbRex.updatedAt.getTime(), // Make dates numeric
@@ -748,7 +737,7 @@ getORM()
         for (const rex of Object.values(mission.rexes ?? {})) {
           // The field is gone from `Rex` but still present on docs that have not
           // run this migration, and on any REX just seeded from `rex_db`.
-          const legacyRex = rex as RexWithLegacyXgressEntries;
+          const legacyRex = rex as RexWithLegacyFields;
           // Idempotency guard: nothing to do once the field is gone.
           if (!("xgressEntries" in legacyRex)) continue;
 
@@ -780,6 +769,56 @@ getORM()
       });
     };
 
+    // Migration: Rename `maestroActivityPropertiesByRefUuid` to
+    // `maestroActivityProperties` and rekey any legacy refUuid keys to the
+    // matching station/traverse uuid within the REX's own scope.
+    const automergeMigration20260911MaestroActivityPropertiesToUuid = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const rex of Object.values(mission.rexes ?? {})) {
+          const legacyRex = rex as RexWithLegacyFields;
+          if (!("maestroActivityPropertiesByRefUuid" in legacyRex)) continue;
+
+          const legacyProperties = legacyRex.maestroActivityPropertiesByRefUuid;
+          if (!legacyProperties) {
+            rex.maestroActivityProperties = null;
+            delete legacyRex.maestroActivityPropertiesByRefUuid;
+            continue;
+          }
+
+          // A key is either already a uuid in this REX's sequence, or a
+          // refUuid that resolves to one.
+          const sequence = mission.evas?.[rex.evaUuid]?.sequence ?? [];
+          const uuidByRefUuid: { [refUuid: string]: string } = {};
+          for (const seqItem of sequence) {
+            const refUuid =
+              seqItem.type === "station"
+                ? mission.stations?.[seqItem.uuid]?.refUuid
+                : mission.traverses?.[seqItem.uuid]?.refUuid;
+            if (refUuid) uuidByRefUuid[refUuid] = seqItem.uuid;
+          }
+          const sequenceUuids = new Set(sequence.map((seqItem) => seqItem.uuid));
+
+          const properties: MaestroActivityProperties = {};
+          for (const [key, value] of Object.entries(legacyProperties)) {
+            const uuid = sequenceUuids.has(key) ? key : uuidByRefUuid[key];
+            if (!uuid) {
+              serverLogger.warning({
+                logId: "automerge-migration",
+                logValue: `Mission ${mission.id} REX ${rex.uuid} could not resolve maestro activity property key "${key}" to a sequence item; dropping it`,
+              });
+              continue;
+            }
+            properties[uuid] = { ...value };
+          }
+
+          rex.maestroActivityProperties = properties;
+          delete legacyRex.maestroActivityPropertiesByRefUuid;
+        }
+      });
+    };
+
     // Migration: Replace isArchived field to archivedAt (null by default) for all mission docs
     const automergeMigration20260909AddArchivedAt = async (docHandle: DocHandle<Mission>) => {
       docHandle.change((mission: Mission) => {
@@ -806,6 +845,7 @@ getORM()
       automergeMigration20260810RenameStationLabelStrokeToHalo,
       automergeMigration20260806XgressStations,
       automergeMigration20260909AddArchivedAt,
+      automergeMigration20260911MaestroActivityPropertiesToUuid,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

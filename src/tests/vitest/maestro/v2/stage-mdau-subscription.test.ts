@@ -7,9 +7,8 @@
  *  - a station may be in several as-planned EVAs at once (sequence and/or
  *    ingress/egress), so its actions are in those EVAs too;
  *  - a traverse is in exactly one EVA and is never shared;
- *  - creating a REX duplicates the EVA and its stations/traverses/actions,
- *    preserving refUuids but issuing new uuids, so a refUuid only resolves
- *    within its own scope.
+ *  - creating a REX duplicates the EVA and its stations/traverses/actions with
+ *    fresh uuids, so each copy is addressed by its own uuid.
  */
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -41,40 +40,35 @@ const buildMission = (args: {
 };
 
 /** An `aegisStations` payload that renames one station. */
-const stationPayload = (
-  refUuid: string,
-  name: string,
-  rexUuid?: string
-): MDAU.MaestroDataAegisUses => ({
+const stationPayload = (uuid: string, name: string): MDAU.MaestroDataAegisUses => ({
   aegisStations: {
-    [refUuid]: {
-      refUuid,
+    [uuid]: {
+      uuid,
       name,
       duration: 15,
-      actionOrderRefUuids: null,
+      actionOrderUuids: null,
       updatedAt: 1_700_000_000_000,
-      ...(rexUuid ? { rexUuid } : {}),
     },
   },
 });
 
 /** An `aegisTraverse` payload that changes one traverse's duration. */
-const traversePayload = (refUuid: string, duration: number): MDAU.MaestroDataAegisUses => ({
+const traversePayload = (uuid: string, duration: number): MDAU.MaestroDataAegisUses => ({
   aegisTraverse: {
-    [refUuid]: {
-      refUuid,
+    [uuid]: {
+      uuid,
       duration,
-      actionOrderRefUuids: null,
+      actionOrderUuids: null,
       updatedAt: 1_700_000_000_000,
     },
   },
 });
 
 /** An `aegisAction` payload that reassigns one action's crew. */
-const actionPayload = (refUuid: string, actors: string[]): MDAU.MaestroDataAegisUses => ({
+const actionPayload = (uuid: string, actors: string[]): MDAU.MaestroDataAegisUses => ({
   aegisAction: {
-    [refUuid]: {
-      refUuid,
+    [uuid]: {
+      uuid,
       name: "Vitest Action",
       descriptionTask: null,
       duration: null,
@@ -118,11 +112,7 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
   it("accepts the station when subscribed to the first EVA only", () => {
     const { station, evaA, mission } = buildSharedStationMission();
 
-    const stage = stageMdau(
-      mission,
-      stationPayload(station.refUuid, "Renamed"),
-      new Set([evaA.uuid])
-    );
+    const stage = stageMdau(mission, stationPayload(station.uuid, "Renamed"), new Set([evaA.uuid]));
 
     expect(stage.stations).toHaveLength(1);
     expect(stage.stations[0].uuid).toBe(station.uuid);
@@ -133,11 +123,7 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
   it("accepts the station when subscribed to the second EVA only", () => {
     const { station, evaB, mission } = buildSharedStationMission();
 
-    const stage = stageMdau(
-      mission,
-      stationPayload(station.refUuid, "Renamed"),
-      new Set([evaB.uuid])
-    );
+    const stage = stageMdau(mission, stationPayload(station.uuid, "Renamed"), new Set([evaB.uuid]));
 
     expect(stage.stations).toHaveLength(1);
     expect(stage.stations[0].uuid).toBe(station.uuid);
@@ -150,7 +136,7 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
 
     const stage = stageMdau(
       mission,
-      stationPayload(station.refUuid, "Renamed"),
+      stationPayload(station.uuid, "Renamed"),
       new Set([unrelatedEva.uuid])
     );
 
@@ -198,11 +184,7 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
       traverses: [traverseA1, traverseA2, traverseB1],
     });
 
-    const stage = stageMdau(
-      mission,
-      stationPayload(station.refUuid, "Renamed"),
-      new Set([evaB.uuid])
-    );
+    const stage = stageMdau(mission, stationPayload(station.uuid, "Renamed"), new Set([evaB.uuid]));
 
     expect(stage.stations).toHaveLength(1);
     expect(stage.stations[0].uuid).toBe(station.uuid);
@@ -245,7 +227,7 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
 
     const stage = stageMdau(
       mission,
-      stationPayload(egress.refUuid, "Renamed Egress"),
+      stationPayload(egress.uuid, "Renamed Egress"),
       new Set([eva.uuid])
     );
 
@@ -277,7 +259,7 @@ describe("stageMdau() subscription check — actions on a shared station", () =>
   it("accepts the action when subscribed to the first EVA only", () => {
     const { action, evaA, mission } = buildSharedActionMission();
 
-    const stage = stageMdau(mission, actionPayload(action.refUuid, ["EV2"]), new Set([evaA.uuid]));
+    const stage = stageMdau(mission, actionPayload(action.uuid, ["EV2"]), new Set([evaA.uuid]));
 
     expect(stage.actions).toHaveLength(1);
     expect(stage.actions[0].uuid).toBe(action.uuid);
@@ -290,7 +272,7 @@ describe("stageMdau() subscription check — actions on a shared station", () =>
   it("accepts the action when subscribed to the second EVA only", () => {
     const { action, evaB, mission } = buildSharedActionMission();
 
-    const stage = stageMdau(mission, actionPayload(action.refUuid, ["EV2"]), new Set([evaB.uuid]));
+    const stage = stageMdau(mission, actionPayload(action.uuid, ["EV2"]), new Set([evaB.uuid]));
 
     expect(stage.actions).toHaveLength(1);
     expect(stage.actions[0].uuid).toBe(action.uuid);
@@ -300,11 +282,7 @@ describe("stageMdau() subscription check — actions on a shared station", () =>
   it("drops the action when subscribed to neither EVA", () => {
     const { action, mission } = buildSharedActionMission();
 
-    const stage = stageMdau(
-      mission,
-      actionPayload(action.refUuid, ["EV2"]),
-      new Set(["not-an-eva"])
-    );
+    const stage = stageMdau(mission, actionPayload(action.uuid, ["EV2"]), new Set(["not-an-eva"]));
 
     expect(stage.actions).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalled();
@@ -325,11 +303,7 @@ describe("stageMdau() subscription check — traverses belong to exactly one EVA
       traverses: [traverse],
     });
 
-    const stage = stageMdau(
-      mission,
-      traversePayload(traverse.refUuid, 42),
-      new Set([otherEva.uuid])
-    );
+    const stage = stageMdau(mission, traversePayload(traverse.uuid, 42), new Set([otherEva.uuid]));
 
     expect(stage.traverses).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalled();
@@ -340,7 +314,7 @@ describe("stageMdau() subscription check — traverses belong to exactly one EVA
     const eva = generateBlankEVA({ sequence: [{ type: "traverse", uuid: traverse.uuid }] });
     const mission = buildMission({ evas: [eva], traverses: [traverse] });
 
-    const stage = stageMdau(mission, traversePayload(traverse.refUuid, 42), new Set([eva.uuid]));
+    const stage = stageMdau(mission, traversePayload(traverse.uuid, 42), new Set([eva.uuid]));
 
     expect(stage.traverses).toHaveLength(1);
     expect(stage.traverses[0].uuid).toBe(traverse.uuid);
@@ -353,8 +327,8 @@ describe("stageMdau() subscription check — traverses belong to exactly one EVA
 
 describe("stageMdau() subscription check — rex scopes", () => {
   /**
-   * An as-planned EVA with one station, executed twice. Both rex copies keep
-   * the as-planned refUuids but carry fresh uuids.
+   * An as-planned EVA with one station, executed twice. Each rex copy carries
+   * fresh uuids while sharing the as-planned refUuid.
    */
   const buildExecutedMission = () => {
     const refUuid = "ref-station-1";
@@ -382,20 +356,20 @@ describe("stageMdau() subscription check — rex scopes", () => {
       rexes: [rexA.rex, rexB.rex],
     });
 
-    return { refUuid, plannedStation, plannedEva, rexA, rexB, mission };
+    return { plannedStation, plannedEva, rexA, rexB, mission };
   };
 
-  it("resolves a shared refUuid to the station of the addressed rex", () => {
-    const { refUuid, rexA, rexB, mission } = buildExecutedMission();
+  it("addresses each rex copy by its own uuid despite the shared refUuid", () => {
+    const { rexA, rexB, mission } = buildExecutedMission();
 
     const stageA = stageMdau(
       mission,
-      stationPayload(refUuid, "Renamed", rexA.rex.uuid),
+      stationPayload(rexA.station.uuid, "Renamed"),
       new Set([rexA.eva.uuid])
     );
     const stageB = stageMdau(
       mission,
-      stationPayload(refUuid, "Renamed", rexB.rex.uuid),
+      stationPayload(rexB.station.uuid, "Renamed"),
       new Set([rexB.eva.uuid])
     );
 
@@ -407,11 +381,11 @@ describe("stageMdau() subscription check — rex scopes", () => {
   });
 
   it("drops a rex-scoped station when subscribed only to a different rex's EVA", () => {
-    const { refUuid, rexA, rexB, mission } = buildExecutedMission();
+    const { rexA, rexB, mission } = buildExecutedMission();
 
     const stage = stageMdau(
       mission,
-      stationPayload(refUuid, "Renamed", rexA.rex.uuid),
+      stationPayload(rexA.station.uuid, "Renamed"),
       new Set([rexB.eva.uuid])
     );
 
@@ -420,21 +394,24 @@ describe("stageMdau() subscription check — rex scopes", () => {
   });
 
   it("drops the as-planned station when subscribed only to a rex's EVA", () => {
-    const { refUuid, rexA, mission } = buildExecutedMission();
+    const { plannedStation, rexA, mission } = buildExecutedMission();
 
-    // No rexUuid on the payload → resolves to the as-planned station.
-    const stage = stageMdau(mission, stationPayload(refUuid, "Renamed"), new Set([rexA.eva.uuid]));
+    const stage = stageMdau(
+      mission,
+      stationPayload(plannedStation.uuid, "Renamed"),
+      new Set([rexA.eva.uuid])
+    );
 
     expect(stage.stations).toHaveLength(0);
     expect(warnSpy).toHaveBeenCalled();
   });
 
   it("accepts the as-planned station when subscribed to the as-planned EVA", () => {
-    const { refUuid, plannedStation, plannedEva, mission } = buildExecutedMission();
+    const { plannedStation, plannedEva, mission } = buildExecutedMission();
 
     const stage = stageMdau(
       mission,
-      stationPayload(refUuid, "Renamed"),
+      stationPayload(plannedStation.uuid, "Renamed"),
       new Set([plannedEva.uuid])
     );
 
@@ -453,10 +430,10 @@ describe("stageMdau() subscription check — rex scopes", () => {
       isRunning: true,
       maestroControlled: true,
       updatedAt: 1_700_000_000_000,
-      maestroActivityPropertiesByRefUuid: {},
-      stationEntriesByRefUuid: {},
-      traverseEntriesByRefUuid: {},
-      actionEntriesByRefUuid: {},
+      maestroActivityProperties: {},
+      stationEntries: {},
+      traverseEntries: {},
+      actionEntries: {},
     };
 
     const subscribed = stageMdau(

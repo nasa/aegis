@@ -139,17 +139,17 @@ describe("buildAegisSliceForMaestro", () => {
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(Object.keys(result.aegisEvas)).toHaveLength(1);
-    expect(result.aegisEvas[evaSubscribed.refUuid]).toBeDefined();
-    expect(result.aegisEvas[evaNotSubscribed.refUuid]).toBeUndefined();
+    expect(result.aegisEvas[evaSubscribed.uuid]).toBeDefined();
+    expect(result.aegisEvas[evaNotSubscribed.uuid]).toBeUndefined();
 
-    expect(result.aegisStations[stationA.refUuid]).toBeDefined();
-    expect(result.aegisStations[stationB.refUuid]).toBeUndefined();
+    expect(result.aegisStations[stationA.uuid]).toBeDefined();
+    expect(result.aegisStations[stationB.uuid]).toBeUndefined();
 
-    expect(result.aegisTraverses[traverseA.refUuid]).toBeDefined();
-    expect(result.aegisTraverses[traverseB.refUuid]).toBeUndefined();
+    expect(result.aegisTraverses[traverseA.uuid]).toBeDefined();
+    expect(result.aegisTraverses[traverseB.uuid]).toBeUndefined();
 
-    expect(result.fetchedAegisActions[actionInSubscribed.refUuid]).toBeDefined();
-    expect(result.fetchedAegisActions[actionNotInSubscribed.refUuid]).toBeUndefined();
+    expect(result.fetchedAegisActions[actionInSubscribed.uuid]).toBeDefined();
+    expect(result.fetchedAegisActions[actionNotInSubscribed.uuid]).toBeUndefined();
 
     expect(result.aegisMissions[MISSION_ID]).toBeDefined();
   });
@@ -194,10 +194,10 @@ describe("buildAegisSliceForMaestro", () => {
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(Object.keys(result.fetchedAegisActions)).toHaveLength(1);
-    expect(result.fetchedAegisActions[actionOnTraverse.refUuid]).toBeDefined();
+    expect(result.fetchedAegisActions[actionOnTraverse.uuid]).toBeDefined();
   });
 
-  it("maps station actionOrderUuids to action refUuids", async () => {
+  it("passes station actionOrderUuids through", async () => {
     const stationWithOrder = generateBlankStation({
       name: "Vitest Station With Order",
       missionId: MISSION_ID,
@@ -221,12 +221,12 @@ describe("buildAegisSliceForMaestro", () => {
 
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
-    expect(result.aegisStations[stationWithOrder.refUuid].actionOrderRefUuids).toEqual([
-      actionInSubscribed.refUuid,
+    expect(result.aegisStations[stationWithOrder.uuid].actionOrderUuids).toEqual([
+      actionInSubscribed.uuid,
     ]);
   });
 
-  it("maps traverse actionOrderUuids to action refUuids", async () => {
+  it("passes traverse actionOrderUuids through", async () => {
     const traverseWithOrder = generateBlankTraverse({
       name: "Vitest Traverse With Order",
       missionId: MISSION_ID,
@@ -250,8 +250,8 @@ describe("buildAegisSliceForMaestro", () => {
 
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
-    expect(result.aegisTraverses[traverseWithOrder.refUuid].actionOrderRefUuids).toEqual([
-      actionInSubscribed.refUuid,
+    expect(result.aegisTraverses[traverseWithOrder.uuid].actionOrderUuids).toEqual([
+      actionInSubscribed.uuid,
     ]);
   });
 
@@ -274,7 +274,7 @@ describe("buildAegisSliceForMaestro", () => {
     expect(mission.createdAt).toBe(mockCoreData.createdAt);
     expect(mission.updatedAt).toBe(mockCoreData.updatedAt);
 
-    const eva = result.aegisEvas[evaSubscribed.refUuid];
+    const eva = result.aegisEvas[evaSubscribed.uuid];
     expect(typeof eva.createdAt).toBe("number");
     expect(typeof eva.updatedAt).toBe("number");
     expect(eva.createdAt).toBe(evaSubscribed.createdAt);
@@ -282,19 +282,19 @@ describe("buildAegisSliceForMaestro", () => {
     expect(eva.datetime === null || typeof eva.datetime === "number").toBe(true);
     expect(eva.datetime).toBe(evaSubscribed.datetime);
 
-    const station = result.aegisStations[stationA.refUuid];
+    const station = result.aegisStations[stationA.uuid];
     expect(typeof station.createdAt).toBe("number");
     expect(typeof station.updatedAt).toBe("number");
     expect(station.createdAt).toBe(stationA.createdAt);
     expect(station.updatedAt).toBe(stationA.updatedAt);
 
-    const traverse = result.aegisTraverses[traverseA.refUuid];
+    const traverse = result.aegisTraverses[traverseA.uuid];
     expect(typeof traverse.createdAt).toBe("number");
     expect(typeof traverse.updatedAt).toBe("number");
     expect(traverse.createdAt).toBe(traverseA.createdAt);
     expect(traverse.updatedAt).toBe(traverseA.updatedAt);
 
-    const action = result.fetchedAegisActions[actionInSubscribed.refUuid];
+    const action = result.fetchedAegisActions[actionInSubscribed.uuid];
     expect(typeof action.createdAt).toBe("number");
     expect(typeof action.updatedAt).toBe("number");
     expect(action.createdAt).toBe(actionInSubscribed.createdAt);
@@ -357,22 +357,22 @@ describe("buildAegisSliceForMaestro", () => {
 
     // All three stations, including both lander xgress ends, must be present.
     expect(Object.keys(result.aegisStations)).toHaveLength(3);
-    expect(result.aegisStations[egressStation.refUuid]).toBeDefined();
-    expect(result.aegisStations[ingressStation.refUuid]).toBeDefined();
-    expect(result.aegisStations[middleStation.refUuid]).toBeDefined();
+    expect(result.aegisStations[egressStation.uuid]).toBeDefined();
+    expect(result.aegisStations[ingressStation.uuid]).toBeDefined();
+    expect(result.aegisStations[middleStation.uuid]).toBeDefined();
 
     // Fields on a lander station reach Maestro unchanged.
-    expect(result.aegisStations[egressStation.refUuid].name).toBe("Vitest Lander Egress");
-    expect(result.aegisStations[egressStation.refUuid].duration).toBe(20);
-    expect(result.aegisStations[ingressStation.refUuid].name).toBe("Vitest Lander Ingress");
-    expect(result.aegisStations[ingressStation.refUuid].duration).toBe(25);
+    expect(result.aegisStations[egressStation.uuid].name).toBe("Vitest Lander Egress");
+    expect(result.aegisStations[egressStation.uuid].duration).toBe(20);
+    expect(result.aegisStations[ingressStation.uuid].name).toBe("Vitest Lander Ingress");
+    expect(result.aegisStations[ingressStation.uuid].duration).toBe(25);
 
-    // The EVA's sequenceRefUuids keep the xgress stations at either end.
-    const sequenceRefUuids = result.aegisEvas[eva.refUuid].sequenceRefUuids;
-    expect(sequenceRefUuids[0]).toEqual({ type: "station", refUuid: egressStation.refUuid });
-    expect(sequenceRefUuids[sequenceRefUuids.length - 1]).toEqual({
+    // The EVA sequence keeps the xgress stations at either end.
+    const sequence = result.aegisEvas[eva.uuid].sequence;
+    expect(sequence[0]).toEqual({ type: "station", uuid: egressStation.uuid });
+    expect(sequence[sequence.length - 1]).toEqual({
       type: "station",
-      refUuid: ingressStation.refUuid,
+      uuid: ingressStation.uuid,
     });
   });
 
@@ -423,7 +423,7 @@ describe("buildAegisSliceForMaestro — docHandle path", () => {
 
     expect(mockGetAutomergeMissions).not.toHaveBeenCalled();
     expect(mockDoc).toHaveBeenCalled();
-    expect(result.aegisEvas[evaSubscribed.refUuid]).toBeDefined();
+    expect(result.aegisEvas[evaSubscribed.uuid]).toBeDefined();
   });
 
   it("falls back to getAutomergeMissions when no stored handle reference", async () => {

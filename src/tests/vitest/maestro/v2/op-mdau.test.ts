@@ -76,7 +76,7 @@ describe("opUpdateMdau() — stations", () => {
     expect(() => opUpdateMdau(handle, MISSION_ID, {})).not.toThrow();
   });
 
-  it("updates a station's name and duration by refUuid (as-planned)", () => {
+  it("updates a station's name and duration by uuid", () => {
     const station = generateBlankStation({ name: "Vitest Alpha", duration: 10 });
     const eva = generateBlankEVA({
       sequence: [{ type: "station", uuid: station.uuid }],
@@ -91,11 +91,11 @@ describe("opUpdateMdau() — stations", () => {
     const now = Date.now();
     runMdau(handle, {
       aegisStations: {
-        [station.refUuid]: {
-          refUuid: station.refUuid,
+        [station.uuid]: {
+          uuid: station.uuid,
           name: "Vitest Bravo",
           duration: 25,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: now,
         },
       },
@@ -122,11 +122,11 @@ describe("opUpdateMdau() — stations", () => {
 
     runMdau(handle, {
       aegisStations: {
-        [station.refUuid]: {
-          refUuid: station.refUuid,
+        [station.uuid]: {
+          uuid: station.uuid,
           name: "Vitest Alpha",
           duration: 10,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: before,
         },
       },
@@ -180,11 +180,11 @@ describe("opUpdateMdau() — stations", () => {
 
     runMdau(handle, {
       aegisStations: {
-        [station.refUuid]: {
-          refUuid: station.refUuid,
+        [station.uuid]: {
+          uuid: station.uuid,
           name: "Vitest Charlie",
           duration: station.duration ?? 0,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: Date.now(),
         },
       },
@@ -196,7 +196,7 @@ describe("opUpdateMdau() — stations", () => {
     expect(doc.traverses[traverseAfter.uuid].name).toContain("Charlie");
   });
 
-  it("reorders a station's actions (reorder-only) via actionOrderRefUuids", () => {
+  it("reorders a station's actions (reorder-only) via actionOrderUuids", () => {
     const station = generateBlankStation({ name: "Vitest Alpha" });
     const actionA = generateBlankAction({ stationUuid: station.uuid });
     const actionB = generateBlankAction({ stationUuid: station.uuid });
@@ -215,12 +215,12 @@ describe("opUpdateMdau() — stations", () => {
 
     runMdau(handle, {
       aegisStations: {
-        [station.refUuid]: {
-          refUuid: station.refUuid,
+        [station.uuid]: {
+          uuid: station.uuid,
           name: station.name,
           duration: station.duration ?? 0,
-          // Reverse the order using refUuids.
-          actionOrderRefUuids: [actionB.refUuid, actionA.refUuid],
+          // Reverse the order using uuids.
+          actionOrderUuids: [actionB.uuid, actionA.uuid],
           updatedAt: Date.now(),
         },
       },
@@ -232,7 +232,7 @@ describe("opUpdateMdau() — stations", () => {
     ]);
   });
 
-  it("ignores actionOrderRefUuids when it would add/remove actions", () => {
+  it("ignores actionOrderUuids when it would add/remove actions", () => {
     const station = generateBlankStation({ name: "Vitest Alpha" });
     const actionA = generateBlankAction({ stationUuid: station.uuid });
     station.actionOrderUuids = [actionA.uuid];
@@ -249,12 +249,12 @@ describe("opUpdateMdau() — stations", () => {
 
     runMdau(handle, {
       aegisStations: {
-        [station.refUuid]: {
-          refUuid: station.refUuid,
+        [station.uuid]: {
+          uuid: station.uuid,
           name: station.name,
           duration: station.duration ?? 0,
           // Length mismatch — must be rejected.
-          actionOrderRefUuids: [actionA.refUuid, "nonexistent-ref"],
+          actionOrderUuids: [actionA.uuid, "nonexistent-uuid"],
           updatedAt: Date.now(),
         },
       },
@@ -307,18 +307,18 @@ describe("opUpdateMdau() — stations", () => {
     const now = Date.now();
     runMdau(handle, {
       aegisStations: {
-        [egressStation.refUuid]: {
-          refUuid: egressStation.refUuid,
+        [egressStation.uuid]: {
+          uuid: egressStation.uuid,
           name: "Renamed Egress",
           duration: 30,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: now,
         },
-        [ingressStation.refUuid]: {
-          refUuid: ingressStation.refUuid,
+        [ingressStation.uuid]: {
+          uuid: ingressStation.uuid,
           name: "Renamed Ingress",
           duration: 35,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: now,
         },
       },
@@ -341,7 +341,7 @@ describe("opUpdateMdau() — stations", () => {
 // ── opUpdateMdau: traverses ──────────────────────────────────────────────────
 
 describe("opUpdateMdau() — traverses", () => {
-  it("updates a traverse's duration by refUuid", () => {
+  it("updates a traverse's duration by uuid", () => {
     const traverse = generateBlankTraverse({ name: "Vitest Path", duration: 5 });
     const eva = generateBlankEVA({
       sequence: [{ type: "traverse", uuid: traverse.uuid }],
@@ -356,10 +356,10 @@ describe("opUpdateMdau() — traverses", () => {
     const now = Date.now();
     runMdau(handle, {
       aegisTraverse: {
-        [traverse.refUuid]: {
-          refUuid: traverse.refUuid,
+        [traverse.uuid]: {
+          uuid: traverse.uuid,
           duration: 20,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: now,
         },
       },
@@ -388,12 +388,12 @@ describe("opUpdateMdau() — evas", () => {
     const now = Date.now();
     runMdau(handle, {
       aegisEva: {
-        [eva.refUuid]: {
-          refUuid: eva.refUuid,
+        [eva.uuid]: {
+          uuid: eva.uuid,
           name: "Vitest EVA Renamed",
           maestroEventId: "evt-1",
           maestroEventUrl: "https://maestro.example/1",
-          sequenceRefUuids: [],
+          sequence: [],
           datetime: now,
           updatedAt: now,
         },
@@ -428,8 +428,8 @@ describe("opUpdateMdau() — actions", () => {
     const now = Date.now();
     runMdau(handle, {
       aegisAction: {
-        [action.refUuid]: {
-          refUuid: action.refUuid,
+        [action.uuid]: {
+          uuid: action.uuid,
           name: action.name,
           descriptionTask: action.descriptionTask,
           duration: action.duration,
@@ -670,30 +670,30 @@ describe("opUpdateMdau() — rexes", () => {
       isRunning: true,
       maestroControlled: true,
       updatedAt: rexUpdatedAt,
-      maestroActivityPropertiesByRefUuid: {
-        [station.refUuid]: { color: "#ff0000", number: "1" },
+      maestroActivityProperties: {
+        [station.uuid]: { color: "#ff0000", number: "1" },
       },
-      stationEntriesByRefUuid: {
-        [station.refUuid]: {
+      stationEntries: {
+        [station.uuid]: {
           rexStatus: "in-progress",
           maestroPercentCompleteEv1: 50,
           maestroPercentCompleteEv2: 25,
         },
-        [egressStation.refUuid]: {
+        [egressStation.uuid]: {
           rexStatus: "complete",
           maestroPercentCompleteEv1: 100,
           maestroPercentCompleteEv2: 100,
         },
       },
-      traverseEntriesByRefUuid: {
-        [traverse.refUuid]: {
+      traverseEntries: {
+        [traverse.uuid]: {
           rexStatus: "pending",
           maestroPercentCompleteEv1: 0,
           maestroPercentCompleteEv2: 0,
         },
       },
-      actionEntriesByRefUuid: {
-        [action.refUuid]: {
+      actionEntries: {
+        [action.uuid]: {
           rexStatus: "complete",
           markerId: "M-001",
           containerId: "C-001",
@@ -718,7 +718,7 @@ describe("opUpdateMdau() — rexes", () => {
     expect(updated.stationEntries?.[egressStation.uuid]?.rexStatus).toBe("complete");
 
     // maestroActivityProperties resolved to uuid keys
-    expect(updated.maestroActivityPropertiesByRefUuid?.[station.uuid]?.color).toBe("#ff0000");
+    expect(updated.maestroActivityProperties?.[station.uuid]?.color).toBe("#ff0000");
   });
 
   it("stops other running rexes when a rex starts", () => {
@@ -744,10 +744,10 @@ describe("opUpdateMdau() — rexes", () => {
           isRunning: true,
           maestroControlled: true,
           updatedAt: Date.now(),
-          maestroActivityPropertiesByRefUuid: {},
-          stationEntriesByRefUuid: {},
-          traverseEntriesByRefUuid: {},
-          actionEntriesByRefUuid: {},
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
         },
       },
     });
@@ -770,10 +770,10 @@ describe("opUpdateMdau() — rexes", () => {
           isRunning: true,
           maestroControlled: true,
           updatedAt: Date.now(),
-          maestroActivityPropertiesByRefUuid: {},
-          stationEntriesByRefUuid: {},
-          traverseEntriesByRefUuid: {},
-          actionEntriesByRefUuid: {},
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
         },
       },
     });
@@ -807,11 +807,11 @@ describe("opUpdateMdau() — subscription gating", () => {
 
     opUpdateMdau(handle, MISSION_ID, {
       aegisStations: {
-        [station.refUuid]: {
-          refUuid: station.refUuid,
+        [station.uuid]: {
+          uuid: station.uuid,
           name: "Should Not Apply",
           duration: 99,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: Date.now(),
         },
       },
@@ -848,18 +848,18 @@ describe("opUpdateMdau() — subscription gating", () => {
     const now = Date.now();
     opUpdateMdau(handle, MISSION_ID, {
       aegisStations: {
-        [subscribedStation.refUuid]: {
-          refUuid: subscribedStation.refUuid,
+        [subscribedStation.uuid]: {
+          uuid: subscribedStation.uuid,
           name: "Subscribed Updated",
           duration: 20,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: now,
         },
-        [unsubscribedStation.refUuid]: {
-          refUuid: unsubscribedStation.refUuid,
+        [unsubscribedStation.uuid]: {
+          uuid: unsubscribedStation.uuid,
           name: "Unsubscribed Updated",
           duration: 30,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: now,
         },
       },
@@ -891,8 +891,8 @@ describe("opUpdateMdau() — subscription gating", () => {
 
     opUpdateMdau(handle, MISSION_ID, {
       aegisAction: {
-        [action.refUuid]: {
-          refUuid: action.refUuid,
+        [action.uuid]: {
+          uuid: action.uuid,
           name: action.name,
           descriptionTask: action.descriptionTask,
           duration: action.duration,
@@ -934,10 +934,10 @@ describe("opUpdateMdau() — subscription gating", () => {
           isRunning: true,
           maestroControlled: true,
           updatedAt: Date.now(),
-          maestroActivityPropertiesByRefUuid: {},
-          stationEntriesByRefUuid: {},
-          traverseEntriesByRefUuid: {},
-          actionEntriesByRefUuid: {},
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
         },
       },
     });
