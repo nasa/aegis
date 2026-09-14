@@ -13,7 +13,7 @@
  *   cancelEditMarker    — clear directive, reset cursor
  *   editPolyline        — Modify interaction on target feature (add/move/delete vertices)
  *   saveEditPolyline    — remove interaction, clear directive
- *   cancelEditPolyline  — revert path from DB, clear directive
+ *   cancelEditPolyline  — restore the path captured in `map.originalPoints`
  *
  * Returns null — headless behavior component.
  */
@@ -35,8 +35,8 @@ import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { updateMapDirective } from "store/map";
-import { thunkDocUpdateTraverse, thunkDocResetTraverse } from "store/thunk/thunkTraverse";
-import { thunkDocUpdateWalkback, thunkDocResetWalkback } from "store/thunk/thunkStation";
+import { thunkDocUpdateTraverse } from "store/thunk/thunkTraverse";
+import { thunkDocUpdateWalkback } from "store/thunk/thunkStation";
 import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";
 import { upsertMeasurement } from "store/measure";
 import { getSegmentBearing, getTotalDistance } from "utils/mapping/geoMath";
@@ -133,6 +133,15 @@ export function InteractionManager(): null {
   const { toAegisPoint } = useCoordConverters();
 
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
+
+  // Snapshot of the path as it was before the edit started.
+  // Held in a ref so that updating it never tears down and rebuilds
+  // an in-progress Modify interaction.
+  const originalPoints = useAppSelector((s) => s.map.originalPoints, refEqual);
+  const originalPointsRef = useRef(originalPoints);
+  useEffect(() => {
+    originalPointsRef.current = originalPoints;
+  }, [originalPoints]);
 
   // Selection/navigation context — used to auto-cancel an in-progress edit when
   // the user navigates away (selects a different traverse, station, POI,
@@ -516,13 +525,20 @@ export function InteractionManager(): null {
       }
 
       // -----------------------------------------------------------------
-      // CANCEL EDIT POLYLINE — revert path from DB copy
+      // CANCEL EDIT POLYLINE — restore the path captured before the edit began
       // -----------------------------------------------------------------
       case "cancelEditPolyline": {
-        if (mapDirective.mapItemType === "traverse") {
-          dispatch(thunkDocResetTraverse({ traverseUuid: mapDirective.uuid }));
-        } else if (mapDirective.mapItemType === "walkback") {
-          dispatch(thunkDocResetWalkback({ stationUuid: mapDirective.uuid }));
+        const originalPath = originalPointsRef.current;
+        if (originalPath && originalPath.length >= 2) {
+          if (mapDirective.mapItemType === "traverse") {
+            dispatch(
+              thunkDocUpdateTraverse({ traverseUuid: mapDirective.uuid, path: originalPath })
+            );
+          } else if (mapDirective.mapItemType === "walkback") {
+            dispatch(
+              thunkDocUpdateWalkback({ stationUuid: mapDirective.uuid, path: originalPath })
+            );
+          }
         }
         dispatch(updateMapDirective(null));
         if (el) el.style.cursor = "";

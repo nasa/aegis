@@ -236,7 +236,6 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleEditWalkback = async () => {
-    dispatch(setOriginalPoints(selectedStation.walkbackPath));
     dispatch(
       thunkUpdateMapDirective({
         mapItemType: "walkback",
@@ -244,6 +243,7 @@ const Info_Panel: FunctionComponent<{
         mapAction: "editPolyline",
       })
     );
+    dispatch(setOriginalPoints(selectedStation.walkbackPath));
   };
 
   const handleCancelEditWalkback = () => {
@@ -270,6 +270,7 @@ const Info_Panel: FunctionComponent<{
   };
 
   const handleResetWalkback = useCallback(() => {
+    dispatch(setOriginalPoints([]));
     dispatch(thunkDocResetWalkback({ stationUuid: selectedStation.uuid }));
   }, [dispatch, selectedStation.uuid]);
 
