@@ -29,6 +29,7 @@ type SerializedWorkerError = {
 };
 
 export type RasterSamplingWorkerResponse =
+  | { status: "ready" }
   | { id: number; status: "success"; result: RasterProfileSamplingResult }
   | { id: number; status: "error"; error: SerializedWorkerError }
   | { status: "closed" }
@@ -59,8 +60,8 @@ type WorkerSlot = {
   startedAt?: number;
   timeout?: NodeJS.Timeout;
   shutdownComplete?: (error?: Error) => void;
-  // Set once the worker sends any message, which proves its entry point loaded.
-  everResponded?: boolean;
+  // The worker announces readiness after installing its request handler.
+  ready?: boolean;
 };
 
 export type RasterSamplingWorkerResult = RasterProfileSamplingResult & {
@@ -98,7 +99,7 @@ const positiveIntegerFromEnvironment = (name: string, fallback: number): number 
 const defaultPoolSize = Math.min(4, Math.max(1, availableParallelism() - 1));
 const WORKER_SHUTDOWN_TIMEOUT_MS = 5_000;
 
-// A worker that dies without ever sending a message never finished starting. Replacing it cannot
+// A worker that dies before announcing readiness never finished starting. Replacing it cannot
 // succeed when the cause is permanent, such as a missing or unloadable worker entry point, and an
 // immediate replacement turns that into a thread-spawn loop that saturates every core. After this
 // many consecutive startup failures the pool stops replacing workers and reports itself
@@ -125,7 +126,7 @@ const UNAVAILABLE_RETRY_AFTER_MS = 60_000;
  * continue on healthy workers. Call close() during server shutdown to reject outstanding work,
  * close each worker-local raster cache, and terminate every thread.
  *
- * Replacement is not unconditional. Workers that repeatedly die before ever responding indicate a
+ * Replacement is not unconditional. Workers that repeatedly die before announcing readiness indicate a
  * permanent fault that respawning cannot fix, so the pool gives up, rejects work immediately, and
  * retries only occasionally. This keeps a broken worker entry point degrading elevation sampling
  * rather than consuming every core.
@@ -145,7 +146,7 @@ export class RasterSamplingWorkerPool {
   private started = false;
   private closing = false;
   private closePromise?: Promise<void>;
-  // Counts workers that died before responding. Any successful start resets it to zero.
+  // Counts workers that died before readiness. Any successful start resets it to zero.
   private consecutiveStartupFailures = 0;
   // Set when startup failures exceed the limit. Cleared by the next retry attempt.
   private unavailableSince?: number;
@@ -320,11 +321,12 @@ export class RasterSamplingWorkerPool {
   }
 
   private handleResponse(slot: WorkerSlot, response: RasterSamplingWorkerResponse): void {
-    // Any message proves the entry point loaded and the thread reached its message handler, so
-    // later failures on this worker are crashes rather than startup faults.
-    if (!slot.everResponded) {
-      slot.everResponded = true;
-      this.consecutiveStartupFailures = 0;
+    if (response.status === "ready") {
+      if (!this.closing && this.workers.includes(slot) && !slot.ready) {
+        slot.ready = true;
+        this.consecutiveStartupFailures = 0;
+      }
+      return;
     }
     if (response.status === "closed" || response.status === "close-error") {
       slot.shutdownComplete?.(
@@ -368,18 +370,15 @@ export class RasterSamplingWorkerPool {
     if (index !== -1) this.workers.splice(index, 1);
     else if (!this.closing) return;
     if (slot.timeout) clearTimeout(slot.timeout);
-    const hadJob = slot.job !== undefined;
     slot.job?.reject(
       error instanceof RasterSamplingWorkerPoolUnavailableError
         ? error
         : new RasterSamplingWorkerPoolUnavailableError(error.message)
     );
     if (!this.closing) {
-      // A worker that died while idle, having never sent a message, failed to start: no job of
-      // ours can explain its death. Node reports an unresolvable entry point asynchronously on
-      // "error", which is otherwise indistinguishable from a crash. A worker holding a job is
-      // attributed to that job instead, since bad raster input must not disable the pool.
-      const failedToStart = !slot.everResponded && !hadJob;
+      // postMessage can queue a job before the entry point loads. Only the worker's ready
+      // message distinguishes a startup failure from a crash while processing that job.
+      const failedToStart = !slot.ready;
       if (failedToStart) {
         this.consecutiveStartupFailures += 1;
         if (this.consecutiveStartupFailures >= this.maxStartupFailures) {
@@ -388,10 +387,6 @@ export class RasterSamplingWorkerPool {
           this.scheduleRespawn();
         }
       } else {
-        // Only a worker that actually responded proves the entry point is loadable. A worker that
-        // died holding its first job is replaced immediately, but must not clear the count, or a
-        // steady trickle of requests would keep resetting it and the loop would never be caught.
-        if (slot.everResponded) this.consecutiveStartupFailures = 0;
         this.addWorker();
         this.dispatchQueuedJobs();
       }

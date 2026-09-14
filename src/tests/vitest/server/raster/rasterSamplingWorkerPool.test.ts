@@ -45,6 +45,7 @@ class FakeWorker extends EventEmitter {
   }
 
   succeed(requestIndex = 0): void {
+    this.ready();
     const request = this.requests[requestIndex];
     const response: RasterSamplingWorkerResponse = {
       id: request.id,
@@ -66,6 +67,10 @@ class FakeWorker extends EventEmitter {
 
   closeSuccessfully(): void {
     this.emit("message", { status: "closed" });
+  }
+
+  ready(): void {
+    this.emit("message", { status: "ready" } satisfies RasterSamplingWorkerResponse);
   }
 }
 
@@ -168,11 +173,13 @@ describe("RasterSamplingWorkerPool", () => {
     const workers = [firstWorker, replacementWorker];
     const pool = new RasterSamplingWorkerPool({
       size: 1,
+      maxStartupFailures: 1,
       workerFactory: () => workers.shift()!,
     });
 
     const failed = pool.run(descriptor, path, [2]);
     const queued = pool.run(descriptor, path, [2]);
+    firstWorker.ready();
     firstWorker.emit("error", new Error("decoder crashed"));
 
     await expect(failed).rejects.toBeInstanceOf(RasterSamplingWorkerPoolUnavailableError);
@@ -192,6 +199,7 @@ describe("RasterSamplingWorkerPool", () => {
     });
 
     const failed = pool.run(descriptor, path, [2]);
+    firstWorker.ready();
     firstWorker.emit("exit", 0);
 
     await expect(failed).rejects.toBeInstanceOf(RasterSamplingWorkerPoolUnavailableError);
@@ -234,8 +242,7 @@ describe("RasterSamplingWorkerPool", () => {
         await new Promise((r) => setTimeout(r, 2));
     };
 
-    // The first run() creates the pool's workers, which then die while idle. That job is rejected
-    // by the worker it was dispatched to; the interesting behavior is what happens afterwards.
+    // The first run() assigns a job before startup fails; replacements then fail while idle.
     const primeAndSettle = async (pool: RasterSamplingWorkerPool) => {
       await expect(pool.run(descriptor, path, [2])).rejects.toBeInstanceOf(
         RasterSamplingWorkerPoolUnavailableError
@@ -254,6 +261,54 @@ describe("RasterSamplingWorkerPool", () => {
       await flush();
       expect(created.length).toBe(settled);
       await pool.close();
+    });
+
+    it("backs off and stops startup failures while jobs remain queued", async () => {
+      vi.useFakeTimers();
+      const created: FakeWorker[] = [];
+      const pool = new RasterSamplingWorkerPool({
+        size: 1,
+        maxStartupFailures: 3,
+        respawnDelayMs: 100,
+        workerFactory: () => {
+          const worker = new FakeWorker();
+          created.push(worker);
+          return worker;
+        },
+      });
+      try {
+        const results = Promise.allSettled(
+          Array.from({ length: 10 }, () => pool.run(descriptor, path, [2]))
+        );
+        expect(created[0].requests).toHaveLength(1);
+        failToStart(created[0]);
+        await vi.advanceTimersByTimeAsync(99);
+        expect(created).toHaveLength(1);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(created).toHaveLength(2);
+        expect(created[1].requests).toHaveLength(1);
+        failToStart(created[1]);
+        await vi.advanceTimersByTimeAsync(199);
+        expect(created).toHaveLength(2);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(created).toHaveLength(3);
+        expect(created[2].requests).toHaveLength(1);
+        failToStart(created[2]);
+
+        const settled = await results;
+        expect(settled).toHaveLength(10);
+        settled.forEach((result) => {
+          expect(result.status).toBe("rejected");
+          if (result.status === "rejected")
+            expect(result.reason).toBeInstanceOf(RasterSamplingWorkerPoolUnavailableError);
+        });
+        await expect(pool.run(descriptor, path, [2])).rejects.toThrow(/failed to start/);
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect(created).toHaveLength(3);
+      } finally {
+        await pool.close();
+        vi.useRealTimers();
+      }
     });
 
     it("fails fast without creating workers while unavailable", async () => {
