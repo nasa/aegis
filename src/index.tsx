@@ -17,6 +17,7 @@ import { VersionGatedNetworkAdapter } from "client/automerge-network-adapter";
 
 import "./styles/globals.css";
 import "./styles/fonts.css";
+import { ToastContainer } from "react-toastify";
 import { CookiesProvider } from "react-cookie";
 import { setupFetchFns } from "packages/fetchFns";
 import { getCurrentUser } from "packages/getCurrentUser";
@@ -135,6 +136,7 @@ root.render(
             <BrowserRouter>
               <App launchpadUser={user} />
             </BrowserRouter>
+            <ToastContainer position="bottom-right" theme="dark" />
           </CookiesProvider>
         </Provider>
       </RepoContext.Provider>
