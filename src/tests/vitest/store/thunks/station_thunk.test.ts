@@ -6,6 +6,7 @@ import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { setMissionAutomergeDocHandle, getMissionDocHandle } from "client/automergeDocHandles";
+import { resetToastSpies, setupToastSpies } from "tests/vitest/helpers/mockToasts";
 
 const mockThunkCancelMarkerMapDirective = vi.fn();
 vi.mock("store/thunk/thunkMap", async () => {
@@ -251,7 +252,7 @@ describe("Thunk Station Tests", () => {
 
   describe("thunkDocDeleteStations", () => {
     test("deletes a station and its actions, validates EVA sequence usage", async () => {
-      const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
+      const toastSpies = setupToastSpies();
 
       const station: Station = generateBlankStation({ name: "Vitest Station-1" });
       const stationAction: Action = generateBlankAction({
@@ -291,13 +292,13 @@ describe("Thunk Station Tests", () => {
         thunkStation.thunkDocDeleteStations({ stationUuids: [stationInEva.uuid] })
       );
       expect(getMission().stations[stationInEva.uuid]).toBeDefined();
-      expect(mockAlert).toHaveBeenCalled();
+      expect(toastSpies.error).toHaveBeenCalled();
 
-      mockAlert.mockRestore();
+      resetToastSpies(toastSpies);
     });
 
     test("alerts and aborts when station occupies an EVA ingress position", async () => {
-      const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
+      const toastSpies = setupToastSpies();
 
       const egress: Station = generateBlankStation({ name: "Vitest Egress" });
       const station: Station = generateBlankStation({ name: "Vitest Ingress Station" });
@@ -322,14 +323,14 @@ describe("Thunk Station Tests", () => {
 
       // Station must NOT have been deleted
       expect(getMission().stations[station.uuid]).toBeDefined();
-      expect(mockAlert).toHaveBeenCalledTimes(1);
-      expect(mockAlert.mock.calls[0][0]).toContain("being used by an EVA");
+      expect(toastSpies.error).toHaveBeenCalledTimes(1);
+      expect(toastSpies.error.mock.calls[0][0]).toContain("being used by an EVA");
 
-      mockAlert.mockRestore();
+      resetToastSpies(toastSpies);
     });
 
     test("alerts and aborts when deleting a lander station directly", async () => {
-      const mockAlert = vi.spyOn(window, "alert").mockImplementation(vi.fn());
+      const toastSpies = setupToastSpies();
 
       const landerStation: Station = generateLanderXgressStation({
         xgressType: "egress",
@@ -348,10 +349,10 @@ describe("Thunk Station Tests", () => {
       );
 
       expect(getMission().stations[landerStation.uuid]).toBeDefined();
-      expect(mockAlert).toHaveBeenCalledTimes(1);
-      expect(mockAlert.mock.calls[0][0]).toContain("egress or ingress");
+      expect(toastSpies.error).toHaveBeenCalledTimes(1);
+      expect(toastSpies.error.mock.calls[0][0]).toContain("egress or ingress");
 
-      mockAlert.mockRestore();
+      resetToastSpies(toastSpies);
     });
   });
 
