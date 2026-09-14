@@ -236,7 +236,7 @@ const MaestroV2: React.FunctionComponent = () => {
 
   const emitSubscribeToEva = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("subscribeToEva", Number(subMissionId), subEvaUuid.trim());
+    maestroSocket.current.emit("subscribeToEva", Number(subMissionId), subEvaUuid.trim(), () => {});
   };
 
   const emitUnsubscribeToEva = () => {
@@ -254,7 +254,7 @@ const MaestroV2: React.FunctionComponent = () => {
     try {
       const mdau = JSON.parse(sendMdauJson) as MDAU.MaestroDataAegisUses;
       setSendMdauJsonError(null);
-      maestroSocket.current.emit("sendMDAU", Number(sendMdauMissionId), mdau);
+      maestroSocket.current.emit("sendMDAU", Number(sendMdauMissionId), mdau, () => {});
     } catch (e) {
       setSendMdauJsonError(`Invalid JSON: ${String(e)}`);
     }

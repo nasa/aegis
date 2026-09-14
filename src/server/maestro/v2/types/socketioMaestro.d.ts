@@ -28,7 +28,6 @@ export interface MaestroClientToServerEvents {
   sendMDAU: (
     missionId: number,
     mdau: MDAU.MaestroDataAegisUses,
-    // Optional callback to read responses from the server
     callback?: (response: { status: "success" } | { status: "error"; message: string }) => void
   ) => void;
 
