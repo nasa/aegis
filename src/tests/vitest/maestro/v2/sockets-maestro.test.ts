@@ -82,7 +82,7 @@ import type { MDAU } from "server/maestro/v2/types/mdau";
 
 const MISSION_ID = 9999;
 
-// Shared mutable EVA registry used by the mockGetAutomergeMissions implementation.
+// Shared mutable EVA registry backing the mission doc handle registered for MISSION_ID.
 // Tests populate this with { [evaUuid]: { uuid } } entries before calling handlers.
 let evaRegistry: Record<string, { uuid: string }> = {};
 
@@ -116,27 +116,21 @@ beforeEach(() => {
   };
   globalValues.automergeRepo = { find: vi.fn().mockResolvedValue(defaultDocHandle) } as never;
   mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://default-url" }]);
-  // Mock em.fork() so getEvaUuid resolves evaUuid directly as the evaUuid.
-  const mockEm = {
-    find: vi.fn().mockImplementation((_entity: unknown, where: Record<string, unknown>) => {
-      // For Rex_db lookup (evaUuid: { $in: [...] }) return empty — no rexes exist
-      if (where?.evaUuid) return Promise.resolve([]);
-      // For Eva_db lookup by uuid, echo the requested uuid back as a fake eva
-      const uuid = where?.uuid as string | undefined;
-      if (uuid) return Promise.resolve([{ uuid }]);
-      return Promise.resolve([]);
-    }),
-    findOne: vi.fn().mockResolvedValue(null),
-  };
-  globalValues.orm = { em: { fork: vi.fn().mockReturnValue(mockEm) } } as never;
+  // getEverything wraps its work in RequestContext.create(globalValues.orm.em, ...),
+  // which is mocked as a pass-through, so only a stub em is required here.
+  globalValues.orm = { em: { fork: vi.fn() } } as never;
   globalValues.maestroV2.evaSubscriptions = new Map();
   globalValues.maestroV2.socketio = null;
   globalValues.maestroV2.docListeners = new Map();
   globalValues.maestroV2.visitorData = {};
   globalValues.maestroV2.docHandles = new Map();
-  // Configure getAutomergeMissions to return a mission whose evas registry is
-  // built from a shared mutable object that tests can populate before calling handlers.
+  // Register a doc handle for MISSION_ID whose document exposes the shared mutable
+  // eva registry. subscribeToEva resolves evas from this handle, so tests populate
+  // evaRegistry before calling the handler.
   evaRegistry = {};
+  globalValues.maestroV2.docHandles.set(MISSION_ID, {
+    doc: vi.fn(() => ({ evas: evaRegistry, rexes: {} })),
+  } as never);
   mockGetAutomergeMissions.mockImplementation(() =>
     Promise.resolve([{ evas: evaRegistry, rexes: {} }])
   );
