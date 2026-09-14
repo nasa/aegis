@@ -76,8 +76,6 @@ export declare namespace AegisSlice {
     datetime: number | null;
     createdAt: number;
     updatedAt: number;
-    /** Present only when this EVA belongs to a REX. */
-    rexUuid?: string;
   };
 
   type AegisEvas = { [evaId: string]: AegisEva };
@@ -94,8 +92,6 @@ export declare namespace AegisSlice {
     isLanderXgress: boolean;
     updatedAt: number;
     createdAt: number;
-    /** Present only when this station belongs to a REX. */
-    rexUuid?: string;
   };
 
   type AegisStations = { [stationId: string]: AegisStation };
@@ -111,8 +107,6 @@ export declare namespace AegisSlice {
     iconEmojiDecoded?: string;
     duration: number | null;
     calculatedFields: CalculatedFieldItems;
-    /** Present only when this traverse belongs to a REX. */
-    rexUuid?: string;
   };
 
   type AegisTraverses = { [traverseId: string]: AegisTraverse };
@@ -161,8 +155,6 @@ export declare namespace AegisSlice {
     stationUuid?: string;
     traverseUuid?: string;
     enabled: boolean;
-    /** Present only when this action belongs to a REX. */
-    rexUuid?: string;
   };
 
   type AegisActionsRequest = {

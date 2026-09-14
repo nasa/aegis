@@ -168,7 +168,7 @@ describe("GET MISSIONS Endpoint (Maegistro V2)", () => {
       expect(missions[testMissionsPartial[1].id].evas).toHaveLength(0);
     });
 
-    test("EVAs contain refUuid + evaName", async () => {
+    test("EVAs contain uuid + evaName", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/getMissions")
         .set("emss-token", emssToken);
@@ -177,7 +177,7 @@ describe("GET MISSIONS Endpoint (Maegistro V2)", () => {
 
       const mission1Data = res.body.data[testMissionsPartial[0].id];
       const eva = mission1Data.evas[0];
-      expect(eva).toHaveProperty("refUuid");
+      expect(eva).toHaveProperty("uuid");
       expect(eva).toHaveProperty("evaName");
     });
   });

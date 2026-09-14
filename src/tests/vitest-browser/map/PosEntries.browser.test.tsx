@@ -132,7 +132,7 @@ function makeRex(overrides: Partial<Rex> = {}): Rex {
     maestroControlled: false,
     maestroEventId: null,
     maestroEventUrl: null,
-    maestroActivityPropertiesByRefUuid: null,
+    maestroActivityProperties: null,
     ...overrides,
   };
 }

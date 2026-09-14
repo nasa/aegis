@@ -54,23 +54,21 @@ export const buildAegisSliceForMaestro = async (
   // Build the only lookup that isn't already a key-value map: sequence-item-uuid → Eva
   const lookups = buildLookupMaps(mission);
   const formattedMission = formatMissionForMaestro(mission);
-  const formattedEvas = formatEvasForMaestro(subscribedEvas, mission, lookups);
-  const formattedStations = formatStationsForMaestro(subscribedStations, mission, lookups);
+  const formattedEvas = formatEvasForMaestro(subscribedEvas);
+  const formattedStations = formatStationsForMaestro(subscribedStations, lookups);
   const formattedTraverses = formatTraversesForMaestro(subscribedTraverses, mission, lookups);
-  const formattedActions = formatActionsForMaestro(subscribedActions, mission, lookups);
+  const formattedActions = formatActionsForMaestro(subscribedActions, mission);
 
   return {
     aegisMissions: { [missionId]: formattedMission },
-    aegisEvas: Object.fromEntries(formattedEvas.map((eva) => [eva.refUuid, eva])),
-    aegisStations: Object.fromEntries(
-      formattedStations.map((station) => [station.refUuid, station])
-    ),
+    aegisEvas: Object.fromEntries(formattedEvas.map((eva) => [eva.uuid, eva])),
+    aegisStations: Object.fromEntries(formattedStations.map((station) => [station.uuid, station])),
     aegisTraverses: Object.fromEntries(
-      formattedTraverses.map((traverse) => [traverse.refUuid, traverse])
+      formattedTraverses.map((traverse) => [traverse.uuid, traverse])
     ),
     storedAegisActions: {}, // Deprecated
     fetchedAegisActions: Object.fromEntries(
-      formattedActions.map((action) => [action.refUuid, action])
+      formattedActions.map((action) => [action.uuid, action])
     ),
   };
 };
@@ -133,61 +131,41 @@ const buildLookupMaps = (mission: Mission): LookupMaps => {
   return { evaBySequenceUuid, rexByEvaUuid, actionsByStationUuid, actionsByTraverseUuid };
 };
 
-const formatEvasForMaestro = (
-  evas: Eva[],
-  mission: Mission,
-  lookups: LookupMaps
-): AegisSlice.AegisEva[] => {
+const formatEvasForMaestro = (evas: Eva[]): AegisSlice.AegisEva[] => {
   return evas.map((eva) => {
-    const rex = lookups.rexByEvaUuid.get(eva.uuid);
     return {
       missionId: eva.missionId,
       name: eva.name,
-      refUuid: eva.refUuid,
+      uuid: eva.uuid,
       description: eva.description,
-      sequenceRefUuids: eva.sequence.map((seqItem) => {
-        let refUuid = "";
-        if (seqItem.type === "station") {
-          refUuid = mission.stations[seqItem.uuid]?.refUuid ?? "";
-        } else {
-          refUuid = mission.traverses[seqItem.uuid]?.refUuid ?? "";
-        }
-        return { type: seqItem.type, refUuid };
-      }),
+      sequence: eva.sequence.map((seqItem) => ({ type: seqItem.type, uuid: seqItem.uuid })),
       datetime: eva.datetime,
       createdAt: eva.createdAt,
       updatedAt: eva.updatedAt,
-      ...(rex && { rexUuid: rex.uuid }),
     };
   });
 };
 
 const formatStationsForMaestro = (
   stations: Station[],
-  mission: Mission,
   lookups: LookupMaps
 ): AegisSlice.AegisStation[] => {
   return stations.map((station) => {
     const stationActions = (lookups.actionsByStationUuid.get(station.uuid) ?? []).filter(
       (a) => a.enabled
     );
-    const evaThisStationIsIn = lookups.evaBySequenceUuid.get(station.uuid);
-    const rex = evaThisStationIsIn ? lookups.rexByEvaUuid.get(evaThisStationIsIn.uuid) : undefined;
     return {
       missionId: station.missionId,
       name: station.name,
-      refUuid: station.refUuid,
+      uuid: station.uuid,
       iconEmojiDecoded: decodeEmoji(station.icon),
       duration: station.duration,
       calculatedFields: getMaestroCalcFieldsForStation(stationActions),
       description: station.description,
-      actionOrderRefUuids:
-        station.actionOrderUuids?.map((uuid) => mission.actions[uuid]?.refUuid).filter(Boolean) ??
-        [],
+      actionOrderUuids: station.actionOrderUuids ?? [],
       isLanderXgress: station.isLanderXgress,
       createdAt: station.createdAt,
       updatedAt: station.updatedAt,
-      ...(rex && { rexUuid: rex.uuid }),
     };
   });
 };
@@ -202,15 +180,12 @@ const formatTraversesForMaestro = (
     const traverseActions = (lookups.actionsByTraverseUuid.get(traverse.uuid) ?? []).filter(
       (a) => a.enabled
     );
-    const rex = traverseEva ? lookups.rexByEvaUuid.get(traverseEva.uuid) : undefined;
     return {
-      refUuid: traverse.refUuid,
+      uuid: traverse.uuid,
       missionId: traverse.missionId,
       name: traverse.name,
       description: traverse.description,
-      actionOrderRefUuids:
-        traverse.actionOrderUuids?.map((uuid) => mission.actions[uuid]?.refUuid).filter(Boolean) ??
-        [],
+      actionOrderUuids: traverse.actionOrderUuids ?? [],
       createdAt: traverse.createdAt,
       updatedAt: traverse.updatedAt,
       duration: traverse.duration,
@@ -220,29 +195,18 @@ const formatTraversesForMaestro = (
         evaTraverseRate: traverseEva?.traverseRate,
         traverseActions,
       }),
-      ...(rex && { rexUuid: rex.uuid }),
     };
   });
 };
 
-const formatActionsForMaestro = (
-  actions: Action[],
-  mission: Mission,
-  lookups: LookupMaps
-): AegisSlice.AegisAction[] => {
+const formatActionsForMaestro = (actions: Action[], mission: Mission): AegisSlice.AegisAction[] => {
   return actions.map((action) => {
     const actionStation = action.stationUuid ? mission.stations[action.stationUuid] : undefined;
     const actionTraverse = action.traverseUuid ? mission.traverses[action.traverseUuid] : undefined;
-    let rexUuid: string | undefined;
-    const parentUuid = actionStation?.uuid ?? actionTraverse?.uuid;
-    const evaThisActionIsIn = parentUuid ? lookups.evaBySequenceUuid.get(parentUuid) : undefined;
-    if (evaThisActionIsIn) {
-      const rex = lookups.rexByEvaUuid.get(evaThisActionIsIn.uuid);
-      if (rex) rexUuid = rex.uuid;
-    }
+
     return {
       name: action.name,
-      refUuid: action.refUuid,
+      uuid: action.uuid,
       descriptionTask: action.descriptionTask,
       equipmentItemsUsageReadable: makeEquipmentReadable({
         equipmentItems: action.equipmentItemsUsage,
@@ -262,10 +226,9 @@ const formatActionsForMaestro = (
       duration: action.duration,
       stmAction: action.stmAction,
       iconEmojiDecoded: decodeEmoji(action.icon),
-      stationRefUuid: actionStation?.refUuid,
-      traverseRefUuid: actionTraverse?.refUuid,
+      stationUuid: actionStation?.uuid,
+      traverseUuid: actionTraverse?.uuid,
       enabled: action.enabled,
-      ...(rexUuid && { rexUuid }),
     };
   });
 };
