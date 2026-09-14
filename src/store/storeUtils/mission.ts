@@ -84,7 +84,7 @@ export const generateBlankActionTemplate = (
     stmPriorities: null,
     equipmentItemsUsage: {},
     geographicUnitsUsage: [],
-    crewAssigned: [],
+    crewAssigned: ["EV1"],
     mass: null,
     priority: null,
     createdAt: getAccurateNow().getTime(),
