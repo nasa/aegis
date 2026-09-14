@@ -34,7 +34,7 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
     mass: null,
     status: "Candidate",
     enabled: true,
-    crewAssigned: [],
+    crewAssigned: ["EV1"],
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

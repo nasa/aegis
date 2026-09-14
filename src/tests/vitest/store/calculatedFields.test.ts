@@ -30,6 +30,7 @@ describe("Calculated fields", () => {
     const poiAction3: Action = {
       ...generateBlankAction({ name: "Vitest Test Action-1", poiUuid: poi.uuid }),
       duration: 1,
+      crewAssigned: [],
     };
     const poiActions_all = [poiAction1, poiAction2, poiAction3];
 
@@ -80,6 +81,7 @@ describe("Calculated fields", () => {
     const stationAction3: Action = {
       ...generateBlankAction({ name: "Vitest Test Action-1", stationUuid: station.uuid }),
       duration: 1,
+      crewAssigned: [],
     };
 
     const stations: Station[] = [station, stationNoActions];
