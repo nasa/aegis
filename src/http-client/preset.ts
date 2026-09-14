@@ -1,3 +1,5 @@
+import { toast } from "react-toastify";
+
 export async function upsertPresets(presets: Preset[]): Promise<WrappedResponse<Preset[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
@@ -19,7 +21,7 @@ export async function upsertPresets(presets: Preset[]): Promise<WrappedResponse<
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error saving presets to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
@@ -49,7 +51,7 @@ export async function deletePresets(presetUuids: string[]): Promise<WrappedRespo
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error deleting presets from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };

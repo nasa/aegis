@@ -1,3 +1,5 @@
+import { toast } from "react-toastify";
+
 /****** GET ******/
 export async function getSTMLevel1s(urlParams?: {
   missionId: number;
@@ -93,7 +95,7 @@ export async function upsertSTMs(
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error saving ${stmType}s to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
@@ -124,7 +126,7 @@ export async function deleteSTMs(
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error deleting ${stmType}s from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
@@ -178,7 +180,7 @@ export async function upsertStmRules(stmRules: STMRule[]): Promise<WrappedRespon
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error saving STMRules to database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };
@@ -208,7 +210,7 @@ export async function deleteStmRules(stmRuleUuids: string[]): Promise<WrappedRes
     } catch {
       /* response body is not JSON */
     }
-    alert(
+    toast.error(
       `Error deleting STMRules from database. Please let the AEGIS developers know. Status ${errorMessage}`
     );
     return { status: "error", message: errorMessage };

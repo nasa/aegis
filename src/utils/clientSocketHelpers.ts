@@ -12,6 +12,7 @@ import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
+import { toast } from "react-toastify";
 
 /**
  * Callers pass an origin (`https://aegis.fit.nasa.gov`), but load testing may
@@ -103,13 +104,13 @@ export const attachSocketListeners = (
           isEqual(lastEditResponse.data, connectionStoreRef.current.socketStatus.lastEditEvent) ===
             false
         ) {
-          alert(
+          toast.info(
             `Mission data has been updated by another user while you were disconnected.\n
               Please refresh your browser to get the latest data.`
           );
         }
       } else {
-        alert("Unable to fetch last event from server. Please refresh your browser");
+        toast.warn("Unable to fetch last event from server. Please refresh your browser");
       }
     };
     fetchLastEventAsync();
@@ -133,7 +134,7 @@ export const attachSocketListeners = (
         serverAppVersion.serverEpochUuid
     ) {
       if (connectionStoreRef.current.clientAppVersion?.version) {
-        alert(
+        toast.info(
           `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}/${connectionStoreRef.current.clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid} `
         );
 
@@ -177,7 +178,7 @@ export const attachSocketListeners = (
       } else {
         const alertStrings = thunkResponse.payload as string[];
         if (alertStrings.length > 0) {
-          alert(alertStrings.join("\n"));
+          toast.info(alertStrings.join("\n"));
         }
       }
     };
@@ -200,7 +201,7 @@ export const attachSocketListeners = (
       } else {
         const alertStrings = thunkResponse.payload as string[];
         if (alertStrings.length > 0) {
-          alert(alertStrings.join("\n"));
+          toast.info(alertStrings.join("\n"));
         }
       }
     };

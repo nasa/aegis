@@ -18,6 +18,7 @@ import {
   applyUpdateActionByField,
 } from "operations/apply/apply-action";
 import { applyCreateTemplateFromAction } from "operations/apply/apply-mission-actionTemplate";
+import { toast } from "react-toastify";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
@@ -95,7 +96,7 @@ export const ActionMenu: FunctionComponent<{
                 withMissionChange((m) =>
                   applyCreateTemplateFromAction(m, { actionUuid: action.uuid })
                 );
-                window.alert(`Action Template successfully created from action.`);
+                toast.success(`Action Template successfully created from action.`);
 
                 dialogRef.current?.close();
               }}

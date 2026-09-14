@@ -8,6 +8,7 @@ import { thunkDocAddRexStatusEntry } from "store/thunk/thunkRex";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { getRexStatusDisplayProperties } from "utils/component-helpers";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { toast } from "react-toastify";
 
 export const RexStatusMenu: FunctionComponent<{
   rexStatus: RexStatus;
@@ -59,7 +60,7 @@ export const RexStatusMenu: FunctionComponent<{
   const handleRexStatusClick = async (rexStatus: RexStatus) => {
     const result = await dispatch(thunkDocAddRexStatusEntry({ entryType, uuid, rexStatus }));
     if (thunkDocAddRexStatusEntry.rejected.match(result) && result.payload) {
-      alert(result.payload);
+      toast.error(result.payload as string);
     }
     dialogRef.current?.close();
   };
