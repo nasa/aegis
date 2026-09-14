@@ -117,6 +117,18 @@ export const setupMaestroNamespace = (
       });
 
       socket.on("subscribeToEva", async (missionId: number, evaUuid: string, callback) => {
+        // Validate evaUuid exists
+        const docHandle = globalValues.maestroV2.docHandles.get(missionId);
+        if (!docHandle) {
+          callback?.({ status: "error", message: "Document handle not found for missionId" });
+          return;
+        }
+        const mission = docHandle.doc();
+        if (!mission.evas[evaUuid]) {
+          callback?.({ status: "error", message: "Eva not found in mission" });
+          return;
+        }
+
         const subscriptions = globalValues.maestroV2.evaSubscriptions.get(missionId) ?? [];
         if (!evaUuid) {
           callback?.({
