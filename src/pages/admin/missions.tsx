@@ -12,6 +12,7 @@ import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faRocket } from "@fortawesome/free-solid-svg-icons";
+import { toast } from "react-toastify";
 import adminCommon from "./adminCommon.module.css";
 import styles from "./missions.module.css";
 
@@ -117,7 +118,7 @@ const Missions: React.FunctionComponent = () => {
             onClick={async () => {
               const res = await createMission();
               if (res.status != "success") {
-                alert(`Error creating automerge record: ${res.message}`);
+                toast.error(`Error creating automerge record: ${res.message}`);
                 return;
               } else if (res.data) {
                 navigate(`/admin/mission/${res.data.missionId}/${res.data.automergeUrl}`);
@@ -203,10 +204,14 @@ const MissionList = ({
     ) {
       try {
         const res: WrappedResponse<number[]> = await deleteMissions([missionId]);
-        alert(`Delete ${res.status} - ${res.message} for missionID ${missionId}.`);
+        if (res.status !== "success") {
+          toast.error(`Delete ${res.status} - ${res.message} for missionID ${missionId}.`);
+        } else {
+          toast.success(`Delete ${res.status} - ${res.message} for missionID ${missionId}.`);
+        }
         loadMissions();
       } catch (e) {
-        alert("Error in deleting mission: " + e);
+        toast.error("Error in deleting mission: " + e);
       }
     }
   }
@@ -219,7 +224,7 @@ const MissionList = ({
         (listing) => listing.missionId === id
       )?.automergeUrl;
       if (!automergeUrl) {
-        alert("No automerge URL found for mission " + id);
+        toast.error("No automerge URL found for mission " + id);
         return;
       }
       const missionDocHandle = await automergeRepo.find<Mission>(automergeUrl as AutomergeUrl);

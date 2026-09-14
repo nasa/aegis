@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import cloneDeep from "lodash/cloneDeep";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { applyUpdateRexByField, applyDeletePosSource } from "operations/apply/apply-rex";
+import { toast } from "react-toastify";
 
 export const thunkDocCreatePosSource = appCreateAsyncThunk<void>(
   "createPosSource",
@@ -10,7 +11,7 @@ export const thunkDocCreatePosSource = appCreateAsyncThunk<void>(
     const selectedRex = getMissionDocHandle()?.doc()?.rexes[getState().rex.selectedRexUuid];
     if (!selectedRex) return;
     if (selectedRex.posSources.length >= 4) {
-      alert("You can only have a maximum of 4 Position Sources.");
+      toast.error("You can only have a maximum of 4 Position Sources.");
       return;
     }
     // Step 1: Validate the pos source count limit and build the new PosSource object.

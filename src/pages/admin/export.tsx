@@ -11,6 +11,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import adminCommon from "./adminCommon.module.css";
 import { makeExportString } from "utils/export";
+import { toast } from "react-toastify";
 
 type RouteParams = {
   id: string;
@@ -242,11 +243,11 @@ const ExportPage: React.FunctionComponent = () => {
                       element.click();
                       document.body.removeChild(element);
                     } else {
-                      alert(`Error: ${response.message || "Unknown error occurred"}`);
+                      toast.error(`Error: ${response.message || "Unknown error occurred"}`);
                     }
                   } catch (error) {
                     console.error("Dump failed:", error);
-                    alert("Error dumping mission. Please try again.");
+                    toast.error("Error dumping mission. Please try again.");
                   }
                 }}
               >

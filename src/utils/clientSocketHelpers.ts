@@ -9,6 +9,7 @@ import {
 import isEqual from "lodash/isEqual";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
+import { toast } from "react-toastify";
 
 /**
  * Callers pass an origin (`https://aegis.fit.nasa.gov`), but load testing may
@@ -97,7 +98,7 @@ export const attachSocketListeners = (
         serverAppVersion.serverEpochUuid
     ) {
       if (connectionStoreRef.current.clientAppVersion?.version) {
-        alert(
+        toast.info(
           `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}/${connectionStoreRef.current.clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid} `
         );
 
