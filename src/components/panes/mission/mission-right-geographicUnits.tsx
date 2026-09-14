@@ -17,6 +17,7 @@ import {
   applyUpdateGeoUnitByField,
 } from "operations/apply/apply-mission-geoUnit";
 import { withMissionChange } from "client/automergeDocHandles";
+import { toast } from "react-toastify";
 
 const GeographicUnits_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const geographicUnits: GeographicUnits = useMissionDocSelector(
@@ -164,7 +165,7 @@ const GeographicUnit: FunctionComponent<{
                     thunkDocDeleteGeoUnit({ geographicUnitUuid: uuid })
                   );
                   if (thunkDocDeleteGeoUnit.rejected.match(result) && result.payload) {
-                    alert(result.payload);
+                    toast.error(result.payload);
                   }
                 }}
                 aria-label="deleteButton"

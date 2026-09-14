@@ -63,7 +63,7 @@ const MissionSTM: FunctionComponent<{
     const collection = STM_COLLECTION_BY_TYPE[stmType];
     const blocker = getStmLevelDeleteBlocker(missionDocHandle.doc(), { collection, uuid });
     if (blocker) {
-      alert(`Cannot delete ${stmType}. 
+      alert(`Cannot delete ${stmType}.
 ${blocker}`);
       return;
     }
