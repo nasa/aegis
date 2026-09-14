@@ -27,6 +27,7 @@ import folderRoutes from "./routes/folder";
 
 import rexByEvaV2 from "../maestro/v2/routes/getRexesByEva";
 import getMissionsV2 from "../maestro/v2/routes/getMissions";
+import getRefUuidMapV2 from "../maestro/v2/routes/getRefUuidMap";
 import readableEvaRoutesV2 from "../maestro/v2/routes/eva";
 import readableMissionRoutesV2 from "../maestro/v2/routes/mission";
 import docCreateV2 from "../maestro/v2/routes/docCreate";
@@ -143,6 +144,7 @@ app.use("/api/v1/maestro/v2/eva", readableEvaRoutesV2);
 app.use("/api/v1/maestro/v2/mission", readableMissionRoutesV2);
 app.use("/api/v1/maestro/v2/getRexesByEva", rexByEvaV2);
 app.use("/api/v1/maestro/v2/getMissions", getMissionsV2);
+app.use("/api/v1/maestro/v2/getRefUuidMap", getRefUuidMapV2);
 app.use("/api/v1/maestro/v2/doc/create", docCreateV2);
 
 // external endpoints used by other stakeholders
