@@ -629,8 +629,8 @@ describe("maestro namespace socket handlers", () => {
       const callback = vi.fn();
       const mdau: MDAU.MaestroDataAegisUses = {
         aegisAction: {
-          "action-ref-1": {
-            refUuid: "action-ref-1",
+          "action-uuid-1": {
+            uuid: "action-uuid-1",
             name: "Vitest Action",
             descriptionTask: null,
             duration: null,

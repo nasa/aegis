@@ -151,11 +151,11 @@ describe("opUpdateMdau() — stations", () => {
 
     runMdau(handle, {
       aegisStations: {
-        [station.refUuid]: {
-          refUuid: station.refUuid,
+        [station.uuid]: {
+          uuid: station.uuid,
           name: "Vitest Alpha",
           duration: 10,
-          actionOrderRefUuids: null,
+          actionOrderUuids: null,
           updatedAt: newUpdatedAt,
         },
       },
@@ -478,7 +478,7 @@ describe("opUpdateMdau() — actions", () => {
     action: Action,
     overrides: Partial<MDAU.MdauAction> = {}
   ): MDAU.MdauAction => ({
-    refUuid: action.refUuid,
+    uuid: action.uuid,
     name: action.name,
     descriptionTask: action.descriptionTask,
     duration: action.duration,
@@ -496,7 +496,7 @@ describe("opUpdateMdau() — actions", () => {
 
     runMdau(handle, {
       aegisAction: {
-        [action.refUuid]: mdauAction(action, {
+        [action.uuid]: mdauAction(action, {
           name: "Renamed Action",
           descriptionTask: "Scoop the sample",
           duration: 17,
@@ -519,7 +519,7 @@ describe("opUpdateMdau() — actions", () => {
 
     runMdau(handle, {
       aegisAction: {
-        [action.refUuid]: mdauAction(action, {
+        [action.uuid]: mdauAction(action, {
           actionDefinition: { verbUuid: "verb-1", nounUuid: "noun-1", adjectiveUuid: "adj-1" },
         }),
       },
@@ -539,7 +539,7 @@ describe("opUpdateMdau() — actions", () => {
     });
 
     runMdau(handle, {
-      aegisAction: { [action.refUuid]: mdauAction(action, { actionDefinition: null }) },
+      aegisAction: { [action.uuid]: mdauAction(action, { actionDefinition: null }) },
     });
 
     expect(handle.doc().actions[action.uuid].actionDefinition).toBeNull();
@@ -550,7 +550,7 @@ describe("opUpdateMdau() — actions", () => {
     expect(handle.doc().actions[action.uuid].enabled).toBe(true);
 
     runMdau(handle, {
-      aegisAction: { [action.refUuid]: mdauAction(action, { enabled: false }) },
+      aegisAction: { [action.uuid]: mdauAction(action, { enabled: false }) },
     });
 
     expect(handle.doc().actions[action.uuid].enabled).toBe(false);
@@ -563,7 +563,7 @@ describe("opUpdateMdau() — actions", () => {
     });
 
     runMdau(handle, {
-      aegisAction: { [action.refUuid]: mdauAction(action, { enabled: true }) },
+      aegisAction: { [action.uuid]: mdauAction(action, { enabled: true }) },
     });
 
     expect(handle.doc().actions[action.uuid].enabled).toBe(true);
@@ -577,7 +577,7 @@ describe("opUpdateMdau() — actions", () => {
 
     runMdau(handle, {
       aegisAction: {
-        [action.refUuid]: mdauAction(action, {
+        [action.uuid]: mdauAction(action, {
           enabled: doc.enabled,
           updatedAt: doc.updatedAt,
         }),
@@ -594,7 +594,7 @@ describe("opUpdateMdau() — actions", () => {
     const originalUpdatedAt = handle.doc().actions[action.uuid].updatedAt;
 
     runMdau(handle, {
-      aegisAction: { [action.refUuid]: mdauAction(action, { updatedAt: originalUpdatedAt }) },
+      aegisAction: { [action.uuid]: mdauAction(action, { updatedAt: originalUpdatedAt }) },
     });
 
     expect(handle.doc().actions[action.uuid].updatedAt).toBe(originalUpdatedAt);
@@ -605,7 +605,7 @@ describe("opUpdateMdau() — actions", () => {
     const newUpdatedAt = handle.doc().actions[action.uuid].updatedAt + 5000;
 
     runMdau(handle, {
-      aegisAction: { [action.refUuid]: mdauAction(action, { updatedAt: newUpdatedAt }) },
+      aegisAction: { [action.uuid]: mdauAction(action, { updatedAt: newUpdatedAt }) },
     });
 
     expect(handle.doc().actions[action.uuid].updatedAt).toBe(newUpdatedAt);
