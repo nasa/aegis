@@ -251,9 +251,10 @@ describe("sendMDAU sample payload — actions", () => {
 
   it("writes name / descriptionTask / duration / stmAction / enabled for every sampled action", () => {
     const doc = built.handle.doc();
-    for (const refUuid in mdau.aegisAction) {
-      const src = mdau.aegisAction[refUuid];
-      const action = doc.actions[built.actionUuidByRef.get(refUuid)!];
+    for (const uuid in mdau.aegisAction) {
+      const src = mdau.aegisAction[uuid];
+      const action = doc.actions[uuid];
+      expect(action, `action ${uuid}`).toBeDefined();
       expect(action.name).toBe(src.name);
       expect(action.descriptionTask).toBe(src.descriptionTask);
       expect(action.duration).toBe(src.duration);
