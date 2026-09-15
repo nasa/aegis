@@ -48,6 +48,19 @@ export declare namespace AegisSlice {
     missionPriorities: MissionPriorities;
     createdAt: number;
     updatedAt: number;
+    actionDefinitions: ActionDefinitions | null;
+    // Custom labels for the action-definition categories (verb/noun/adjective), in singular form
+    // (used in the action sentence) and plural form (used in headings/menus).
+    actionDefinitionLabels: {
+      verb: { singular: string; plural: string };
+      noun: { singular: string; plural: string };
+      adjective: { singular: string; plural: string };
+    };
+    // Custom conjunctions joining the action sentence "<verb> of <noun> in <adjective>".
+    actionDefinitionConjunctions: {
+      verbToNoun: string;
+      nounToAdjective: string;
+    };
   };
 
   type AegisMissions = {

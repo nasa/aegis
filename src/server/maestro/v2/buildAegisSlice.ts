@@ -90,6 +90,9 @@ const formatMissionForMaestro = (mission: Mission): AegisSlice.AegisMission =>
     missionPriorities: mission.missionPriorities ?? {},
     createdAt: mission.createdAt,
     updatedAt: mission.updatedAt,
+    actionDefinitions: mission.actionDefinitions,
+    actionDefinitionLabels: mission.actionDefinitionLabels,
+    actionDefinitionConjunctions: mission.actionDefinitionConjunctions,
   }) satisfies Record<keyof AegisSlice.AegisMission, unknown>;
 
 interface LookupMaps {
