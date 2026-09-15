@@ -107,6 +107,10 @@ const MaestroV2: React.FunctionComponent = () => {
   );
   const [sendMdauJsonError, setSendMdauJsonError] = useState<string | null>(null);
 
+  // ── getExecuteUuids ───────────────────────────────────────────────────────
+  const [executeUuidsMissionId, setExecuteUuidsMissionId] = useState<string>("");
+  const [executeUuidsRexUuid, setExecuteUuidsRexUuid] = useState<string>("");
+
   // ── Maegistro v2 debug info (visitors, listeners, subscriptions) ─────────
   // Fetched via the v2 /maestro/v2 namespace's `getDebugInfo` event — requires
   // an EMSS-authenticated maestro socket, i.e. after "Connect & Join" has run.
@@ -258,6 +262,16 @@ const MaestroV2: React.FunctionComponent = () => {
     } catch (e) {
       setSendMdauJsonError(`Invalid JSON: ${String(e)}`);
     }
+  };
+
+  const emitGetExecuteUuids = () => {
+    if (!maestroSocket.current?.connected) return;
+    maestroSocket.current.emit(
+      "getExecuteUuids",
+      Number(executeUuidsMissionId),
+      executeUuidsRexUuid.trim(),
+      () => {}
+    );
   };
 
   const isMaestroConnected = maestroConnectionStatus === "connected";
@@ -649,6 +663,34 @@ const MaestroV2: React.FunctionComponent = () => {
                   Emit
                 </button>
               </div>
+            </EmitCard>
+
+            {/* getExecuteUuids */}
+            <EmitCard title="getExecuteUuids">
+              <input
+                className={adminCommon.formInput}
+                type="number"
+                value={executeUuidsMissionId}
+                onChange={(e) => setExecuteUuidsMissionId(e.target.value)}
+                placeholder="Mission ID"
+                style={narrowInput}
+              />
+              <input
+                className={adminCommon.formInput}
+                type="text"
+                value={executeUuidsRexUuid}
+                onChange={(e) => setExecuteUuidsRexUuid(e.target.value)}
+                placeholder="Rex Uuid"
+                style={wideInput}
+              />
+              <button
+                className={adminCommon.buttonPrimary}
+                onClick={emitGetExecuteUuids}
+                disabled={!isMaestroConnected || !executeUuidsMissionId || !executeUuidsRexUuid}
+                style={{ marginTop: "auto" }}
+              >
+                Emit
+              </button>
             </EmitCard>
           </div>
         </section>

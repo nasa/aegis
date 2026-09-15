@@ -198,6 +198,13 @@ This yields a set of **scopes** for any given mission:
 
 A single `refUuid` therefore resolves to one `uuid` _per scope_: `ref-s1` may exist as `uuid-s1` as-planned, `uuid-s1-rex-a` under REX A, and `uuid-s1-rex-b` under REX B. **Any `refUuid` → `uuid` lookup must be scoped by `rexUuid` (or `null` for as-planned).**
 
+**Resolving the members of a scope.** There is no back-pointer from a station, traverse, or action to its EVA — membership is derived from the EVA's `sequence`:
+
+- **Stations and traverses** — the `sequence` items of that scope's EVA(s). Use `getSequenceStationUuids` / `getSequenceTraverseUuids` from `src/operations/helpers/evaSequence.ts` rather than indexing the sequence directly. Sequence items may hold an empty uuid placeholder, so filter those out.
+- **Actions** — every action whose `stationUuid` or `traverseUuid` is in the sets above.
+- **The as-planned EVA matching a REX** — the EVA sharing `rexEva.refUuid` that is _not_ referenced by any `rex.evaUuid` (see `getAsPlannedEvaFromRefUuid` in `src/store/selectors.ts`).
+- **Pairing as-planned entities with their REX copies** — build both scopes, then join them on `refUuid`. Because stations may be shared across as-planned EVAs, an entity can be absent from one side; skip unmatched entries rather than emitting a blank uuid (see `getExecuteUuids` in `src/server/maestro/v2/sockets-maestro-emitters.ts`).
+
 **Sharing rules — stations and actions are many-to-many with EVAs; traverses are not:**
 
 - A **station** may belong to zero EVAs, or to **several** as-planned EVAs at once (in their `sequence`, and/or as their `ingressLocationUuid` / `egressLocationUuid`).
