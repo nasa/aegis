@@ -247,7 +247,7 @@ export const setupMaestroNamespace = (
               {
                 logId: "socket-maestro-v2",
                 maestroName: getMaestroName(socket.id, missionId),
-                logValue: `sendMDAU - invalid schema on MDAU payload for mission ${missionId}`,
+                logValue: `sendMDAU - invalid schema on schema on MDAU payload for mission ${missionId}`,
               },
               new Error(validationError)
             );
