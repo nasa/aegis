@@ -176,6 +176,7 @@ export const setupMaestroNamespace = (
             logId: "socket-maestro-v2",
             logValue: `getEverything - invalid missionId ${missionId}`,
           });
+          callback({ status: "failure", message: "Invalid mission ID" });
           return;
         }
         try {
