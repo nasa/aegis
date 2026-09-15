@@ -11,7 +11,7 @@ import type { DocHandle } from "@automerge/automerge-repo";
 
 type MeasurementProfileRevisions = { next: number; applied: number };
 // Browser-local counters, scoped to a mission document, user, and measurement.
-const measurementProfileRevisions = new WeakMap<
+const measurementProfileRevisionsByMission = new WeakMap<
   DocHandle<Mission>,
   Map<string, MeasurementProfileRevisions>
 >();
@@ -40,10 +40,10 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   if (!measurement) return;
   const username = getState().user.appUser?.username;
   const profileKey = measurementProfileKey(username, measurementUuid);
-  let missionRevisions = measurementProfileRevisions.get(missionDocHandle);
+  let missionRevisions = measurementProfileRevisionsByMission.get(missionDocHandle);
   if (!missionRevisions) {
     missionRevisions = new Map();
-    measurementProfileRevisions.set(missionDocHandle, missionRevisions);
+    measurementProfileRevisionsByMission.set(missionDocHandle, missionRevisions);
   }
   let revisions = missionRevisions.get(profileKey);
   if (!revisions) {
@@ -232,7 +232,7 @@ export const thunkRemoveMeasurement = appCreateAsyncThunk<
   dispatch(removeMeasurement(measurementUuid));
   const missionDocHandle = getMissionDocHandle();
   if (missionDocHandle) {
-    measurementProfileRevisions
+    measurementProfileRevisionsByMission
       .get(missionDocHandle)
       ?.delete(measurementProfileKey(getState().user.appUser?.username, measurementUuid));
   }

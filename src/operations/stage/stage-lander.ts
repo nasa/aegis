@@ -9,7 +9,7 @@ import {
 } from "operations/helpers/evaSequence";
 import { thunkFetchElevation } from "store/thunk/thunkElevation";
 import { thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
-import { claimTraverseProfileRevisions } from "operations/helpers/traverseProfileRevision";
+import { getNextTraverseProfileRevisions } from "operations/helpers/traverseProfileRevision";
 import type { AppDispatch } from "utils/useAppDispatch";
 import type { CompleteTerrainProfile } from "utils/terrainProfile";
 
@@ -142,7 +142,7 @@ export async function stageLanderLocationUpdate(
     }
   }
 
-  const traverseProfileRevisions = claimTraverseProfileRevisions(
+  const traverseProfileRevisions = getNextTraverseProfileRevisions(
     traversePlans.map(({ traverseUuid }) => traverseUuid)
   );
 

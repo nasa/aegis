@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
-import { claimTraverseProfileRevision } from "operations/helpers/traverseProfileRevision";
+import { getNextTraverseProfileRevision } from "operations/helpers/traverseProfileRevision";
 import { thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
 import type { AppDispatch } from "utils/useAppDispatch";
 import type { CompleteTerrainProfile } from "utils/terrainProfile";
@@ -82,7 +82,7 @@ export async function stageTraverseUpdate(
 
   const traverse = mission?.traverses?.[traverseUuid];
   if (!traverse) return null;
-  const profileRevision = claimTraverseProfileRevision(traverseUuid);
+  const profileRevision = getNextTraverseProfileRevision(traverseUuid);
 
   const eva = Object.values(mission?.evas ?? {}).find((e) =>
     e.sequence.some((s) => s.uuid === traverseUuid)

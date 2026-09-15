@@ -1,7 +1,7 @@
 import {
   areTraverseProfileUpdatesCurrent,
-  claimTraverseProfileRevision,
-  claimTraverseProfileRevisions,
+  getNextTraverseProfileRevision,
+  getNextTraverseProfileRevisions,
 } from "operations/helpers/traverseProfileRevision";
 
 const update = (traverseUuid: string, profileRevision: number) => ({
@@ -11,8 +11,8 @@ const update = (traverseUuid: string, profileRevision: number) => ({
 
 describe("traverse profile revisions", () => {
   it("rejects an older operation after another operation claims the same traverse", () => {
-    const olderRevision = claimTraverseProfileRevision("traverse-overlap");
-    const newerRevision = claimTraverseProfileRevision("traverse-overlap");
+    const olderRevision = getNextTraverseProfileRevision("traverse-overlap");
+    const newerRevision = getNextTraverseProfileRevision("traverse-overlap");
 
     expect(areTraverseProfileUpdatesCurrent([update("traverse-overlap", olderRevision)])).toBe(
       false
@@ -23,8 +23,8 @@ describe("traverse profile revisions", () => {
   });
 
   it("rejects an entire multi-traverse operation when one traverse becomes stale", () => {
-    const revisions = claimTraverseProfileRevisions(["traverse-a", "traverse-b"]);
-    claimTraverseProfileRevision("traverse-b");
+    const revisions = getNextTraverseProfileRevisions(["traverse-a", "traverse-b"]);
+    getNextTraverseProfileRevision("traverse-b");
 
     expect(
       areTraverseProfileUpdatesCurrent([

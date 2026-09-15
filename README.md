@@ -185,8 +185,7 @@ We need to setup the local environment before spinning up the app.
 
 ### Step 2, Option 1: Development with service containers (PREFERRED)
 
-This is for doing local development with PostgreSQL in Docker. Elevation profiles are sampled by
-the Node API directly from mission GeoTIFFs under `STATIC_DIR`.
+This is for doing local development with PostgreSQL in Docker.
 
 1. Run Docker only starting the database service: `npm run docker:services`
 2. Run `npm run dev` to start the API and frontend.

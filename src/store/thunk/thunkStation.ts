@@ -32,7 +32,7 @@ import { clientLogger } from "utils/logging/clientLogger";
 import type { CompleteTerrainProfile } from "utils/terrainProfile";
 import {
   areTraverseProfileUpdatesCurrent,
-  claimTraverseProfileRevisions,
+  getNextTraverseProfileRevisions,
 } from "operations/helpers/traverseProfileRevision";
 
 const latestStationLocationRequest = new Map<string, number>();
@@ -162,7 +162,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   const recalculatedTraversePaths = traversesToUpdate.map(({ traverseUuid, evaSequence }) =>
     buildTraversePath(traverseUuid, evaSequence, mission)
   );
-  const traverseProfileRevisions = claimTraverseProfileRevisions(
+  const traverseProfileRevisions = getNextTraverseProfileRevisions(
     traversesToUpdate.map(({ traverseUuid }) => traverseUuid)
   );
 
