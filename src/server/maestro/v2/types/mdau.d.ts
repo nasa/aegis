@@ -34,7 +34,7 @@ export declare namespace MDAU {
   type MdauStation = {
     refUuid: string;
     name: string;
-    duration: number;
+    duration: number | null;
     actionOrderRefUuids: string[] | null;
     updatedAt: number;
     rexUuid?: string;
@@ -42,7 +42,7 @@ export declare namespace MDAU {
 
   type MdauTraverse = {
     refUuid: string;
-    duration: number;
+    duration: number | null;
     actionOrderRefUuids: string[] | null;
     updatedAt: number;
     rexUuid?: string;
