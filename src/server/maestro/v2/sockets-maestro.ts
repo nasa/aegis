@@ -29,6 +29,22 @@ import type {
 } from "./types/socketioMaestro";
 import type { MDAU } from "./types/mdau";
 
+/**
+ * Resolves the Maestro visitor `name` for a socket
+ * A socket only has a name once it has sent `missionJoin`.
+ * When `missionId` is known the lookup is limited to that mission's visitor
+ * list; otherwise every mission is searched for the socket id.
+ */
+const getMaestroName = (socketId: string, missionId?: number): string => {
+  const { visitorData } = globalValues.maestroV2;
+  const missionIds = missionId != null ? [missionId] : Object.keys(visitorData);
+  for (const id of missionIds) {
+    const name = visitorData[id]?.find((visitor) => visitor.socketId === socketId)?.name;
+    if (name) return name;
+  }
+  return "unknown";
+};
+
 export const setupMaestroNamespace = (
   io: Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, {}>
 ): void => {
@@ -68,6 +84,7 @@ export const setupMaestroNamespace = (
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
             logId: "socket-maestro-v2",
+            maestroName: maestroVisitor?.name || "unknown",
             logValue: `missionJoin - invalid missionId ${missionId}`,
           });
           return;
@@ -113,6 +130,7 @@ export const setupMaestroNamespace = (
             });
             serverLogger.warning({
               logId: "socket-maestro-v2",
+              maestroName: getMaestroName(socket.id, missionId),
               logValue: `subscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
             });
             return;
@@ -132,6 +150,7 @@ export const setupMaestroNamespace = (
           if (!evaUuid) {
             serverLogger.warning({
               logId: "socket-maestro-v2",
+              maestroName: getMaestroName(socket.id, missionId),
               logValue: `unsubscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
             });
             return;
@@ -191,7 +210,11 @@ export const setupMaestroNamespace = (
           callback({ status: "success", message: "Everything retrieved", data });
         } catch (error) {
           serverLogger.error(
-            { logId: "socket-maestro-v2", logValue: "SocketIO - getEverything" },
+            {
+              logId: "socket-maestro-v2",
+              maestroName: getMaestroName(socket.id, missionId),
+              logValue: "SocketIO - getEverything",
+            },
             error instanceof Error ? error : new Error(String(error))
           );
           callback({ status: "error", message: `Error getting everything ${error}` });
@@ -202,6 +225,7 @@ export const setupMaestroNamespace = (
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
             logId: "socket-maestro-v2",
+            maestroName: getMaestroName(socket.id),
             logValue: `sendMDAU - invalid missionId ${missionId}`,
           });
           callback?.({ status: "error", message: `Invalid missionId ${missionId}` });
@@ -221,6 +245,7 @@ export const setupMaestroNamespace = (
             serverLogger.error(
               {
                 logId: "socket-maestro-v2",
+                maestroName: getMaestroName(socket.id, missionId),
                 logValue: `sendMDAU - invalid MDAU payload for mission ${missionId}`,
               },
               new Error(validationError)
@@ -237,6 +262,7 @@ export const setupMaestroNamespace = (
           if (!docHandle) {
             serverLogger.warning({
               logId: "socket-maestro-v2",
+              maestroName: getMaestroName(socket.id, missionId),
               logValue: `sendMDAU - no doc handle available for mission ${missionId}`,
             });
             callback?.({
@@ -253,7 +279,11 @@ export const setupMaestroNamespace = (
           callback?.({ status: "success" });
         } catch (error) {
           serverLogger.error(
-            { logId: "socket-maestro-v2", logValue: "SocketIO - sendMDAU" },
+            {
+              logId: "socket-maestro-v2",
+              maestroName: getMaestroName(socket.id, missionId),
+              logValue: "SocketIO - sendMDAU",
+            },
             error instanceof Error ? error : new Error(String(error))
           );
           callback?.({ status: "error", message: `Error processing MDAU: ${error}` });

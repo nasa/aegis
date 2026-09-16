@@ -59,6 +59,41 @@ describe("Layer API Endpoint ", () => {
     aegisSessionSigCookie = res.header["set-cookie"][1];
   });
 
+  describe("GET request", () => {
+    test("No view permissions", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/layer")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .query({ missionId: testMissionIds[2] });
+
+      expect(res.statusCode).toBe(401);
+      expect(res.body.status).toBe("failure");
+      expect(res.body.message).toBe("Unauthorized");
+    });
+
+    test("Missing missionId", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/layer")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .query({});
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.status).toBe("error");
+      expect(res.body.message).toBe("Invalid mission ID");
+    });
+
+    test("NaN missionId", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/layer")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .query({ missionId: "not-a-number" });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.status).toBe("error");
+      expect(res.body.message).toBe("Invalid mission ID");
+    });
+  });
+
   //upsert and delete tests must occur in order
   describe("POST request", () => {
     test("No permissions", async () => {

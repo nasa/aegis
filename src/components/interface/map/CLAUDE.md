@@ -194,6 +194,16 @@ Key behaviors:
   distances/bearings **synchronously** into `upsertMeasurement` for a real-time timeline, plus an
   async elevation fetch. `modifyend` flushes the throttle then does the full save (traverse awaits
   for endpoint snapping + elevation).
+- **Cancel restores the pre-edit path, it does not reset it.** Because drags are saved through
+  live, `cancelEditPolyline` must write the path back. The pre-edit snapshot lives in
+  `state.map.originalPoints`, captured by the panel that starts the edit (traverse `path` /
+  station `walkbackPath`) immediately **after** dispatching `thunkUpdateMapDirective`, since that
+  thunk synchronously nulls any previous directive and a null directive clears the snapshot.
+  `InteractionManager` reads the snapshot through a ref so that setting it can't tear down the
+  in-progress `Modify`, then replays it via `thunkDocUpdateTraverse`/`thunkDocUpdateWalkback` and
+  clears the directive. With no snapshot the path is left untouched. Collapsing to a straight
+  start→end line is the distinct **Reset Path** action (`thunkDocReset*`), which clears the
+  snapshot first.
 
 > **The edit-drag detach hazard (recurring).** While a line feature is under OL `Modify`, any
 > `feature.changed()` fires OL's internal `handleFeatureChange_`, which **clears `dragSegments_`

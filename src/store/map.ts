@@ -20,7 +20,13 @@ export const mapSlice = createSlice({
       }
     },
     setOriginalPoints: (state, action: { payload: AEGISPoint[] }) => {
-      state.originalPoints = action.payload ?? [];
+      const incomingPoints = action.payload ?? [];
+      // Keep the reference stable when clearing an already-empty list so
+      // subscribers aren't re-rendered by a no-op clear.
+      if (incomingPoints.length === 0 && state.originalPoints.length === 0) return;
+      // Copy each point: callers pass paths read straight off the Automerge doc,
+      // and the store must hold plain, detached objects.
+      state.originalPoints = incomingPoints.map((p) => ({ ...p }));
     },
     obliterateState: (state) => {
       //eslint-disable-next-line
