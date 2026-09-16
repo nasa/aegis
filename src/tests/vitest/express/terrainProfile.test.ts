@@ -2,6 +2,8 @@ const mocks = vi.hoisted(() => ({
   getAutomergeMissionHandle: vi.fn(),
   hasPerms: vi.fn(),
   readTerrainProfileInWorker: vi.fn(),
+  apiRoute: vi.fn(),
+  debug: vi.fn(),
 }));
 
 vi.mock("server/express/routes/missionAutomerge", () => ({
@@ -10,6 +12,9 @@ vi.mock("server/express/routes/missionAutomerge", () => ({
 vi.mock("utils/permissions", () => ({ hasPerms: mocks.hasPerms }));
 vi.mock("server/terrain/readTerrainProfile", () => ({
   readTerrainProfileInWorker: mocks.readTerrainProfileInWorker,
+}));
+vi.mock("utils/logging/serverLogger", () => ({
+  serverLogger: { apiRoute: mocks.apiRoute, debug: mocks.debug },
 }));
 vi.mock("server/raster/rasterSamplingWorkerPool", () => ({
   RasterSamplingWorkerPoolUnavailableError: class extends Error {},
@@ -180,6 +185,19 @@ describe("terrain profile route", () => {
     expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
   });
 
+  it("logs invalid mission IDs", async () => {
+    await supertest(app).post("/api/v1/terrain-profile?missionId=42junk").send(validBody);
+
+    expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "terrain-profile",
+      appUsername: "terrain-test",
+      message: "Invalid mission ID",
+    });
+  });
+
   it("rejects oversized work before queueing", async () => {
     const response = await supertest(app)
       .post("/api/v1/terrain-profile?missionId=42")
@@ -195,5 +213,33 @@ describe("terrain profile route", () => {
       .send(validBody);
     expect(response.status).toBe(401);
     expect(mocks.getAutomergeMissionHandle).not.toHaveBeenCalled();
+    expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logLevel: "warning",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "terrain-profile",
+      appUsername: "terrain-test",
+      missionId: 42,
+      message: "Unauthorized",
+    });
+  });
+
+  it("logs missing missions", async () => {
+    mocks.getAutomergeMissionHandle.mockResolvedValue(undefined);
+
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile?missionId=42")
+      .send(validBody);
+
+    expect(response.status).toBe(404);
+    expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 404,
+      routeName: "terrain-profile",
+      appUsername: "terrain-test",
+      missionId: 42,
+      message: "Mission 42 not found",
+    });
   });
 });

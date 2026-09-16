@@ -86,6 +86,14 @@ export const validateTerrainProfileRequest = (
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const missionId = missionIdFromRequest(req);
   if (!missionId) {
+    serverLogger.apiRoute({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "terrain-profile",
+      appUsername: req.session?.appUser?.username,
+      message: "Invalid mission ID",
+    });
     res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -97,6 +105,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     emssToken: req.headers["emss-token"] as string,
   });
   if (!permitted) {
+    serverLogger.apiRoute({
+      logLevel: "warning",
+      httpMethod: "POST",
+      responseStatus: 401,
+      routeName: "terrain-profile",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -105,6 +122,15 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const missionHandle = await getAutomergeMissionHandle(missionId);
     if (!missionHandle) {
+      serverLogger.apiRoute({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 404,
+        routeName: "terrain-profile",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: `Mission ${missionId} not found`,
+      });
       res.status(404).json({ status: "failure", message: `Mission ${missionId} not found` });
       return;
     }
