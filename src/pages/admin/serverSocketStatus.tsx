@@ -15,7 +15,7 @@ import {
   faEye,
   faCaretRight,
   faCaretDown,
-  faCodeCompare,
+  faComputer,
 } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
 
@@ -90,7 +90,7 @@ const ServerSocketStatus: React.FunctionComponent = () => {
         <section className={adminCommon.section}>
           <div className={adminCommon.infoItem}>
             <div>
-              <FontAwesomeIcon icon={faCodeCompare} className={adminCommon.mutedIcon} />
+              <FontAwesomeIcon icon={faComputer} className={adminCommon.mutedIcon} />
               <span className={adminCommon.infoLabel}> Server App Version: </span>
               <span className={adminCommon.infoValue}>{appVersion?.version}</span>
             </div>
