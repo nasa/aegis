@@ -1,7 +1,6 @@
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { getTerrainProfile } from "http-client/terrainProfile";
+import { getTerrainProfile, normalizeTerrainProfile } from "http-client/terrainProfile";
 import { insertElevationPending, removeElevationPending } from "store/interface";
-import { normalizeTerrainProfile } from "utils/terrainProfile";
 
 import appCreateAsyncThunk from "./thunkUtil";
 

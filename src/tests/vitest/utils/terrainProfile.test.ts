@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeTerrainProfile } from "utils/terrainProfile";
+import { normalizeTerrainProfile } from "http-client/terrainProfile";
 
 const path = [
   { lat: 1, lng: 2 },

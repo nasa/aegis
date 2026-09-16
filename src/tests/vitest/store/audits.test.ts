@@ -3,7 +3,10 @@ import cloneDeep from "lodash/cloneDeep";
 // mock all calls to the db so no transactions are actually made
 // CAUTION, the import line must be below the vi.mock
 vi.mock("http-client/preset");
-vi.mock("http-client/terrainProfile");
+vi.mock("http-client/terrainProfile", async (importOriginal: () => Promise<object>) => ({
+  ...(await importOriginal()),
+  getTerrainProfile: vi.fn(),
+}));
 import * as httpClient_preset from "http-client/preset";
 import * as httpClient_terrainProfile from "http-client/terrainProfile";
 

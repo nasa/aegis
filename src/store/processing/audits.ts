@@ -1,6 +1,6 @@
 import * as httpClient_preset from "http-client/preset";
 import * as httpClient_folder from "http-client/folder";
-import { getTerrainProfile } from "http-client/terrainProfile";
+import { getTerrainProfile, normalizeTerrainProfile } from "http-client/terrainProfile";
 
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
@@ -11,7 +11,6 @@ import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import type { DocHandle } from "@automerge/automerge-repo";
 import { clientLogger } from "utils/logging/clientLogger";
 import { withMissionChange } from "client/automergeDocHandles";
-import { normalizeTerrainProfile } from "utils/terrainProfile";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
