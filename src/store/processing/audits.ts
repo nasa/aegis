@@ -235,12 +235,6 @@ export const auditTraverseTerrainProfiles = async ({
   missionDocHandle: DocHandle<Mission>;
 }): Promise<void> => {
   const mission = missionDocHandle.doc();
-  const traverseUuidsMissingSlopeField = Object.values(mission.traverses)
-    .filter(
-      (traverse) => !Object.prototype.hasOwnProperty.call(traverse, "pathSegmentAbsoluteSlopes")
-    )
-    .map((traverse) => traverse.uuid);
-
   const traversesToRepair =
     !mission.demFilePath || mission.id === null
       ? []
@@ -283,20 +277,10 @@ export const auditTraverseTerrainProfiles = async ({
     }
   }
 
-  if (traverseUuidsMissingSlopeField.length === 0 && repairedProfiles.size === 0) return;
+  if (repairedProfiles.size === 0) return;
 
   withMissionChange((m: Mission) => {
     if (m.id !== mission.id) return;
-
-    for (const traverseUuid of traverseUuidsMissingSlopeField) {
-      const currentTraverse = m.traverses[traverseUuid];
-      if (
-        currentTraverse &&
-        !Object.prototype.hasOwnProperty.call(currentTraverse, "pathSegmentAbsoluteSlopes")
-      ) {
-        currentTraverse.pathSegmentAbsoluteSlopes = null;
-      }
-    }
 
     for (const traverse of traversesToRepair) {
       const profile = repairedProfiles.get(traverse.uuid);

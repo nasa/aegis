@@ -119,23 +119,6 @@ describe("auditTraverseTerrainProfiles", () => {
     });
   });
 
-  it("adds a null slope field to a legacy traverse without a usable path", async () => {
-    const traverse = generateBlankTraverse({ path: [], pathSegmentDistances: null });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (traverse as any).pathSegmentAbsoluteSlopes;
-    getMissionDocHandle().change((mission) => {
-      mission.traverses[traverse.uuid] = traverse;
-    });
-
-    await auditTraverseTerrainProfiles({ missionDocHandle: getMissionDocHandle() });
-
-    expect(httpClient_terrainProfile.getTerrainProfile).not.toHaveBeenCalled();
-    expect(getMissionDocHandle().doc().traverses[traverse.uuid]).toHaveProperty(
-      "pathSegmentAbsoluteSlopes",
-      null
-    );
-  });
-
   it("backfills aligned elevation and absolute-slope data", async () => {
     const traverse = generateBlankTraverse({
       path: [
