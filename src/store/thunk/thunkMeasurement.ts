@@ -6,15 +6,9 @@ import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";
 import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import type { DocHandle } from "@automerge/automerge-repo";
 
-type MeasurementProfileRevisions = { next: number; applied: number };
-// Browser-local counters, scoped to a mission document and measurement.
-const measurementProfileRevisionsByMission = new WeakMap<
-  DocHandle<Mission>,
-  Map<string, MeasurementProfileRevisions>
->();
-const measurementProfileKey = (measurementUuid: string): string => measurementUuid;
+let nextMeasurementProfileRevision = 0;
+const appliedMeasurementProfileRevisions = new Map<string, number>();
 
 const profileMatchesSegmentCount = (
   profile: unknown[][] | null,
@@ -37,18 +31,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   const measurement = getState().measure.measurements.find((t) => t.uuid === measurementUuid);
   if (!measurement) return;
   const username = getState().user.appUser?.username;
-  const profileKey = measurementProfileKey(measurementUuid);
-  let missionRevisions = measurementProfileRevisionsByMission.get(missionDocHandle);
-  if (!missionRevisions) {
-    missionRevisions = new Map();
-    measurementProfileRevisionsByMission.set(missionDocHandle, missionRevisions);
-  }
-  let revisions = missionRevisions.get(profileKey);
-  if (!revisions) {
-    revisions = { next: 0, applied: 0 };
-    missionRevisions.set(profileKey, revisions);
-  }
-  const profileRevision = ++revisions.next;
+  const profileRevision = ++nextMeasurementProfileRevision;
 
   //calculate new path distances
   const pathSegmentDistances: number[] = [];
@@ -116,8 +99,8 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     return;
 
   // Keep live previews advancing even while newer requests are still pending.
-  if (profileRevision <= revisions.applied) return;
-  revisions.applied = profileRevision;
+  if (profileRevision <= (appliedMeasurementProfileRevisions.get(measurementUuid) ?? 0)) return;
+  appliedMeasurementProfileRevisions.set(measurementUuid, profileRevision);
 
   const newMeasurement: Measurement = {
     ...currentMeasurement,
@@ -228,10 +211,5 @@ export const thunkRemoveMeasurement = appCreateAsyncThunk<
 
   dispatch(setSelectedMeasurementUuid(null));
   dispatch(removeMeasurement(measurementUuid));
-  const missionDocHandle = getMissionDocHandle();
-  if (missionDocHandle) {
-    measurementProfileRevisionsByMission
-      .get(missionDocHandle)
-      ?.delete(measurementProfileKey(measurementUuid));
-  }
+  appliedMeasurementProfileRevisions.delete(measurementUuid);
 });
