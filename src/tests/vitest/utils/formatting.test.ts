@@ -13,6 +13,7 @@ import {
   shortDateFromDateString,
   titleCase,
   toDecimal,
+  roundUpSecondsFromISOString,
 } from "utils/formatting";
 
 describe("Utilities Functions", () => {
@@ -204,5 +205,40 @@ describe("getSecondsFromhhmmss", () => {
     expect(secondsFromhhmmss("-01:30:15")).toBe(-5415);
     expect(secondsFromhhmmss("-00:00:00")).toBe(0);
     expect(secondsFromhhmmss("-00:01:01")).toBe(-61);
+  });
+});
+
+describe("roundUpSecondsFromISOString", () => {
+  it("should round up seconds from ms", () => {
+    expect(roundUpSecondsFromISOString("2021-01-01T00:00:00.001Z")).toBe(
+      "2021-01-01T00:00:01.000Z"
+    );
+    expect(roundUpSecondsFromISOString("2021-01-01T00:00:30.182Z")).toBe(
+      "2021-01-01T00:00:31.000Z"
+    );
+    expect(roundUpSecondsFromISOString("2021-01-01T00:00:30.500Z")).toBe(
+      "2021-01-01T00:00:31.000Z"
+    );
+    expect(roundUpSecondsFromISOString("2021-01-01T00:00:30.999Z")).toBe(
+      "2021-01-01T00:00:31.000Z"
+    );
+  });
+
+  it("should stay at 0 seconds for 0 ms", () => {
+    expect(roundUpSecondsFromISOString("2021-01-01T00:00:00.000Z")).toBe(
+      "2021-01-01T00:00:00.000Z"
+    );
+  });
+
+  it("should rollover for other time units", () => {
+    expect(roundUpSecondsFromISOString("2021-01-01T00:30:59.001Z")).toBe(
+      "2021-01-01T00:31:00.000Z"
+    );
+    expect(roundUpSecondsFromISOString("2021-01-01T08:59:59.001Z")).toBe(
+      "2021-01-01T09:00:00.000Z"
+    );
+    expect(roundUpSecondsFromISOString("2021-01-01T23:59:59.001Z")).toBe(
+      "2021-01-02T00:00:00.000Z"
+    );
   });
 });
