@@ -7,8 +7,7 @@ import {
   getIngressStationUuid,
   getXgressTraverseUuid,
 } from "operations/helpers/evaSequence";
-import { thunkFetchElevation } from "store/thunk/thunkElevation";
-import { thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
+import { thunkFetchElevation, thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
 import { getNextTraverseProfileRevisions } from "operations/helpers/traverseProfileRevision";
 import type { AppDispatch } from "utils/useAppDispatch";
 

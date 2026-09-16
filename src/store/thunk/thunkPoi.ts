@@ -1,6 +1,6 @@
 import { selectPoi } from "store/poi";
 import appCreateAsyncThunk from "./thunkUtil";
-import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchElevation } from "./thunkTerrainProfile";
 import { setSelectedPoiUuid } from "store/poi";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";

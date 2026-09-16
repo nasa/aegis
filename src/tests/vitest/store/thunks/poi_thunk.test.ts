@@ -15,7 +15,7 @@ import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/autome
 const mockThunkFetchElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-vi.mock("store/thunk/thunkElevation", () => ({
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
   thunkFetchElevation: () => mockThunkFetchElevation,
 }));
 

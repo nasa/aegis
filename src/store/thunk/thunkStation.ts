@@ -7,8 +7,7 @@ import {
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
-import { thunkFetchElevation } from "./thunkElevation";
-import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
+import { thunkFetchElevation, thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import { generateUniqueName } from "utils/names/unique-name";

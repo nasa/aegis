@@ -8,7 +8,7 @@ let store: StoreType;
 // CAUTION, the import line must be below the vi.mock
 vi.mock("http-client/terrainProfile");
 import * as httpClientTerrainProfile from "http-client/terrainProfile";
-import { thunkFetchElevation } from "store/thunk/thunkElevation";
+import { thunkFetchElevation } from "store/thunk/thunkTerrainProfile";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 beforeAll(() => {

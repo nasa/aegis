@@ -22,15 +22,13 @@ const mockThunkFetchElevation = vi.fn().mockReturnValue({
 // the { path, pathSegmentDistances, uuid } args passed to the factory.
 // The factory returns mockThunkFetchElevation which the store dispatches.
 const mockThunkFetchElevationFactory = vi.fn((..._args) => mockThunkFetchElevation);
-vi.mock("store/thunk/thunkElevation", () => ({
-  thunkFetchElevation: (...args: unknown[]) => mockThunkFetchElevationFactory(...args),
-}));
 
 const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
 const mockThunkFetchTerrainProfileFactory = vi.fn((..._args) => mockThunkFetchTerrainProfile);
 vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchElevation: (...args: unknown[]) => mockThunkFetchElevationFactory(...args),
   thunkFetchTerrainProfile: (...args: unknown[]) => mockThunkFetchTerrainProfileFactory(...args),
 }));
 

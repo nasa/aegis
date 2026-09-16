@@ -1,5 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchElevation } from "./thunkTerrainProfile";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { applyUpdateActionByField } from "operations/apply/apply-action";
 

@@ -26,11 +26,9 @@ const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => true);
 const mockThunkFetchElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-vi.mock("store/thunk/thunkElevation", () => ({
-  thunkFetchElevation: () => mockThunkFetchElevation,
-}));
 vi.mock("store/thunk/thunkTerrainProfile", () => ({
   thunkFetchTerrainProfile: () => mockThunkFetchElevation,
+  thunkFetchElevation: () => mockThunkFetchElevation,
 }));
 
 // Spy on traverse update thunks. We don't care about the path math in these
