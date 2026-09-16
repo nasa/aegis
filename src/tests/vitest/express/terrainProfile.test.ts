@@ -2,7 +2,6 @@ const mocks = vi.hoisted(() => ({
   getAutomergeMissionHandle: vi.fn(),
   hasPerms: vi.fn(),
   readTerrainProfileInWorker: vi.fn(),
-  resolveMissionDemPath: vi.fn(),
 }));
 
 vi.mock("server/express/routes/missionAutomerge", () => ({
@@ -12,14 +11,12 @@ vi.mock("utils/permissions", () => ({ hasPerms: mocks.hasPerms }));
 vi.mock("server/terrain/readTerrainProfile", () => ({
   readTerrainProfileInWorker: mocks.readTerrainProfileInWorker,
 }));
-vi.mock("server/elevation/resolveMissionDem", () => ({
-  resolveMissionDemPath: mocks.resolveMissionDemPath,
-}));
 vi.mock("server/raster/rasterSamplingWorkerPool", () => ({
   RasterSamplingWorkerPoolUnavailableError: class extends Error {},
   RasterSamplingWorkerPoolSupersededError: class extends Error {},
 }));
 
+import path from "node:path";
 import express from "express";
 import supertest from "supertest";
 
@@ -57,7 +54,6 @@ describe("terrain profile route", () => {
     mocks.getAutomergeMissionHandle.mockResolvedValue({
       doc: () => ({ demFilePath: "Data/trusted.tif", demResolution: 5 }),
     });
-    mocks.resolveMissionDemPath.mockResolvedValue("/static/missionFiles/42/Data/trusted.tif");
     mocks.readTerrainProfileInWorker.mockResolvedValue({
       elevationsMeters: [[100, 101, 102, 103, 104]],
       terrainSlopesDegrees: [[1, 2, null, 4, 5]],
@@ -80,14 +76,14 @@ describe("terrain profile route", () => {
       elevationsMeters: [[100, 101, 102, 103, 104]],
       terrainSlopesDegrees: [[1, 2, null, 4, 5]],
     });
-    expect(mocks.resolveMissionDemPath).toHaveBeenCalledWith(
-      expect.any(String),
-      42,
-      "Data/trusted.tif"
-    );
     expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(
       {
-        absolutePath: "/static/missionFiles/42/Data/trusted.tif",
+        absolutePath: path.resolve(
+          process.env.STATIC_DIR ?? "",
+          "missionFiles",
+          "42",
+          "Data/trusted.tif"
+        ),
         expectedResolutionMeters: 5,
       },
       validBody.path,
@@ -136,6 +132,19 @@ describe("terrain profile route", () => {
       "42:traverse_abc-123",
       true
     );
+  });
+
+  it("rejects a mission without a configured DEM", async () => {
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      doc: () => ({ demFilePath: "", demResolution: 5 }),
+    });
+
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile?missionId=42")
+      .send(validBody);
+
+    expect(response.status).toBe(400);
+    expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -4,7 +4,6 @@ import type { Request, Response } from "express";
 
 import express from "express";
 
-import { resolveMissionDemPath } from "server/elevation/resolveMissionDem";
 import { MAX_RASTER_PROFILE_SAMPLES, samplesForDistance } from "server/raster/constants";
 import { readTerrainProfileInWorker } from "server/terrain/readTerrainProfile";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -116,9 +115,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       entityKey,
       getElevationOnly,
     } = validateTerrainProfileRequest(req.body, mission.demResolution ?? 10);
-    const rasterPath = await resolveMissionDemPath(
-      process.env.STATIC_DIR ? path.resolve(process.env.STATIC_DIR) : undefined,
-      missionId,
+    if (!mission.demFilePath) throw new Error("Mission does not have a DEM configured");
+    const rasterPath = path.resolve(
+      process.env.STATIC_DIR ?? "",
+      "missionFiles",
+      missionId.toString(),
       mission.demFilePath
     );
     const result = await readTerrainProfileInWorker(
