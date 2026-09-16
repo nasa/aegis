@@ -174,52 +174,84 @@ describe("auditTraverseTerrainProfiles", () => {
     expect(getMissionDocHandle().doc().traverses[traverse.uuid]).toEqual(traverse);
   });
 
-  it.each(["mission", "demFilePath", "demResolution", "path"] as const)(
-    "discards a backfill when %s changes during sampling",
-    async (changedField) => {
-      const traverse = generateBlankTraverse({
-        path: [
-          { lat: 1, lng: 2 },
-          { lat: 3, lng: 4 },
-        ],
-        pathSegmentDistances: [25],
-        pathSegmentElevations: [[1, 2]],
-        pathSegmentAbsoluteSlopes: null,
-      });
-      const originalHandle = getMissionDocHandle();
-      originalHandle.change((mission) => {
+  it("throws when the active mission changes during sampling", async () => {
+    const traverse = generateBlankTraverse({
+      path: [
+        { lat: 1, lng: 2 },
+        { lat: 3, lng: 4 },
+      ],
+      pathSegmentDistances: [25],
+      pathSegmentElevations: [[1, 2]],
+      pathSegmentAbsoluteSlopes: null,
+    });
+    const originalHandle = getMissionDocHandle();
+    originalHandle.change((mission) => {
+      mission.traverses[traverse.uuid] = traverse;
+    });
+    vi.mocked(httpClient_terrainProfile.getTerrainProfile).mockImplementationOnce(async () => {
+      setMissionAutomergeDocHandle(null);
+      getMissionDocHandle().change((mission) => {
+        mission.id = 43;
+        mission.demFilePath = "dem/test.tif";
         mission.traverses[traverse.uuid] = traverse;
       });
-      vi.mocked(httpClient_terrainProfile.getTerrainProfile).mockImplementationOnce(async () => {
-        if (changedField === "mission") {
-          setMissionAutomergeDocHandle(null);
-          getMissionDocHandle().change((mission) => {
-            mission.id = 43;
-            mission.demFilePath = "dem/test.tif";
-            mission.traverses[traverse.uuid] = traverse;
-          });
-        } else {
-          originalHandle.change((mission) => {
-            if (changedField === "demFilePath") mission.demFilePath = "dem/replacement.tif";
-            if (changedField === "demResolution") mission.demResolution = 5;
-            if (changedField === "path") mission.traverses[traverse.uuid].path[1].lat = 4;
-          });
-        }
-        return {
-          status: "success",
-          message: "Terrain profile sampled",
-          data: { elevationsMeters: [[10, 11]], terrainSlopesDegrees: [[2, 3]] },
-        };
-      });
+      return {
+        status: "success",
+        message: "Terrain profile sampled",
+        data: { elevationsMeters: [[10, 11]], terrainSlopesDegrees: [[2, 3]] },
+      };
+    });
 
-      await auditTraverseTerrainProfiles({ missionDocHandle: originalHandle });
+    await expect(
+      auditTraverseTerrainProfiles({ missionDocHandle: originalHandle })
+    ).rejects.toThrow("Cannot apply terrain-profile audit for mission 42: active mission is 43");
 
-      for (const handle of [originalHandle, getMissionDocHandle()]) {
-        expect(handle.doc().traverses[traverse.uuid].pathSegmentElevations).toEqual([[1, 2]]);
-        expect(handle.doc().traverses[traverse.uuid].pathSegmentAbsoluteSlopes).toBeNull();
-      }
+    for (const handle of [originalHandle, getMissionDocHandle()]) {
+      expect(handle.doc().traverses[traverse.uuid].pathSegmentElevations).toEqual([[1, 2]]);
+      expect(handle.doc().traverses[traverse.uuid].pathSegmentAbsoluteSlopes).toBeNull();
     }
-  );
+  });
+
+  it("throws when a traverse is removed during sampling", async () => {
+    const traverse = generateBlankTraverse({
+      path: [
+        { lat: 1, lng: 2 },
+        { lat: 3, lng: 4 },
+      ],
+      pathSegmentDistances: [25],
+      pathSegmentElevations: [[1, 2]],
+      pathSegmentAbsoluteSlopes: null,
+    });
+    const missionDocHandle = getMissionDocHandle();
+    missionDocHandle.change((mission) => {
+      mission.traverses[traverse.uuid] = traverse;
+    });
+    vi.mocked(httpClient_terrainProfile.getTerrainProfile).mockImplementationOnce(async () => {
+      missionDocHandle.change((mission) => {
+        delete mission.traverses[traverse.uuid];
+      });
+      return {
+        status: "success",
+        message: "Terrain profile sampled",
+        data: { elevationsMeters: [[10, 11]], terrainSlopesDegrees: [[2, 3]] },
+      };
+    });
+
+    await expect(auditTraverseTerrainProfiles({ missionDocHandle })).rejects.toThrow(
+      `Cannot apply terrain-profile audit: traverse ${traverse.uuid} was removed`
+    );
+  });
+
+  it("throws when the mission has no ID", async () => {
+    const missionDocHandle = getMissionDocHandle();
+    missionDocHandle.change((mission) => {
+      mission.id = null;
+    });
+
+    await expect(auditTraverseTerrainProfiles({ missionDocHandle })).rejects.toThrow(
+      "Cannot audit terrain profiles for a mission without an ID"
+    );
+  });
 
   it("ignores an invalid terrain profile", async () => {
     const traverse = generateBlankTraverse({

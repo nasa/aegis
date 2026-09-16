@@ -235,22 +235,24 @@ export const auditTraverseTerrainProfiles = async ({
   missionDocHandle: DocHandle<Mission>;
 }): Promise<void> => {
   const mission = missionDocHandle.doc();
-  const traversesToRepair =
-    !mission.demFilePath || mission.id === null
-      ? []
-      : Object.values(mission.traverses).flatMap((traverse) => {
-          const { path, pathSegmentDistances } = traverse;
-          if (
-            traverse.pathSegmentAbsoluteSlopes != null ||
-            path === null ||
-            path.length < 2 ||
-            pathSegmentDistances === null ||
-            pathSegmentDistances.length !== path.length - 1
-          ) {
-            return [];
-          }
-          return [{ uuid: traverse.uuid, path, pathSegmentDistances }];
-        });
+  if (mission.id === null) {
+    throw new Error("Cannot audit terrain profiles for a mission without an ID");
+  }
+  const traversesToRepair = !mission.demFilePath
+    ? []
+    : Object.values(mission.traverses).flatMap((traverse) => {
+        const { path, pathSegmentDistances } = traverse;
+        if (
+          traverse.pathSegmentAbsoluteSlopes != null ||
+          path === null ||
+          path.length < 2 ||
+          pathSegmentDistances === null ||
+          pathSegmentDistances.length !== path.length - 1
+        ) {
+          return [];
+        }
+        return [{ uuid: traverse.uuid, path, pathSegmentDistances }];
+      });
   const repairedProfiles = new Map<string, CompleteTerrainProfile>();
 
   for (const traverse of traversesToRepair) {
@@ -280,21 +282,20 @@ export const auditTraverseTerrainProfiles = async ({
   if (repairedProfiles.size === 0) return;
 
   withMissionChange((m: Mission) => {
-    if (m.id !== mission.id) return;
+    if (m.id !== mission.id) {
+      throw new Error(
+        `Cannot apply terrain-profile audit for mission ${mission.id}: active mission is ${m.id}`
+      );
+    }
 
     for (const traverse of traversesToRepair) {
       const profile = repairedProfiles.get(traverse.uuid);
       const currentTraverse = m.traverses[traverse.uuid];
-      if (
-        !profile ||
-        m.demFilePath !== mission.demFilePath ||
-        m.demResolution !== mission.demResolution ||
-        !currentTraverse ||
-        currentTraverse.pathSegmentAbsoluteSlopes != null ||
-        !isEqual(currentTraverse.path, traverse.path) ||
-        !isEqual(currentTraverse.pathSegmentDistances, traverse.pathSegmentDistances)
-      ) {
-        continue;
+      if (!profile) continue;
+      if (!currentTraverse) {
+        throw new Error(
+          `Cannot apply terrain-profile audit: traverse ${traverse.uuid} was removed`
+        );
       }
       currentTraverse.pathSegmentElevations = profile.elevationsMeters;
       currentTraverse.pathSegmentAbsoluteSlopes = profile.terrainSlopesDegrees;
