@@ -161,7 +161,7 @@ describe("RasterSamplingWorkerPool", () => {
 
     const failed = pool.runTerrain(descriptor, path, [2]);
     const queued = pool.runTerrain(descriptor, path, [2]);
-  firstWorker.ready();
+    firstWorker.ready();
     firstWorker.emit("error", new Error("decoder crashed"));
 
     await expect(failed).rejects.toBeInstanceOf(RasterSamplingWorkerPoolUnavailableError);
@@ -181,7 +181,7 @@ describe("RasterSamplingWorkerPool", () => {
     });
 
     const failed = pool.runTerrain(descriptor, path, [2]);
-  firstWorker.ready();
+    firstWorker.ready();
     firstWorker.emit("exit", 0);
 
     await expect(failed).rejects.toBeInstanceOf(RasterSamplingWorkerPoolUnavailableError);
@@ -226,7 +226,7 @@ describe("RasterSamplingWorkerPool", () => {
 
     // The first run() assigns a job before startup fails; replacements then fail while idle.
     const primeAndSettle = async (pool: RasterSamplingWorkerPool) => {
-      await expect(pool.run(descriptor, path, [2])).rejects.toBeInstanceOf(
+      await expect(pool.runTerrain(descriptor, path, [2])).rejects.toBeInstanceOf(
         RasterSamplingWorkerPoolUnavailableError
       );
       await flush();
@@ -260,7 +260,7 @@ describe("RasterSamplingWorkerPool", () => {
       });
       try {
         const results = Promise.allSettled(
-          Array.from({ length: 10 }, () => pool.run(descriptor, path, [2]))
+          Array.from({ length: 10 }, () => pool.runTerrain(descriptor, path, [2]))
         );
         expect(created[0].requests).toHaveLength(1);
         failToStart(created[0]);
@@ -284,7 +284,7 @@ describe("RasterSamplingWorkerPool", () => {
           if (result.status === "rejected")
             expect(result.reason).toBeInstanceOf(RasterSamplingWorkerPoolUnavailableError);
         });
-        await expect(pool.run(descriptor, path, [2])).rejects.toThrow(/failed to start/);
+        await expect(pool.runTerrain(descriptor, path, [2])).rejects.toThrow(/failed to start/);
         await vi.advanceTimersByTimeAsync(5_000);
         expect(created).toHaveLength(3);
       } finally {
@@ -298,7 +298,7 @@ describe("RasterSamplingWorkerPool", () => {
       await primeAndSettle(pool);
       const afterGivingUp = created.length;
 
-      await expect(pool.run(descriptor, path, [2])).rejects.toThrow(/failed to start/);
+      await expect(pool.runTerrain(descriptor, path, [2])).rejects.toThrow(/failed to start/);
       expect(created.length).toBe(afterGivingUp);
       await pool.close();
     });
@@ -308,7 +308,7 @@ describe("RasterSamplingWorkerPool", () => {
       await primeAndSettle(pool);
       const afterGivingUp = created.length;
 
-      await expect(pool.run(descriptor, path, [2])).rejects.toBeInstanceOf(
+      await expect(pool.runTerrain(descriptor, path, [2])).rejects.toBeInstanceOf(
         RasterSamplingWorkerPoolUnavailableError
       );
       expect(created.length).toBeGreaterThan(afterGivingUp);
@@ -346,15 +346,15 @@ describe("RasterSamplingWorkerPool", () => {
 
       // Each worker completes a job (proving startup) and only then crashes.
       for (let index = 0; index < 2; index += 1) {
-        const job = pool.run(descriptor, path, [2]);
-        created[index].succeed();
+        const job = pool.runTerrain(descriptor, path, [2]);
+        created[index].succeedTerrain();
         await job;
         created[index].emit("error", new Error("decoder crashed"));
       }
 
       // Startup never failed, so the pool must not have given up.
-      const job = pool.run(descriptor, path, [2]);
-      created[2].succeed();
+      const job = pool.runTerrain(descriptor, path, [2]);
+      created[2].succeedTerrain();
       await expect(job).resolves.toMatchObject({ workerId: 3 });
       await pool.close();
     });
