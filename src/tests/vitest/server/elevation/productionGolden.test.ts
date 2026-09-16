@@ -2,10 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { NODATA_SENTINEL } from "server/elevation/constants";
 import { closeRasterCache } from "server/raster/rasterCache";
 import { sampleRasterPoints } from "server/raster/sampleRasterPoints";
-import { readTerrainProfile } from "server/terrain/readTerrainProfile";
+import {
+  readTerrainProfile,
+  TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS,
+} from "server/terrain/readTerrainProfile";
 
 type GoldenCase = {
   name: string;
@@ -42,6 +44,6 @@ describe("production DEM golden extracts", () => {
     );
 
     expect(result.elevationsMeters).toEqual([[golden.values[0], golden.values[1]]]);
-    expect(result.elevationsMeters[0]).not.toContain(NODATA_SENTINEL);
+    expect(result.elevationsMeters[0]).not.toContain(TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS);
   });
 });

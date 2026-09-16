@@ -6,9 +6,10 @@ import {
   sampleTerrainProfileInWorker,
   type TerrainProfileSamplingWorkerResult,
 } from "server/raster/rasterSamplingWorkerPool";
-import { NODATA_SENTINEL } from "server/elevation/constants";
 
 import { calculateTerrainSlopeDegrees } from "./calculateTerrainSlope";
+
+export const TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS = -1100101;
 
 export type TerrainProfileResult = {
   elevationsMeters: number[][];
@@ -42,7 +43,9 @@ const validateAndInterpolate = (path: GeographicPoint[], samplesPerSegment: numb
 };
 
 const elevationMeters = (sample: RasterSample, scale: number, offset: number): number =>
-  sample.status === "value" ? sample.value * scale + offset : NODATA_SENTINEL;
+  sample.status === "value"
+    ? sample.value * scale + offset
+    : TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS;
 
 export const readTerrainProfile = async (
   descriptor: RasterDescriptor,
