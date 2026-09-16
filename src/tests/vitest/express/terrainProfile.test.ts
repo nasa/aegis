@@ -26,7 +26,7 @@ import express from "express";
 import supertest from "supertest";
 
 import terrainProfileRouter from "server/express/routes/terrainProfile";
-import { MAX_RASTER_PROFILE_SAMPLES } from "server/raster/constants";
+import { MAX_RASTER_PROFILE_SAMPLES } from "server/terrain/readTerrainProfile";
 
 const app = express();
 app.use(express.json());

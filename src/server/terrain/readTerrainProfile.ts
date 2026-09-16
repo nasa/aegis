@@ -1,4 +1,3 @@
-import { MAX_RASTER_PROFILE_SAMPLES } from "server/raster/constants";
 import { interpolateSegment } from "server/raster/greatCircleInterpolation";
 import { validateRasterUnitsInMeters } from "server/raster/projection";
 import { sampleRasterNeighborhoods, sampleRasterPoints } from "server/raster/sampleRasterPoints";
@@ -10,6 +9,7 @@ import {
 import { calculateTerrainSlopeDegrees } from "./calculateTerrainSlope";
 
 export const TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS = -1100101;
+export const MAX_RASTER_PROFILE_SAMPLES = 100_000;
 
 export type TerrainProfileResult = {
   elevationsMeters: number[][];

@@ -5,12 +5,14 @@ import { asError } from "@emss/utils";
 
 import express from "express";
 
-import { MAX_RASTER_PROFILE_SAMPLES, samplesForDistance } from "server/raster/constants";
+import {
+  MAX_RASTER_PROFILE_SAMPLES,
+  readTerrainProfileInWorker,
+} from "server/terrain/readTerrainProfile";
 import {
   RasterSamplingWorkerPoolSupersededError,
   RasterSamplingWorkerPoolUnavailableError,
 } from "server/raster/rasterSamplingWorkerPool";
-import { readTerrainProfileInWorker } from "server/terrain/readTerrainProfile";
 import { serverLogger } from "utils/logging/serverLogger";
 import { hasPerms } from "utils/permissions";
 
@@ -18,6 +20,8 @@ import { getAutomergeMissionHandle } from "./missionAutomerge";
 
 const router = express.Router();
 const ENTITY_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const samplesForDistance = (distance: number, resolutionMeters: number): number =>
+  Math.max(2, Math.ceil(distance / resolutionMeters) + 1);
 
 const missionIdFromRequest = (req: Request): number | undefined => {
   const value = req.query.missionId;
