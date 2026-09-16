@@ -54,7 +54,6 @@ import {
 import { applyDeleteActions } from "operations/apply/apply-action";
 import { setStationCircleUIStates } from "store/station";
 import { clientLogger } from "utils/logging/clientLogger";
-import type { CompleteTerrainProfile } from "utils/terrainProfile";
 import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
 
 export const thunkDocDeleteEva = appCreateAsyncThunk<{
@@ -152,7 +151,7 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     );
     const profile =
       profileResponse.meta.requestStatus === "fulfilled"
-        ? (profileResponse.payload as CompleteTerrainProfile)
+        ? (profileResponse.payload as TerrainProfile)
         : null;
 
     // Build the fully-populated traverse

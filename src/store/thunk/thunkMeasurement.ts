@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";
 import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import type { CompleteTerrainProfile } from "utils/terrainProfile";
 import type { DocHandle } from "@automerge/automerge-repo";
 
 type MeasurementProfileRevisions = { next: number; applied: number };
@@ -109,7 +108,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   );
   if (!currentMeasurement) return;
 
-  const profile = profileResponse.payload as CompleteTerrainProfile;
+  const profile = profileResponse.payload as TerrainProfile;
   const currentSegmentCount = currentMeasurement.pathSegmentDistances.length;
   if (
     !profileMatchesSegmentCount(profile.elevationsMeters, currentSegmentCount) ||
@@ -181,7 +180,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
     );
     const profile =
       profileResponse.meta.requestStatus === "fulfilled"
-        ? (profileResponse.payload as CompleteTerrainProfile)
+        ? (profileResponse.payload as TerrainProfile)
         : null;
 
     const pathSegmentBearings: number[] = [];

@@ -11,7 +11,6 @@ import { thunkFetchElevation } from "store/thunk/thunkElevation";
 import { thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
 import { getNextTraverseProfileRevisions } from "operations/helpers/traverseProfileRevision";
 import type { AppDispatch } from "utils/useAppDispatch";
-import type { CompleteTerrainProfile } from "utils/terrainProfile";
 
 /**
  * Build a `LanderLocationUpdateStageData` after the lander moves to a new
@@ -197,7 +196,7 @@ export async function stageLanderLocationUpdate(
     const profileResult = traverseElevResults[i];
     const profile =
       profileResult.meta.requestStatus === "fulfilled"
-        ? (profileResult.payload as CompleteTerrainProfile)
+        ? (profileResult.payload as TerrainProfile)
         : null;
     return {
       traverseUuid: plan.traverseUuid,

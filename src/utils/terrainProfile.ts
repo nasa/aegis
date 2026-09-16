@@ -1,14 +1,9 @@
-export type CompleteTerrainProfile = {
-  elevationsMeters: number[][];
-  terrainSlopesDegrees: (number | null)[][];
-};
-
 /** Validate that all derived arrays describe the same path revision. */
 export function normalizeTerrainProfile(
   profile: TerrainProfile | undefined,
   path: AEGISPoint[],
   pathSegmentDistances: number[]
-): CompleteTerrainProfile | null {
+): TerrainProfile | null {
   const segmentCount = path.length - 1;
   if (
     !profile ||

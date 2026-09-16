@@ -8,7 +8,6 @@ import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
 import { getNextTraverseProfileRevision } from "operations/helpers/traverseProfileRevision";
 import { thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
 import type { AppDispatch } from "utils/useAppDispatch";
-import type { CompleteTerrainProfile } from "utils/terrainProfile";
 
 import { stageDuplicateActions } from "./stage-actions";
 
@@ -125,7 +124,7 @@ export async function stageTraverseUpdate(
   );
   const profile =
     profileResponse.meta.requestStatus === "fulfilled"
-      ? (profileResponse.payload as CompleteTerrainProfile)
+      ? (profileResponse.payload as TerrainProfile)
       : null;
 
   return {

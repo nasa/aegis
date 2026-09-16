@@ -7,7 +7,6 @@ import {
   thunkUpdateMeasurementPath,
 } from "store/thunk/thunkMeasurement";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
-import type { CompleteTerrainProfile } from "utils/terrainProfile";
 import { initialState as userInitialState } from "store/user";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
 
@@ -132,23 +131,20 @@ describe("Thunk Measurement Tests", () => {
     expect(store.getState().measure.measurements[0].pathSegmentAbsoluteSlopes).toEqual([[null, 3]]);
   });
   test.each([false, true])("applies newer completed profiles (%s)", async (outOfOrder) => {
-    let resolveFirst: (value: {
-      meta: { requestStatus: string };
-      payload: CompleteTerrainProfile;
-    }) => void;
+    let resolveFirst: (value: { meta: { requestStatus: string }; payload: TerrainProfile }) => void;
     let resolveSecond: (value: {
       meta: { requestStatus: string };
-      payload: CompleteTerrainProfile;
+      payload: TerrainProfile;
     }) => void;
     const firstResponse = new Promise<{
       meta: { requestStatus: string };
-      payload: CompleteTerrainProfile;
+      payload: TerrainProfile;
     }>((resolve) => {
       resolveFirst = resolve;
     });
     const secondResponse = new Promise<{
       meta: { requestStatus: string };
-      payload: CompleteTerrainProfile;
+      payload: TerrainProfile;
     }>((resolve) => {
       resolveSecond = resolve;
     });
@@ -254,7 +250,7 @@ describe("Thunk Measurement Tests", () => {
       const secondStore = createStore(scope === "user" ? "second-user" : "first-user");
       let resolveFirst: (value: {
         meta: { requestStatus: string };
-        payload: CompleteTerrainProfile;
+        payload: TerrainProfile;
       }) => void;
       mockThunkFetchTerrainProfile
         .mockImplementationOnce(

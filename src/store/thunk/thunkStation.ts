@@ -29,7 +29,6 @@ import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { clientLogger } from "utils/logging/clientLogger";
-import type { CompleteTerrainProfile } from "utils/terrainProfile";
 import {
   areTraverseProfileUpdatesCurrent,
   getNextTraverseProfileRevisions,
@@ -205,7 +204,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
       const profileResult = traverseProfileResults[idx];
       const profile =
         profileResult.meta.requestStatus === "fulfilled"
-          ? (profileResult.payload as CompleteTerrainProfile)
+          ? (profileResult.payload as TerrainProfile)
           : null;
       return {
         traverseUuid,

@@ -1,13 +1,13 @@
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { getTerrainProfile } from "http-client/terrainProfile";
 import { insertElevationPending, removeElevationPending } from "store/interface";
-import { normalizeTerrainProfile, type CompleteTerrainProfile } from "utils/terrainProfile";
+import { normalizeTerrainProfile } from "utils/terrainProfile";
 
 import appCreateAsyncThunk from "./thunkUtil";
 
 export const thunkFetchTerrainProfile = appCreateAsyncThunk<
   { path: AEGISPoint[]; pathSegmentDistances: number[]; uuid: string },
-  CompleteTerrainProfile,
+  TerrainProfile,
   false
 >(
   "getTerrainProfile",

@@ -11,7 +11,7 @@ import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import type { DocHandle } from "@automerge/automerge-repo";
 import { clientLogger } from "utils/logging/clientLogger";
 import { withMissionChange } from "client/automergeDocHandles";
-import { normalizeTerrainProfile, type CompleteTerrainProfile } from "utils/terrainProfile";
+import { normalizeTerrainProfile } from "utils/terrainProfile";
 
 export const auditPresetsAgainstLayers = async ({
   wholeStoreState,
@@ -253,7 +253,7 @@ export const auditTraverseTerrainProfiles = async ({
         }
         return [{ uuid: traverse.uuid, path, pathSegmentDistances }];
       });
-  const repairedProfiles = new Map<string, CompleteTerrainProfile>();
+  const repairedProfiles = new Map<string, TerrainProfile>();
 
   for (const traverse of traversesToRepair) {
     try {
