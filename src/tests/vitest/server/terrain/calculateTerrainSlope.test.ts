@@ -1,4 +1,4 @@
-import { calculateTerrainSlopeDegrees } from "server/terrain/calculateTerrainSlope";
+import { calculateTerrainSlopeDegrees } from "server/terrain/readTerrainProfile";
 
 const metadata = (resolution: [number, number] = [2, -3]): RasterMetadata => ({
   width: 10,

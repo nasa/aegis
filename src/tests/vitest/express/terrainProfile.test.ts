@@ -11,6 +11,7 @@ vi.mock("server/express/routes/missionAutomerge", () => ({
 }));
 vi.mock("utils/permissions", () => ({ hasPerms: mocks.hasPerms }));
 vi.mock("server/terrain/readTerrainProfile", () => ({
+  MAX_RASTER_PROFILE_SAMPLES: 100_000,
   readTerrainProfileInWorker: mocks.readTerrainProfileInWorker,
 }));
 vi.mock("utils/logging/serverLogger", () => ({

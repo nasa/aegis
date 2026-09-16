@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { closeRasterCache } from "server/raster/rasterCache";
 import { sampleRasterNeighborhoods } from "server/raster/sampleRasterPoints";
-import { calculateTerrainSlopeDegrees } from "server/terrain/calculateTerrainSlope";
+import { calculateTerrainSlopeDegrees } from "server/terrain/readTerrainProfile";
 
 type SlopeGoldenCorpus = {
   raster: { name: string };
