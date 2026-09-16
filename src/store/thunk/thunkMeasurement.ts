@@ -9,13 +9,12 @@ import { getMissionDocHandle } from "client/automergeDocHandles";
 import type { DocHandle } from "@automerge/automerge-repo";
 
 type MeasurementProfileRevisions = { next: number; applied: number };
-// Browser-local counters, scoped to a mission document, user, and measurement.
+// Browser-local counters, scoped to a mission document and measurement.
 const measurementProfileRevisionsByMission = new WeakMap<
   DocHandle<Mission>,
   Map<string, MeasurementProfileRevisions>
 >();
-const measurementProfileKey = (username: string | undefined, measurementUuid: string): string =>
-  JSON.stringify([username ?? null, measurementUuid]);
+const measurementProfileKey = (measurementUuid: string): string => measurementUuid;
 
 const profileMatchesSegmentCount = (
   profile: unknown[][] | null,
@@ -38,7 +37,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   const measurement = getState().measure.measurements.find((t) => t.uuid === measurementUuid);
   if (!measurement) return;
   const username = getState().user.appUser?.username;
-  const profileKey = measurementProfileKey(username, measurementUuid);
+  const profileKey = measurementProfileKey(measurementUuid);
   let missionRevisions = measurementProfileRevisionsByMission.get(missionDocHandle);
   if (!missionRevisions) {
     missionRevisions = new Map();
@@ -233,6 +232,6 @@ export const thunkRemoveMeasurement = appCreateAsyncThunk<
   if (missionDocHandle) {
     measurementProfileRevisionsByMission
       .get(missionDocHandle)
-      ?.delete(measurementProfileKey(getState().user.appUser?.username, measurementUuid));
+      ?.delete(measurementProfileKey(measurementUuid));
   }
 });

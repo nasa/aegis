@@ -214,12 +214,12 @@ describe("Thunk Measurement Tests", () => {
     expect(store.getState().measure.measurements[0].pathSegmentElevations).toEqual([[8, 9]]);
     expect(store.getState().measure.measurements[0].pathSegmentAbsoluteSlopes).toEqual([[10, 11]]);
   });
-  test.each(["user", "mission"])("isolates measurement revisions by %s", async (scope) => {
+  test("isolates measurement revisions by mission", async () => {
     const originalGetHandle = vi.mocked(getMissionDocHandle).getMockImplementation();
     const firstHandle = getMissionDocHandle();
     let activeHandle = firstHandle;
     setMissionAutomergeDocHandle(null);
-    const secondHandle = scope === "mission" ? getMissionDocHandle() : firstHandle;
+    const secondHandle = getMissionDocHandle();
     vi.mocked(getMissionDocHandle).mockImplementation(() => activeHandle);
 
     try {
@@ -247,7 +247,7 @@ describe("Thunk Measurement Tests", () => {
           },
         });
       const firstStore = createStore("first-user");
-      const secondStore = createStore(scope === "user" ? "second-user" : "first-user");
+      const secondStore = createStore("first-user");
       let resolveFirst: (value: {
         meta: { requestStatus: string };
         payload: TerrainProfile;
