@@ -1,16 +1,20 @@
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import type { Request, Response } from "express";
+import { asError } from "@emss/utils";
 
 import express from "express";
 
 import { MAX_RASTER_PROFILE_SAMPLES, samplesForDistance } from "server/raster/constants";
+import {
+  RasterSamplingWorkerPoolSupersededError,
+  RasterSamplingWorkerPoolUnavailableError,
+} from "server/raster/rasterSamplingWorkerPool";
 import { readTerrainProfileInWorker } from "server/terrain/readTerrainProfile";
 import { serverLogger } from "utils/logging/serverLogger";
 import { hasPerms } from "utils/permissions";
 
 import { getAutomergeMissionHandle } from "./missionAutomerge";
-import { respondWithRasterRouteError } from "./rasterRouteError";
 
 const router = express.Router();
 const ENTITY_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
@@ -81,6 +85,46 @@ export const validateTerrainProfileRequest = (
     entityKey: postData.entityKey,
     getElevationOnly: postData.getElevationOnly ?? false,
   };
+};
+
+const respondWithRasterRouteError = (
+  res: Response,
+  req: Request,
+  routeName: string,
+  missionId: number | undefined,
+  error: unknown
+): void => {
+  const message = asError(error).message;
+
+  if (error instanceof RasterSamplingWorkerPoolSupersededError) {
+    serverLogger.debug({
+      logId: "API Route",
+      logValue: `POST 409 ${routeName} ${message}`,
+      missionId,
+    });
+    res.status(409).json({ status: "error", message });
+    return;
+  }
+
+  const workerUnavailable = error instanceof RasterSamplingWorkerPoolUnavailableError;
+  const clientError =
+    message.includes("must") ||
+    message.includes("invalid") ||
+    message.includes("limit") ||
+    message.includes("configured") ||
+    message.includes("contain");
+  const responseStatus = workerUnavailable ? 503 : clientError ? 400 : 500;
+  serverLogger.apiRoute({
+    logLevel: responseStatus === 400 ? "notice" : responseStatus === 503 ? "warning" : "error",
+    httpMethod: "POST",
+    responseStatus,
+    routeName,
+    appUsername: req.session?.appUser?.username,
+    missionId,
+    message,
+    error: asError(error),
+  });
+  res.status(responseStatus).json({ status: "error", message });
 };
 
 router.post("/", async (req: Request, res: Response): Promise<void> => {
