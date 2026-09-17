@@ -170,6 +170,7 @@ describe("Terrain profile client", () => {
             { lat: -85.1, lng: 10.1 },
           ],
           pathSegmentDistances: [20],
+          getElevationOnly: false,
         }),
       })
     );

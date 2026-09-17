@@ -36,12 +36,12 @@ export function normalizeTerrainProfile(
   return profile;
 }
 
-async function requestTerrainProfile({
+export async function getTerrainProfile({
   missionId,
   path,
   pathSegmentDistances,
   entityKey,
-  getElevationOnly,
+  getElevationOnly = false,
 }: {
   missionId: number;
   path: AEGISPoint[];
@@ -75,20 +75,6 @@ async function requestTerrainProfile({
   return (await res.json()) as WrappedResponse<TerrainProfile>;
 }
 
-export async function getTerrainProfile({
-  missionId,
-  path,
-  pathSegmentDistances,
-  entityKey,
-}: {
-  missionId: number;
-  path: AEGISPoint[];
-  pathSegmentDistances: number[];
-  entityKey?: string;
-}): Promise<WrappedResponse<TerrainProfile>> {
-  return requestTerrainProfile({ missionId, path, pathSegmentDistances, entityKey });
-}
-
 export async function getElevationSinglePoint({
   missionId,
   point,
@@ -100,7 +86,7 @@ export async function getElevationSinglePoint({
     return { status: "error", message: "Invalid point" };
   }
 
-  const response = await requestTerrainProfile({
+  const response = await getTerrainProfile({
     missionId,
     path: [point, point],
     pathSegmentDistances: [0],
