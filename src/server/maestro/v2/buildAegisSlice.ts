@@ -256,6 +256,7 @@ const formatActionsForMaestro = (
         action,
         mission,
       }),
+      actionDefinition: action.actionDefinition ?? null,
       missionPriorityReadable: makeReadableMissionPriority({
         missionPriorityUuid: action.missionPriorityUuid,
         mission,
