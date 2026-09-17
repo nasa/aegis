@@ -24,11 +24,28 @@ export declare namespace AegisSlice {
     data: T;
   };
 
+  type MissionPriority = {
+    trace: string;
+    category: string;
+  };
+
+  type MissionPriorities = {
+    [uuid: string]: MissionPriority;
+  };
+
+  type MissionPriorityReadable = {
+    uuid: string;
+    trace: string;
+    category: string;
+    displayString: string;
+  };
+
   type AegisMission = {
     name: string;
     id: number;
     description: string;
     actionSystemVersion: 1 | 2;
+    missionPriorities: MissionPriorities;
     createdAt: number;
     updatedAt: number;
   };
@@ -112,6 +129,7 @@ export declare namespace AegisSlice {
     descriptionTask: string;
     equipmentItemsUsageReadable: EquipmentItemUsage[];
     actionDefinitionReadable: ActionDefinitionReadable | null | undefined;
+    missionPriorityReadable: MissionPriorityReadable | null;
     missionId: number;
     icon: string;
     createdAt: number;

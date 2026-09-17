@@ -82,6 +82,10 @@ export const makeExportActions = (params: {
         action,
         mission,
       }),
+      missionPriorityReadable: makeReadableMissionPriority({
+        missionPriorityUuid: action.missionPriorityUuid,
+        mission,
+      }),
       stmPrioritiesReadable: action.stmPriorities
         ? Object.entries(action.stmPriorities).map(([uuid, priority]) => ({
             uuid,
@@ -405,21 +409,24 @@ export const makeExportMission = (params: {
 
 export const makeReadableActionDefinition = (params: {
   action: Action;
-  mission: Pick<Mission, "actionDefinitions" | "actionDefinitionConjunctions">;
+  mission: Pick<
+    Mission,
+    "actionDefinitions" | "actionDefinitionConjunctions" | "actionDefinitionLabels"
+  >;
 }): ActionDefinitionReadable => {
   const { action, mission } = params;
-  if (!action?.actionDefinition) return null;
   const actionDefinitions = mission.actionDefinitions;
   const conjunctions = mission.actionDefinitionConjunctions;
+  const definitionLabels = mission.actionDefinitionLabels;
 
-  const verbUuid = action.actionDefinition.verbUuid;
-  const nounUuid = action.actionDefinition.nounUuid;
-  const adjectiveUuid = action.actionDefinition.adjectiveUuid;
+  const verbUuid = action.actionDefinition?.verbUuid;
+  const nounUuid = action.actionDefinition?.nounUuid;
+  const adjectiveUuid = action?.actionDefinition?.adjectiveUuid;
 
-  const verb = verbUuid ? { uuid: verbUuid, ...actionDefinitions.verbs[verbUuid] } : null;
-  const noun = nounUuid ? { uuid: nounUuid, ...actionDefinitions.nouns[nounUuid] } : null;
+  const verb = verbUuid ? { uuid: verbUuid, ...actionDefinitions?.verbs?.[verbUuid] } : null;
+  const noun = nounUuid ? { uuid: nounUuid, ...actionDefinitions?.nouns?.[nounUuid] } : null;
   const adjective = adjectiveUuid
-    ? { uuid: adjectiveUuid, ...actionDefinitions.adjectives[adjectiveUuid] }
+    ? { uuid: adjectiveUuid, ...actionDefinitions?.adjectives?.[adjectiveUuid] }
     : null;
 
   const readableActionDefinition: ActionDefinitionReadable = {
@@ -428,12 +435,35 @@ export const makeReadableActionDefinition = (params: {
       nounName: noun?.name,
       adjectiveName: adjective?.name,
       conjunctions,
+      definitionLabels,
     }),
     verb: verb,
     noun: noun,
     adjective: adjective,
   };
   return readableActionDefinition;
+};
+
+/**
+ * Resolve an action's mission priority reference into its trace/category values plus the
+ * "<trace> | <category>" display string. Returns null when nothing is selected or the
+ * reference no longer resolves.
+ */
+export const makeReadableMissionPriority = (params: {
+  missionPriorityUuid: string | null | undefined;
+  mission: Pick<Mission, "missionPriorities">;
+}): MissionPriorityReadable | null => {
+  const { missionPriorityUuid, mission } = params;
+  if (!missionPriorityUuid) return null;
+  const missionPriority = mission.missionPriorities?.[missionPriorityUuid];
+  if (!missionPriority) return null;
+
+  return {
+    uuid: missionPriorityUuid,
+    trace: missionPriority.trace,
+    category: missionPriority.category,
+    displayString: `${missionPriority.trace} | ${missionPriority.category}`,
+  };
 };
 
 export const makeExportString = ({

@@ -204,10 +204,12 @@ const getStmActionName = ({
   actionDefinition,
   missionActionDefinitions,
   actionDefinitionConjunctions,
+  actionDefinitionLabels,
 }: {
   actionDefinition: ActionDefinition;
   missionActionDefinitions: ActionDefinitions;
   actionDefinitionConjunctions: Mission["actionDefinitionConjunctions"];
+  actionDefinitionLabels: Mission["actionDefinitionLabels"];
 }): string => {
   const verbDef = missionActionDefinitions.verbs[actionDefinition?.verbUuid];
   const nounDef = missionActionDefinitions.nouns[actionDefinition?.nounUuid];
@@ -217,6 +219,7 @@ const getStmActionName = ({
     nounName: nounDef?.name,
     adjectiveName: adjectiveDef?.name,
     conjunctions: actionDefinitionConjunctions,
+    definitionLabels: actionDefinitionLabels,
   });
 };
 
@@ -232,7 +235,10 @@ export const getActionDisplayName = ({
   action: Pick<Action, "name" | "stmAction" | "actionDefinition">;
   mission: Pick<
     Mission,
-    "actionSystemVersion" | "actionDefinitions" | "actionDefinitionConjunctions"
+    | "actionSystemVersion"
+    | "actionDefinitions"
+    | "actionDefinitionConjunctions"
+    | "actionDefinitionLabels"
   >;
 }): string => {
   if (
@@ -245,6 +251,7 @@ export const getActionDisplayName = ({
       actionDefinition: action.actionDefinition,
       missionActionDefinitions: mission.actionDefinitions,
       actionDefinitionConjunctions: mission.actionDefinitionConjunctions,
+      actionDefinitionLabels: mission.actionDefinitionLabels,
     });
   }
   return action.name;
