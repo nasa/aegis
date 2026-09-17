@@ -27,6 +27,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     walkbackRate: 2,
     equipmentItems: {},
     geographicUnits: {},
+    missionPriorities: {},
     serverFileGrid: null,
     planetRadius: 1737400, // moon
     initialZoom: 14,
@@ -82,6 +83,7 @@ export const generateBlankActionTemplate = (
     duration: 6,
     stmAction: false,
     stmPriorities: null,
+    missionPriorityUuid: null,
     equipmentItemsUsage: {},
     geographicUnitsUsage: [],
     crewAssigned: [],
@@ -181,21 +183,23 @@ export const DEFAULT_ACTION_DEFINITION_CONJUNCTIONS: Mission["actionDefinitionCo
 /**
  * Join the parts of an action-definition sentence into a display name.
  * The adjective is optional: when it isn't selected, both the adjective and its
- * leading conjunction are omitted (no trailing "in Unknown"). The verb and noun
- * fall back to "Unknown" so an action always has a stable, non-empty name.
+ * leading conjunction are omitted. The verb and noun
+ * fall back to the definition label so an action always has a stable, non-empty name.
  */
 export const buildActionDefinitionName = ({
   verbName,
   nounName,
   adjectiveName,
   conjunctions,
+  definitionLabels,
 }: {
   verbName?: string;
   nounName?: string;
   adjectiveName?: string;
   conjunctions: { verbToNoun: string; nounToAdjective: string };
+  definitionLabels: ActionDefinitionLabels;
 }): string => {
-  let name = `${verbName || "Unknown"} ${conjunctions.verbToNoun} ${nounName || "Unknown"}`;
+  let name = `${verbName || definitionLabels.verb.singular} ${conjunctions.verbToNoun} ${nounName || definitionLabels.noun.singular}`;
   if (adjectiveName) {
     name += ` ${conjunctions.nounToAdjective} ${adjectiveName}`;
   }
@@ -221,4 +225,19 @@ export const generateBlankGeographicUnit = (
     abbr: "GU",
   };
   return { ...defaultNewGeographicUnit, ...partialGeographicUnit };
+};
+
+/**
+ * Generate a blank mission priority (a single trace row within a category).
+ * @param partialMissionPriority any fields that are to be overridden from default
+ * @returns the generated mission priority
+ */
+export const generateBlankMissionPriority = (
+  partialMissionPriority?: Partial<MissionPriority>
+): MissionPriority => {
+  const defaultNewMissionPriority: MissionPriority = {
+    trace: "(Trace)",
+    category: "",
+  };
+  return { ...defaultNewMissionPriority, ...partialMissionPriority };
 };

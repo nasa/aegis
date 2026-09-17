@@ -1,6 +1,6 @@
 import { selectPoi } from "store/poi";
 import appCreateAsyncThunk from "./thunkUtil";
-import { thunkFetchElevation } from "./thunkElevation";
+import { thunkFetchPointElevation } from "./thunkTerrainProfile";
 import { setSelectedPoiUuid } from "store/poi";
 import { v4 as uuidv4 } from "uuid";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
@@ -21,9 +21,8 @@ export const thunkDocUpdatePoiLocation = appCreateAsyncThunk<{
 }>("updatePoiLocation", async ({ location, poiUuid }, { dispatch }) => {
   // Step 1: Fetch elevation for the new location
   const elevationRes = await dispatch(
-    thunkFetchElevation({
-      path: [location],
-      pathSegmentDistances: [0],
+    thunkFetchPointElevation({
+      point: location,
       uuid: poiUuid,
     })
   );

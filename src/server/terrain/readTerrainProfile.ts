@@ -1,0 +1,135 @@
+import { interpolateSegment } from "server/raster/greatCircleInterpolation";
+import { validateRasterUnitsInMeters } from "server/raster/projection";
+import { sampleRasterNeighborhoods, sampleRasterPoints } from "server/raster/sampleRasterPoints";
+import {
+  sampleTerrainProfileInWorker,
+  type TerrainProfileSamplingWorkerResult,
+} from "server/raster/rasterSamplingWorkerPool";
+
+export const TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS = -1100101;
+export const MAX_RASTER_PROFILE_SAMPLES = 100_000;
+
+export type TerrainProfileResult = {
+  elevationsMeters: number[][];
+  terrainSlopesDegrees: (number | null)[][];
+  centerSamples: number;
+  uniqueDemPixels: number;
+  blocksRead: number;
+};
+
+type TerrainProfileWorkerResult = TerrainProfileResult &
+  Pick<TerrainProfileSamplingWorkerResult, "workerId" | "queueDurationMs" | "executionDurationMs">;
+
+const validateAndInterpolate = (path: GeographicPoint[], samplesPerSegment: number[]) => {
+  if (path.length < 2) throw new Error("A terrain profile requires at least two points");
+  if (samplesPerSegment.length !== path.length - 1) {
+    throw new Error("Sample counts must contain one value for each path segment");
+  }
+  let centerSamples = 0;
+  samplesPerSegment.forEach((sampleCount) => {
+    if (!Number.isSafeInteger(sampleCount) || sampleCount < 2) {
+      throw new Error("Sample counts must be safe integers of at least two endpoint samples");
+    }
+    centerSamples += sampleCount;
+  });
+  if (centerSamples > MAX_RASTER_PROFILE_SAMPLES) {
+    throw new Error(`Terrain profile exceeds the ${MAX_RASTER_PROFILE_SAMPLES} sample limit`);
+  }
+  return samplesPerSegment.map((sampleCount, index) =>
+    interpolateSegment(path[index], path[index + 1], sampleCount)
+  );
+};
+
+const elevationMeters = (sample: RasterSample, scale: number, offset: number): number =>
+  sample.status === "value"
+    ? sample.value * scale + offset
+    : TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS;
+
+/** Calculates an unsigned Horn 3x3 terrain slope in degrees. */
+export const calculateTerrainSlopeDegrees = (
+  neighborhood: RasterSample[],
+  metadata: RasterMetadata
+): number | null => {
+  if (neighborhood.length !== 9) throw new Error("Horn slope requires a 3 by 3 neighborhood");
+  const values = neighborhood.map((sample) =>
+    sample.status === "value" ? sample.value * metadata.scale + metadata.offset : null
+  );
+  if (values.some((value) => value === null)) return null;
+
+  const [z1, z2, z3, z4, , z6, z7, z8, z9] = values as number[];
+  const resolutionX = Math.abs(metadata.resolution[0]);
+  const resolutionY = Math.abs(metadata.resolution[1]);
+  const dzdx = (z3 + 2 * z6 + z9 - z1 - 2 * z4 - z7) / (8 * resolutionX);
+  const dzdy = (z7 + 2 * z8 + z9 - z1 - 2 * z2 - z3) / (8 * resolutionY);
+  return (Math.atan(Math.hypot(dzdx, dzdy)) * 180) / Math.PI;
+};
+
+export const readTerrainProfile = async (
+  descriptor: RasterDescriptor,
+  path: GeographicPoint[],
+  samplesPerSegment: number[],
+  getElevationOnly = false
+): Promise<TerrainProfileResult> => {
+  const segments = validateAndInterpolate(path, samplesPerSegment);
+  const points = segments.flat();
+  const sampled = getElevationOnly
+    ? await sampleRasterPoints(descriptor, points)
+    : await sampleRasterNeighborhoods(descriptor, points);
+  validateRasterUnitsInMeters(sampled.metadata);
+  if (descriptor.expectedResolutionMeters !== undefined) {
+    const tolerance = Math.max(1e-6, descriptor.expectedResolutionMeters * 1e-6);
+    const nativeSamplingResolution = Math.min(
+      Math.abs(sampled.metadata.resolution[0]),
+      Math.abs(sampled.metadata.resolution[1])
+    );
+    if (Math.abs(nativeSamplingResolution - descriptor.expectedResolutionMeters) > tolerance) {
+      throw new Error("Mission DEM resolution is invalid: it does not match the raster metadata");
+    }
+  }
+
+  let offset = 0;
+  const elevationsMeters = segments.map((segment) => {
+    const centerSamples = "centerSamples" in sampled ? sampled.centerSamples : sampled.samples;
+    const values = centerSamples
+      .slice(offset, offset + segment.length)
+      .map((sample) => elevationMeters(sample, sampled.metadata.scale, sampled.metadata.offset));
+    offset += segment.length;
+    return values;
+  });
+  offset = 0;
+  const terrainSlopesDegrees =
+    "neighborhoods" in sampled
+      ? segments.map((segment) => {
+          const values = sampled.neighborhoods
+            .slice(offset, offset + segment.length)
+            .map((neighborhood) => calculateTerrainSlopeDegrees(neighborhood, sampled.metadata));
+          offset += segment.length;
+          return values;
+        })
+      : [];
+
+  return {
+    elevationsMeters,
+    terrainSlopesDegrees,
+    centerSamples: points.length,
+    uniqueDemPixels: sampled.uniquePixelsRead,
+    blocksRead: sampled.blocksRead,
+  };
+};
+
+export const readTerrainProfileInWorker = async (
+  descriptor: RasterDescriptor,
+  path: GeographicPoint[],
+  samplesPerSegment: number[],
+  coalescingKey?: string,
+  getElevationOnly = false
+): Promise<TerrainProfileWorkerResult> => {
+  const result = await sampleTerrainProfileInWorker(
+    descriptor,
+    path,
+    samplesPerSegment,
+    coalescingKey,
+    getElevationOnly
+  );
+  return result;
+};

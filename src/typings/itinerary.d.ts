@@ -39,6 +39,7 @@ interface Traverse {
   path: AEGISPoint[] | null;
   pathSegmentDistances: number[] | null; //meters
   pathSegmentElevations: number[][] | null; //meters
+  pathSegmentAbsoluteSlopes: (number | null)[][] | null; //degrees
   duration: number | null; //minutes
   description: string;
   traverseRate?: number | null; // km/h
@@ -48,7 +49,7 @@ interface Traverse {
   updatedAt?: number;
 }
 
-type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt"> & {
+type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt" | "pathSegmentAbsoluteSlopes"> & {
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -190,6 +191,9 @@ type Action = {
   parentCopyDate?: number | null;
 
   priority: number | null; // 1-10
+  /** uuid of the selected entry in `mission.missionPriorities`. Always null on v1 missions. */
+  missionPriorityUuid: string | null;
+
   /**
    * Allow linkage to any part of the STM hierarchy
    */
@@ -232,9 +236,10 @@ type Action = {
   updatedAt: number;
 };
 
+// missionPriorityUuid is Automerge-only — the legacy Postgres action table has no such column.
 type Action_db_type = Omit<
   Action,
-  "poiUuid" | "stationUuid" | "parentActionUuid" | "traverseUuid"
+  "poiUuid" | "stationUuid" | "parentActionUuid" | "traverseUuid" | "missionPriorityUuid"
 > & {
   poi: Poi_db_type;
   station: Station_db_type;
@@ -299,6 +304,13 @@ type ActionDefinition = {
   verbUuid?: string;
   nounUuid?: string;
   adjectiveUuid?: string;
+};
+
+// The updated words for noun/verb/adj
+type ActionDefinitionLabels = {
+  verb: { singular: string; plural: string };
+  noun: { singular: string; plural: string };
+  adjective: { singular: string; plural: string };
 };
 
 type TotalAscentDescentObj = {

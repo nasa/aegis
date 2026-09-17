@@ -190,6 +190,7 @@ export function applyCreateTemplateFromAction(
     crewAssigned: action.crewAssigned,
     mass: action.mass,
     priority: action.priority,
+    missionPriorityUuid: action.missionPriorityUuid,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

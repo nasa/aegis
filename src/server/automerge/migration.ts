@@ -244,6 +244,7 @@ getORM()
             parentCopyDate: dbAction.parentCopyDate,
             priority: dbAction.priority,
             stmPriorities: dbAction.stmPriorities,
+            missionPriorityUuid: null,
             type: dbAction.type,
             description: dbAction.description,
             descriptionTask: dbAction.descriptionTask,
@@ -321,6 +322,7 @@ getORM()
             path: dbTraverse.path,
             pathSegmentDistances: dbTraverse.pathSegmentDistances,
             pathSegmentElevations: dbTraverse.pathSegmentElevations,
+            pathSegmentAbsoluteSlopes: null,
             status: dbTraverse.status,
             duration: dbTraverse.duration,
             description: dbTraverse.description,
@@ -795,6 +797,44 @@ getORM()
       });
     };
 
+    // Migration: add the mission priority master list plus the per-action/per-template
+    // reference to it. The reference is seeded to null everywhere; the feature is v2-only,
+    // so v1 missions simply keep the null value.
+    const automergeMigration20260901AddMissionPriorities = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        const doc = mission as Partial<Mission>;
+        // Update mission
+        if (!("missionPriorities" in doc)) doc.missionPriorities = {};
+        // Update actions
+        for (const action of Object.values(mission.actions ?? {})) {
+          const partialAction = action as Partial<Action>;
+          if (!("missionPriorityUuid" in partialAction)) partialAction.missionPriorityUuid = null;
+        }
+        // Update action templates
+        for (const actionTemplate of Object.values(mission.actionTemplates ?? {})) {
+          const partialTemplate = actionTemplate as Partial<ActionTemplate>;
+          if (!("missionPriorityUuid" in partialTemplate)) {
+            partialTemplate.missionPriorityUuid = null;
+          }
+        }
+      });
+    };
+
+    // Migration: initialize absolute terrain slopes on traverses created before the field existed.
+    const automergeMigration20260902AddTraverseAbsoluteSlopes = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const traverse of Object.values(mission.traverses ?? {})) {
+          if (!Object.prototype.hasOwnProperty.call(traverse, "pathSegmentAbsoluteSlopes")) {
+            traverse.pathSegmentAbsoluteSlopes = null;
+          }
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
@@ -805,7 +845,9 @@ getORM()
       automergeMigration20260809AddGridRenderMode,
       automergeMigration20260810RenameStationLabelStrokeToHalo,
       automergeMigration20260806XgressStations,
+      automergeMigration20260902AddTraverseAbsoluteSlopes,
       automergeMigration20260909AddArchivedAt,
+      automergeMigration20260901AddMissionPriorities,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {

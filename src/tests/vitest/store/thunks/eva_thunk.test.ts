@@ -21,13 +21,13 @@ import { initialState as evaInitialState } from "store/eva";
 const confirmSpy = vi.spyOn(window, "confirm").mockImplementation(() => true);
 const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => true);
 
-// thunkFetchElevation always pretends to fail so the traverse path generation
+// Terrain profile fetching always pretends to fail so traverse path generation
 // short-circuits in tests (we don't have a real elevation service).
-const mockThunkFetchElevation = vi.fn().mockReturnValue({
+const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-vi.mock("store/thunk/thunkElevation", () => ({
-  thunkFetchElevation: () => mockThunkFetchElevation,
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchTerrainProfile: () => mockThunkFetchTerrainProfile,
 }));
 
 // Spy on traverse update thunks. We don't care about the path math in these
@@ -216,10 +216,10 @@ describe("Thunk EVA Tests", () => {
       expect(uniqueNames.size).toEqual(evaNames.length);
     });
 
-    it("calls thunkFetchElevation for the initial traverse", async () => {
+    it("calls thunkFetchTerrainProfile for the initial traverse", async () => {
       await store.dispatch(thunkDocCreateEva());
 
-      expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
+      expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
     });
 
     it("new EVA uses mission traverseRate and defaultEvaDuration", async () => {
@@ -356,7 +356,7 @@ describe("Thunk EVA Tests", () => {
         const newSequence = getMission().evas[eva.uuid].sequence;
         expect(newSequence.length).toEqual(evaSequence.length - 2);
         expect(Object.keys(getMission().traverses).length).toEqual(traverseCount - 1);
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
+        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
       });
 
       it("removes a middle station + a surrounding traverse", async () => {
@@ -376,7 +376,7 @@ describe("Thunk EVA Tests", () => {
         const newSequence = getMission().evas[eva.uuid].sequence;
         expect(newSequence.length).toEqual(evaSequence.length - 2);
         expect(Object.keys(getMission().traverses).length).toEqual(traverseCount - 1);
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
+        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
       });
 
       it("removes the last removable station + its trailing traverse", async () => {
@@ -396,7 +396,7 @@ describe("Thunk EVA Tests", () => {
         const newSequence = getMission().evas[eva.uuid].sequence;
         expect(newSequence.length).toEqual(evaSequence.length - 2);
         expect(Object.keys(getMission().traverses).length).toEqual(traverseCount - 1);
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
+        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
       });
 
       it("leaves the pinned egress and ingress stations in place", async () => {
@@ -469,7 +469,7 @@ describe("Thunk EVA Tests", () => {
         expect(updatedEva.sequence[2].uuid).toEqual(stationNotInEva.uuid);
         // No duplication for non-rex
         expect(Object.keys(getMission().stations).length).toEqual(numStationsBefore);
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(2);
+        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(2);
       });
 
       it("duplicates the new station and deletes the old one (rex)", async () => {
@@ -504,7 +504,7 @@ describe("Thunk EVA Tests", () => {
         expect(Object.keys(getMission().stations).length).toEqual(numStationsBefore);
         // Old station removed from doc
         expect(getMission().stations[oldStationUuid]).toBeUndefined();
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(2);
+        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(2);
       });
     });
 
@@ -525,7 +525,7 @@ describe("Thunk EVA Tests", () => {
         const updatedSequence = getMission().evas[eva.uuid].sequence;
         expect(updatedSequence[2].uuid).toEqual(originalSequence[4].uuid);
         expect(updatedSequence[4].uuid).toEqual(originalSequence[2].uuid);
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(3);
+        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(3);
       });
 
       it("refuses to move a station into a pinned xgress position", async () => {
@@ -575,7 +575,7 @@ describe("Thunk EVA Tests", () => {
         expect(xgressStationUuid(eva.uuid, "ingress")).toEqual(stationNotInEva.uuid);
         // The lander station it replaced was owned by the EVA, so it is gone.
         expect(getMission().stations[oldIngressUuid]).toBeUndefined();
-        expect(mockThunkFetchElevation).toHaveBeenCalledTimes(1);
+        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
       });
 
       it("(isRexEva=false) switching back to the lander creates a fresh lander station", async () => {
