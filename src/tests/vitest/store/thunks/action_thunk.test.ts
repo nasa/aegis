@@ -6,11 +6,11 @@ import { generateBlankAction } from "store/storeUtils/action";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
 // default mock: elevation rejected (no data). Individual tests can override.
-const mockThunkFetchElevation = vi.fn().mockReturnValue({
+const mockThunkFetchPointElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
 vi.mock("store/thunk/thunkTerrainProfile", () => ({
-  thunkFetchElevation: () => mockThunkFetchElevation,
+  thunkFetchPointElevation: () => mockThunkFetchPointElevation,
 }));
 
 beforeAll(() => {
@@ -38,7 +38,7 @@ afterAll(() => {
 describe("Thunk Action Tests", () => {
   describe("thunkDocUpdateActionLocation", () => {
     test("rejected elevation sets location and null elevation", async () => {
-      mockThunkFetchElevation.mockReturnValueOnce({ meta: { requestStatus: "rejected" } });
+      mockThunkFetchPointElevation.mockReturnValueOnce({ meta: { requestStatus: "rejected" } });
       const action: Action = generateBlankAction({
         name: "Vitest Action-1",
         stationUuid: uuidv4(),
@@ -62,11 +62,11 @@ describe("Thunk Action Tests", () => {
       );
       expect(missionDocHandle.doc()?.actions?.[action.uuid]?.location).toEqual(newLocation);
       expect(missionDocHandle.doc()?.actions?.[action.uuid]?.elevation).toBeNull();
-      expect(mockThunkFetchElevation).toHaveBeenCalled();
+      expect(mockThunkFetchPointElevation).toHaveBeenCalled();
     });
 
     test("fulfilled elevation sets both location and elevation", async () => {
-      mockThunkFetchElevation.mockReturnValueOnce({
+      mockThunkFetchPointElevation.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
         payload: 1234,
       });

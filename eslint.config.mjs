@@ -299,7 +299,7 @@ export default [
               // Allow only read-only profile-fetching thunks.
               // Mutation thunks would break the single-.change() atomicity guarantee.
               group: ["store/thunk/**", "**/store/thunk/**"],
-              allowImportNames: ["thunkFetchElevation", "thunkFetchTerrainProfile"],
+              allowImportNames: ["thunkFetchPointElevation", "thunkFetchTerrainProfile"],
               message:
                 "stage* helpers may only import approved read-only data-fetching thunks. Any thunk that calls .change() would break the single-patch atomicity guarantee. See src/operations/README.md.",
             },

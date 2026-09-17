@@ -7,7 +7,10 @@ import {
   getIngressStationUuid,
   getXgressTraverseUuid,
 } from "operations/helpers/evaSequence";
-import { thunkFetchElevation, thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
+import {
+  thunkFetchPointElevation,
+  thunkFetchTerrainProfile,
+} from "store/thunk/thunkTerrainProfile";
 import { getNextTraverseProfileRevisions } from "operations/helpers/traverseProfileRevision";
 import type { AppDispatch } from "utils/useAppDispatch";
 
@@ -148,14 +151,12 @@ export async function stageLanderLocationUpdate(
   // Three typed groups so TypeScript can narrow each result correctly.
   const [landerElevResult, walkbackElevResults, traverseElevResults] = await Promise.all([
     // Lander point elevation
-    dispatch(
-      thunkFetchElevation({ path: [newLocation], pathSegmentDistances: [0], uuid: "lander" })
-    ),
-    // Walkback elevations — one per station
+    dispatch(thunkFetchPointElevation({ point: newLocation, uuid: "lander" })),
+    // Walkback profiles — one per station; slopes are discarded until they can be rendered.
     Promise.all(
       walkbackPlans.map(({ stationUuid, newWalkbackPath, distances }) =>
         dispatch(
-          thunkFetchElevation({
+          thunkFetchTerrainProfile({
             path: newWalkbackPath,
             pathSegmentDistances: distances,
             uuid: `${stationUuid}_walkback`,
@@ -185,7 +186,9 @@ export async function stageLanderLocationUpdate(
       newWalkbackPath: plan.newWalkbackPath,
       newWalkbackPathSegmentDistances: plan.distances,
       newWalkbackPathSegmentElevations:
-        elevResult.meta.requestStatus === "fulfilled" ? (elevResult.payload as number[][]) : null,
+        elevResult.meta.requestStatus === "fulfilled"
+          ? (elevResult.payload as TerrainProfile).elevationsMeters
+          : null,
     } satisfies WalkbackUpdateStageData;
   });
 

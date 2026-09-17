@@ -73,7 +73,7 @@ Thunks will eventually delegate their core doc mutation to the corresponding `op
 ## Hard rules (ESLint-enforced)
 
 1. `apply*` may only call other `apply*`. No `.change()`. No `getMissionDocHandle`. No thunks.
-2. `stage*` receives a `Mission` parameter; never calls `.change()`; may only import the allow-listed read-only profile thunks (`thunkFetchElevation` and `thunkFetchTerrainProfile`).
+2. `stage*` receives a `Mission` parameter; never calls `.change()`; may only import the allow-listed read-only profile thunks (`thunkFetchPointElevation` and `thunkFetchTerrainProfile`).
 3. `op*` functions in `src/operations/` own the `.change()` call for shared client/server operations. They receive a `DocHandle<Mission>` directly.
 4. Outside `src/store/thunk/**`, `src/operations/**`, and `automergeDocHandles.ts`, `missionDocHandle.change()` is forbidden in components. Use `withMissionChange` instead.
 5. An `op*` function or thunk runs at most one `.change()` per logical operation.
@@ -85,7 +85,7 @@ Before committing an `op*` function or thunk, verify:
 - [ ] The body contains exactly **one** `missionDocHandle.change(...)` call.
 - [ ] No called `op*` or sub-thunk also calls `.change()` (trace the full call tree).
 - [ ] No `.change()` call appears inside a `for`, `forEach`, `map`, or other loop body (directly or via a called function).
-- [ ] All async I/O (`await dispatch(thunkFetchElevation(...))`, REST fetches) runs **before** the `.change()`.
+- [ ] All async I/O (`await dispatch(thunkFetchPointElevation(...))`, REST fetches) runs **before** the `.change()`.
 - [ ] UI dispatches (Redux slice setters, non-Automerge side-effects) run **after** the `.change()` (thunks only — `op*` functions have no Redux context).
 
 ## Two tiers of `stage*` functions

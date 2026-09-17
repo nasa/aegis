@@ -15,20 +15,18 @@ const makeLanderStation = (location: AEGISPoint): Station =>
     elevation: null,
   });
 
-const mockThunkFetchElevation = vi.fn().mockReturnValue({
+const mockThunkFetchPointElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-// thunkGetElevation is the outer factory — spy on it so mock.calls captures
-// the { path, pathSegmentDistances, uuid } args passed to the factory.
-// The factory returns mockThunkFetchElevation which the store dispatches.
-const mockThunkFetchElevationFactory = vi.fn((..._args) => mockThunkFetchElevation);
+// The outer factory spy captures the { point, uuid } args passed to the thunk.
+const mockThunkFetchPointElevationFactory = vi.fn((..._args) => mockThunkFetchPointElevation);
 
 const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
 const mockThunkFetchTerrainProfileFactory = vi.fn((..._args) => mockThunkFetchTerrainProfile);
 vi.mock("store/thunk/thunkTerrainProfile", () => ({
-  thunkFetchElevation: (...args: unknown[]) => mockThunkFetchElevationFactory(...args),
+  thunkFetchPointElevation: (...args: unknown[]) => mockThunkFetchPointElevationFactory(...args),
   thunkFetchTerrainProfile: (...args: unknown[]) => mockThunkFetchTerrainProfileFactory(...args),
 }));
 
@@ -75,7 +73,7 @@ describe("Thunk Mission Tests", () => {
 
       // lander itself updated on the automerge doc
       expect(getMission().landerLocation).toEqual(newLanderLoc);
-      expect(mockThunkFetchElevationFactory).toHaveBeenCalled();
+      expect(mockThunkFetchPointElevationFactory).toHaveBeenCalled();
 
       // All stations with a walkback path should have the lander endpoint snapped
       // to the new lander location.
@@ -127,7 +125,7 @@ describe("Thunk Mission Tests", () => {
     });
 
     it("stores landerElevationMeters when elevation lookup succeeds", async () => {
-      mockThunkFetchElevation.mockReturnValueOnce({
+      mockThunkFetchPointElevation.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
         payload: 4321,
       });

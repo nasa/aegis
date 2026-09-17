@@ -9,14 +9,6 @@ export const getTerrainProfile = vi.fn(
   })
 );
 
-export const getElevationProfile = vi.fn(
-  async (): Promise<WrappedResponse<number[][]>> => ({
-    status: "success",
-    data: [],
-    message: "Terrain profile sampled",
-  })
-);
-
 export const getElevationSinglePoint = vi.fn(
   async (): Promise<WrappedResponse<number>> => ({
     status: "success",

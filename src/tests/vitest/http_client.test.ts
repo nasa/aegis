@@ -1,6 +1,6 @@
 import { isLoggedIn, login, logout } from "http-client/login";
 import { boxDownloadFile } from "http-client/box";
-import { getElevationProfile, getElevationSinglePoint } from "http-client/terrainProfile";
+import { getElevationSinglePoint, getTerrainProfile } from "http-client/terrainProfile";
 
 // Helper to mock fetch responses
 const mockFetchResponse = (data: unknown) => {
@@ -136,8 +136,8 @@ describe("Box download", () => {
   });
 });
 
-describe("Terrain profile elevation compatibility", () => {
-  test("extracts an elevation profile from the combined terrain response", async () => {
+describe("Terrain profile client", () => {
+  test("returns the combined terrain response", async () => {
     mockFetchResponse({
       status: "success",
       message: "Terrain profile sampled",
@@ -147,7 +147,7 @@ describe("Terrain profile elevation compatibility", () => {
       },
     });
 
-    const response = await getElevationProfile({
+    const response = await getTerrainProfile({
       missionId: 42,
       path: [
         { lat: -85, lng: 10 },
@@ -156,7 +156,10 @@ describe("Terrain profile elevation compatibility", () => {
       pathSegmentDistances: [20],
     });
 
-    expect(response.data).toEqual([[100, 101]]);
+    expect(response.data).toEqual({
+      elevationsMeters: [[100, 101]],
+      terrainSlopesDegrees: [[2, 3]],
+    });
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/v1/terrain-profile?missionId=42",
       expect.objectContaining({
@@ -167,7 +170,6 @@ describe("Terrain profile elevation compatibility", () => {
             { lat: -85.1, lng: 10.1 },
           ],
           pathSegmentDistances: [20],
-          getElevationOnly: true,
         }),
       })
     );

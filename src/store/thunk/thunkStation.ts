@@ -7,7 +7,7 @@ import {
 } from "store/station";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
-import { thunkFetchElevation, thunkFetchTerrainProfile } from "./thunkTerrainProfile";
+import { thunkFetchPointElevation, thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import { generateUniqueName } from "utils/names/unique-name";
@@ -164,12 +164,10 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 
   const [stationElevResult, walkbackElevResult, ...traverseProfileResults] = await Promise.all([
     // Station elevation
+    dispatch(thunkFetchPointElevation({ point: location, uuid: stationUuid })),
+    // Walkback terrain profile; only its elevations are stored until slope rendering is supported.
     dispatch(
-      thunkFetchElevation({ path: [location], pathSegmentDistances: [0], uuid: stationUuid })
-    ),
-    // Walkback elevation
-    dispatch(
-      thunkFetchElevation({
+      thunkFetchTerrainProfile({
         path: newWalkbackPath,
         pathSegmentDistances: walkbackSegmentDistances,
         uuid: `${stationUuid}_walkback`,
@@ -192,7 +190,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 
   const newWalkbackElevations =
     walkbackElevResult.meta.requestStatus === "fulfilled"
-      ? (walkbackElevResult.payload as number[][])
+      ? (walkbackElevResult.payload as TerrainProfile).elevationsMeters
       : null;
 
   const stagedTraverseData: TraverseUpdateStageData[] = traversesToUpdate.map(
@@ -295,17 +293,17 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
   }
 
-  // Get elevation traverse
+  // Get the terrain profile; only elevations are stored until walkback slope rendering is supported.
   let newElevationProfile = null;
-  const elevationResponse = await dispatch(
-    thunkFetchElevation({
+  const profileResponse = await dispatch(
+    thunkFetchTerrainProfile({
       path: newPath,
       pathSegmentDistances: pathSegmentDistances,
       uuid: stationUuid,
     })
   );
-  if (elevationResponse.meta.requestStatus === "fulfilled") {
-    newElevationProfile = elevationResponse.payload as number[][];
+  if (profileResponse.meta.requestStatus === "fulfilled") {
+    newElevationProfile = (profileResponse.payload as TerrainProfile).elevationsMeters;
   }
 
   if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {
@@ -356,17 +354,17 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
   const profileRevision = (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) ?? 0) + 1;
   latestIssuedWalkbackProfileRevisionByStation.set(stationUuid, profileRevision);
 
-  // Get elevation
+  // Get the terrain profile; only elevations are stored until walkback slope rendering is supported.
   let newElevationProfile = null;
-  const elevationResponse = await dispatch(
-    thunkFetchElevation({
+  const profileResponse = await dispatch(
+    thunkFetchTerrainProfile({
       path: newPath,
       pathSegmentDistances: newPathSegmentDistances,
       uuid: stationUuid,
     })
   );
-  if (elevationResponse.meta.requestStatus === "fulfilled") {
-    newElevationProfile = elevationResponse.payload as number[][];
+  if (profileResponse.meta.requestStatus === "fulfilled") {
+    newElevationProfile = (profileResponse.payload as TerrainProfile).elevationsMeters;
   }
 
   if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {

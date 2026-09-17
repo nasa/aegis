@@ -1,5 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
-import { thunkFetchElevation } from "./thunkTerrainProfile";
+import { thunkFetchPointElevation } from "./thunkTerrainProfile";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { applyUpdateActionByField } from "operations/apply/apply-action";
 
@@ -9,9 +9,8 @@ export const thunkDocUpdateActionLocation = appCreateAsyncThunk<{
 }>("updateActionLocation", async ({ location, actionUuid }, { dispatch }) => {
   // Step 1: Fetch elevation for the new location
   const elevation = await dispatch(
-    thunkFetchElevation({
-      path: [location],
-      pathSegmentDistances: [0],
+    thunkFetchPointElevation({
+      point: location,
       uuid: actionUuid,
     })
   );

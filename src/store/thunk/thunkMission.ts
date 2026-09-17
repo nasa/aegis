@@ -18,7 +18,7 @@ export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
 
   // Step 1: Fetch all elevations in parallel and build the full stage.
   // No .change() calls happen here — stageLanderLocationUpdate only reads the
-  // doc and dispatches read-only thunkFetchElevation calls.
+  // doc and dispatches read-only terrain-profile calls.
   const stage = await stageLanderLocationUpdate(mission, dispatch, location);
   if (locationRevision !== latestIssuedLanderLocationRevision) {
     clientLogger.debug({
