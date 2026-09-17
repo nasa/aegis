@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import MissionSTM from "components/admin/missionSTM";
+import MissionPriorityImportExport from "components/admin/missionPriorityImportExport";
 import adminCommon from "./adminCommon.module.css";
 import { getAutomergeDocListing } from "http-client/docListing";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
@@ -43,6 +44,11 @@ const MissionSTMPage: React.FunctionComponent = () => {
         <section className={adminCommon.section}>
           <MissionSTM missionId={intMissionId} />
         </section>
+        {automergeUrl && (
+          <section className={adminCommon.section}>
+            <MissionPriorityImportExport automergeUrl={automergeUrl} />
+          </section>
+        )}
       </div>
     </main>
   );

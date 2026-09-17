@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { Dropdown } from "components/interface/form/globalFields";
 import { useAppSelector, deepEqual } from "utils/useAppSelector";
-import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
+import { createFolderOrganizedDropdownOptions } from "utils/dropdown-options";
 
 const MapPresetMenu: React.FC<{
   selectedPreset: Preset;
