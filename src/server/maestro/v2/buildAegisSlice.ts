@@ -251,6 +251,7 @@ const formatActionsForMaestro = (
         action,
         mission,
       }),
+      actionDefinition: action.actionDefinition ?? null,
       missionId: action.missionId,
       icon: action.icon,
       createdAt: action.createdAt,

@@ -125,6 +125,7 @@ export declare namespace AegisSlice {
     descriptionTask: string;
     equipmentItemsUsageReadable: EquipmentItemUsage[];
     actionDefinitionReadable: ActionDefinitionReadable | null | undefined;
+    actionDefinition: ActionDefinition | null;
     missionId: number;
     icon: string;
     createdAt: number;
