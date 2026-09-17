@@ -427,6 +427,78 @@ describe("buildAegisSliceForMaestro", () => {
     expect(mission.actionDefinitionLabels).toEqual(actionDefinitionLabels);
     expect(mission.actionDefinitionConjunctions).toEqual(actionDefinitionConjunctions);
   });
+
+  it("passes an action's raw actionDefinition uuids through unchanged", async () => {
+    const actionDefinition: ActionDefinition = {
+      verbUuid: "verb-1",
+      nounUuid: "noun-1",
+      adjectiveUuid: "adj-1",
+    };
+    const actionWithDefinition = generateBlankAction({
+      name: "Vitest Action With Definition",
+      missionId: MISSION_ID,
+      stationUuid: stationA.uuid,
+      actionDefinition,
+    });
+
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionWithDefinition],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    expect(result.fetchedAegisActions[actionWithDefinition.refUuid].actionDefinition).toEqual(
+      actionDefinition
+    );
+  });
+
+  it("sends a partially-populated actionDefinition without filling in the missing uuids", async () => {
+    const actionDefinition: ActionDefinition = { verbUuid: "verb-1" };
+    const actionWithPartialDefinition = generateBlankAction({
+      name: "Vitest Action With Partial Definition",
+      missionId: MISSION_ID,
+      stationUuid: stationA.uuid,
+      actionDefinition,
+    });
+
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionWithPartialDefinition],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    expect(
+      result.fetchedAegisActions[actionWithPartialDefinition.refUuid].actionDefinition
+    ).toEqual({ verbUuid: "verb-1" });
+  });
+
+  it("sends null for an action with no actionDefinition", async () => {
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionInSubscribed],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    expect(result.fetchedAegisActions[actionInSubscribed.refUuid].actionDefinition).toBeNull();
+  });
 });
 
 describe("buildAegisSliceForMaestro — docHandle path", () => {
