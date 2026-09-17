@@ -263,10 +263,9 @@ export const groupMatchesBySequenceItem = ({
 /**
  * The sub-columns of an expanded EVA column: stations AND traverses in EVA
  * sequence order (mirroring how the Matches tab renders an EVA sequence),
- * followed by any non-lander ingress/egress stations that aren't already in
- * the sequence. The station set matches selectEvaStations and the traverse set
- * matches selectEvaTraverses, so the sub-cell counts always sum to the
- * column's Total. Deduped by uuid so revisited stations get a single column.
+ * The station set matches selectEvaStations and the traverse set matches
+ * selectEvaTraverses, so the sub-cell counts always sum to the column's Total.
+ * Deduped by uuid so revisited stations get a single column.
  */
 export const getEvaSequenceItems = (
   mission: Mission,
@@ -294,8 +293,5 @@ export const getEvaSequenceItems = (
       items.push({ type: "traverse", uuid: traverse.uuid, name: traverse.name });
     }
   }
-  if (eva.ingressLocationUuid !== "lander") pushStation(eva.ingressLocationUuid);
-  if (eva.egressLocationUuid !== "lander") pushStation(eva.egressLocationUuid);
-
   return items;
 };

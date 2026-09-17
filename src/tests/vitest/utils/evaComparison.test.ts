@@ -58,8 +58,6 @@ const buildFixture = () => {
     uuid: "eva1",
     name: "Alpha",
     duration: 120, // allotted minutes
-    egressDuration: 10,
-    ingressDuration: 10,
     sequence: [
       { type: "traverse", uuid: "t1" },
       { type: "station", uuid: "s1" },
@@ -73,8 +71,6 @@ const buildFixture = () => {
     name: "",
     refUuid: eva1.refUuid,
     duration: 120,
-    egressDuration: 10,
-    ingressDuration: 10,
     sequence: [
       { type: "traverse", uuid: "t1" },
       { type: "station", uuid: "s1" },
@@ -102,8 +98,6 @@ const buildFixture = () => {
     uuid: "eva2",
     name: "Bravo",
     duration: null,
-    egressDuration: 10,
-    ingressDuration: 10,
     sequence: [
       { type: "traverse", uuid: "t2" },
       { type: "station", uuid: "s3" },
@@ -237,9 +231,9 @@ describe("computeComparisonColumnValues() — single EVA column", () => {
     const values = computeComparisonColumnValues({ mission, column: evaColumn });
 
     // Time (minutes)
-    expect(values.totalEvaTimeCalculated).toBe(74); // dwell 45 + traverse 9 + egress 10 + ingress 10
+    expect(values.totalEvaTimeCalculated).toBe(54); // dwell 45 + traverse 9
     expect(values.allottedEvaTime).toBe(120);
-    expect(values.evaTimeMargin).toBe(46); // 120 - 74
+    expect(values.evaTimeMargin).toBe(66); // 120 - 54
     expect(values.totalTraverseTime).toBe(9);
     expect(values.dwellEv1).toBe(35); // 20 + 15
     expect(values.dwellEv2).toBe(30);
@@ -391,7 +385,7 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
     // eva2 has null duration -> null margin; campaign margin should equal eva1's only
     const mission = withCampaign(base, { memberEvaUuids: ["eva1", "eva2"] });
     const planned = computeComparisonColumnValues({ mission, column: campaignPlannedColumn });
-    expect(planned.evaTimeMargin).toBe(46); // only Alpha contributes
+    expect(planned.evaTimeMargin).toBe(66); // only Alpha contributes
     expect(planned.allottedEvaTime).toBe(120); // only Alpha contributes
   });
 
