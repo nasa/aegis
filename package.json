@@ -51,7 +51,6 @@
     "docker:preview": "bash ./appcompose preview up -d",
     "docker:preview:rebuild": "bash ./appcompose preview build",
     "docker:preview:rebuild:nocache": "bash ./appcompose preview build --no-cache",
-    "elevation:prototype": "tsx src/server/elevation-prototype/cli.ts",
     "setup:public": "npm install --omit=optional && node ./emss-fallback/install.mjs",
     "version:patch": "npm version patch && git push",
     "version:minor": "npm version minor && git push",

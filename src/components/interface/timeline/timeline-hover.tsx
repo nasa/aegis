@@ -7,6 +7,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { Button } from "components/interface/form/globalFields";
 import { faChartArea, faChartLine } from "@fortawesome/free-solid-svg-icons";
 import { setShowDistanceFromLander, setShowElevation } from "store/interface";
+import SlopeLegend from "../slope-legend";
 
 const TimelineHoverValues: FunctionComponent<{ hoverValues: TimelineHoverValues }> = ({
   hoverValues,
@@ -24,6 +25,7 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: TimelineHoverValues 
   return (
     <div className={styles.timelineHoverContainer}>
       <div className={styles.timelineOptions}>
+        <SlopeLegend />
         <Button
           icon={faChartLine}
           onClick={() => {
@@ -64,8 +66,16 @@ const TimelineHoverValues: FunctionComponent<{ hoverValues: TimelineHoverValues 
           <div className={styles.timelineHoverValue}>{hoverValues.elevationMeters?.toFixed(0)}</div>
         </div>
         <div className={styles.timelineHoverValueItem}>
-          <div className={styles.timelineHoverValueTitle}>Slope (deg):</div>
-          <div className={styles.timelineHoverValue}>{hoverValues.slopeDegrees?.toFixed(1)}</div>
+          <div className={styles.timelineHoverValueTitle}>Path Grade (°):</div>
+          <div className={styles.timelineHoverValue}>
+            {hoverValues.pathGradeDegrees?.toFixed(1) ?? "—"}
+          </div>
+        </div>
+        <div className={styles.timelineHoverValueItem}>
+          <div className={styles.timelineHoverValueTitle}>Terrain Slope (°):</div>
+          <div className={styles.timelineHoverValue}>
+            {hoverValues.terrainSlopeDegrees?.toFixed(1) ?? "—"}
+          </div>
         </div>
         <div className={styles.timelineHoverValueItem}>
           <div className={styles.timelineHoverValueTitle}>Walkbk Dist (m):</div>

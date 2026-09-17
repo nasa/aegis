@@ -109,6 +109,81 @@ export function buildDistanceElevationProfile(
   return profile;
 }
 
+/** Place each terrain-slope sample at its physical distance along a segmented path. */
+export function buildDistanceTerrainSlopeProfile(
+  segmentedSlopes: (number | null)[][] | null | undefined,
+  segmentDistances: number[],
+  segmentedElevations: number[][] | null = null
+): { distanceMeters: number; slopeDegrees: number | null }[] {
+  if (
+    !segmentedSlopes ||
+    !segmentedElevations ||
+    segmentedSlopes.length !== segmentDistances.length ||
+    segmentedElevations.length !== segmentDistances.length
+  ) {
+    return [];
+  }
+
+  const profile: { distanceMeters: number; slopeDegrees: number | null }[] = [];
+  let segmentStartDistance = 0;
+  for (const [segmentIndex, slopes] of segmentedSlopes.entries()) {
+    const elevations = segmentedElevations[segmentIndex];
+    const segmentDistance = segmentDistances[segmentIndex];
+    if (
+      !Array.isArray(slopes) ||
+      !Array.isArray(elevations) ||
+      slopes.length !== elevations.length ||
+      slopes.length === 0 ||
+      !Number.isFinite(segmentDistance) ||
+      segmentDistance < 0 ||
+      !slopes.every((value) => value === null || (Number.isFinite(value) && value >= 0))
+    ) {
+      return [];
+    }
+
+    for (const [sampleIndex, slopeDegrees] of slopes.entries()) {
+      const fraction = slopes.length === 1 ? 1 : sampleIndex / (slopes.length - 1);
+      const item = {
+        distanceMeters: segmentStartDistance + segmentDistance * fraction,
+        slopeDegrees,
+      };
+      if (profile.at(-1)?.distanceMeters === item.distanceMeters) {
+        profile[profile.length - 1] = item;
+      } else {
+        profile.push(item);
+      }
+    }
+    segmentStartDistance += segmentDistance;
+  }
+  return profile;
+}
+
+/** Interpolate a graph's slope value without bridging missing-data gaps. */
+export function getGraphSlopeAtX(graphArray: GraphDataItem[], hoverPointX: number): number | null {
+  if (graphArray.length === 0) return null;
+
+  const exactPoint = graphArray.find(({ xPixel }) => xPixel === hoverPointX);
+  if (exactPoint) return exactPoint.slopeDegrees ?? null;
+
+  let pointBefore: GraphDataItem | undefined;
+  let pointAfter: GraphDataItem | undefined;
+  for (const point of graphArray) {
+    if (point.xPixel < hoverPointX) pointBefore = point;
+    else if (point.xPixel > hoverPointX) {
+      pointAfter = point;
+      break;
+    }
+  }
+  if (!pointBefore || !pointAfter) {
+    return (pointBefore ?? pointAfter)?.slopeDegrees ?? null;
+  }
+  if (pointBefore.slopeDegrees == null || pointAfter.slopeDegrees == null) return null;
+
+  const fraction =
+    (hoverPointX - pointBefore.xPixel) / (pointAfter.xPixel - pointBefore.xPixel || 1);
+  return pointBefore.slopeDegrees + (pointAfter.slopeDegrees - pointBefore.slopeDegrees) * fraction;
+}
+
 /**
  * Calculate local path grade with a least-squares fit over a fixed distance window.
  * The wider baseline suppresses single-cell DEM noise without making the result

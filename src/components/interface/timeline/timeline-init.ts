@@ -1,6 +1,10 @@
 import type { MutableRefObject } from "react";
 import paper from "paper";
-import { buildDistanceElevationProfile, calculateWindowedPathSlopes } from "utils/paper";
+import {
+  buildDistanceElevationProfile,
+  buildDistanceTerrainSlopeProfile,
+  calculateWindowedPathSlopes,
+} from "utils/paper";
 
 /**
  * Initialize refs for paper. Sets colors and pixel boundaries based on canvas size
@@ -119,7 +123,8 @@ export function initGraphItemsRef(
     );
 
     let graphData_elevation: GraphDataItem[] = []; //elevation profile for the sequence item
-    let graphData_slope: GraphDataItem[] = [];
+    let graphData_pathGrade: GraphDataItem[] = [];
+    let graphData_terrainSlope: GraphDataItem[] = [];
     let graphData_distFromLndr: GraphDataItem[] = [];
     let graphData_walkback: { distanceFromLander: GraphDataItem[]; elevation: GraphDataItem[] } = {
       distanceFromLander: [],
@@ -170,7 +175,16 @@ export function initGraphItemsRef(
         sequenceItem.traverse.segmentedElevationMeters &&
         sequenceItem.traverse.segmentedDistancesMeters
       ) {
-        graphData_slope = calcSlope(
+        graphData_pathGrade = calcPathGrade(
+          sequenceItem.traverse.segmentedElevationMeters,
+          sequenceItem.traverse.segmentedDistancesMeters,
+          sequenceStartPixel,
+          sequenceStartPixelRounded,
+          sequenceItem.totalDurationMins,
+          paperDataRef
+        );
+        graphData_terrainSlope = calcTerrainSlope(
+          sequenceItem.traverse.segmentedAbsoluteSlopeDegrees,
           sequenceItem.traverse.segmentedElevationMeters,
           sequenceItem.traverse.segmentedDistancesMeters,
           sequenceStartPixel,
@@ -193,7 +207,8 @@ export function initGraphItemsRef(
       type: sequenceItem.type,
       distanceFromLanderXY: graphData_distFromLndr,
       elevationXY: graphData_elevation,
-      slopeXY: graphData_slope,
+      pathGradeXY: graphData_pathGrade,
+      terrainSlopeXY: graphData_terrainSlope,
       walkbackDistanceFromLanderXY: graphData_walkback.distanceFromLander,
       walkbackElevationXY: graphData_walkback.elevation,
     } as GraphSequenceData;
@@ -211,7 +226,7 @@ export function initGraphItemsRef(
   }
 }
 
-function calcSlope(
+function calcPathGrade(
   segmentedElevationMeters: number[][],
   segmentedDistancesMeters: number[],
   xLocStart: number,
@@ -220,10 +235,12 @@ function calcSlope(
   paperDataRef: MutableRefObject<PaperData>
 ): GraphDataItem[] {
   const paperVars = paperDataRef.current.paperVars;
-  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
-  const xLocMaxRounded = totalDurationMins
-    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
-    : xLocStartRounded;
+  const xLocMaxRounded = calcXLocMaxRounded(
+    paperVars,
+    xLocStart,
+    xLocStartRounded,
+    totalDurationMins
+  );
   const profile = buildDistanceElevationProfile(
     segmentedElevationMeters,
     segmentedDistancesMeters ?? []
@@ -240,6 +257,40 @@ function calcSlope(
     val: elevationMeters,
     distanceMeters,
     slopeDegrees: slopes[index],
+  }));
+}
+
+export function calcTerrainSlope(
+  segmentedSlopes: (number | null)[][] | null | undefined,
+  segmentedElevations: number[][] | null,
+  segmentedDistances: number[],
+  xLocStart: number,
+  xLocStartRounded: number,
+  totalDurationMins: number,
+  paperDataRef: MutableRefObject<PaperData>
+): GraphDataItem[] {
+  const paperVars = paperDataRef.current.paperVars;
+  const xLocMaxRounded = calcXLocMaxRounded(
+    paperVars,
+    xLocStart,
+    xLocStartRounded,
+    totalDurationMins
+  );
+  const profile = buildDistanceTerrainSlopeProfile(
+    segmentedSlopes,
+    segmentedDistances ?? [],
+    segmentedElevations
+  );
+  const totalDistance = profile.at(-1)?.distanceMeters ?? 0;
+  if (totalDistance <= 0) return [];
+
+  return profile.map(({ distanceMeters, slopeDegrees }) => ({
+    xPixel:
+      xLocStartRounded + (distanceMeters / totalDistance) * (xLocMaxRounded - xLocStartRounded),
+    yPixel: 0,
+    val: slopeDegrees ?? 0,
+    distanceMeters,
+    slopeDegrees,
   }));
 }
 
@@ -458,10 +509,12 @@ function calcElevation(
 ): GraphDataItem[] {
   const paperVars = paperDataRef.current.paperVars;
   //determine the end x pixel location using total duration. Round to nearest minute
-  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
-  const xLocMaxRounded = totalDurationMins
-    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
-    : xLocStartRounded;
+  const xLocMaxRounded = calcXLocMaxRounded(
+    paperVars,
+    xLocStart,
+    xLocStartRounded,
+    totalDurationMins
+  );
   const totalDist = segmentedDistancesMeters
     ? segmentedDistancesMeters.reduce((accumulator, currentValue) => accumulator + currentValue, 0)
     : 0;
@@ -534,6 +587,21 @@ function calcElevation(
     }
   }
   return graphData_elevation;
+}
+
+/**
+ * Determines the end x pixel location for a path using its total duration, rounded to the nearest minute
+ */
+function calcXLocMaxRounded(
+  paperVars: PaperData["paperVars"],
+  xLocStart: number,
+  xLocStartRounded: number,
+  totalDurationMins: number
+): number {
+  const xLocMax = xLocStart + totalDurationMins * 60 * paperVars.pixelsPerSecondX;
+  return totalDurationMins
+    ? roundPixelToNearestMinute(xLocMax, paperVars.pixelsPerSecondX, paperVars.timelineLeft)
+    : xLocStartRounded;
 }
 
 /**

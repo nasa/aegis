@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { closeRasterCache } from "server/raster/rasterCache";
 import { sampleRasterPoints } from "server/raster/sampleRasterPoints";
+import {
+  readTerrainProfile,
+  TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS,
+} from "server/terrain/readTerrainProfile";
 
 type GoldenCase = {
   name: string;
@@ -30,5 +34,16 @@ describe("production DEM golden extracts", () => {
     );
 
     expect(result.samples).toEqual(golden.values.map((value) => ({ status: "value", value })));
+  });
+
+  it.each(manifest.cases)("preserves profile output for $name", async (golden) => {
+    const result = await readTerrainProfile(
+      { absolutePath: path.join(fixtureDirectory, golden.name) },
+      [golden.points[0], golden.points[1]],
+      [2]
+    );
+
+    expect(result.elevationsMeters).toEqual([[golden.values[0], golden.values[1]]]);
+    expect(result.elevationsMeters[0]).not.toContain(TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS);
   });
 });

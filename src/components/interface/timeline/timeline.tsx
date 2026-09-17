@@ -127,6 +127,7 @@ const NavTimeline: FunctionComponent = () => {
     refEqual
   );
   const showElevation = useAppSelector((state) => state.interface.timelineShowElevation, refEqual);
+  const slopeColorMode = useAppSelector((state) => state.interface.slopeColorMode, refEqual);
 
   const canvas: MutableRefObject<HTMLCanvasElement> = useRef(null);
   const paperDataRef: MutableRefObject<PaperData> = useRef(null);
@@ -139,10 +140,10 @@ const NavTimeline: FunctionComponent = () => {
   const initHoverValues: TimelineHoverValues = {
     distanceFromLanderMeters: null,
     elevationMeters: null,
-    slopeDegrees: null,
+    pathGradeDegrees: null,
+    terrainSlopeDegrees: null,
     walkbackDistanceFromLanderMeters: null,
     walkbackElevationMeters: null,
-    walkbackSlopeDegrees: null,
   };
   const [hoverValues, setHoverValues] = useState<TimelineHoverValues>(initHoverValues);
 
@@ -242,7 +243,8 @@ const NavTimeline: FunctionComponent = () => {
         paperGroupsRef,
         storeRef,
         graphSequenceItems,
-        selectedEvaSequenceItemUuid
+        selectedEvaSequenceItemUuid,
+        slopeColorMode
       );
       if (showDistanceFromLander) {
         TimelineDrawing.drawLanderDistanceGraph(paperDataRef, graphSequenceItems);
@@ -277,6 +279,7 @@ const NavTimeline: FunctionComponent = () => {
     selectedEvaSequenceItemUuid,
     showDistanceFromLander,
     showElevation,
+    slopeColorMode,
     graphSequenceItems,
     selectedPosEntryUuid,
     runningRexPetTime,

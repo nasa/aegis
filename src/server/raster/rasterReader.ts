@@ -2,12 +2,12 @@ import { getCachedRaster } from "./rasterCache";
 
 type RasterImage = Awaited<ReturnType<typeof getCachedRaster>>["image"];
 
-export const openRaster = async (
-  absolutePath: string
-): Promise<{
+export type OpenRaster = {
   image: RasterImage;
   metadata: RasterMetadata;
-}> => {
+};
+
+export const openRaster = async (absolutePath: string): Promise<OpenRaster> => {
   const { image } = await getCachedRaster(absolutePath);
   const fileDirectory = image.getFileDirectory() as {
     ModelTransformation?: ArrayLike<number>;
@@ -27,6 +27,15 @@ export const openRaster = async (
     throw new Error("Raster resolution must be non-zero");
   }
 
+  const bandMetadata = (image.getGDALMetadata(0) ?? {}) as Record<string, unknown>;
+  const parseBandNumber = (key: "SCALE" | "OFFSET", fallback: number): number => {
+    const rawValue = bandMetadata[key];
+    if (rawValue === undefined) return fallback;
+    const value = typeof rawValue === "number" ? rawValue : Number(rawValue);
+    if (!Number.isFinite(value)) throw new Error(`Raster band ${key.toLowerCase()} is invalid`);
+    return value;
+  };
+
   const metadata: RasterMetadata = {
     width: image.getWidth(),
     height: image.getHeight(),
@@ -39,6 +48,8 @@ export const openRaster = async (
     samplesPerPixel: image.getSamplesPerPixel(),
     // NoData is a sentinel stored by GDAL for cells where the elevation product has no coverage.
     noData: image.getGDALNoData(),
+    scale: parseBandNumber("SCALE", 1),
+    offset: parseBandNumber("OFFSET", 0),
     geoKeys: (image.getGeoKeys() ?? {}) as Record<string, unknown>,
   };
   return { image, metadata };

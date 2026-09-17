@@ -5,8 +5,8 @@ import paper from "paper";
 import last from "lodash/last";
 import orderBy from "lodash/orderBy";
 import type { Dispatch } from "@reduxjs/toolkit";
-import { getHoverValue } from "utils/paper";
-import { drawSlopeBand } from "utils/paperSlope";
+import { getGraphSlopeAtX, getHoverValue } from "utils/paper";
+import { drawSlopeBand, drawSlopeSeparator } from "utils/paperSlope";
 
 /**
  * Draws the vertical line with the rotated time at the bottom.
@@ -517,7 +517,8 @@ export function drawSequenceBottomSection(
   paperGroupsRef: MutableRefObject<PaperGroups>,
   storeRef: MutableRefObject<EvaCalculated_PaperJS>,
   graphSequenceItems: MutableRefObject<GraphSequenceItems>,
-  selectedEvaSequenceItemUuid: string
+  selectedEvaSequenceItemUuid: string,
+  slopeColorMode: SlopeColorMode
 ): void {
   const paperVars = paperDataRef.current.paperVars;
 
@@ -547,10 +548,12 @@ export function drawSequenceBottomSection(
         paperDataRef,
         xLocRounded,
         endXLocRounded,
-        graphSequenceItems.current[sequenceItem.uuid]?.slopeXY ?? [],
+        graphSequenceItems.current[sequenceItem.uuid]?.pathGradeXY ?? [],
+        graphSequenceItems.current[sequenceItem.uuid]?.terrainSlopeXY ?? [],
         selectedEvaSequenceItemUuid === sequenceItem.uuid
           ? paperDataRef.current.styles.yellow
-          : paperDataRef.current.styles.grey2
+          : paperDataRef.current.styles.grey2,
+        slopeColorMode
       );
     }
 
@@ -679,22 +682,49 @@ function drawSequenceTraverse(
   paperDataRef: MutableRefObject<PaperData>,
   xStart: number,
   xEnd: number,
-  slopeData: GraphDataItem[],
-  color: paper.Color
+  pathGradeData: GraphDataItem[],
+  terrainSlopeData: GraphDataItem[],
+  color: paper.Color,
+  slopeColorMode: SlopeColorMode
 ): void {
   const sequenceItemGroup = new paper.Group();
   const paperVars = paperDataRef.current.paperVars;
+  const paperStyles = paperDataRef.current.styles;
   const slopeHeight = 10;
+  const slopeGroup = new paper.Group([
+    new paper.Path.Rectangle({
+      from: new paper.Point(xStart, paperVars.sequenceTop),
+      to: new paper.Point(xEnd, paperVars.sequenceTop + slopeHeight * 2),
+      radius: new paper.Size(3, 3),
+    }),
+  ]);
+  slopeGroup.clipped = true;
+  sequenceItemGroup.addChild(slopeGroup);
   drawSlopeBand(
-    sequenceItemGroup,
-    slopeData,
-    paperVars.sequenceTop + (paperVars.sequenceHeight - slopeHeight) / 2,
+    slopeGroup,
+    pathGradeData,
+    paperVars.sequenceTop,
     slopeHeight,
-    paperDataRef.current.styles.grey1,
-    xEnd
+    xEnd,
+    slopeColorMode
+  );
+  drawSlopeBand(
+    slopeGroup,
+    terrainSlopeData,
+    paperVars.sequenceTop + slopeHeight,
+    slopeHeight,
+    xEnd,
+    slopeColorMode
+  );
+  drawSlopeSeparator(
+    slopeGroup,
+    xStart,
+    xEnd,
+    paperVars.sequenceTop + slopeHeight,
+    paperStyles.grey3
   );
 
-  if (slopeData.length <= 1) {
+  if (pathGradeData.length <= 1 && terrainSlopeData.length <= 1) {
     sequenceItemGroup.addChild(
       new paper.Path.Line({
         from: new paper.Point(xStart, paperVars.sequenceTop + 10),
@@ -704,11 +734,12 @@ function drawSequenceTraverse(
         dashArray: [5, 2],
       })
     );
-  } else if (color === paperDataRef.current.styles.yellow) {
+  }
+  if (color === paperDataRef.current.styles.yellow) {
     sequenceItemGroup.addChild(
       new paper.Path.Rectangle({
-        from: new paper.Point(xStart, paperVars.sequenceTop + 4),
-        to: new paper.Point(xEnd, paperVars.sequenceTop + 16),
+        from: new paper.Point(xStart, paperVars.sequenceTop),
+        to: new paper.Point(xEnd, paperVars.sequenceTop + paperVars.sequenceHeight),
         strokeColor: color,
         strokeWidth: 1.5,
       })
@@ -868,10 +899,10 @@ export const drawMouseHover = (
     const newHoverValues: TimelineHoverValues = {
       distanceFromLanderMeters: null,
       elevationMeters: null,
-      slopeDegrees: null,
+      pathGradeDegrees: null,
+      terrainSlopeDegrees: null,
       walkbackDistanceFromLanderMeters: null,
       walkbackElevationMeters: null,
-      walkbackSlopeDegrees: null,
     };
 
     // find the GraphDataItem of the distanceFromLander with the closest x value compared to xLoc
@@ -903,9 +934,11 @@ export const drawMouseHover = (
       paperGroupsRef.current.hoverLine.addChild(diamond);
     }
 
-    const slopeData = graphSequenceItems.current[sequenceUuid]?.slopeXY;
-    if (sequenceType === "traverse" && slopeData?.length > 1) {
-      newHoverValues.slopeDegrees = getHoverValue(slopeData, hoverPoint.x).slope;
+    const pathGradeData = graphSequenceItems.current[sequenceUuid]?.pathGradeXY;
+    const terrainSlopeData = graphSequenceItems.current[sequenceUuid]?.terrainSlopeXY;
+    if (sequenceType === "traverse") {
+      newHoverValues.pathGradeDegrees = getGraphSlopeAtX(pathGradeData ?? [], hoverPoint.x);
+      newHoverValues.terrainSlopeDegrees = getGraphSlopeAtX(terrainSlopeData ?? [], hoverPoint.x);
     }
 
     // find the GraphDataItem of the walkbackDistanceFromLander with the closest x value compared to xLoc
@@ -947,7 +980,6 @@ export const drawMouseHover = (
           hoverPoint.x
         );
         newHoverValues.walkbackElevationMeters = hoverData.val - landerElevationMeters;
-        newHoverValues.walkbackSlopeDegrees = hoverData.slope;
         const diamond = new paper.Path.Rectangle({
           point: new paper.Point(hoverPoint.x - 3, hoverData.y - 3),
           size: 6,

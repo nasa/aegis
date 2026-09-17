@@ -10,6 +10,8 @@ import {
   applyUpsertTraverse,
   applyTraverseUpdatesStage,
 } from "operations/apply/apply-traverse";
+import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
+import { clientLogger } from "utils/logging/clientLogger";
 
 /**
  * Updates the traverse path, distances, elevation, and
@@ -57,8 +59,16 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
       path: stageData.newPath,
       pathSegmentDistances: stageData.newPathSegmentDistances,
       pathSegmentElevations: stageData.newPathSegmentElevations,
+      pathSegmentAbsoluteSlopes: stageData.newPathSegmentAbsoluteSlopes,
       updatedAt: stageData.updatedAt,
     };
+    if (!areTraverseProfileUpdatesCurrent([stageData])) {
+      clientLogger.debug({
+        logId: "thunk-traverse",
+        logValue: `thunkDocUpdateTraverse: superseded traverse profile for traverse ${traverseUuid}, skipping apply`,
+      });
+      return;
+    }
     getMissionDocHandle()?.change((m: Mission) => applyUpsertTraverse(m, newTraverse));
 
     // No Step 3: this thunk has no UI side-effects of its own.
@@ -161,7 +171,15 @@ export const thunkDocUpdateTraversesAroundStation = appCreateAsyncThunk<{
   const validUpdates = traverseUpdates.filter(Boolean) as TraverseUpdateStageData[];
   if (validUpdates.length === 0) return;
 
-  // Step 2: Apply all traverse updates in a single .change()
+  // Abort the whole compound operation if any path was superseded; partial
+  // topology/profile application would leave the EVA internally inconsistent.
+  if (!areTraverseProfileUpdatesCurrent(validUpdates)) {
+    clientLogger.debug({
+      logId: "thunk-traverse",
+      logValue: `thunkDocUpdateTraversesAroundStation: superseded traverse profile for station ${stationUuid}, skipping apply`,
+    });
+    return;
+  }
   getMissionDocHandle()?.change((m: Mission) => applyTraverseUpdatesStage(m, validUpdates));
 
   // No Step 3: this thunk has no UI side-effects of its own.
