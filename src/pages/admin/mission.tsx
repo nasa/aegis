@@ -3,7 +3,7 @@ import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Link, useParams } from "react-router";
 import adminStyles from "components/admin/admin.module.css";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
-import { getElevationSinglePoint } from "http-client/elevation";
+import { getElevationSinglePoint } from "http-client/terrainProfile";
 import FileManager from "components/admin/fileManager";
 import { InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
@@ -62,12 +62,10 @@ const Mission: React.FunctionComponent = () => {
     }
 
     const elevation = (
-      await getElevationSinglePoint(
-        automergeMission.id,
-        automergeMission.demFilePath,
-        automergeMission.landerLocation,
-        automergeMission.planetRadius
-      )
+      await getElevationSinglePoint({
+        missionId: automergeMission.id,
+        point: automergeMission.landerLocation,
+      })
     ).data;
 
     // save back out to automerge doc

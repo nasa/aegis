@@ -4,11 +4,14 @@ interface WrappedResponse<T> {
   data?: T;
 }
 
-type ElevationProfilePostData = {
-  missionId: number;
-  demFilepath: string;
+type TerrainProfilePostData = {
   path: AEGISPoint[];
   pathSegmentDistances: number[];
-  resolutionMeters: number;
-  radius: number;
+  entityKey?: string;
+  getElevationOnly?: boolean;
+};
+
+type TerrainProfile = {
+  elevationsMeters: number[][];
+  terrainSlopesDegrees: (number | null)[][];
 };

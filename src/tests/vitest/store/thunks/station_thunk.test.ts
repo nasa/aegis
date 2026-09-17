@@ -16,11 +16,15 @@ vi.mock("store/thunk/thunkMap", async () => {
   };
 });
 
-const mockThunkFetchElevation = vi.fn().mockReturnValue({
+const mockThunkFetchPointElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-vi.mock("store/thunk/thunkElevation", () => ({
-  thunkFetchElevation: () => mockThunkFetchElevation,
+const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchPointElevation: () => mockThunkFetchPointElevation,
+  thunkFetchTerrainProfile: () => mockThunkFetchTerrainProfile,
 }));
 
 const mockThunkDocUpdateTraversesAroundStation = vi.fn();
@@ -73,12 +77,13 @@ describe("Thunk Station Tests", () => {
         })
       );
       expect(getMission().stations[newStation.uuid].location).toEqual(newLocation);
-      expect(mockThunkFetchElevation).toHaveBeenCalled();
+      expect(mockThunkFetchPointElevation).toHaveBeenCalled();
+      expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
     });
 
     test("also writes elevation when elevation is fulfilled", async () => {
       const elevationValue = 42;
-      mockThunkFetchElevation.mockReturnValueOnce({
+      mockThunkFetchPointElevation.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
         payload: elevationValue,
       });
@@ -137,7 +142,7 @@ describe("Thunk Station Tests", () => {
       expect(stationAfter1.walkbackPathSegmentDistances.length).toEqual(2);
       expect(stationAfter1.walkbackPathSegmentElevations).toBeNull();
       expect(response.payload).toEqual(expectedPath);
-      expect(mockThunkFetchElevation).toHaveBeenCalled();
+      expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
 
       //empty path -> just station + lander
       expectedPath = [
@@ -152,14 +157,14 @@ describe("Thunk Station Tests", () => {
       expect(stationAfter2.walkbackPathSegmentDistances.length).toEqual(1);
       expect(stationAfter2.walkbackPathSegmentElevations).toBeNull();
       expect(response.payload).toEqual(expectedPath);
-      expect(mockThunkFetchElevation).toHaveBeenCalled();
+      expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
     });
 
     test("stores elevation profile when elevation is fulfilled", async () => {
       const fakeElevationProfile = [[0, 100, 200]];
-      mockThunkFetchElevation.mockReturnValueOnce({
+      mockThunkFetchTerrainProfile.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
-        payload: fakeElevationProfile,
+        payload: { elevationsMeters: fakeElevationProfile, terrainSlopesDegrees: [[1, 2, 3]] },
       });
 
       const station: Station = generateBlankStation({
@@ -213,14 +218,14 @@ describe("Thunk Station Tests", () => {
       expect(stationAfter.walkbackPath).toEqual(expectedPath);
       expect(stationAfter.walkbackPathSegmentDistances.length).toEqual(1);
       expect(stationAfter.walkbackPathSegmentElevations).toBeNull();
-      expect(mockThunkFetchElevation).toHaveBeenCalled();
+      expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
     });
 
     test("stores elevation profile when elevation is fulfilled", async () => {
       const fakeElevationProfile = [[0, 50, 100]];
-      mockThunkFetchElevation.mockReturnValueOnce({
+      mockThunkFetchTerrainProfile.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
-        payload: fakeElevationProfile,
+        payload: { elevationsMeters: fakeElevationProfile, terrainSlopesDegrees: [[1, 2, 3]] },
       });
 
       const station: Station = generateBlankStation({
