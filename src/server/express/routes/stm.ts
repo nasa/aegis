@@ -14,7 +14,7 @@ import {
   convertStms3TypeDbToStore,
   convertStms3TypeStoreToDb,
 } from "store/storeUtils/stm";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -50,10 +50,10 @@ const queryParamDict: QueryParamDict = {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = hasPerms({
+  const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
+    required: "viewer",
+    user: req.currentUser,
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
@@ -61,7 +61,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "stm",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -74,7 +74,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "stm",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Invalid mission ID",
     });
@@ -88,7 +88,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "stm",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Invalid stm type",
     });
@@ -110,7 +110,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "GET",
         responseStatus: 400,
         routeName: "stm",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId: queryObj.missionId,
         message: "Invalid stm type",
       });
@@ -129,7 +129,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "stm",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: `Error processing the GET request ${e}`,
       error: asError(e),
@@ -141,10 +141,10 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, stmObjects, stmType } = req.body as STMUpsertRequest;
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -152,7 +152,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "stm",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: stmObjects?.map((o) => o.uuid),
       message: "Unauthorized",
@@ -169,7 +169,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "stm",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: stmObjects?.map((o) => o.uuid),
         message: `No STM objects provided in request body`,
@@ -186,7 +186,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "stm",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: stmObjects?.map((o) => o.uuid),
         message: "Invalid STM type provided",
@@ -206,7 +206,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 500,
         routeName: "stm",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: stmObjects?.map((o) => o.uuid),
         message: "Failed to update stm after multiple tries due to optimistic locking",
@@ -231,7 +231,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "stm",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: stmObjects?.map((o) => o.uuid),
       message: `Error processing the POST request ${e}`,
@@ -244,10 +244,10 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, stmType, uuids } = req.body as STMDeleteRequest;
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -255,7 +255,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "stm",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids,
       message: "Unauthorized",
@@ -308,7 +308,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 500,
         routeName: "stm",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids,
         message: "Cannot delete mission. This mission is referenced elsewhere",
@@ -325,7 +325,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 500,
         routeName: "stm",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids,
         message: "Error processing the DELETE request",

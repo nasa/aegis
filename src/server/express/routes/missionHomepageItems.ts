@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import express from "express";
 import sortBy from "lodash/sortBy";
 
-import { emssTokenIsValid } from "utils/permissions";
+import { isSuperUser, logUsername, missionIdsAtLevel } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "./missionAutomerge";
@@ -12,36 +12,28 @@ const router = express.Router();
 
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
-  const emssToken = req.headers["emss-token"] as string;
-  const viewPermission =
-    req.session?.appUser?.isSuperAdmin ||
-    req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
-    emssTokenIsValid(emssToken);
-  if (!viewPermission) {
+  const includeArchived = req.query.includeArchived === "true";
+  const seesEverything = isSuperUser(req.currentUser);
+  const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
+
+  if (!seesEverything && viewableMissions.length === 0) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "missionHomepageItems",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: "Unauthorized",
     });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   try {
-    let records: MissionHomepageItem[];
-
-    //super admin can see all missions
-    if (req.session.appUser.isSuperAdmin) {
-      records = await getHomepageMissionItems();
-    } else {
-      //return all missions that they have permission for
-      const viewableMissions: number[] = req.session.appUser.permissionList.map((p) => {
-        if (p.permissions.view) return p.missionId;
-      });
-      records = await getHomepageMissionItems(viewableMissions);
-    }
+    // A super user holds no grant rows, so null here means every mission.
+    const records = await getHomepageMissionItems(
+      seesEverything ? null : viewableMissions,
+      includeArchived
+    );
 
     res.status(200).json({
       status: "success",
@@ -54,7 +46,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "missionHomepageItems",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: `Error processing the GET request ${e}`,
       error: asError(e),
     });
@@ -65,12 +57,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 async function getHomepageMissionItems(
-  missionIdList: number[] = null
+  missionIdList: number[] = null,
+  includeArchived = false
 ): Promise<MissionHomepageItem[]> {
   // Get missions from automerge documents in parallel
   const allMissions = await getAutomergeMissions(missionIdList);
-  // Only include active/non-archived missions
-  const missions = allMissions.filter((mission) => !mission.archivedAt);
+  const missions = includeArchived
+    ? allMissions
+    : allMissions.filter((mission) => !mission.archivedAt);
 
   const missionHomepageItems: MissionHomepageItem[] = [];
 

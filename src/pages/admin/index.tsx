@@ -1,7 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { isLoggedIn } from "http-client/login";
+import { Link } from "react-router";
 import adminCommon from "./adminCommon.module.css";
 import styles from "./index.module.css";
 
@@ -9,18 +7,9 @@ interface NavCardProps {
   to: string;
   title: string;
   description: string;
-  enabled: boolean;
 }
 
-const NavCard: FunctionComponent<NavCardProps> = ({ to, title, description, enabled }) => {
-  if (!enabled) {
-    return (
-      <div className={styles.disabledCard}>
-        <h3 className={styles.navCardTitle}>{title}</h3>
-        <p className={styles.navCardDescription}>{description}</p>
-      </div>
-    );
-  }
+const NavCard: FunctionComponent<NavCardProps> = ({ to, title, description }) => {
   return (
     <Link to={to} className={styles.navCard}>
       <h3 className={styles.navCardTitle}>{title}</h3>
@@ -30,32 +19,6 @@ const NavCard: FunctionComponent<NavCardProps> = ({ to, title, description, enab
 };
 
 const Index: React.FunctionComponent = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<AppUser>(null);
-
-  useEffect(() => {
-    async function adminCheck() {
-      const response = await isLoggedIn();
-      if (response.status === "success") {
-        const user = response.data;
-        if (user.isAdmin || user.isSuperAdmin) {
-          setUser(user);
-        } else {
-          navigate("/");
-        }
-      } else {
-        navigate("/");
-      }
-    }
-    adminCheck().catch(() => {
-      // Something went wrong. Eventually would like a logger here.
-    });
-  }, [navigate]);
-
-  if (!(user?.isAdmin || user?.isSuperAdmin)) {
-    return null;
-  }
-
   return (
     <main className={adminCommon.page}>
       <div className={adminCommon.container}>
@@ -86,7 +49,6 @@ const Index: React.FunctionComponent = () => {
                 to="/admin/missions"
                 title="Missions"
                 description="Create, edit, duplicate, and manage mission configurations and GIS data."
-                enabled={true}
               />
             </nav>
           </div>
@@ -102,32 +64,32 @@ const Index: React.FunctionComponent = () => {
               <NavCard
                 to="/admin/user"
                 title="Users"
-                description="Register new users, manage permissions, and configure access controls."
-                enabled={!!user?.isSuperAdmin}
+                description="Manage users with explicit standing and their per-mission grants."
+              />
+              <NavCard
+                to="/admin/group"
+                title="Groups"
+                description="Manage groups, their members, and the missions each group can reach."
+              />
+              <NavCard
+                to="/admin/knownUsers"
+                title="Known Identities"
+                description="Review and prune identities that have signed in but hold no grants."
               />
               <NavCard
                 to="/admin/serverSocketStatus"
                 title="Visitor Activity"
                 description="Real-time monitoring of all connected visitors organized by mission."
-                enabled={!!user?.isSuperAdmin}
               />
               <NavCard
                 to="/admin/environmentConfig"
                 title="Environment Configuration"
                 description="Configure server / environment settings that apply to all missions running on this instance."
-                enabled={!!user?.isSuperAdmin}
               />
               <NavCard
                 to="/admin/maestroV2"
                 title="Maegistro v2 Monitor"
                 description="Monitor Maegistro v2 connections on /api/socket on the /maestro/v2 namespace."
-                enabled={!!user?.isSuperAdmin}
-              />
-              <NavCard
-                to="/admin/emss"
-                title="EMSS"
-                description="Manage EMSS API Token."
-                enabled={!!user?.isSuperAdmin}
               />
             </nav>
           </div>

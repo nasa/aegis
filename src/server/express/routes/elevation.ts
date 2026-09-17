@@ -12,7 +12,7 @@ import {
   sampleRasterProfileInWorker,
 } from "server/raster/rasterSamplingWorkerPool";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 
 const router = express.Router();
@@ -73,18 +73,16 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 400,
       routeName: "elevation",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: "Invalid mission ID",
     });
     res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
-  const emssToken = req.headers["emss-token"] as string;
-  const viewPermission = hasPerms({
+  const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "viewer",
+    user: req.currentUser,
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
@@ -92,7 +90,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "elevation",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -108,7 +106,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 404,
         routeName: "elevation",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId: queryObj.missionId,
         message: error.message,
         error,
@@ -160,7 +158,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus,
       routeName: "elevation",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message,
       error: asError(error),

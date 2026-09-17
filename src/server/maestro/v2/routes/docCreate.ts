@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getEnvironmentConfig } from "server/express/routes/environmentConfig";
@@ -17,10 +17,10 @@ const router = express.Router();
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const missionId = req.body.missionId as number | undefined;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -28,7 +28,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "maestro/doc/create",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: "Unauthorized",
     });
@@ -43,7 +43,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "maestro/doc/create",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: "EMSS_TOKEN is not configured",
       error: new Error("EMSS_TOKEN is not configured"),
@@ -70,7 +70,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 500,
         routeName: "maestro/doc/create",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         message: "Maestro server URL is not configured",
         error: new Error("Maestro server URL is not configured"),
@@ -94,7 +94,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: maestroRes.status,
       routeName: "maestro/doc/create",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: maestroRes.ok ? "Maestro doc created" : `Maestro returned ${maestroRes.status}`,
     });
@@ -107,7 +107,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "maestro/doc/create",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: `Error contacting Maestro: ${error.message}`,
       error,

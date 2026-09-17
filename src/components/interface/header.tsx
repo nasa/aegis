@@ -13,6 +13,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUIJumpToRunningRex } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid, isConnected } from "store/selectors";
+import { meetsPermLevel } from "utils/permissionLevels";
 import { ToggleButton } from "components/interface/form/globalFieldsAutomerge";
 import { setIsInEditMode } from "store/mission";
 import { thunkCancelMarkerMapDirective } from "store/thunk/thunkMap";
@@ -49,7 +50,7 @@ const Header: FunctionComponent = () => {
 
   const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
   const editPerms = useAppSelector(
-    (state) => state.user.missionPerms.permissions.edit || state.user.appUser.isSuperAdmin,
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
     refEqual
   );
   const isOnline = useAppSelector(isConnected, refEqual);

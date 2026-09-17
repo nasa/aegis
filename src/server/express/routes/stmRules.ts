@@ -8,7 +8,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { STM_Rule_db } from "server/database/models/_allModels";
 import { convertStmRulesTypeDbToStore, convertStmRulesTypeStoreToDb } from "store/storeUtils/stm";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
@@ -30,10 +30,10 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = hasPerms({
+  const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
+    required: "viewer",
+    user: req.currentUser,
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
@@ -41,7 +41,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "stmRules",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -54,7 +54,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "stmRules",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Invalid mission ID",
     });
@@ -76,7 +76,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "stmRules",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: `Error processing the GET request ${e}`,
       error: asError(e),
@@ -88,10 +88,10 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRules } = req.body as STMRuleUpsertRequest;
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -99,7 +99,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "stmRules",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: stmRules?.map((r) => r.uuid),
       message: "Unauthorized",
@@ -116,7 +116,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "stmRules",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: stmRules?.map((r) => r.uuid),
         message: "No stm rules provided in request body",
@@ -130,7 +130,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "stmRules",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: stmRules?.map((r) => r.uuid),
         message: "Invalid mission ID",
@@ -148,7 +148,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 500,
         routeName: "stmRules",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: stmRules?.map((r) => r.uuid),
         message: "Failed to update stm rules after multiple tries due to optimistic locking",
@@ -183,7 +183,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "stmRules",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: stmRules?.map((r) => r.uuid),
       message: `Error processing the POST request ${e}`,
@@ -196,10 +196,10 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRuleUuids } = req.body as STMRuleDeleteRequest;
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -207,7 +207,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "stmRules",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: stmRuleUuids,
       message: "Unauthorized",
@@ -221,7 +221,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 400,
       routeName: "stmRules",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: stmRuleUuids,
       message: "Invalid mission ID",
@@ -252,7 +252,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 500,
       routeName: "stmRules",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: stmRuleUuids,
       message: `Error processing the DELETE request ${e}`,

@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { isSuperUser, logUsername } from "utils/permissions";
 
 import express from "express";
 import { asError } from "@emss/utils";
@@ -28,13 +29,13 @@ const isKnownKey = (key: string): key is EnvConfigKey =>
 
 // GET / — return all records in the env config table
 router.get("/", async (req: Request, res: Response): Promise<void> => {
-  if (!req.session.appUser?.isSuperAdmin) {
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "environmentConfig",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: "Unauthorized",
     });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -52,7 +53,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "environmentConfig",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: `Error retrieving environment configs: ${e}`,
       error: asError(e),
     });
@@ -64,7 +65,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // GET /:key — return a single entry by key
 router.get("/:key", async (req: Request, res: Response): Promise<void> => {
-  if (!req.session.appUser?.isSuperAdmin) {
+  if (!isSuperUser(req.currentUser)) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -86,7 +87,7 @@ router.get("/:key", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "environmentConfig",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: `Error retrieving environment config: ${e}`,
       error: asError(e),
     });
@@ -96,13 +97,13 @@ router.get("/:key", async (req: Request, res: Response): Promise<void> => {
 
 // POST /:key — set (or clear) the stored value for one key
 router.post("/:key", async (req: Request, res: Response): Promise<void> => {
-  if (!req.session.appUser?.isSuperAdmin) {
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "environmentConfig",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: "Unauthorized",
     });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -126,7 +127,7 @@ router.post("/:key", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 500,
         routeName: "environmentConfig",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         message:
           "Failed to update environment config after multiple tries due to optimistic locking",
         error: new Error(
@@ -151,7 +152,7 @@ router.post("/:key", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "environmentConfig",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: `Error updating environment config: ${e}`,
       error: asError(e),
     });

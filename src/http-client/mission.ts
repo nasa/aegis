@@ -14,8 +14,11 @@ export async function getMissions(): Promise<WrappedResponse<Mission[]>> {
   return response;
 }
 
-export async function getMissionHomepageItems(): Promise<WrappedResponse<MissionHomepageItem[]>> {
-  const res = await fetch(`/api/v1/missionHomepageItems`);
+export async function getMissionHomepageItems(
+  includeArchived = false
+): Promise<WrappedResponse<MissionHomepageItem[]>> {
+  const query = includeArchived ? "?includeArchived=true" : "";
+  const res = await fetch(`/api/v1/missionHomepageItems${query}`);
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;
     try {

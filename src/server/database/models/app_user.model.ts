@@ -1,30 +1,22 @@
 import { defineEntity, p } from "@mikro-orm/postgresql";
-import * as bcrypt from "bcryptjs";
 
+/**
+ * A user that has permissions assigned either through a group or directly.
+ * Also holds the single reserved Public row
+ */
 export const App_User_dbSchema = defineEntity({
   name: "App_User_db",
   properties: {
-    id: p.integer().primary(),
-    username: p.text(),
-    password: p.text(),
-    isSuperAdmin: p.boolean().nullable().default(false),
-    isAdmin: p.boolean().nullable().default(false),
-    permissionList: p.json<Permission[]>().nullable(),
-    createdAt: p.datetime(3),
-    updatedAt: p.datetime(3),
+    id: p.integer().autoincrement().primary(),
+    uupic: p.text().unique(),
+    auid: p.text(),
+    displayName: p.text(),
+    isSystem: p.boolean().default(false),
+    lastLoginAt: p.datetime(3).nullable(),
     version: p.integer().version(),
   },
 });
 
-export class App_User_db extends App_User_dbSchema.class implements AppUser_db_type {
-  async beforeCreate(): Promise<void> {
-    const salt = await bcrypt.genSalt();
-    this.password = bcrypt.hashSync(this.password, salt);
-  }
-}
+export class App_User_db extends App_User_dbSchema.class implements AppUser_db_type {}
 
 App_User_dbSchema.setClass(App_User_db);
-
-App_User_dbSchema.addHook("beforeCreate", async ({ entity }) =>
-  (entity as App_User_db).beforeCreate()
-);

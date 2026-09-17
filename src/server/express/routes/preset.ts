@@ -6,7 +6,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Preset_db } from "server/database/models/_allModels";
 import { convertPresetsTypeDbToStore, convertPresetsTypeStoreToDb } from "store/storeUtils/preset";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
@@ -19,13 +19,11 @@ const router = express.Router();
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, presets } = req.body as PresetUpsertRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -33,7 +31,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "preset",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: presets?.map((p) => p.uuid),
       message: "Unauthorized",
@@ -50,7 +48,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "preset",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         message: "No presets provided in request body",
       });
@@ -61,7 +59,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // Add owner id to the presets
     const presetsToUpsert = presets.map((p) => {
       if (!p.ownerId) {
-        return { ...p, ownerId: req.session?.appUser?.id || -1 };
+        return { ...p, ownerId: req.currentUser?.appUser?.id || -1 };
       } else {
         return p;
       }
@@ -78,7 +76,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 500,
         routeName: "preset",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: presets?.map((p) => p.uuid),
         message: "Failed to update preset after multiple tries due to optimistic locking",
@@ -111,7 +109,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "preset",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: presets?.map((p) => p.uuid),
       message: `Error processing the POST request ${e}`,
@@ -124,13 +122,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, presetUuids } = req.body as PresetDeleteRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -138,7 +134,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "preset",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: presetUuids,
       message: "Unauthorized",
@@ -174,7 +170,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 500,
       routeName: "preset",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: presetUuids,
       message: `Error processing the DELETE request ${e}`,

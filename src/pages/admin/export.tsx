@@ -1,9 +1,8 @@
 import { populateStore } from "store/processing/populateStore";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { refEqual } from "utils/useAppSelector";
 
-import { isLoggedIn } from "http-client/login";
 import { dumpMission } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setAllSliceStores } from "store/crossActions";
@@ -18,7 +17,6 @@ type RouteParams = {
 
 const ExportPage: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const automergeRepo = useRepo();
 
   const params = useParams<RouteParams>();
@@ -36,21 +34,6 @@ const ExportPage: React.FunctionComponent = () => {
   const [selectActions, setSelectActions] = useState(false);
   const [selectTraverses, setSelectTraverses] = useState(false);
   const [selectRexes, setSelectRexes] = useState(false);
-
-  //on load check login and mission id
-  useEffect(() => {
-    (async () => {
-      const response = await isLoggedIn();
-      if (response.status === "success") {
-        const user = response.data;
-        if (!(user.isAdmin || user.isSuperAdmin)) {
-          navigate("/"); //Redirect to homepage
-        }
-      } else {
-        navigate("/");
-      }
-    })();
-  }, [navigate]);
 
   useEffect(() => {
     (async () => {

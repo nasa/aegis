@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { listFiles } from "server/file/file"; // Assuming this function is compatible with Express
-import { hasPerms } from "utils/permissions";
+import { isSuperUser, logUsername } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -20,18 +20,13 @@ const parseQuery = (query: Query) => {
 
 router.get("/", async (req: Request, res: Response) => {
   const queryObj = parseQuery(req.query);
-  const viewPermission = hasPerms({
-    missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
-  });
-  if (!viewPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "file/list",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -48,7 +43,7 @@ router.get("/", async (req: Request, res: Response) => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "file/list",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: e.toString(),
       error: asError(e),

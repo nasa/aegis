@@ -12,6 +12,7 @@ import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
+import { meetsPermLevel } from "utils/permissionLevels";
 
 /**
  * Callers pass an origin (`https://aegis.fit.nasa.gov`), but load testing may
@@ -56,7 +57,10 @@ export const attachSocketListeners = (
     }
 
     // Get current user permissions on this mission
-    const permissionType: "viewer" | "editor" = userRef.current.missionPerms.permissions.edit
+    const permissionType: "viewer" | "editor" = meetsPermLevel(
+      userRef.current.missionPermLevel,
+      "edit"
+    )
       ? "editor"
       : "viewer";
 
@@ -66,7 +70,6 @@ export const attachSocketListeners = (
       permission: permissionType,
       clientAppVersion: connectionStoreRef.current.clientAppVersion,
       launchpadUser: userRef.current.launchpadUser,
-      appUser: userRef.current.appUser,
       connectedAt: Date.now(),
     };
     socket.emit("visitorJoin", visitorData);

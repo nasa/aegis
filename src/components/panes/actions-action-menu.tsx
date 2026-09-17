@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
 import actionStyles from "./actions-action.module.css";
+import { meetsPermLevel } from "utils/permissionLevels";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import {
@@ -26,9 +27,7 @@ export const ActionMenu: FunctionComponent<{
   const menuRef = useRef<HTMLDivElement>(null);
 
   const missionEditPerms = useAppSelector(
-    (state) =>
-      (state.user.missionPerms.permissions.edit && state.user.appUser.isAdmin) ||
-      state.user.appUser.isSuperAdmin,
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
     refEqual
   );
 

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { hasPerms, emssTokenIsValid } from "utils/permissions";
+import { apiHasPerms, isSuperUser, logUsername, missionIdsAtLevel } from "utils/permissions";
 import { getAutomergeDocListing } from "./docListing";
 import { globalValues } from "../global";
 import type { DocHandle, AutomergeUrl, DocumentId } from "@automerge/automerge-repo/slim";
@@ -42,30 +42,24 @@ const router = express.Router();
  * which is very slow for large/many missions.
  */
 router.get("/", async (req: Request, res: Response): Promise<void> => {
-  const emssToken = req.headers["emss-token"] as string;
-  const viewPermission =
-    req.session?.appUser?.isSuperAdmin ||
-    req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
-    emssTokenIsValid(emssToken);
-  if (!viewPermission) {
+  const seesEverything = isSuperUser(req.currentUser);
+  const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
+
+  if (!seesEverything && viewableMissions.length === 0) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "missionAutomerge",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: "Unauthorized",
     });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   try {
-    let missionIds: number[] | undefined;
-    if (!req.session?.appUser?.isSuperAdmin && !emssTokenIsValid(emssToken)) {
-      missionIds = req.session.appUser.permissionList.flatMap((p) =>
-        p.permissions.view ? [p.missionId] : []
-      );
-    }
+    // A super user holds no grant rows, so undefined here means every mission.
+    const missionIds = seesEverything ? undefined : viewableMissions;
     const missions = await getAutomergeMissions(missionIds);
     res.status(200).json({ status: "success", message: "missions retrieved", data: missions });
   } catch (e) {
@@ -74,7 +68,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "missionAutomerge",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: `Error processing the GET request ${e}`,
       error: asError(e),
     });
@@ -89,20 +83,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
  *  and change functions
  */
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const emssToken = req.headers["emss-token"] as string;
-  const createPermissions = hasPerms({
-    missionId: null,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
-  });
-  if (!createPermissions) {
+  // Mission creation has no mission context to check against, so it is super-user-only.
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "missionAutomerge",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: null,
       message: "Unauthorized",
     });
@@ -123,6 +111,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
+
     res.status(200).json({
       status: "success",
       message: "Automerge mission document created",
@@ -134,7 +123,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "missionAutomerge",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: null,
       message: `Error processing the POST request ${e}`,
       error: asError(e),
@@ -158,13 +147,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
  */
 router.post("/fields", async (req: Request, res: Response): Promise<void> => {
   const { missionId, fields } = (req.body ?? {}) as MissionFieldsUpdateRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -172,7 +159,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "missionAutomerge/fields",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: "Unauthorized",
     });
@@ -247,7 +234,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "missionAutomerge/fields",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: `Error processing the POST request ${e}`,
       error: asError(e),
@@ -259,7 +246,6 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
 // delete the automerge document, the doc listing, and the backup copy in the DB
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionIds } = req.body as MissionDeleteRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
   // Must have edit permission the mission ids
   for (const missionIdToDelete of missionIds) {
@@ -270,18 +256,17 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         responseStatus: 400,
         routeName: "missionAutomerge",
         missionId: missionIdToDelete,
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         message: "Invalid mission Id",
       });
       res.status(400).json({ status: "error", message: "Invalid mission ID" });
       return;
     }
 
-    const canEditThisMission = hasPerms({
+    const canEditThisMission = apiHasPerms({
       missionId: missionIdToDelete,
-      permission: "edit",
-      appUser: req.session.appUser,
-      emssToken,
+      required: "edit",
+      user: req.currentUser,
     });
     if (!canEditThisMission) {
       serverLogger.apiRoute({
@@ -289,7 +274,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 401,
         routeName: "missionAutomerge",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId: missionIdToDelete,
         message: "Unauthorized",
       });
@@ -312,7 +297,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 404,
         routeName: "missionAutomerge",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId: null,
         uuids: missionIds?.map((id) => id.toString()),
         message: "No record found. Nothing deleted",
@@ -328,7 +313,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 500,
       routeName: "missionAutomerge",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: null,
       uuids: missionIds?.map((e) => e.toString()),
       message: `Error processing the DELETE request ${e}`,

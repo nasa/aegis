@@ -10,6 +10,7 @@ import PresetItem from "./preset-item";
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import sortBy from "lodash/sortBy";
+import { meetsPermLevel } from "utils/permissionLevels";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -21,7 +22,10 @@ const PresetEditorLeft: FunctionComponent = () => {
     deepEqual
   );
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
 
   const folderRecords = useAppSelector(
     (state) => state.interface.folders.filter((f) => f.type === "preset"),

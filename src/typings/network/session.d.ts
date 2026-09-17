@@ -1,14 +1,9 @@
 import type {} from "express";
 
-import type session from "express-session";
-
-// add the appUser to the regular session that gets passed around on requests
-interface AEGISSession extends session.Session {
-  appUser?: AppUser;
-}
-
-declare module "express" {
+// RequestUser itself lives in the global permissions typings so server-only modules that are not
+// express-aware can reference it without importing.
+declare module "express-serve-static-core" {
   interface Request {
-    session: AEGISSession;
+    currentUser?: CurrentUser;
   }
 }

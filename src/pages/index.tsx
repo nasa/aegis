@@ -1,9 +1,9 @@
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useNavigate } from "react-router";
-import type { FormEventHandler, FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import styles from "pages/index.module.css";
-import { login, isLoggedIn, logout } from "http-client/login";
+import { getCurrentUserAndAccess } from "http-client/access";
 import { getMissionHomepageItems } from "http-client/mission";
 import { thunkObliterateMissionSpecificData } from "store/thunk/crossThunk";
 import PetInterval from "components/page/petInterval";
@@ -11,148 +11,32 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from "react-tooltip";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
-import { setAppUser } from "store/user";
+import { setAppUserId, setIsSuperUser, setLaunchpadUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { clientLogger } from "utils/logging/clientLogger";
 import isEqual from "lodash/isEqual";
 
-const Login = () => {
-  const dispatch = useAppDispatch();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-
-  const handleLogin = async (guest: boolean = false) => {
-    let response: WrappedResponse<AppUser>;
-    if (guest) {
-      response = await login("guest", "guest");
-    } else {
-      response = await login(username, password);
-    }
-    if (response.status === "success") {
-      setErrorMessage("");
-      dispatch(
-        setAppUser({
-          isLoggedIn: true,
-          user: response.data,
-          missionPerms: null,
-        })
-      );
-    } else {
-      setErrorMessage(response.message);
-      dispatch(
-        setAppUser({
-          isLoggedIn: false,
-          user: null,
-          missionPerms: null,
-        })
-      );
-    }
-  };
-
-  const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
-    event.preventDefault();
-  };
-
-  return (
-    <>
-      <input
-        type="button"
-        value={"Login as Guest"}
-        className={styles.guestButton}
-        onClick={() => handleLogin(true)}
-      />
-      <div className={styles.title}>Login to AEGIS</div>
-      <form className={styles.login} onSubmit={handleSubmit}>
-        <div className={styles.errorMessage}>{errorMessage}</div>
-        <div className={styles.loginFormField}>
-          <label htmlFor="usernameField" className={styles.loginFormLabel}>
-            Username
-          </label>
-          <input
-            id="usernameField"
-            className={styles.loginFormInput}
-            type="text"
-            value={username}
-            onChange={(event) => {
-              setUsername(event.target.value);
-            }}
-          />
-        </div>
-        <div className={styles.loginFormField}>
-          <label htmlFor="passwordField" className={styles.loginFormLabel}>
-            Password
-          </label>
-          <input
-            id="passwordField"
-            className={styles.loginFormInput}
-            type="password"
-            value={password}
-            onChange={(event) => {
-              setPassword(event.target.value);
-            }}
-          />
-        </div>
-        <div className={styles.loginFormField}>
-          <button
-            className={styles.loginFormButton}
-            type={"submit"}
-            onClick={() => {
-              handleLogin();
-            }}
-          >
-            Login
-          </button>
-        </div>
-      </form>
-    </>
-  );
-};
-
-const Logout = () => {
-  const dispatch = useAppDispatch();
-
-  const handleLogoutButtonClick = async () => {
-    const response = await logout();
-    if (response.data) {
-      dispatch(
-        setAppUser({
-          isLoggedIn: false,
-          user: null,
-          missionPerms: null,
-        })
-      );
-    } else {
-      // handle failing to log out? Not sure how this would happen.
-    }
-  };
-
-  return (
-    <div className={styles.login}>
-      <div className={styles.loginFormField}>
-        <button className={styles.logoutButton} onClick={handleLogoutButtonClick}>
-          Logout
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const MissionSelect = ({ appUser }: { appUser: AppUser }) => {
+const MissionSelect = ({ launchpadUser }: { launchpadUser: LaunchpadUser }) => {
   const [missionHomepageItems, setMissionHomepageItems] = useState<MissionHomepageItem[]>([]);
 
   useEffect(() => {
-    async function populateData() {
-      if (!appUser) return;
+    async function populateMissionHomepage() {
+      if (!launchpadUser) return;
 
       const missionHomepageItemsRes = await getMissionHomepageItems();
       setMissionHomepageItems(missionHomepageItemsRes.data);
     }
 
-    populateData().catch(() => {
-      // Something went wrong. Eventually would like a logger here.
+    populateMissionHomepage().catch((e) => {
+      clientLogger.error(
+        {
+          logId: "populateMissionHomepage",
+          logValue: "Error in populateMissionHomepage on index.tsx",
+        },
+        e
+      );
     });
-  }, [appUser]);
+  }, [launchpadUser]);
 
   return (
     <div className={styles.missionSelect}>
@@ -232,38 +116,27 @@ const MissionHomepageItem = ({
 
 const Left: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const appUser = useAppSelector((state) => state.user.appUser, deepEqual);
+  const launchpadUser = useAppSelector((state) => state.user.launchpadUser, deepEqual);
 
-  // Populate the user store with iron session login state via API call
+  // Identity comes from the SSO token, so there is no login step. Every caller reaching this page
+  // is already authenticated; the mission list they see is their grants plus the public baseline.
   useEffect(() => {
-    const isLoggedInAsync = async () => {
-      const response = await isLoggedIn();
-      if (response.status === "success") {
-        dispatch(
-          setAppUser({
-            isLoggedIn: true,
-            user: response.data,
-            missionPerms: null,
-          })
-        );
-        // log user info
-        clientLogger.info({
-          logId: "appLogin",
-          appUsername: response.data.username,
-          missionId: null,
-          page: "home",
-        });
-      } else {
-        dispatch(
-          setAppUser({
-            isLoggedIn: false,
-            user: null,
-            missionPerms: null,
-          })
-        );
-      }
+    const getUserLoginInfo = async () => {
+      const access = await getCurrentUserAndAccess();
+      if (access instanceof Error) return;
+
+      dispatch(setLaunchpadUser(access.launchpadUser));
+      dispatch(setAppUserId(access.appUser?.id ?? null));
+      dispatch(setIsSuperUser(access.isSuperUser));
+
+      clientLogger.info({
+        logId: "appLogin",
+        appUsername: access.launchpadUser.auid,
+        missionId: null,
+        page: "home",
+      });
     };
-    isLoggedInAsync();
+    getUserLoginInfo();
   }, [dispatch]);
 
   return (
@@ -306,14 +179,7 @@ const Left: FunctionComponent = () => {
             SK.
           </p>
         </div>
-        {appUser ? (
-          <>
-            <MissionSelect appUser={appUser} />
-            <Logout />
-          </>
-        ) : (
-          <Login />
-        )}
+        {launchpadUser && <MissionSelect launchpadUser={launchpadUser} />}
       </div>
       <div className={styles.leftBottom}>
         <div className={styles.aboutSection}>

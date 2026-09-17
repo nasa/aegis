@@ -113,14 +113,6 @@ type SublayerDeleteRequest = {
   sublayerUuids: string[];
 };
 
-type UserUpsertRequest = {
-  users: AppUser[];
-};
-
-type UserDeleteRequest = {
-  userIds: number[];
-};
-
 type FolderUpsertRequest = {
   missionId: number;
   socketId?: string;

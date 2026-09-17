@@ -10,6 +10,7 @@ import { getCalcFieldsForEva } from "store/processing/calculatedFields";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getHighlightedActions } from "store/selectors";
+import { meetsPermLevel } from "utils/permissionLevels";
 
 const Actions_Panel: FunctionComponent = () => {
   const partialMission = useMissionDocSelector(
@@ -87,7 +88,10 @@ const Actions_Panel: FunctionComponent = () => {
     partialMission.traverseRate,
   ]);
 
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
 
   const evaActionOrderUuids = selectedEva?.sequence.flatMap((sequenceItem) => {
     if (sequenceItem.type === "station") {

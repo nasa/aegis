@@ -33,6 +33,7 @@ import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import Action from "components/panes/actions-action";
 import { EmojiRenderer } from "components/interface/emojis";
 import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
+import { meetsPermLevel } from "utils/permissionLevels";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const STMRuleDetailsModal: FunctionComponent<{
@@ -548,7 +549,10 @@ const STMRuleDetailsButtons: FunctionComponent<{
     (state) => state.stm.ruleEditingUuid === rule.uuid,
     shallowEqual
   );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
   const modified = true; //not implemented
 
   if (!editPerms) return null;

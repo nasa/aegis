@@ -1,5 +1,6 @@
 import type { FunctionComponent, ReactNode, KeyboardEvent, MouseEvent } from "react";
 import { useState, useRef, Children } from "react";
+import { meetsPermLevel } from "utils/permissionLevels";
 import styles from "./folders.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -213,7 +214,10 @@ const FolderComponent = ({
   hideMenu: boolean;
 }): JSX.Element => {
   const dispatch = useAppDispatch();
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
   const { isOver, setNodeRef } = useDroppable({
     id: folder.uuid,
   });
@@ -372,7 +376,10 @@ export const FolderOrganizer = ({
 }): JSX.Element => {
   const dispatch = useAppDispatch();
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

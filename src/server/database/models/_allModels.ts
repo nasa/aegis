@@ -8,7 +8,9 @@ import { EnvironmentConfig_db, EnvironmentConfig_dbSchema } from "./environmentC
 import { Eva_db, Eva_dbSchema } from "./eva.model";
 import { Folder_db, Folder_dbSchema } from "./folder.model";
 import { Grid_db, Grid_dbSchema } from "./grid.model";
+import { Known_User_db, Known_User_dbSchema } from "./known_user.model";
 import { Layer_db, Layer_dbSchema } from "./layer.model";
+import { Mission_Permission_db, Mission_Permission_dbSchema } from "./mission_permission.model";
 import { Poi_db, Poi_dbSchema } from "./poi.model";
 import { Preset_db, Preset_dbSchema } from "./preset.model";
 import { Rex_db, Rex_dbSchema } from "./rex.model";
@@ -19,6 +21,8 @@ import { STM_Level3_db, STM_Level3_dbSchema } from "./stm_level3.model";
 import { STM_Rule_db, STM_Rule_dbSchema } from "./stm_rules.model";
 import { Sublayer_db, Sublayer_dbSchema } from "./sublayer.model";
 import { Traverse_db, Traverse_dbSchema } from "./traverse.model";
+import { User_Group_db, User_Group_dbSchema } from "./user_group.model";
+import { User_Group_Member_db, User_Group_Member_dbSchema } from "./user_group_member.model";
 
 export const allSchemas = [
   Action_dbSchema,
@@ -29,7 +33,9 @@ export const allSchemas = [
   Eva_dbSchema,
   Folder_dbSchema,
   Grid_dbSchema,
+  Known_User_dbSchema,
   Layer_dbSchema,
+  Mission_Permission_dbSchema,
   Poi_dbSchema,
   Preset_dbSchema,
   Rex_dbSchema,
@@ -40,10 +46,16 @@ export const allSchemas = [
   STM_Rule_dbSchema,
   Sublayer_dbSchema,
   Traverse_dbSchema,
+  User_Group_dbSchema,
+  User_Group_Member_dbSchema,
 ];
 
 export {
   App_User_db,
+  Known_User_db,
+  Mission_Permission_db,
+  User_Group_db,
+  User_Group_Member_db,
   Station_db,
   Poi_db,
   Action_db,

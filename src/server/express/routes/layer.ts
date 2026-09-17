@@ -8,7 +8,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Layer_db } from "server/database/models/_allModels";
 import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -28,13 +28,11 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const emssToken = req.headers["emss-token"] as string;
 
-  const viewPermission = hasPerms({
+  const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "viewer",
+    user: req.currentUser,
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
@@ -42,7 +40,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "layer",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       uuids: queryObj.uuid ? [queryObj.uuid] : undefined,
       message: "Unauthorized",
@@ -56,7 +54,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "layer",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       uuids: queryObj.uuid ? [queryObj.uuid] : undefined,
       message: "Invalid mission ID",
@@ -78,7 +76,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "layer",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       uuids: queryObj.uuid ? [queryObj.uuid] : undefined,
       message: `Error processing the GET request ${e}`,
@@ -91,13 +89,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, layers } = req.body as LayerUpsertRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -105,7 +101,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "layer",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: layers?.map((l) => l.uuid),
       message: "Unauthorized",
@@ -122,7 +118,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "layer",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         message: "No layers provided in request body",
       });
@@ -139,7 +135,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 500,
         routeName: "layer",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: layers?.map((l) => l.uuid),
         message: "Failed to update layer after multiple tries due to optimistic locking",
@@ -164,7 +160,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "layer",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: layers?.map((l) => l.uuid),
       message: `Error processing the POST request ${e}`,
@@ -177,13 +173,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, layerUuids } = req.body as LayerDeleteRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -191,7 +185,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "layer",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: layerUuids,
       message: "Unauthorized",
@@ -214,7 +208,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 404,
         routeName: "layer",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: layerUuids,
         message: "Record not found. Nothing deleted",
@@ -231,7 +225,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 500,
         routeName: "layer",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: layerUuids,
         message: "Cannot delete layer. This layer is referenced elsewhere",
@@ -247,7 +241,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 500,
         routeName: "layer",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: layerUuids,
         message: `Error processing the DELETE request ${e}`,

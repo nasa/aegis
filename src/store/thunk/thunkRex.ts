@@ -38,7 +38,7 @@ export const thunkDocCreateRex = appCreateAsyncThunk<
   if (!mission) return null;
 
   // Step 1: Build the full REX creation stage from the doc
-  const ownerId = getState().user?.appUser?.id ?? null;
+  const ownerId = getState().user?.appUserId ?? null;
   const rexStagedData = stageCreateRex(mission, { asPlannedEvaUuid, ownerId });
   if (!rexStagedData) {
     throw new Error(`Error creating Rexes. Cannot duplicate EVA ${asPlannedEvaUuid}`);

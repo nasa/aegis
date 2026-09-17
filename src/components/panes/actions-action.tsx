@@ -20,6 +20,7 @@ import {
 } from "operations/apply/apply-action";
 import { hmmFromMinutes, titleCase } from "utils/formatting";
 import { getActionDefinitionLabel } from "store/selectors";
+import { meetsPermLevel } from "utils/permissionLevels";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";
@@ -79,7 +80,7 @@ const RightAction: FunctionComponent<{
   }, refEqual);
 
   const editPermsStore = useAppSelector(
-    (state) => state.user.missionPerms.permissions.edit,
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
     refEqual
   );
 

@@ -19,7 +19,7 @@ import "./styles/globals.css";
 import "./styles/fonts.css";
 import { CookiesProvider } from "react-cookie";
 import { setupFetchFns } from "packages/fetchFns";
-import { getCurrentUser } from "packages/getCurrentUser";
+import { getCurrentUserAndAccess } from "http-client/access";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
 
@@ -39,19 +39,20 @@ async function fetchServerAppVersion(): Promise<AppVersion> {
 }
 
 setupFetchFns();
-const user = await getCurrentUser();
+const access = await getCurrentUserAndAccess();
+const launchpadUser = access instanceof Error ? access : access.launchpadUser;
 let repoClientID = `client-${Math.random().toString(36).slice(2, 5)}`;
-if (!user || user instanceof Error) {
+if (launchpadUser instanceof Error) {
   clientLogger.error(
-    { logId: "launchpadLogin", logValue: `Unable to get current user, ${user}` },
-    new Error(`Unable to get current user: ${user}`)
+    { logId: "launchpadLogin", logValue: `Unable to get current user, ${launchpadUser}` },
+    new Error(`Unable to get current user: ${launchpadUser}`)
   );
 } else {
   clientLogger.info({
     logId: "launchpadLogin",
-    launchpadDisplayName: `${user.display_name || "unknown user"}`,
+    launchpadDisplayName: `${launchpadUser.display_name || "unknown user"}`,
   });
-  repoClientID = `${user.auid}-${Math.random().toString(36).slice(2, 5)}`;
+  repoClientID = `${launchpadUser.auid}-${Math.random().toString(36).slice(2, 5)}`;
 }
 clientLogger.info({
   logId: "automergeId",
@@ -127,7 +128,7 @@ root.render(
         <Provider store={store}>
           <CookiesProvider>
             <BrowserRouter>
-              <App launchpadUser={user} />
+              <App launchpadUser={launchpadUser} />
             </BrowserRouter>
           </CookiesProvider>
         </Provider>

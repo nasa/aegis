@@ -141,27 +141,12 @@ export const config: DotenvConfig<typeof environments> = {
    * If you need values, request from AEGIS developers or copy from GitLab CI/CD variables. These values
    * will be stored in env.secret.ts so make-dotenv can reuse them.
    *
-   * The ADMIN_RECOVERY_KEY is the key passed in as a URL param to an API endpoint to hard reset the super
-   * admin user password to the default
-   *
-   * The SESSION_PASSWORD is used to encrypt the session cookie
-   *
    * The BOX-prefixed values are used for integration with box.com for admin zip downloads. They come from
    * the box.com developer console of any account that has access to the AEGIS Zips folder and can create
    * new apps (currently using bf@benfeist.com's box account).
    *
    */
   DB_PASS: {
-    default: {
-      type: "required-from-secret",
-    },
-  },
-  ADMIN_RECOVERY_KEY: {
-    default: {
-      type: "required-from-secret",
-    },
-  },
-  SESSION_PASSWORD: {
     default: {
       type: "required-from-secret",
     },

@@ -2,14 +2,19 @@ import { getUserFromJWT } from "@emss/oauth2-proxy-backend";
 import type { EMSSRole } from "@emss/oauth2-proxy-common";
 import type { Request } from "express";
 
-const getMockUser = (): LaunchpadUser => {
+// Used to override the mock user so tests can pass in multiple users with different perms
+export const OVERRIDE_MOCK_USER_HEADER = "x-override-mock-user";
+
+const getMockLaunchpadUser = (req?: Request): LaunchpadUser => {
+  const overrideUupic = req?.headers?.[OVERRIDE_MOCK_USER_HEADER] as string | undefined;
   return {
-    uupic: process.env.MOCK_USER_UUPIC || "1234",
+    uupic: overrideUupic || process.env.MOCK_USER_UUPIC || "1234",
     email: process.env.MOCK_USER_EMAIL || "neil.armstrong@nasa.gov",
-    auid: process.env.MOCK_USER_AUID || "narmstra",
+    auid: overrideUupic || process.env.MOCK_USER_AUID || "narmstra",
     givenname: process.env.MOCK_USER_GIVENNAME || "Neil",
     surname: process.env.MOCK_USER_SURNAME || "Armstrong",
-    display_name: process.env.MOCK_USER_DISPLAYNAME || "Armstrong, Neil A. (JSC-CB611)",
+    display_name:
+      overrideUupic || process.env.MOCK_USER_DISPLAYNAME || "Armstrong, Neil A. (JSC-CB611)",
     roles: process.env.MOCK_USER_ROLES
       ? (process.env.MOCK_USER_ROLES.split(",") as EMSSRole[])
       : [
@@ -26,9 +31,9 @@ const getMockUser = (): LaunchpadUser => {
   };
 };
 
-export const getUser = (req: Request): LaunchpadUser | Error => {
+export const getLaunchpadUser = (req: Request): LaunchpadUser | Error => {
   if (process.env.MOCK_USER === "true") {
-    return getMockUser();
+    return getMockLaunchpadUser(req);
   }
   return getUserFromJWT(req);
 };

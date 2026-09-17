@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
 import styles from "./dashboard.module.css";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
-import { setAppUser } from "store/user";
 import { Tooltip } from "react-tooltip";
-import { isLoggedIn } from "http-client/login";
-import { useNavigate } from "react-router";
 
 import DashboardHeader from "components/dashboard/header";
 import SocketClient from "components/page/socketClient";
@@ -26,6 +23,8 @@ import { setSectionSelected } from "store/interface";
 import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
+import { getCurrentUserAndAccess } from "http-client/access";
+import { setUserState } from "store/user";
 import { clientLogger } from "utils/logging/clientLogger";
 import { LoadingOverlay } from "components/interface/_global-elements";
 
@@ -55,55 +54,56 @@ const Main = (): JSX.Element => {
     if (!mission?.rexes) return null;
     return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
   }, deepEqual);
+  const missionPermLevel = useAppSelector((state) => state.user.missionPermLevel, deepEqual);
 
-  const [missionPerms, setMissionPerms] = useState(null);
   const [storeIsPopulated, setStoreIsPopulated] = useState(false);
 
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
 
+  // Resolves access and populates the user store, or sends the user home when they have none.
   useEffect(() => {
     if (!intMissionId) return;
+
     (async () => {
-      // Get permissions
-      let missionPerms: Permission = null;
-      const response = await isLoggedIn();
-      if (response.status !== "success") {
-        navigate("/"); // Kick user out back to homepage
+      const access = await getCurrentUserAndAccess();
+      if (access instanceof Error) {
+        navigate("/");
         return;
       }
-      if (response.data.isSuperAdmin) {
-        missionPerms = { missionId: intMissionId, permissions: { view: true, edit: true } };
-      } else {
-        missionPerms = response.data.permissionList?.find(
-          (permission) => permission.missionId === intMissionId
-        );
-        if (!missionPerms || (!missionPerms.permissions.view && !missionPerms.permissions.edit)) {
-          navigate("/");
-          return;
-        }
+
+      // A super user has implicit edit everywhere and therefore carries no grant rows.
+      const level = access.isSuperUser ? "edit" : (access.grants?.[String(intMissionId)] ?? null);
+
+      if (!level) {
+        navigate("/");
+        return;
       }
 
-      // Populate the user store
-      dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
-      console.log("AEGIS Username:", response.data.username);
-      // Log user
+      dispatch(
+        setUserState({
+          isLoggedIn: !!access.launchpadUser,
+          launchpadUser: access.launchpadUser,
+          appUserId: access.appUser?.id ?? null,
+          isSuperUser: access.isSuperUser,
+          missionPermLevel: level,
+        })
+      );
+
       clientLogger.info({
         logId: "appLogin",
-        appUsername: response.data.username,
+        appUsername: access.launchpadUser.auid,
         missionId: intMissionId,
         page: "dashboard",
       });
-
-      setMissionPerms(missionPerms);
     })();
-  }, [navigate, intMissionId, dispatch]);
+  }, [dispatch, intMissionId, navigate]);
 
   // Populate the store only after permission check is done AND serverVersion is available.
   // This is to ensure we have the latest app before data is retrieved
   useEffect(() => {
-    if (!missionPerms || !isVersionChecked || !automergeRepo) return;
+    if (!missionPermLevel || !isVersionChecked || !automergeRepo) return;
 
     (async () => {
       const wholeStoreState = await populateStore({
@@ -117,7 +117,7 @@ const Main = (): JSX.Element => {
 
       setStoreIsPopulated(true);
     })();
-  }, [automergeRepo, dispatch, intMissionId, missionPerms, isVersionChecked]);
+  }, [automergeRepo, dispatch, intMissionId, missionPermLevel, isVersionChecked]);
 
   useEffect(() => {
     // update session storage information. This is for sockets
@@ -177,7 +177,7 @@ const Main = (): JSX.Element => {
           delayHide={500}
         />
         <DashboardHeader />
-        {missionPerms && storeIsPopulated ? (
+        {missionPermLevel && storeIsPopulated ? (
           <>
             {runningRex ? (
               <div className={styles.mainContent}>

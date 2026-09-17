@@ -24,6 +24,7 @@ import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 
 import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/folder-dropdown";
+import { meetsPermLevel } from "utils/permissionLevels";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { canMoveStation, isXgressIndex } from "operations/helpers/evaSequence";
 
@@ -39,7 +40,10 @@ const SequenceItemStation: FunctionComponent<{
     return Object.values(mission.rexes).some((rex) => rex.evaUuid === evaUuid);
   }, refEqual);
   const editMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
 
   const thisStation = useMissionDocSelector((mission) => mission.stations[stationUuid], deepEqual);
   const evaSequence = useMissionDocSelector(

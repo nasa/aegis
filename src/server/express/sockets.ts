@@ -27,7 +27,6 @@ export const setupSocketIO = (): void => {
           client: ${JSON.stringify(visitorData.clientAppVersion)}
           server: ${JSON.stringify(globalValues.appVersion)}`,
               launchpadUser: visitorData.launchpadUser?.auid,
-              appUser: visitorData.appUser?.username,
               missionId: visitorData.missionId,
             });
           }
@@ -57,7 +56,6 @@ export const setupSocketIO = (): void => {
               logId: "socket",
               logValue: "SocketIO - visitorJoin",
               launchpadUser: visitorData.launchpadUser?.auid,
-              appUser: visitorData.appUser?.username,
               missionId: visitorData.missionId,
             },
             error instanceof Error ? error : new Error(String(error))

@@ -101,7 +101,7 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
       existingNames: existingEvaNames,
     });
 
-    const ownerId = getState().user?.appUser?.id ?? null;
+    const ownerId = getState().user?.appUserId ?? null;
     const blankEva: Eva = generateBlankEVA({
       missionId: mission.id,
       name: randomName,
@@ -506,7 +506,7 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
       xgressType: type,
       newStationUuidOrLander,
       isRexEva,
-      ownerId: getState().user?.appUser?.id ?? undefined,
+      ownerId: getState().user?.appUserId ?? undefined,
     });
     if (!stageData) return;
 

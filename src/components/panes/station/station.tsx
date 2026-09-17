@@ -10,6 +10,7 @@ import { thunkDocCreateStation, thunkDocDuplicateStation } from "store/thunk/thu
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import { selectAsPlannedStations } from "store/selectors";
+import { meetsPermLevel } from "utils/permissionLevels";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StationEditorLeft: FunctionComponent = () => {
@@ -22,9 +23,12 @@ const StationEditorLeft: FunctionComponent = () => {
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
   const showButtons = useAppSelector(
-    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit") && state.mission.isInEditMode,
     refEqual
   );
 
