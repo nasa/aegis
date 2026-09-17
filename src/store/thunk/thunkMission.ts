@@ -5,7 +5,7 @@ import { applyLanderLocationUpdateStage } from "operations/apply/apply-mission";
 import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
 import { clientLogger } from "utils/logging/clientLogger";
 
-let latestLanderLocationRequest = 0;
+let latestIssuedLanderLocationRevision = 0;
 
 export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -14,13 +14,13 @@ export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
   if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
   if (!mission) return;
-  const requestId = ++latestLanderLocationRequest;
+  const locationRevision = ++latestIssuedLanderLocationRevision;
 
   // Step 1: Fetch all elevations in parallel and build the full stage.
   // No .change() calls happen here — stageLanderLocationUpdate only reads the
   // doc and dispatches read-only thunkFetchElevation calls.
   const stage = await stageLanderLocationUpdate(mission, dispatch, location);
-  if (requestId !== latestLanderLocationRequest) {
+  if (locationRevision !== latestIssuedLanderLocationRevision) {
     clientLogger.debug({
       logId: "thunk-mission",
       logValue: "thunkDocUpdateLanderLocation: stale request, skipping apply",

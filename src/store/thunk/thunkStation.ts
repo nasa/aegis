@@ -33,10 +33,8 @@ import {
   getNextTraverseProfileRevisions,
 } from "operations/helpers/traverseProfileRevision";
 
-const latestStationLocationRequest = new Map<string, number>();
-let nextStationLocationRequest = 0;
-const latestWalkbackProfileRequest = new Map<string, number>();
-let nextWalkbackProfileRequest = 0;
+const latestIssuedStationLocationRevisionByStation = new Map<string, number>();
+const latestIssuedWalkbackProfileRevisionByStation = new Map<string, number>();
 
 export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   location: AEGISPoint;
@@ -47,8 +45,8 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   const mission = missionDocHandle.doc();
   const station = mission.stations?.[stationUuid];
   if (!station) return;
-  const requestId = ++nextStationLocationRequest;
-  latestStationLocationRequest.set(stationUuid, requestId);
+  const locationRevision = (latestIssuedStationLocationRevisionByStation.get(stationUuid) ?? 0) + 1;
+  latestIssuedStationLocationRevisionByStation.set(stationUuid, locationRevision);
 
   // ── Step 1: Build walkback path, collect all adjacent traverses, fetch all elevations in parallel, and build the stage ──
   const landerLocation = mission.landerLocation;
@@ -228,14 +226,13 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     traverseUpdates: stagedTraverseData,
   };
 
-  if (latestStationLocationRequest.get(stationUuid) !== requestId) {
+  if (latestIssuedStationLocationRevisionByStation.get(stationUuid) !== locationRevision) {
     clientLogger.debug({
       logId: "thunk-station",
       logValue: `thunkDocUpdateStationLocation: stale request for station ${stationUuid}, skipping apply`,
     });
     return;
   }
-  latestStationLocationRequest.delete(stationUuid);
   if (!areTraverseProfileUpdatesCurrent(stagedTraverseData)) {
     clientLogger.debug({
       logId: "thunk-station",
@@ -281,8 +278,8 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
 
   const station = mission.stations?.[stationUuid];
   const landerLocation = mission.landerLocation;
-  const requestId = ++nextWalkbackProfileRequest;
-  latestWalkbackProfileRequest.set(stationUuid, requestId);
+  const profileRevision = (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) ?? 0) + 1;
+  latestIssuedWalkbackProfileRevisionByStation.set(stationUuid, profileRevision);
   // Set starting station
   if (station && !isEqual(newPath.at(0), station.location)) {
     newPath[0] = station.location;
@@ -311,15 +308,13 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
-  if (latestWalkbackProfileRequest.get(stationUuid) !== requestId) {
+  if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {
     clientLogger.debug({
       logId: "thunk-station",
       logValue: `thunkDocUpdateWalkback: stale request for station ${stationUuid}, skipping apply`,
     });
     return;
   }
-  latestWalkbackProfileRequest.delete(stationUuid);
-
   // Step 2: Apply single change to automerge
   // Save walkback to automerge
   missionDocHandle.change((m: Mission) => {
@@ -356,10 +351,10 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
     getDistanceBetweenTwoCoordinates(newPath[0], newPath[1], mission.planetRadius),
   ];
 
-  // Shares the walkback request counter with thunkDocUpdateWalkback so a reset and an
+  // Shares the walkback profile revision with thunkDocUpdateWalkback so a reset and an
   // in-flight drag update racing on the same station resolve to whichever started last.
-  const requestId = ++nextWalkbackProfileRequest;
-  latestWalkbackProfileRequest.set(stationUuid, requestId);
+  const profileRevision = (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) ?? 0) + 1;
+  latestIssuedWalkbackProfileRevisionByStation.set(stationUuid, profileRevision);
 
   // Get elevation
   let newElevationProfile = null;
@@ -374,15 +369,13 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
     newElevationProfile = elevationResponse.payload as number[][];
   }
 
-  if (latestWalkbackProfileRequest.get(stationUuid) !== requestId) {
+  if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {
     clientLogger.debug({
       logId: "thunk-station",
       logValue: `thunkDocResetWalkback: stale request for station ${stationUuid}, skipping apply`,
     });
     return;
   }
-  latestWalkbackProfileRequest.delete(stationUuid);
-
   // Step 2: Write the reset walkback path, distances, and elevation atomically
   missionDocHandle.change((m: Mission) => {
     const s = m.stations[stationUuid];

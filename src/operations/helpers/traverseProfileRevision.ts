@@ -1,10 +1,10 @@
-let nextRevision = 0;
-const latestRevisionByTraverse = new Map<string, number>();
+const latestIssuedTraverseProfileRevisionByTraverse = new Map<string, number>();
 
 export const getNextTraverseProfileRevision = (traverseUuid: string): number => {
-  const revision = ++nextRevision;
-  latestRevisionByTraverse.set(traverseUuid, revision);
-  return revision;
+  const profileRevision =
+    (latestIssuedTraverseProfileRevisionByTraverse.get(traverseUuid) ?? 0) + 1;
+  latestIssuedTraverseProfileRevisionByTraverse.set(traverseUuid, profileRevision);
+  return profileRevision;
 };
 
 export const getNextTraverseProfileRevisions = (traverseUuids: string[]): Map<string, number> => {
@@ -20,5 +20,5 @@ export const areTraverseProfileUpdatesCurrent = (
 ): boolean =>
   updates.every(
     ({ traverseUuid, profileRevision }) =>
-      latestRevisionByTraverse.get(traverseUuid) === profileRevision
+      latestIssuedTraverseProfileRevisionByTraverse.get(traverseUuid) === profileRevision
   );

@@ -7,8 +7,8 @@ import { updateMapDirective } from "store/map";
 import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 
-let nextMeasurementProfileRevision = 0;
-const appliedMeasurementProfileRevisions = new Map<string, number>();
+let nextIssuedMeasurementProfileRevision = 0;
+const latestAppliedMeasurementProfileRevisionByMeasurement = new Map<string, number>();
 
 const profileMatchesSegmentCount = (
   profile: unknown[][] | null,
@@ -31,7 +31,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   const measurement = getState().measure.measurements.find((t) => t.uuid === measurementUuid);
   if (!measurement) return;
   const username = getState().user.appUser?.username;
-  const profileRevision = ++nextMeasurementProfileRevision;
+  const profileRevision = ++nextIssuedMeasurementProfileRevision;
 
   //calculate new path distances
   const pathSegmentDistances: number[] = [];
@@ -99,8 +99,12 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     return;
 
   // Keep live previews advancing even while newer requests are still pending.
-  if (profileRevision <= (appliedMeasurementProfileRevisions.get(measurementUuid) ?? 0)) return;
-  appliedMeasurementProfileRevisions.set(measurementUuid, profileRevision);
+  if (
+    profileRevision <=
+    (latestAppliedMeasurementProfileRevisionByMeasurement.get(measurementUuid) ?? 0)
+  )
+    return;
+  latestAppliedMeasurementProfileRevisionByMeasurement.set(measurementUuid, profileRevision);
 
   const newMeasurement: Measurement = {
     ...currentMeasurement,
@@ -211,5 +215,5 @@ export const thunkRemoveMeasurement = appCreateAsyncThunk<
 
   dispatch(setSelectedMeasurementUuid(null));
   dispatch(removeMeasurement(measurementUuid));
-  appliedMeasurementProfileRevisions.delete(measurementUuid);
+  latestAppliedMeasurementProfileRevisionByMeasurement.delete(measurementUuid);
 });
