@@ -1,7 +1,7 @@
 import {
-  getCalculatedFieldsByEva,
-  getCalculatedFieldsByStation,
-  getCalculatedFieldsByTraverse,
+  getCalcFieldsForEva,
+  getCalcFieldsForStation,
+  getCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
 import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import { mergeEquipmentItems } from "store/storeUtils/store";
@@ -307,7 +307,7 @@ const computePlanMetrics = (mission: Mission, evaUuid: string): EvaComparisonCol
   const eva = mission?.evas?.[evaUuid];
   if (!eva) return {};
 
-  const calc = getCalculatedFieldsByEva({
+  const calc = getCalcFieldsForEva({
     eva,
     evaStations: selectEvaStations(mission, evaUuid),
     missionWalkbackRate: mission.walkbackRate,
@@ -317,11 +317,13 @@ const computePlanMetrics = (mission: Mission, evaUuid: string): EvaComparisonCol
   });
   if (!calc) return {};
 
+  const totalEvaTimeCalculated = calc.totalDwellTime + calc.totalTraverseMovementTime;
+
   return {
-    totalEvaTimeCalculated: calc.totalEvaTime,
+    totalEvaTimeCalculated,
     allottedEvaTime: eva.duration ?? null,
-    evaTimeMargin: eva.duration != null ? eva.duration - calc.totalEvaTime : null,
-    totalTraverseTime: calc.totalTraverseTime,
+    evaTimeMargin: eva.duration != null ? eva.duration - totalEvaTimeCalculated : null,
+    totalTraverseTime: calc.totalTraverseMovementTime,
     dwellEv1: calc.totalEv1Time,
     dwellEv2: calc.totalEv2Time,
     dwellUnassigned: calc.totalUnassignedTime,
@@ -335,7 +337,7 @@ const computePlanMetrics = (mission: Mission, evaUuid: string): EvaComparisonCol
     actionCount: calc.actionCount,
     totalActionTime: calc.totalActionTime,
     plannedSampleMass: calc.totalMass / GRAMS_PER_KG,
-    singleUseConsumablesCount: countSingleUseConsumables(mission, calc.equipmentItems),
+    singleUseConsumablesCount: countSingleUseConsumables(mission, calc.totalEquipmentItems),
   };
 };
 
@@ -485,7 +487,7 @@ export const computeSequenceItemMetrics = ({
   if (item.type === "station") {
     const station = mission.stations?.[item.uuid];
     if (!station) return values;
-    const calc = getCalculatedFieldsByStation({
+    const calc = getCalcFieldsForStation({
       station,
       missionWalkbackRate: mission.walkbackRate,
       stationActions: itemActions,
@@ -501,16 +503,16 @@ export const computeSequenceItemMetrics = ({
       hasLander && station.location
         ? (getDistanceBetweenTwoCoordinates(station.location, landerLocation, planetRadius) ?? 0)
         : 0;
-    values.worstCaseWalkbackDuration = calc.walkbackDurationMinutes;
+    values.worstCaseWalkbackDuration = calc.walkbackMovementDurationMinutes;
     values.stationCount = 1;
     values.actionCount = calc.actionCount;
     values.totalActionTime = calc.totalActionTime;
     values.plannedSampleMass = calc.totalMass / GRAMS_PER_KG;
-    values.singleUseConsumablesCount = countSingleUseConsumables(mission, calc.equipmentItems);
+    values.singleUseConsumablesCount = countSingleUseConsumables(mission, calc.totalEquipmentItems);
   } else if (item.type === "traverse") {
     const traverse = mission.traverses?.[item.uuid];
     if (!traverse) return values;
-    const calc = getCalculatedFieldsByTraverse({
+    const calc = getCalcFieldsForTraverse({
       traverse,
       missionTraverseRate: mission.traverseRate,
       evaTraverseRate: eva.traverseRate,
@@ -518,8 +520,8 @@ export const computeSequenceItemMetrics = ({
     });
     if (!calc) return values;
 
-    values.totalEvaTimeCalculated = calc.durationMinutes + calc.totalDwellTime;
-    values.totalTraverseTime = calc.durationMinutes;
+    values.totalEvaTimeCalculated = calc.movementDurationMinutes + calc.totalDwellTime;
+    values.totalTraverseTime = calc.movementDurationMinutes;
     values.dwellEv1 = calc.totalEv1Time;
     values.dwellEv2 = calc.totalEv2Time;
     values.dwellUnassigned = calc.totalUnassignedTime;
