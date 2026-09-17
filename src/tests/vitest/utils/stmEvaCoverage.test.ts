@@ -759,17 +759,21 @@ describe("getEvaSequenceItems()", () => {
     expect(items.map((item) => item.name)).toEqual(["Traverse 1", "Station 1", "Station 2"]);
   });
 
-  test("skips deleted entities, dedupes revisits, and appends non-lander ingress/egress stations", () => {
+  test("skips deleted entities and dedupes revisited sequence items", () => {
     const { mission } = buildFixture();
-    mission.stations["s3"] = generateBlankStation({ uuid: "s3", name: "Egress" });
+    mission.stations["s3"] = generateBlankStation({
+      uuid: "s3",
+      name: "Egress",
+      isLanderXgress: true,
+    });
     mission.evas["eva1"].sequence = [
       { type: "station", uuid: "s1" },
       { type: "traverse", uuid: "t1" },
       { type: "station", uuid: "s1" }, // revisit
       { type: "station", uuid: "ghost" }, // deleted
       { type: "traverse", uuid: "ghostTrav" }, // deleted
+      { type: "station", uuid: "s3" },
     ];
-    mission.evas["eva1"].egressLocationUuid = "s3";
 
     const items = getEvaSequenceItems(mission, "eva1");
     expect(items.map((item) => `${item.type}:${item.uuid}`)).toEqual([
