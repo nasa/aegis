@@ -5,7 +5,7 @@ import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/p
 import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { Folder_db } from "server/database/models/_allModels";
 import { convertFolderDbToStore, convertFolderStoreToDb } from "store/storeUtils/folder";
 import { globalValues } from "../global";
@@ -20,13 +20,11 @@ const router = express.Router();
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, folders } = req.body as FolderUpsertRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -34,7 +32,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "folder",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: folders?.map((f) => f.uuid),
       message: "Unauthorized",
@@ -51,7 +49,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "folder",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         message: "No folders provided in request body",
       });
@@ -68,7 +66,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 500,
         routeName: "folder",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: folders?.map((f) => f.uuid),
         message: "Failed to update folder after multiple tries due to optimistic locking",
@@ -101,7 +99,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "folder",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: folders?.map((f) => f.uuid),
       message: `Error processing the POST request ${e}`,
@@ -114,13 +112,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, folderUuids } = req.body as FolderDeleteRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -128,7 +124,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "folder",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       uuids: folderUuids,
       message: "Unauthorized",
@@ -158,7 +154,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 404,
         routeName: "folder",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: folderUuids,
         message: "Records not found. Nothing deleted",
@@ -179,7 +175,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 500,
         routeName: "folder",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: folderUuids,
         message: "Cannot delete folder. This Folder is referenced elsewhere",
@@ -195,7 +191,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 500,
         routeName: "folder",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         uuids: folderUuids,
         message: "Error processing the DELETE request",

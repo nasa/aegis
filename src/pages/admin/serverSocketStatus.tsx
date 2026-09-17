@@ -1,7 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { isLoggedIn } from "http-client/login";
 import { getMissionHomepageItems } from "http-client/mission";
 import React from "react";
 import uniq from "lodash/uniq";
@@ -28,19 +27,8 @@ const ServerSocketStatus: React.FunctionComponent = () => {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [missionNames, setMissionNames] = useState<Map<number, string>>(new Map());
 
-  //on load check login
   useEffect(() => {
     (async () => {
-      const response = await isLoggedIn();
-      if (response.status === "success") {
-        const user = response.data;
-        if (!user.isSuperAdmin) {
-          navigate("/"); // Redirect to homepage
-        }
-      } else {
-        navigate("/");
-      }
-
       const missionsRes = await getMissionHomepageItems();
       if (missionsRes.status === "success" && missionsRes.data) {
         const nameMap = new Map<number, string>();
@@ -297,7 +285,7 @@ const PrintUsers: FunctionComponent<{
                       {record.permission}
                     </span>
                   </td>
-                  <td>{record.appUser.username || "N/A"}</td>
+                  <td>{record.launchpadUser?.auid || "N/A"}</td>
                   <td>{record.launchpadUser?.ip_address || "N/A"}</td>
                   <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.85em" }}>
                     {record.clientAppVersion.version} – {record.clientAppVersion.gitCommit} –

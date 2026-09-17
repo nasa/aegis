@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { makeExportMission } from "utils/export";
-import { hasPerms, emssTokenIsValid } from "utils/permissions";
+import { apiHasPerms, isSuperUser, logUsername, missionIdsAtLevel } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -27,30 +27,20 @@ const parseQuery = (query: Query) => {
 
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const emssToken = req.headers["emss-token"] as string;
+  const seesEverything = isSuperUser(req.currentUser);
+  const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
 
-  let viewPermission;
-  if (queryObj.missionId) {
-    viewPermission = hasPerms({
-      missionId: queryObj.missionId,
-      permission: "view",
-      appUser: req.session.appUser,
-      emssToken,
-    });
-  } else {
-    //no mission was specified. check if they are allowed to view at least one mission
-    viewPermission =
-      req.session?.appUser?.isSuperAdmin ||
-      req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view ||
-      emssTokenIsValid(emssToken);
-  }
+  const viewPermission = queryObj.missionId
+    ? apiHasPerms({ missionId: queryObj.missionId, required: "viewer", user: req.currentUser })
+    : // no mission was specified, so check they can view at least one
+      seesEverything || viewableMissions.length > 0;
   if (!viewPermission) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "readable/mission",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -63,16 +53,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     if (queryObj.missionId) {
       records = await getAutomergeMissions([queryObj.missionId]);
     } else {
-      //super admin and emss token can see all missions
-      if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) {
-        records = await getAutomergeMissions();
-      } else {
-        //return all missions that they have permission for
-        const viewableMissions: number[] = req.session.appUser.permissionList.map((p) => {
-          if (p.permissions.view) return p.missionId;
-        });
-        records = await getAutomergeMissions(viewableMissions);
-      }
+      // A super user and an EMSS-token caller hold no grant rows, so undefined means every mission.
+      records = await getAutomergeMissions(seesEverything ? undefined : viewableMissions);
     }
 
     const exportMissions: ExportMission[] = await Promise.all(
@@ -99,7 +81,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "readable/mission",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: `Error processing the GET request ${e}`,
       error: asError(e),

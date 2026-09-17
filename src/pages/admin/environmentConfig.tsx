@@ -1,24 +1,15 @@
 import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { isLoggedIn } from "http-client/login";
+import { Link } from "react-router";
 import { getAllEnvironmentConfigs, setEnvironmentConfigValue } from "http-client/environmentConfig";
 import adminCommon from "./adminCommon.module.css";
 
 const EnvironmentConfig: FunctionComponent = () => {
-  const navigate = useNavigate();
-
   const [configs, setConfigs] = useState<EnvironmentConfigData[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const loginRes = await isLoggedIn();
-      if (loginRes.status !== "success" || !loginRes.data.isSuperAdmin) {
-        navigate("/");
-        return;
-      }
-
       const configRes = await getAllEnvironmentConfigs();
       if (configRes.status === "success") {
         setConfigs(configRes.data);
@@ -26,7 +17,7 @@ const EnvironmentConfig: FunctionComponent = () => {
         setLoadError(configRes.message ?? "Failed to load environment configs.");
       }
     })();
-  }, [navigate]);
+  }, []);
 
   const handleEntryUpdated = (updated: EnvironmentConfigData) => {
     setConfigs((prev) => (prev ? prev.map((c) => (c.key === updated.key ? updated : c)) : prev));

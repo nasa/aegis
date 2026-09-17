@@ -2,6 +2,7 @@ import { LoadingOverlay } from "components/interface/_global-elements";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { meetsPermLevel } from "utils/permissionLevels";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import {
   upsertExpandedEvaUuids,
@@ -90,7 +91,7 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
     shallowEqual
   );
   const showAddRexButton = useAppSelector(
-    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit") && state.mission.isInEditMode,
     refEqual
   );
 

@@ -22,7 +22,6 @@ import {
   generateBlankStmLvl2,
   generateBlankStmLvl3,
 } from "store/storeUtils/stm";
-import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import {
@@ -67,10 +66,8 @@ export const createTestStoreWithAutomergeMission = (): StoreType => {
     },
     user: {
       ...userInitialState,
-      appUser: generateBlankAppUser({
-        username: "Vitest testAppUser",
-        password: "superSecretPassword",
-      }),
+      appUserId: 1,
+      missionPermLevel: "edit",
     },
     map: { ...mapInitialState },
     eva: {

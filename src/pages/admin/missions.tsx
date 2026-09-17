@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { createMission, deleteMissions, getMissions } from "http-client/mission";
-import { isLoggedIn } from "http-client/login";
 import { Tooltip } from "react-tooltip";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { initialState as wholeStoreInitialState } from "store/index";
@@ -20,7 +19,6 @@ const Missions: React.FunctionComponent = () => {
   const navigate = useNavigate();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [automergeDocListings, setAutomergeDocListings] = useState<AutomergeDocListing[]>([]);
-  const [user, setUser] = useState<AppUser | null>(null);
 
   const loadMissions = useCallback(async () => {
     // Load doc listings and missions in parallel
@@ -58,22 +56,9 @@ const Missions: React.FunctionComponent = () => {
     setMissions(allMissions);
   }, []);
 
-  //on load check login and mission id
   useEffect(() => {
-    async function isLoggedInAsync() {
-      const response = await isLoggedIn();
-      if (
-        response.status === "success" &&
-        (response.data?.isAdmin || response.data?.isSuperAdmin)
-      ) {
-        setUser(response.data);
-        await loadMissions();
-      } else {
-        navigate("/");
-      }
-    }
-    isLoggedInAsync();
-  }, [navigate, loadMissions]);
+    loadMissions();
+  }, [loadMissions]);
 
   // clear the redux store
   useEffect(() => {
@@ -123,7 +108,6 @@ const Missions: React.FunctionComponent = () => {
                 navigate(`/admin/mission/${res.data.missionId}/${res.data.automergeUrl}`);
               }
             }}
-            disabled={user?.id !== 1}
           >
             + Add New Mission
           </button>
@@ -131,7 +115,6 @@ const Missions: React.FunctionComponent = () => {
         <MissionList
           missions={missions}
           automergeDocListings={automergeDocListings}
-          user={user}
           loadMissions={loadMissions}
         />
       </div>
@@ -182,17 +165,14 @@ const CollapsibleMissionSection = ({
 const MissionList = ({
   missions,
   automergeDocListings,
-  user,
   loadMissions,
 }: {
   missions: Mission[];
   automergeDocListings: AutomergeDocListing[];
-  user: AppUser | null;
   loadMissions: Function;
 }) => {
   const automergeRepo = useRepo();
   const navigate = useNavigate();
-  const permissionList = user?.permissionList;
 
   async function delMissionAndAutomerge(missionId: number | null) {
     if (!missionId) return;
@@ -234,135 +214,129 @@ const MissionList = ({
 
   const listedMissionRows = (missionType: Mission[], archivedAtTable = false) => {
     return missionType.map((mission: Mission) => {
-      if (
-        user?.isSuperAdmin ||
-        permissionList?.some((p) => p.missionId === mission.id && p.permissions.edit === true)
-      ) {
-        const automergeUrlForMission =
-          automergeDocListings.find((ar) => ar.missionId === mission.id)?.automergeUrl || "";
-        return (
-          <tr key={mission.id}>
-            <td>{mission.id}</td>
+      const automergeUrlForMission =
+        automergeDocListings.find((ar) => ar.missionId === mission.id)?.automergeUrl || "";
+      return (
+        <tr key={mission.id}>
+          <td>{mission.id}</td>
+          <td>
+            <span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: "0.95rem" }}>
+              {mission.name}
+            </span>
+          </td>
+          <td style={{ textAlign: "center" }}>{mission.actionSystemVersion ?? "—"}</td>
+          <td style={{ whiteSpace: "nowrap" }}>
+            {mission.updatedAt ? new Date(mission.updatedAt).toLocaleString() : "—"}
+          </td>
+          <td style={{ whiteSpace: "nowrap" }}>
+            {mission.createdAt ? new Date(mission.createdAt).toLocaleString() : "—"}
+          </td>
+          {archivedAtTable ? (
+            <td style={{ whiteSpace: "nowrap", fontWeight: 600 }}>
+              {mission.archivedAt ? new Date(mission.archivedAt).toLocaleString() : "—"}
+            </td>
+          ) : null}
+          <td>
+            <div className={styles.missionActions}>
+              <button
+                className={adminCommon.button}
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission/${mission.id}/${automergeUrlForMission}`);
+                }}
+              >
+                Edit Mission
+              </button>
+              <button
+                className={adminCommon.button}
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission_layers/${mission.id}`);
+                }}
+              >
+                Layers
+              </button>
+              <button
+                className={adminCommon.button}
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission_stm/${mission.id}`);
+                }}
+              >
+                STM
+              </button>
+              <button
+                className={styles.buttonSecondary}
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/export/${mission.id}`);
+                }}
+              >
+                Export
+              </button>
+              <button
+                className={styles.buttonSecondary}
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission_duplicate/${mission.id}`);
+                }}
+              >
+                Duplicate
+              </button>
+              <button
+                className={styles.buttonSecondary}
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/mission/${mission.id}/permissions`);
+                }}
+              >
+                Permissions
+              </button>
+              <button
+                className={styles.buttonSecondary}
+                type="button"
+                onClick={() => {
+                  navigate(`/admin/automerge/${automergeUrlForMission}`);
+                }}
+              >
+                Automerge
+              </button>
+              <button
+                className={styles.buttonSecondary}
+                type="button"
+                onClick={() => {
+                  const action = mission.archivedAt ? "Unarchive" : "Archive";
+                  if (
+                    confirm(`Are you sure you want to ${action.toLowerCase()} "${mission.name}"?`)
+                  ) {
+                    archiveMission({
+                      id: mission.id,
+                      archive: !mission.archivedAt,
+                    });
+                  }
+                }}
+              >
+                {mission.archivedAt ? "Unarchive" : "Archive"}
+              </button>
+            </div>
+          </td>
+          {archivedAtTable && (
             <td>
-              <span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: "0.95rem" }}>
-                {mission.name}
-              </span>
+              {mission.archivedAt && (
+                <button
+                  className={adminCommon.buttonDanger}
+                  type="button"
+                  onClick={() => {
+                    delMissionAndAutomerge(mission.id);
+                  }}
+                >
+                  Delete Mission
+                </button>
+              )}
             </td>
-            <td style={{ textAlign: "center" }}>{mission.actionSystemVersion ?? "—"}</td>
-            <td style={{ whiteSpace: "nowrap" }}>
-              {mission.updatedAt ? new Date(mission.updatedAt).toLocaleString() : "—"}
-            </td>
-            <td style={{ whiteSpace: "nowrap" }}>
-              {mission.createdAt ? new Date(mission.createdAt).toLocaleString() : "—"}
-            </td>
-            {archivedAtTable ? (
-              <td style={{ whiteSpace: "nowrap", fontWeight: 600 }}>
-                {mission.archivedAt ? new Date(mission.archivedAt).toLocaleString() : "—"}
-              </td>
-            ) : null}
-            <td>
-              <div className={styles.missionActions}>
-                <button
-                  className={adminCommon.button}
-                  type="button"
-                  onClick={() => {
-                    navigate(`/admin/mission/${mission.id}/${automergeUrlForMission}`);
-                  }}
-                >
-                  Edit Mission
-                </button>
-                <button
-                  className={adminCommon.button}
-                  type="button"
-                  onClick={() => {
-                    navigate(`/admin/mission_layers/${mission.id}`);
-                  }}
-                >
-                  Layers
-                </button>
-                <button
-                  className={adminCommon.button}
-                  type="button"
-                  onClick={() => {
-                    navigate(`/admin/mission_stm/${mission.id}`);
-                  }}
-                >
-                  STM
-                </button>
-                <button
-                  className={styles.buttonSecondary}
-                  type="button"
-                  onClick={() => {
-                    navigate(`/admin/export/${mission.id}`);
-                  }}
-                >
-                  Export
-                </button>
-                <button
-                  className={styles.buttonSecondary}
-                  type="button"
-                  onClick={() => {
-                    navigate(`/admin/mission_duplicate/${mission.id}`);
-                  }}
-                >
-                  Duplicate
-                </button>
-                <button
-                  className={styles.buttonSecondary}
-                  type="button"
-                  onClick={() => {
-                    navigate(`/admin/automerge/${automergeUrlForMission}`);
-                  }}
-                >
-                  Automerge
-                </button>
-                <button
-                  className={styles.buttonSecondary}
-                  type="button"
-                  onClick={() => {
-                    const action = mission.archivedAt ? "Unarchive" : "Archive";
-                    if (
-                      confirm(`Are you sure you want to ${action.toLowerCase()} "${mission.name}"?`)
-                    ) {
-                      archiveMission({
-                        id: mission.id,
-                        archive: !mission.archivedAt,
-                      });
-                    }
-                  }}
-                >
-                  {mission.archivedAt ? "Unarchive" : "Archive"}
-                </button>
-              </div>
-            </td>
-            {archivedAtTable && (
-              <td>
-                {mission.archivedAt && (
-                  <button
-                    className={adminCommon.buttonDanger}
-                    type="button"
-                    onClick={() => {
-                      delMissionAndAutomerge(mission.id);
-                    }}
-                  >
-                    Delete Mission
-                  </button>
-                )}
-              </td>
-            )}
-          </tr>
-        );
-      } else {
-        return (
-          <tr key={mission.id}>
-            <td colSpan={archivedAtTable ? 7 : 6}>
-              <span style={{ color: "#64748b", fontStyle: "italic", fontSize: "0.9rem" }}>
-                {mission.name} [No Edit Permissions]
-              </span>
-            </td>
-          </tr>
-        );
-      }
+          )}
+        </tr>
+      );
     });
   };
 

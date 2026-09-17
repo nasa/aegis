@@ -102,7 +102,7 @@ export const thunkDocCreatePoi = appCreateAsyncThunk<void>(
     const blankPoi = generateBlankPoi({
       missionId: mission.id,
       name: randomName,
-      ownerId: getState().user?.appUser?.id ?? null,
+      ownerId: getState().user?.appUserId ?? null,
     });
 
     // Step 2: Insert the new POI into the Automerge doc

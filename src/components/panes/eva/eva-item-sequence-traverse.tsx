@@ -12,6 +12,7 @@ import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { meetsPermLevel } from "utils/permissionLevels";
 
 const SequenceItemTraverse: FunctionComponent<{
   evaUuid: string;
@@ -25,7 +26,10 @@ const SequenceItemTraverse: FunctionComponent<{
     if (!mission?.rexes) return false;
     return Object.values(mission.rexes).some((rex) => rex.evaUuid === evaUuid);
   }, refEqual);
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
   const traverseDurationAndName: { name: string; duration: number } = useMissionDocSelector(
     (mission) => {
       return {

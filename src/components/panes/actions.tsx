@@ -19,6 +19,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyCreateAction } from "operations/apply/apply-action";
 import { getHighlightedActions } from "store/selectors";
+import { meetsPermLevel } from "utils/permissionLevels";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -59,7 +60,10 @@ const Actions: FunctionComponent<{
       shallowEqual
     ) ?? [];
 
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
 
   const [isActionHighlighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");

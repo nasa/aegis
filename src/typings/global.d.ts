@@ -28,7 +28,6 @@ type GlobalValues = {
   serverSocketStatus: ServerSocketStatus;
   socketInterval: NodeJS.Timeout;
   appVersion: AppVersion;
-  isEmssApiEnabled: boolean;
   automergeRepo: Repo;
   maestroV2: {
     visitorData: { [missionId: string]: MaestroVisitorV2[] };

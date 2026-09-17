@@ -11,6 +11,7 @@ import sortBy from "lodash/sortBy";
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { meetsPermLevel } from "utils/permissionLevels";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -25,9 +26,12 @@ const PoiEditorLeft: FunctionComponent = () => {
 
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
 
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
   const showButtons = useAppSelector(
-    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit") && state.mission.isInEditMode,
     refEqual
   );
 

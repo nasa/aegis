@@ -1,6 +1,5 @@
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useCallback, useEffect, useState } from "react";
-import { isLoggedIn } from "http-client/login";
 import { useDocHandle, useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/automerge-repo";
 import { applyChange, diff } from "deep-diff";
@@ -14,7 +13,6 @@ type RouteParams = {
 };
 
 const ManageAutomergeDoc: React.FunctionComponent = () => {
-  const navigate = useNavigate();
   const params = useParams<RouteParams>();
   // Access the automerge mission document via the useDocument hook instead of the
   // useMissionDocSelector (to read) and useDocHandle (to write). This is because for this
@@ -40,21 +38,6 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
       missionDocHandle.off("change", clgAutomergeDiffs);
     };
   }, [missionDocHandle, clgAutomergeDiffs]);
-
-  //on load check login and mission id
-  useEffect(() => {
-    const isLoggedInAsync = async () => {
-      const response = await isLoggedIn();
-      if (response.status === "success") {
-        if (!(response.data?.isAdmin || response.data?.isSuperAdmin)) {
-          navigate("/"); //Redirect to homepage
-        }
-      } else {
-        navigate("/");
-      }
-    };
-    isLoggedInAsync();
-  }, [navigate]);
 
   // grab the schema from the server via an api endpoint and use it to validate
   const validateMission = async (missionToValidate: unknown): Promise<ErrorObject[]> => {

@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { deleteFile } from "server/file/file"; // Assuming this function is compatible with Express
-import { hasPerms } from "utils/permissions";
+import { isSuperUser, logUsername } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -20,18 +20,13 @@ const parseQuery = (query: Query) => {
 
 router.delete("/", async (req: Request, res: Response) => {
   const queryObj = parseQuery(req.query);
-  const editPermission = hasPerms({
-    missionId: queryObj.missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-  });
-  if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "file/delete",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -51,7 +46,7 @@ router.delete("/", async (req: Request, res: Response) => {
       httpMethod: "DELETE",
       responseStatus: 500,
       routeName: "file/delete",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: e.toString(),
       error: asError(e),

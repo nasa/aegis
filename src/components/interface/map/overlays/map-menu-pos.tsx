@@ -30,6 +30,7 @@ import { updateMapDirective } from "store/map";
 import { generateBlankPosEntry } from "store/storeUtils/rex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { meetsPermLevel } from "utils/permissionLevels";
 
 type ResizeDirection = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
 
@@ -37,7 +38,10 @@ const resizeDirections: ResizeDirection[] = ["n", "ne", "e", "se", "s", "sw", "w
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
   const selectedRex = useMissionDocSelector(
     (mission) => (selectedRexUuid ? mission.rexes?.[selectedRexUuid] : null),

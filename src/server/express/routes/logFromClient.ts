@@ -5,7 +5,7 @@ import express from "express";
 import { sendClientLogsToLogstash } from "@emss/logger";
 import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
-import { getUser } from "packages/getUser";
+import { getLaunchpadUser } from "packages/getUser";
 import { rawServerLogger } from "utils/logging/serverLogger";
 
 const router = express.Router();
@@ -17,7 +17,7 @@ const router = express.Router();
  * the message, then forward the message on to our logging server.
  */
 router.put("/", async (req: Request, res: Response): Promise<void> => {
-  const user = getUser(req);
+  const user = getLaunchpadUser(req);
   if (user instanceof Error) {
     return handleUnableToDecodeJWT(user, res);
   }

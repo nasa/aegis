@@ -501,7 +501,7 @@ export const thunkDocCreateStation = appCreateAsyncThunk<void>(
       missionId: mission.id,
       name: randomName,
       mapCircleControls: blankMapCircleControls,
-      ownerId: getState().user?.appUser?.id ?? null,
+      ownerId: getState().user?.appUserId ?? null,
     });
 
     // Step 2: Insert the fully-built station into the Automerge doc

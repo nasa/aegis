@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import express from "express";
 import type { Query } from "express-serve-static-core";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, isSuperUser, logUsername, missionIdsAtLevel } from "utils/permissions";
 import { Doc_Listing_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -24,26 +24,20 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  let viewPermission;
-  if (queryObj.missionId) {
-    viewPermission = hasPerms({
-      missionId: queryObj.missionId,
-      permission: "view",
-      appUser: req.session.appUser,
-    });
-  } else {
-    //no mission was specified. check if they are allowed to view at least one mission
-    viewPermission =
-      req.session?.appUser?.isSuperAdmin ||
-      req.session?.appUser?.permissionList?.find((p) => p.permissions.view)?.permissions.view;
-  }
+  const seesEverything = isSuperUser(req.currentUser);
+  const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
+
+  const viewPermission = queryObj.missionId
+    ? apiHasPerms({ missionId: queryObj.missionId, required: "viewer", user: req.currentUser })
+    : // no mission was specified, so check they can view at least one
+      seesEverything || viewableMissions.length > 0;
   if (!viewPermission) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "automerge",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -56,16 +50,8 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     if (queryObj.missionId) {
       records = await getAutomergeDocListing([queryObj.missionId]);
     } else {
-      //super admin can see all missions
-      if (req.session.appUser.isSuperAdmin) {
-        records = await getAutomergeDocListing();
-      } else {
-        //return all missions that they have permission for
-        const viewableMissions: number[] = req.session.appUser.permissionList.map((p) => {
-          if (p.permissions.view) return p.missionId;
-        });
-        records = await getAutomergeDocListing(viewableMissions);
-      }
+      // A super user holds no grant rows, so null here means every mission.
+      records = await getAutomergeDocListing(seesEverything ? null : viewableMissions);
     }
     res.status(200).json({
       status: "success",
@@ -78,7 +64,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "automerge",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: `Error processing the GET request ${e}`,
       error: asError(e),

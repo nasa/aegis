@@ -38,7 +38,6 @@ interface VisitorData {
   missionId: number;
   permission: "editor" | "viewer";
   clientAppVersion: AppVersion;
-  appUser: AppUser;
   launchpadUser: LaunchpadUser;
   connectedAt: number; // timestamp when the visitor joined
 }

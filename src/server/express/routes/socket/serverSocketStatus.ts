@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { isSuperUser, logUsername } from "utils/permissions";
 
 import express from "express";
 
@@ -18,13 +19,13 @@ const router = express.Router();
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     // only super admin can see socket info
-    if (!req.session?.appUser?.isSuperAdmin) {
+    if (!isSuperUser(req.currentUser)) {
       serverLogger.apiRoute({
         logLevel: "warning",
         httpMethod: "GET",
         responseStatus: 401,
         routeName: "socket/serverSocketStatus",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         message: "Unauthorized",
       });
       res.status(401).json({ status: "failure", message: "Unauthorized" });
@@ -38,7 +39,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "socket/serverSocketStatus",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: e.toString(),
       error: asError(e),
     });

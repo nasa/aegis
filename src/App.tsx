@@ -12,13 +12,23 @@ import AdminMissionLayers from "pages/admin/missionLayers";
 import AdminMissionSTM from "pages/admin/missionSTM";
 import AdminMissionDuplicate from "pages/admin/missionDuplicate";
 import AdminUser from "pages/admin/user";
+import AdminUserDetail from "pages/admin/userDetail";
+import AdminGroups from "pages/admin/group";
+import AdminGroupDetail from "pages/admin/groupDetail";
+import AdminKnownUsers from "pages/admin/knownUsers";
+import AdminMissionPermissions from "pages/admin/missionPermissions";
 import ServerSocketStatus from "pages/admin/serverSocketStatus";
-import Emss from "pages/admin/emss";
 import MaestroV2 from "pages/admin/maestroV2";
 import EnvironmentConfig from "pages/admin/environmentConfig";
 import ManageAutomergeDoc from "pages/admin/automerge";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { setLaunchpadUser } from "store/user";
+
+import type { FunctionComponent, ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+
+import { getCurrentUserAndAccess } from "http-client/access";
+import { setAppUserId, setIsSuperUser, setLaunchpadUser } from "store/user";
 
 const TestMapPerformant = React.lazy(() => import("pages/testMapPerformant"));
 
@@ -43,22 +53,68 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
             </React.Suspense>
           }
         />
-        <Route path="/admin" element={<AdminHome />} />
-        <Route path="/admin/export/:id" element={<AdminExport />} />
-        <Route path="/admin/automerge/:automergeUrl?" element={<ManageAutomergeDoc />} />
-        <Route path="/admin/missions" element={<AdminMissions />} />
-        <Route path="/admin/mission/:id/:automergeUrl?" element={<AdminMission />} />
-        <Route path="/admin/mission_layers/:id" element={<AdminMissionLayers />} />
-        <Route path="/admin/mission_stm/:id" element={<AdminMissionSTM />} />
-        <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
-        <Route path="/admin/user" element={<AdminUser />} />
-        <Route path="/admin/serverSocketStatus" element={<ServerSocketStatus />} />
-        <Route path="/admin/maestroV2" element={<MaestroV2 />} />
-        <Route path="/admin/environmentConfig" element={<EnvironmentConfig />} />
-        <Route path="/admin/emss" element={<Emss />} />
+        {/* Every admin route is superUser-group-only. */}
+        <Route
+          path="/admin/*"
+          element={
+            <RequireSuperUser>
+              <Routes>
+                <Route path="/" element={<AdminHome />} />
+                <Route path="export/:id" element={<AdminExport />} />
+                <Route path="automerge/:automergeUrl?" element={<ManageAutomergeDoc />} />
+                <Route path="missions" element={<AdminMissions />} />
+                <Route path="mission/:id/permissions" element={<AdminMissionPermissions />} />
+                <Route path="mission/:id/:automergeUrl?" element={<AdminMission />} />
+                <Route path="mission_layers/:id" element={<AdminMissionLayers />} />
+                <Route path="mission_stm/:id" element={<AdminMissionSTM />} />
+                <Route path="mission_duplicate/:id" element={<AdminMissionDuplicate />} />
+                <Route path="user" element={<AdminUser />} />
+                <Route path="user/:id" element={<AdminUserDetail />} />
+                <Route path="group" element={<AdminGroups />} />
+                <Route path="group/:id" element={<AdminGroupDetail />} />
+                <Route path="knownUsers" element={<AdminKnownUsers />} />
+                <Route path="serverSocketStatus" element={<ServerSocketStatus />} />
+                <Route path="maestroV2" element={<MaestroV2 />} />
+                <Route path="environmentConfig" element={<EnvironmentConfig />} />
+              </Routes>
+            </RequireSuperUser>
+          }
+        />
       </Routes>
     </>
   );
 };
 
 export default App;
+
+/**
+ * Gate for every /admin page. Membership of the reserved superUser group is the only thing that
+ * grants admin access; the old per-page isAdmin / isSuperAdmin checks are gone.
+ *
+ * Renders nothing while resolving and sends non-members back to the homepage, so children only
+ * ever mount for a confirmed super user.
+ */
+const RequireSuperUser: FunctionComponent<{ children: ReactNode }> = ({ children }) => {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const access = await getCurrentUserAndAccess();
+      if (access instanceof Error || !access.isSuperUser) {
+        navigate("/");
+        setAllowed(false);
+        return;
+      }
+
+      dispatch(setLaunchpadUser(access.launchpadUser));
+      dispatch(setAppUserId(access.appUser?.id ?? null));
+      dispatch(setIsSuperUser(true));
+      setAllowed(true);
+    })();
+  }, [dispatch, navigate]);
+
+  if (!allowed) return null;
+  return <>{children}</>;
+};

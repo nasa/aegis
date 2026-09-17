@@ -1,4 +1,5 @@
 import type { FunctionComponent } from "react";
+import { meetsPermLevel } from "utils/permissionLevels";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import {
   faBan,
@@ -36,7 +37,10 @@ const PresetEditorRight: FunctionComponent = () => {
     (state) => state.preset.selectedRightNavItem,
     refEqual
   );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const editPerms = useAppSelector(
+    (state) => meetsPermLevel(state.user.missionPermLevel, "edit"),
+    refEqual
+  );
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedPreset = useAppSelector(
     (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),

@@ -10,7 +10,7 @@ import { populateStore } from "store/processing/populateStore";
 import { setAllSliceStores } from "store/crossActions";
 import { workerData, parentPort } from "worker_threads";
 import { createHash } from "crypto";
-import { setAppUser } from "store/user";
+import { setUserState } from "store/user";
 import { BrowserWebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
 import type { NetworkAdapterInterface } from "@automerge/automerge-repo";
 import { Repo } from "@automerge/automerge-repo";
@@ -46,36 +46,23 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
     // Disable TLS certificate validation for load testing locally with self-signed certs
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-    // login to the server
-    const loginRes = await fetch(`${serverURL}/api/v1/auth/login`, {
-      method: "POST",
-      body: JSON.stringify({ username: "loadtest", password: process.env.LOADTEST_PASSWORD }),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    const loginJson: WrappedResponse<AppUser> = await loginRes.json();
-    if (loginJson.status !== "success") {
-      console.error("Login failed:", loginJson.message);
+    // Identity comes from the SSO token. Against a load-test target
+    // running with MOCK_USER the resolved identity is the mock user.
+    const accessRes = await fetch(`${serverURL}/api/v1/user/current`);
+    const access = (await accessRes.json()) as CurrentUser;
+    if (!access?.launchpadUser) {
+      console.error("Unable to resolve the current user");
       process.exit(1);
     }
     dispatch(
-      setAppUser({
-        isLoggedIn: true,
-        user: loginJson.data,
-        missionPerms: { missionId: TEST_MISSION_ID, permissions: { view: true, edit: true } },
+      setUserState({
+        isLoggedIn: !!access.launchpadUser,
+        launchpadUser: access.launchpadUser,
+        appUserId: access.appUser?.id ?? null,
+        isSuperUser: access.isSuperUser,
+        missionPermLevel: "edit",
       })
     );
-    // Extract cookies from login response for auth in subsequent api requests
-    const cookieFromHeader = loginRes.headers.get("set-cookie");
-    let formattedCookieStr = "";
-    if (cookieFromHeader) {
-      // Parse multiple cookies if they exist
-      const cookies = cookieFromHeader.split(",").map((cookie) => {
-        // Extract just the name=value part before the first semicolon
-        return cookie.split(";")[0].trim();
-      });
-      formattedCookieStr = cookies.join("; ");
-    }
 
     // Get the server app version so we can pass through the epoch uuid
     const versionRes = await fetch(`${serverURL}/api/v1/version?_=${Date.now()}`, {
@@ -104,7 +91,7 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
       runAudit: false,
       loadTestOptions: {
         serverURL: serverURL,
-        cookies: formattedCookieStr,
+        cookies: "",
       },
       automergeRepo,
     });

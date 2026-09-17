@@ -23,9 +23,18 @@ interface MissionState {
 
 interface UserState {
   isLoggedIn: boolean;
-  appUser: AppUser;
-  missionPerms: Permission;
+  /** Uupic, auid, and display_name all come from the token. */
   launchpadUser: LaunchpadUser;
+  /**
+   * The managed-user row id, used as `ownerId` on entities the user creates. Null for someone who
+   * holds no grants and therefore has no managed row. This is a foreign key, not identity data —
+   * every displayable field comes from `launchpadUser`.
+   */
+  appUserId: number | null;
+  /** Derived from membership of the superUser group. */
+  isSuperUser: boolean;
+  /** Effective level for the currently open mission, or null when there is no access. */
+  missionPermLevel: PermissionLevel | null;
 }
 
 interface MapState {

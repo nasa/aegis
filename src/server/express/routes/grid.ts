@@ -8,7 +8,7 @@ import express from "express";
 import parseInt from "lodash/parseInt";
 
 import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
@@ -31,13 +31,11 @@ const parseQuery = (query: Query) => {
 // get grid
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const emssToken = req.headers["emss-token"] as string;
 
-  const viewPermission = hasPerms({
+  const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "viewer",
+    user: req.currentUser,
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
@@ -45,7 +43,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "grid",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -58,7 +56,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "grid",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Invalid mission ID",
     });
@@ -79,7 +77,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "grid",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: `Error processing the GET request ${e}`,
       error: asError(e),
@@ -91,13 +89,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 // get closest point
 router.get("/closestPoint", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const emssToken = req.headers["emss-token"] as string;
 
-  const viewPermission = hasPerms({
+  const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "viewer",
+    user: req.currentUser,
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
@@ -105,7 +101,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "grid/closestPoint",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -118,7 +114,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "grid/closestPoint",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Invalid mission ID",
     });
@@ -131,7 +127,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "grid/closestPoint",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Missing query object",
     });
@@ -156,7 +152,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "grid/closestPoint",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: `Error processing the GET request ${e}`,
       error: asError(e),
@@ -168,13 +164,11 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
 // post
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { grid, missionId, upsertFullGrid } = req.body as GridUpsertRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -182,7 +176,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "grid",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: "Unauthorized",
     });
@@ -197,7 +191,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "grid",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         message: "No grid provided in request body",
       });
@@ -218,7 +212,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "grid",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: `Error processing the POST request ${e}`,
       error: asError(e),
@@ -230,13 +224,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 // delete
 router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId } = req.body as GridDeleteRequest;
-  const emssToken = req.headers["emss-token"] as string;
 
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-    emssToken,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -244,7 +236,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 401,
       routeName: "grid",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: "Unauthorized",
     });
@@ -266,7 +258,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "DELETE",
         responseStatus: 404,
         routeName: "grid",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         message: "Record not found. Nothing deleted",
       });
@@ -281,7 +273,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "DELETE",
       responseStatus: 500,
       routeName: "grid",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: "Error processing the DELETE request",
       error: asError(e),

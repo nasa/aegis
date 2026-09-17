@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 
 import { globalValues } from "../../global";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -23,10 +23,10 @@ const parseQuery = (query: Query) => {
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   try {
-    const viewPermission = hasPerms({
+    const viewPermission = apiHasPerms({
       missionId: queryObj.missionId,
-      permission: "view",
-      appUser: req.session.appUser,
+      required: "viewer",
+      user: req.currentUser,
     });
     if (!viewPermission) {
       serverLogger.apiRoute({
@@ -34,7 +34,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "GET",
         responseStatus: 401,
         routeName: "socket/lastEditEvent",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId: queryObj.missionId,
         message: "Unauthorized",
       });
@@ -47,7 +47,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "GET",
         responseStatus: 400,
         routeName: "socket/lastEditEvent",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId: queryObj.missionId,
         message: "Invalid mission ID",
       });
@@ -68,7 +68,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "socket/lastEditEvent",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: e.toString(),
       error: asError(e),

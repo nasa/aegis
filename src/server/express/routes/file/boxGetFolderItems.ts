@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import { BoxClient, BoxCcgAuth, CcgConfig } from "box-node-sdk";
 import express from "express";
 
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -23,10 +23,10 @@ const parseQuery = (query: Query) => {
 // get boxDownloadFile
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const editPermission = hasPerms({
+  const editPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
+    required: "edit",
+    user: req.currentUser,
   });
   if (!editPermission) {
     serverLogger.apiRoute({
@@ -34,7 +34,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "file/boxGetFolderItems",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       uuids: [queryObj.itemId],
       message: "Unauthorized",
@@ -78,7 +78,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "file/boxGetFolderItems",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       uuids: [queryObj.itemId],
       message: e.toString(),

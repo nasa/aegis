@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { isSuperUser, logUsername } from "utils/permissions";
 
 import express from "express";
 
@@ -12,13 +13,13 @@ const router = express.Router();
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId } = req.body;
 
-  if (!req.session?.appUser?.isSuperAdmin) {
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "missionDup",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: missionId,
       message: "Unauthorized",
     });
@@ -32,7 +33,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 400,
       routeName: "missionDup",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: missionId,
       message: "missionId is required in the request body",
     });
@@ -54,7 +55,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 500,
         routeName: "missionDup",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId: parseInt(missionId as string),
         message: "Failed to duplicate mission after multiple tries due to optimistic locking",
         error: new Error(
@@ -80,7 +81,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "missionDup",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: parseInt(missionId as string),
       message: `Error processing the POST request ${e}`,
       error: asError(e),

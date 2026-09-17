@@ -12,7 +12,6 @@ import AdminMissionGrid from "components/admin/gridUpload";
 import adminCommon from "./adminCommon.module.css";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
-import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
 import { isCanonicalSouthLpsMission } from "utils/lgrs/dynamicGrid";
 import { getGridRenderMode } from "utils/mapping/grid";
@@ -90,8 +89,7 @@ const Mission: React.FunctionComponent = () => {
     setMaestroError(null);
     setMaestroResponseMeta(null);
 
-    const currentUser = await getCurrentUser();
-    const owners: LaunchpadUser[] = currentUser instanceof Error ? [] : [currentUser];
+    const owners: LaunchpadUser[] = maestroCurrentUser ? [maestroCurrentUser] : [];
 
     const response = await maestroCreateDoc({
       missionId: automergeMission.id,
@@ -119,7 +117,7 @@ const Mission: React.FunctionComponent = () => {
         m.maestroDocId = response.data.documentId;
       });
     }
-  }, [automergeMission, changeAutomergeMission, maestroAccessControl]);
+  }, [automergeMission, changeAutomergeMission, maestroAccessControl, maestroCurrentUser]);
 
   const handleClearMaestroDocId = useCallback(() => {
     setMaestroError(null);

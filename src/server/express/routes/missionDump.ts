@@ -1,6 +1,7 @@
 import type { EntityManager } from "@mikro-orm/postgresql";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
+import { isSuperUser, logUsername } from "utils/permissions";
 
 import express from "express";
 
@@ -33,13 +34,13 @@ const parseQuery = (query: Query) => {
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
 
-  if (!req.session?.appUser?.isSuperAdmin) {
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "missionDump",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -53,7 +54,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "missionDump",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Mission ID is required",
     });
@@ -76,7 +77,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "missionDump",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: `Error exporting mission: ${e}`,
       error: asError(e),

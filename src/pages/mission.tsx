@@ -1,11 +1,8 @@
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
-import { useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import styles from "./mission.module.css";
-import { setAppUser } from "store/user";
 import { Tooltip } from "react-tooltip";
-import { isLoggedIn } from "http-client/login";
-import { useNavigate } from "react-router";
 import Header from "components/interface/header";
 import { NavGutter } from "components/interface/side-controls";
 import SocketClient from "components/page/socketClient";
@@ -18,6 +15,9 @@ import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
 import { clientLogger } from "utils/logging/clientLogger";
+import { meetsPermLevel } from "utils/permissionLevels";
+import { getCurrentUserAndAccess } from "http-client/access";
+import { setUserState } from "store/user";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { useEffect, useState } from "react";
@@ -42,8 +42,8 @@ const Main: React.FunctionComponent = () => {
     (state) => !!state.connection.socketStatus.lastStatusFromServer.serverVersion,
     deepEqual
   );
+  const missionPermLevel = useAppSelector((state) => state.user.missionPermLevel, deepEqual);
 
-  const [missionPerms, setMissionPerms] = useState(null);
   const [storeIsPopulated, setStoreIsPopulated] = useState(false);
   const [searchParams] = useSearchParams();
   const evaRefUuid = searchParams.get("evaRefUuid");
@@ -67,51 +67,53 @@ const Main: React.FunctionComponent = () => {
   const paneTypes = getPaneTypes(partialMission?.actionSystemVersion);
   const paneType: PaneType = paneTypes[interfaceStateLabel as keyof PaneTypes];
 
+  // Resolves access and populates the user store, or sends the user home when they have none.
   useEffect(() => {
     if (!intMissionId) return;
+
     (async () => {
-      // Get permissions
-      let missionPerms: Permission = null;
-      const response = await isLoggedIn();
-      if (response.status !== "success") {
-        navigate("/"); // Kick user out back to homepage
+      const access = await getCurrentUserAndAccess();
+      if (access instanceof Error) {
+        navigate("/");
         return;
       }
-      if (response.data.isSuperAdmin) {
-        missionPerms = { missionId: intMissionId, permissions: { view: true, edit: true } };
-      } else {
-        missionPerms = response.data.permissionList?.find(
-          (permission) => permission.missionId === intMissionId
-        );
-        if (!missionPerms || (!missionPerms.permissions.view && !missionPerms.permissions.edit)) {
-          navigate("/");
-          return;
-        }
+
+      // A super user has implicit edit everywhere and therefore carries no grant rows.
+      const level = access.isSuperUser ? "edit" : (access.grants?.[String(intMissionId)] ?? null);
+
+      if (!level) {
+        navigate("/");
+        return;
       }
 
-      // Populate the user store
-      dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
-      // log user info
+      dispatch(
+        setUserState({
+          isLoggedIn: !!access.launchpadUser,
+          launchpadUser: access.launchpadUser,
+          appUserId: access.appUser?.id ?? null,
+          isSuperUser: access.isSuperUser,
+          missionPermLevel: level,
+        })
+      );
+
       clientLogger.info({
         logId: "appLogin",
-        appUsername: response.data.username,
+        appUsername: access.launchpadUser.auid,
         missionId: intMissionId,
         page: "mission",
       });
-
-      setMissionPerms(missionPerms);
     })();
   }, [dispatch, intMissionId, navigate]);
 
   // Populate the store only after permission check is done AND serverVersion is available.
   // This is to ensure we have the latest app before any audits are made or data is retrieved
   useEffect(() => {
-    if (!missionPerms || !isVersionChecked || !automergeRepo) return;
+    if (!missionPermLevel || !isVersionChecked || !automergeRepo) return;
 
     (async () => {
       // Get the rest of the store data
       let wholeStoreState: WholeStoreState;
-      if (missionPerms.permissions?.edit) {
+      if (meetsPermLevel(missionPermLevel, "edit")) {
         wholeStoreState = await populateStore({
           missionId: intMissionId,
           runAudit: true,
@@ -139,7 +141,7 @@ const Main: React.FunctionComponent = () => {
   }, [
     isVersionChecked,
     automergeRepo,
-    missionPerms,
+    missionPermLevel,
     dispatch,
     intMissionId,
     evaRefUuid,
@@ -182,7 +184,7 @@ const Main: React.FunctionComponent = () => {
 
   return (
     <>
-      {missionPerms && partialMission && storeIsPopulated ? (
+      {missionPermLevel && partialMission && storeIsPopulated ? (
         <>
           {partialMission.archivedAt ? (
             <div className={styles.archivedBody}>

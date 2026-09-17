@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { renameFile } from "server/file/file"; // Assuming this function is compatible with Express
-import { hasPerms } from "utils/permissions"; // Assuming you have a session middleware compatible with Express
+import { isSuperUser, logUsername } from "utils/permissions"; // Assuming you have a session middleware compatible with Express
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -23,18 +23,13 @@ const parseQuery = (query: Query) => {
 
 router.get("/", async (req: Request, res: Response) => {
   const queryObj = parseQuery(req.query);
-  const editPermission = hasPerms({
-    missionId: queryObj.missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-  });
-  if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "file/rename",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -58,7 +53,7 @@ router.get("/", async (req: Request, res: Response) => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "file/rename",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: e.toString(),
       error: asError(e),

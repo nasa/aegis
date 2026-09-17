@@ -1,11 +1,9 @@
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { listFiles, deleteFile, renameFile } from "http-client/file";
-import { isLoggedIn } from "http-client/login";
 import UploadFile from "./uploadFile";
 import adminStyles from "components/admin/admin.module.css";
 import DownloadFromBox from "./downloadFromBox";
-import { useNavigate } from "react-router";
 import prettyBytes from "pretty-bytes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
@@ -28,8 +26,6 @@ const FileManager: FunctionComponent<{
   const [dirListing, setDirListing] = useState<fileState[]>([]);
   const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(false);
   const [hideDirectoryListing, setHideDirectoryListing] = useState(false);
-
-  const navigate = useNavigate();
 
   //custom type to store states of each file
   type fileState = {
@@ -156,17 +152,8 @@ const FileManager: FunctionComponent<{
   }
 
   useEffect(() => {
-    const isLoggedInAsync = async () => {
-      const response = await isLoggedIn(); //check user is logged in
-      if (response.status === "success") {
-        await getDirListing(); //load directory listing on mount/start
-      } else {
-        //user is not logged in. Redirect to homepage using react-router
-        navigate("/");
-      }
-    };
-    isLoggedInAsync();
-  }, [navigate, getDirListing]);
+    getDirListing();
+  }, [getDirListing]);
 
   return (
     <div>

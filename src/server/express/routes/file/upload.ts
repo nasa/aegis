@@ -7,7 +7,7 @@ import express from "express";
 import multer from "multer";
 
 import { deleteFile, moveFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
-import { hasPerms } from "utils/permissions";
+import { isSuperUser, logUsername } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -26,18 +26,13 @@ const parseQuery = (query: Query) => {
 // Middleware to check user session
 router.use(async (req: Request, res: Response, next): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const editPermission = hasPerms({
-    missionId: queryObj.missionId,
-    permission: "edit",
-    appUser: req.session.appUser,
-  });
-  if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
+  if (!isSuperUser(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "file/upload",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -86,7 +81,7 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "file/upload",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId: queryObj.missionId,
         message: "No file provided in request body",
       });
@@ -98,7 +93,7 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
       httpMethod: "POST",
       responseStatus: 500,
       routeName: "file/upload",
-      appUsername: req.session.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: error instanceof Error ? error.message : "Error uploading file",
       error: asError(error),

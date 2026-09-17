@@ -1,7 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { isLoggedIn } from "http-client/login";
 import { getMissionHomepageItems } from "http-client/mission";
 import React from "react";
 import { io } from "socket.io-client";
@@ -146,15 +145,6 @@ const MaestroV2: React.FunctionComponent = () => {
     });
 
     (async () => {
-      const response = await isLoggedIn();
-      if (response.status === "success") {
-        if (!response.data.isSuperAdmin) {
-          navigate("/");
-        }
-      } else {
-        navigate("/");
-      }
-
       const missionsRes = await getMissionHomepageItems();
       if (missionsRes.status === "success" && missionsRes.data) {
         const nameMap = new Map<number, string>();

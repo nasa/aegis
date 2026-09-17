@@ -9,7 +9,7 @@ import { getSublayers } from "./sublayer";
 import { getPresets } from "./preset";
 import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
 import { getStmRules } from "./stmRules";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "./missionAutomerge";
@@ -27,13 +27,11 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const emssToken = req.headers["emss-token"] as string;
 
-  const viewPermission = hasPerms({
+  const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session?.appUser,
-    emssToken,
+    required: "viewer",
+    user: req.currentUser,
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
@@ -41,7 +39,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 401,
       routeName: "all",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Unauthorized",
     });
@@ -54,7 +52,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "all",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: "Invalid mission ID",
     });
@@ -74,7 +72,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "GET",
       responseStatus: 500,
       routeName: "all",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId: queryObj.missionId,
       message: `Error getting everything ${e}`,
       error: asError(e),

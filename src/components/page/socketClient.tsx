@@ -24,7 +24,7 @@ const SocketClient: FunctionComponent<{ missionId: number }> = ({ missionId }) =
 
   //Handle socketio events
   useEffect(() => {
-    if (!missionId || !user?.missionPerms || !connectionStore?.clientAppVersion) return;
+    if (!missionId || !user?.missionPermLevel || !connectionStore?.clientAppVersion) return;
     // Create a socket connection to the server.
     // On handshake, the server will generate an socket id for the client
     if (!socket.current || (socket.current && !socket.current.connected)) {
