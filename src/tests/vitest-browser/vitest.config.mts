@@ -29,6 +29,11 @@ export default defineConfig(
       // and hooks deref null inside their providers.
       dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
     },
+    optimizeDeps: {
+      // Paper.js requires CommonJS interop, so it must remain pre-bundled.
+      include: ["paper"],
+      needsInterop: ["paper"],
+    },
     test: {
       globals: true,
       browser: {

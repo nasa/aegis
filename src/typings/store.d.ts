@@ -87,6 +87,7 @@ type InterfaceSection =
   | "stmViewer"
   | "stmRules";
 type BottomInterfaceSection = "timeline" | "measure";
+type SlopeColorMode = "standard" | "colorblind";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
   bottomSectionSelectedLabel: BottomInterfaceSection;
@@ -99,6 +100,7 @@ interface InterfaceState {
   elevationPendingItemUuids: string[];
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
+  slopeColorMode: SlopeColorMode;
   folders: Folder[];
   foldersInterface: FolderInterface[];
 }
@@ -149,7 +151,8 @@ interface Measurement {
   color: string;
   path: AEGISPoint[];
   pathSegmentDistances: number[]; //meters
-  pathSegmentElevations: number[][]; //meters
+  pathSegmentElevations: number[][] | null; //meters
+  pathSegmentAbsoluteSlopes: (number | null)[][] | null; //degrees
   pathSegmentBearings: number[]; //degrees
 }
 

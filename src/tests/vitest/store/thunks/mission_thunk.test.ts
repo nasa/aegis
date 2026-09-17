@@ -15,15 +15,19 @@ const makeLanderStation = (location: AEGISPoint): Station =>
     elevation: null,
   });
 
-const mockThunkFetchElevation = vi.fn().mockReturnValue({
+const mockThunkFetchPointElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-// thunkGetElevation is the outer factory — spy on it so mock.calls captures
-// the { path, pathSegmentDistances, uuid } args passed to the factory.
-// The factory returns mockThunkFetchElevation which the store dispatches.
-const mockThunkFetchElevationFactory = vi.fn((..._args) => mockThunkFetchElevation);
-vi.mock("store/thunk/thunkElevation", () => ({
-  thunkFetchElevation: (...args: unknown[]) => mockThunkFetchElevationFactory(...args),
+// The outer factory spy captures the { point, uuid } args passed to the thunk.
+const mockThunkFetchPointElevationFactory = vi.fn((..._args) => mockThunkFetchPointElevation);
+
+const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
+  meta: { requestStatus: "rejected" },
+});
+const mockThunkFetchTerrainProfileFactory = vi.fn((..._args) => mockThunkFetchTerrainProfile);
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchPointElevation: (...args: unknown[]) => mockThunkFetchPointElevationFactory(...args),
+  thunkFetchTerrainProfile: (...args: unknown[]) => mockThunkFetchTerrainProfileFactory(...args),
 }));
 
 const getMission = (): Mission => getMissionDocHandle().doc();
@@ -69,7 +73,7 @@ describe("Thunk Mission Tests", () => {
 
       // lander itself updated on the automerge doc
       expect(getMission().landerLocation).toEqual(newLanderLoc);
-      expect(mockThunkFetchElevationFactory).toHaveBeenCalled();
+      expect(mockThunkFetchPointElevationFactory).toHaveBeenCalled();
 
       // All stations with a walkback path should have the lander endpoint snapped
       // to the new lander location.
@@ -121,7 +125,7 @@ describe("Thunk Mission Tests", () => {
     });
 
     it("stores landerElevationMeters when elevation lookup succeeds", async () => {
-      mockThunkFetchElevation.mockReturnValueOnce({
+      mockThunkFetchPointElevation.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
         payload: 4321,
       });
@@ -288,13 +292,11 @@ describe("Thunk Mission Tests", () => {
       // the second pass would overwrite with a path snapped from a stale clone,
       // potentially corrupting the midpoint.
       expect(updated.path[1]).toEqual(midpoint);
-      // Exactly one elevation fetch must have been dispatched for this traverse uuid
-      // (not two — one per EVA). mockThunkFetchElevationFactory records the args
-      // passed to thunkFetchElevation(), including the uuid field.
-      const elevCallsForTraverse = mockThunkFetchElevationFactory.mock.calls.filter(
+      // Exactly one combined profile fetch must be dispatched for this traverse uuid.
+      const profileCallsForTraverse = mockThunkFetchTerrainProfileFactory.mock.calls.filter(
         (call) => (call[0] as { uuid?: string })?.uuid === sharedTraverse.uuid
       );
-      expect(elevCallsForTraverse).toHaveLength(1);
+      expect(profileCallsForTraverse).toHaveLength(1);
     });
 
     it("skips evas with empty sequences (no traverse to update)", async () => {

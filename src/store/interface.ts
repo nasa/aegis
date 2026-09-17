@@ -13,6 +13,7 @@ export const initialState: InterfaceState = {
   elevationPendingItemUuids: [],
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
+  slopeColorMode: "standard",
   folders: [],
   foldersInterface: [],
 };
@@ -57,6 +58,9 @@ export const interfaceSlice = createSlice({
     },
     setShowElevation: (state, action: { payload: boolean }) => {
       state.timelineShowElevation = action.payload;
+    },
+    setSlopeColorMode: (state, action: { payload: SlopeColorMode }) => {
+      state.slopeColorMode = action.payload;
     },
     setFolders: (state, action: { payload: Folder[] }) => {
       state.folders = action.payload;
@@ -155,6 +159,7 @@ export const {
   removeElevationPending,
   setShowDistanceFromLander,
   setShowElevation,
+  setSlopeColorMode,
   setFolders,
   folderToggleOpenClose,
   folderToggleVisible,

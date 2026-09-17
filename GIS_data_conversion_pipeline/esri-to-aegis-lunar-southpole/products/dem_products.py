@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-"""Derive standardized AEGIS raster products from a DEM (slope, hillshade, aspect, TRI).
+"""Derive standardized AEGIS raster products from a DEM.
 
 This lets us **control our own standardized products** straight from a DEM input rather
 than depending on whatever the GIS team happens to deliver.  Each product is produced as
 an 8-bit raster ready for ``common/tile_to_cap_grid.py``:
 
     slope      → degrees, colorized via default_color_ramps/slope.txt       (RGBA)
+    slope_colorblind → degrees, colorized via slope_colorblind.txt           (RGBA)
     hillshade  → shaded relief, grayscale, no colour ramp                   (single band)
     aspect     → slope-facing azimuth, colorized via aspect.txt             (RGBA)
     tri        → Terrain Ruggedness Index (m), colorized via tri.txt        (RGBA)
 
-Built-in ramps live in ``products/default_color_ramps/`` (the fallbacks). When the GIS team
-delivers product symbology as an ArcGIS ``.lyrx``, pass it with ``--slope-lyrx`` /
-``--aspect-lyrx`` / ``--tri-lyrx`` and it is used **instead of** the default ramp (converted
-on the fly by ``lyrx_to_ramp.py``). Precedence per product: ``--*-lyrx`` > ``--*-ramp`` >
-default. ``default_color_ramps/slope.txt`` encodes the same standard as the MS3
-``AMPES_Slope 1.lyrx``, so DEM-derived slope and GIS-delivered slope render identically.
+Built-in ramps live in ``products/default_color_ramps/`` (the fallbacks). The default slope
+palette is defined by ``default_color_ramps/slope.txt``. When the GIS team delivers product
+symbology as an ArcGIS ``.lyrx``, pass it with ``--slope-lyrx`` / ``--aspect-lyrx`` /
+``--tri-lyrx`` and it is used **instead of** the default ramp (converted on the fly by
+``lyrx_to_ramp.py``). Precedence per product: ``--*-lyrx`` > ``--*-ramp`` > default.
 
 **TRI is resolution-dependent** — the default ``tri.txt`` is the legacy 7-class ramp; for a
 specific DEM resolution prefer a matching ramp from ``products/default_color_ramps/ARCHIVE/``
@@ -65,6 +65,7 @@ RAMPS = ROOT / "default_color_ramps"
 # Default colour ramp per product. Hillshade is grayscale → no ramp.
 DEFAULT_RAMPS: dict[str, Path | None] = {
     "slope": RAMPS / "slope.txt",
+    "slope_colorblind": RAMPS / "slope_colorblind.txt",
     "aspect": RAMPS / "aspect.txt",
     "tri": RAMPS / "tri.txt",
     "hillshade": None,
@@ -73,12 +74,13 @@ DEFAULT_RAMPS: dict[str, Path | None] = {
 # gdal.DEMProcessing's processing keyword per product (TRI must be upper-case "TRI").
 GDAL_MODE = {
     "slope": "slope",
+    "slope_colorblind": "slope",
     "aspect": "aspect",
     "tri": "TRI",
     "hillshade": "hillshade",
 }
 
-ALL_PRODUCTS = ["slope", "hillshade", "aspect", "tri"]
+ALL_PRODUCTS = ["slope", "slope_colorblind", "hillshade", "aspect", "tri"]
 
 
 def _progress(label: str):
@@ -95,7 +97,9 @@ def _progress(label: str):
     return cb
 
 
-def _colorize(processed: str, ramp: Path, out_path: Path, label: str = "colorize") -> None:
+def _colorize(
+    processed: str, ramp: Path, out_path: Path, label: str = "colorize"
+) -> None:
     """gdaldem color-relief a single-band raster → 8-bit RGBA GeoTIFF (nodata transparent)."""
     gdal.DEMProcessing(
         destName=str(out_path),
@@ -132,7 +136,8 @@ def make_product(dem: Path, product: str, ramp: Path | None, out_dir: Path) -> P
         print(f"  wrote {out_path}")
         return out_path
 
-    # slope / aspect / tri: process to an intermediate float raster, then colorize → RGBA.
+    # slope / slope_colorblind / aspect / tri: process to an intermediate float raster,
+    # then colorize → RGBA.
     # The intermediate lives next to the outputs (NOT %TEMP%: a big DEM would drop a
     # multi-GB uncompressed float there, often on a small system drive) and is compressed.
     processed = out_dir / f"_{product}_float.tif"
@@ -172,6 +177,12 @@ def make_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--slope-ramp", type=Path, default=None, help="Override slope colour ramp."
+    )
+    p.add_argument(
+        "--slope-colorblind-ramp",
+        type=Path,
+        default=None,
+        help="Override the colorblind slope colour ramp.",
     )
     p.add_argument(
         "--aspect-ramp", type=Path, default=None, help="Override aspect colour ramp."
@@ -243,6 +254,7 @@ def main() -> None:
 
     overrides = {
         "slope": args.slope_ramp,
+        "slope_colorblind": args.slope_colorblind_ramp,
         "aspect": args.aspect_ramp,
         "tri": args.tri_ramp,
     }
@@ -278,7 +290,9 @@ def main() -> None:
         for product in args.products:
             make_product(dem, product, ramps[product], out_dir)
     else:
-        print(f"\n  deriving {len(args.products)} products in parallel ({workers} workers)")
+        print(
+            f"\n  deriving {len(args.products)} products in parallel ({workers} workers)"
+        )
         with ProcessPoolExecutor(max_workers=workers) as ex:
             futures = {
                 ex.submit(make_product, dem, product, ramps[product], out_dir): product

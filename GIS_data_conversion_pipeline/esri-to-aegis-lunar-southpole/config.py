@@ -113,7 +113,9 @@ def dem_output_name(dem_in: Path) -> str:
 
 
 OUT_SLOPE_LAYER_NAME = "slope"
+OUT_SLOPE_COLORBLIND_LAYER_NAME = "slope_colorblind"
 OUT_SLOPE_RGBA_NAME = "slope_rgba.tif"  # scratch, removed after tiling
+OUT_SLOPE_COLORBLIND_RGBA_NAME = "slope_colorblind_rgba.tif"  # scratch
 
 # Delivered viewshed rasters use these class values. The GIS .lyrx uses 50%
 # opacity, but the AEGIS layer opacity control owns transparency at runtime.
@@ -133,17 +135,16 @@ KEEPOUT_FILL_COLOR = "#301F42"  # received from Isaac on the GIS team 2026-08-05
 KEEPOUT_FILL_OPACITY = 1.0
 
 # DEM-derived product layers (Layers/<name>/). Slope is intentionally omitted from the
-# default products step because the dedicated `slope` step already produces a slope layer
-# using the GIS-team .lyrx — which encodes the SAME standard as default_color_ramps/slope.txt.
-# (The standalone products/dem_products.py can still generate slope on demand.)
+# default products step because the dedicated `slope` step already produces a slope layer.
+# The standalone products/dem_products.py can still generate slope on demand.
 OUT_HILLSHADE_LAYER_NAME = "hillshade"
 OUT_ASPECT_LAYER_NAME = "aspect"
 OUT_TRI_LAYER_NAME = "tri"
 PRODUCTS_DEFAULT = ["hillshade", "aspect", "tri"]
 
-# Built-in (fallback) colour ramps. Used when the GIS team does not deliver product
-# symbology as a .lyrx; a delivered .lyrx is converted (products/lyrx_to_ramp.py) and used
-# instead. slope.txt encodes the same standard as the MS3 AMPES_Slope 1.lyrx.
+# Built-in (fallback) colour ramps. The canonical default slope palette is defined in
+# slope.txt. Delivered .lyrx symbology can still override a default after conversion by
+# products/lyrx_to_ramp.py.
 DEFAULT_COLOR_RAMPS_DIR = (
     Path(__file__).resolve().parent / "products" / "default_color_ramps"
 )
@@ -268,6 +269,8 @@ class PipelinePaths:
     ellipse_out: Path
     slope_layer: Path
     slope_rgba: Path
+    slope_colorblind_layer: Path
+    slope_colorblind_rgba: Path
     # Optional prefix applied to every generated layer FOLDER + its AEGIS layer name
     # (e.g. "LOLA" → Layers/LOLA_hillshade, name "LOLA_hillshade"). Empty = no prefix.
     layer_prefix: str = ""
@@ -330,5 +333,7 @@ def resolve_paths(
         ellipse_out=data / OUT_ELLIPSE_NAME,
         slope_layer=layers / prefixed(OUT_SLOPE_LAYER_NAME),
         slope_rgba=out / OUT_SLOPE_RGBA_NAME,
+        slope_colorblind_layer=layers / prefixed(OUT_SLOPE_COLORBLIND_LAYER_NAME),
+        slope_colorblind_rgba=out / OUT_SLOPE_COLORBLIND_RGBA_NAME,
         layer_prefix=prefix,
     )

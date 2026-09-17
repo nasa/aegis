@@ -1,5 +1,6 @@
 import * as httpClient_preset from "http-client/preset";
 import * as httpClient_folder from "http-client/folder";
+import { getTerrainProfile, normalizeTerrainProfile } from "http-client/terrainProfile";
 
 import cloneDeep from "lodash/cloneDeep";
 import clone from "lodash/clone";
@@ -225,6 +226,80 @@ export const auditActionDefinitions = async ({
       m.updatedAt = getAccurateNow().getTime();
     });
   }
+};
+
+export const auditTraverseTerrainProfiles = async ({
+  missionDocHandle,
+}: {
+  missionDocHandle: DocHandle<Mission>;
+}): Promise<void> => {
+  const mission = missionDocHandle.doc();
+  if (mission.id === null) {
+    throw new Error("Cannot audit terrain profiles for a mission without an ID");
+  }
+  const traversesToRepair = !mission.demFilePath
+    ? []
+    : Object.values(mission.traverses).flatMap((traverse) => {
+        const { path, pathSegmentDistances } = traverse;
+        if (
+          traverse.pathSegmentAbsoluteSlopes != null ||
+          path === null ||
+          path.length < 2 ||
+          pathSegmentDistances === null ||
+          pathSegmentDistances.length !== path.length - 1
+        ) {
+          return [];
+        }
+        return [{ uuid: traverse.uuid, path, pathSegmentDistances }];
+      });
+  const repairedProfiles = new Map<string, TerrainProfile>();
+
+  for (const traverse of traversesToRepair) {
+    try {
+      const response = await getTerrainProfile({
+        missionId: mission.id,
+        path: traverse.path,
+        pathSegmentDistances: traverse.pathSegmentDistances,
+        entityKey: traverse.uuid,
+      });
+      const profile =
+        response.status === "success"
+          ? normalizeTerrainProfile(response.data, traverse.path, traverse.pathSegmentDistances)
+          : null;
+      if (profile) repairedProfiles.set(traverse.uuid, profile);
+    } catch (error) {
+      clientLogger.error(
+        {
+          logId: "audit",
+          logValue: `Error generating terrain profile for traverse ${traverse.uuid}`,
+        },
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+
+  if (repairedProfiles.size === 0) return;
+
+  withMissionChange((m: Mission) => {
+    if (m.id !== mission.id) {
+      throw new Error(
+        `Cannot apply terrain-profile audit for mission ${mission.id}: active mission is ${m.id}`
+      );
+    }
+
+    for (const traverse of traversesToRepair) {
+      const profile = repairedProfiles.get(traverse.uuid);
+      const currentTraverse = m.traverses[traverse.uuid];
+      if (!profile) continue;
+      if (!currentTraverse) {
+        throw new Error(
+          `Cannot apply terrain-profile audit: traverse ${traverse.uuid} was removed`
+        );
+      }
+      currentTraverse.pathSegmentElevations = profile.elevationsMeters;
+      currentTraverse.pathSegmentAbsoluteSlopes = profile.terrainSlopesDegrees;
+    }
+  });
 };
 
 /**

@@ -55,7 +55,12 @@ def _first_built_tmr(p: config.PipelinePaths, args: argparse.Namespace) -> Path 
         )
     ]
     raster_layers = [p.layer_path(name) for name in _raster_layer_names(args)]
-    for layer in (*raster_layers, p.slope_layer, *product_layers):
+    for layer in (
+        *raster_layers,
+        p.slope_layer,
+        p.slope_colorblind_layer,
+        *product_layers,
+    ):
         tmr = layer / "tilemapresource.xml"
         if tmr.exists():
             return tmr
@@ -146,6 +151,11 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
     row(
         "Slope tile layer",
         f"Layers/{p.layer_name(config.OUT_SLOPE_LAYER_NAME)}/  {mark(p.slope_layer)}",
+    )
+    row(
+        "Colorblind slope tile layer",
+        f"Layers/{p.layer_name(config.OUT_SLOPE_COLORBLIND_LAYER_NAME)}/  "
+        f"{mark(p.slope_colorblind_layer)}",
     )
     for name in (
         config.OUT_HILLSHADE_LAYER_NAME,

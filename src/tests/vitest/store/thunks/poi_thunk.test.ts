@@ -12,11 +12,11 @@ import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankStation } from "store/storeUtils/station";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
-const mockThunkFetchElevation = vi.fn().mockReturnValue({
+const mockThunkFetchPointElevation = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
-vi.mock("store/thunk/thunkElevation", () => ({
-  thunkFetchElevation: () => mockThunkFetchElevation,
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchPointElevation: () => mockThunkFetchPointElevation,
 }));
 
 let store: StoreType;
@@ -159,7 +159,7 @@ describe("Thunk POI Tests", () => {
     });
 
     it("writes elevation when elevation lookup succeeds", async () => {
-      mockThunkFetchElevation.mockReturnValueOnce({
+      mockThunkFetchPointElevation.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
         payload: 7777,
       });
