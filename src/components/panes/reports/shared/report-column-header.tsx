@@ -32,19 +32,6 @@ const columnTitle = (column: EvaReportColumn) =>
       ? `${column.groupLabel}: ${column.label}`
       : column.label;
 
-/**
- * Rotated summary labels have room for 2 vertical lines of text; longer names
- * are abbreviated with "…" so they can't spill past the header cell. The full
- * name is always available in the tooltip. The budget assumes fully packed
- * lines (word-break: break-all on .rotatedLabelWrap): 2 lines of 110px fit
- * ~31 chars even with wide all-caps glyphs.
- */
-const HEADER_LABEL_MAX_CHARS = 28;
-const truncateHeaderLabel = (label: string) =>
-  label.length > HEADER_LABEL_MAX_CHARS
-    ? `${label.slice(0, HEADER_LABEL_MAX_CHARS - 1).trimEnd()}…`
-    : label;
-
 /** Tooltip title: like columnTitle but names the parent EVA on REX columns. */
 const columnTooltipName = (column: EvaReportColumn) =>
   column.isRex
@@ -140,7 +127,6 @@ export const CoverageHeaderLeftAxis: FunctionComponent = () => {
 };
 
 const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }) => {
-  const dispatch = useAppDispatch();
   const reportId = useReportId();
   const baselineKey = useAppSelector(
     (state) => state.report[reportId].resolvedBaselineKey,
@@ -164,7 +150,7 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
         isBaseline={isBaseline}
         isExpanded={false}
         cellKey={column.key}
-        label={truncateHeaderLabel(columnTitle(column))}
+        label={columnTitle(column)}
       />
     );
   }
@@ -182,30 +168,6 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
   const groupWidth = sequenceItems.length * stationCellWidth + STM_COVERAGE_SUMMARY_CELL_WIDTH;
   return (
     <div className={styles.columnGroup} style={{ width: groupWidth }}>
-      <div
-        className={styles.columnGroupLabel}
-        onClick={() =>
-          dispatch(
-            reportSetBaselineColumnKey({ reportId, columnKey: isBaseline ? null : column.key })
-          )
-        }
-        data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={`${columnTooltipName(column)}${isBaseline ? " (baseline)" : " — click to set as baseline"}`}
-        style={{ cursor: "pointer" }}
-      >
-        {columnTitle(column)}
-        <span
-          className={styles.columnHeaderIcons}
-          onClick={(e) => {
-            e.stopPropagation();
-            dispatch(reportToggleColumnExpansion({ reportId, columnKey: column.key }));
-          }}
-          data-tooltip-id="aegis-tooltip"
-          data-tooltip-html={column.campaignUuid ? "Collapse EVAs" : "Collapse stations"}
-        >
-          <FontAwesomeIcon icon={faMinusCircle} />
-        </span>
-      </div>
       <div className={styles.headerColumns}>
         {sequenceItems.map((item) => (
           <SequenceHeaderCell key={item.uuid} column={column} item={item} />
@@ -215,7 +177,7 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
           isBaseline={isBaseline}
           isExpanded={true}
           cellKey={column.key}
-          label="Total"
+          label={`${columnTitle(column)} (Total)`}
         />
       </div>
     </div>
@@ -249,7 +211,7 @@ const SummaryHeaderCell: FunctionComponent<{
       }`}
       data-tooltip-place="left-start"
     >
-      <div className={`${styles.rotatedLabel} ${styles.rotatedLabelWrap}`}>{label}</div>
+      <div className={styles.rotatedLabel}>{label}</div>
       <span
         className={styles.columnHeaderIcons}
         onClick={(e) => {
