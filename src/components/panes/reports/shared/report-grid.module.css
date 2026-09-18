@@ -25,7 +25,8 @@
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  margin: 0 8px 6px 0;
+  flex-wrap: wrap;
+  margin: 0 8px 8px 0;
   font-size: 0.9em;
 }
 .controlGroup {
@@ -40,75 +41,143 @@
   white-space: nowrap;
 }
 .columnVisibilityPanelOutside {
-  position: relative;
   flex: 0 0 auto;
 }
 
 .columnVisibilityPanelButton {
   display: flex;
   align-items: center;
-  gap: 5px;
-  height: 22px;
-  padding: 0 10px;
-  border: 1px solid var(--grey2);
+  gap: 8px;
+  min-height: 26px;
+  padding: 3px 10px;
+  border: 1px solid var(--grey3);
   border-radius: var(--radius);
-  background-color: var(--grey3);
+  background: var(--grey3);
   color: inherit;
   cursor: pointer;
-  user-select: none;
   white-space: nowrap;
 }
 
+.columnVisibilityPanelButton[aria-expanded="true"],
+.columnVisibilityPanelButton:hover {
+  background: var(--grey3);
+}
+
 .columnVisibilityPanel {
-  position: absolute;
-  top: 26px;
-  left: 0;
-  width: 280px;
-  max-height: min(500px, calc(100vh - 180px));
+  position: fixed;
+  width: min(400px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--grey3);
+  border-radius: 8px;
+  background: var(--grey1);
+  color: var(--grey5);
+  box-shadow: 0 10px 32px rgb(0 0 0 / 40%);
+  font-size: 13px;
+  z-index: 1000;
+}
+
+.columnVisibilityPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+}
+
+.columnVisibilityHint {
+  margin-top: 4px;
+  color: var(--grey4);
+  font-size: 12px;
+}
+
+.columnVisibilityClose {
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.columnVisibilityTools {
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--grey3);
+}
+
+.columnVisibilityTools input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--grey3);
+  border-radius: 4px;
+  background: var(--grey0);
+  color: inherit;
+  font: inherit;
+}
+
+.columnVisibilityTools input::placeholder {
+  color: var(--grey4);
+}
+
+.columnVisibilityActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.columnVisibilityActions > span {
+  flex: 1;
+  color: var(--grey4);
+}
+
+.columnVisibilityActions button {
+  border: 0;
+  border-radius: 4px;
+  background: var(--grey2);
+  color: inherit;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.columnVisibilityList {
+  min-height: 0;
   overflow-y: auto;
-  padding: 6px;
-  border: 1px solid var(--grey1);
-  border-radius: var(--radius);
-  background-color: var(--grey3);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
-  z-index: 20;
+  overscroll-behavior: contain;
+  padding: 8px;
 }
 
 .columnVisibilitySection + .columnVisibilitySection {
-  margin-top: 7px;
-  padding-top: 7px;
-  border-top: 1px solid var(--grey2);
-}
-
-.columnVisibilityToggleSection {
-  padding-bottom: 7px;
-  border-bottom: 1px solid var(--grey2);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--grey3);
 }
 
 .columnVisibilitySectionHeader,
 .columnVisibilityGroupRow,
-.columnVisibilityChildRow,
-.columnVisibilityToggleRow {
+.columnVisibilityChildRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 23px;
+  gap: 10px;
+  min-height: 34px;
+  padding: 4px 8px;
 }
 
 .columnVisibilitySectionHeader {
-  font-size: 0.85em;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.columnVisibilityToggleRow {
-  cursor: pointer;
-  font-size: 0.9em;
-  font-weight: 500;
+  color: var(--grey4);
 }
 
 .columnVisibilityGroup {
-  margin-top: 3px;
+  border-radius: 4px;
+  margin-top: 2px;
+  background: var(--grey2);
 }
 
 .columnVisibilityGroupRow {
@@ -117,34 +186,77 @@
 
 .columnVisibilityCheckbox {
   flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
   margin: 0;
   accent-color: var(--blue, #4a90e2);
   cursor: pointer;
 }
 
 .columnVisibilityExpandButton {
-  width: 18px;
-  padding: 0;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
   border: 0;
   background: transparent;
   color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
 .columnVisibilityGroupLabel {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.columnVisibilityCount {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
 }
 
 .columnVisibilityChildren {
-  margin-left: 24px;
+  margin: 0 8px 0 15px;
+  padding: 0 0 6px 8px;
+  border-left: 1px solid var(--grey3);
 }
 
 .columnVisibilityChildRow {
   cursor: pointer;
-  font-size: 0.9em;
-  font-weight: 300;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.columnVisibilityKind {
+  flex: 0 0 58px;
+  color: var(--grey4);
+  font-size: 11px;
+}
+
+.columnVisibilityChildRow:hover,
+.columnVisibilityClose:hover,
+.columnVisibilityActions button:hover {
+  background: var(--grey3);
+}
+
+.columnVisibilityPanel :focus-visible,
+.columnVisibilityPanelButton:focus-visible {
+  outline: 2px solid var(--grey5);
+  outline-offset: 2px;
+}
+
+.columnVisibilityEmpty {
+  padding: 24px 8px;
+  text-align: center;
+  color: var(--grey4);
 }
 
 /* ---------- header ---------- */
@@ -166,7 +278,7 @@
 .headerColumns {
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 .columnGroup {
@@ -179,22 +291,9 @@
      https://bugzilla.mozilla.org/show_bug.cgi?id=1332555. flex-shrink: 0
      keeps that explicit width from being squeezed under space pressure. */
   flex-shrink: 0;
-  padding-top: 16px;
 }
-/* absolutely positioned so a long label can never widen the group beyond its
-   cells — header and body column widths must stay identical */
-.columnGroupLabel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 16px;
-  font-size: 0.8em;
-  font-weight: 300;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 2px;
+.columnGroup > .headerColumns {
+  flex: 1;
 }
 
 .columnHeaderCell {
@@ -226,25 +325,17 @@
   overflow: hidden;
 }
 
+/* Natural text height keeps every name intact while preserving narrow data
+   columns. The shared flex row stretches all headers to the longest label. */
 .rotatedLabel {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  height: 110px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-height: 140px;
+  height: max-content;
   white-space: nowrap;
   font-size: 0.85em;
-  padding: 2px 0;
-}
-/* EVA/REX summary columns: let long names wrap to a second vertical line
-   (station sub-columns are only 22px wide and stay single-line). break-all
-   packs each line to the full label height, so the char budget applied by
-   truncateHeaderLabel() reliably fits in two lines — word-boundary wrapping
-   leaves short lines and pushes long names onto a clipped third line. */
-.rotatedLabelWrap {
-  white-space: normal;
-  line-height: 1.2;
-  word-break: break-all;
+  line-height: 1.4;
+  padding: 8px 0;
 }
 
 .columnHeaderIcons {
