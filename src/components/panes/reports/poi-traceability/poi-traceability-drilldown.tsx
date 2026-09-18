@@ -1,167 +1,239 @@
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 import styles from "./poi-traceability.module.css";
-import { refEqual, useAppSelector } from "utils/useAppSelector";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { poiTraceSetDrilldownWidth, poiTraceSetSelectedPoi } from "store/report";
-import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
-import { EmojiRenderer } from "components/interface/emojis";
-import ReportSidePanel from "../shared/report-side-panel";
+import ActionPreview, { type ActionPreviewTarget } from "./action-preview";
+import TraceIcon from "./trace-icon";
 
-type DrilldownTab = "linkedStations" | "actionTraces";
-
-const EXEC_CLASS: { [status in PoiTraceActionStatus]: string } = {
-  complete: styles.execComplete,
-  skipped: styles.execSkipped,
-  pending: styles.execPending,
+const STATUS_LABEL: Record<PoiTraceActionStatus, string> = {
+  complete: "Completed",
+  skipped: "Skipped",
+  pending: "Pending",
+  notIncluded: "Not in this execution",
 };
 
-const formatCopyDate = (value: number | string | null): string => {
-  if (value == null) return "";
-  const date = typeof value === "number" ? new Date(value) : new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
+const STATUS_CLASS: Record<PoiTraceActionStatus, string> = {
+  complete: styles.complete,
+  skipped: styles.skipped,
+  pending: styles.pending,
+  notIncluded: styles.pending,
 };
 
-/**
- * Lineage side panel for one POI: each POI action, the station/traverse actions
- * it was promoted into (with the copy date and the in-scope EVAs they land in),
- * and — in an executed scope — the per-execution status. Also lists stations
- * linked via station.poiUuids so "linked but not promoted" is visible.
- */
-const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow }> = ({ row }) => {
-  const dispatch = useAppDispatch();
-  const mission = useMissionDocSelector((m) => m, refEqual);
-  const width = useAppSelector((state) => state.report.poiTrace.drilldownWidth, refEqual);
-  const [activeTab, setActiveTab] = useState<DrilldownTab>("linkedStations");
+/** One source action, branching into EVA adoptions and their execution outcomes. */
+const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow; mission: Mission }> = ({
+  row,
+  mission,
+}) => {
+  const [selectedActionUuid, setSelectedActionUuid] = useState<string | null>(null);
+  const [preview, setPreview] = useState<ActionPreviewTarget | null>(null);
+  const previewAction = (actionUuid: string, evaUuid?: string, rexUuid?: string) =>
+    setPreview({ actionUuid, evaUuid, rexUuid });
+  const action =
+    row.actions.find((item) => item.poiActionUuid === selectedActionUuid) ?? row.actions[0];
+  const branches =
+    action?.stationCopies.flatMap((copy) =>
+      copy.inScopeEvaUuids.map((evaUuid) => ({ copy, evaUuid }))
+    ) ?? [];
+  const completed = branches.filter(({ copy, evaUuid }) =>
+    copy.executions.some(
+      (execution) => execution.evaUuid === evaUuid && execution.status === "complete"
+    )
+  ).length;
 
-  // In an executed scope the in-scope EVAs are REX EVAs; resolve their
-  // as-planned counterpart so the panel shows the plan's EVA name, not the REX
-  // copy's. In every other scope the EVA already is as-planned (same name).
   const evaName = (evaUuid: string) => {
-    if (!mission) return "(deleted EVA)";
     const eva = mission.evas?.[evaUuid];
-    if (!eva) return "(deleted EVA)";
-    return getAsPlannedEvaFromRefUuid(mission, eva.refUuid)?.name ?? eva.name;
+    return eva
+      ? getAsPlannedEvaFromRefUuid(mission, eva.refUuid)?.name || eva.name || "Unnamed EVA"
+      : "Deleted EVA";
   };
 
-  // In-scope links first so the count in the master table's "n / m" column lines
-  // up with the top of this list; out-of-scope station variants sink below.
-  const linkedStations = [...row.linkedStations].sort(
-    (a, b) => Number(b.inScopeEvaUuids.length > 0) - Number(a.inScopeEvaUuids.length > 0)
-  );
-
   return (
-    <ReportSidePanel
-      width={width ?? 360}
-      onWidthChange={(next) => dispatch(poiTraceSetDrilldownWidth(next))}
-      onClose={() => dispatch(poiTraceSetSelectedPoi(null))}
-      title={row.name}
-      subtitle={`${row.promotedActionCount} of ${row.totalPoiActionCount} actions promoted · ${row.linkedStationCount} of ${row.linkedStations.length} linked stations in scope`}
-    >
-      <div className={styles.tabBar}>
-        <div
-          className={
-            activeTab === "linkedStations" ? `${styles.tab} ${styles.tabActive}` : styles.tab
-          }
-          onClick={() => setActiveTab("linkedStations")}
-        >
-          Linked Stations
-        </div>
-        <div
-          className={
-            activeTab === "actionTraces" ? `${styles.tab} ${styles.tabActive}` : styles.tab
-          }
-          onClick={() => setActiveTab("actionTraces")}
-        >
-          POI Action Traces
-        </div>
-      </div>
-
-      {activeTab === "linkedStations" && (
-        <>
-          <div className={styles.sectionCaption}>
-            Every station whose POI list includes this POI. Each line shows whether that station is
-            used by an EVA in the selected scope.
-          </div>
-          {row.linkedStations.length === 0 ? (
-            <div className={styles.lineageEmpty}>
-              No stations link this POI (via station POI list).
+    <section className={styles.lineage} aria-label={`${row.name} action trace`}>
+      <header className={styles.lineageHeader}>
+        <h2>
+          <TraceIcon icon={mission.pois[row.poiUuid]?.icon} />
+          {row.name}
+        </h2>
+        <span className={styles.meta}>POI actions / EVA adoption / execution</span>
+      </header>
+      {row.actions.length === 0 ? (
+        <div className={styles.emptyState}>This POI has no actions to trace.</div>
+      ) : (
+        <div className={styles.actionWorkspace}>
+          <nav className={styles.actionList} aria-label="POI actions">
+            <div className={styles.listHeader}>
+              Actions <span>{row.actions.length}</span>
             </div>
-          ) : (
-            linkedStations.map((station) => (
-              <div key={station.stationUuid} className={styles.lineageCopy}>
-                <div className={styles.lineageCopyHeader}>
-                  <span className={styles.lineageStationName}>
-                    <span className={styles.lineageStationIcon}>
-                      <EmojiRenderer iconValue={station.stationIcon || "2754"} />
-                    </span>
-                    {station.stationName}
+            {row.actions.map((item) => {
+              const adoptions = item.stationCopies.reduce(
+                (count, copy) => count + copy.inScopeEvaUuids.length,
+                0
+              );
+              const executions = item.stationCopies.flatMap((copy) => copy.executions);
+              const completedCount = executions.filter(
+                (execution) => execution.status === "complete"
+              ).length;
+              return (
+                <button
+                  type="button"
+                  key={item.poiActionUuid}
+                  className={`${styles.actionButton} ${item.poiActionUuid === action?.poiActionUuid ? styles.actionSelected : ""}`}
+                  aria-pressed={item.poiActionUuid === action?.poiActionUuid}
+                  onClick={() => setSelectedActionUuid(item.poiActionUuid)}
+                >
+                  <span>
+                    <TraceIcon icon={mission.actions[item.poiActionUuid]?.icon} />
+                    {item.name || "Unnamed action"}
                   </span>
+                  <span className={styles.meta}>
+                    {adoptions === 0
+                      ? "Not adopted"
+                      : `${adoptions} adoptions / ${completedCount} completed REX${completedCount === 1 ? "" : "es"}`}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+          {action && (
+            <div className={styles.tree}>
+              <div className={styles.sourceNode}>
+                <div className={styles.sourceHeading}>
+                  <h3>
+                    <TraceIcon icon={mission.actions[action.poiActionUuid]?.icon} />
+                    {action.name || "Unnamed action"}
+                  </h3>
+                  <button
+                    type="button"
+                    className={styles.actionLink}
+                    aria-haspopup="dialog"
+                    onClick={() => previewAction(action.poiActionUuid)}
+                  >
+                    Preview original action
+                  </button>
                 </div>
-                <div className={styles.lineageMeta}>
-                  {station.inScopeEvaUuids.length === 0
-                    ? "not in any in-scope EVA"
-                    : `in ${station.inScopeEvaUuids.map(evaName).join(", ")}`}
+                <div className={styles.meta}>
+                  {branches.length === 0
+                    ? "Not adopted into an EVA in this scope"
+                    : `${branches.length} EVA / location adoptions / ${completed} with a completed execution`}
                 </div>
               </div>
-            ))
-          )}
-        </>
-      )}
-
-      {activeTab === "actionTraces" && (
-        <>
-          <div className={styles.sectionCaption}>
-            Each action authored on this POI, and the station or traverse copies it was promoted
-            into within the selected scope (with the copy date, the EVAs they land in, and — in an
-            executed scope — each REX&apos;s status).
-          </div>
-          {row.actions.length === 0 && (
-            <div className={styles.lineageEmpty}>This POI has no actions.</div>
-          )}
-          {row.actions.map((action) => (
-            <div key={action.poiActionUuid} className={styles.lineageAction}>
-              <div className={styles.lineageActionName}>{action.name}</div>
-              {action.stationCopies.length === 0 ? (
-                <div className={styles.lineageEmpty}>Not promoted to any in-scope station.</div>
+              {branches.length === 0 ? (
+                <div className={styles.noAdoption}>
+                  <strong>No adoption in this scope</strong>
+                  <p>No station or traverse action in these EVAs traces back to this POI action.</p>
+                  <p>Linking a POI to a station alone does not adopt its actions.</p>
+                </div>
               ) : (
-                action.stationCopies.map((copy) => (
-                  <div key={copy.stationActionUuid} className={styles.lineageCopy}>
-                    <div className={styles.lineageCopyHeader}>
-                      <span className={styles.lineageStationName}>
-                        {copy.stationName != null && (
-                          <span className={styles.lineageStationIcon}>
-                            <EmojiRenderer iconValue={copy.stationIcon || "2754"} />
-                          </span>
-                        )}
-                        {copy.stationName ?? copy.traverseName ?? "(unknown location)"}
-                      </span>
-                      {copy.parentCopyDate != null && (
-                        <span className={styles.lineageMeta}>
-                          {formatCopyDate(copy.parentCopyDate)}
-                        </span>
-                      )}
-                    </div>
-                    <div className={styles.lineageMeta}>
-                      {copy.inScopeEvaUuids.length === 0
-                        ? "not in any in-scope EVA"
-                        : `in ${copy.inScopeEvaUuids.map(evaName).join(", ")}`}
-                    </div>
-                    {copy.executions.map((exec) => (
-                      <div key={exec.rexUuid} className={styles.lineageExec}>
-                        <span className={EXEC_CLASS[exec.status]}>{exec.status}</span>
-                        <span className={styles.lineageMeta}>— {exec.rexName}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))
+                <ul className={styles.branches} aria-label="EVA adoptions">
+                  {branches.map(({ copy, evaUuid }) => {
+                    const executions = copy.executions.filter(
+                      (execution) => execution.evaUuid === evaUuid
+                    );
+                    return (
+                      <li className={styles.branch} key={`${copy.stationActionUuid}:${evaUuid}`}>
+                        <div className={styles.adoptionNode}>
+                          <div className={styles.eyebrow}>Adopted into EVA</div>
+                          <div className={styles.sourceHeading}>
+                            <h4>{evaName(evaUuid)}</h4>
+                            <button
+                              type="button"
+                              className={styles.actionLink}
+                              aria-haspopup="dialog"
+                              onClick={() =>
+                                previewAction(
+                                  copy.stationActionUuid,
+                                  evaUuid,
+                                  copy.executionOnly ? executions[0]?.rexUuid : undefined
+                                )
+                              }
+                            >
+                              Preview adopted action
+                            </button>
+                          </div>
+                          <div className={styles.location}>
+                            <span>
+                              <TraceIcon icon={copy.stationIcon} />
+                              {copy.stationUuid ? "Station" : "Traverse"}:{" "}
+                              {copy.stationName ?? copy.traverseName ?? "Unknown location"}
+                            </span>
+                          </div>
+                          {copy.actionName && copy.actionName !== action.name && (
+                            <div className={styles.meta}>Action: {copy.actionName}</div>
+                          )}
+                          {copy.parentCopyDate != null && (
+                            <div className={styles.meta}>
+                              Adopted {new Date(copy.parentCopyDate).toLocaleDateString()}
+                            </div>
+                          )}
+                          {!copy.enabled && <div className={styles.meta}>Action disabled</div>}
+                          {copy.executionOnly && (
+                            <div className={styles.meta}>
+                              Recorded in execution; no matching adoption in the current plan.
+                            </div>
+                          )}
+                        </div>
+                        <div className={styles.outcomeNode}>
+                          <div className={styles.eyebrow}>Execution</div>
+                          {executions.length === 0 ? (
+                            <div className={styles.noExecution}>
+                              <strong>No execution recorded</strong>
+                            </div>
+                          ) : (
+                            <ul className={styles.executions} aria-label="Execution outcomes">
+                              {executions.map((execution) => (
+                                <li key={execution.rexUuid} className={styles.execution}>
+                                  <span
+                                    className={`${styles.status} ${STATUS_CLASS[execution.status]}`}
+                                  >
+                                    {STATUS_LABEL[execution.status]}
+                                  </span>
+                                  <span>{execution.rexName || "Unnamed execution"}</span>
+                                  {execution.actionUuid && (
+                                    <button
+                                      type="button"
+                                      className={styles.actionLink}
+                                      aria-haspopup="dialog"
+                                      onClick={() =>
+                                        previewAction(
+                                          execution.actionUuid!,
+                                          mission.rexes[execution.rexUuid]?.evaUuid,
+                                          execution.rexUuid
+                                        )
+                                      }
+                                    >
+                                      Preview executed action
+                                    </button>
+                                  )}
+                                  {execution.actionUuid &&
+                                    mission.actions[execution.actionUuid]?.name !== action.name && (
+                                      <span className={styles.executedName}>
+                                        Action:{" "}
+                                        {mission.actions[execution.actionUuid]?.name ||
+                                          "Unnamed action"}
+                                      </span>
+                                    )}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
+              <p className={styles.legend}>
+                Completed means the action was marked complete in a REX. Pending means it is present
+                without a completed or skipped status.
+              </p>
             </div>
-          ))}
-        </>
+          )}
+        </div>
       )}
-    </ReportSidePanel>
+      {preview && (
+        <ActionPreview mission={mission} target={preview} onClose={() => setPreview(null)} />
+      )}
+    </section>
   );
 };
 

@@ -1,27 +1,15 @@
 import sortBy from "lodash/sortBy";
 import { selectAsPlannedStations, selectEvaStations, selectEvaTraverses } from "store/selectors";
-import { getAsPlannedEvas, resolveCampaignExecutionRexes } from "utils/evaReportColumns";
+import {
+  getAsPlannedEvas,
+  getExecutionRexesForEva,
+  resolveCampaignExecutionRexes,
+} from "utils/evaReportColumns";
 
 /**
- * Pure computation module for the "POI Traceability" report (Reports pane,
- * Workstream D).
- *
- * Everything here is a plain function over `(mission, scope)` — no React, no
- * Redux, no Automerge handles (same style as `stmEvaCoverage.ts`). Scope
- * resolution reuses the campaign helpers from `evaReportColumns.ts` so a
- * campaign's planned/executed set means exactly the same EVAs it does in the
- * coverage and comparison grids.
- *
- * Types (PoiTraceScope, PoiTraceRow, ...) are declared ambiently in
- * `typings/poiTraceability.d.ts`.
- *
- * Note on the *executed* scope: linkage is always evaluated against as-planned
- * stations (`selectAsPlannedStations`), but the executed scope's in-scope EVAs
- * are REX EVAs, whose sequences hold REX station copies — not the as-planned
- * stations. So in executed scope `linkedStationCount` is 0 by construction;
- * execution tracking there comes through the promoted action copies (whose
- * `parentActionUuid` is preserved through REX duplication). This matches the
- * doc's "invert selectEvaStations over the in-scope EVA set" definition.
+ * POI action lineage. Plans include their REX history; executed campaign scopes
+ * use the campaign's selected snapshots. Adoption follows parentActionUuid,
+ * while action/location refUuids link each planned child to its REX copies.
  */
 
 /** Collapse a REX action status (or a missing entry) to the report's tri-state. */
@@ -44,11 +32,22 @@ export const resolveScopeEvaUuids = (mission: Mission, scope: PoiTraceScope): st
     .filter((evaUuid) => !!mission.evas?.[evaUuid]);
 };
 
-/** The execution REXes for a scope (only the executed campaign set has any). */
+/** Plans include their execution history; executed campaigns use their selected REXes. */
 export const resolveScopeExecutionRexes = (mission: Mission, scope: PoiTraceScope): Rex[] => {
-  if (scope.type !== "campaignExecuted") return [];
+  if (scope.type === "all") {
+    return Object.values(mission.rexes ?? {}).filter((rex) => !!mission.evas?.[rex.evaUuid]);
+  }
   const campaign = mission.reportCampaigns?.[scope.campaignUuid];
   if (!campaign) return [];
+  if (scope.type === "campaignPlanned") {
+    return [
+      ...new Map(
+        campaign.memberEvaUuids
+          .flatMap((uuid) => getExecutionRexesForEva(mission, uuid))
+          .map((rex) => [rex.uuid, rex])
+      ).values(),
+    ];
+  }
   return resolveCampaignExecutionRexes(mission, campaign);
 };
 
@@ -94,6 +93,30 @@ export const computePoiTraceability = ({
     stationUuids: new Set(selectEvaStations(mission, rex.evaUuid).map((s) => s.uuid)),
     traverseUuids: new Set(selectEvaTraverses(mission, rex.evaUuid).map((t) => t.uuid)),
   }));
+
+  const belongsToRex = (action: Action, info: (typeof rexInfos)[number]) =>
+    (!!action.stationUuid && info.stationUuids.has(action.stationUuid)) ||
+    (!!action.traverseUuid && info.traverseUuids.has(action.traverseUuid));
+
+  // REX duplication preserves action and location refUuids. A shared POI parent
+  // alone is insufficient: it can have several independently adopted children.
+  const sameAdoption = (planned: Action, executed: Action) => {
+    if (!planned.refUuid || planned.refUuid !== executed.refUuid) return false;
+    if (planned.stationUuid && executed.stationUuid) {
+      const ref = mission.stations?.[planned.stationUuid]?.refUuid;
+      return !!ref && ref === mission.stations?.[executed.stationUuid]?.refUuid;
+    }
+    if (planned.traverseUuid && executed.traverseUuid) {
+      const ref = mission.traverses?.[planned.traverseUuid]?.refUuid;
+      return !!ref && ref === mission.traverses?.[executed.traverseUuid]?.refUuid;
+    }
+    return false;
+  };
+
+  const sameEvaFamily = (evaUuid: string, rex: Rex) => {
+    const ref = mission.evas?.[evaUuid]?.refUuid;
+    return !!ref && ref === mission.evas?.[rex.evaUuid]?.refUuid;
+  };
 
   // Group every action copy by the POI action it was promoted from. Actions
   // with a null parent (authored directly on a station) are never attributed.
@@ -142,24 +165,56 @@ export const computePoiTraceability = ({
       if (!poiAction) continue; // dangling entry in actionOrderUuids (deleted POI action)
 
       const stationCopies: PoiTraceStationCopy[] = [];
-      for (const copy of copiesByParent.get(poiActionUuid) ?? []) {
-        const inScopeEvaUuids = evasContainingAction(copy);
-        if (inScopeEvaUuids.length === 0) continue; // copy is out of scope
+      const copies = copiesByParent.get(poiActionUuid) ?? [];
+      const scopedCopies = copies.filter((copy) => evasContainingAction(copy).length > 0);
+      for (const copy of copies) {
+        let inScopeEvaUuids = evasContainingAction(copy);
+        const directRexes = rexInfos.filter((info) => belongsToRex(copy, info));
+        const executionOnly = inScopeEvaUuids.length === 0;
+        if (executionOnly) {
+          // Preserve historical adoptions even after the planned action/station
+          // was removed. Do not repeat snapshots already attached to a plan.
+          if (
+            !directRexes.length ||
+            scopedCopies.some(
+              (planned) =>
+                sameAdoption(planned, copy) &&
+                evasContainingAction(planned).some((evaUuid) =>
+                  directRexes.some(({ rex }) => sameEvaFamily(evaUuid, rex))
+                )
+            )
+          )
+            continue;
+          inScopeEvaUuids = [...new Set(directRexes.map(({ rex }) => rex.evaUuid))];
+        }
 
         const station = copy.stationUuid ? mission.stations?.[copy.stationUuid] : null;
         const traverse = copy.traverseUuid ? mission.traverses?.[copy.traverseUuid] : null;
 
-        const executions = rexInfos
-          .filter(
-            (info) =>
-              (!!copy.stationUuid && info.stationUuids.has(copy.stationUuid)) ||
-              (!!copy.traverseUuid && info.traverseUuids.has(copy.traverseUuid))
-          )
-          .map((info) => ({
-            rexUuid: info.rex.uuid,
-            rexName: info.rex.name,
-            status: toTraceStatus(info.rex.actionEntries?.[copy.uuid]?.rexStatus),
-          }));
+        const executions: PoiTraceStationCopy["executions"] = inScopeEvaUuids.flatMap((evaUuid) =>
+          rexInfos
+            .filter(({ rex }) =>
+              executionOnly || scope.type === "campaignExecuted"
+                ? rex.evaUuid === evaUuid
+                : sameEvaFamily(evaUuid, rex)
+            )
+            .map((info) => {
+              const executed = belongsToRex(copy, info)
+                ? copy
+                : copies.find(
+                    (candidate) => belongsToRex(candidate, info) && sameAdoption(copy, candidate)
+                  );
+              return {
+                rexUuid: info.rex.uuid,
+                rexName: info.rex.name,
+                evaUuid,
+                actionUuid: executed?.uuid ?? null,
+                status: executed
+                  ? toTraceStatus(info.rex.actionEntries?.[executed.uuid]?.rexStatus)
+                  : "notIncluded",
+              };
+            })
+        );
 
         for (const execution of executions) {
           if (execution.status === "complete") completeCount += 1;
@@ -168,6 +223,9 @@ export const computePoiTraceability = ({
 
         stationCopies.push({
           stationActionUuid: copy.uuid,
+          actionName: copy.name,
+          enabled: copy.enabled,
+          executionOnly,
           stationUuid: copy.stationUuid ?? null,
           stationName: station?.name ?? null,
           stationIcon: station?.icon ?? null,

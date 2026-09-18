@@ -192,16 +192,9 @@ type PoiTraceScope =
   | { type: "campaignPlanned"; campaignUuid: string }
   | { type: "campaignExecuted"; campaignUuid: string };
 
-type PoiTraceSortKey = "priority" | "name";
-
 /** UI state for the POI Traceability report (its own report-slice slot). */
 interface PoiTraceState {
-  scope: PoiTraceScope;
-  filterText: string;
-  sortKey: PoiTraceSortKey;
   selectedPoiUuid: string | null;
-  /** null until the panel is first opened, then sized to half the pane width. */
-  drilldownWidth: number | null;
 }
 
 type ColumnReportId = "stmCoverage" | "comparison";

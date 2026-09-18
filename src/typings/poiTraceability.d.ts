@@ -6,14 +6,10 @@
  * referenced by name across the codebase.
  */
 
-// NOTE: `PoiTraceScope` (all / campaignPlanned / campaignExecuted) is declared
-// with the report UI state in `store.d.ts` and reused here by name — it mirrors
-// the campaign planned/executed column sets of the other two reports so a
-// campaign's set means exactly the same EVAs here as in the coverage/comparison
-// grids.
+// PoiTraceScope is declared alongside the report UI state in store.d.ts.
 
 /** Collapsed execution status for a promoted action in a REX. */
-type PoiTraceActionStatus = "pending" | "complete" | "skipped";
+type PoiTraceActionStatus = "pending" | "complete" | "skipped" | "notIncluded";
 
 /**
  * One station-action copy of a POI action (an action whose parentActionUuid is
@@ -21,6 +17,10 @@ type PoiTraceActionStatus = "pending" | "complete" | "skipped";
  */
 type PoiTraceStationCopy = {
   stationActionUuid: string;
+  actionName: string;
+  enabled: boolean;
+  /** This branch survives only in an execution snapshot, not the selected plan. */
+  executionOnly: boolean;
   stationUuid: string | null;
   stationName: string | null;
   stationIcon: string | null;
@@ -29,8 +29,15 @@ type PoiTraceStationCopy = {
   parentCopyDate: number | null;
   /** In-scope EVAs whose stations/traverses contain this station action. */
   inScopeEvaUuids: string[];
-  /** Per in-scope execution REX that contains this action. */
-  executions: { rexUuid: string; rexName: string; status: PoiTraceActionStatus }[];
+  /** Each in-scope REX for the EVA, including snapshots missing this action. */
+  executions: {
+    rexUuid: string;
+    rexName: string;
+    /** EVA branch this outcome belongs to (planned EVA or execution EVA). */
+    evaUuid: string;
+    actionUuid: string | null;
+    status: PoiTraceActionStatus;
+  }[];
 };
 
 /** One POI action and the station copies it was promoted into, in scope. */

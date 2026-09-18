@@ -16,8 +16,8 @@ const TABS: { key: ReportsTab; label: string }[] = [
 /**
  * Top-level Reports pane. Three tabs, each a self-contained report. EVA STM
  * Coverage and EVA Comparison are column-family reports sharing the grid
- * components in reports/shared/; POI Traceability is a POI-row report that
- * reuses the shared campaign/scope resolution and drilldown side panel.
+ * components in reports/shared/; POI Traceability follows individual actions
+ * through EVA adoption and execution, using the shared campaign resolution.
  */
 const ReportsPage: FunctionComponent = () => {
   const [activeTab, setActiveTab] = useState<ReportsTab>("coverage");
