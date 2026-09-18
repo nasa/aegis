@@ -1,218 +1,426 @@
 .body {
+  container-type: inline-size;
   flex: 1 1 auto;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-}
-.main {
-  flex: 1 1 auto;
-  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.controls {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-  margin: 0 8px 6px 0;
-  font-size: 0.9em;
-}
-.controlGroup {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-}
-/* pushes the help button to the right edge of the controls row */
-.controlSpacer {
+.workspace {
   flex: 1 1 auto;
-}
-.controlLabel {
-  font-size: 0.85em;
-  font-weight: 300;
-  white-space: nowrap;
-}
-.filterInput {
-  height: 22px;
-  padding: 0 8px;
-  border: 1px solid var(--grey2);
-  border-radius: var(--radius);
-  background-color: var(--grey3);
-  color: inherit;
-  width: 180px;
-}
-
-.tableScroll {
-  flex: 1 1 auto;
-  overflow: auto;
-}
-
-.table {
-  /* auto (not 100%) so the handful of columns hug their content on the left and
-     the spare width of a wide pane collects on the right, rather than stretching
-     the cells into a loose, mostly-empty grid */
-  width: auto;
-  min-width: min(100%, 640px);
-  border-collapse: collapse;
-  font-size: 0.85em;
-}
-.table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background-color: var(--grey2);
-  border-bottom: 2px solid var(--grey0);
-  text-align: left;
-  padding: 5px 8px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.table th.num,
-.table td.num {
-  text-align: right;
-}
-.row {
-  cursor: pointer;
-  border-bottom: 1px solid var(--grey1);
-}
-.row:hover {
-  background-color: var(--grey1);
-}
-.rowSelected {
-  background-color: var(--grey3);
-}
-.row td {
-  padding: 4px 8px;
-  white-space: nowrap;
+  min-height: 0;
+  display: flex;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 260px;
-}
-.poiName {
-  font-weight: 500;
-}
-/* the "not yet hit" case: no linkage and no promoted actions */
-.rowUntouched td {
-  color: var(--grey4);
-}
-.flagMismatch {
-  color: var(--eva);
-  font-weight: 600;
+  border-top: 1px solid var(--grey3);
 }
 
-/* rollup badges */
-.count {
-  font-variant-numeric: tabular-nums;
-}
-.countZero {
-  color: var(--grey4);
-}
-.countComplete {
-  color: #a8e8b6;
-}
-.countSkipped {
-  color: #f0aeae;
+.poiList {
+  flex: 0 0 210px;
+  overflow: auto;
+  border-right: 1px solid var(--grey3);
+  padding: 4px;
 }
 
-.emptyState {
-  padding: 16px;
-  color: var(--grey4);
-}
-
-/* ---------- drilldown tabs ---------- */
-.tabBar {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: row;
-  gap: 2px;
-  margin: 0 0 8px;
-  border-bottom: 2px solid var(--grey0);
-  user-select: none;
-}
-.tab {
-  padding: 4px 12px;
-  font-size: 0.85em;
-  border-radius: var(--radius) var(--radius) 0 0;
-  background-color: var(--grey1);
-  cursor: pointer;
-}
-.tab:hover {
-  background-color: var(--grey3);
-}
-.tabActive {
-  background-color: var(--grey5);
-  color: var(--grey0);
-  font-weight: 500;
-}
-.tabActive:hover {
-  background-color: var(--grey5);
-}
-
-/* ---------- drilldown lineage ---------- */
-.lineageAction {
-  border: 1px solid var(--grey1);
-  border-radius: var(--radius);
-  padding: 6px;
-  margin-bottom: 8px;
-  background-color: var(--grey1);
-}
-.lineageActionName {
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-.lineageCopy {
-  padding: 3px 0 3px 10px;
-  border-left: 2px solid var(--grey3);
-  margin: 3px 0 3px 4px;
-}
-.lineageCopyHeader {
+.listHeader {
   display: flex;
   justify-content: space-between;
+  padding: 3px 5px 5px;
+  font-size: 0.8em;
+  color: var(--grey4);
+}
+
+.poiButton,
+.actionButton {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 4px 6px;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9em;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.poiButton:hover,
+.actionButton:hover {
+  background: var(--grey1);
+}
+
+.poiSelected,
+.poiSelected:hover,
+.actionSelected,
+.actionSelected:hover {
+  background: var(--grey1);
+  border-color: var(--grey4);
+}
+
+.lineage {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 6px 8px;
+  container-type: inline-size;
+}
+
+.lineageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   gap: 8px;
+  padding-bottom: 6px;
+}
+
+.lineageHeader h2 {
+  margin: 0;
+  font-size: 1em;
+}
+
+.eyebrow {
+  color: var(--grey4);
+  font-size: 0.75em;
+  margin-bottom: 3px;
+}
+
+.actionWorkspace {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 8px;
+}
+
+.actionList {
+  flex: 0 0 220px;
+  overflow: auto;
+  border-right: 1px solid var(--grey3);
+  padding-right: 6px;
+}
+
+.tree {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+  container-type: inline-size;
+}
+
+.actionLink {
+  padding: 3px 6px;
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  background: var(--grey2);
+  color: inherit;
+  font: inherit;
+  font-size: 0.8em;
+  cursor: pointer;
+  text-align: left;
+}
+
+.actionLink:hover {
+  background: var(--grey3);
+}
+
+.poiButton:focus-visible,
+.actionButton:focus-visible,
+.actionLink:focus-visible {
+  outline: 2px solid var(--grey5);
+  outline-offset: -2px;
+}
+
+.sourceNode {
+  padding: 6px 8px;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background: var(--grey1);
+}
+
+.sourceHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+
+.sourceHeading h3,
+.sourceHeading h4 {
+  margin: 0 0 3px;
+  font-size: 0.95em;
+}
+
+.branches {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 0 0 0 8px;
+  border-left: 1px solid var(--grey3);
+}
+
+.branch {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding-top: 6px;
+  gap: 12px;
+}
+
+.branch::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 24px;
+  width: 12px;
+  border-top: 1px solid var(--grey3);
+}
+
+.adoptionNode,
+.outcomeNode {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background: var(--grey1);
+  overflow-wrap: anywhere;
+}
+
+.location {
+  margin-bottom: 3px;
+  font-size: 0.85em;
+}
+
+.outcomeNode {
+  position: relative;
+}
+
+.outcomeNode::before {
+  content: "";
+  position: absolute;
+  left: -13px;
+  top: 17px;
+  width: 12px;
+  border-top: 1px solid var(--grey3);
+}
+
+.executions {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.execution {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 6px;
+  padding: 3px 0;
+  font-size: 0.85em;
+}
+
+.execution .actionLink {
+  font-size: 0.95em;
+}
+
+.executedName {
+  flex-basis: 100%;
+  color: var(--grey4);
+}
+
+.status {
+  padding: 1px 4px;
+  border: 1px solid currentcolor;
+  border-radius: var(--radius);
   font-size: 0.9em;
 }
-.lineageStationName {
-  color: var(--grey5);
-}
-.lineageStationIcon {
-  margin-right: 4px;
-}
-.lineageMeta {
-  color: var(--grey4);
-  font-size: 0.85em;
-}
-.lineageExec {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  font-size: 0.85em;
-  padding-left: 8px;
-}
-.execComplete {
+
+.complete {
   color: #a8e8b6;
 }
-.execSkipped {
+
+.skipped {
   color: #f0aeae;
 }
-.execPending {
-  color: var(--grey4);
+
+.pending {
+  color: var(--grey5);
 }
-.lineageEmpty {
-  color: var(--grey4);
-  font-size: 0.85em;
-  padding-left: 10px;
-}
-.sectionLabel {
-  font-weight: 500;
-  margin: 6px 0 4px;
-}
-.sectionCaption {
+
+.meta,
+.legend {
   color: var(--grey4);
   font-size: 0.8em;
   line-height: 1.35;
-  margin: 0 0 6px;
+}
+
+.legend {
+  margin: 8px 0 0;
+}
+
+.noExecution {
+  margin-top: 4px;
+  font-size: 0.85em;
+}
+
+.noAdoption {
+  margin-left: 8px;
+  padding: 8px 12px;
+  border-left: 1px solid var(--grey3);
+  font-size: 0.85em;
+}
+
+.noAdoption p {
+  color: var(--grey4);
+  margin: 4px 0;
+}
+
+.emptyState {
+  padding: 8px;
+  color: var(--grey4);
+}
+
+@container (max-width: 600px) {
+  .branch {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .outcomeNode {
+    margin-left: 8px;
+  }
+
+  .outcomeNode::before {
+    top: -7px;
+    left: 12px;
+    width: 0;
+    height: 6px;
+    border-top: 0;
+    border-left: 1px solid var(--grey3);
+  }
+}
+
+@container (max-width: 850px) {
+  .actionWorkspace {
+    flex-direction: column;
+  }
+
+  .actionList {
+    flex: 0 0 auto;
+    max-height: 200px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    border-right: 0;
+    border-bottom: 1px solid var(--grey3);
+    padding: 0 0 4px;
+  }
+
+  .actionList .listHeader {
+    grid-column: 1 / -1;
+  }
+}
+
+@container (max-width: 650px) {
+  .workspace {
+    flex-direction: column;
+  }
+
+  .poiList {
+    flex-basis: 120px;
+    border-right: 0;
+    border-bottom: 1px solid var(--grey3);
+  }
+}
+
+.helpControl {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.itemIcon {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.previewDialog {
+  width: min(720px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background: var(--grey1);
+  color: var(--grey5);
+  overflow: hidden;
+}
+
+.previewDialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+.previewContent {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 36px);
+}
+
+.previewHeader {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--grey3);
+}
+
+.previewHeader h2 {
+  margin: 3px 0 0;
+  font-size: 1em;
+  overflow-wrap: anywhere;
+}
+
+.previewClose {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background: var(--grey2);
+  color: inherit;
+  cursor: pointer;
+}
+
+.previewClose:focus-visible {
+  outline: 2px solid var(--grey5);
+}
+
+.previewBody {
+  overflow: auto;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+}
+
+.previewContext {
+  line-height: 1.5;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--grey3);
+}
+
+.previewAction {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 8px;
+}
+
+.listHeaderTools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

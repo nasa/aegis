@@ -13,12 +13,12 @@ import StmRulesPage from "components/panes/stm-rules/stm-rules-page";
 import ReportsPage from "components/panes/reports/reports-page";
 import StationIcon from "assets/station.svg?react";
 import {
-  faChartColumn,
   faCircle,
   faFlask,
   faGlobe,
   faRocket,
   faRoute,
+  faTableList,
 } from "@fortawesome/free-solid-svg-icons";
 import type { ReactNode } from "react";
 
@@ -93,7 +93,7 @@ export const getPaneTypes = (actionSystemVersion = 1): PaneTypes => {
         leftPane: (): ReactNode => null,
         rightPane: ReportsPage,
         color: "var(--reports)",
-        icon: faChartColumn,
+        icon: faTableList,
         fullScreen: true,
       },
     };

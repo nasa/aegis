@@ -149,15 +149,19 @@ describe("resolveScopeEvaUuids()", () => {
 });
 
 describe("resolveScopeExecutionRexes()", () => {
-  test("only the executed campaign scope has execution rexes", () => {
+  test("plans include execution history and executed campaigns resolve their selection", () => {
     const { mission } = buildFixture();
     addRexEvaOfAlpha(mission, { rexUuid: "rex1", createdAt: 1 });
     mission.reportCampaigns = { c1: makeCampaign({ uuid: "c1", memberEvaUuids: ["eva1"] }) };
 
-    expect(resolveScopeExecutionRexes(mission, { type: "all" })).toEqual([]);
+    expect(resolveScopeExecutionRexes(mission, { type: "all" }).map((rex) => rex.uuid)).toEqual([
+      "rex1",
+    ]);
     expect(
-      resolveScopeExecutionRexes(mission, { type: "campaignPlanned", campaignUuid: "c1" })
-    ).toEqual([]);
+      resolveScopeExecutionRexes(mission, { type: "campaignPlanned", campaignUuid: "c1" }).map(
+        (rex) => rex.uuid
+      )
+    ).toEqual(["rex1"]);
     expect(
       resolveScopeExecutionRexes(mission, { type: "campaignExecuted", campaignUuid: "c1" }).map(
         (rex) => rex.uuid
@@ -429,18 +433,13 @@ describe("computePoiTraceability() — executed scope", () => {
     }
   });
 
-  test("'all' scope carries no execution set: complete/skipped are 0 even with rexes present", () => {
+  test("all scope preserves historical adoptions when the current plan has no matching copy", () => {
     const { mission } = buildExecuted();
-
-    const rows = computePoiTraceability({ mission, scope: { type: "all" } });
-    const row = rowByPoi(rows, "p1");
-    expect(row.completeCount).toBe(0);
-    expect(row.skippedCount).toBe(0);
-    // the as-planned scope sees no promoted copies here (copies live on the rex EVA)
-    expect(row.promotedActionCount).toBe(0);
-    for (const action of row.actions) {
-      for (const copy of action.stationCopies) expect(copy.executions).toEqual([]);
-    }
+    const [row] = computePoiTraceability({ mission, scope: { type: "all" } });
+    expect(row.completeCount).toBe(1);
+    expect(row.skippedCount).toBe(1);
+    expect(row.promotedActionCount).toBe(3);
+    expect(row.actions.every((action) => action.stationCopies[0].executionOnly)).toBe(true);
   });
 
   test("executed scope: as-planned linkage yields 0 linked stations (REX EVAs hold copies)", () => {
@@ -452,5 +451,161 @@ describe("computePoiTraceability() — executed scope", () => {
       scope: { type: "campaignExecuted", campaignUuid: "c1" },
     });
     expect(row.linkedStationCount).toBe(0);
+  });
+});
+
+describe("POI adoption to execution lineage", () => {
+  const buildLineage = () => {
+    const { mission } = buildFixture();
+    mission.pois.p1 = generateBlankPoi({ uuid: "p1", name: "P1", actionOrderUuids: ["pa1"] });
+    mission.actions.pa1 = generateBlankAction({ uuid: "pa1", poiUuid: "p1", name: "Sample" });
+    mission.actions.sa1 = generateBlankAction({
+      uuid: "sa1",
+      stationUuid: "s1",
+      parentActionUuid: "pa1",
+      refUuid: "adoption1",
+    });
+    for (const rexUuid of ["old", "new"]) {
+      addRexEvaOfAlpha(mission, { rexUuid, createdAt: rexUuid === "old" ? 1 : 2 });
+      mission.stations[`s1r_${rexUuid}`].refUuid = mission.stations.s1.refUuid;
+      mission.actions[`${rexUuid}Action`] = generateBlankAction({
+        uuid: `${rexUuid}Action`,
+        stationUuid: `s1r_${rexUuid}`,
+        parentActionUuid: "pa1",
+        refUuid: "adoption1",
+      });
+    }
+    mission.rexes.old.actionEntries = { oldAction: { rexStatus: "skipped" } };
+    mission.rexes.new.actionEntries = { newAction: { rexStatus: "complete" } };
+    mission.reportCampaigns.c1 = makeCampaign({
+      uuid: "c1",
+      memberEvaUuids: ["eva1"],
+      executionRexUuidByEvaUuid: { eva1: "old" },
+    });
+    return mission;
+  };
+
+  test("all EVAs attaches each execution snapshot to its planned adoption without duplicate branches", () => {
+    const mission = buildLineage();
+    const [row] = computePoiTraceability({ mission, scope: { type: "all" } });
+    expect(row.actions[0].stationCopies).toHaveLength(1);
+    expect(row.actions[0].stationCopies[0]).toMatchObject({
+      stationActionUuid: "sa1",
+      executionOnly: false,
+    });
+    expect(row.actions[0].stationCopies[0].executions).toEqual([
+      {
+        rexUuid: "old",
+        rexName: "old",
+        evaUuid: "eva1",
+        actionUuid: "oldAction",
+        status: "skipped",
+      },
+      {
+        rexUuid: "new",
+        rexName: "new",
+        evaUuid: "eva1",
+        actionUuid: "newAction",
+        status: "complete",
+      },
+    ]);
+    expect(row.promotedActionCount).toBe(1);
+    expect(row.completeCount).toBe(1);
+    expect(row.skippedCount).toBe(1);
+  });
+
+  test("missing action in a snapshot is distinct from an included action with no status", () => {
+    const mission = buildLineage();
+    delete mission.actions.oldAction;
+    mission.rexes.new.actionEntries = null;
+    const [row] = computePoiTraceability({ mission, scope: { type: "all" } });
+    expect(row.actions[0].stationCopies[0].executions.map((execution) => execution.status)).toEqual(
+      ["notIncluded", "pending"]
+    );
+    expect(row.completeCount).toBe(0);
+  });
+
+  test("a shared station has separate EVA branches and does not borrow the other EVA's outcomes", () => {
+    const mission = buildLineage();
+    mission.evas.eva2 = generateBlankEVA({
+      uuid: "eva2",
+      name: "Bravo",
+      sequence: [{ type: "station", uuid: "s1" }],
+    });
+    const [row] = computePoiTraceability({ mission, scope: { type: "all" } });
+    const [copy] = row.actions[0].stationCopies;
+    expect(copy.inScopeEvaUuids).toEqual(["eva1", "eva2"]);
+    expect(copy.executions.every((execution) => execution.evaUuid === "eva1")).toBe(true);
+  });
+
+  test("two adoptions of the same POI action keep independent outcomes", () => {
+    const mission = buildLineage();
+    mission.actions.sa2 = generateBlankAction({
+      uuid: "sa2",
+      stationUuid: "s1",
+      parentActionUuid: "pa1",
+      refUuid: "adoption2",
+    });
+    const [row] = computePoiTraceability({ mission, scope: { type: "all" } });
+    const second = row.actions[0].stationCopies.find((copy) => copy.stationActionUuid === "sa2")!;
+    expect(second.executions.map((execution) => execution.status)).toEqual([
+      "notIncluded",
+      "notIncluded",
+    ]);
+    expect(row.completeCount).toBe(1);
+  });
+
+  test("a matching action ref in another station is not attributed to the planned station", () => {
+    const mission = buildLineage();
+    mission.actions.newAction.stationUuid = "s2r_new";
+    const [row] = computePoiTraceability({ mission, scope: { type: "all" } });
+    const planned = row.actions[0].stationCopies.find((copy) => copy.stationActionUuid === "sa1")!;
+    expect(planned.executions.find((execution) => execution.rexUuid === "new")?.status).toBe(
+      "notIncluded"
+    );
+    expect(
+      row.actions[0].stationCopies.find((copy) => copy.stationActionUuid === "newAction")
+        ?.executionOnly
+    ).toBe(true);
+  });
+
+  test("campaign plans show history while selected executions honour the designated REX", () => {
+    const mission = buildLineage();
+    const [planned] = computePoiTraceability({
+      mission,
+      scope: { type: "campaignPlanned", campaignUuid: "c1" },
+    });
+    expect(planned.actions[0].stationCopies[0].executions).toHaveLength(2);
+    const [executed] = computePoiTraceability({
+      mission,
+      scope: { type: "campaignExecuted", campaignUuid: "c1" },
+    });
+    expect(executed.actions[0].stationCopies).toHaveLength(1);
+    expect(executed.actions[0].stationCopies[0].executions[0].status).toBe("skipped");
+    expect(executed.completeCount).toBe(0);
+    mission.reportCampaigns.c1.memberEvaUuids = [];
+    const [empty] = computePoiTraceability({
+      mission,
+      scope: { type: "campaignPlanned", campaignUuid: "c1" },
+    });
+    expect(empty.actions[0].stationCopies).toEqual([]);
+  });
+
+  test("traverse adoption matches execution copies using the traverse family", () => {
+    const mission = buildLineage();
+    mission.actions.sa1.stationUuid = null;
+    mission.actions.sa1.traverseUuid = "t1";
+    mission.traverses.tr = generateBlankTraverse({
+      uuid: "tr",
+      refUuid: mission.traverses.t1.refUuid,
+    });
+    mission.evas.newEva.sequence.push({ type: "traverse", uuid: "tr" });
+    mission.actions.newAction.stationUuid = null;
+    mission.actions.newAction.traverseUuid = "tr";
+    const [row] = computePoiTraceability({ mission, scope: { type: "all" } });
+    const planned = row.actions[0].stationCopies.find((copy) => copy.stationActionUuid === "sa1")!;
+    expect(planned.executions.find((execution) => execution.rexUuid === "new")?.status).toBe(
+      "complete"
+    );
   });
 });
