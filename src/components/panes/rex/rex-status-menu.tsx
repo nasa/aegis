@@ -8,6 +8,7 @@ import { thunkDocAddRexStatusEntry } from "store/thunk/thunkRex";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { getRexStatusDisplayProperties } from "utils/component-helpers";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import RexSkippedIcon from "assets/draw-rex-skipped-icon.svg?react";
 
 export const RexStatusMenu: FunctionComponent<{
   rexStatus: RexStatus;
@@ -126,8 +127,8 @@ export const RexStatusMenu: FunctionComponent<{
             className={`${evaStyles.rexStatusIcon} ${rexStatusDisplayProperties.iconStyle}`}
           />
         ) : (
-          <div
-            className={rexStyles.rexStatusMenuIconSkipped}
+          <RexSkippedIcon
+            className={rexStyles.rexStatusMenuIconSkippedSvg}
             style={{ width: "16px", height: "16px" }}
           />
         )}
@@ -154,8 +155,8 @@ const RexStatusMenuItem: FunctionComponent<{
           className={`${evaStyles.rexStatusMenuIcon} ${getRexStatusDisplayProperties(rexStatus).iconStyle}`}
         />
       ) : (
-        <div
-          className={rexStyles.rexStatusMenuIconSkipped}
+        <RexSkippedIcon
+          className={rexStyles.rexStatusMenuIconSkippedSvg}
           style={{ width: "15px", height: "15px" }}
         />
       )}
