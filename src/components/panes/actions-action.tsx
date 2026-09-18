@@ -41,6 +41,9 @@ const RightAction: FunctionComponent<{
   rexUuid: string | null;
   toFocus: boolean;
   allowEdit?: boolean;
+  /** Optional controlled expansion for isolated views such as previews. */
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }> = ({
   editMode,
   actionUuid,
@@ -51,6 +54,8 @@ const RightAction: FunctionComponent<{
   rexUuid,
   toFocus,
   allowEdit = true,
+  expanded,
+  onExpandedChange,
 }) => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
@@ -70,6 +75,7 @@ const RightAction: FunctionComponent<{
     deepEqual
   );
   const actionsExpanded = useAppSelector((state) => state.action.actionsExpanded, shallowEqual);
+  const isExpanded = expanded ?? actionsExpanded.includes(actionUuid);
   const isRexRunning = useMissionDocSelector(
     (mission) => (rexUuid ? (mission.rexes?.[rexUuid]?.isRunning ?? false) : false),
     refEqual
@@ -110,6 +116,10 @@ const RightAction: FunctionComponent<{
   };
 
   const toggleActionExpanded = (actionUuid: string) => {
+    if (expanded !== undefined) {
+      onExpandedChange?.(!expanded);
+      return;
+    }
     if (actionsExpanded.includes(actionUuid)) {
       dispatch(collapseActions([actionUuid]));
     } else {
@@ -201,7 +211,7 @@ const RightAction: FunctionComponent<{
                   toggleActionExpanded(action.uuid);
                 }}
               >
-                {actionsExpanded.includes(action.uuid) ? (
+                {isExpanded ? (
                   <FontAwesomeIcon
                     icon={faCaretDown}
                     size="sm"
@@ -383,7 +393,7 @@ const RightAction: FunctionComponent<{
                 {editMode && <ActionMenu action={action} />}
               </div>
             </div>
-            {actionsExpanded.includes(action.uuid) && (
+            {isExpanded && (
               <RightActionBody
                 action={action}
                 editMode={editMode}

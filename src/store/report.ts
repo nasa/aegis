@@ -33,11 +33,7 @@ export const initialState: ReportState = {
   stmCoverage: initialColumnReportState(),
   comparison: initialColumnReportState(),
   poiTrace: {
-    scope: { type: "all" },
-    filterText: "",
-    sortKey: "priority",
     selectedPoiUuid: null,
-    drilldownWidth: null,
   },
 };
 
@@ -140,20 +136,8 @@ export const reportSlice = createSlice({
       if (data.metricsByColumnKey) report.metricsByColumnKey = data.metricsByColumnKey;
     },
     // ---- POI Traceability ----
-    poiTraceSetScope: (state, action: { payload: PoiTraceScope }) => {
-      state.poiTrace.scope = action.payload;
-    },
-    poiTraceSetFilterText: (state, action: { payload: string }) => {
-      state.poiTrace.filterText = action.payload;
-    },
-    poiTraceSetSortKey: (state, action: { payload: PoiTraceSortKey }) => {
-      state.poiTrace.sortKey = action.payload;
-    },
     poiTraceSetSelectedPoi: (state, action: { payload: string | null }) => {
       state.poiTrace.selectedPoiUuid = action.payload;
-    },
-    poiTraceSetDrilldownWidth: (state, action: { payload: number }) => {
-      state.poiTrace.drilldownWidth = action.payload;
     },
     obliterateState: (state) => {
       Object.assign(state, initialState);
@@ -180,10 +164,6 @@ export const {
   reportToggleDrilldownChangesOnly,
   reportSetCellSelection,
   reportSetColumnDerivedData,
-  poiTraceSetScope,
-  poiTraceSetFilterText,
-  poiTraceSetSortKey,
   poiTraceSetSelectedPoi,
-  poiTraceSetDrilldownWidth,
   obliterateState,
 } = reportSlice.actions;
