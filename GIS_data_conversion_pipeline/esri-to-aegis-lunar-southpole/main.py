@@ -205,6 +205,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fail unless --in-vector produces exactly COUNT non-empty features.",
     )
     inputs.add_argument(
+        "--fill-null-vector-property",
+        dest="fill_null_vector_property",
+        action="append",
+        default=[],
+        metavar="PROPERTY=JSON_VALUE",
+        help="Fill exactly one null vector property with a JSON value; repeatable.",
+    )
+    inputs.add_argument(
+        "--require-vector-property",
+        dest="require_vector_property",
+        action="append",
+        default=[],
+        metavar="PROPERTY",
+        help="Require a non-null property on every output vector feature; repeatable.",
+    )
+    inputs.add_argument(
+        "--require-unique-vector-property",
+        dest="require_unique_vector_property",
+        action="append",
+        default=[],
+        metavar="PROPERTY",
+        help="Require a unique non-null property on every output vector feature; repeatable.",
+    )
+    inputs.add_argument(
         "--in-horizon-shapefile-dir",
         dest="in_horizon_shapefile_dir",
         type=Path,
@@ -295,7 +319,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="PATH",
         help=(
-            "Classified viewshed GeoTIFF (1=visible, 2=non-visible, 255=nodata) "
+            "Classified viewshed GeoTIFF (0=background, 1=visible, 2=non-visible; "
+            "optional 255 nodata) "
             "to convert into a transparent-mask RGBA COG; repeatable."
         ),
     )
@@ -309,6 +334,38 @@ def build_parser() -> argparse.ArgumentParser:
             "Output layer name for each --in-viewshed-raster; repeat once per input "
             "or omit to use the source filename."
         ),
+    )
+    inputs.add_argument(
+        "--in-categorical-raster",
+        dest="in_categorical_raster",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Palette-indexed Byte GeoTIFF to validate and expand into an RGBA COG; repeatable.",
+    )
+    inputs.add_argument(
+        "--categorical-class-definition",
+        dest="categorical_class_definition",
+        action="append",
+        default=[],
+        metavar="JSON",
+        help="Class-definition JSON for each --in-categorical-raster; repeat once per input.",
+    )
+    inputs.add_argument(
+        "--categorical-product",
+        dest="categorical_product",
+        action="append",
+        default=[],
+        metavar="PRODUCT",
+        help="Explicit JSON product to select for each categorical raster; repeat once per input.",
+    )
+    inputs.add_argument(
+        "--out-categorical-raster",
+        dest="out_categorical_raster",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="Output layer name for each categorical raster; repeat once per input or omit.",
     )
     inputs.add_argument(
         "--in-keepout-raster",

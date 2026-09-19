@@ -188,6 +188,9 @@ def convert(
     *,
     repair_invalid: bool = False,
     expect_features: int | None = None,
+    fill_null_properties: dict[str, object] | None = None,
+    required_properties: tuple[str, ...] = (),
+    unique_properties: tuple[str, ...] = (),
 ) -> dict:
     """Normalize one Fiona-supported vector source to GeoJSON at ``dst_path``.
 
@@ -233,6 +236,7 @@ def convert(
         invalid_count = 0
         repaired_count = 0
         null_geometry_count = 0
+        filled_property_counts: dict[str, int] = {}
         min_x = min_y = float("inf")
         max_x = max_y = float("-inf")
 
@@ -279,6 +283,16 @@ def convert(
                 min_y, max_y = min(min_y, y), max(max_y, y)
 
             props = dict(feat["properties"])
+            for property_name, replacement in (fill_null_properties or {}).items():
+                if property_name not in props:
+                    raise SystemExit(
+                        f"ERROR: property {property_name!r} does not exist in the source schema"
+                    )
+                if props[property_name] is None:
+                    props[property_name] = replacement
+                    filled_property_counts[property_name] = (
+                        filled_property_counts.get(property_name, 0) + 1
+                    )
             property_keys.update(props.keys())
             features.append(
                 {
@@ -293,6 +307,35 @@ def convert(
             f"ERROR: expected {expect_features} feature(s) after conversion, got "
             f"{len(features)}. Refusing to write a GeoJSON with an unexpected feature count."
         )
+
+    for property_name in fill_null_properties or {}:
+        filled_count = filled_property_counts.get(property_name, 0)
+        if filled_count != 1:
+            raise SystemExit(
+                f"ERROR: --fill-null-property expected exactly one null "
+                f"{property_name!r} value, found {filled_count}"
+            )
+
+    for property_name in required_properties:
+        missing = [
+            index
+            for index, feature in enumerate(features)
+            if feature["properties"].get(property_name) is None
+        ]
+        if missing:
+            raise SystemExit(
+                f"ERROR: required property {property_name!r} is null or absent on "
+                f"{len(missing)} feature(s): {missing[:10]}"
+            )
+    for property_name in unique_properties:
+        values = [feature["properties"].get(property_name) for feature in features]
+        if any(value is None for value in values):
+            raise SystemExit(
+                f"ERROR: unique property {property_name!r} is null or absent"
+            )
+        serialized = [json.dumps(value, sort_keys=True) for value in values]
+        if len(serialized) != len(set(serialized)):
+            raise SystemExit(f"ERROR: property {property_name!r} is not unique")
 
     fc = {
         "type": "FeatureCollection",
@@ -316,6 +359,8 @@ def convert(
         print(f"  Invalid geometries: {invalid_count}; repaired: {repaired_count}")
     if null_geometry_count:
         print(f"  Omitted {null_geometry_count} feature(s) with null geometry")
+    if filled_property_counts:
+        print(f"  Filled null properties: {filled_property_counts}")
     # Every feature can be non-empty yet contribute no coordinate (e.g. an empty
     # GeometryCollection), which would leave the accumulators at +/-inf.
     has_bounds = math.isfinite(min_x) and math.isfinite(min_y)
@@ -337,6 +382,7 @@ def convert(
         "repaired_count": repaired_count,
         "null_geometry_count": null_geometry_count,
         "property_keys": sorted(property_keys),
+        "filled_property_counts": filled_property_counts,
         "output_bounds": [min_x, min_y, max_x, max_y] if has_bounds else None,
     }
 
@@ -382,6 +428,27 @@ def main() -> None:
         default=None,
         help="Optional path to write the machine-readable audit summary JSON.",
     )
+    parser.add_argument(
+        "--fill-null-property",
+        action="append",
+        default=[],
+        metavar="PROPERTY=JSON_VALUE",
+        help="Fill exactly one null occurrence with a JSON value; repeatable.",
+    )
+    parser.add_argument(
+        "--require-property",
+        action="append",
+        default=[],
+        metavar="PROPERTY",
+        help="Require a non-null property on every output feature; repeatable.",
+    )
+    parser.add_argument(
+        "--require-unique-property",
+        action="append",
+        default=[],
+        metavar="PROPERTY",
+        help="Require a unique non-null property on every output feature; repeatable.",
+    )
 
     args = parser.parse_args()
 
@@ -394,12 +461,28 @@ def main() -> None:
     print("=" * 60)
     print()
 
+    fill_null_properties: dict[str, object] = {}
+    for assignment in args.fill_null_property:
+        property_name, separator, raw_value = assignment.partition("=")
+        if not separator or not property_name:
+            parser.error("--fill-null-property must use PROPERTY=JSON_VALUE")
+        try:
+            replacement = json.loads(raw_value)
+        except json.JSONDecodeError as error:
+            parser.error(f"Invalid JSON value in {assignment!r}: {error}")
+        if property_name in fill_null_properties:
+            parser.error(f"Duplicate --fill-null-property for {property_name!r}")
+        fill_null_properties[property_name] = replacement
+
     audit = convert(
         args.input,
         args.output,
         args.precision,
         repair_invalid=args.repair_invalid,
         expect_features=args.expect_features,
+        fill_null_properties=fill_null_properties,
+        required_properties=tuple(args.require_property),
+        unique_properties=tuple(args.require_unique_property),
     )
 
     if args.audit_out:

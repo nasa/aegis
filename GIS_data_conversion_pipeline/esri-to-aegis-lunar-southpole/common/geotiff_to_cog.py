@@ -56,6 +56,7 @@ def build_cog(
     blocksize: int = 512,
     nodata: float | None = None,
     clear_nodata: bool = False,
+    overview_resampling: str = "average",
 ) -> Path:
     """
     Convert an arbitrary GeoTIFF into a COG using GDAL's native COG driver.
@@ -93,7 +94,7 @@ def build_cog(
             compress=compress,
             blocksize=blocksize,
             num_threads="all_cpus",
-            overview_resampling="average",
+            overview_resampling=overview_resampling,
             BIGTIFF="YES",
         )
 
@@ -227,6 +228,12 @@ def main() -> None:
         help="Internal tile size in pixels (default: 512)",
     )
     parser.add_argument(
+        "--overview-resampling",
+        choices=["average", "nearest"],
+        default="average",
+        help="Overview resampling method (use nearest for categorical RGBA rasters).",
+    )
+    parser.add_argument(
         "--nodata",
         type=float,
         default=None,
@@ -262,6 +269,7 @@ def main() -> None:
         blocksize=args.blocksize,
         nodata=args.nodata,
         clear_nodata=args.clear_nodata,
+        overview_resampling=args.overview_resampling,
     )
 
     print("Serve the COG via any static host with Range request support.")

@@ -21,10 +21,11 @@ for stream in (sys.stdout, sys.stderr):
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Convert a classified 1/2/255 viewshed GeoTIFF to an RGBA raster."
+        description="Convert a classified 0/1/2 viewshed GeoTIFF to an RGBA raster."
     )
     parser.add_argument("input", type=Path, help="Input classified viewshed GeoTIFF.")
     parser.add_argument("output", type=Path, help="Output RGBA GeoTIFF.")
+    parser.add_argument("--background-value", type=int, required=True)
     parser.add_argument("--visible-value", type=int, required=True)
     parser.add_argument("--nonvisible-value", type=int, required=True)
     parser.add_argument("--nodata-value", type=int, required=True)
@@ -36,14 +37,27 @@ def main() -> None:
         parser.error(f"Input GeoTIFF does not exist: {args.input}")
     if not 0 <= args.fill_opacity <= 1:
         parser.error("--fill-opacity must be between 0 and 1")
-    if len({args.visible_value, args.nonvisible_value, args.nodata_value}) != 3:
-        parser.error("visible, non-visible, and nodata values must be distinct")
+    if (
+        len(
+            {
+                args.background_value,
+                args.visible_value,
+                args.nonvisible_value,
+                args.nodata_value,
+            }
+        )
+        != 4
+    ):
+        parser.error(
+            "background, visible, non-visible, and nodata values must be distinct"
+        )
 
     print("Viewshed GeoTIFF -> RGBA GeoTIFF")
     print(f"  Input:  {args.input}")
     print(f"  Output: {args.output}")
     print(
         "  Classes: "
+        f"background={args.background_value} transparent, "
         f"visible={args.visible_value} transparent, "
         f"non-visible={args.nonvisible_value} #{args.fill_color[0]:02X}{args.fill_color[1]:02X}{args.fill_color[2]:02X} "
         f"at {args.fill_opacity:.0%}, nodata={args.nodata_value} transparent"
@@ -52,12 +66,13 @@ def main() -> None:
     colorize_classified_mask(
         args.input,
         args.output,
-        (args.visible_value,),
+        (args.background_value, args.visible_value),
         args.nonvisible_value,
         args.nodata_value,
         args.fill_color,
         args.fill_opacity,
         require_fill_value=True,
+        allow_missing_nodata=True,
     )
 
 

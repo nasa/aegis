@@ -398,7 +398,9 @@ def ensure_header_layers(
     client: AegisApiClient, mission_id: int, names: list[str], *, dry_run: bool
 ) -> dict[str, str]:
     """Return {name: uuid} for each header layer, creating any that don't exist."""
-    existing = {l["name"]: l["uuid"] for l in client.get_layers(mission_id)}
+    existing = (
+        {} if dry_run else {l["name"]: l["uuid"] for l in client.get_layers(mission_id)}
+    )
     name_to_uuid: dict[str, str] = {}
     to_create: list[dict] = []
     for name in names:
@@ -665,9 +667,11 @@ def register_mission(
         )
 
     # ── 4. skip already-registered (header, path) pairs ────────────────────
-    existing_pairs = {
-        (s["layerUuid"], s["path"]) for s in client.get_sublayers(mission_id)
-    }
+    existing_pairs = (
+        set()
+        if dry_run
+        else {(s["layerUuid"], s["path"]) for s in client.get_sublayers(mission_id)}
+    )
     to_insert = [
         s for s in sublayers if (s["layerUuid"], s["path"]) not in existing_pairs
     ]
