@@ -62,6 +62,13 @@ const RightAction: FunctionComponent<{
   );
 
   const action = useMissionDocSelector((mission) => mission.actions[actionUuid], deepEqual);
+  const missionPriority = useMissionDocSelector(
+    (mission) =>
+      mission.actionSystemVersion === 2 && action?.missionPriorityUuid
+        ? mission.missionPriorities?.[action.missionPriorityUuid]
+        : null,
+    deepEqual
+  );
   const actionsExpanded = useAppSelector((state) => state.action.actionsExpanded, shallowEqual);
   const isRexRunning = useMissionDocSelector(
     (mission) => (rexUuid ? (mission.rexes?.[rexUuid]?.isRunning ?? false) : false),
@@ -131,6 +138,18 @@ const RightAction: FunctionComponent<{
     (mission) => mission.actionDefinitionConjunctions,
     refEqual
   );
+  const missionPriorityBadge = missionPriority?.trace ? (
+    <span
+      className={actionStyles.actionHeadingPriority}
+      aria-label={`Mission priority: ${missionPriority.trace}`}
+      data-tooltip-id="aegis-tooltip"
+      data-tooltip-content={`Mission priority: ${missionPriority.trace}${
+        missionPriority.category ? ` | ${missionPriority.category}` : ""
+      }`}
+    >
+      {missionPriority.trace}
+    </span>
+  ) : null;
 
   return (
     <>
@@ -273,6 +292,7 @@ const RightAction: FunctionComponent<{
                       styleContainer={{ margin: "-3px" }}
                     />
                   </div>
+                  {missionPriorityBadge}
                 </div>
               ) : (
                 <>
@@ -306,6 +326,7 @@ const RightAction: FunctionComponent<{
                         />
                       </>
                     )}
+                    {missionPriorityBadge}
                   </div>
                 </>
               )}
