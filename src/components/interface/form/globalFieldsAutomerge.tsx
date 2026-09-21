@@ -909,10 +909,13 @@ export const ValidatedLatLngField: FunctionComponent<{
     dialogChildrenRef.current.style.transform = `translateX(0)`;
   };
 
-  const composedFilter = (value: string, fieldProps: FFTextPropsAutomerge) =>
-    fieldProps?.validators
-      ? getFiltersForValidators(fieldPropsLng.validators)
-      : (value: Stringy) => String(value);
+  const composedFilterLat = fieldPropsLat.validators
+    ? getFiltersForValidators(fieldPropsLat.validators)
+    : (value: Stringy) => String(value);
+
+  const composedFilterLng = fieldPropsLng.validators
+    ? getFiltersForValidators(fieldPropsLng.validators)
+    : (value: Stringy) => String(value);
 
   return (
     <div
@@ -991,7 +994,7 @@ export const ValidatedLatLngField: FunctionComponent<{
                               event.stopPropagation();
                             }}
                             onChange={(event) => {
-                              input.onChange(composedFilter(event.target.value, fieldPropsLat));
+                              input.onChange(composedFilterLat(event.target.value));
                             }}
                           />
                         </React.Fragment>
@@ -1021,7 +1024,7 @@ export const ValidatedLatLngField: FunctionComponent<{
                               event.stopPropagation();
                             }}
                             onChange={(event) => {
-                              input.onChange(composedFilter(event.target.value, fieldPropsLng));
+                              input.onChange(composedFilterLng(event.target.value));
                             }}
                           />
                         </React.Fragment>

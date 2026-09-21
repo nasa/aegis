@@ -173,7 +173,7 @@ export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
 /**
  * Filter functions to prevent invalid characters from appearing in input fields
  * These should be used in the onChange handler of input components
- * They work in conjunction with the validators above
+ * They work with the validators above
  */
 
 const filterNumbersOnly = (value: Stringy): string => {
