@@ -126,22 +126,15 @@ export const setupMaestroNamespace = (
         const mission = docHandle.doc();
         if (!mission.evas[evaUuid]) {
           callback?.({ status: "error", message: "Eva not found in mission" });
+          serverLogger.warning({
+            logId: "socket-maestro-v2",
+            maestroName: getMaestroName(socket.id, missionId),
+            logValue: `subscribeToEva - Eva ${evaUuid} not found in missionId ${missionId}`,
+          });
           return;
         }
 
         const subscriptions = globalValues.maestroV2.evaSubscriptions.get(missionId) ?? [];
-        if (!evaUuid) {
-          callback?.({
-            status: "error",
-            message: `evaUuid not found for this evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
-          });
-          serverLogger.warning({
-            logId: "socket-maestro-v2",
-            maestroName: getMaestroName(socket.id, missionId),
-            logValue: `subscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
-          });
-          return;
-        }
         if (!subscriptions.includes(evaUuid)) {
           subscriptions.push(evaUuid);
           globalValues.maestroV2.evaSubscriptions.set(missionId, subscriptions);
@@ -154,7 +147,7 @@ export const setupMaestroNamespace = (
           serverLogger.warning({
             logId: "socket-maestro-v2",
             maestroName: getMaestroName(socket.id, missionId),
-            logValue: `unsubscribeToEva - could not get evaUuid from missionId ${missionId}, evaRefUuid ${evaRefUuid} and rexUuid ${rexUuid}`,
+            logValue: `unsubscribeToEva - could not get evaUuid from missionId ${missionId}, evaUuid ${evaUuid}`,
           });
           return;
         }
