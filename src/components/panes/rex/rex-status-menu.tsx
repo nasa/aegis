@@ -127,10 +127,7 @@ export const RexStatusMenu: FunctionComponent<{
             className={`${evaStyles.rexStatusIcon} ${rexStatusDisplayProperties.iconStyle}`}
           />
         ) : (
-          <RexSkippedIcon
-            className={rexStyles.rexStatusMenuIconSkippedSvg}
-            style={{ width: "16px", height: "16px" }}
-          />
+          <RexSkippedIcon className={rexStyles.rexStatusIconSkipped} />
         )}
       </div>
     </>
@@ -155,10 +152,7 @@ const RexStatusMenuItem: FunctionComponent<{
           className={`${evaStyles.rexStatusMenuIcon} ${getRexStatusDisplayProperties(rexStatus).iconStyle}`}
         />
       ) : (
-        <RexSkippedIcon
-          className={rexStyles.rexStatusMenuIconSkippedSvg}
-          style={{ width: "15px", height: "15px" }}
-        />
+        <RexSkippedIcon className={rexStyles.rexStatusIconSkipped} />
       )}
       <div className={rexStyles.rexStatusMenuItemTitle}>{title}</div>
     </div>
