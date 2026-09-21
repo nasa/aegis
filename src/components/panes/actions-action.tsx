@@ -292,7 +292,6 @@ const RightAction: FunctionComponent<{
                       styleContainer={{ margin: "-3px" }}
                     />
                   </div>
-                  {missionPriorityBadge}
                 </div>
               ) : (
                 <>
