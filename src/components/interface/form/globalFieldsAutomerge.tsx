@@ -7,7 +7,11 @@ import paneStyles from "../../panes/global-pane-styles.module.css";
 import { Field, Form, FormSpy } from "react-final-form";
 import type { FormApi } from "final-form";
 import React from "react";
-import { composeValidators } from "components/interface/form/formValidators";
+import {
+  composeValidators,
+  getFiltersForValidators,
+  type Stringy,
+} from "components/interface/form/formValidators";
 import type { FFTextPropsAutomerge, FFTextAreaPropsAutomerge } from "typings/formAutomerge";
 import round from "lodash/round";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
@@ -90,6 +94,10 @@ export const CollaborationInputField: FunctionComponent<{
     dialogChildrenRef.current.style.transform = `translateX(0)`;
   };
 
+  const composedFilter = fieldProps.validators
+    ? getFiltersForValidators(fieldProps.validators)
+    : (value: Stringy) => String(value);
+
   // if set to focus the contents, select all text on focus
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     if (focusContents) event.target.select();
@@ -167,6 +175,7 @@ export const CollaborationInputField: FunctionComponent<{
                             onChange={(event) => {
                               if (onChange) onChange(event);
                               input.onChange(event); //call native on change
+                              input.onChange(composedFilter(event.target.value));
                               form.submit();
                             }}
                             onBlur={(event) => {
@@ -282,6 +291,10 @@ export const CollaborationTextArea: FunctionComponent<{
     dialogChildrenRef.current.style.transform = `translateX(0)`;
   };
 
+  const composedFilter = fieldProps.validators
+    ? getFiltersForValidators(fieldProps.validators)
+    : (value: Stringy) => String(value);
+
   // if set to focus the contents, select all text on focus
   const handleFocus = (event: React.FocusEvent<HTMLTextAreaElement>) => {
     if (focusContents) event.target.select();
@@ -367,6 +380,7 @@ export const CollaborationTextArea: FunctionComponent<{
                             onChange={(event) => {
                               input.onChange(event); //call native on change
                               autoResizeTextarea();
+                              input.onChange(composedFilter(event.target.value));
                               form.submit();
                             }}
                             onBlur={(event) => {
@@ -503,6 +517,10 @@ export const ValidatedInputField: FunctionComponent<{
     dialogChildrenRef.current.style.transform = `translateX(0)`;
   };
 
+  const composedFilter = fieldProps.validators
+    ? getFiltersForValidators(fieldProps.validators)
+    : (value: Stringy) => String(value);
+
   // if set to focus the contents, select all text on focus
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     if (focusContents) event.target.select();
@@ -586,6 +604,7 @@ export const ValidatedInputField: FunctionComponent<{
                             onChange={(event) => {
                               if (onChange) onChange(event);
                               input.onChange(event);
+                              input.onChange(composedFilter(event.target.value));
                             }}
                             ref={inputRef}
                           />
@@ -696,6 +715,10 @@ export const ValidatedTextArea: FunctionComponent<{
     dialogChildrenRef.current.style.transform = `translateX(0)`;
   };
 
+  const composedFilter = fieldProps.validators
+    ? getFiltersForValidators(fieldProps.validators)
+    : (value: Stringy) => String(value);
+
   // if set to focus the contents, select all text on focus
   const handleFocus = (event: React.FocusEvent<HTMLTextAreaElement>) => {
     if (focusContents) event.target.select();
@@ -779,6 +802,7 @@ export const ValidatedTextArea: FunctionComponent<{
                             onChange={(event) => {
                               autoResizeTextarea();
                               input.onChange(event); //call native on change
+                              input.onChange(composedFilter(event.target.value));
                             }}
                             onClick={(event) => {
                               event.stopPropagation();
@@ -885,6 +909,11 @@ export const ValidatedLatLngField: FunctionComponent<{
     dialogChildrenRef.current.style.transform = `translateX(0)`;
   };
 
+  const composedFilter = (value: string, fieldProps: FFTextPropsAutomerge) =>
+    fieldProps?.validators
+      ? getFiltersForValidators(fieldPropsLng.validators)
+      : (value: Stringy) => String(value);
+
   return (
     <div
       ref={containerRef}
@@ -961,6 +990,9 @@ export const ValidatedLatLngField: FunctionComponent<{
                             onClick={(event) => {
                               event.stopPropagation();
                             }}
+                            onChange={(event) => {
+                              input.onChange(composedFilter(event.target.value, fieldPropsLat));
+                            }}
                           />
                         </React.Fragment>
                       )}
@@ -987,6 +1019,9 @@ export const ValidatedLatLngField: FunctionComponent<{
                             style={{ width: "100%" }}
                             onClick={(event) => {
                               event.stopPropagation();
+                            }}
+                            onChange={(event) => {
+                              input.onChange(composedFilter(event.target.value, fieldPropsLng));
                             }}
                           />
                         </React.Fragment>
