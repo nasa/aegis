@@ -452,7 +452,7 @@ describe("buildAegisSliceForMaestro", () => {
 
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
-    expect(result.fetchedAegisActions[actionWithDefinition.refUuid].actionDefinition).toEqual(
+    expect(result.fetchedAegisActions[actionWithDefinition.uuid].actionDefinition).toEqual(
       actionDefinition
     );
   });
@@ -478,9 +478,9 @@ describe("buildAegisSliceForMaestro", () => {
 
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
-    expect(
-      result.fetchedAegisActions[actionWithPartialDefinition.refUuid].actionDefinition
-    ).toEqual({ verbUuid: "verb-1" });
+    expect(result.fetchedAegisActions[actionWithPartialDefinition.uuid].actionDefinition).toEqual({
+      verbUuid: "verb-1",
+    });
   });
 
   it("sends null for an action with no actionDefinition", async () => {
@@ -496,7 +496,7 @@ describe("buildAegisSliceForMaestro", () => {
 
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
-    expect(result.fetchedAegisActions[actionInSubscribed.refUuid].actionDefinition).toBeNull();
+    expect(result.fetchedAegisActions[actionInSubscribed.uuid].actionDefinition).toBeNull();
   });
 
   it("passes an action's raw missionPriorityUuid through unchanged", async () => {
