@@ -170,6 +170,85 @@ export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
   };
 };
 
+/**
+ * Filter functions to prevent invalid characters from appearing in input fields
+ * These should be used in the onChange handler of input components
+ * They work in conjunction with the validators above
+ */
+
+const filterNumbersOnly = (value: Stringy): string => {
+  return String(value).replace(/[^0-9.-]/g, "");
+};
+
+const filterIntegersOnly = (value: Stringy): string => {
+  return String(value).replace(/[^0-9-]/g, "");
+};
+
+const filterNumbersGTZero = (value: Stringy): string => {
+  return String(value).replace(/[^1-9.]/g, "");
+};
+
+const filterNumbersGTEZero = (value: Stringy): string => {
+  return String(value).replace(/[^0-9.]/g, "");
+};
+
+const filterHHMMSS = (value: Stringy): string => {
+  return String(value).replace(/[^0-9:+-]/g, "");
+};
+
+const filterYYYYMMDD = (value: Stringy): string => {
+  return String(value).replace(/[^0-9-]/g, "");
+};
+
+const filterValidJSON = (value: Stringy): string => {
+  return String(value).replace(/[^\w\s:{}[\],".-]/g, "");
+};
+
+const filterISOString = (value: Stringy): string => {
+  return String(value).replace(/[^0-9T:Z.-]/g, "");
+};
+
+const validatorsWithFilters: Record<string, (value: Stringy) => string> = {
+  mustBeNumber: filterNumbersOnly,
+  mustBeInteger: filterIntegersOnly,
+  mustbeNumberGTZero: filterNumbersGTZero,
+  mustBeNumberGTEZero: filterNumbersGTEZero,
+  mustBeHHMMSS: filterHHMMSS,
+  mustBeYYYYMMDD: filterYYYYMMDD,
+  mustBeValidJSON: filterValidJSON,
+  mustBeISOString: filterISOString,
+};
+
+export const composeFilters = (...filterFunctions: Array<(value: Stringy) => string>) => {
+  return (value: Stringy): string => {
+    return filterFunctions.reduce((filtered, filter) => filter(filtered), String(value));
+  };
+};
+
+export const getFiltersForValidators = (
+  validatorFunctions: Array<
+    (value: Stringy, allValues?: Record<string, unknown>) => string | undefined
+  >
+): ((value: Stringy) => string) => {
+  if (!validatorFunctions) {
+    return (value: Stringy) => String(value);
+  }
+
+  const filters = validatorFunctions
+    .map((validatorFn) => validatorsWithFilters[validatorFn.name])
+    .filter((filterFn) => filterFn !== undefined);
+
+  if (filters.length === 0) {
+    return (value: Stringy) => String(value);
+  }
+
+  if (filters.length === 1) {
+    return filters[0];
+  }
+
+  return composeFilters(...filters);
+};
+
 // Regex validators to match characters NOT in the accepted pattern
 
 const regExNumber = /[^\d\.]/;
