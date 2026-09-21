@@ -14,6 +14,10 @@ import {
   titleCase,
   toDecimal,
   roundUpSecondsFromISOString,
+  abbreviateString,
+  isNotNumber,
+  getPercentOrDefault,
+  getISOStringFromDateAndTime,
 } from "utils/formatting";
 
 describe("Utilities Functions", () => {
@@ -159,6 +163,18 @@ describe("formatNumberWithCommas", () => {
   });
 });
 
+describe("getPercentOrDefault", () => {
+  it("should return a percentage", () => {
+    expect(getPercentOrDefault(0.2)).toBe(20);
+    expect(getPercentOrDefault(0)).toBe(0);
+    expect(getPercentOrDefault(1)).toBe(100);
+  });
+
+  it("should return 100 when given undefined", () => {
+    expect(getPercentOrDefault(undefined)).toBe(100);
+  });
+});
+
 describe("titleCase", () => {
   it("should return an empty string when given an empty string", () => {
     expect(titleCase("")).toBe("");
@@ -240,5 +256,43 @@ describe("roundUpSecondsFromISOString", () => {
     expect(roundUpSecondsFromISOString("2021-01-01T23:59:59.001Z")).toBe(
       "2021-01-02T00:00:00.000Z"
     );
+  });
+});
+
+describe("abbreviateString", () => {
+  it("should abbreviate a string to a certain length and add ellipsis if needed", () => {
+    expect(abbreviateString("Lorem ipsum test for string", 10)).toBe("Lorem i...");
+    expect(abbreviateString("Lorem ipsum test for string", 1)).toBe("...");
+  });
+
+  it("should not abbreviate a string if below or equal to the maximum length", () => {
+    expect(abbreviateString("Lorem ipsum", 20)).toBe("Lorem ipsum");
+    expect(abbreviateString("Lorem ipsum", 11)).toBe("Lorem ipsum");
+  });
+});
+
+describe("isNotNumber", () => {
+  it("should return true if not a number", () => {
+    expect(isNotNumber("not-number")).toBe(true);
+    expect(isNotNumber("324")).toBe(true);
+    expect(isNotNumber(null)).toBe(true);
+    expect(isNotNumber(undefined)).toBe(true);
+  });
+
+  it("should return false if is a number", () => {
+    expect(isNotNumber(293)).toBe(false);
+    expect(isNotNumber(293.22)).toBe(false);
+  });
+});
+
+describe("getISOStringFromDateAndTime", () => {
+  it("should return an ISO string when given date and time", () => {
+    expect(getISOStringFromDateAndTime("2026-09-21", "11:46:00.000")).toBe(
+      "2026-09-21T11:46:00.000Z"
+    );
+    expect(getISOStringFromDateAndTime("2026-09-21", "3:48:00.000")).toBe(
+      "2026-09-21T03:48:00.000Z"
+    );
+    expect(getISOStringFromDateAndTime("2026-09-21", "12:20:05")).toBe("2026-09-21T12:20:05Z");
   });
 });
