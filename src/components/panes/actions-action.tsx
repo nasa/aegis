@@ -62,6 +62,13 @@ const RightAction: FunctionComponent<{
   );
 
   const action = useMissionDocSelector((mission) => mission.actions[actionUuid], deepEqual);
+  const missionPriority = useMissionDocSelector(
+    (mission) =>
+      mission.actionSystemVersion === 2 && action?.missionPriorityUuid
+        ? mission.missionPriorities?.[action.missionPriorityUuid]
+        : null,
+    deepEqual
+  );
   const actionsExpanded = useAppSelector((state) => state.action.actionsExpanded, shallowEqual);
   const isRexRunning = useMissionDocSelector(
     (mission) => (rexUuid ? (mission.rexes?.[rexUuid]?.isRunning ?? false) : false),
@@ -305,6 +312,18 @@ const RightAction: FunctionComponent<{
                           actionDefinitionItems={partialMission.actionDefinitions?.adjectives}
                         />
                       </>
+                    )}
+                    {missionPriority?.trace && (
+                      <span
+                        className={actionStyles.actionHeadingPriority}
+                        aria-label={`Mission priority: ${missionPriority.trace}`}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content={`Mission priority: ${missionPriority.trace}${
+                          missionPriority.category ? ` | ${missionPriority.category}` : ""
+                        }`}
+                      >
+                        {missionPriority.trace}
+                      </span>
                     )}
                   </div>
                 </>
