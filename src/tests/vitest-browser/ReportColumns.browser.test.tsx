@@ -75,6 +75,7 @@ beforeEach(() => {
     background: "var(--grey2)",
     color: "white",
   });
+  harness.container.style.setProperty("--stmCoverageStationCellWidth", "40px");
   harness.render(
     <Provider store={store}>
       <ReportIdProvider value="comparison">
@@ -111,7 +112,7 @@ describe("Report column controls", () => {
     expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it("shows complete summary and station names without clipping or changing column widths", async () => {
+  it("wraps long summary and station names within a bounded height without changing column widths", async () => {
     const labels = () => [
       ...harness.container.querySelectorAll<HTMLElement>(`.${styles.rotatedLabel}`),
     ];
@@ -123,11 +124,17 @@ describe("Report column controls", () => {
         expect(label.scrollWidth).toBeLessThanOrEqual(label.clientWidth + 1);
         const rect = label.getBoundingClientRect();
         const parent = label.parentElement!.getBoundingClientRect();
+        expect(rect.height).toBeLessThanOrEqual(240);
         expect(rect.top).toBeGreaterThanOrEqual(parent.top);
         expect(rect.bottom).toBeLessThanOrEqual(parent.bottom);
+        expect(rect.left).toBeGreaterThanOrEqual(parent.left);
+        expect(rect.right).toBeLessThanOrEqual(parent.right);
       }
     };
     assertFits();
+    expect(labels()[1].getBoundingClientRect().width).toBeGreaterThan(
+      parseFloat(getComputedStyle(labels()[1]).lineHeight)
+    );
     store.dispatch(reportToggleColumnExpansion({ reportId: "comparison", columnKey: "eva" }));
     await expect
       .poll(() => labels().some((label) => label.textContent?.includes("crater rim")))
@@ -137,4 +144,53 @@ describe("Report column controls", () => {
       harness.container.querySelector(`.${styles.columnGroup}`)!.getBoundingClientRect().width
     ).toBe(80);
   });
+
+  it.each(["comparison", "stmCoverage"] as const)(
+    "contains exceptionally long names and preserves tooltips in %s",
+    async (reportId) => {
+      const name = "Station".repeat(40);
+      store.dispatch(
+        reportSetColumnDerivedData({
+          reportId,
+          data: {
+            visibleColumns: [{ ...columns[0], label: name }],
+            resolvedBaselineKey: "eva",
+            visibleRowIds: null,
+            sequenceByColumnKey: {
+              eva: [{ uuid: "station", name, type: "traverse" }],
+            },
+          },
+        })
+      );
+      store.dispatch(reportToggleColumnExpansion({ reportId, columnKey: "eva" }));
+      const stationWidth = reportId === "comparison" ? 40 : 22;
+      harness.container.style.setProperty("--stmCoverageStationCellWidth", `${stationWidth}px`);
+      harness.render(
+        <Provider store={store}>
+          <ReportIdProvider value={reportId}>
+            <ReportColumnHeader leftAxis={<div>Metric</div>} />
+          </ReportIdProvider>
+        </Provider>
+      );
+      const station = harness.container.querySelector<HTMLElement>(`.${styles.stationHeaderCell}`)!;
+      expect(station.dataset.tooltipHtml).toBe(name);
+      expect(station.getBoundingClientRect().width).toBe(stationWidth);
+      expect(
+        harness.container.querySelector(`.${styles.columnGroup}`)!.getBoundingClientRect().width
+      ).toBe(stationWidth + 40);
+      expect(
+        harness.container.querySelector(`.${styles.header}`)!.getBoundingClientRect().height
+      ).toBeLessThanOrEqual(261);
+      for (const label of harness.container.querySelectorAll<HTMLElement>(
+        `.${styles.rotatedLabel}`
+      )) {
+        const rect = label.getBoundingClientRect();
+        const parent = label.parentElement!.getBoundingClientRect();
+        expect(rect.height).toBeLessThanOrEqual(240);
+        expect(rect.left).toBeGreaterThanOrEqual(parent.left);
+        expect(rect.right).toBeLessThanOrEqual(parent.right);
+        expect(rect.bottom).toBeLessThanOrEqual(parent.bottom);
+      }
+    }
+  );
 });

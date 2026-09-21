@@ -325,17 +325,25 @@
   overflow: hidden;
 }
 
-/* Natural text height keeps every name intact while preserving narrow data
-   columns. The shared flex row stretches all headers to the longest label. */
+/* Grow with the name up to 240px, then wrap at word boundaries. Two vertical
+   lines fit in the 40px summary/comparison columns; narrow coverage columns
+   clip any extra lines. Full names remain available in the cell tooltips. */
 .rotatedLabel {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   min-height: 140px;
   height: max-content;
-  white-space: nowrap;
+  max-height: 240px;
+  /* Show only whole lines when a name exceeds the available column width. */
+  max-width: round(down, 100%, 1lh);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
   font-size: 0.85em;
   line-height: 1.4;
-  padding: 8px 0;
+  /* After rotation, continuation lines start 12px above the first line. */
+  padding: 20px 0 8px;
+  text-indent: -12px;
 }
 
 .columnHeaderIcons {
