@@ -34,6 +34,11 @@
 
     # Migrations will be run when the apiv1 container restarts
 
+z:db-import:argon:
+  extends:
+    - .db-import-template
+    - .argon-deploy
+
 z:db-import:carbon:
   extends:
     - .db-import-template
@@ -43,6 +48,11 @@ z:db-import:gold:
   extends:
     - .db-import-template
     - .gold-deploy
+
+z:db-import:helium:
+  extends:
+    - .db-import-template
+    - .helium-deploy
 
 z:db-import:iron:
   extends:
@@ -58,6 +68,11 @@ z:db-import:oxygen:
   extends:
     - .db-import-template
     - .oxygen-deploy
+
+z:db-import:silver:
+  extends:
+    - .db-import-template
+    - .silver-deploy
 
 z:db-import:int:
   extends: .db-import-template

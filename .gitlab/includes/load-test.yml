@@ -40,6 +40,13 @@ setup-load-test:int:
   only:
     - int
 
+setup-load-test:argon:
+  extends:
+    - .setup-load-test-template
+    - .argon-deploy # use the deploy template since we are modifying the database
+  needs:
+    - deploy:argon
+
 setup-load-test:carbon:
   extends:
     - .setup-load-test-template
@@ -53,6 +60,13 @@ setup-load-test:gold:
     - .gold-deploy # use the deploy template since we are modifying the database
   needs:
     - deploy:gold
+
+setup-load-test:helium:
+  extends:
+    - .setup-load-test-template
+    - .helium-deploy # use the deploy template since we are modifying the database
+  needs:
+    - deploy:helium
 
 setup-load-test:iron:
   extends:
@@ -74,6 +88,13 @@ setup-load-test:oxygen:
     - .oxygen-deploy # use the deploy template since we are modifying the database
   needs:
     - deploy:oxygen
+
+setup-load-test:silver:
+  extends:
+    - .setup-load-test-template
+    - .silver-deploy # use the deploy template since we are modifying the database
+  needs:
+    - deploy:silver
 
 # Runs the actual load test on 16 shards. Each one will start 30 (defined in startLoadTest.ts) clients
 .run-load-test-template:
@@ -108,6 +129,15 @@ run-load-test:int:
   only:
     - int
 
+run-load-test:argon:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:argon
+    - install_dependencies
+    - make-dotenv:fit
+  variables:
+    SERVER_SUBDOMAIN: argon-emss-dev
+
 run-load-test:carbon:
   extends: .run-load-test-template
   needs:
@@ -125,6 +155,15 @@ run-load-test:gold:
     - make-dotenv:fit
   variables:
     SERVER_SUBDOMAIN: gold-emss-dev
+
+run-load-test:helium:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:helium
+    - install_dependencies
+    - make-dotenv:fit
+  variables:
+    SERVER_SUBDOMAIN: helium-emss-dev
 
 run-load-test:iron:
   extends: .run-load-test-template
@@ -152,3 +191,12 @@ run-load-test:oxygen:
     - make-dotenv:fit
   variables:
     SERVER_SUBDOMAIN: oxygen-emss-dev
+
+run-load-test:silver:
+  extends: .run-load-test-template
+  needs:
+    - setup-load-test:silver
+    - install_dependencies
+    - make-dotenv:fit
+  variables:
+    SERVER_SUBDOMAIN: silver-emss-dev

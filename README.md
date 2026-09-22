@@ -143,11 +143,14 @@ Internal references and environments:
 
 EMSS dev servers all have element names, and are:
 
+- https://argon-emss-dev.fit.nasa.gov
 - https://carbon-emss-dev.fit.nasa.gov
 - https://gold-emss-dev.fit.nasa.gov
+- https://helium-emss-dev.fit.nasa.gov
 - https://iron-emss-dev.fit.nasa.gov
 - https://neon-emss-dev.fit.nasa.gov
 - https://oxygen-emss-dev.fit.nasa.gov
+- https://silver-emss-dev.fit.nasa.gov
 
 We need to setup the local environment before spinning up the app.
 
