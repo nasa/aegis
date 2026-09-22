@@ -285,7 +285,8 @@ const Left: FunctionComponent = () => {
           </div>
           <div className={styles.logoRight}>
             <img className={styles.meatball} src="/images/logo_NASA.svg" alt="NASA meatball" />
-            <div
+            <button
+              type="button"
               className={styles.logoEmssWrapper}
               onClick={() => {
                 window.open(
@@ -294,13 +295,16 @@ const Left: FunctionComponent = () => {
                   "noopener,noreferrer"
                 );
               }}
+              aria-label="More information about Exploration Mission Systems Software"
             >
               <span className={styles.logoEmss} />
-            </div>
+            </button>
           </div>
         </div>
         <div className={styles.description}>
-          <div className={styles.strong}>Artemis EVA Geographic Information System</div>
+          <div className={styles.strong}>
+            Application for Exploration Geospatial Integration and Scheduling
+          </div>
           <p>
             Exploration EVA planning and execution tool. <br />A collaboration between JSC XI, CX,
             SK.

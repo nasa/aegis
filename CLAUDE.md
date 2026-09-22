@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-AEGIS (Artemis EVA GIS) is a full-stack web application for planning, training, and executing lunar surface EVA (Extra-Vehicular Activity) missions. It provides a collaborative GIS interface with real-time multi-user editing.
+AEGIS (Application for Exploration Geospatial Integration and Scheduling) is a full-stack web application for planning, training, and executing lunar surface EVA (Extra-Vehicular Activity) missions. It provides a collaborative GIS interface with real-time multi-user editing.
 
 ## Commands
 
