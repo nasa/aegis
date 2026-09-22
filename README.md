@@ -2,11 +2,11 @@
   <img src="src/public/images/logo_NASA.svg" alt="NASA logo" height="48" />
 </p>
 
-# Artemis EVA GIS (AEGIS)
+# Application for Exploration Geospatial Integration and Scheduling (AEGIS)
 
-AEGIS (Artemis EVA Geographic Information System) is a NASA planning tool aimed at enabling NASA's Artemis Extravehicular Activity (EVA) operations. AEGIS supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. AEGIS also integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. The product's goal is to enable flight controllers, which includes the mission science team, to execute successful missions.
+AEGIS (Application for Exploration Geospatial Integration and Scheduling) is a NASA planning tool aimed at enabling NASA's Artemis Extravehicular Activity (EVA) operations. AEGIS supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. AEGIS also integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. The product's goal is to enable flight controllers, which includes the mission science team, to execute successful missions.
 
-  <img src="src/public/images/EMSS.svg" alt="EMSS logo" height="220" />
+   <img src="src/public/images/EMSS_Sticker.png" alt="EMSS logo" height="220" />
 
 AEGIS is one of the Exploration Mission System Software (EMSS) tools built by the EMSS team at NASA Johnson Space Center to support the Flight Operations **plan, train, fly, explore** work processes. It evolved from early field-test prototypes (e.g., [JETT3](https://ntrs.nasa.gov/citations/20230010686), Fall 2022) into the prime surface mission-planning tool for EVA operations in just three years, and works alongside sibling tools such as Maestro (EVA procedure authoring and execution), [CODA](https://github.com/nasa/coda) (temporal alignment of disparate data sets), and Talky Bot (real-time voice-loop transcription).
 
