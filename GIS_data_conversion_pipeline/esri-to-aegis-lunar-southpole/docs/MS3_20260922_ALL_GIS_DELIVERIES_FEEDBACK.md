@@ -37,18 +37,9 @@ The remaining setup was manual. An administrator downloaded or uploaded the prep
 
 The new pipeline automates that pre-existing handoff. It converts source GIS data into the same AEGIS-facing artifacts, validates them, writes their metadata, registers the mission and sublayers, and packages the output. Cap-grid tiling, COG/PMTiles creation, web-display colorization, API registration, and Box publishing remain AEGIS responsibilities.
 
-### Why this feedback is not a request for more products
+### Moving toward a standard delivery
 
-Most recommendations below ask for **less ambiguity and duplication**, not more deliverables:
-
-- one authoritative representation instead of shapefile plus GeoJSON, source TIFF plus duplicate COG, or raster plus polygonized copy;
-- one manifest that identifies the files already being delivered;
-- one stable CRS, NoData, class, naming, and version contract instead of AEGIS inferring those facts differently for each drop; and
-- removal of duplicate, empty, truncated, QA-only, or superseded files from the AEGIS package.
-
-Machine-readable class definitions, stable feature IDs, and component provenance are requested only when AEGIS cannot determine a layer's meaning from its pixels or geometry. They replace manual interpretation and product-specific code; they are not additional map layers or new analysis products.
-
-Some MS3 deliveries did introduce genuinely new requested content—viewsheds, horizon lines, detailed geology, nomenclature, and COMM MIA coverage. Supporting a new content type can require AEGIS work. The recurring rework documented here, however, was often caused by the same logical product arriving with a different CRS representation, class convention, filename pattern, metadata structure, or set of duplicate formats. The requested delivery practices are intended to make the next delivery primarily a configuration and validation exercise rather than another custom-development cycle.
+Taken together, the recommendations below define a consistent GIS-to-AEGIS delivery standard: one authoritative representation per product, a machine-readable manifest, stable metadata and naming conventions, and package-level preflight validation. This standard should reduce ambiguity, duplication, and product-specific handling while preserving the division of responsibilities between GIS source preparation and AEGIS integration. Following it should make future deliveries repeatable and allow most integration work to focus on configuration and validation.
 
 ## Delivery timeline
 
