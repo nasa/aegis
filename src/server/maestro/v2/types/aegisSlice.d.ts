@@ -143,7 +143,7 @@ export declare namespace AegisSlice {
     equipmentItemsUsageReadable: EquipmentItemUsage[];
     actionDefinitionReadable: ActionDefinitionReadable | null | undefined;
     actionDefinition: ActionDefinition | null;
-    missionPriorityReadable: MissionPriorityReadable | null;
+    missionPriorityUuid: string | null;
     missionId: number;
     icon: string;
     createdAt: number;

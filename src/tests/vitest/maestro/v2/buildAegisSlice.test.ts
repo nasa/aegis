@@ -21,7 +21,6 @@ vi.mock("server/express/routes/missionAutomerge", async () => {
 vi.mock("utils/export", () => ({
   makeEquipmentReadable: vi.fn().mockReturnValue(""),
   makeReadableActionDefinition: vi.fn().mockReturnValue(""),
-  makeReadableMissionPriority: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("store/processing/calculatedFields", () => ({
@@ -498,6 +497,47 @@ describe("buildAegisSliceForMaestro", () => {
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
     expect(result.fetchedAegisActions[actionInSubscribed.refUuid].actionDefinition).toBeNull();
+  });
+
+  it("passes an action's raw missionPriorityUuid through unchanged", async () => {
+    const actionWithPriority = generateBlankAction({
+      name: "Vitest Action With Priority",
+      missionId: MISSION_ID,
+      stationUuid: stationA.uuid,
+      missionPriorityUuid: "vitest-priority-uuid",
+    });
+
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionWithPriority],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    expect(result.fetchedAegisActions[actionWithPriority.refUuid].missionPriorityUuid).toBe(
+      "vitest-priority-uuid"
+    );
+  });
+
+  it("sends null for an action with no missionPriorityUuid", async () => {
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionInSubscribed],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    expect(result.fetchedAegisActions[actionInSubscribed.refUuid].missionPriorityUuid).toBeNull();
   });
 });
 

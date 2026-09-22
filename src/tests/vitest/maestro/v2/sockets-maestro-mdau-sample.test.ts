@@ -413,6 +413,15 @@ describe("sendMDAU sample payload — actions", () => {
       expect(action.enabled).toBe(src.enabled);
     }
   });
+
+  it("writes missionPriorityUuid for every sampled action", () => {
+    const doc = built.handle.doc();
+    for (const refUuid in mdau.aegisAction) {
+      const src = mdau.aegisAction[refUuid];
+      const action = doc.actions[built.actionUuidByRef.get(refUuid)!];
+      expect(action.missionPriorityUuid).toBe(src.missionPriorityUuid);
+    }
+  });
 });
 
 describe("sendMDAU sample payload — rexes", () => {

@@ -434,6 +434,7 @@ describe("opUpdateMdau() — actions", () => {
           descriptionTask: action.descriptionTask,
           duration: action.duration,
           actionDefinition: action.actionDefinition,
+          missionPriorityUuid: action.missionPriorityUuid,
           stmAction: action.stmAction,
           actors: ["EV1", "EV2"],
           enabled: action.enabled,
@@ -466,6 +467,9 @@ describe("opUpdateMdau() — actions", () => {
         nouns: { "noun-1": { name: "Regolith", abbr: "REG" } },
         adjectives: { "adj-1": { name: "Shadowed", abbr: "SHD" } },
       };
+      m.missionPriorities = {
+        "priority-1": { trace: "SIMD-0005.1", category: "Vitest Category" },
+      };
       m.stations[station.uuid] = station;
       m.actions[action.uuid] = action;
       m.evas[eva.uuid] = eva;
@@ -483,6 +487,7 @@ describe("opUpdateMdau() — actions", () => {
     descriptionTask: action.descriptionTask,
     duration: action.duration,
     actionDefinition: action.actionDefinition,
+    missionPriorityUuid: action.missionPriorityUuid,
     stmAction: action.stmAction,
     actors: action.crewAssigned,
     enabled: action.enabled,
@@ -543,6 +548,52 @@ describe("opUpdateMdau() — actions", () => {
     });
 
     expect(handle.doc().actions[action.uuid].actionDefinition).toBeNull();
+  });
+
+  it("writes a missionPriorityUuid that exists in the mission", () => {
+    const { handle, action } = buildActionMission();
+
+    runMdau(handle, {
+      aegisAction: {
+        [action.refUuid]: mdauAction(action, { missionPriorityUuid: "priority-1" }),
+      },
+    });
+
+    expect(handle.doc().actions[action.uuid].missionPriorityUuid).toBe("priority-1");
+  });
+
+  it("clears the missionPriorityUuid when Maestro sends null", () => {
+    const { handle, action } = buildActionMission();
+    handle.change((m) => {
+      m.actions[action.uuid].missionPriorityUuid = "priority-1";
+    });
+
+    runMdau(handle, {
+      aegisAction: { [action.refUuid]: mdauAction(action, { missionPriorityUuid: null }) },
+    });
+
+    expect(handle.doc().actions[action.uuid].missionPriorityUuid).toBeNull();
+  });
+
+  it("does not stage an action when missionPriorityUuid matches the doc", () => {
+    const { handle, action } = buildActionMission();
+    handle.change((m) => {
+      m.actions[action.uuid].missionPriorityUuid = "priority-1";
+    });
+    const doc = handle.doc().actions[action.uuid];
+    const changeMock = handle.change as unknown as ReturnType<typeof vi.fn>;
+    const changesBefore = changeMock.mock.calls.length;
+
+    runMdau(handle, {
+      aegisAction: {
+        [action.refUuid]: mdauAction(action, {
+          missionPriorityUuid: "priority-1",
+          updatedAt: doc.updatedAt,
+        }),
+      },
+    });
+
+    expect(changeMock.mock.calls.length).toBe(changesBefore);
   });
 
   it("disables an action when Maestro sends enabled false", () => {
@@ -897,6 +948,7 @@ describe("opUpdateMdau() — subscription gating", () => {
           descriptionTask: action.descriptionTask,
           duration: action.duration,
           actionDefinition: action.actionDefinition,
+          missionPriorityUuid: action.missionPriorityUuid,
           stmAction: action.stmAction,
           actors: ["EV1", "EV2"],
           enabled: action.enabled,

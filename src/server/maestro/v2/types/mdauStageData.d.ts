@@ -36,6 +36,7 @@ export interface ActionStage {
   descriptionTask?: string | null;
   duration?: number | null;
   actionDefinition?: ActionDefinition | null;
+  missionPriorityUuid?: string | null;
   stmAction?: boolean;
   crewAssigned?: Crew[];
   enabled?: boolean;

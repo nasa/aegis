@@ -3,11 +3,7 @@ import {
   getMaestroCalcFieldsForStation,
   getMaestroCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
-import {
-  makeEquipmentReadable,
-  makeReadableActionDefinition,
-  makeReadableMissionPriority,
-} from "utils/export";
+import { makeEquipmentReadable, makeReadableActionDefinition } from "utils/export";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
 import { globalValues } from "server/express/global";
 import type { AegisSlice } from "./types/aegisSlice";
@@ -257,10 +253,7 @@ const formatActionsForMaestro = (
         mission,
       }),
       actionDefinition: action.actionDefinition ?? null,
-      missionPriorityReadable: makeReadableMissionPriority({
-        missionPriorityUuid: action.missionPriorityUuid,
-        mission,
-      }),
+      missionPriorityUuid: action.missionPriorityUuid ?? null,
       missionId: action.missionId,
       icon: action.icon,
       createdAt: action.createdAt,

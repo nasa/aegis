@@ -600,12 +600,16 @@ describe("maestro namespace socket handlers", () => {
     // A minimal doc handle registered for MISSION_ID so the sendMDAU handler
     // can resolve one. Only the sendMDAU tests need this; the subscribe/eva
     // tests intentionally rely on an empty docHandles map. The doc carries the
-    // action definitions the payloads below reference so mdauDataValidator passes.
+    // action definitions and mission priorities the payloads below reference so
+    // mdauDataValidator passes.
     const sendMdauMission = {
       actionDefinitions: {
         verbs: { "verb-1": { name: "Collect", abbr: "COL" } },
         nouns: { "noun-1": { name: "Regolith", abbr: "REG" } },
         adjectives: { "adj-1": { name: "Shadowed", abbr: "SHD" } },
+      },
+      missionPriorities: {
+        "priority-1": { trace: "SIMD-0005.1", category: "Vitest Category" },
       },
     };
     const sendMdauDocHandle = { doc: vi.fn().mockReturnValue(sendMdauMission) };
@@ -657,6 +661,7 @@ describe("maestro namespace socket handlers", () => {
             duration: null,
             // noun-2 is not in the mission's noun catalog.
             actionDefinition: { verbUuid: "verb-1", nounUuid: "noun-2" },
+            missionPriorityUuid: null,
             stmAction: false,
             actors: ["EV1"],
             enabled: true,
@@ -731,6 +736,7 @@ describe("maestro namespace socket handlers", () => {
             descriptionTask: "Collect the sample",
             duration: 12,
             actionDefinition: { verbUuid: "verb-1", nounUuid: "noun-1", adjectiveUuid: "adj-1" },
+            missionPriorityUuid: "priority-1",
             stmAction: true,
             actors: ["EV1"],
             enabled: true,

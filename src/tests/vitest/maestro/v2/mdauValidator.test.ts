@@ -11,13 +11,17 @@ const actionDefinitions: ActionDefinitions = {
   adjectives: { "adj-1": { name: "Shadowed", abbr: "SHD" } },
 };
 
-const buildMission = (overrides: Partial<Mission> = {}): Mission =>
-  ({ actionDefinitions, actions: {}, ...overrides }) as unknown as Mission;
+const missionPriorities: MissionPriorities = {
+  "priority-1": { trace: "SIMD-0005.1", category: "Vitest Category" },
+};
 
-/** A full MdauAction carrying the given actionDefinition. */
-const mdauWithActionDefinition = (
+const buildMission = (overrides: Partial<Mission> = {}): Mission =>
+  ({ actionDefinitions, missionPriorities, actions: {}, ...overrides }) as unknown as Mission;
+
+/** A full MdauAction, with the fields under test overridable. */
+const mdauWithAction = (
   refUuid: string,
-  actionDefinition: ActionDefinition | null
+  overrides: Partial<MDAU.MdauAction> = {}
 ): MDAU.MaestroDataAegisUses => ({
   aegisAction: {
     [refUuid]: {
@@ -25,14 +29,22 @@ const mdauWithActionDefinition = (
       name: "Vitest Action",
       descriptionTask: null,
       duration: null,
-      actionDefinition,
+      actionDefinition: null,
+      missionPriorityUuid: null,
       stmAction: false,
       actors: ["EV1"],
       enabled: true,
       updatedAt: 1_700_000_000_000,
+      ...overrides,
     },
   },
 });
+
+/** A full MdauAction carrying the given actionDefinition. */
+const mdauWithActionDefinition = (
+  refUuid: string,
+  actionDefinition: ActionDefinition | null
+): MDAU.MaestroDataAegisUses => mdauWithAction(refUuid, { actionDefinition });
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
@@ -94,5 +106,48 @@ describe("mdauDataValidator() — actionDefinition uuids", () => {
     const errors = mdauDataValidator(buildMission({ actionDefinitions: null }), mdau);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain("actionDefinitionExists");
+  });
+});
+
+describe("mdauDataValidator() — missionPriorityUuid", () => {
+  const action = generateBlankAction({});
+
+  it("returns no errors when the uuid exists on the mission", () => {
+    const mdau = mdauWithAction(action.refUuid, { missionPriorityUuid: "priority-1" });
+    expect(mdauDataValidator(buildMission(), mdau)).toEqual([]);
+  });
+
+  it("returns no errors when the missionPriorityUuid is null", () => {
+    const mdau = mdauWithAction(action.refUuid, { missionPriorityUuid: null });
+    expect(mdauDataValidator(buildMission(), mdau)).toEqual([]);
+  });
+
+  it("reports an unknown missionPriorityUuid", () => {
+    const mdau = mdauWithAction(action.refUuid, { missionPriorityUuid: "not-a-priority" });
+
+    const errors = mdauDataValidator(buildMission(), mdau);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].path).toBe(`aegisAction.${action.refUuid}.missionPriorityUuid`);
+    expect(errors[0].message).toContain("missionPriorityExists");
+    expect(errors[0].message).toContain("not-a-priority");
+  });
+
+  it("reports an error when the mission has no missionPriorities at all", () => {
+    const mdau = mdauWithAction(action.refUuid, { missionPriorityUuid: "priority-1" });
+    const errors = mdauDataValidator(buildMission({ missionPriorities: null }), mdau);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain("missionPriorityExists");
+  });
+
+  it("reports both an actionDefinition and a missionPriority failure on the same action", () => {
+    const mdau = mdauWithAction(action.refUuid, {
+      actionDefinition: { verbUuid: "nope-verb" },
+      missionPriorityUuid: "not-a-priority",
+    });
+
+    expect(mdauDataValidator(buildMission(), mdau).map((e) => e.path)).toEqual([
+      `aegisAction.${action.refUuid}.actionDefinition.verbUuid`,
+      `aegisAction.${action.refUuid}.missionPriorityUuid`,
+    ]);
   });
 });

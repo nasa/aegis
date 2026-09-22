@@ -260,6 +260,11 @@ const stageActions = (
       !isEqual(mdau.actionDefinition, action.actionDefinition)
     )
       stage.actionDefinition = mdau.actionDefinition;
+    if (
+      mdau.missionPriorityUuid !== undefined &&
+      mdau.missionPriorityUuid !== action.missionPriorityUuid
+    )
+      stage.missionPriorityUuid = mdau.missionPriorityUuid;
     // `actors` maps to AEGIS `crewAssigned`.
     if (mdau.actors !== undefined && !isEqual(mdau.actors, action.crewAssigned ?? []))
       stage.crewAssigned = mdau.actors as Crew[];

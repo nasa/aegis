@@ -79,6 +79,7 @@ const actionPayload = (refUuid: string, actors: string[]): MDAU.MaestroDataAegis
       descriptionTask: null,
       duration: null,
       actionDefinition: null,
+      missionPriorityUuid: null,
       stmAction: false,
       actors,
       enabled: true,

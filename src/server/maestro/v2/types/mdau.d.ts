@@ -71,6 +71,7 @@ export declare namespace MDAU {
     descriptionTask: string | null;
     duration: number | null;
     actionDefinition: ActionDefinition | null;
+    missionPriorityUuid: string | null;
     stmAction: boolean;
     actors: string[]; // crewAssigned in AEGIS
     enabled: boolean;

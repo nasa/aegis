@@ -55,8 +55,30 @@ const checkActionDefinitions: MdauDataCheck = (mission, mdau) => {
   return errors;
 };
 
+/**
+ * Every `missionPriorityUuid` an action references must exist in the mission's
+ * mission-priority list. A null reference (nothing selected) is always valid.
+ */
+const checkMissionPriorities: MdauDataCheck = (mission, mdau) => {
+  const errors: MdauValidationError[] = [];
+
+  for (const refUuid in mdau.aegisAction ?? {}) {
+    const missionPriorityUuid = mdau.aegisAction[refUuid].missionPriorityUuid;
+    if (!missionPriorityUuid) continue;
+
+    if (!mission.missionPriorities?.[missionPriorityUuid]) {
+      errors.push({
+        path: `aegisAction.${refUuid}.missionPriorityUuid`,
+        message: `missionPriorityExists - ${missionPriorityUuid} does not match any mission priority on the mission`,
+      });
+    }
+  }
+
+  return errors;
+};
+
 /** All the data-validation rules to run, run in order. */
-const MDAU_DATA_CHECKS: MdauDataCheck[] = [checkActionDefinitions];
+const MDAU_DATA_CHECKS: MdauDataCheck[] = [checkActionDefinitions, checkMissionPriorities];
 
 /**
  * Run data-validation rules against a mdau payload.
