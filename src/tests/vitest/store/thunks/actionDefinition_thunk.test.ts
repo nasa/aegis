@@ -30,8 +30,19 @@ afterAll(() => {
   alertSpy.mockRestore();
 });
 
+/** Looks up a fixture entity uuid by its name within one of the mission doc's entity maps. */
+const findFixtureUuidByName = (
+  entityMapKey: "stations" | "traverses" | "pois",
+  name: string
+): string => {
+  const entityMap = getMissionDocHandle().doc()[entityMapKey];
+  const match = Object.values(entityMap).find((entity) => entity.name === name);
+  if (!match) throw new Error(`Fixture ${entityMapKey} named "${name}" not found`);
+  return match.uuid;
+};
+
 describe("Thunk Action Definition Item Tests", () => {
-  test("thunkDocDeleteActionDefItem - deletion blocked if in use", async () => {
+  test("thunkDocDeleteActionDefItem - deletion blocked if in use by a Station action", async () => {
     const missionDocHandle = getMissionDocHandle();
 
     const actionDefType: ActionDefinitionType = "verbs"; // or other types
@@ -40,9 +51,10 @@ describe("Thunk Action Definition Item Tests", () => {
       missionDocHandle.doc().actionDefinitions[actionDefType]
     ).length;
 
-    // Generate an action using this definition item
+    // Generate a station-parented action using this definition item
     const newAction = generateBlankAction({
       stmAction: true,
+      stationUuid: findFixtureUuidByName("stations", "Vitest Station-1"),
       actionDefinition: { verbUuid: actionDefUuid, nounUuid: null, adjectiveUuid: null },
     });
     missionDocHandle.change((mission) => {
@@ -51,9 +63,106 @@ describe("Thunk Action Definition Item Tests", () => {
 
     await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
     expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(alertSpy.mock.calls[0][0] as string).toContain("Action in Station: Vitest Station-1");
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       actionDefinitionsCount
     ); // Deletion should be blocked
+  });
+
+  test("thunkDocDeleteActionDefItem - deletion blocked if in use by a Traverse action", async () => {
+    const missionDocHandle = getMissionDocHandle();
+
+    const actionDefType: ActionDefinitionType = "verbs";
+    const actionDefUuid = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType])[0];
+    const countBefore = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length;
+
+    const newAction = generateBlankAction({
+      stmAction: true,
+      traverseUuid: findFixtureUuidByName("traverses", "Vitest Traverse-1"),
+      actionDefinition: { verbUuid: actionDefUuid, nounUuid: null, adjectiveUuid: null },
+    });
+    missionDocHandle.change((mission) => {
+      mission.actions[newAction.uuid] = newAction;
+    });
+
+    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(alertSpy.mock.calls[0][0] as string).toContain("Action in Traverse: Vitest Traverse-1");
+    expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
+      countBefore
+    );
+  });
+
+  test("thunkDocDeleteActionDefItem - deletion blocked if in use by a POI action", async () => {
+    const missionDocHandle = getMissionDocHandle();
+
+    const actionDefType: ActionDefinitionType = "verbs";
+    const actionDefUuid = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType])[0];
+    const countBefore = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length;
+
+    const newAction = generateBlankAction({
+      stmAction: true,
+      poiUuid: findFixtureUuidByName("pois", "Vitest POI-1"),
+      actionDefinition: { verbUuid: actionDefUuid, nounUuid: null, adjectiveUuid: null },
+    });
+    missionDocHandle.change((mission) => {
+      mission.actions[newAction.uuid] = newAction;
+    });
+
+    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(alertSpy.mock.calls[0][0] as string).toContain("Action in POI: Vitest POI-1");
+    expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
+      countBefore
+    );
+  });
+
+  test("thunkDocDeleteActionDefItem - non-STM actions do not block deletion", async () => {
+    const missionDocHandle = getMissionDocHandle();
+
+    const actionDefType: ActionDefinitionType = "verbs";
+    const actionDefUuid = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType])[0];
+    const countBefore = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length;
+
+    // stmAction false means the definition reference is ignored by the in-use check
+    const newAction = generateBlankAction({
+      stmAction: false,
+      stationUuid: findFixtureUuidByName("stations", "Vitest Station-1"),
+      actionDefinition: { verbUuid: actionDefUuid, nounUuid: null, adjectiveUuid: null },
+    });
+    missionDocHandle.change((mission) => {
+      mission.actions[newAction.uuid] = newAction;
+    });
+
+    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
+      countBefore - 1
+    );
+  });
+
+  test("thunkDocDeleteActionDefItem - actions with a null actionDefinition do not throw", async () => {
+    const missionDocHandle = getMissionDocHandle();
+
+    const actionDefType: ActionDefinitionType = "verbs";
+    const actionDefUuid = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType])[0];
+    const countBefore = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length;
+
+    // An STM action that has not had its verb/noun/adjective assigned yet
+    const newAction = generateBlankAction({
+      stmAction: true,
+      stationUuid: findFixtureUuidByName("stations", "Vitest Station-1"),
+      actionDefinition: null,
+    });
+    missionDocHandle.change((mission) => {
+      mission.actions[newAction.uuid] = newAction;
+    });
+
+    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
+      countBefore - 1
+    );
   });
 
   test("thunkDocDeleteActionDefItem - successfully deletes if not in use", async () => {
@@ -122,6 +231,7 @@ describe("Thunk Action Definition Item Tests", () => {
     // create an action AND a rule AND a template that all reference the same def
     const newAction = generateBlankAction({
       stmAction: true,
+      stationUuid: findFixtureUuidByName("stations", "Vitest Station-1"),
       actionDefinition: { verbUuid: null, nounUuid: null, adjectiveUuid: actionDefUuid },
     });
     missionDocHandle.change((m) => {
