@@ -8,7 +8,7 @@ include:
   # - template: "Verify/Accessibility.gitlab-ci.yml"
 
   - project: "emss/gitlab-templates"
-    ref: 2.7.1
+    ref: 2.9.0
     file:
       # Run standard FIT developer-ecosystem/ci-job-templates with emss
       # stageless overrides.
@@ -487,6 +487,16 @@ deploy:artifactize-committed-files:
   stage: stageless
   timeout: 10 minutes
 
+deploy:argon:
+  extends:
+    - .deploy-template:dev
+    - .argon-deploy
+  when: manual
+  before_script:
+    # This is currently our hack to change out a necessary var for Launchpad Auth
+    - sed -i "s/INSERT_SUBDOMAIN/argon-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/argon/g" .env
+
 deploy:carbon:
   extends:
     - .deploy-template:dev
@@ -506,6 +516,16 @@ deploy:gold:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/gold-emss-dev/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/gold/g" .env
+
+deploy:helium:
+  extends:
+    - .deploy-template:dev
+    - .helium-deploy
+  when: manual
+  before_script:
+    # This is currently our hack to change out a necessary var for Launchpad Auth
+    - sed -i "s/INSERT_SUBDOMAIN/helium-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/helium/g" .env
 
 deploy:iron:
   extends:
@@ -536,6 +556,16 @@ deploy:oxygen:
     # This is currently our hack to change out a necessary var for Launchpad Auth
     - sed -i "s/INSERT_SUBDOMAIN/oxygen-emss-dev/g" .env
     - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/oxygen/g" .env
+
+deploy:silver:
+  extends:
+    - .deploy-template:dev
+    - .silver-deploy
+  when: manual
+  before_script:
+    # This is currently our hack to change out a necessary var for Launchpad Auth
+    - sed -i "s/INSERT_SUBDOMAIN/silver-emss-dev/g" .env
+    - sed -i "s/INSERT_LOG_DATA_SERVER_NAME/silver/g" .env
 
 deploy:int:
   extends: .deploy-template
