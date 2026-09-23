@@ -27,6 +27,7 @@
   position: absolute;
   bottom: 40px;
   right: 40px;
+  z-index: 1;
 
   color: var(--grey4);
   font-size: 0.8em;
@@ -199,23 +200,19 @@
   margin: 20px 0 10px 0;
 }
 
-.login {
-  width: 60%;
-}
-
 .login input {
   width: 100%;
   padding: 10px;
   margin-bottom: 10px;
   border: 1px solid #cccccc;
   border-radius: var(--radius);
+  max-width: 250px;
 }
 
 .login .loginFormField {
   display: flex;
   flex-direction: column;
   margin-bottom: 10px;
-  margin-left: auto;
 }
 
 .login .loginFormButton {
