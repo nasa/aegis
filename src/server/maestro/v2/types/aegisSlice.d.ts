@@ -7,7 +7,7 @@
 export declare namespace AegisSlice {
   interface EvaSequenceItem {
     type: "station" | "traverse";
-    refUuid: string;
+    uuid: string;
   }
 
   interface CalculatedFieldItems {
@@ -48,6 +48,19 @@ export declare namespace AegisSlice {
     missionPriorities: MissionPriorities;
     createdAt: number;
     updatedAt: number;
+    actionDefinitions: ActionDefinitions | null;
+    // Custom labels for the action-definition categories (verb/noun/adjective), in singular form
+    // (used in the action sentence) and plural form (used in headings/menus).
+    actionDefinitionLabels: {
+      verb: { singular: string; plural: string };
+      noun: { singular: string; plural: string };
+      adjective: { singular: string; plural: string };
+    };
+    // Custom conjunctions joining the action sentence "<verb> of <noun> in <adjective>".
+    actionDefinitionConjunctions: {
+      verbToNoun: string;
+      nounToAdjective: string;
+    };
   };
 
   type AegisMissions = {
@@ -57,9 +70,9 @@ export declare namespace AegisSlice {
   type AegisEva = {
     missionId: number;
     name: string;
-    refUuid: string;
+    uuid: string;
     description: string;
-    sequenceRefUuids: EvaSequenceItem[];
+    sequence: EvaSequenceItem[];
     datetime: number | null;
     createdAt: number;
     updatedAt: number;
@@ -70,12 +83,12 @@ export declare namespace AegisSlice {
   type AegisStation = {
     missionId: number;
     name: string;
-    refUuid: string;
+    uuid: string;
     iconEmojiDecoded?: string;
     duration: number | null;
     calculatedFields: CalculatedFieldItems;
     description: string;
-    actionOrderRefUuids: string[];
+    actionOrderUuids: string[];
     isLanderXgress: boolean;
     updatedAt: number;
     createdAt: number;
@@ -84,11 +97,11 @@ export declare namespace AegisSlice {
   type AegisStations = { [stationId: string]: AegisStation };
 
   type AegisTraverse = {
-    refUuid: string;
+    uuid: string;
     missionId: number;
     name: string;
     description: string;
-    actionOrderRefUuids: string[] | null;
+    actionOrderUuids: string[] | null;
     createdAt: number;
     updatedAt: number;
     iconEmojiDecoded?: string;
@@ -125,11 +138,12 @@ export declare namespace AegisSlice {
 
   type AegisAction = {
     name: string;
-    refUuid: string;
+    uuid: string;
     descriptionTask: string;
     equipmentItemsUsageReadable: EquipmentItemUsage[];
     actionDefinitionReadable: ActionDefinitionReadable | null | undefined;
-    missionPriorityReadable: MissionPriorityReadable | null;
+    actionDefinition: ActionDefinition | null;
+    missionPriorityUuid: string | null;
     missionId: number;
     icon: string;
     createdAt: number;
@@ -138,8 +152,8 @@ export declare namespace AegisSlice {
     duration: number;
     stmAction: boolean;
     iconEmojiDecoded: string;
-    stationRefUuid?: string;
-    traverseRefUuid?: string;
+    stationUuid?: string;
+    traverseUuid?: string;
     enabled: boolean;
   };
 
@@ -178,6 +192,7 @@ export declare namespace AegisSlice {
   type AegisEvaWithSequenceReadable = AegisEva & {
     sequenceReadable: (StationWithReadable | TraverseWithReadable | null)[];
   };
+
   type ReadableActions<T extends "Station" | "Traverse"> = {
     actionsReadable: AegisAction[];
     _itemType: T;

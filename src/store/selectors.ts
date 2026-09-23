@@ -65,38 +65,6 @@ export const selectAsPlannedStations = (mission: Mission): Station[] => {
 };
 
 /**
- * This selector takes maestroActivityPropertiesByRefUuid that are keyed by station/traverse
- * refUuids and returns a new object where the keys are regular UUIDs.
- */
-export const selectConvertMaestroActivityPropertiesByRefUuidToUuid = (
-  mission: Mission,
-  {
-    maestroActivityPropertiesByRefUuid,
-    rexUuid,
-  }: {
-    maestroActivityPropertiesByRefUuid: MaestroActivityPropertiesByRefUuid;
-    rexUuid: string | null;
-  }
-): MaestroActivityProperties => {
-  if (!maestroActivityPropertiesByRefUuid) return {};
-  // Loop through the maestroActivityProperty keys which are refUuids for stations and traverses,
-  // and create an object that keys to the uuids
-  const activityProperties: MaestroActivityProperties = {};
-  for (const [key, value] of Object.entries(maestroActivityPropertiesByRefUuid)) {
-    const uuid = getSequenceUuidByRefUuidAndRexUuid(mission, {
-      refUuid: key,
-      rexUuid,
-    });
-    if (uuid) {
-      activityProperties[uuid] = { ...value };
-    }
-  }
-
-  // Return the new object with uuid keys
-  return activityProperties;
-};
-
-/**
  * Get sequence item (station or traverse) from a refUuid and rexUuid
  * Returns the UUID of the sequence item or undefined if not found
  * If rexUuid is null, returns the as-planned sequence uuid
