@@ -3,30 +3,46 @@ import type { EMSSRole } from "@emss/oauth2-proxy-common";
 import type { Request } from "express";
 
 // Used to override the mock user so tests can pass in multiple users with different perms
-export const OVERRIDE_MOCK_USER_HEADER = "x-override-mock-user";
+export const OVERRIDE_MOCK_UUPIC_HEADER = "x-override-mock-uupic";
+
+/**
+ * Overrides the mock user's NAMS roles, comma-separated. Send an empty string for an identity with
+ * no roles at all, which is how a test exercises a non-super-user.
+ */
+export const OVERRIDE_MOCK_ROLES_HEADER = "x-override-mock-roles";
+
+// Returns either the mocked role, or a default set of roles
+const getRoles = (req?: Request): EMSSRole[] => {
+  const overrideRoles = req?.headers?.[OVERRIDE_MOCK_ROLES_HEADER] as string | undefined;
+  if (overrideRoles !== undefined) {
+    return overrideRoles
+      .split(",")
+      .map((role) => role.trim())
+      .filter((role) => !!role) as EMSSRole[];
+  }
+  // Nothing mocked, return all roles
+  return [
+    "AEGIS-Editor",
+    "AEGIS-Superuser",
+    "CODA-Superuser",
+    "Maestro-Superuser",
+    "EMSS-Superuser",
+  ];
+};
 
 const getMockLaunchpadUser = (req?: Request): LaunchpadUser => {
-  const overrideUupic = req?.headers?.[OVERRIDE_MOCK_USER_HEADER] as string | undefined;
+  const overrideUupic = req?.headers?.[OVERRIDE_MOCK_UUPIC_HEADER] as string | undefined;
   return {
-    uupic: overrideUupic || process.env.MOCK_USER_UUPIC || "1234",
-    email: process.env.MOCK_USER_EMAIL || "neil.armstrong@nasa.gov",
-    auid: overrideUupic || process.env.MOCK_USER_AUID || "narmstra",
-    givenname: process.env.MOCK_USER_GIVENNAME || "Neil",
-    surname: process.env.MOCK_USER_SURNAME || "Armstrong",
-    display_name:
-      overrideUupic || process.env.MOCK_USER_DISPLAYNAME || "Armstrong, Neil A. (JSC-CB611)",
-    roles: process.env.MOCK_USER_ROLES
-      ? (process.env.MOCK_USER_ROLES.split(",") as EMSSRole[])
-      : [
-          "AEGIS-Editor",
-          "AEGIS-Superuser",
-          "CODA-Superuser",
-          "Maestro-Superuser",
-          "EMSS-Superuser",
-        ],
-    uscitizen: process.env.MOCK_USER_USCITIZEN ? Boolean(process.env.MOCK_USER_USCITIZEN) : true,
-    legal_permanent_resident: process.env.MOCK_USER_LPR ? Boolean(process.env.MOCK_USER_LPR) : true,
-    usperson: process.env.MOCK_USER_USPERSON ? Boolean(process.env.MOCK_USER_USPERSON) : true,
+    uupic: overrideUupic || "1234",
+    email: "neil.armstrong@nasa.gov",
+    auid: overrideUupic || "narmstra",
+    givenname: "Neil",
+    surname: "Armstrong",
+    display_name: overrideUupic || "Armstrong, Neil A. (JSC-CB611)",
+    roles: getRoles(req),
+    uscitizen: true,
+    legal_permanent_resident: true,
+    usperson: true,
     ip_address: "1.2.3.4",
   };
 };

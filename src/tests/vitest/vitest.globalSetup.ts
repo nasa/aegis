@@ -31,8 +31,7 @@ export async function teardown(): Promise<void> {
   delete from "mission_permission_db" where notes like '%vitest%';
   delete from "user_group_member_db" where user_id in (select id from "app_user_db" where uupic like 'vitest-%');
   delete from "user_group_db" where name like 'vitest-%';
-  delete from "app_user_db" where uupic like 'vitest-%';
-  delete from "known_user_db" where uupic like 'vitest-%';`;
+  delete from "app_user_db" where uupic like 'vitest-%';`;
   await em.getConnection().execute(sql);
 
   await orm.close();

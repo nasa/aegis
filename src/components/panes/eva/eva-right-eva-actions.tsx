@@ -10,7 +10,7 @@ import { getCalcFieldsForEva } from "store/processing/calculatedFields";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getHighlightedActions } from "store/selectors";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 
 const Actions_Panel: FunctionComponent = () => {
   const partialMission = useMissionDocSelector(

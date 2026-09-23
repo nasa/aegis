@@ -8,7 +8,7 @@ import express from "express";
 import parseInt from "lodash/parseInt";
 
 import { findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
-import { apiHasPerms, logUsername } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
@@ -34,7 +34,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    required: "viewer",
+    requiredPermLevel: "viewer",
     user: req.currentUser,
   });
   if (!viewPermission) {
@@ -92,7 +92,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
 
   const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    required: "viewer",
+    requiredPermLevel: "viewer",
     user: req.currentUser,
   });
   if (!viewPermission) {
@@ -167,7 +167,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {
@@ -227,7 +227,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {

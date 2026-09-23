@@ -88,8 +88,7 @@ npm run seed:demo
 
 This runs, in order:
 
-1. `migration:fresh` -- drops, recreates, and seeds the relational schema (creates the `admin` /
-   `admin` and `guest` / `guest` users via the MikroORM seeder).
+1. `migration:fresh` -- drops and recreates the relational schema.
 2. `automerge:seed:build` + `automerge:seed` -- creates the Apollo 14 mission **Automerge document**
    (all collaborative entity data lives in Automerge, not the relational tables) plus its map layers.
 

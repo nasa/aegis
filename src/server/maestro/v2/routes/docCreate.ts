@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { apiHasPerms, logUsername } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getEnvironmentConfig } from "server/express/routes/environmentConfig";
@@ -19,7 +19,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {

@@ -3,7 +3,6 @@ dotenv.config({ override: true, quiet: true });
 
 import { PostgreSqlDriver, defineConfig } from "@mikro-orm/postgresql";
 import { Migrator } from "@mikro-orm/migrations";
-import { SeedManager } from "@mikro-orm/seeder";
 import { allSchemas } from "./models/_allModels";
 import path from "node:path";
 import { fileURLToPath } from "url";
@@ -21,11 +20,8 @@ export default defineConfig({
     path: path.join(__dirname, "./migrations"), // path to the folder with migrations
     snapshot: false,
   },
-  seeder: {
-    path: path.join(__dirname, "./seeds"), // path to the folder with seed files
-  },
   entitiesTs: allSchemas,
   entities: allSchemas,
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
-  extensions: [Migrator, SeedManager],
+  extensions: [Migrator],
 });

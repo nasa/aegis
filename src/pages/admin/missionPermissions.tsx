@@ -1,56 +1,61 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 
+import { getAppUsers } from "http-client/access/appUsers";
 import {
-  getAppUsers,
-  getKnownUsers,
-  getMissionAccess,
-  getUserGroups,
-  grantMissionPermission,
-  revokeMissionPermission,
-} from "http-client/access";
+  getUserAccessForMission,
+  upsertMissionPermission,
+  deleteMissionPermission,
+} from "http-client/access/missionPermission";
+import { getUserGroups } from "http-client/access/userGroup";
 import { getMissionHomepageItems } from "http-client/mission";
-import {
-  PERMISSION_LEVELS,
-  permissionLevelLabel,
-  PUBLIC_UUPIC,
-  SUPER_USER_GROUP_NAME,
-} from "utils/permissionLevels";
+import { PERMISSION_LEVELS, permissionLevelLabel } from "utils/permissionsClient";
 import adminCommon from "./adminCommon.module.css";
 
 /**
  * Everyone who can reach one mission, and the controls to grant and revoke.
  *
- * superUser members are not listed: they hold no grant rows, reaching every mission implicitly.
+ * Group rows expand to their members, so the page answers "who can see this mission?" rather than
+ * only "which subjects hold a grant?". Users holding the Launchpad super-user role are not listed:
+ * they reach every mission implicitly and hold no grant rows.
  */
 const MissionPermissions: React.FunctionComponent = () => {
   const params = useParams<{ id: string }>();
   const missionId = parseInt(params.id, 10);
 
   const [missionName, setMissionName] = useState("");
-  const [subjects, setSubjects] = useState<MissionAccessSubject[]>([]);
-  const [publicUserId, setPublicUserId] = useState<number | null>(null);
+  const [summary, setSummary] = useState<MissionAccessSummary | null>(null);
   const [groups, setGroups] = useState<UserGroupSummary[]>([]);
-  const [knownUsers, setKnownUsers] = useState<KnownUser[]>([]);
+  const [candidates, setCandidates] = useState<AppUserSummary[]>([]);
   const [search, setSearch] = useState("");
+  const [notesDraft, setNotesDraft] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
-  const isPublic = subjects.some((s) => s.subjectType === "user" && s.subjectId === publicUserId);
+  const subjects = summary?.subjects ?? [];
+  const publicUserId = summary?.publicUserId ?? null;
+  const isPublic = summary?.isPublic ?? false;
+
+  const noteKey = (subject: MissionAccessSubject): string =>
+    `${subject.subjectType}-${subject.subjectId}`;
 
   const loadAll = useCallback(async () => {
     if (!missionId) return;
 
-    const [accessRes, groupsRes, usersRes, missionsRes] = await Promise.all([
-      getMissionAccess(missionId),
+    const [accessRes, groupsRes, missionsRes] = await Promise.all([
+      getUserAccessForMission(missionId),
       getUserGroups(),
-      getAppUsers(false),
       getMissionHomepageItems(true),
     ]);
 
-    setSubjects(accessRes.data?.subjects ?? []);
-    setGroups((groupsRes.data ?? []).filter((g) => g.name !== SUPER_USER_GROUP_NAME));
-    setPublicUserId((usersRes.data ?? []).find((u) => u.uupic === PUBLIC_UUPIC)?.id ?? null);
+    setSummary(accessRes.data ?? null);
+    setGroups(groupsRes.data ?? []);
     setMissionName((missionsRes.data ?? []).find((m) => m.id === missionId)?.name ?? "");
+
+    const drafts = new Map<string, string>();
+    for (const subject of accessRes.data?.subjects ?? []) {
+      drafts.set(`${subject.subjectType}-${subject.subjectId}`, subject.notes ?? "");
+    }
+    setNotesDraft(drafts);
   }, [missionId]);
 
   useEffect(() => {
@@ -58,11 +63,14 @@ const MissionPermissions: React.FunctionComponent = () => {
   }, [loadAll]);
 
   useEffect(() => {
-    getKnownUsers(search).then((res) => setKnownUsers(res.data ?? []));
+    getAppUsers({ search }).then((res) => setCandidates(res.data ?? []));
   }, [search]);
 
   const apply = async (response: WrappedResponse<unknown>) => {
     if (response.status !== "success") {
+      alert(
+        `Error changing the grant. Please let the AEGIS developers know. Status ${response.message}`
+      );
       setError(response.message ?? "Failed to change the grant.");
       return;
     }
@@ -74,25 +82,35 @@ const MissionPermissions: React.FunctionComponent = () => {
     if (!publicUserId) return;
     await apply(
       makePublic
-        ? await grantMissionPermission({ missionId, userId: publicUserId, level: "viewer" })
-        : await revokeMissionPermission({ missionId, userId: publicUserId })
+        ? await upsertMissionPermission({ missionId, userId: publicUserId, permLevel: "viewer" })
+        : await deleteMissionPermission({ missionId, userId: publicUserId })
     );
   };
 
-  const handleSubjectLevel = async (subject: MissionAccessSubject, level: string) => {
-    const target =
-      subject.subjectType === "user"
-        ? { userId: subject.subjectId }
-        : { groupId: subject.subjectId };
+  const handleSubjectLevel = async (
+    target: { userId?: number; groupId?: number },
+    permLevel: string,
+    notes?: string | null
+  ) => {
     await apply(
-      level
-        ? await grantMissionPermission({ missionId, ...target, level: level as PermissionLevel })
-        : await revokeMissionPermission({ missionId, ...target })
+      permLevel
+        ? await upsertMissionPermission({
+            missionId,
+            ...target,
+            permLevel: permLevel as PermissionLevel,
+            notes: notes ?? null,
+          })
+        : await deleteMissionPermission({ missionId, ...target })
     );
   };
 
-  const groupLevelFor = (groupId: number): PermissionLevel | "" =>
-    subjects.find((s) => s.subjectType === "group" && s.subjectId === groupId)?.level ?? "";
+  const groupSubjectFor = (groupId: number): MissionAccessSubject | undefined =>
+    subjects.find((s) => s.subjectType === "group" && s.subjectId === groupId);
+
+  const userSubjects = subjects.filter(
+    (s) => s.subjectType === "user" && s.subjectId !== publicUserId
+  );
+  const grantedUserIds = new Set(userSubjects.map((s) => s.subjectId));
 
   return (
     <main className={adminCommon.page}>
@@ -102,8 +120,8 @@ const MissionPermissions: React.FunctionComponent = () => {
         </Link>
         <h1 className={adminCommon.pageTitle}>{missionName || `Mission ${missionId}`}</h1>
         <p className={adminCommon.introText}>
-          Everyone who can reach this mission. Members of the <strong>superUser</strong> group are
-          not listed; they reach every mission implicitly.
+          Everyone who can reach this mission. Users holding the Launchpad super-user role are not
+          listed; they reach every mission implicitly.
         </p>
 
         {error && <div className={adminCommon.statusMessage}>{error}</div>}
@@ -111,19 +129,19 @@ const MissionPermissions: React.FunctionComponent = () => {
         <section className={adminCommon.section}>
           <h2 className={adminCommon.sectionHeading}>Public access</h2>
           <div className={adminCommon.details}>
-            <label>
+            <label className={adminCommon.checkboxItem}>
               <input
                 type="checkbox"
                 checked={isPublic}
                 disabled={!publicUserId}
                 onChange={(event) => handlePublicToggle(event.target.checked)}
-              />{" "}
+              />
               Public — visible to every signed-in AEGIS user
             </label>
             {isPublic && (
               <div className={adminCommon.missionSubheader}>
                 <strong>Every</strong> signed-in AEGIS user can view this mission, whether or not
-                they appear in the list below.
+                they appear in the lists below.
               </div>
             )}
           </div>
@@ -136,84 +154,158 @@ const MissionPermissions: React.FunctionComponent = () => {
               <thead>
                 <tr>
                   <th>Group</th>
-                  <th>Level</th>
+                  <th>Permission Level</th>
+                  <th>Members reaching this mission</th>
+                  <th>Note</th>
                 </tr>
               </thead>
               <tbody>
-                {groups.map((group) => (
-                  <tr key={group.id}>
-                    <td>
-                      <Link to={`/admin/group/${group.id}`}>{group.name}</Link>
-                    </td>
-                    <td>
-                      <select
-                        className={adminCommon.formInput}
-                        value={groupLevelFor(group.id)}
-                        onChange={(event) =>
-                          handleSubjectLevel(
-                            {
-                              subjectType: "group",
-                              subjectId: group.id,
-                              subjectName: group.name,
-                              level: "viewer",
-                              notes: null,
-                              grantedBy: null,
-                            },
-                            event.target.value
-                          )
-                        }
-                      >
-                        <option value="">None</option>
-                        {PERMISSION_LEVELS.map((level) => (
-                          <option key={level} value={level}>
-                            {permissionLevelLabel(level)}
-                          </option>
-                        ))}
-                      </select>
+                {groups.map((group) => {
+                  const subject = groupSubjectFor(group.id);
+                  const key = `group-${group.id}`;
+                  return (
+                    <tr key={group.id}>
+                      <td>
+                        <Link to={`/admin/group/${group.id}`}>{group.name}</Link>
+                      </td>
+                      <td>
+                        <select
+                          className={adminCommon.formInput}
+                          value={subject?.permLevel ?? ""}
+                          onChange={(event) =>
+                            handleSubjectLevel(
+                              { groupId: group.id },
+                              event.target.value,
+                              notesDraft.get(key)
+                            )
+                          }
+                        >
+                          <option value="">None</option>
+                          {PERMISSION_LEVELS.map((permLevel) => (
+                            <option key={permLevel} value={permLevel}>
+                              {permissionLevelLabel(permLevel)}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        {subject?.members?.length ? (
+                          <ul className={adminCommon.definitionList}>
+                            {subject.members.map((member) => (
+                              <li key={member.id} className={adminCommon.definitionRow}>
+                                <Link to={`/admin/user/${member.id}`}>{member.displayName}</Link> (
+                                {member.auid})
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span className={adminCommon.mutedIcon}>
+                            {subject ? "No members" : "—"}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <input
+                          className={adminCommon.formInput}
+                          disabled={!subject}
+                          value={notesDraft.get(key) ?? ""}
+                          placeholder="Why this grant exists"
+                          onChange={(event) =>
+                            setNotesDraft((prev) => new Map(prev).set(key, event.target.value))
+                          }
+                          onBlur={() =>
+                            subject &&
+                            handleSubjectLevel(
+                              { groupId: group.id },
+                              subject.permLevel,
+                              notesDraft.get(key)
+                            )
+                          }
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+                {groups.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className={adminCommon.emptyState}>
+                      No groups exist yet.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
         </section>
 
         <section className={adminCommon.section}>
-          <h2 className={adminCommon.sectionHeading}>Users</h2>
+          <h2 className={adminCommon.sectionHeading}>Users with a direct grant</h2>
           <div className={adminCommon.details}>
             <table className={adminCommon.table}>
               <thead>
                 <tr>
                   <th>User</th>
-                  <th>Level</th>
-                  <th>Notes</th>
+                  <th>AUID</th>
+                  <th>Permission Level</th>
+                  <th>Note</th>
                 </tr>
               </thead>
               <tbody>
-                {subjects
-                  .filter((s) => s.subjectType === "user" && s.subjectId !== publicUserId)
-                  .map((subject) => (
+                {userSubjects.map((subject) => {
+                  const key = noteKey(subject);
+                  return (
                     <tr key={subject.subjectId}>
                       <td>
                         <Link to={`/admin/user/${subject.subjectId}`}>{subject.subjectName}</Link>
                       </td>
+                      <td>{subject.subjectAuid ?? "—"}</td>
                       <td>
                         <select
                           className={adminCommon.formInput}
-                          value={subject.level}
-                          onChange={(event) => handleSubjectLevel(subject, event.target.value)}
+                          value={subject.permLevel}
+                          onChange={(event) =>
+                            handleSubjectLevel(
+                              { userId: subject.subjectId },
+                              event.target.value,
+                              notesDraft.get(key)
+                            )
+                          }
                         >
                           <option value="">None</option>
-                          {PERMISSION_LEVELS.map((level) => (
-                            <option key={level} value={level}>
-                              {permissionLevelLabel(level)}
+                          {PERMISSION_LEVELS.map((permLevel) => (
+                            <option key={permLevel} value={permLevel}>
+                              {permissionLevelLabel(permLevel)}
                             </option>
                           ))}
                         </select>
                       </td>
-                      <td title={subject.notes ?? ""}>{subject.notes ? "Yes" : "—"}</td>
+                      <td>
+                        <input
+                          className={adminCommon.formInput}
+                          value={notesDraft.get(key) ?? ""}
+                          placeholder="Why this grant exists"
+                          onChange={(event) =>
+                            setNotesDraft((prev) => new Map(prev).set(key, event.target.value))
+                          }
+                          onBlur={() =>
+                            handleSubjectLevel(
+                              { userId: subject.subjectId },
+                              subject.permLevel,
+                              notesDraft.get(key)
+                            )
+                          }
+                        />
+                      </td>
                     </tr>
-                  ))}
+                  );
+                })}
+                {userSubjects.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className={adminCommon.emptyState}>
+                      No direct user grants.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
 
@@ -222,8 +314,7 @@ const MissionPermissions: React.FunctionComponent = () => {
                 Grant to a user
               </label>
               <span className={adminCommon.formHint}>
-                Searches identities that have signed in at least once. Granting promotes them to a
-                managed user.
+                Searches everyone who has signed in at least once.
               </span>
               <input
                 id="userSearch"
@@ -235,29 +326,24 @@ const MissionPermissions: React.FunctionComponent = () => {
             </div>
             <table className={adminCommon.tableCompact}>
               <tbody>
-                {knownUsers.slice(0, 20).map((known) => (
-                  <tr key={known.id}>
-                    <td>{known.displayName}</td>
-                    <td>{known.auid}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className={adminCommon.button}
-                        onClick={async () =>
-                          apply(
-                            await grantMissionPermission({
-                              missionId,
-                              knownUserId: known.id,
-                              level: "viewer",
-                            })
-                          )
-                        }
-                      >
-                        Grant Viewer
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {candidates
+                  .filter((c) => !grantedUserIds.has(c.id) && c.id !== publicUserId)
+                  .slice(0, 20)
+                  .map((candidate) => (
+                    <tr key={candidate.id}>
+                      <td>{candidate.displayName}</td>
+                      <td>{candidate.auid}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className={adminCommon.button}
+                          onClick={() => handleSubjectLevel({ userId: candidate.id }, "viewer")}
+                        >
+                          Grant Viewer
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

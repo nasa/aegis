@@ -10,7 +10,7 @@ import PresetItem from "./preset-item";
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import sortBy from "lodash/sortBy";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 
 const PresetEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();

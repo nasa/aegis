@@ -2,7 +2,7 @@ import { LoadingOverlay } from "components/interface/_global-elements";
 import { Button, Dropdown } from "components/interface/form/globalFields";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import {
   upsertExpandedEvaUuids,

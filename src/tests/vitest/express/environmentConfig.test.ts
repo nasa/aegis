@@ -2,13 +2,16 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { App_User_db, EnvironmentConfig_db } from "server/database/models/_allModels";
-import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
+import { asNobody, asSuperUser, asUser, upsertAppUser } from "../fixtures/access";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { CONFIG_LIST } from "server/express/routes/environmentConfig";
 
 let testAppUser: App_User_db;
-let testSuperAdmin: App_User_db;
+let testSuperUser: App_User_db;
+
+const REGULAR_UUPIC = "vitest-envconfig-regular";
+const SUPER_UUPIC = "vitest-envconfig-super";
 
 const CONFIG_KEY = "vitestKey";
 const DEFAULT_VALUE = "vitest-default-value.example.com";
@@ -23,54 +26,41 @@ beforeAll(async () => {
   CONFIG_LIST[CONFIG_KEY_2] = { defaultValue: () => DEFAULT_VALUE_2 };
 
   const em = globalValues.orm.em.fork();
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "Vitest regular appUser for envConfig",
-  });
-  testSuperAdmin = await new AppUserFactory(em).createOne({
-    username: "Vitest super admin for envConfig",
-    isSuperAdmin: true,
-  });
+  testAppUser = await upsertAppUser(em, REGULAR_UUPIC);
+  testSuperUser = await upsertAppUser(em, SUPER_UUPIC);
 
   // Ensure no stray overrides exist for the test keys before tests run.
   await em.nativeDelete(EnvironmentConfig_db, { key: { $in: [CONFIG_KEY, CONFIG_KEY_2] } });
 });
 
 describe("Environment Config API Endpoint", () => {
-  let aegisSessionCookie: string;
-  let aegisSessionSigCookie: string;
+  // A caller with no roles and no grants. Under MOCK_USER every request resolves to some
+  // identity, so this is the closest equivalent to an unauthenticated call.
+  describe("Caller holding nothing", () => {
+    test("Returns auth failure - GET /", async () => {
+      const res = await supertest(app).get("/api/v1/environmentConfig").set(asNobody());
+      expect(res.statusCode).toBe(401);
+    });
 
-  test("Returns auth failure - GET /", async () => {
-    const res = await supertest(app).get("/api/v1/environmentConfig");
-    expect(res.statusCode).toBe(401);
-  });
-
-  test("Returns auth failure - GET /:key", async () => {
-    const res = await supertest(app).get(`/api/v1/environmentConfig/${CONFIG_KEY}`);
-    expect(res.statusCode).toBe(401);
-  });
-
-  test("Returns auth failure - POST /:key", async () => {
-    const res = await supertest(app)
-      .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-      .send({ value: "someValue" });
-    expect(res.statusCode).toBe(401);
-  });
-
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAppUser.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("Not super admin", () => {
-    test("No GET permissions - list", async () => {
+    test("Returns auth failure - GET /:key", async () => {
       const res = await supertest(app)
-        .get("/api/v1/environmentConfig")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]);
+        .get(`/api/v1/environmentConfig/${CONFIG_KEY}`)
+        .set(asNobody());
+      expect(res.statusCode).toBe(401);
+    });
+
+    test("Returns auth failure - POST /:key", async () => {
+      const res = await supertest(app)
+        .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
+        .set(asNobody())
+        .send({ value: "someValue" });
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
+  describe("Not a super user", () => {
+    test("No GET permissions - list", async () => {
+      const res = await supertest(app).get("/api/v1/environmentConfig").set(asUser(REGULAR_UUPIC));
 
       expect(res.statusCode).toBe(401);
     });
@@ -78,7 +68,7 @@ describe("Environment Config API Endpoint", () => {
     test("No GET permissions - single key", async () => {
       const res = await supertest(app)
         .get(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]);
+        .set(asUser(REGULAR_UUPIC));
 
       expect(res.statusCode).toBe(401);
     });
@@ -86,7 +76,7 @@ describe("Environment Config API Endpoint", () => {
     test("No POST permissions", async () => {
       const res = await supertest(app)
         .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(REGULAR_UUPIC))
         .send({ value: "someValue" });
 
       expect(res.statusCode).toBe(401);
@@ -94,25 +84,11 @@ describe("Environment Config API Endpoint", () => {
   });
 
   describe("Super admin", () => {
-    test("Login as super admin", async () => {
-      await supertest(app).get("/api/v1/auth/logout");
-
-      const res = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: testSuperAdmin.username, password: "superSecretPassword" });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toEqual("success");
-      expect(res.body.data.isSuperAdmin).toBeTruthy();
-      aegisSessionCookie = res.header["set-cookie"][0];
-      aegisSessionSigCookie = res.header["set-cookie"][1];
-    });
-
     describe("GET request", () => {
       test("Returns all configs", async () => {
         const res = await supertest(app)
           .get("/api/v1/environmentConfig")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]);
+          .set(asSuperUser(SUPER_UUPIC));
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -140,7 +116,7 @@ describe("Environment Config API Endpoint", () => {
       test("Returns single known config with no override", async () => {
         const res = await supertest(app)
           .get(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]);
+          .set(asSuperUser(SUPER_UUPIC));
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -154,7 +130,7 @@ describe("Environment Config API Endpoint", () => {
       test("Returns 404 for unknown key", async () => {
         const res = await supertest(app)
           .get("/api/v1/environmentConfig/notARealKey")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]);
+          .set(asSuperUser(SUPER_UUPIC));
 
         expect(res.statusCode).toBe(404);
         expect(res.body.status).toBe("error");
@@ -165,7 +141,7 @@ describe("Environment Config API Endpoint", () => {
       test("Returns 404 for unknown key", async () => {
         const res = await supertest(app)
           .post("/api/v1/environmentConfig/notARealKey")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asSuperUser(SUPER_UUPIC))
           .send({ value: "someValue" });
 
         expect(res.statusCode).toBe(404);
@@ -175,7 +151,7 @@ describe("Environment Config API Endpoint", () => {
       test("Sets an override value for a known key", async () => {
         const res = await supertest(app)
           .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asSuperUser(SUPER_UUPIC))
           .send({ value: "maestro-override.example.com" });
 
         expect(res.statusCode).toBe(200);
@@ -195,7 +171,7 @@ describe("Environment Config API Endpoint", () => {
       test("Updates an existing override value", async () => {
         const res = await supertest(app)
           .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asSuperUser(SUPER_UUPIC))
           .send({ value: "maestro-override-2.example.com" });
 
         expect(res.statusCode).toBe(200);
@@ -206,7 +182,7 @@ describe("Environment Config API Endpoint", () => {
       test("Trims whitespace from the provided value", async () => {
         const res = await supertest(app)
           .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asSuperUser(SUPER_UUPIC))
           .send({ value: "  maestro-trimmed.example.com  " });
 
         expect(res.statusCode).toBe(200);
@@ -216,7 +192,7 @@ describe("Environment Config API Endpoint", () => {
       test("Clears the override when value is null", async () => {
         const res = await supertest(app)
           .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asSuperUser(SUPER_UUPIC))
           .send({ value: null });
 
         expect(res.statusCode).toBe(200);
@@ -230,12 +206,12 @@ describe("Environment Config API Endpoint", () => {
         // set a value first so there's something to clear
         await supertest(app)
           .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asSuperUser(SUPER_UUPIC))
           .send({ value: "temporary-value" });
 
         const res = await supertest(app)
           .post(`/api/v1/environmentConfig/${CONFIG_KEY}`)
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asSuperUser(SUPER_UUPIC))
           .send({ value: "   " });
 
         expect(res.statusCode).toBe(200);
@@ -251,7 +227,7 @@ afterAll(async () => {
   //Cleanup our Database
   const em = globalValues.orm.em.fork();
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
-  await em.nativeDelete(App_User_db, { id: testSuperAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testSuperUser.id });
   await em.nativeDelete(EnvironmentConfig_db, { key: { $in: [CONFIG_KEY, CONFIG_KEY_2] } });
 
   // Remove the throwaway keys so they don't leak into other test files.

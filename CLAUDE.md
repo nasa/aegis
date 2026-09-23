@@ -43,15 +43,23 @@ npm run test:playwright
 # Database migrations
 npm run migration:up
 npm run migration:down
-npm run migration:fresh   # drop + recreate + seed
-
-# Seed existing DB
-npm run seed
+npm run migration:fresh   # drop + recreate
 ```
+
+## Dates and Times
+
+**Every stored or transmitted time value is a unix timestamp in milliseconds (`number`).** No ISO strings, no `Date` objects — not in TypeScript types, not in Postgres columns, not in REST payloads, not in Automerge documents.
+
+- **Types**: declare timestamp fields as `number` (or `number | null`). A `*_db_type` alias should no longer need to redeclare timestamp fields as `Date`.
+- **Postgres**: store timestamps as `double precision`, not `timestamptz`. In MikroORM models use `p.double().$type<number>()`, not `p.datetime(3)`. When a migration needs the current time, use `extract(epoch from now()) * 1000`. Converting an existing column: `alter table "x" alter column "y" type double precision using (extract(epoch from "y") * 1000);`.
+- **Producing a value**: `Date.now()` on the server, `getAccurateNow().getTime()` on the client (it applies the server clock offset).
+- **Display**: converting to a human-readable string is a rendering concern only. Do it at the point of render (`new Date(value).toLocaleString()`, or the helpers in `src/utils/formatting.ts`). Never let a formatted string flow back into state, a payload, or the database.
 
 ## Comments
 
 Keep comments short. Write comments that explain what the code does or why — never comments that narrate what wasn't done, what a previous approach was, or what you chose not to do. Delete such notes rather than adding them.
+
+Single-line comments (`//`) must start with a space followed by a capital letter, e.g. `// Comment here`. If the comment spans multiple lines and a later line is a run-on continuation of the sentence started above, that continuation line may start with a lowercase letter.
 
 ## After Code Changes
 
@@ -152,6 +160,52 @@ Browser ──HTTP──▶ Express REST routes ──▶ MikroORM ──▶ Pos
 
 REST responses are wrapped as `WrappedResponse<T>` with a `status` field (`"success"` | `"failure"` | `"error"`) — match this shape in all new endpoints and `http-client/` functions.
 
+### REST Request Body Typing
+
+Every REST endpoint that accepts a body (POST/DELETE with a payload) must have its shape declared once as a named type in `src/typings/network/clientTypes.d.ts`, then reused on both sides:
+
+- **Type declaration** (`src/typings/network/clientTypes.d.ts`): name it `<Resource><Action>Request` (e.g. `MissionPermissionGrantRequest`, `UserGroupDeleteRequest`). Add a short doc comment when the field combinations aren't self-evident (e.g. "exactly one of `userId` or `groupId` is required").
+- **`http-client/` function**: the exported function's `body` parameter is typed as that request type, not an inline object literal:
+  ```ts
+  export async function grantMissionPermission(
+    body: MissionPermissionGrantRequest
+  ): Promise<WrappedResponse<number>> { ... }
+  ```
+- **Route handler** (`src/server/express/routes/**`): cast `req.body` to the same type instead of redeclaring an inline object type:
+  ```ts
+  const { missionId, userId, groupId, level, notes } = req.body as MissionPermissionGrantRequest;
+  ```
+
+This keeps the client and server from drifting out of sync on the same endpoint's body shape. Never declare the body shape as an inline `{ ... }` type in either the `http-client/` function signature or the route handler — always add/reuse a named type in `clientTypes.d.ts`.
+
+### REST Route Logging
+
+**Every response that is not HTTP 200 must be logged with `serverLogger.apiRoute` immediately before the `res.status(...).json(...)` call.** This applies to all new and modified routes, with no exceptions — a client-visible failure that leaves no server-side trace is not debuggable.
+
+```ts
+serverLogger.apiRoute({
+  logLevel: "notice",
+  httpMethod: "POST",
+  responseStatus: 404,
+  routeName: "userGroup/member",
+  appUsername: logUsername(req.currentUser),
+  uuids: [String(groupId)],
+  message: "Group not found",
+});
+res.status(404).json({ status: "failure", message: "Group not found" });
+```
+
+Conventions:
+
+- **`logLevel`** — `"warning"` for authorization denials (401/403) and attempts to violate a reserved-entity invariant (deleting the Public user, granting it edit, adding it to a group); `"notice"` for ordinary client mistakes (400 validation failures, 404 not found); `"error"` for 500s.
+- **`error`** — required when `logLevel` is `"error"` or `"critical"`; pass `asError(e)`. The type signature enforces this. Omit it for every other level.
+- **`routeName`** — the mount path of the router, not the file name (e.g. `"userGroup/member"`, `"missionPermission"`).
+- **`message`** — identical to the `message` returned in the response body, so a log line can be matched to what the client saw.
+- **`appUsername`** — always `logUsername(req.currentUser)`.
+- **`missionId` / `uuids`** — include whichever identifiers the route operates on. `uuids` is `string[]`, so numeric ids need `String(id)` or `id.toString()`.
+
+200 responses are deliberately **not** logged; the volume would drown out the failures.
+
 ### Domain Concepts
 
 The app organizes around these core entities. Since the Automerge entity migration, the storage layer differs per entity — see the table below:
@@ -205,6 +259,84 @@ A single `refUuid` therefore resolves to one `uuid` _per scope_: `ref-s1` may ex
 - A **traverse** is unique to exactly one EVA and is never shared between as-planned EVAs. (REX duplication still produces a per-REX copy with the same `refUuid`.)
 
 Deleting cascades along the same relationship: deleting an as-planned EVA also deletes every REX whose EVA shares its `refUuid`, together with that REX EVA's stations, traverses, and actions (see `src/operations/stage/stage-eva.ts`).
+
+### Users, Groups, and Permissions — Required Nomenclature
+
+Identity comes from Launchpad (EMSS OAuth2 proxy); AEGIS never stores passwords. The terms below are the canonical names. **Use them exactly** in code, types, comments, log messages, and UI copy. Do not invent synonyms ("account", "member", "admin", "guest", "managed user", "regular user", "logged-in user") — every one of those is ambiguous against the definitions here.
+
+| Term                | Meaning                                                                   | Backing table | Type                            |
+| ------------------- | ------------------------------------------------------------------------- | ------------- | ------------------------------- |
+| **Launchpad user**  | The raw identity carried on the request token. Not persisted by AEGIS.    | none          | `LaunchpadUser`                 |
+| **app user**        | Every identity that has authenticated at least once.                      | `app_user_db` | `AppUser`                       |
+| **Public user**     | The single reserved app user representing "everyone".                     | `app_user_db` | `AppUser` (`isSystem: true`)    |
+| **super user**      | A caller whose Launchpad token carries a super-user NAMS role.            | none          | —                               |
+| **has permissions** | Derived: the user holds at least one grant or membership, or is reserved. | —             | `AppUserSummary.hasPermissions` |
+
+#### Launchpad user
+
+- The decoded token payload: `uupic` (stable identifier), `auid`, `display_name`, `email`, `roles`. Read via `getLaunchpadUser` in `src/packages/getUser.ts`.
+- **`uupic` is the join key** to everything AEGIS persists. `auid` and `displayName` are display fields that are refreshed on every login and must never be used as identifiers.
+- Every displayable field on the client comes from `user.launchpadUser`, never from the app user row.
+- The `roles` array is what AEGIS authorizes **admin access** on. Per-mission access is entirely the grant model below; the two are independent.
+
+#### app user
+
+- One row per Launchpad identity, created by `recordLogin` on the first authenticated request and refreshed on every request afterwards. The pool therefore grows on its own — a row records who has visited, not a grant of anything.
+- **The row is never removed by a permission change.** Revoking a user's last grant leaves it in place. This is what makes `app_user_db.id` stable enough to use as `ownerId` on entities (EVA, POI, REX, station, preset) — a row that came and went with grants would leave those foreign keys pointing at a dead id.
+- The presence of a row is **not** a permission. Check `CurrentUser.grants` / `apiHasPerms`, never the existence of the row.
+- A user with no grants can still reach every public mission, since the public baseline is union-ed into everyone's access.
+- **Whether a user has permissions** — holds at least one grant or membership — is computed per request in the `appUsers` list route, not stored. `GET /api/v1/appUsers?withPermissionsOnly=true` narrows the list to those users; the default includes everyone.
+- **There is no delete endpoint for app users, and one must not be added.** Removing a row accomplishes nothing: the identity reappears with a new id on its next authenticated request, and every entity that referenced the old id is left dangling. Access is taken away by revoking grants (`DELETE /api/v1/missionPermission`) and group memberships (`POST /api/v1/userGroup/member` with `action: "remove"`).
+
+#### Public user
+
+- One reserved row, `uupic === PUBLIC_UUPIC` (`"__public__"`, in `src/utils/permissionLevels.ts`), `isSystem: true`, `displayName` "Public".
+- It is a **shared principal, not a person**. It has no Launchpad identity and never logs in.
+- Grants held by the Public user form the **public baseline**: they are union-ed into every authenticated caller's resolved access in `resolveGrants`, giving `source: "public"`.
+- **Capped at `viewer`.** The grant endpoint rejects any other level, on create and on update alike. This cap is what makes the union safe — the Public user can widen who sees a mission but can never hand out edit rights.
+- Special-cased in two places: it cannot be deleted, and it cannot join a group (membership would make the baseline union recursive). Any new code touching app users must preserve both.
+- `/admin/publicMissions` lists everything it grants.
+
+#### super user
+
+- Derived entirely from the Launchpad token's NAMS roles — `AEGIS-Superuser` or `EMSS-Superuser`, checked by `isLaunchpadSuperUser` in `src/utils/permissionLevels.ts`. **The super-user role is never stored in AEGIS**, so there is no group to seed, no bootstrap endpoint, and no lockout risk on a fresh deployment. It is also not cached on `CurrentUser` or in Redux — every consumer re-derives it from the token, so there is only ever one source of truth.
+- Confers **implicit `edit` on every mission** plus access to every `/admin/*` route and every super-user-only endpoint. A super user holds **no grant rows**, so `CurrentUser.permissions` is deliberately **empty** for them and `missionIdsAtLevel` returns `[]` — any caller enumerating missions must branch on super-user status first.
+- Server-side check: `apiHasSuperUserOrToken(req.currentUser)` from `src/utils/permissions.ts`, which derives the role from `currentUser.launchpadUser` and also returns true for a valid EMSS machine-to-machine token. Client-side: `isLaunchpadSuperUser(state.user.launchpadUser)`, with `<RequireSuperUser>` in `src/App.tsx` gating every admin route.
+- `roles` may arrive as a bare string rather than an array, so `isLaunchpadSuperUser` normalizes before comparing. Comparing against the unnormalized value would substring-match.
+
+#### Permission levels
+
+Per-mission only; there are no global levels. Ordered as a pyramid — each level includes everything below it: `viewer` (1) < `editPartial` (2) < `edit` (3). Compare with `meetsPermLevel`, never with string equality or by hand-rolling the ranking. A grant targets **either** a user **or** a group, never both. Effective level is the **highest** across the user's direct grants, their groups' grants, and the public baseline (`max(rank)` in `resolveGrants`).
+
+Note the resolver returns only the winning level per mission, because that is all authorization needs. The admin API deliberately does not: `GET /api/v1/missionPermission?userId=` returns **every** contributing grant with an `isEffective` flag, so the UI can show a direct grant that a group currently out-ranks.
+
+### `recordLogin` — the only writer of `app_user_db` identity fields
+
+Called from `authMiddleware` on every authenticated request, and defined alongside it in `src/server/express/authMiddleware.ts`. A single upsert keyed on `uupic` creates the row on first sight and refreshes `auid`, `displayName`, and `lastLoginAt` thereafter.
+
+Three details are deliberate:
+
+- **Raw SQL with `on conflict (uupic) do update`.** Concurrent first requests from the same new identity race, and `uupic` is unique — the database settles it rather than one request failing.
+- **A forked entity manager.** A failure in the directory write cannot corrupt the request's own EM.
+- **No throttling.** The write is isolated here so throttling can be added later without touching call sites.
+
+There is no promotion or demotion. Granting or revoking a permission only writes `mission_permission_db` / `user_group_member_db`; the user row is untouched either way, which is what keeps `app_user_db.id` stable for `ownerId`.
+
+### Permission Admin API
+
+All routes are super-user-only.
+
+| Route                                               | Returns                                                                                                          |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/appUsers?search=&withPermissionsOnly=` | Users with group/mission counts and derived `hasPermissions`. Counts are computed in one SQL query, not per row. |
+| `GET /api/v1/missionPermission?missionId=`          | Every subject holding a grant, with each group's members expanded, plus `isPublic` and `publicUserId`.           |
+| `GET /api/v1/missionPermission?userId=`             | Every reachable mission with **all** contributions and `effectivePermLevel`.                                     |
+| `GET /api/v1/missionPermission?groupId=`            | One group's grants, in a single request.                                                                         |
+| `GET /api/v1/missionPermission?public=true`         | Every mission the Public user grants.                                                                            |
+| `GET /api/v1/userGroup/member?groupId=`             | A group's members.                                                                                               |
+| `GET /api/v1/userGroup/member?userId=`              | The groups one user belongs to.                                                                                  |
+
+`notes` on a grant or group is free text capped at 2000 characters, never used in a permission decision, and discarded when the grant is revoked. It is surfaced and editable on the user-detail, mission-permissions, group-detail, and public-missions admin pages.
 
 ## Technology Stack
 

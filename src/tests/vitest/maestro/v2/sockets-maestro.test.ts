@@ -72,7 +72,7 @@ vi.mock("@mikro-orm/postgresql", async (importOriginal) => {
 });
 
 import { getMaestroSocketRoomName } from "server/maestro/v2/sockets-maestro";
-import { emssTokenIsValid } from "utils/permissions";
+import { emssTokenIsValid } from "utils/permissionsServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { AegisSlice } from "server/maestro/v2/types/aegisSlice";
 import type { MaestroVisitor } from "server/maestro/v2/types/socketioMaestro";

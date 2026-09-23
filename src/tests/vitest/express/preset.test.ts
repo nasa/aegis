@@ -3,7 +3,7 @@ import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { Preset_db, App_User_db } from "server/database/models/_allModels";
 import PresetFactory from "../fixtures/entityFactories/PresetFactory";
-import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
+import { asUser, upsertAppUser, upsertMission, grantMissionPerms } from "../fixtures/access";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankPreset } from "store/storeUtils/preset";
@@ -19,32 +19,30 @@ vi.mock("server/express/sockets", async () => {
 
 let testAppUser: App_User_db;
 let testPresets: Preset_db[];
-const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
+// Each test file owns its own mission id block; grants reference doc_listing_db, so a
+// shared range collides when files run in parallel.
+const testMissionIds = [1030, 1031, 1032];
+const TEST_UUPIC = "vitest-preset";
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestPreset",
-    permissionList: [
-      {
-        missionId: testMissionIds[0],
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-      {
-        missionId: testMissionIds[1],
-        permissions: {
-          edit: false,
-          view: true,
-        },
-      },
-    ],
+  for (const missionId of testMissionIds) await upsertMission(em, missionId);
+
+  testAppUser = await upsertAppUser(em, TEST_UUPIC, { displayName: "Vitest Preset" });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[0],
+    userId: testAppUser.id,
+    permLevel: "edit",
   });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[1],
+    userId: testAppUser.id,
+    permLevel: "viewer",
+  });
+
   testPresets = await new PresetFactory(em)
     .each((preset) => {
       preset.missionId = testMissionIds[0];
@@ -53,19 +51,7 @@ beforeAll(async () => {
 });
 
 describe("Preset API Endpoint", () => {
-  let aegisSessionCookie: string;
-  let aegisSessionSigCookie: string;
   let newPreset: Preset = generateBlankPreset({ name: "Preset Vitest Test" });
-
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAppUser.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
 
   //upsert and delete tests must occur in order
   describe("POST request", () => {
@@ -77,7 +63,7 @@ describe("Preset API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -91,7 +77,7 @@ describe("Preset API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -105,7 +91,7 @@ describe("Preset API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(400);
@@ -119,7 +105,7 @@ describe("Preset API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
@@ -141,7 +127,7 @@ describe("Preset API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
@@ -159,7 +145,7 @@ describe("Preset API Endpoint", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -173,7 +159,7 @@ describe("Preset API Endpoint", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -187,7 +173,7 @@ describe("Preset API Endpoint", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/preset")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);

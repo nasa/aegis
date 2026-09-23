@@ -11,7 +11,7 @@ import sortBy from "lodash/sortBy";
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 
 const PoiEditorLeft: FunctionComponent = () => {
   const dispatch = useAppDispatch();

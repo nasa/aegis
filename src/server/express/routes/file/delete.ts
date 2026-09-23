@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { deleteFile } from "server/file/file"; // Assuming this function is compatible with Express
-import { isSuperUser, logUsername } from "utils/permissions";
+import { apiHasSuperUserOrToken, logUsername } from "utils/permissionsServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -20,7 +20,7 @@ const parseQuery = (query: Query) => {
 
 router.delete("/", async (req: Request, res: Response) => {
   const queryObj = parseQuery(req.query);
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "DELETE",

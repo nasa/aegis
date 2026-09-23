@@ -6,7 +6,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Preset_db } from "server/database/models/_allModels";
 import { convertPresetsTypeDbToStore, convertPresetsTypeStoreToDb } from "store/storeUtils/preset";
-import { apiHasPerms, logUsername } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
@@ -22,7 +22,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {
@@ -125,7 +125,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {

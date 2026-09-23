@@ -12,7 +12,7 @@ import isEqual from "lodash/isEqual";
 import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 
 /**
  * Callers pass an origin (`https://aegis.fit.nasa.gov`), but load testing may

@@ -2,7 +2,7 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { App_User_db, Doc_Listing_db } from "server/database/models/_allModels";
-import AppUserFactory from "../../fixtures/entityFactories/AppUserFactory";
+import { asNobody, asUser, upsertAppUser, grantMissionPerms } from "../../fixtures/access";
 import DocListingFactory from "../../fixtures/entityFactories/DocListingFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
@@ -13,7 +13,8 @@ import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 let testAppUser: App_User_db;
-let testAppUserNoPerms: App_User_db;
+const VIEW_UUPIC = "vitest-dust-view";
+const NO_PERMS_UUPIC = "vitest-dust-noperms";
 let testAutomergeDocListings: Doc_Listing_db[];
 let testMissionsPartial: Partial<Mission>[];
 
@@ -113,61 +114,30 @@ beforeAll(async () => {
   globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
 
   // A user with view access to mission 0 only
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestDustUser",
-    permissionList: [
-      {
-        missionId: testMissionsPartial[0].id,
-        permissions: { edit: false, view: true },
-      },
-    ],
+  testAppUser = await upsertAppUser(em, VIEW_UUPIC);
+  await grantMissionPerms(em, {
+    missionId: testMissionsPartial[0].id,
+    userId: testAppUser.id,
+    permLevel: "viewer",
   });
 
-  // A user with no permissions at all
-  testAppUserNoPerms = await new AppUserFactory(em).createOne({
-    username: "VitestDustNoPerms",
-  });
+  // An identity with no grants at all
+  await upsertAppUser(em, NO_PERMS_UUPIC);
 });
 
 describe("GET /api/v1/external/dust", () => {
-  let sessionCookie: string;
-  let sessionSigCookie: string;
-  let noPermsCookie: string;
-  let noPermsSigCookie: string;
-
   describe("Authentication", () => {
     test("Returns 401 when not logged in and no missionId provided", async () => {
-      const res = await supertest(app).get("/api/v1/external/dust");
+      const res = await supertest(app).get("/api/v1/external/dust").set(asNobody());
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
       expect(res.body.message).toBe("Unauthorized");
     });
 
-    test("Logs in as view-permitted user", async () => {
-      const res = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: testAppUser.username, password: "superSecretPassword" });
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toEqual("success");
-      sessionCookie = res.header["set-cookie"][0];
-      sessionSigCookie = res.header["set-cookie"][1];
-    });
-
-    test("Logs in as no-permissions user", async () => {
-      // Use a separate supertest call – login stores cookie on the agent, not
-      // globally, so we can grab both users' cookies independently.
-      const res = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: testAppUserNoPerms.username, password: "superSecretPassword" });
-      expect(res.statusCode).toBe(200);
-      noPermsCookie = res.header["set-cookie"][0];
-      noPermsSigCookie = res.header["set-cookie"][1];
-    });
-
     test("Returns 401 when logged-in user has no permissions for the mission", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [noPermsCookie, noPermsSigCookie])
+        .set(asUser(NO_PERMS_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
@@ -200,7 +170,7 @@ describe("GET /api/v1/external/dust", () => {
     test("Returns 200 with correct top-level shape for a mission with EVAs", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [sessionCookie, sessionSigCookie])
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
 
       expect(res.statusCode).toBe(200);
@@ -216,7 +186,7 @@ describe("GET /api/v1/external/dust", () => {
     test("Includes an entry for each EVA (planned + rex EVA)", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [sessionCookie, sessionSigCookie])
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
 
       const { traversesGeoJson } = res.body.data;
@@ -228,7 +198,7 @@ describe("GET /api/v1/external/dust", () => {
     test("As-planned EVA has correct name, null rexUuid and rexName", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [sessionCookie, sessionSigCookie])
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
 
       const evaEntry = res.body.data.traversesGeoJson[eva.uuid];
@@ -240,7 +210,7 @@ describe("GET /api/v1/external/dust", () => {
     test("Rex EVA entry has rexUuid and rexName populated", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [sessionCookie, sessionSigCookie])
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
 
       const rexEvaEntry = res.body.data.traversesGeoJson[rexEva.uuid];
@@ -251,7 +221,7 @@ describe("GET /api/v1/external/dust", () => {
     test("Full traverse GeoJSON is a valid FeatureCollection with a LineString", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [sessionCookie, sessionSigCookie])
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
 
       const evaEntry = res.body.data.traversesGeoJson[eva.uuid];
@@ -266,7 +236,7 @@ describe("GET /api/v1/external/dust", () => {
     test("Duplicate consecutive coordinates are de-duped in the LineString", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [sessionCookie, sessionSigCookie])
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
 
       const evaEntry = res.body.data.traversesGeoJson[eva.uuid];
@@ -282,7 +252,7 @@ describe("GET /api/v1/external/dust", () => {
     test("start_datetime is an ISO string matching EVA datetime", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [sessionCookie, sessionSigCookie])
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
 
       const evaEntry = res.body.data.traversesGeoJson[eva.uuid];
@@ -292,7 +262,7 @@ describe("GET /api/v1/external/dust", () => {
     test("EVA with no traverses in sequence yields an empty LineString", async () => {
       const res = await supertest(app)
         .get("/api/v1/external/dust")
-        .set("Cookie", [sessionCookie, sessionSigCookie])
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testMissionsPartial[0].id });
 
       // rexEva has an empty sequence
@@ -322,7 +292,7 @@ afterAll(async () => {
     await em.nativeDelete(Doc_Listing_db, { missionId: listing.missionId });
   }
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
-  await em.nativeDelete(App_User_db, { id: testAppUserNoPerms.id });
+  await em.nativeDelete(App_User_db, { uupic: NO_PERMS_UUPIC });
   await globalValues.orm.close();
   globalValues.orm = null;
   vi.restoreAllMocks();

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import styles from "pages/index.module.css";
-import { getCurrentUserAndAccess } from "http-client/access";
+import { getCurrentUserAndAccess } from "http-client/access/currentUser";
 import { getMissionHomepageItems } from "http-client/mission";
 import { thunkObliterateMissionSpecificData } from "store/thunk/crossThunk";
 import PetInterval from "components/page/petInterval";
@@ -11,7 +11,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from "react-tooltip";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
-import { setAppUserId, setIsSuperUser, setLaunchpadUser } from "store/user";
+import { setAppUserId, setLaunchpadUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { clientLogger } from "utils/logging/clientLogger";
 import isEqual from "lodash/isEqual";
@@ -127,7 +127,6 @@ const Left: FunctionComponent = () => {
 
       dispatch(setLaunchpadUser(access.launchpadUser));
       dispatch(setAppUserId(access.appUser?.id ?? null));
-      dispatch(setIsSuperUser(access.isSuperUser));
 
       clientLogger.info({
         logId: "appLogin",

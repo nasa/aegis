@@ -6,12 +6,14 @@
 
 const fetchWithAuth = (...args) => fetch(...args);
 
+// Mirrors the real package: the response status is never inspected, so an error
+// body is returned as a parsed object and only a parse/transport failure yields an Error.
 const fetchJsonWithAuth = async (input, init) => {
-  const response = await fetch(input, init);
-  if (!response.ok) {
-    return new Error(`Request failed with status ${response.status}`);
+  try {
+    return await (await fetchWithAuth(input, init)).json();
+  } catch (err) {
+    return err instanceof Error ? err : new Error(String(err));
   }
-  return response.json();
 };
 
 export const createFetchWithAuthFunctions = (_authPopup, _loginURL, _userInfoURL) => ({

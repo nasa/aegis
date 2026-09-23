@@ -1,20 +1,12 @@
+import { checkResponse } from "http-client/helperResponse";
+
 export async function getGrid(
   missionId: number,
   getFullGrid: boolean = false
 ): Promise<WrappedResponse<MissionGrid | null>> {
-  const res = await fetch(`/api/v1/grid?missionId=${missionId}&getFullGrids=${getFullGrid}`);
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<MissionGrid | null> = await res.json();
-  return response;
+  return checkResponse<MissionGrid | null>(
+    await fetch(`/api/v1/grid?missionId=${missionId}&getFullGrids=${getFullGrid}`)
+  );
 }
 
 export async function upsertGrid(
@@ -30,21 +22,7 @@ export async function upsertGrid(
     },
     body: JSON.stringify(requestBody),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error saving grid to database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<MissionGrid> = await res.json();
-  return response;
+  return checkResponse<MissionGrid>(res, "Error saving grid to database.");
 }
 
 export async function deleteGrid(missionId: number): Promise<WrappedResponse<null>> {
@@ -56,19 +34,5 @@ export async function deleteGrid(missionId: number): Promise<WrappedResponse<nul
     },
     body: JSON.stringify(requestBody),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error deleting grid from database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<null> = await res.json();
-  return response;
+  return checkResponse<null>(res, "Error deleting grid from database.");
 }

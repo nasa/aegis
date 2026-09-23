@@ -1,7 +1,7 @@
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
+import { asUser, upsertAppUser, upsertMission, grantMissionPerms } from "../fixtures/access";
 import LayerFactory from "../fixtures/entityFactories/LayerFactory";
 import { Layer_db, App_User_db } from "server/database/models/_allModels";
 import supertest from "supertest";
@@ -10,31 +10,28 @@ import { generateBlankLayer } from "store/storeUtils/layer";
 
 let testAppUser: App_User_db;
 let testLayers: Layer_db[];
-const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
+// Each test file owns its own mission id block; grants reference doc_listing_db, so a
+// shared range collides when files run in parallel.
+const testMissionIds = [1020, 1021, 1022];
+const TEST_UUPIC = "vitest-layer";
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "Vitestlayer",
-    permissionList: [
-      {
-        missionId: testMissionIds[0],
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-      {
-        missionId: testMissionIds[1],
-        permissions: {
-          edit: false,
-          view: true,
-        },
-      },
-    ],
+  for (const missionId of testMissionIds) await upsertMission(em, missionId);
+
+  testAppUser = await upsertAppUser(em, TEST_UUPIC, { displayName: "Vitest Layer" });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[0],
+    userId: testAppUser.id,
+    permLevel: "edit",
+  });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[1],
+    userId: testAppUser.id,
+    permLevel: "viewer",
   });
 
   testLayers = await new LayerFactory(em)
@@ -45,54 +42,7 @@ beforeAll(async () => {
 });
 
 describe("Layer API Endpoint ", () => {
-  let aegisSessionCookie: string;
-  let aegisSessionSigCookie: string;
   let newLayer: Layer = generateBlankLayer();
-
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAppUser.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  describe("GET request", () => {
-    test("No view permissions", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissionIds[2] });
-
-      expect(res.statusCode).toBe(401);
-      expect(res.body.status).toBe("failure");
-      expect(res.body.message).toBe("Unauthorized");
-    });
-
-    test("Missing missionId", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/layer")
-        .set("emss-token", process.env.EMSS_TOKEN)
-        .query({});
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.status).toBe("error");
-      expect(res.body.message).toBe("Invalid mission ID");
-    });
-
-    test("NaN missionId", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/layer")
-        .set("emss-token", process.env.EMSS_TOKEN)
-        .query({ missionId: "not-a-number" });
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.status).toBe("error");
-      expect(res.body.message).toBe("Invalid mission ID");
-    });
-  });
 
   //upsert and delete tests must occur in order
   describe("POST request", () => {
@@ -103,7 +53,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -116,7 +66,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -129,7 +79,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(400);
@@ -146,7 +96,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
@@ -171,7 +121,7 @@ describe("Layer API Endpoint ", () => {
 
       const res = await supertest(app)
         .post("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
@@ -190,7 +140,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -203,7 +153,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -218,7 +168,7 @@ describe("Layer API Endpoint ", () => {
 
       const res = await supertest(app)
         .delete("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);

@@ -7,7 +7,7 @@ import express from "express";
 import multer from "multer";
 
 import { deleteFile, moveFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
-import { isSuperUser, logUsername } from "utils/permissions";
+import { apiHasSuperUserOrToken, logUsername } from "utils/permissionsServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -26,7 +26,7 @@ const parseQuery = (query: Query) => {
 // Middleware to check user session
 router.use(async (req: Request, res: Response, next): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",

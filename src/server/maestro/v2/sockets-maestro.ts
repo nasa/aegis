@@ -18,7 +18,7 @@ import {
 } from "server/maestro/v2/sockets-maestro-emitters";
 import { opUpdateMdau } from "server/maestro/v2/operations/op-mdau";
 import { mdauValidator } from "utils/validateSchemaServer";
-import { emssTokenIsValid } from "utils/permissions";
+import { emssTokenIsValid } from "utils/permissionsServer";
 import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";
 import { getAutomergeMissions } from "server/express/routes/missionAutomerge";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";

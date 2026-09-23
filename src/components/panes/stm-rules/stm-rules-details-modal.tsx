@@ -33,7 +33,7 @@ import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import Action from "components/panes/actions-action";
 import { EmojiRenderer } from "components/interface/emojis";
 import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const STMRuleDetailsModal: FunctionComponent<{

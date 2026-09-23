@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { isSuperUser, logUsername } from "utils/permissions";
+import { apiHasSuperUserOrToken, logUsername } from "utils/permissionsServer";
 
 import express from "express";
 import { asError } from "@emss/utils";
@@ -29,7 +29,7 @@ const isKnownKey = (key: string): key is EnvConfigKey =>
 
 // GET / — return all records in the env config table
 router.get("/", async (req: Request, res: Response): Promise<void> => {
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",
@@ -65,7 +65,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // GET /:key — return a single entry by key
 router.get("/:key", async (req: Request, res: Response): Promise<void> => {
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
@@ -97,7 +97,7 @@ router.get("/:key", async (req: Request, res: Response): Promise<void> => {
 
 // POST /:key — set (or clear) the stored value for one key
 router.post("/:key", async (req: Request, res: Response): Promise<void> => {
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",

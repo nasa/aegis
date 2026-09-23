@@ -19,13 +19,10 @@ import gridRoutes from "./routes/grid";
 import stmRoutes from "./routes/stm";
 import stmRulesRoutes from "./routes/stmRules";
 import sublayerRoutes from "./routes/sublayer";
-import appUsersRoutes from "./routes/appUsers";
-import knownUsersRoutes from "./routes/knownUsers";
-import userGroupRoutes from "./routes/userGroup";
-import userGroupMemberRoutes from "./routes/userGroupMember";
-import missionPermissionRoutes from "./routes/missionPermission";
-import bootstrapSuperUserRoutes from "./routes/bootstrapSuperUser";
-import timeRoutes from "./routes/time";
+import appUsersRoutes from "./routes/access/appUsers";
+import userGroupRoutes from "./routes/access/userGroup";
+import userGroupMemberRoutes from "./routes/access/userGroupMember";
+import missionPermissionRoutes from "./routes/access/missionPermission";
 import folderRoutes from "./routes/folder";
 
 import rexByEvaRefV2 from "../maestro/v2/routes/getRexesByEvaRef";
@@ -45,10 +42,9 @@ import fileRenameRoute from "./routes/file/rename";
 import fileDeleteRoute from "./routes/file/delete";
 
 import logFromClient from "./routes/logFromClient";
-import { rawServerLogger } from "utils/logging/serverLogger";
-import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
-import { getLaunchpadUser } from "packages/getUser";
-import { currentUserMiddleware } from "./currentUserMiddleware";
+import { rawServerLogger, serverLogger } from "utils/logging/serverLogger";
+import { logUsername } from "utils/permissionsServer";
+import { authMiddleware } from "./authMiddleware";
 
 import docListingRoute from "./routes/docListing";
 import environmentConfigRoute from "./routes/environmentConfig";
@@ -91,22 +87,37 @@ app.get("/api/v1/version", (req, res) => {
 });
 
 // Return server time for the emss dashboard
-app.use("/api/v1/time", timeRoutes);
+app.use("/api/v1/time", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.send({ time: new Date().toISOString() });
+});
 
-//------------ Authenticated routes ------------
+//------------ Authenticated routes (Launchpad and/or Token) ------------
 
 // Resolve current user/token and permission grants for every request
 // Must be called after the Mikro-ORM RequestContext middleware
 // Anything below this will be wrapped in this middleware
-app.use(currentUserMiddleware);
+app.use(authMiddleware);
 
-// Get the user's identity and access
+// Get the user's identity and access. Intended for real users only (not other servers)
 app.get("/api/v1/user/current", (req, res) => {
-  const launchpadUser = getLaunchpadUser(req);
-  if (launchpadUser instanceof Error) {
-    return handleUnableToDecodeJWT(launchpadUser, res);
+  // The middleware already decoded the token, so a null identity here means it was
+  // missing or unreadable.
+  const launchpadUser = req.currentUser?.launchpadUser;
+  if (!launchpadUser) {
+    const message = "No Launchpad identity on the request";
+    serverLogger.apiRoute({
+      logLevel: "warning",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName: "user/current",
+      appUsername: logUsername(req.currentUser),
+      message,
+    });
+    res.status(401).json({ status: "failure", message });
+    return;
   }
-  res.json(req.currentUser); // Return currentUser from the middleware
+  res.json(req.currentUser);
   rawServerLogger.logUserLogin(launchpadUser);
 });
 
@@ -129,7 +140,6 @@ app.use("/api/v1/stm", stmRoutes);
 app.use("/api/v1/stmRules", stmRulesRoutes);
 app.use("/api/v1/sublayer", sublayerRoutes);
 app.use("/api/v1/appUsers", appUsersRoutes);
-app.use("/api/v1/knownUsers", knownUsersRoutes);
 app.use("/api/v1/userGroup/member", userGroupMemberRoutes);
 app.use("/api/v1/userGroup", userGroupRoutes);
 app.use("/api/v1/missionPermission", missionPermissionRoutes);
@@ -149,7 +159,6 @@ app.use("/api/v1/external/dust", dustRoute);
 
 //------------ EmssToken auth only ------------
 
-app.use("/api/v1/bootstrap/superUser", bootstrapSuperUserRoutes);
 app.use("/api/v1/metrics", metricsRoutes);
 
 // Maegistro V2

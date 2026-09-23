@@ -8,7 +8,6 @@ import { EnvironmentConfig_db, EnvironmentConfig_dbSchema } from "./environmentC
 import { Eva_db, Eva_dbSchema } from "./eva.model";
 import { Folder_db, Folder_dbSchema } from "./folder.model";
 import { Grid_db, Grid_dbSchema } from "./grid.model";
-import { Known_User_db, Known_User_dbSchema } from "./known_user.model";
 import { Layer_db, Layer_dbSchema } from "./layer.model";
 import { Mission_Permission_db, Mission_Permission_dbSchema } from "./mission_permission.model";
 import { Poi_db, Poi_dbSchema } from "./poi.model";
@@ -33,7 +32,6 @@ export const allSchemas = [
   Eva_dbSchema,
   Folder_dbSchema,
   Grid_dbSchema,
-  Known_User_dbSchema,
   Layer_dbSchema,
   Mission_Permission_dbSchema,
   Poi_dbSchema,
@@ -52,7 +50,6 @@ export const allSchemas = [
 
 export {
   App_User_db,
-  Known_User_db,
   Mission_Permission_db,
   User_Group_db,
   User_Group_Member_db,

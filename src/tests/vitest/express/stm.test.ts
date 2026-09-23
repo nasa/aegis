@@ -7,7 +7,13 @@ import {
   STM_Level2_db,
   STM_Level3_db,
 } from "server/database/models/_allModels";
-import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
+import {
+  asNobody,
+  asUser,
+  upsertAppUser,
+  upsertMission,
+  grantMissionPerms,
+} from "../fixtures/access";
 import STMLevel1Factory from "../fixtures/entityFactories/STMLevel1Factory";
 import STMLevel3Factory from "../fixtures/entityFactories/STMLevel3Factory";
 import STMLevel2Factory from "../fixtures/entityFactories/STMLevel2Factory";
@@ -21,31 +27,28 @@ import {
 
 let testAppUser: App_User_db;
 let stmLevel1s: STM_Level1_db[];
-const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
+// Each test file owns its own mission id block; grants reference doc_listing_db, so a
+// shared range collides when files run in parallel.
+const testMissionIds = [1040, 1041, 1042];
+const TEST_UUPIC = "vitest-stm";
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestSTM",
-    permissionList: [
-      {
-        missionId: testMissionIds[0],
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-      {
-        missionId: testMissionIds[1],
-        permissions: {
-          edit: false,
-          view: true,
-        },
-      },
-    ],
+  for (const missionId of testMissionIds) await upsertMission(em, missionId);
+
+  testAppUser = await upsertAppUser(em, TEST_UUPIC, { displayName: "Vitest STM" });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[0],
+    userId: testAppUser.id,
+    permLevel: "edit",
+  });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[1],
+    userId: testAppUser.id,
+    permLevel: "viewer",
   });
 
   //create 2 level1s. each level1 has 2 child level2s and each child level2 has 2 child level3s
@@ -71,29 +74,16 @@ beforeAll(async () => {
 });
 
 describe("STM API Endpoint", () => {
-  let aegisSessionCookie: string;
-  let aegisSessionSigCookie: string;
-
   test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/stm");
+    const res = await supertest(app).get("/api/v1/stm").set(asNobody());
     expect(res.statusCode).toBe(401);
-  });
-
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAppUser.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
   });
 
   describe("GET request", () => {
     test("No permissions", async () => {
       const res = await supertest(app)
         .get("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .query({ missionId: testMissionIds[2], stmType: "l1" });
 
       expect(res.statusCode).toBe(401);
@@ -102,7 +92,7 @@ describe("STM API Endpoint", () => {
     test("Insufficient URL parameters", async () => {
       const res = await supertest(app)
         .get("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .query({ missionId: testMissionIds[0] });
 
       expect(res.statusCode).toBe(400);
@@ -113,7 +103,7 @@ describe("STM API Endpoint", () => {
       test("Returns single level1 by level1 uuid", async () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .query({ missionId: testMissionIds[0], stmType: "l1", l1: stmLevel1s[0].uuid });
 
         expect(res.statusCode).toBe(200);
@@ -124,7 +114,7 @@ describe("STM API Endpoint", () => {
       test("Returns all level1s for mission", async () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .query({ missionId: testMissionIds[0], stmType: "l1" });
 
         expect(res.statusCode).toBe(200);
@@ -135,7 +125,7 @@ describe("STM API Endpoint", () => {
       test("Returns no level1s", async () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .query({ missionId: testMissionIds[1], stmType: "l1" });
 
         expect(res.statusCode).toBe(200);
@@ -146,14 +136,11 @@ describe("STM API Endpoint", () => {
 
     describe("Level2s", () => {
       test("Returns single level2 by level2 uuid", async () => {
-        const res = await supertest(app)
-          .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({
-            missionId: testMissionIds[0],
-            stmType: "l2",
-            l2: stmLevel1s[0].level2s[0].uuid,
-          });
+        const res = await supertest(app).get("/api/v1/stm").set(asUser(TEST_UUPIC)).query({
+          missionId: testMissionIds[0],
+          stmType: "l2",
+          l2: stmLevel1s[0].level2s[0].uuid,
+        });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -163,7 +150,7 @@ describe("STM API Endpoint", () => {
       test("Returns all level2s for mission", async () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .query({ missionId: testMissionIds[0], stmType: "l2" });
 
         expect(res.statusCode).toBe(200);
@@ -174,7 +161,7 @@ describe("STM API Endpoint", () => {
       test("Returns level2s for level1", async () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .query({ missionId: testMissionIds[0], stmType: "l2", l1: stmLevel1s[0].uuid });
 
         expect(res.statusCode).toBe(200);
@@ -186,7 +173,7 @@ describe("STM API Endpoint", () => {
       test("Returns no level2s", async () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .query({ missionId: testMissionIds[1], stmType: "l2" });
 
         expect(res.statusCode).toBe(200);
@@ -197,14 +184,11 @@ describe("STM API Endpoint", () => {
 
     describe("Level3s", () => {
       test("Returns single level3 by level3 uuid", async () => {
-        const res = await supertest(app)
-          .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({
-            missionId: testMissionIds[0],
-            stmType: "l3",
-            l3: stmLevel1s[0].level2s[0].level3s[0].uuid,
-          });
+        const res = await supertest(app).get("/api/v1/stm").set(asUser(TEST_UUPIC)).query({
+          missionId: testMissionIds[0],
+          stmType: "l3",
+          l3: stmLevel1s[0].level2s[0].level3s[0].uuid,
+        });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -214,7 +198,7 @@ describe("STM API Endpoint", () => {
       test("Returns all level3s for mission", async () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .query({ missionId: testMissionIds[0], stmType: "l3" });
 
         expect(res.statusCode).toBe(200);
@@ -223,14 +207,11 @@ describe("STM API Endpoint", () => {
       });
 
       test("Returns level3s for level2s", async () => {
-        const res = await supertest(app)
-          .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-          .query({
-            missionId: testMissionIds[0],
-            stmType: "l3",
-            l2: stmLevel1s[0].level2s[0].uuid,
-          });
+        const res = await supertest(app).get("/api/v1/stm").set(asUser(TEST_UUPIC)).query({
+          missionId: testMissionIds[0],
+          stmType: "l3",
+          l2: stmLevel1s[0].level2s[0].uuid,
+        });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.status).toBe("success");
@@ -241,7 +222,7 @@ describe("STM API Endpoint", () => {
       test("Returns no level3s", async () => {
         const res = await supertest(app)
           .get("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .query({ missionId: testMissionIds[1], stmType: "l3" });
 
         expect(res.statusCode).toBe(200);
@@ -264,7 +245,7 @@ describe("STM API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -278,7 +259,7 @@ describe("STM API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -292,7 +273,7 @@ describe("STM API Endpoint", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(400);
@@ -309,7 +290,7 @@ describe("STM API Endpoint", () => {
         };
         const res = await supertest(app)
           .post("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .send(requestBody);
 
         expect(res.statusCode).toBe(200);
@@ -334,7 +315,7 @@ describe("STM API Endpoint", () => {
         };
         const res = await supertest(app)
           .post("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .send(requestBody);
 
         expect(res.statusCode).toBe(200);
@@ -353,7 +334,7 @@ describe("STM API Endpoint", () => {
         };
         const res = await supertest(app)
           .post("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .send(requestBody);
 
         expect(res.statusCode).toBe(200);
@@ -378,7 +359,7 @@ describe("STM API Endpoint", () => {
         };
         const res = await supertest(app)
           .post("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .send(requestBody);
 
         expect(res.statusCode).toBe(200);
@@ -397,7 +378,7 @@ describe("STM API Endpoint", () => {
         };
         const res = await supertest(app)
           .post("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .send(requestBody);
 
         expect(res.statusCode).toBe(200);
@@ -422,7 +403,7 @@ describe("STM API Endpoint", () => {
         };
         const res = await supertest(app)
           .post("/api/v1/stm")
-          .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+          .set(asUser(TEST_UUPIC))
           .send(requestBody);
 
         expect(res.statusCode).toBe(200);
@@ -442,7 +423,7 @@ describe("STM API Endpoint", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -457,7 +438,7 @@ describe("STM API Endpoint", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -471,7 +452,7 @@ describe("STM API Endpoint", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
@@ -486,7 +467,7 @@ describe("STM API Endpoint", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
@@ -501,7 +482,7 @@ describe("STM API Endpoint", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/stm")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);

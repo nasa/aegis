@@ -1,4 +1,5 @@
-import { isLoggedIn, login, logout } from "http-client/login";
+import { getAppUsers } from "http-client/access/appUsers";
+import { getUserGroups } from "http-client/access/userGroup";
 import { boxDownloadFile } from "http-client/box";
 import { getElevationSinglePoint, getTerrainProfile } from "http-client/terrainProfile";
 
@@ -10,52 +11,49 @@ const mockFetchResponse = (data: unknown) => {
   } as unknown as Response);
 };
 
-describe("Login", () => {
-  test("Returns IsLoggedIn", async () => {
-    mockFetchResponse(true);
-    const res = await isLoggedIn();
-    expect(res).toEqual(true);
-  });
-
-  test("Returns Login", async () => {
-    const username: string = "test_username";
-    const password: string = "test_password";
-    const mockResponse = {
+describe("Access http-client", () => {
+  test("Returns users", async () => {
+    const mockResponse: WrappedResponse<AppUserSummary[]> = {
       status: "success",
-      message: "login successful",
-      data: {
-        user: {
-          id: 123,
-          permission: "admin",
-          username: username,
+      message: "Users retrieved",
+      data: [
+        {
+          id: 1,
+          uupic: "1234",
+          auid: "narmstra",
+          displayName: "Neil",
+          isSystem: false,
+          lastLoginAt: 1_700_000_000_000,
+          groupCount: 0,
+          missionCount: 1,
+          hasPermissions: true,
         },
-      },
+      ],
     };
     mockFetchResponse(mockResponse);
-    const res = await login(username, password);
+    const res = await getAppUsers({ search: "neil" });
     expect(res).toEqual(mockResponse);
   });
 
-  test("Fails Login", async () => {
-    const username: string = "fake_user";
-    const password: string = "fake_password";
-    const mockResponse = {
-      status: "failure",
-      message: "No such user.",
-    };
-    mockFetchResponse(mockResponse);
-    const res = await login(username, password);
-    expect(res).toEqual(mockResponse);
-  });
-
-  test("Returns Logout", async () => {
-    const mockResponse = {
+  test("Returns user groups", async () => {
+    const mockResponse: WrappedResponse<UserGroupSummary[]> = {
       status: "success",
-      message: "Logged out",
-      data: true,
+      message: "Groups retrieved",
+      data: [
+        {
+          id: 1,
+          name: "Flight Controllers",
+          description: null,
+          notes: null,
+          createdAt: 1_700_000_000_000,
+          updatedAt: 1_700_000_000_000,
+          memberCount: 1,
+          missionCount: 0,
+        },
+      ],
     };
     mockFetchResponse(mockResponse);
-    const res = await logout();
+    const res = await getUserGroups();
     expect(res).toEqual(mockResponse);
   });
 });

@@ -2,7 +2,7 @@ import { useState, type FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import EvaItem from "./eva-item";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import { Button } from "components/interface/form/globalFields";
 import { faClone, faEye, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";

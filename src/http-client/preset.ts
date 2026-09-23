@@ -1,3 +1,5 @@
+import { checkResponse } from "http-client/helperResponse";
+
 export async function upsertPresets(presets: Preset[]): Promise<WrappedResponse<Preset[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
@@ -11,21 +13,7 @@ export async function upsertPresets(presets: Preset[]): Promise<WrappedResponse<
     },
     body: JSON.stringify(requestBody),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error saving presets to database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<Preset[]> = await res.json();
-  return response;
+  return checkResponse<Preset[]>(res, "Error saving presets to database.");
 }
 
 export async function deletePresets(presetUuids: string[]): Promise<WrappedResponse<Preset[]>> {
@@ -41,19 +29,5 @@ export async function deletePresets(presetUuids: string[]): Promise<WrappedRespo
     },
     body: JSON.stringify(requestBody),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error deleting presets from database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<Preset[]> = await res.json();
-  return response;
+  return checkResponse<Preset[]>(res, "Error deleting presets from database.");
 }

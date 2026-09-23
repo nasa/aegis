@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { emssTokenIsValid } from "utils/permissions";
+import { emssTokenIsValid } from "utils/permissionsServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";

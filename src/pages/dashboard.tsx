@@ -23,7 +23,8 @@ import { setSectionSelected } from "store/interface";
 import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import { getCurrentUserAndAccess } from "http-client/access";
+import { getCurrentUserAndAccess } from "http-client/access/currentUser";
+import { isLaunchpadSuperUser } from "utils/permissionsClient";
 import { setUserState } from "store/user";
 import { clientLogger } from "utils/logging/clientLogger";
 import { LoadingOverlay } from "components/interface/_global-elements";
@@ -74,9 +75,11 @@ const Main = (): JSX.Element => {
       }
 
       // A super user has implicit edit everywhere and therefore carries no grant rows.
-      const level = access.isSuperUser ? "edit" : (access.grants?.[String(intMissionId)] ?? null);
+      const permLevel = isLaunchpadSuperUser(access.launchpadUser)
+        ? "edit"
+        : (access.permissions?.[String(intMissionId)] ?? null);
 
-      if (!level) {
+      if (!permLevel) {
         navigate("/");
         return;
       }
@@ -86,8 +89,7 @@ const Main = (): JSX.Element => {
           isLoggedIn: !!access.launchpadUser,
           launchpadUser: access.launchpadUser,
           appUserId: access.appUser?.id ?? null,
-          isSuperUser: access.isSuperUser,
-          missionPermLevel: level,
+          missionPermLevel: permLevel,
         })
       );
 

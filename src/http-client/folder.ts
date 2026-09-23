@@ -1,3 +1,5 @@
+import { checkResponse } from "http-client/helperResponse";
+
 export async function upsertFolders(folders: Folder[]): Promise<WrappedResponse<Folder[]>> {
   const missionIdStr =
     typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
@@ -11,21 +13,7 @@ export async function upsertFolders(folders: Folder[]): Promise<WrappedResponse<
     },
     body: JSON.stringify(requestBody),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error saving folders to database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<Folder[]> = await res.json();
-  return response;
+  return checkResponse<Folder[]>(res, "Error saving folders to database.");
 }
 
 export async function deleteFolders(folderUuids: string[]): Promise<WrappedResponse<null>> {
@@ -41,19 +29,5 @@ export async function deleteFolders(folderUuids: string[]): Promise<WrappedRespo
     },
     body: JSON.stringify(requestBody),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error deleting folders from database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<null> = await res.json();
-  return response;
+  return checkResponse<null>(res, "Error deleting folders from database.");
 }

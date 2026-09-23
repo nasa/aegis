@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 
-import { deleteUserGroup, getUserGroups, upsertUserGroup } from "http-client/access";
+import { deleteUserGroup, getUserGroups, upsertUserGroup } from "http-client/access/userGroup";
 import adminCommon from "./adminCommon.module.css";
 
-/**
- * Groups grant missions to several users at once. The reserved superUser group is listed but its
- * name is read-only and it cannot be deleted, since the resolver matches it by name.
- */
+/** Groups grant missions to several users at once. There are no reserved groups. */
 const Groups: React.FunctionComponent = () => {
   const [groups, setGroups] = useState<UserGroupSummary[]>([]);
   const [newName, setNewName] = useState("");
@@ -37,6 +34,9 @@ const Groups: React.FunctionComponent = () => {
       notes: newNotes.trim() || null,
     });
     if (response.status !== "success") {
+      alert(
+        `Error saving user group. Please let the AEGIS developers know. Status ${response.message}`
+      );
       setError(response.message ?? "Failed to create the group.");
       return;
     }
@@ -48,8 +48,11 @@ const Groups: React.FunctionComponent = () => {
 
   const handleDelete = async (group: UserGroupSummary) => {
     if (!confirm(`Delete group ${group.name} and all of its grants?`)) return;
-    const response = await deleteUserGroup(group.id);
+    const response = await deleteUserGroup({ groupId: group.id });
     if (response.status !== "success") {
+      alert(
+        `Error deleting user group. Please let the AEGIS developers know. Status ${response.message}`
+      );
       setError(response.message ?? "Failed to delete the group.");
       return;
     }
@@ -64,9 +67,9 @@ const Groups: React.FunctionComponent = () => {
         </Link>
         <h1 className={adminCommon.pageTitle}>Groups</h1>
         <p className={adminCommon.introText}>
-          Members inherit every mission granted to the group. Membership of{" "}
-          <strong>superUser</strong> confers implicit edit on every mission plus access to these
-          admin pages.
+          Members inherit every mission granted to the group. A user&apos;s effective level on a
+          mission is the highest across their direct grant, all of their groups, and the public
+          baseline.
         </p>
 
         {error && <div className={adminCommon.statusMessage}>{error}</div>}
@@ -140,13 +143,10 @@ const Groups: React.FunctionComponent = () => {
             <tbody>
               {groups.map((group) => (
                 <tr key={group.id}>
-                  <td>
-                    {group.name}
-                    {group.isSystem && <span className={adminCommon.badgeNeutral}>Reserved</span>}
-                  </td>
+                  <td>{group.name}</td>
                   <td>{group.description ?? "—"}</td>
                   <td>{group.memberCount}</td>
-                  <td>{group.isSystem ? "All" : group.missionCount}</td>
+                  <td>{group.missionCount}</td>
                   <td title={group.notes ?? ""}>{group.notes ? "Yes" : "—"}</td>
                   <td>
                     <div className={adminCommon.actionButtons}>
@@ -156,7 +156,6 @@ const Groups: React.FunctionComponent = () => {
                       <button
                         type="button"
                         className={adminCommon.buttonDanger}
-                        disabled={group.isSystem}
                         onClick={() => handleDelete(group)}
                       >
                         Delete
@@ -165,6 +164,13 @@ const Groups: React.FunctionComponent = () => {
                   </td>
                 </tr>
               ))}
+              {groups.length === 0 && (
+                <tr>
+                  <td colSpan={6} className={adminCommon.emptyState}>
+                    No groups yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </section>

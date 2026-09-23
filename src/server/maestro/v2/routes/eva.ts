@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { makeExportEvas } from "utils/export";
-import { apiHasPerms, logUsername } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -92,7 +92,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    required: "viewer",
+    requiredPermLevel: "viewer",
     user: req.currentUser,
   });
   if (!viewPermission) {

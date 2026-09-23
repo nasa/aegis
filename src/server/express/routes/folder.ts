@@ -5,7 +5,7 @@ import { ForeignKeyConstraintViolationException, QueryOrder } from "@mikro-orm/p
 import express from "express";
 import cloneDeep from "lodash/cloneDeep";
 
-import { apiHasPerms, logUsername } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 import { Folder_db } from "server/database/models/_allModels";
 import { convertFolderDbToStore, convertFolderStoreToDb } from "store/storeUtils/folder";
 import { globalValues } from "../global";
@@ -23,7 +23,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {
@@ -115,7 +115,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {

@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
 import actionStyles from "./actions-action.module.css";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import {

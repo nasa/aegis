@@ -19,7 +19,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyCreateAction } from "operations/apply/apply-action";
 import { getHighlightedActions } from "store/selectors";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 
 const Actions: FunctionComponent<{
   editMode: boolean;

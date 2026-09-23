@@ -150,3 +150,40 @@ type AutomergeUpsertRequest = {
 type AutomergeDeleteRequest = {
   missionIds: number[];
 };
+
+/**
+ * Grant or change a permission level for a user or a group on a mission
+ * (POST /api/v1/missionPermission). Exactly one of `userId` or `groupId` is required.
+ */
+type MissionPermissionGrantRequest = {
+  missionId: number;
+  userId?: number;
+  groupId?: number;
+  permLevel: PermissionLevel;
+  notes?: string | null;
+};
+
+type MissionPermissionRevokeRequest = {
+  missionId: number;
+  userId?: number;
+  groupId?: number;
+};
+
+/** Create or update a user group (POST /api/v1/userGroup). Omit `groupId` to create a new group. */
+type UserGroupUpsertRequest = {
+  groupId?: number;
+  name?: string;
+  description?: string | null;
+  notes?: string | null;
+};
+
+type UserGroupDeleteRequest = {
+  groupId: number;
+};
+
+/** Add or remove a member from a group (POST /api/v1/userGroup/member). */
+type UserGroupMemberRequest = {
+  groupId: number;
+  userId: number;
+  action: "add" | "remove";
+};

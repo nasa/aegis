@@ -1,6 +1,6 @@
 import type { FunctionComponent, ReactNode, KeyboardEvent, MouseEvent } from "react";
 import { useState, useRef, Children } from "react";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import styles from "./folders.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {

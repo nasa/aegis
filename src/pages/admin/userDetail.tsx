@@ -1,33 +1,42 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 
+import { getAppUsers } from "http-client/access/appUsers";
 import {
-  getAppUsers,
-  getUserAccess,
-  getUserGroups,
-  grantMissionPermission,
-  revokeMissionPermission,
-  setGroupMembership,
-} from "http-client/access";
+  getUserAccessForAllMissions,
+  upsertMissionPermission,
+  deleteMissionPermission,
+} from "http-client/access/missionPermission";
+import { getUserGroups } from "http-client/access/userGroup";
+import { getGroupsForUser, setGroupMembership } from "http-client/access/userGroupMember";
 import { getMissionHomepageItems } from "http-client/mission";
-import { PERMISSION_LEVELS, permissionLevelLabel, PUBLIC_UUPIC } from "utils/permissionLevels";
+import { PERMISSION_LEVELS, permissionLevelLabel, PUBLIC_UUPIC } from "utils/permissionsClient";
 import adminCommon from "./adminCommon.module.css";
 
+const contributionLabel = (contribution: MissionAccessContribution): string => {
+  if (contribution.source === "direct") return "Direct grant";
+  if (contribution.source === "public") return "Public baseline";
+  return `Group: ${contribution.groupName ?? contribution.groupId}`;
+};
+
 /**
- * One managed user: their group memberships and every mission they can reach.
+ * One user: their group memberships and every mission they can reach.
  *
- * Only direct grants are editable here. Group-derived and public rows are shown read-only, because
- * otherwise an admin sees missions listed against a user with no explanation of why.
+ * Every contributing grant is listed, not just the winner, so an admin can see a direct grant that
+ * a group currently out-ranks. Only direct grants are editable here; group and public rows link to
+ * wherever they are actually managed.
  */
 const UserDetail: React.FunctionComponent = () => {
   const params = useParams<{ id: string }>();
   const userId = parseInt(params.id, 10);
 
-  const [user, setUser] = useState<AppUser | null>(null);
+  const [user, setUser] = useState<AppUserSummary | null>(null);
   const [access, setAccess] = useState<ResolvedMissionAccess[]>([]);
   const [groups, setGroups] = useState<UserGroupSummary[]>([]);
   const [memberGroupIds, setMemberGroupIds] = useState<number[]>([]);
-  const [missionNames, setMissionNames] = useState<Map<number, string>>(new Map());
+  const [missions, setMissions] = useState<MissionHomepageItem[]>([]);
+  const [showAllMissions, setShowAllMissions] = useState(false);
+  const [notesDraft, setNotesDraft] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
   const isPublic = user?.uupic === PUBLIC_UUPIC;
@@ -38,73 +47,88 @@ const UserDetail: React.FunctionComponent = () => {
   const loadAll = useCallback(async () => {
     if (!userId) return;
 
-    const [usersRes, accessRes, groupsRes, missionsRes] = await Promise.all([
-      getAppUsers(false),
-      getUserAccess(userId),
+    const [usersRes, accessRes, groupsRes, membershipRes, missionsRes] = await Promise.all([
+      getAppUsers({ userId }),
+      getUserAccessForAllMissions(userId),
       getUserGroups(),
+      getGroupsForUser(userId),
       getMissionHomepageItems(true),
     ]);
 
-    setUser((usersRes.data ?? []).find((u) => u.id === userId) ?? null);
+    setUser((usersRes.data ?? [])[0] ?? null);
     setAccess(accessRes.data ?? []);
     setGroups(groupsRes.data ?? []);
-    setMissionNames(new Map((missionsRes.data ?? []).map((m) => [m.id, m.name])));
+    setMemberGroupIds((membershipRes.data ?? []).map((g) => g.id));
+    setMissions(missionsRes.data ?? []);
 
-    // Group membership is derived from the access list's "group" rows plus an explicit lookup,
-    // so a group with no mission grants still shows up.
-    const memberships: number[] = [];
-    for (const group of groupsRes.data ?? []) {
-      const members = await fetch(`/api/v1/userGroup/member?groupId=${group.id}`).then((r) =>
-        r.json()
-      );
-      if ((members.data ?? []).some((m: AppUser) => m.id === userId)) memberships.push(group.id);
+    const drafts = new Map<number, string>();
+    for (const entry of accessRes.data ?? []) {
+      const direct = entry.contributions.find((c) => c.source === "direct");
+      if (direct) drafts.set(entry.missionId, direct.notes ?? "");
     }
-    setMemberGroupIds(memberships);
+    setNotesDraft(drafts);
   }, [userId]);
 
   useEffect(() => {
     loadAll();
   }, [loadAll]);
 
-  const directLevelFor = (missionId: number): PermissionLevel | "" => {
-    const entry = access.find((a) => a.missionId === missionId && a.source === "direct");
-    return entry?.level ?? "";
-  };
+  const accessFor = (missionId: number): ResolvedMissionAccess | undefined =>
+    access.find((a) => a.missionId === missionId);
 
-  const handleLevelChange = async (missionId: number, level: string) => {
-    const response = level
-      ? await grantMissionPermission({ missionId, userId, level: level as PermissionLevel })
-      : await revokeMissionPermission({ missionId, userId });
+  const directLevelFor = (missionId: number): PermissionLevel | "" =>
+    accessFor(missionId)?.contributions.find((c) => c.source === "direct")?.permLevel ?? "";
 
+  const apply = async (response: WrappedResponse<unknown>, failureMessage: string) => {
     if (response.status !== "success") {
-      setError(response.message ?? "Failed to change the grant.");
+      alert(`${failureMessage} Please let the AEGIS developers know. Status ${response.message}`);
+      setError(response.message ?? failureMessage);
       return;
     }
     setError(null);
     await loadAll();
+  };
+
+  const handlePermLevelChange = async (missionId: number, permLevel: string) => {
+    await apply(
+      permLevel
+        ? await upsertMissionPermission({
+            missionId,
+            userId,
+            permLevel: permLevel as PermissionLevel,
+            notes: notesDraft.get(missionId) || null,
+          })
+        : await deleteMissionPermission({ missionId, userId }),
+      "Error changing the grant."
+    );
+  };
+
+  const handleNotesSave = async (missionId: number) => {
+    const permLevel = directLevelFor(missionId);
+    if (!permLevel) return;
+    await apply(
+      await upsertMissionPermission({
+        missionId,
+        userId,
+        permLevel,
+        notes: notesDraft.get(missionId) || null,
+      }),
+      "Error saving the note."
+    );
   };
 
   const handleMembershipChange = async (groupId: number, add: boolean) => {
-    const response = await setGroupMembership({
-      groupId,
-      userId,
-      action: add ? "add" : "remove",
-    });
-    if (response.status !== "success") {
-      setError(response.message ?? "Failed to change group membership.");
-      return;
-    }
-    setError(null);
-    await loadAll();
-  };
-
-  const sourceLabel = (entry: ResolvedMissionAccess): string => {
-    if (entry.source === "direct") return "Direct";
-    if (entry.source === "public") return "Public";
-    return `Via group ${entry.groupName ?? entry.groupId}`;
+    await apply(
+      await setGroupMembership({ groupId, userId, action: add ? "add" : "remove" }),
+      "Error updating group membership."
+    );
   };
 
   if (!user) return null;
+
+  // Missions the user cannot reach at all are noise on a permissions page, so they are hidden
+  // until the admin wants to grant one.
+  const visibleMissions = showAllMissions ? missions : missions.filter((m) => !!accessFor(m.id));
 
   return (
     <main className={adminCommon.page}>
@@ -118,7 +142,8 @@ const UserDetail: React.FunctionComponent = () => {
         </p>
         {isPublic && (
           <div className={adminCommon.missionSubheader}>
-            These missions are visible to <strong>every</strong> signed-in AEGIS user.
+            These missions are visible to <strong>every</strong> signed-in AEGIS user. See{" "}
+            <Link to="/admin/publicMissions">Public Missions</Link> for the full list.
           </div>
         )}
 
@@ -134,6 +159,7 @@ const UserDetail: React.FunctionComponent = () => {
                   <tr>
                     <th>Group</th>
                     <th>Description</th>
+                    <th>Missions</th>
                     <th>Member</th>
                   </tr>
                 </thead>
@@ -144,6 +170,7 @@ const UserDetail: React.FunctionComponent = () => {
                         <Link to={`/admin/group/${group.id}`}>{group.name}</Link>
                       </td>
                       <td>{group.description ?? "—"}</td>
+                      <td>{group.missionCount}</td>
                       <td>
                         <input
                           type="checkbox"
@@ -155,6 +182,13 @@ const UserDetail: React.FunctionComponent = () => {
                       </td>
                     </tr>
                   ))}
+                  {groups.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className={adminCommon.emptyState}>
+                        No groups exist yet.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -164,42 +198,105 @@ const UserDetail: React.FunctionComponent = () => {
         <section className={adminCommon.section}>
           <h2 className={adminCommon.sectionHeading}>Missions</h2>
           <div className={adminCommon.details}>
+            <label className={adminCommon.checkboxItem}>
+              <input
+                type="checkbox"
+                checked={showAllMissions}
+                onChange={(event) => setShowAllMissions(event.target.checked)}
+              />
+              Show missions this user cannot reach
+            </label>
+
             <table className={adminCommon.table}>
               <thead>
                 <tr>
                   <th>Mission</th>
+                  <th>Effective</th>
+                  <th>Where it comes from</th>
                   <th>Direct Grant</th>
-                  <th>Effective Level</th>
-                  <th>Source</th>
-                  <th>Notes</th>
+                  <th>Note on the direct grant</th>
                 </tr>
               </thead>
               <tbody>
-                {[...missionNames.entries()].map(([missionId, name]) => {
-                  const resolved = access.find((a) => a.missionId === missionId);
+                {visibleMissions.map((mission) => {
+                  const resolved = accessFor(mission.id);
                   return (
-                    <tr key={missionId}>
-                      <td>{name}</td>
+                    <tr key={mission.id}>
+                      <td>{mission.name}</td>
+                      <td>
+                        {resolved ? (
+                          <strong>{permissionLevelLabel(resolved.effectivePermLevel)}</strong>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td>
+                        {resolved ? (
+                          <ul className={adminCommon.definitionList}>
+                            {resolved.contributions.map((contribution, index) => (
+                              <li
+                                key={`${contribution.source}-${contribution.groupId ?? index}`}
+                                className={adminCommon.definitionRow}
+                                title={contribution.notes ?? ""}
+                              >
+                                {contribution.isEffective ? (
+                                  <strong>
+                                    {contributionLabel(contribution)} —{" "}
+                                    {permissionLevelLabel(contribution.permLevel)} (effective)
+                                  </strong>
+                                ) : (
+                                  <span className={adminCommon.mutedIcon}>
+                                    {contributionLabel(contribution)} —{" "}
+                                    {permissionLevelLabel(contribution.permLevel)}
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                       <td>
                         <select
                           className={adminCommon.formInput}
-                          value={directLevelFor(missionId)}
-                          onChange={(event) => handleLevelChange(missionId, event.target.value)}
+                          value={directLevelFor(mission.id)}
+                          onChange={(event) =>
+                            handlePermLevelChange(mission.id, event.target.value)
+                          }
                         >
                           <option value="">None</option>
-                          {selectableLevels.map((level) => (
-                            <option key={level} value={level}>
-                              {permissionLevelLabel(level)}
+                          {selectableLevels.map((permLevel) => (
+                            <option key={permLevel} value={permLevel}>
+                              {permissionLevelLabel(permLevel)}
                             </option>
                           ))}
                         </select>
                       </td>
-                      <td>{resolved ? permissionLevelLabel(resolved.level) : "—"}</td>
-                      <td>{resolved ? sourceLabel(resolved) : "—"}</td>
-                      <td title={resolved?.notes ?? ""}>{resolved?.notes ? "Yes" : "—"}</td>
+                      <td>
+                        <input
+                          className={adminCommon.formInput}
+                          disabled={!directLevelFor(mission.id)}
+                          value={notesDraft.get(mission.id) ?? ""}
+                          placeholder="Why this grant exists"
+                          onChange={(event) =>
+                            setNotesDraft((prev) =>
+                              new Map(prev).set(mission.id, event.target.value)
+                            )
+                          }
+                          onBlur={() => handleNotesSave(mission.id)}
+                        />
+                      </td>
                     </tr>
                   );
                 })}
+                {visibleMissions.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className={adminCommon.emptyState}>
+                      This user cannot reach any mission.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

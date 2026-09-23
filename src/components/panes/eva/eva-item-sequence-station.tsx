@@ -24,7 +24,7 @@ import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 
 import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/dropdown-options";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { canMoveStation, isXgressIndex } from "operations/helpers/evaSequence";
 

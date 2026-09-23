@@ -1,7 +1,7 @@
 import type { EntityManager } from "@mikro-orm/postgresql";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
-import { isSuperUser, logUsername } from "utils/permissions";
+import { apiHasSuperUserOrToken, logUsername } from "utils/permissionsServer";
 
 import express from "express";
 
@@ -34,7 +34,7 @@ const parseQuery = (query: Query) => {
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
 
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",

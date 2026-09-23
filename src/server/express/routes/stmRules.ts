@@ -8,7 +8,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { STM_Rule_db } from "server/database/models/_allModels";
 import { convertStmRulesTypeDbToStore, convertStmRulesTypeStoreToDb } from "store/storeUtils/stm";
-import { apiHasPerms, logUsername } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 import { globalValues } from "../global";
 
 import { emitStoreDelete, emitStoreUpsert } from "../sockets";
@@ -32,7 +32,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    required: "viewer",
+    requiredPermLevel: "viewer",
     user: req.currentUser,
   });
   if (!viewPermission) {
@@ -90,7 +90,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRules } = req.body as STMRuleUpsertRequest;
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {
@@ -198,7 +198,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId, socketId, stmRuleUuids } = req.body as STMRuleDeleteRequest;
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {

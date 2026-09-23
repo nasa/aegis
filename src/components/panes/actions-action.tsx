@@ -20,7 +20,7 @@ import {
 } from "operations/apply/apply-action";
 import { hmmFromMinutes, titleCase } from "utils/formatting";
 import { getActionDefinitionLabel } from "store/selectors";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useAppSelector, shallowEqual, deepEqual, refEqual } from "utils/useAppSelector";
 import { validators } from "components/interface/form/formValidators";

@@ -59,7 +59,6 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
         isLoggedIn: !!access.launchpadUser,
         launchpadUser: access.launchpadUser,
         appUserId: access.appUser?.id ?? null,
-        isSuperUser: access.isSuperUser,
         missionPermLevel: "edit",
       })
     );

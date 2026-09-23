@@ -1,3 +1,5 @@
+import { checkResponse } from "http-client/helperResponse";
+
 export async function getSublayers(
   mission: number,
   uuid?: string
@@ -5,19 +7,7 @@ export async function getSublayers(
   let params = `missionId=${mission}`;
   if (uuid) params += `&uuid=${uuid}`;
 
-  const res = await fetch(`/api/v1/sublayer?${params}`);
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<Sublayer[]> = await res.json();
-  return response;
+  return checkResponse<Sublayer[]>(await fetch(`/api/v1/sublayer?${params}`));
 }
 
 export async function upsertSublayers(sublayers: Sublayer[]): Promise<WrappedResponse<Sublayer[]>> {
@@ -32,21 +22,7 @@ export async function upsertSublayers(sublayers: Sublayer[]): Promise<WrappedRes
     },
     body: JSON.stringify(requestBody),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error saving sublayers to database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<Sublayer[]> = await res.json();
-  return response;
+  return checkResponse<Sublayer[]>(res, "Error saving sublayers to database.");
 }
 
 export async function deleteSublayers(sublayerUuids: string[]): Promise<WrappedResponse<null>> {
@@ -61,19 +37,5 @@ export async function deleteSublayers(sublayerUuids: string[]): Promise<WrappedR
     },
     body: JSON.stringify(requestBody),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error deleting sublayers from database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<null> = await res.json();
-  return response;
+  return checkResponse<null>(res, "Error deleting sublayers from database.");
 }

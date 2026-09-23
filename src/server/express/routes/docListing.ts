@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
 import express from "express";
 import type { Query } from "express-serve-static-core";
-import { apiHasPerms, isSuperUser, logUsername, missionIdsAtLevel } from "utils/permissions";
+import {
+  apiHasPerms,
+  apiHasSuperUserOrToken,
+  logUsername,
+  missionIdsAtLevel,
+} from "utils/permissionsServer";
 import { Doc_Listing_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -24,11 +29,15 @@ const parseQuery = (query: Query) => {
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
-  const seesEverything = isSuperUser(req.currentUser);
+  const seesEverything = apiHasSuperUserOrToken(req.currentUser);
   const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
 
   const viewPermission = queryObj.missionId
-    ? apiHasPerms({ missionId: queryObj.missionId, required: "viewer", user: req.currentUser })
+    ? apiHasPerms({
+        missionId: queryObj.missionId,
+        requiredPermLevel: "viewer",
+        user: req.currentUser,
+      })
     : // no mission was specified, so check they can view at least one
       seesEverything || viewableMissions.length > 0;
   if (!viewPermission) {

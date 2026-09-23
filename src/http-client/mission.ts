@@ -1,36 +1,14 @@
+import { checkResponse } from "http-client/helperResponse";
+
 export async function getMissions(): Promise<WrappedResponse<Mission[]>> {
-  const res = await fetch(`/api/v1/missionAutomerge`);
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<Mission[]> = await res.json();
-  return response;
+  return checkResponse<Mission[]>(await fetch(`/api/v1/missionAutomerge`));
 }
 
 export async function getMissionHomepageItems(
   includeArchived = false
 ): Promise<WrappedResponse<MissionHomepageItem[]>> {
   const query = includeArchived ? "?includeArchived=true" : "";
-  const res = await fetch(`/api/v1/missionHomepageItems${query}`);
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<MissionHomepageItem[]> = await res.json();
-  return response;
+  return checkResponse<MissionHomepageItem[]>(await fetch(`/api/v1/missionHomepageItems${query}`));
 }
 
 // create a new mission
@@ -44,19 +22,7 @@ export async function createMission(
     },
     body: JSON.stringify({ sourceMission }),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(`Error creating mission. Please let the AEGIS developers know. Status ${errorMessage}`);
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<AutomergeDocListing> = await res.json();
-  return response;
+  return checkResponse<AutomergeDocListing>(res, "Error creating mission.");
 }
 
 export async function duplicateMission(missionId: number): Promise<WrappedResponse<number>> {
@@ -67,21 +33,7 @@ export async function duplicateMission(missionId: number): Promise<WrappedRespon
     },
     body: JSON.stringify({ missionId }),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(
-      `Error duplicating mission. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<null> = await res.json();
-  return response;
+  return checkResponse<number>(res, "Error duplicating mission.");
 }
 
 export async function deleteMissions(missionIds: number[]): Promise<WrappedResponse<number[]>> {
@@ -92,37 +44,11 @@ export async function deleteMissions(missionIds: number[]): Promise<WrappedRespo
     },
     body: JSON.stringify({ missionIds }),
   });
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(`Error deleting mission. Please let the AEGIS developers know. Status ${errorMessage}`);
-    return { status: "error", message: errorMessage };
-  }
-  const response: WrappedResponse<number[]> = await res.json();
-  return response;
+  return checkResponse<number[]>(res, "Error deleting mission.");
 }
 
 // Given that this is a raw dump, we want the raw data and don't need to be worried about whether it matches any specific type.
 export async function dumpMission(missionId: number): Promise<WrappedResponse<MissionDump>> {
   const res = await fetch(`/api/v1/missionDump?missionId=${missionId}`);
-  // Using "any" here because the response is database records that haven't gone through transformation to the AEGIS store types.
-  if (res.status !== 200) {
-    let errorMessage = `${res.status} ${res.statusText}`;
-    try {
-      const errorBody = await res.json();
-      if (errorBody?.message) errorMessage = errorBody.message;
-    } catch {
-      /* response body is not JSON */
-    }
-    alert(`Error dumping mission. Please let the AEGIS developers know. Status ${errorMessage}`);
-    return { status: "error", message: errorMessage };
-  }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const response: WrappedResponse<any> = await res.json();
-  return response;
+  return checkResponse<MissionDump>(res, "Error dumping mission.");
 }

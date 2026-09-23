@@ -15,7 +15,7 @@ import {
   convertSublayersTypeStoreToDb,
 } from "store/storeUtils/sublayer";
 import { SCHEMA_DIR } from "utils/validateSchemaServer";
-import { apiHasPerms, logUsername } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 import { upsertDatabaseRetry } from "utils/database";
 import { globalValues } from "../global";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -38,7 +38,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    required: "viewer",
+    requiredPermLevel: "viewer",
     user: req.currentUser,
   });
   if (!viewPermission) {
@@ -126,7 +126,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {
@@ -212,7 +212,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {

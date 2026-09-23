@@ -15,8 +15,8 @@ import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
 import { clientLogger } from "utils/logging/clientLogger";
-import { meetsPermLevel } from "utils/permissionLevels";
-import { getCurrentUserAndAccess } from "http-client/access";
+import { isLaunchpadSuperUser, meetsPermLevel } from "utils/permissionsClient";
+import { getCurrentUserAndAccess } from "http-client/access/currentUser";
 import { setUserState } from "store/user";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
@@ -79,9 +79,11 @@ const Main: React.FunctionComponent = () => {
       }
 
       // A super user has implicit edit everywhere and therefore carries no grant rows.
-      const level = access.isSuperUser ? "edit" : (access.grants?.[String(intMissionId)] ?? null);
+      const permLevel = isLaunchpadSuperUser(access.launchpadUser)
+        ? "edit"
+        : (access.permissions?.[String(intMissionId)] ?? null);
 
-      if (!level) {
+      if (!permLevel) {
         navigate("/");
         return;
       }
@@ -91,8 +93,7 @@ const Main: React.FunctionComponent = () => {
           isLoggedIn: !!access.launchpadUser,
           launchpadUser: access.launchpadUser,
           appUserId: access.appUser?.id ?? null,
-          isSuperUser: access.isSuperUser,
-          missionPermLevel: level,
+          missionPermLevel: permLevel,
         })
       );
 

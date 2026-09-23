@@ -19,7 +19,7 @@ import "./styles/globals.css";
 import "./styles/fonts.css";
 import { CookiesProvider } from "react-cookie";
 import { setupFetchFns } from "packages/fetchFns";
-import { getCurrentUserAndAccess } from "http-client/access";
+import { getCurrentUserAndAccess } from "http-client/access/currentUser";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
 

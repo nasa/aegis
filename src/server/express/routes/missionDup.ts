@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { isSuperUser, logUsername } from "utils/permissions";
+import { apiHasSuperUserOrToken, logUsername } from "utils/permissionsServer";
 
 import express from "express";
 
@@ -13,7 +13,7 @@ const router = express.Router();
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId } = req.body;
 
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",

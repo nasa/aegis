@@ -4,7 +4,7 @@ import type { Request, Response } from "express";
 import express from "express";
 
 import { serverLogger } from "utils/logging/serverLogger";
-import { emssTokenIsValid } from "utils/permissions";
+import { emssTokenIsValid } from "utils/permissionsServer";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
 import type { MissionsWithEvas } from "server/maestro/v2/types/socketioRequests";
 

@@ -1,64 +1,55 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 
+import { getAppUsers } from "http-client/access/appUsers";
 import {
-  getGroupMembers,
-  getKnownUsers,
-  getMissionAccess,
-  getUserGroups,
-  grantMissionPermission,
-  revokeMissionPermission,
-  setGroupMembership,
-  upsertUserGroup,
-} from "http-client/access";
+  deleteMissionPermission,
+  getGroupMissionGrants,
+  upsertMissionPermission,
+} from "http-client/access/missionPermission";
+import { getUserGroups, upsertUserGroup } from "http-client/access/userGroup";
+import { getGroupMembers, setGroupMembership } from "http-client/access/userGroupMember";
 import { getMissionHomepageItems } from "http-client/mission";
-import { PERMISSION_LEVELS, permissionLevelLabel } from "utils/permissionLevels";
+import { PERMISSION_LEVELS, permissionLevelLabel, PUBLIC_UUPIC } from "utils/permissionsClient";
 import adminCommon from "./adminCommon.module.css";
 
-/**
- * One group: its details, its members, and the missions it grants.
- *
- * The reserved superUser group hides the mission-grant section, because its members already reach
- * every mission implicitly and explicit rows would be redundant.
- */
+/** One group: its details, its members, and the missions it grants. */
 const GroupDetail: React.FunctionComponent = () => {
   const params = useParams<{ id: string }>();
   const groupId = parseInt(params.id, 10);
 
   const [group, setGroup] = useState<UserGroupSummary | null>(null);
   const [members, setMembers] = useState<AppUser[]>([]);
-  const [knownUsers, setKnownUsers] = useState<KnownUser[]>([]);
+  const [candidates, setCandidates] = useState<AppUserSummary[]>([]);
   const [search, setSearch] = useState("");
   const [missions, setMissions] = useState<MissionHomepageItem[]>([]);
-  const [grantLevels, setGrantLevels] = useState<Map<number, PermissionLevel>>(new Map());
+  const [grants, setGrants] = useState<MissionPermission[]>([]);
+  const [showAllMissions, setShowAllMissions] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
+  const [grantNotesDraft, setGrantNotesDraft] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
     if (!groupId) return;
 
-    const [groupsRes, membersRes, missionsRes] = await Promise.all([
+    const [groupsRes, membersRes, missionsRes, grantsRes] = await Promise.all([
       getUserGroups(),
       getGroupMembers(groupId),
       getMissionHomepageItems(true),
+      getGroupMissionGrants(groupId),
     ]);
 
     const found = (groupsRes.data ?? []).find((g) => g.id === groupId) ?? null;
     setGroup(found);
+    setName(found?.name ?? "");
+    setDescription(found?.description ?? "");
     setNotes(found?.notes ?? "");
     setMembers(membersRes.data ?? []);
     setMissions(missionsRes.data ?? []);
-
-    // Read each mission's grant list to find the rows belonging to this group.
-    const levels = new Map<number, PermissionLevel>();
-    for (const mission of missionsRes.data ?? []) {
-      const accessRes = await getMissionAccess(mission.id);
-      const entry = (accessRes.data?.subjects ?? []).find(
-        (s) => s.subjectType === "group" && s.subjectId === groupId
-      );
-      if (entry) levels.set(mission.id, entry.level);
-    }
-    setGrantLevels(levels);
+    setGrants(grantsRes.data ?? []);
+    setGrantNotesDraft(new Map((grantsRes.data ?? []).map((g) => [g.missionId, g.notes ?? ""])));
   }, [groupId]);
 
   useEffect(() => {
@@ -66,44 +57,73 @@ const GroupDetail: React.FunctionComponent = () => {
   }, [loadAll]);
 
   useEffect(() => {
-    getKnownUsers(search).then((res) => setKnownUsers(res.data ?? []));
+    getAppUsers({ search }).then((res) => setCandidates(res.data ?? []));
   }, [search]);
 
-  const handleSaveNotes = async () => {
-    const response = await upsertUserGroup({ id: groupId, notes: notes.trim() || null });
+  const apply = async (response: WrappedResponse<unknown>, failureMessage: string) => {
     if (response.status !== "success") {
-      setError(response.message ?? "Failed to save notes.");
-      return;
-    }
-    setError(null);
-  };
-
-  const handleMembership = async (
-    body: { userId?: number; knownUserId?: number },
-    action: "add" | "remove"
-  ) => {
-    const response = await setGroupMembership({ groupId, ...body, action });
-    if (response.status !== "success") {
-      setError(response.message ?? "Failed to change group membership.");
+      alert(`${failureMessage} Please let the AEGIS developers know. Status ${response.message}`);
+      setError(response.message ?? failureMessage);
       return;
     }
     setError(null);
     await loadAll();
   };
 
-  const handleGrant = async (missionId: number, level: string) => {
-    const response = level
-      ? await grantMissionPermission({ missionId, groupId, level: level as PermissionLevel })
-      : await revokeMissionPermission({ missionId, groupId });
-    if (response.status !== "success") {
-      setError(response.message ?? "Failed to change the grant.");
-      return;
-    }
-    setError(null);
-    await loadAll();
+  const handleSaveDetails = async () => {
+    await apply(
+      await upsertUserGroup({
+        groupId,
+        name: name.trim() || undefined,
+        description: description.trim() || null,
+        notes: notes.trim() || null,
+      }),
+      "Error saving the group."
+    );
+  };
+
+  const handleMembership = async (userId: number, action: "add" | "remove") => {
+    await apply(
+      await setGroupMembership({ groupId, userId, action }),
+      "Error updating group membership."
+    );
+  };
+
+  const grantFor = (missionId: number): MissionPermission | undefined =>
+    grants.find((g) => g.missionId === missionId);
+
+  const handleGrant = async (missionId: number, permLevel: string) => {
+    await apply(
+      permLevel
+        ? await upsertMissionPermission({
+            missionId,
+            groupId,
+            permLevel: permLevel as PermissionLevel,
+            notes: grantNotesDraft.get(missionId) || null,
+          })
+        : await deleteMissionPermission({ missionId, groupId }),
+      "Error changing the grant."
+    );
+  };
+
+  const handleGrantNotesSave = async (missionId: number) => {
+    const grant = grantFor(missionId);
+    if (!grant) return;
+    await apply(
+      await upsertMissionPermission({
+        missionId,
+        groupId,
+        permLevel: grant.permLevel,
+        notes: grantNotesDraft.get(missionId) || null,
+      }),
+      "Error saving the note."
+    );
   };
 
   if (!group) return null;
+
+  const memberIds = new Set(members.map((m) => m.id));
+  const visibleMissions = showAllMissions ? missions : missions.filter((m) => !!grantFor(m.id));
 
   return (
     <main className={adminCommon.page}>
@@ -112,33 +132,62 @@ const GroupDetail: React.FunctionComponent = () => {
           ← Groups
         </Link>
         <h1 className={adminCommon.pageTitle}>{group.name}</h1>
-        <p className={adminCommon.introText}>{group.description ?? "No description."}</p>
-        {group.isSystem && (
-          <div className={adminCommon.missionSubheader}>
-            Members of this reserved group have implicit edit on every mission and access to every
-            admin page. Its name cannot be changed.
-          </div>
-        )}
+        <p className={adminCommon.introText}>
+          Members inherit every mission this group grants, on top of anything granted to them
+          directly.
+        </p>
 
         {error && <div className={adminCommon.statusMessage}>{error}</div>}
 
         <section className={adminCommon.section}>
-          <h2 className={adminCommon.sectionHeading}>Notes</h2>
+          <h2 className={adminCommon.sectionHeading}>Details</h2>
           <div className={adminCommon.details}>
-            <div className={adminCommon.formGroup}>
-              <span className={adminCommon.formHint}>
-                Why this group exists. Documentation only; never used in a permission decision.
-              </span>
-              <input
-                className={adminCommon.formInput}
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-              />
-            </div>
-            <div className={adminCommon.formActions}>
-              <button type="button" className={adminCommon.buttonPrimary} onClick={handleSaveNotes}>
-                Save Notes
-              </button>
+            <div className={adminCommon.form}>
+              <div className={adminCommon.formGroup}>
+                <label className={adminCommon.formLabel} htmlFor="groupName">
+                  Name
+                </label>
+                <input
+                  id="groupName"
+                  className={adminCommon.formInput}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </div>
+              <div className={adminCommon.formGroup}>
+                <label className={adminCommon.formLabel} htmlFor="groupDescription">
+                  Description
+                </label>
+                <input
+                  id="groupDescription"
+                  className={adminCommon.formInput}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </div>
+              <div className={adminCommon.formGroup}>
+                <label className={adminCommon.formLabel} htmlFor="groupNotes">
+                  Notes
+                </label>
+                <span className={adminCommon.formHint}>
+                  Why this group exists. Documentation only; never used in a permission decision.
+                </span>
+                <input
+                  id="groupNotes"
+                  className={adminCommon.formInput}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                />
+              </div>
+              <div className={adminCommon.formActions}>
+                <button
+                  type="button"
+                  className={adminCommon.buttonPrimary}
+                  onClick={handleSaveDetails}
+                >
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -165,7 +214,7 @@ const GroupDetail: React.FunctionComponent = () => {
                       <button
                         type="button"
                         className={adminCommon.buttonDanger}
-                        onClick={() => handleMembership({ userId: member.id }, "remove")}
+                        onClick={() => handleMembership(member.id, "remove")}
                       >
                         Remove
                       </button>
@@ -187,8 +236,7 @@ const GroupDetail: React.FunctionComponent = () => {
                 Add a member
               </label>
               <span className={adminCommon.formHint}>
-                Searches identities that have signed in at least once. Adding one promotes them to a
-                managed user.
+                Searches everyone who has signed in at least once.
               </span>
               <input
                 id="memberSearch"
@@ -200,62 +248,97 @@ const GroupDetail: React.FunctionComponent = () => {
             </div>
             <table className={adminCommon.tableCompact}>
               <tbody>
-                {knownUsers.slice(0, 20).map((known) => (
-                  <tr key={known.id}>
-                    <td>{known.displayName}</td>
-                    <td>{known.auid}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className={adminCommon.button}
-                        onClick={() => handleMembership({ knownUserId: known.id }, "add")}
-                      >
-                        Add
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {candidates
+                  .filter((c) => !memberIds.has(c.id) && c.uupic !== PUBLIC_UUPIC)
+                  .slice(0, 20)
+                  .map((candidate) => (
+                    <tr key={candidate.id}>
+                      <td>{candidate.displayName}</td>
+                      <td>{candidate.auid}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className={adminCommon.button}
+                          onClick={() => handleMembership(candidate.id, "add")}
+                        >
+                          Add
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
         </section>
 
-        {!group.isSystem && (
-          <section className={adminCommon.section}>
-            <h2 className={adminCommon.sectionHeading}>Missions</h2>
-            <div className={adminCommon.details}>
-              <table className={adminCommon.table}>
-                <thead>
-                  <tr>
-                    <th>Mission</th>
-                    <th>Level</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {missions.map((mission) => (
+        <section className={adminCommon.section}>
+          <h2 className={adminCommon.sectionHeading}>Missions</h2>
+          <div className={adminCommon.details}>
+            <label className={adminCommon.checkboxItem}>
+              <input
+                type="checkbox"
+                checked={showAllMissions}
+                onChange={(event) => setShowAllMissions(event.target.checked)}
+              />
+              Show missions this group does not grant
+            </label>
+
+            <table className={adminCommon.table}>
+              <thead>
+                <tr>
+                  <th>Mission</th>
+                  <th>Permission Level</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleMissions.map((mission) => {
+                  const grant = grantFor(mission.id);
+                  return (
                     <tr key={mission.id}>
                       <td>{mission.name}</td>
                       <td>
                         <select
                           className={adminCommon.formInput}
-                          value={grantLevels.get(mission.id) ?? ""}
+                          value={grant?.permLevel ?? ""}
                           onChange={(event) => handleGrant(mission.id, event.target.value)}
                         >
                           <option value="">None</option>
-                          {PERMISSION_LEVELS.map((level) => (
-                            <option key={level} value={level}>
-                              {permissionLevelLabel(level)}
+                          {PERMISSION_LEVELS.map((permLevel) => (
+                            <option key={permLevel} value={permLevel}>
+                              {permissionLevelLabel(permLevel)}
                             </option>
                           ))}
                         </select>
                       </td>
+                      <td>
+                        <input
+                          className={adminCommon.formInput}
+                          disabled={!grant}
+                          value={grantNotesDraft.get(mission.id) ?? ""}
+                          placeholder="Why this grant exists"
+                          onChange={(event) =>
+                            setGrantNotesDraft((prev) =>
+                              new Map(prev).set(mission.id, event.target.value)
+                            )
+                          }
+                          onBlur={() => handleGrantNotesSave(mission.id)}
+                        />
+                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
+                  );
+                })}
+                {visibleMissions.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className={adminCommon.emptyState}>
+                      This group grants no missions.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </main>
   );

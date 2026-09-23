@@ -86,7 +86,4 @@ export default defineConfig({
     stdout: "pipe", // forward stdout so we have better debugging
     stderr: "pipe",
   },
-
-  globalSetup: path.resolve(__dirname, "./playwright.globalSetup.ts"),
-  globalTeardown: path.resolve(__dirname, "./playwright.globalTeardown.ts"),
 });

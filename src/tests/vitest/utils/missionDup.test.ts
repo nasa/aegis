@@ -15,7 +15,7 @@ import {
 } from "server/database/models/_allModels";
 import { fetchMissionSourceData, createMissionCopy } from "utils/dup/core";
 import { initializeUuidMaps } from "utils/dup/helpers";
-import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
+import { upsertAppUser } from "../fixtures/access";
 import { getAll } from "../../../server/express/routes/all";
 import isEqual from "lodash/isEqual";
 import { deleteAutomergeMissions } from "server/express/routes/missionAutomerge";
@@ -156,18 +156,7 @@ describe("Mission Duplication Tests", () => {
     await seedDatabaseAndGenerateAutomergeMission(em, missionId, missionDocHandle);
 
     // Create a test user with permissions for our test mission
-    testAppUser = await new AppUserFactory(em).createOne({
-      username: "VitestMissionUtils",
-      permissionList: [
-        {
-          missionId,
-          permissions: {
-            edit: true,
-            view: true,
-          },
-        },
-      ],
-    });
+    testAppUser = await upsertAppUser(em, "vitest-missiondup");
 
     // Initialize UUID maps to track the mapping between original and duplicate entities
     uuidMaps = initializeUuidMaps();

@@ -1,4 +1,5 @@
 declare type LaunchpadUser = import("@emss/oauth2-proxy-common").EmssUser;
+declare type EMSSRole = import("@emss/oauth2-proxy-common").EMSSRole;
 
 // ─── Default namespace ("/") — Aegis web client ──────────────────────────────
 

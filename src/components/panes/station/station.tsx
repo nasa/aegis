@@ -10,7 +10,7 @@ import { thunkDocCreateStation, thunkDocDuplicateStation } from "store/thunk/thu
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import { selectAsPlannedStations } from "store/selectors";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StationEditorLeft: FunctionComponent = () => {

@@ -1,7 +1,13 @@
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
+import {
+  asNobody,
+  asUser,
+  upsertAppUser,
+  upsertMission,
+  grantMissionPerms,
+} from "../fixtures/access";
 import LayerFactory from "../fixtures/entityFactories/LayerFactory";
 import SublayerFactory from "../fixtures/entityFactories/SublayerFactory";
 import { Layer_db, App_User_db, Sublayer_db } from "server/database/models/_allModels";
@@ -13,32 +19,30 @@ import { generateBlankSublayer } from "store/storeUtils/sublayer";
 let testAppUser: App_User_db;
 let testLayer: Layer_db;
 let testSublayers: Sublayer_db[];
-const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
+// Each test file owns its own mission id block; grants reference doc_listing_db, so a
+// shared range collides when files run in parallel.
+const testMissionIds = [1050, 1051, 1052];
+const TEST_UUPIC = "vitest-sublayer";
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestSublayer",
-    permissionList: [
-      {
-        missionId: testMissionIds[0],
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-      {
-        missionId: testMissionIds[1],
-        permissions: {
-          edit: false,
-          view: true,
-        },
-      },
-    ],
+  for (const missionId of testMissionIds) await upsertMission(em, missionId);
+
+  testAppUser = await upsertAppUser(em, TEST_UUPIC, { displayName: "Vitest Sublayer" });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[0],
+    userId: testAppUser.id,
+    permLevel: "edit",
   });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[1],
+    userId: testAppUser.id,
+    permLevel: "viewer",
+  });
+
   testLayer = await new LayerFactory(em).createOne({
     missionId: testMissionIds[0],
   });
@@ -51,30 +55,18 @@ beforeAll(async () => {
 });
 
 describe("Layer API Endpoint ", () => {
-  let aegisSessionCookie: string;
-  let aegisSessionSigCookie: string;
   let newSublayer: Sublayer = generateBlankSublayer({ layerUuid: uuidv4() });
 
   test("Returns auth failure", async () => {
-    const res = await supertest(app).get("/api/v1/sublayer");
+    const res = await supertest(app).get("/api/v1/sublayer").set(asNobody());
     expect(res.statusCode).toBe(401);
-  });
-
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAppUser.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
   });
 
   describe("GET request", () => {
     test("No permissions", async () => {
       const res = await supertest(app)
         .get("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .query({ missionId: testMissionIds[2] });
 
       expect(res.statusCode).toBe(401);
@@ -83,7 +75,7 @@ describe("Layer API Endpoint ", () => {
     test("Returns empty non-existent sublayer uuid for mission", async () => {
       const res = await supertest(app)
         .get("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .query({ missionId: testMissionIds[0], uuid: uuidv4() });
 
       expect(res.statusCode).toBe(200);
@@ -94,7 +86,7 @@ describe("Layer API Endpoint ", () => {
     test("Returns single sublayer by sublayer uuid", async () => {
       const res = await supertest(app)
         .get("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .query({ missionId: testMissionIds[0], uuid: testSublayers[0].uuid });
 
       expect(res.statusCode).toBe(200);
@@ -105,7 +97,7 @@ describe("Layer API Endpoint ", () => {
     test("Returns sublayers for mission", async () => {
       const res = await supertest(app)
         .get("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .query({ missionId: testMissionIds[0] });
 
       expect(res.statusCode).toBe(200);
@@ -123,7 +115,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -136,7 +128,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -149,7 +141,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(400);
@@ -162,7 +154,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .post("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
@@ -185,7 +177,7 @@ describe("Layer API Endpoint ", () => {
 
       const res = await supertest(app)
         .post("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
@@ -202,7 +194,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -215,7 +207,7 @@ describe("Layer API Endpoint ", () => {
       };
       const res = await supertest(app)
         .delete("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(401);
@@ -230,7 +222,7 @@ describe("Layer API Endpoint ", () => {
 
       const res = await supertest(app)
         .delete("/api/v1/sublayer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);

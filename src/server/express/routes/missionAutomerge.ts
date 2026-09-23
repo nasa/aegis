@@ -1,6 +1,11 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { apiHasPerms, isSuperUser, logUsername, missionIdsAtLevel } from "utils/permissions";
+import {
+  apiHasPerms,
+  apiHasSuperUserOrToken,
+  logUsername,
+  missionIdsAtLevel,
+} from "utils/permissionsServer";
 import { getAutomergeDocListing } from "./docListing";
 import { globalValues } from "../global";
 import type { DocHandle, AutomergeUrl, DocumentId } from "@automerge/automerge-repo/slim";
@@ -42,7 +47,7 @@ const router = express.Router();
  * which is very slow for large/many missions.
  */
 router.get("/", async (req: Request, res: Response): Promise<void> => {
-  const seesEverything = isSuperUser(req.currentUser);
+  const seesEverything = apiHasSuperUserOrToken(req.currentUser);
   const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
 
   if (!seesEverything && viewableMissions.length === 0) {
@@ -84,7 +89,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
  */
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   // Mission creation has no mission context to check against, so it is super-user-only.
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
@@ -150,7 +155,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {
@@ -265,7 +270,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
     const canEditThisMission = apiHasPerms({
       missionId: missionIdToDelete,
-      required: "edit",
+      requiredPermLevel: "edit",
       user: req.currentUser,
     });
     if (!canEditThisMission) {

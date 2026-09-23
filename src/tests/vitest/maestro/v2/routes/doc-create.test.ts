@@ -3,39 +3,42 @@ import type { App_User_db } from "server/database/models/_allModels";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import AppUserFactory from "../../../fixtures/entityFactories/AppUserFactory";
+import {
+  asNobody,
+  asUser,
+  upsertAppUser,
+  upsertMission,
+  grantMissionPerms,
+} from "../../../fixtures/access";
 import supertest from "supertest";
 import app from "server/express/restApi";
 
 // Mock global fetch so we never hit the real Maestro API
 global.fetch = vi.fn();
 
-const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
+// Each test file owns its own mission id block; grants reference doc_listing_db, so a
+// shared range collides when files run in parallel.
+const testMissionIds = [1060, 1061, 1062];
 
 let testAppUser: App_User_db;
+const TEST_UUPIC = "vitest-doc-create";
 
 beforeAll(async () => {
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestMaestro",
-    permissionList: [
-      {
-        missionId: testMissionIds[0],
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-      {
-        missionId: testMissionIds[1],
-        permissions: {
-          edit: false,
-          view: true,
-        },
-      },
-    ],
+  for (const missionId of testMissionIds) await upsertMission(em, missionId);
+
+  testAppUser = await upsertAppUser(em, TEST_UUPIC);
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[0],
+    userId: testAppUser.id,
+    permLevel: "edit",
+  });
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[1],
+    userId: testAppUser.id,
+    permLevel: "viewer",
   });
 });
 
@@ -44,31 +47,19 @@ beforeEach(() => {
 });
 
 describe("Maegistro V2 doc/create API Endpoint", () => {
-  let aegisSessionCookie: string;
-  let aegisSessionSigCookie: string;
-
-  test("Returns auth failure when not logged in", async () => {
+  test("Returns auth failure for a caller holding nothing", async () => {
     const res = await supertest(app)
       .post("/api/v1/maestro/v2/doc/create")
+      .set(asNobody())
       .send({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
-  });
-
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAppUser.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
   });
 
   describe("POST /api/v1/maestro/v2/doc/create", () => {
     test("Returns 401 when user has no permissions for the mission", async () => {
       const res = await supertest(app)
         .post("/api/v1/maestro/v2/doc/create")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send({ missionId: testMissionIds[2] });
 
       expect(res.statusCode).toBe(401);
@@ -79,7 +70,7 @@ describe("Maegistro V2 doc/create API Endpoint", () => {
     test("Returns 401 when user has view-only permissions for the mission", async () => {
       const res = await supertest(app)
         .post("/api/v1/maestro/v2/doc/create")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send({ missionId: testMissionIds[1] });
 
       expect(res.statusCode).toBe(401);
@@ -93,7 +84,7 @@ describe("Maegistro V2 doc/create API Endpoint", () => {
 
       const res = await supertest(app)
         .post("/api/v1/maestro/v2/doc/create")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send({ missionId: testMissionIds[0] });
 
       process.env.EMSS_TOKEN = originalToken;
@@ -115,7 +106,7 @@ describe("Maegistro V2 doc/create API Endpoint", () => {
 
       const res = await supertest(app)
         .post("/api/v1/maestro/v2/doc/create")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send({ missionId: testMissionIds[0], someField: "someValue" });
 
       expect(res.statusCode).toBe(200);
@@ -145,7 +136,7 @@ describe("Maegistro V2 doc/create API Endpoint", () => {
 
       const res = await supertest(app)
         .post("/api/v1/maestro/v2/doc/create")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send({ missionId: testMissionIds[0] });
 
       expect(res.statusCode).toBe(404);
@@ -159,7 +150,7 @@ describe("Maegistro V2 doc/create API Endpoint", () => {
 
       const res = await supertest(app)
         .post("/api/v1/maestro/v2/doc/create")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .set(asUser(TEST_UUPIC))
         .send({ missionId: testMissionIds[0] });
 
       expect(res.statusCode).toBe(500);

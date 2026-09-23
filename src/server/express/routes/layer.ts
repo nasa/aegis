@@ -8,7 +8,7 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { Layer_db } from "server/database/models/_allModels";
 import { convertLayersTypeDbToStore, convertLayersTypeStoreToDb } from "store/storeUtils/layer";
-import { apiHasPerms, logUsername } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { serverLogger } from "utils/logging/serverLogger";
@@ -31,7 +31,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   const viewPermission = apiHasPerms({
     missionId: queryObj.missionId,
-    required: "viewer",
+    requiredPermLevel: "viewer",
     user: req.currentUser,
   });
   if (!viewPermission) {
@@ -92,7 +92,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {
@@ -176,7 +176,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 
   const editPermission = apiHasPerms({
     missionId,
-    required: "edit",
+    requiredPermLevel: "edit",
     user: req.currentUser,
   });
   if (!editPermission) {

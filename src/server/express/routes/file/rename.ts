@@ -4,7 +4,7 @@ import type { Query } from "express-serve-static-core";
 import express from "express";
 
 import { renameFile } from "server/file/file"; // Assuming this function is compatible with Express
-import { isSuperUser, logUsername } from "utils/permissions"; // Assuming you have a session middleware compatible with Express
+import { apiHasSuperUserOrToken, logUsername } from "utils/permissionsServer"; // Assuming you have a session middleware compatible with Express
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -23,7 +23,7 @@ const parseQuery = (query: Query) => {
 
 router.get("/", async (req: Request, res: Response) => {
   const queryObj = parseQuery(req.query);
-  if (!isSuperUser(req.currentUser)) {
+  if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "GET",

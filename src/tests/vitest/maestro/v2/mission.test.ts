@@ -3,7 +3,13 @@ import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { Doc_Listing_db, App_User_db } from "server/database/models/_allModels";
 import DocListingFactory from "../../fixtures/entityFactories/DocListingFactory";
-import AppUserFactory from "../../fixtures/entityFactories/AppUserFactory";
+import {
+  asNobody,
+  asSuperUser,
+  asUser,
+  upsertAppUser,
+  grantMissionPerms,
+} from "../../fixtures/access";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
@@ -11,8 +17,9 @@ import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
 let testAutomergeDocListings: Doc_Listing_db[];
 let testMissionsPartial: Partial<Mission>[];
 let testAppUser: App_User_db;
-let testSuperAdmin: App_User_db;
-let noPermsAppUser: App_User_db;
+const VIEW_UUPIC = "vitest-maestro-mission-view";
+const SUPER_UUPIC = "vitest-maestro-mission-super";
+const NO_PERMS_UUPIC = "vitest-maestro-mission-noperms";
 const emssToken = process.env.EMSS_TOKEN;
 
 // 30s timeout to guard against slow MikroORM.init under concurrent test load
@@ -47,37 +54,27 @@ beforeAll(async () => {
 
   globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
 
-  // A user with view perm on mission[0] only.
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestMaestroV2Mission",
-    permissionList: [
-      {
-        missionId: testAutomergeDocListings[0].missionId,
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-    ],
+  // A user granted mission[0] only.
+  testAppUser = await upsertAppUser(em, VIEW_UUPIC);
+  await grantMissionPerms(em, {
+    missionId: testAutomergeDocListings[0].missionId,
+    userId: testAppUser.id,
+    permLevel: "edit",
   });
 
-  // A super admin can view all missions when no missionId given.
-  testSuperAdmin = await new AppUserFactory(em).createOne({
-    username: "VitestMaestroV2MissionSuperAdmin",
-    isSuperAdmin: true,
-  });
+  // A super user reaches every mission implicitly.
+  await upsertAppUser(em, SUPER_UUPIC);
 
-  // A user with no perms on any of our test missions and no global view perm.
-  noPermsAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestMaestroV2MissionNoPerms",
-  });
+  // An identity with no grants at all.
+  await upsertAppUser(em, NO_PERMS_UUPIC);
 }, 30000);
 
 describe("READABLE MISSION Endpoint (Maegistro V2)", () => {
   describe("Authentication with missionId", () => {
-    test("Fails without any auth", async () => {
+    test("Fails for a caller holding nothing", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/mission")
+        .set(asNobody())
         .query({ missionId: testAutomergeDocListings[0].missionId });
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
@@ -87,6 +84,7 @@ describe("READABLE MISSION Endpoint (Maegistro V2)", () => {
     test("Fails with invalid emss-token", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/mission")
+        .set(asNobody())
         .set("emss-token", "invalid-token")
         .query({ missionId: testAutomergeDocListings[0].missionId });
       expect(res.statusCode).toBe(401);
@@ -102,32 +100,19 @@ describe("READABLE MISSION Endpoint (Maegistro V2)", () => {
       expect(res.body.status).toBe("success");
     });
 
-    test("Fails when user has no perms on the mission", async () => {
-      const loginRes = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: noPermsAppUser.username, password: "superSecretPassword" });
-      expect(loginRes.statusCode).toBe(200);
-      const cookies = loginRes.header["set-cookie"];
-
+    test("Fails when user has no grant on the mission", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/mission")
-        .set("Cookie", cookies)
+        .set(asUser(NO_PERMS_UUPIC))
         .query({ missionId: testAutomergeDocListings[0].missionId });
 
       expect(res.statusCode).toBe(401);
     });
 
-    test("Succeeds when user has view perms on the mission", async () => {
-      await supertest(app).get("/api/v1/auth/logout");
-      const loginRes = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: testAppUser.username, password: "superSecretPassword" });
-      expect(loginRes.statusCode).toBe(200);
-      const cookies = loginRes.header["set-cookie"];
-
+    test("Succeeds when user has a grant on the mission", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/mission")
-        .set("Cookie", cookies)
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testAutomergeDocListings[0].missionId });
 
       expect(res.statusCode).toBe(200);
@@ -136,22 +121,19 @@ describe("READABLE MISSION Endpoint (Maegistro V2)", () => {
   });
 
   describe("Authentication without missionId", () => {
-    test("Fails without any auth", async () => {
-      const res = await supertest(app).get("/api/v1/maestro/v2/mission");
-      expect(res.statusCode).toBe(401);
-      expect(res.body.status).toBe("failure");
-    });
+    // There is no unauthenticated case here: with MOCK_USER the default identity always resolves,
+    // and in a deployment nginx gates the route before any AEGIS code runs.
 
-    test("Fails via login session when user has no view perms anywhere", async () => {
-      await supertest(app).get("/api/v1/auth/logout");
-      const loginRes = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: noPermsAppUser.username, password: "superSecretPassword" });
-      expect(loginRes.statusCode).toBe(200);
-      const cookies = loginRes.header["set-cookie"];
+    test("A user with no grants cannot reach this test's missions", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/maestro/v2/mission")
+        .set(asUser(NO_PERMS_UUPIC));
 
-      const res = await supertest(app).get("/api/v1/maestro/v2/mission").set("Cookie", cookies);
-      expect(res.statusCode).toBe(401);
+      // They may still reach public missions, so assert on this test's set rather than the
+      // status code, which depends on whether the shared database has any public grants.
+      const ids: number[] = (res.body.data ?? []).map((m: ExportMission) => m.id);
+      expect(ids).not.toContain(testAutomergeDocListings[0].missionId);
+      expect(ids).not.toContain(testAutomergeDocListings[1].missionId);
     });
 
     test("Succeeds with valid emss-token", async () => {
@@ -194,15 +176,10 @@ describe("READABLE MISSION Endpoint (Maegistro V2)", () => {
       );
     });
 
-    test("Retrieves all missions for super admin when no missionId is given", async () => {
-      await supertest(app).get("/api/v1/auth/logout");
-      const loginRes = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: testSuperAdmin.username, password: "superSecretPassword" });
-      expect(loginRes.statusCode).toBe(200);
-      const cookies = loginRes.header["set-cookie"];
-
-      const res = await supertest(app).get("/api/v1/maestro/v2/mission").set("Cookie", cookies);
+    test("Retrieves all missions for a super user when no missionId is given", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/maestro/v2/mission")
+        .set(asSuperUser(SUPER_UUPIC));
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       const missions: ExportMission[] = res.body.data;
@@ -215,15 +192,8 @@ describe("READABLE MISSION Endpoint (Maegistro V2)", () => {
       );
     });
 
-    test("Regular user without missionId gets only missions they have view perms on", async () => {
-      await supertest(app).get("/api/v1/auth/logout");
-      const loginRes = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: testAppUser.username, password: "superSecretPassword" });
-      expect(loginRes.statusCode).toBe(200);
-      const cookies = loginRes.header["set-cookie"];
-
-      const res = await supertest(app).get("/api/v1/maestro/v2/mission").set("Cookie", cookies);
+    test("Regular user without missionId gets only the missions they are granted", async () => {
+      const res = await supertest(app).get("/api/v1/maestro/v2/mission").set(asUser(VIEW_UUPIC));
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       const missions: ExportMission[] = res.body.data;
@@ -248,9 +218,8 @@ describe("READABLE MISSION Endpoint (Maegistro V2)", () => {
 
 afterAll(async () => {
   const em = globalValues.orm.em.fork();
-  await em.nativeDelete(App_User_db, { username: testAppUser.username });
-  await em.nativeDelete(App_User_db, { username: testSuperAdmin.username });
-  await em.nativeDelete(App_User_db, { username: noPermsAppUser.username });
+  await em.nativeDelete(App_User_db, { uupic: { $in: [VIEW_UUPIC, SUPER_UUPIC] } });
+  await em.nativeDelete(App_User_db, { uupic: NO_PERMS_UUPIC });
   for (let i = 0; i < testAutomergeDocListings.length; i++) {
     await em.nativeDelete(Doc_Listing_db, { missionId: testAutomergeDocListings[i].missionId });
   }

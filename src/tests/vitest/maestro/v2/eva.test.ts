@@ -3,7 +3,7 @@ import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import { Doc_Listing_db, App_User_db } from "server/database/models/_allModels";
 import DocListingFactory from "../../fixtures/entityFactories/DocListingFactory";
-import AppUserFactory from "../../fixtures/entityFactories/AppUserFactory";
+import { asNobody, asUser, upsertAppUser, grantMissionPerms } from "../../fixtures/access";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
@@ -17,7 +17,8 @@ let asPlannedEva1: Eva;
 let rexEva0: Eva;
 let rexEva1: Eva;
 let testAppUser: App_User_db;
-let noPermsAppUser: App_User_db;
+const VIEW_UUPIC = "vitest-maestro-eva-view";
+const NO_PERMS_UUPIC = "vitest-maestro-eva-noperms";
 const emssToken = process.env.EMSS_TOKEN;
 
 // 30s timeout to guard against slow MikroORM.init under concurrent test load
@@ -79,24 +80,16 @@ beforeAll(async () => {
 
   globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
 
-  // A user with view permission on mission[0] only (no perms on mission[1]).
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestMaestroV2Eva",
-    permissionList: [
-      {
-        missionId: testAutomergeDocListings[0].missionId,
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-    ],
+  // A user granted mission[0] only.
+  testAppUser = await upsertAppUser(em, VIEW_UUPIC);
+  await grantMissionPerms(em, {
+    missionId: testAutomergeDocListings[0].missionId,
+    userId: testAppUser.id,
+    permLevel: "edit",
   });
 
-  // A user with no perms on any of our test missions.
-  noPermsAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestMaestroV2EvaNoPerms",
-  });
+  // An identity with no grants at all.
+  await upsertAppUser(em, NO_PERMS_UUPIC);
 }, 30000);
 
 describe("READABLE EVA Endpoint (Maegistro V2)", () => {
@@ -104,6 +97,7 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
     test("Fails without any auth", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/eva")
+        .set(asNobody())
         .query({ missionId: testAutomergeDocListings[0].missionId });
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
@@ -113,6 +107,7 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
     test("Fails with invalid emss-token", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/eva")
+        .set(asNobody())
         .set("emss-token", "invalid-token")
         .query({ missionId: testAutomergeDocListings[0].missionId });
       expect(res.statusCode).toBe(401);
@@ -129,35 +124,20 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
       expect(res.body.status).toBe("success");
     });
 
-    test("Fails via login session when user has no perms on mission", async () => {
-      // Login as the no-perms user.
-      const loginRes = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: noPermsAppUser.username, password: "superSecretPassword" });
-      expect(loginRes.statusCode).toBe(200);
-      const cookies = loginRes.header["set-cookie"];
-
+    test("Fails when the user has no grant on the mission", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/eva")
-        .set("Cookie", cookies)
+        .set(asUser(NO_PERMS_UUPIC))
         .query({ missionId: testAutomergeDocListings[0].missionId });
 
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
     });
 
-    test("Succeeds via login session when user has view perms on mission", async () => {
-      // Login as the perms user.
-      await supertest(app).get("/api/v1/auth/logout");
-      const loginRes = await supertest(app)
-        .post("/api/v1/auth/login")
-        .send({ username: testAppUser.username, password: "superSecretPassword" });
-      expect(loginRes.statusCode).toBe(200);
-      const cookies = loginRes.header["set-cookie"];
-
+    test("Succeeds when the user has a grant on the mission", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/eva")
-        .set("Cookie", cookies)
+        .set(asUser(VIEW_UUPIC))
         .query({ missionId: testAutomergeDocListings[0].missionId });
 
       expect(res.statusCode).toBe(200);
@@ -318,8 +298,8 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
 
 afterAll(async () => {
   const em = globalValues.orm.em.fork();
-  await em.nativeDelete(App_User_db, { username: testAppUser.username });
-  await em.nativeDelete(App_User_db, { username: noPermsAppUser.username });
+  await em.nativeDelete(App_User_db, { uupic: VIEW_UUPIC });
+  await em.nativeDelete(App_User_db, { uupic: NO_PERMS_UUPIC });
   for (let i = 0; i < testAutomergeDocListings.length; i++) {
     await em.nativeDelete(Doc_Listing_db, { missionId: testAutomergeDocListings[i].missionId });
   }

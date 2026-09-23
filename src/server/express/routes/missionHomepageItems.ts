@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import express from "express";
 import sortBy from "lodash/sortBy";
 
-import { isSuperUser, logUsername, missionIdsAtLevel } from "utils/permissions";
+import { apiHasSuperUserOrToken, logUsername, missionIdsAtLevel } from "utils/permissionsServer";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "./missionAutomerge";
@@ -13,7 +13,7 @@ const router = express.Router();
 // get
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const includeArchived = req.query.includeArchived === "true";
-  const seesEverything = isSuperUser(req.currentUser);
+  const seesEverything = apiHasSuperUserOrToken(req.currentUser);
   const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
 
   if (!seesEverything && viewableMissions.length === 0) {

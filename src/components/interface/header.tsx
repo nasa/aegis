@@ -13,7 +13,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUIJumpToRunningRex } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid, isConnected } from "store/selectors";
-import { meetsPermLevel } from "utils/permissionLevels";
+import { meetsPermLevel } from "utils/permissionsClient";
 import { ToggleButton } from "components/interface/form/globalFieldsAutomerge";
 import { setIsInEditMode } from "store/mission";
 import { thunkCancelMarkerMapDirective } from "store/thunk/thunkMap";

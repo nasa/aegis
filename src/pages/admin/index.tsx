@@ -64,7 +64,7 @@ const Index: React.FunctionComponent = () => {
               <NavCard
                 to="/admin/user"
                 title="Users"
-                description="Manage users with explicit standing and their per-mission grants."
+                description="Search everyone who has signed in and manage their per-mission grants."
               />
               <NavCard
                 to="/admin/group"
@@ -72,9 +72,9 @@ const Index: React.FunctionComponent = () => {
                 description="Manage groups, their members, and the missions each group can reach."
               />
               <NavCard
-                to="/admin/knownUsers"
-                title="Known Identities"
-                description="Review and prune identities that have signed in but hold no grants."
+                to="/admin/publicMissions"
+                title="Public Missions"
+                description="Review which missions every signed-in user can view."
               />
               <NavCard
                 to="/admin/serverSocketStatus"

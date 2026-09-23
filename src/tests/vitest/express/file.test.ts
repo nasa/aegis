@@ -3,55 +3,41 @@ import app from "server/express/restApi";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
+import {
+  asNobody,
+  asSuperUser,
+  asUser,
+  upsertAppUser,
+  upsertMission,
+  grantMissionPerms,
+} from "../fixtures/access";
 import { App_User_db } from "server/database/models/app_user.model";
 import * as fileFunctions from "server/file/file";
 
 let testAppUser: App_User_db;
-let testAdmin: App_User_db;
-const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
-
-let aegisSessionCookie: string;
-let aegisSessionSigCookie: string;
+let testSuperUser: App_User_db;
+// Each test file owns its own mission id block; grants reference doc_listing_db, so a
+// shared range collides when files run in parallel.
+const testMissionIds = [1010, 1011, 1012];
+const REGULAR_UUPIC = "vitest-file-regular";
+const SUPER_UUPIC = "vitest-file-super";
 
 beforeAll(async () => {
   // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
 
   const em = globalValues.orm.em.fork();
-  testAppUser = await new AppUserFactory(em).createOne({
-    username: "VitestFileTestNoAdmin",
-    isAdmin: false,
-    permissionList: [
-      {
-        missionId: testMissionIds[0],
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-    ],
+  for (const missionId of testMissionIds) await upsertMission(em, missionId);
+
+  testAppUser = await upsertAppUser(em, REGULAR_UUPIC);
+  await grantMissionPerms(em, {
+    missionId: testMissionIds[0],
+    userId: testAppUser.id,
+    permLevel: "edit",
   });
-  testAdmin = await new AppUserFactory(em).createOne({
-    username: "VitestFileTestsIsAdmin",
-    isAdmin: true,
-    permissionList: [
-      {
-        missionId: testMissionIds[0],
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-      {
-        missionId: testMissionIds[1],
-        permissions: {
-          edit: false,
-          view: true,
-        },
-      },
-    ],
-  });
+
+  // File management is super-user-only, so mission edit alone is not enough.
+  testSuperUser = await upsertAppUser(em, SUPER_UUPIC);
 });
 
 beforeEach(async () => {
@@ -64,38 +50,28 @@ afterAll(() => {
 
 describe("Auth failure for file endpoints", () => {
   test("Delete", async () => {
-    const res = await supertest(app).delete("/api/v1/file/delete");
+    const res = await supertest(app).delete("/api/v1/file/delete").set(asNobody());
     expect(res.statusCode).toBe(401);
   });
   test("List", async () => {
-    const res = await supertest(app).get("/api/v1/file/list");
+    const res = await supertest(app).get("/api/v1/file/list").set(asNobody());
     expect(res.statusCode).toBe(401);
   });
   test("Rename", async () => {
-    const res = await supertest(app).get("/api/v1/file/rename");
+    const res = await supertest(app).get("/api/v1/file/rename").set(asNobody());
     expect(res.statusCode).toBe(401);
   });
   test("Upload", async () => {
-    const res = await supertest(app).get("/api/v1/file/upload");
+    const res = await supertest(app).get("/api/v1/file/upload").set(asNobody());
     expect(res.statusCode).toBe(401);
   });
 });
 
-describe("User with no Admin permissions", () => {
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAppUser.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
+describe("User without the super-user role", () => {
   test("Delete: Failure", async () => {
     const res = await supertest(app)
       .delete("/api/v1/file/delete")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+      .set(asUser(REGULAR_UUPIC))
       .query({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
@@ -103,7 +79,7 @@ describe("User with no Admin permissions", () => {
   test("List: Failure", async () => {
     const res = await supertest(app)
       .get("/api/v1/file/list")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+      .set(asUser(REGULAR_UUPIC))
       .query({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
@@ -111,7 +87,7 @@ describe("User with no Admin permissions", () => {
   test("Rename: Failure", async () => {
     const res = await supertest(app)
       .get("/api/v1/file/rename")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+      .set(asUser(REGULAR_UUPIC))
       .query({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
@@ -119,62 +95,17 @@ describe("User with no Admin permissions", () => {
   test("Upload: Failure", async () => {
     const res = await supertest(app)
       .get("/api/v1/file/upload")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+      .set(asUser(REGULAR_UUPIC))
       .query({ missionId: testMissionIds[0] });
     expect(res.statusCode).toBe(401);
   });
 });
 
-describe("Admin user with only View permissions", () => {
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAdmin.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
-  // Listing files are allowable with just view permissions
-
-  test("Delete: Failure", async () => {
-    const res = await supertest(app)
-      .delete("/api/v1/file/delete")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissionIds[1] });
-    expect(res.statusCode).toBe(401);
-  });
-
-  test("Rename: Failure", async () => {
-    const res = await supertest(app)
-      .get("/api/v1/file/rename")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissionIds[1] });
-    expect(res.statusCode).toBe(401);
-  });
-
-  test("Upload: Failure", async () => {
-    const res = await supertest(app)
-      .get("/api/v1/file/upload")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissionIds[1] });
-    expect(res.statusCode).toBe(401);
-  });
-});
+// File management is no longer mission-scoped: it is gated on the super-user role alone, so
+// there is no "view-only on this mission" case left to cover.
 
 // Just testing the API endpoints, not the file functions themselves
-describe("Admin user with Edit permissions", () => {
-  test("Returns login session", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/auth/login")
-      .send({ username: testAdmin.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
-    expect(res.body.status).toEqual("success");
-    aegisSessionCookie = res.header["set-cookie"][0];
-    aegisSessionSigCookie = res.header["set-cookie"][1];
-  });
-
+describe("Super user", () => {
   test("Delete: Success", async () => {
     const mockDelete = vi.spyOn(fileFunctions, "deleteFile").mockImplementation(async () => {
       return true;
@@ -182,7 +113,7 @@ describe("Admin user with Edit permissions", () => {
 
     const res = await supertest(app)
       .delete("/api/v1/file/delete")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+      .set(asSuperUser(SUPER_UUPIC))
       .query({ missionId: testMissionIds[0], path: "vitestTest/testAPIDelete.txt" });
     expect(res.statusCode).toBe(200);
     expect(mockDelete).toHaveBeenCalledWith("vitestTest/testAPIDelete.txt");
@@ -195,7 +126,7 @@ describe("Admin user with Edit permissions", () => {
 
     const res = await supertest(app)
       .get("/api/v1/file/list")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+      .set(asSuperUser(SUPER_UUPIC))
       .query({ missionId: testMissionIds[0], path: "vitestTest" });
     expect(res.statusCode).toBe(200);
     expect(mockList).toHaveBeenCalledWith("vitestTest");
@@ -208,7 +139,7 @@ describe("Admin user with Edit permissions", () => {
 
     const res = await supertest(app)
       .get("/api/v1/file/rename")
-      .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+      .set(asSuperUser(SUPER_UUPIC))
       .query({
         missionId: testMissionIds[0],
         path: "vitestTest",
@@ -223,7 +154,7 @@ describe("Admin user with Edit permissions", () => {
 afterAll(async () => {
   //Cleanup our Database
   const em = globalValues.orm.em.fork();
-  await em.nativeDelete(App_User_db, { id: testAdmin.id });
+  await em.nativeDelete(App_User_db, { id: testSuperUser.id });
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 
   // Closing the DB connection allows Vitest to exit successfully.
