@@ -37,10 +37,10 @@ export const COLOR_PALATTE = [
   "#0062B1",
   "#4A2C91",
   "#AB149E",
-  "#FFB000", // Added by Mapbook team
-  "#FE6100", // Added by Mapbook team
-  "#DC267F", // Added by Mapbook team
-  "#785EF0", // Added by Mapbook team
+  "#FFB000", // EVA 1 - Added by Mapbook team
+  "#FE6100", // EVA 2 - Added by Mapbook team
+  "#DC267F", // EVA 3 - Added by Mapbook team
+  "#8426FF", // EVA 4 - Added by Mapbook team
 ];
 
 /*
