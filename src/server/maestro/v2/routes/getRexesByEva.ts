@@ -7,7 +7,15 @@ import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
-import type { RefRex } from "server/maestro/v2/types/socketioRequests";
+
+// used in getRexesByEva maestro route
+export type RefRex = {
+  uuid: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  isRunning: boolean;
+};
 
 const router = express.Router();
 
