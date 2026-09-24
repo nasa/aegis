@@ -25,8 +25,9 @@ import appUsersRoutes from "./routes/appUsers";
 import timeRoutes from "./routes/time";
 import folderRoutes from "./routes/folder";
 
-import rexByEvaRefV2 from "../maestro/v2/routes/getRexesByEvaRef";
+import rexByEvaV2 from "../maestro/v2/routes/getRexesByEva";
 import getMissionsV2 from "../maestro/v2/routes/getMissions";
+import getRefUuidMapV2 from "../maestro/v2/routes/getRefUuidMap";
 import readableEvaRoutesV2 from "../maestro/v2/routes/eva";
 import readableMissionRoutesV2 from "../maestro/v2/routes/mission";
 import docCreateV2 from "../maestro/v2/routes/docCreate";
@@ -141,8 +142,9 @@ app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
 // Maegistro V2
 app.use("/api/v1/maestro/v2/eva", readableEvaRoutesV2);
 app.use("/api/v1/maestro/v2/mission", readableMissionRoutesV2);
-app.use("/api/v1/maestro/v2/getRexesByEvaRef", rexByEvaRefV2);
+app.use("/api/v1/maestro/v2/getRexesByEva", rexByEvaV2);
 app.use("/api/v1/maestro/v2/getMissions", getMissionsV2);
+app.use("/api/v1/maestro/v2/getRefUuidMap", getRefUuidMapV2);
 app.use("/api/v1/maestro/v2/doc/create", docCreateV2);
 
 // external endpoints used by other stakeholders
