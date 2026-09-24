@@ -519,7 +519,7 @@ describe("buildAegisSliceForMaestro", () => {
 
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
-    expect(result.fetchedAegisActions[actionWithPriority.refUuid].missionPriorityUuid).toBe(
+    expect(result.fetchedAegisActions[actionWithPriority.uuid].missionPriorityUuid).toBe(
       "vitest-priority-uuid"
     );
   });
@@ -537,7 +537,7 @@ describe("buildAegisSliceForMaestro", () => {
 
     const result = await buildAegisSliceForMaestro(MISSION_ID);
 
-    expect(result.fetchedAegisActions[actionInSubscribed.refUuid].missionPriorityUuid).toBeNull();
+    expect(result.fetchedAegisActions[actionInSubscribed.uuid].missionPriorityUuid).toBeNull();
   });
 });
 

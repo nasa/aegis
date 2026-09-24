@@ -555,7 +555,7 @@ describe("opUpdateMdau() — actions", () => {
 
     runMdau(handle, {
       aegisAction: {
-        [action.refUuid]: mdauAction(action, { missionPriorityUuid: "priority-1" }),
+        [action.uuid]: mdauAction(action, { missionPriorityUuid: "priority-1" }),
       },
     });
 
@@ -569,7 +569,7 @@ describe("opUpdateMdau() — actions", () => {
     });
 
     runMdau(handle, {
-      aegisAction: { [action.refUuid]: mdauAction(action, { missionPriorityUuid: null }) },
+      aegisAction: { [action.uuid]: mdauAction(action, { missionPriorityUuid: null }) },
     });
 
     expect(handle.doc().actions[action.uuid].missionPriorityUuid).toBeNull();
@@ -586,7 +586,7 @@ describe("opUpdateMdau() — actions", () => {
 
     runMdau(handle, {
       aegisAction: {
-        [action.refUuid]: mdauAction(action, {
+        [action.uuid]: mdauAction(action, {
           missionPriorityUuid: "priority-1",
           updatedAt: doc.updatedAt,
         }),
