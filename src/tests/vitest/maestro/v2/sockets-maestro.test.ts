@@ -74,6 +74,11 @@ vi.mock("@mikro-orm/postgresql", async (importOriginal) => {
 import { getMaestroSocketRoomName } from "server/maestro/v2/sockets-maestro";
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankRex } from "store/storeUtils/rex";
 import type { AegisSlice } from "server/maestro/v2/types/aegisSlice";
 import type { MaestroVisitor } from "server/maestro/v2/types/socketioMaestro";
 import type { MDAU } from "server/maestro/v2/types/mdau";
@@ -781,6 +786,287 @@ describe("maestro namespace socket handlers", () => {
       expect(errorSpy).not.toHaveBeenCalled();
 
       errorSpy.mockRestore();
+    });
+  });
+
+  // ─── getExecuteUuids ───────────────────────────────────────────────────────
+
+  describe("getExecuteUuids", () => {
+    /**
+     * Builds a mission doc containing an as-planned EVA scope and a REX scope
+     * duplicated from it. Every duplicated entity keeps its `refUuid` and gets
+     * a new `uuid`, which is exactly what getExecuteUuids has to pair up.
+     */
+    const buildRexMission = () => {
+      // As-planned scope
+      const plannedStation1 = generateBlankStation({ name: "Planned Station 1" });
+      const plannedStation2 = generateBlankStation({ name: "Planned Station 2" });
+      const plannedTraverse = generateBlankTraverse({ name: "Planned Traverse" });
+      const plannedEva = generateBlankEVA({
+        name: "Planned EVA",
+        sequence: [
+          { type: "station", uuid: plannedStation1.uuid },
+          { type: "traverse", uuid: plannedTraverse.uuid },
+          { type: "station", uuid: plannedStation2.uuid },
+        ],
+      });
+      const plannedStationAction = generateBlankAction({
+        name: "Planned Station Action",
+        stationUuid: plannedStation1.uuid,
+      });
+      const plannedTraverseAction = generateBlankAction({
+        name: "Planned Traverse Action",
+        traverseUuid: plannedTraverse.uuid,
+      });
+
+      // REX scope — same refUuids, new uuids
+      const rexStation1 = generateBlankStation({
+        name: "Rex Station 1",
+        refUuid: plannedStation1.refUuid,
+      });
+      const rexStation2 = generateBlankStation({
+        name: "Rex Station 2",
+        refUuid: plannedStation2.refUuid,
+      });
+      const rexTraverse = generateBlankTraverse({
+        name: "Rex Traverse",
+        refUuid: plannedTraverse.refUuid,
+      });
+      const rexEva = generateBlankEVA({
+        name: "Rex EVA",
+        refUuid: plannedEva.refUuid,
+        sequence: [
+          { type: "station", uuid: rexStation1.uuid },
+          { type: "traverse", uuid: rexTraverse.uuid },
+          { type: "station", uuid: rexStation2.uuid },
+        ],
+      });
+      const rexStationAction = generateBlankAction({
+        name: "Rex Station Action",
+        refUuid: plannedStationAction.refUuid,
+        stationUuid: rexStation1.uuid,
+      });
+      const rexTraverseAction = generateBlankAction({
+        name: "Rex Traverse Action",
+        refUuid: plannedTraverseAction.refUuid,
+        traverseUuid: rexTraverse.uuid,
+      });
+
+      const rex = generateBlankRex({ name: "Vitest Rex", evaUuid: rexEva.uuid });
+
+      // An unrelated EVA scope that must never appear in the resulting maps
+      const otherStation = generateBlankStation({ name: "Other Station" });
+      const otherEva = generateBlankEVA({
+        name: "Other EVA",
+        sequence: [{ type: "station", uuid: otherStation.uuid }],
+      });
+      const otherAction = generateBlankAction({
+        name: "Other Action",
+        stationUuid: otherStation.uuid,
+      });
+
+      const byUuid = <T extends { uuid: string }>(items: T[]): Record<string, T> =>
+        Object.fromEntries(items.map((item) => [item.uuid, item]));
+
+      const mission = {
+        id: MISSION_ID,
+        evas: byUuid([plannedEva, rexEva, otherEva]),
+        stations: byUuid([
+          plannedStation1,
+          plannedStation2,
+          rexStation1,
+          rexStation2,
+          otherStation,
+        ]),
+        traverses: byUuid([plannedTraverse, rexTraverse]),
+        actions: byUuid([
+          plannedStationAction,
+          plannedTraverseAction,
+          rexStationAction,
+          rexTraverseAction,
+          otherAction,
+        ]),
+        rexes: byUuid([rex]),
+      } as unknown as Mission;
+
+      return {
+        mission,
+        rex,
+        plannedEva,
+        rexEva,
+        plannedStation1,
+        plannedStation2,
+        plannedTraverse,
+        plannedStationAction,
+        plannedTraverseAction,
+        rexStation1,
+        rexStation2,
+        rexTraverse,
+        rexStationAction,
+        rexTraverseAction,
+        otherEva,
+        otherStation,
+        otherAction,
+      };
+    };
+
+    /** Registers a doc handle for MISSION_ID serving the given mission doc. */
+    const setMissionDoc = (mission: Mission) => {
+      globalValues.maestroV2.docHandles.set(MISSION_ID, {
+        doc: vi.fn(() => mission),
+      } as never);
+    };
+
+    it("maps every as-planned uuid to its REX copy", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "success",
+        executeUuidMap: {
+          eva: { [f.plannedEva.uuid]: f.rexEva.uuid },
+          station: {
+            [f.plannedStation1.uuid]: f.rexStation1.uuid,
+            [f.plannedStation2.uuid]: f.rexStation2.uuid,
+          },
+          traverse: { [f.plannedTraverse.uuid]: f.rexTraverse.uuid },
+          action: {
+            [f.plannedStationAction.uuid]: f.rexStationAction.uuid,
+            [f.plannedTraverseAction.uuid]: f.rexTraverseAction.uuid,
+          },
+        },
+      });
+    });
+
+    it("excludes entities belonging to other EVA scopes", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      const { executeUuidMap } = callback.mock.calls[0][0];
+      expect(executeUuidMap.eva).not.toHaveProperty(f.otherEva.uuid);
+      expect(executeUuidMap.station).not.toHaveProperty(f.otherStation.uuid);
+      expect(executeUuidMap.action).not.toHaveProperty(f.otherAction.uuid);
+    });
+
+    it("skips as-planned entities that have no REX counterpart", () => {
+      const f = buildRexMission();
+      // Simulate the second station being removed from the REX copy
+      delete f.mission.stations[f.rexStation2.uuid];
+      f.rexEva.sequence = f.rexEva.sequence.filter(
+        (item) => item.uuid !== f.rexStation2.uuid
+      ) as typeof f.rexEva.sequence;
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      const { executeUuidMap } = callback.mock.calls[0][0];
+      expect(executeUuidMap.station).toEqual({ [f.plannedStation1.uuid]: f.rexStation1.uuid });
+      expect(executeUuidMap.station).not.toHaveProperty(f.plannedStation2.uuid);
+    });
+
+    it("ignores empty uuid placeholders in the EVA sequence", () => {
+      const f = buildRexMission();
+      f.plannedEva.sequence = [
+        ...f.plannedEva.sequence,
+        { type: "traverse", uuid: "" },
+        { type: "station", uuid: "" },
+      ] as typeof f.plannedEva.sequence;
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      const { executeUuidMap } = callback.mock.calls[0][0];
+      expect(Object.keys(executeUuidMap.station)).not.toContain("");
+      expect(Object.keys(executeUuidMap.traverse)).not.toContain("");
+      expect(Object.keys(executeUuidMap.station)).toHaveLength(2);
+    });
+
+    it("does not call the callback when missionId is invalid", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](null, f.rex.uuid, callback);
+      mockSocket._handlers["getExecuteUuids"](NaN, f.rex.uuid, callback);
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("returns an error when no doc handle exists for the mission", () => {
+      globalValues.maestroV2.docHandles.delete(MISSION_ID);
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, "any-rex-uuid", callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("No doc handle available"),
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("returns an error when the rex does not exist", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, "missing-rex-uuid", callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("missing-rex-uuid"),
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("returns an error when the rex references a missing EVA", () => {
+      const f = buildRexMission();
+      delete f.mission.evas[f.rexEva.uuid];
+      setMissionDoc(f.mission);
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("missing EVA"),
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("returns an error when no as-planned EVA matches the rex EVA refUuid", () => {
+      const f = buildRexMission();
+      // Removing the as-planned EVA leaves only the REX EVA carrying that refUuid
+      delete f.mission.evas[f.plannedEva.uuid];
+      setMissionDoc(f.mission);
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("No as-planned EVA found"),
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("does not throw when no callback is provided", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+
+      expect(() => mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid)).not.toThrow();
     });
   });
 

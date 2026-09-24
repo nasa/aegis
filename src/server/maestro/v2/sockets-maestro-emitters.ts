@@ -3,7 +3,12 @@ import { getAutomergeDocListing } from "../../express/routes/docListing";
 import type { DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
-import type { MaestroVersionDebugInfo, MaestroVisitorDebugEntry } from "./types/socketioMaestro";
+import { getSequenceStationUuids, getSequenceTraverseUuids } from "operations/helpers/evaSequence";
+import type {
+  ExecuteUuidMap,
+  MaestroVersionDebugInfo,
+  MaestroVisitorDebugEntry,
+} from "./types/socketioMaestro";
 import { onChangeListener, setMaestroSnapshot, clearMaestroSnapshot } from "./onChangeListener";
 
 /**
@@ -141,3 +146,98 @@ export const buildDebugInfo = (): MaestroVersionDebugInfo => {
   }
   return { docListenerMissionIds, evaSubscriptions, visitors };
 };
+
+/**
+ * Build the as-planned uuid → REX uuid map for a single REX.
+ */
+export const getExecuteUuids = (missionId: number, rexUuid: string): ExecuteUuidMap => {
+  const docHandle = globalValues.maestroV2.docHandles.get(missionId);
+  if (!docHandle) {
+    serverLogger.warning({
+      logId: "socket-maestro-v2",
+      logValue: `getExecuteUuids - no doc handle available for mission ${missionId}`,
+    });
+    throw new Error(`No doc handle available for mission ${missionId}`);
+  }
+  const mission = docHandle.doc();
+  if (!mission) {
+    throw new Error(`No mission document available for mission ${missionId}`);
+  }
+
+  const rex = mission.rexes?.[rexUuid];
+  if (!rex) {
+    throw new Error(`Rex ${rexUuid} not found in mission ${missionId}`);
+  }
+
+  const rexEva = mission.evas?.[rex.evaUuid];
+  if (!rexEva) {
+    throw new Error(`Rex ${rexUuid} references missing EVA ${rex.evaUuid}`);
+  }
+
+  // The as-planned EVA is the one with the same refUuid that no REX points at.
+  const rexEvaUuids = new Set(Object.values(mission.rexes ?? {}).map((r) => r.evaUuid));
+  const asPlannedEva = Object.values(mission.evas ?? {}).find(
+    (eva) => eva.refUuid === rexEva.refUuid && !rexEvaUuids.has(eva.uuid)
+  );
+  if (!asPlannedEva) {
+    throw new Error(`No as-planned EVA found for rex ${rexUuid} in mission ${missionId}`);
+  }
+
+  const asPlannedEntities = getEvaEntities(mission, asPlannedEva);
+  const executedEntities = getEvaEntities(mission, rexEva);
+
+  return {
+    eva: { [asPlannedEva.uuid]: rexEva.uuid },
+    station: getMapPlannedToExecute(asPlannedEntities.stations, executedEntities.stations),
+    traverse: getMapPlannedToExecute(asPlannedEntities.traverses, executedEntities.traverses),
+    action: getMapPlannedToExecute(asPlannedEntities.actions, executedEntities.actions),
+  };
+};
+
+/** Every station, traverse and action that are in an EVA. */
+const getEvaEntities = (
+  mission: Mission,
+  eva: Eva
+): { stations: Identifiers[]; traverses: Identifiers[]; actions: Identifiers[] } => {
+  // Filter to remove empty uuid "" in the sequence before a user picked a station
+  const stationUuids = new Set(getSequenceStationUuids(eva.sequence).filter(Boolean));
+  const traverseUuids = new Set(getSequenceTraverseUuids(eva.sequence).filter(Boolean));
+
+  const stations = [...stationUuids]
+    .map((uuid) => mission.stations?.[uuid]) // (Station | undefined)[]
+    .filter((station): station is Station => Boolean(station)); // Station[]
+  const traverses = [...traverseUuids]
+    .map((uuid) => mission.traverses?.[uuid])
+    .filter((traverse): traverse is Traverse => Boolean(traverse));
+  const actions = Object.values(mission.actions ?? {}).filter(
+    (action) =>
+      (action.stationUuid && stationUuids.has(action.stationUuid)) ||
+      (action.traverseUuid && traverseUuids.has(action.traverseUuid))
+  );
+
+  return { stations, traverses, actions };
+};
+
+/**
+ * Map each as-planned uuid to the execute copy carrying the same `refUuid`.
+ */
+const getMapPlannedToExecute = (
+  asPlannedIdentifiers: Identifiers[],
+  executeIdentifiers: Identifiers[]
+): { [oldUuid: string]: string } => {
+  // Create a map of refUuid -> uuid for execute so we can do quick lookups
+  const executeUuidByRefUuid = new Map(
+    executeIdentifiers.filter((e) => e.refUuid).map((e) => [e.refUuid, e.uuid])
+  );
+
+  // For each as-planned refUuid, get the execute version from the matching refUuid
+  const map: { [oldUuid: string]: string } = {};
+  for (const asPlannedIdentifier of asPlannedIdentifiers) {
+    const executeUuid = executeUuidByRefUuid.get(asPlannedIdentifier.refUuid);
+    // A new uuid might be missing if this entity was deleted in the REX copy
+    if (executeUuid) map[asPlannedIdentifier.uuid] = executeUuid;
+  }
+  return map;
+};
+
+type Identifiers = { uuid: string; refUuid: string };

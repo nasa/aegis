@@ -30,6 +30,15 @@ export interface MaestroClientToServerEvents {
     mdau: MDAU.MaestroDataAegisUses,
     callback?: (response: { status: "success" } | { status: "error"; message: string }) => void
   ) => void;
+  getExecuteUuids: (
+    missionId: number,
+    rexUuid: string,
+    callback: (
+      response:
+        | { status: "success"; executeUuidMap: ExecuteUuidMap }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
 
   getDebugInfo: (callback: (data: MaestroVersionDebugInfo) => void) => void;
 }
@@ -51,4 +60,11 @@ export interface MaestroVisitor {
   socketId: string; // identifier for managing the list on server global
   name: string; // name of the maestro server
   connectedAt: number; // timestamp when the maestro joined
+}
+
+export interface ExecuteUuidMap {
+  eva: { [oldEvaUuid: string]: string }; // new eva uuid
+  station: { [oldStationUuid: string]: string }; // new station uuid
+  traverse: { [oldTraverseUuid: string]: string }; // new traverse uuid
+  action: { [oldActionUuid: string]: string }; // new action uuid
 }
