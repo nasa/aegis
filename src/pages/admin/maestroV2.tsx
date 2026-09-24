@@ -258,7 +258,7 @@ const MaestroV2: React.FunctionComponent = () => {
     try {
       const mdau = JSON.parse(sendMdauJson) as MDAU.MaestroDataAegisUses;
       setSendMdauJsonError(null);
-      maestroSocket.current.emit("sendMDAU", Number(sendMdauMissionId), mdau, () => {});
+      maestroSocket.current.emit("sendMDAU", Number(sendMdauMissionId), mdau);
     } catch (e) {
       setSendMdauJsonError(`Invalid JSON: ${String(e)}`);
     }
