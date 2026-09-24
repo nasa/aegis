@@ -47,7 +47,8 @@ vi.mock("server/maestro/v2/buildAegisSlice", async () => {
   return { ...actual, buildAegisSliceForMaestro: mockBuildAegisSliceForMaestro };
 });
 
-vi.mock("utils/permissions", () => ({
+vi.mock("utils/permissionsServer", async (importOriginal) => ({
+  ...((await importOriginal()) as object),
   emssTokenIsValid: vi.fn().mockReturnValue(true),
 }));
 

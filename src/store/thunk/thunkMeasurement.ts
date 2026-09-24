@@ -30,7 +30,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
 
   const measurement = getState().measure.measurements.find((t) => t.uuid === measurementUuid);
   if (!measurement) return;
-  const username = getState().user.appUser?.username;
+  const appUserId = getState().user.appUserId;
   const profileRevision = ++nextIssuedMeasurementProfileRevision;
 
   //calculate new path distances
@@ -82,8 +82,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   );
 
   if (profileResponse.meta.requestStatus !== "fulfilled") return;
-  if (getMissionDocHandle() !== missionDocHandle || getState().user.appUser?.username !== username)
-    return;
+  if (getMissionDocHandle() !== missionDocHandle || getState().user.appUserId !== appUserId) return;
 
   const currentMeasurement = getState().measure.measurements.find(
     (item) => item.uuid === measurementUuid

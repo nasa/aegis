@@ -1,6 +1,6 @@
 const mocks = vi.hoisted(() => ({
   getAutomergeMissionHandle: vi.fn(),
-  hasPerms: vi.fn(),
+  apiHasPerms: vi.fn(),
   readTerrainProfileInWorker: vi.fn(),
   apiRoute: vi.fn(),
   debug: vi.fn(),
@@ -9,7 +9,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock("server/express/routes/missionAutomerge", () => ({
   getAutomergeMissionHandle: mocks.getAutomergeMissionHandle,
 }));
-vi.mock("utils/permissions", () => ({ hasPerms: mocks.hasPerms }));
+vi.mock("utils/permissionsServer", async (importOriginal) => ({
+  ...((await importOriginal()) as object),
+  apiHasPerms: mocks.apiHasPerms,
+}));
 vi.mock("server/terrain/readTerrainProfile", () => ({
   MAX_RASTER_PROFILE_SAMPLES: 100_000,
   readTerrainProfileInWorker: mocks.readTerrainProfileInWorker,
@@ -32,14 +35,12 @@ import { MAX_RASTER_PROFILE_SAMPLES } from "server/terrain/readTerrainProfile";
 const app = express();
 app.use(express.json());
 app.use((req, _res, next) => {
-  req.session = {
-    appUser: {
-      username: "terrain-test",
-      isAdmin: false,
-      isSuperAdmin: false,
-      permissionList: [],
-    },
-  } as unknown as typeof req.session;
+  req.currentUser = {
+    launchpadUser: null,
+    appUser: { auid: "terrain-test" } as AppUser,
+    permissions: {},
+    isEmssToken: false,
+  };
   next();
 });
 app.use("/api/v1/terrain-profile", terrainProfileRouter);
@@ -56,7 +57,7 @@ const validBody = {
 describe("terrain profile route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.hasPerms.mockReturnValue(true);
+    mocks.apiHasPerms.mockReturnValue(true);
     mocks.getAutomergeMissionHandle.mockResolvedValue({
       doc: () => ({ demFilePath: "Data/trusted.tif", demResolution: 5 }),
     });
@@ -208,7 +209,7 @@ describe("terrain profile route", () => {
   });
 
   it("preserves authorization behavior", async () => {
-    mocks.hasPerms.mockReturnValue(false);
+    mocks.apiHasPerms.mockReturnValue(false);
     const response = await supertest(app)
       .post("/api/v1/terrain-profile?missionId=42")
       .send(validBody);

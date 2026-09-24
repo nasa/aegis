@@ -14,7 +14,7 @@ import {
   RasterSamplingWorkerPoolUnavailableError,
 } from "server/raster/rasterSamplingWorkerPool";
 import { serverLogger } from "utils/logging/serverLogger";
-import { hasPerms } from "utils/permissions";
+import { apiHasPerms, logUsername } from "utils/permissionsServer";
 
 import { getAutomergeMissionHandle } from "./missionAutomerge";
 
@@ -123,7 +123,7 @@ const respondWithRasterRouteError = (
     httpMethod: "POST",
     responseStatus,
     routeName,
-    appUsername: req.session?.appUser?.username,
+    appUsername: logUsername(req.currentUser),
     missionId,
     message,
     error: asError(error),
@@ -139,18 +139,17 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 400,
       routeName: "terrain-profile",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       message: "Invalid mission ID",
     });
     res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
 
-  const permitted = hasPerms({
+  const permitted = apiHasPerms({
     missionId,
-    permission: "view",
-    appUser: req.session.appUser,
-    emssToken: req.headers["emss-token"] as string,
+    requiredPermLevel: "viewer",
+    user: req.currentUser,
   });
   if (!permitted) {
     serverLogger.apiRoute({
@@ -158,7 +157,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       httpMethod: "POST",
       responseStatus: 401,
       routeName: "terrain-profile",
-      appUsername: req.session?.appUser?.username,
+      appUsername: logUsername(req.currentUser),
       missionId,
       message: "Unauthorized",
     });
@@ -175,7 +174,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         httpMethod: "POST",
         responseStatus: 404,
         routeName: "terrain-profile",
-        appUsername: req.session?.appUser?.username,
+        appUsername: logUsername(req.currentUser),
         missionId,
         message: `Mission ${missionId} not found`,
       });

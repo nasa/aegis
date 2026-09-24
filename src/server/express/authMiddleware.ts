@@ -52,6 +52,8 @@ export const recordLogin = async (
  * Every mission the user can reach, with the resolved permission level. Direct grants, grants
  * inherited through a group, and the public baseline are fetched in one query; the highest rank
  * per mission wins.
+ *
+ * Export just for testing
  */
 export const resolvePermissions = async (
   em: EntityManager,
@@ -83,7 +85,8 @@ export const resolvePermissions = async (
 };
 
 /**
- * Resolves the caller's identity and access on every request and attaches it as `req.currentUser`.
+ * Resolves the caller's identity and access on every api/v1/ request
+ * Attaches the identity and access information to `req.currentUser`.
  *
  * Must be mounted after the MikroORM RequestContext middleware, since it needs an entity manager,
  * and before any route that reads `req.currentUser`.
@@ -93,6 +96,7 @@ export const authMiddleware = async (
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
+  // Todo eventually remove the emss-token and only accept x-api-key
   const emssToken = (req.headers["emss-token"] as string) || (req.headers["x-api-key"] as string);
   const isEmssToken = emssTokenIsValid(emssToken);
   const launchpadUser = getLaunchpadUser(req);

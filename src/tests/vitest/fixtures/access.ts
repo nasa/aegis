@@ -95,6 +95,8 @@ export const upsertUserToGroup = async (
 /**
  * Ensure a doc listing row exists for a mission id. Or create one in db_doc_listing
  * if it doesn't exist
+ *
+ * The url is a marker rather than null so the global teardown's pattern match can find the row.
  */
 export const upsertMission = async (em: EntityManager, missionId: number): Promise<void> => {
   const existing = await em.findOne(Doc_Listing_db, { missionId });
@@ -102,9 +104,9 @@ export const upsertMission = async (em: EntityManager, missionId: number): Promi
 
   // missionId is auto-increment, so the value has to be forced rather than assigned.
   await em.getConnection().execute(
-    `insert into doc_listing_db (mission_id, automerge_url, version) values (?, null, 1)
+    `insert into doc_listing_db (mission_id, automerge_url, version) values (?, ?, 1)
        on conflict (mission_id) do nothing`,
-    [missionId]
+    [missionId, `automerge:VitestUpsertMission${missionId}`]
   );
 };
 
