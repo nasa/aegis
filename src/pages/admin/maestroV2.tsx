@@ -92,12 +92,10 @@ const MaestroV2: React.FunctionComponent = () => {
   // ── subscribeToEva ────────────────────────────────────────────────────────
   const [subMissionId, setSubMissionId] = useState<string>("");
   const [subEvaUuid, setSubEvaUuid] = useState<string>("");
-  const [subRexUuid, setSubRexUuid] = useState<string>("");
 
   // ── unsubscribeToEva ──────────────────────────────────────────────────────
   const [desubMissionId, setDesubMissionId] = useState<string>("");
   const [desubEvaUuid, setDesubEvaUuid] = useState<string>("");
-  const [desubRexUuid, setDesubRexUuid] = useState<string>("");
 
   // ── getEverything ─────────────────────────────────────────────────────────
   const [everythingMissionId, setEverythingMissionId] = useState<string>("");
@@ -108,6 +106,10 @@ const MaestroV2: React.FunctionComponent = () => {
     JSON.stringify({ aegisStations: {} }, null, 2)
   );
   const [sendMdauJsonError, setSendMdauJsonError] = useState<string | null>(null);
+
+  // ── getExecuteUuids ───────────────────────────────────────────────────────
+  const [executeUuidsMissionId, setExecuteUuidsMissionId] = useState<string>("");
+  const [executeUuidsRexUuid, setExecuteUuidsRexUuid] = useState<string>("");
 
   // ── Maegistro v2 debug info (visitors, listeners, subscriptions) ─────────
   // Fetched via the v2 /maestro/v2 namespace's `getDebugInfo` event — requires
@@ -238,22 +240,12 @@ const MaestroV2: React.FunctionComponent = () => {
 
   const emitSubscribeToEva = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit(
-      "subscribeToEva",
-      Number(subMissionId),
-      subEvaUuid.trim(),
-      subRexUuid.trim() || null
-    );
+    maestroSocket.current.emit("subscribeToEva", Number(subMissionId), subEvaUuid.trim(), () => {});
   };
 
   const emitUnsubscribeToEva = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit(
-      "unsubscribeToEva",
-      Number(desubMissionId),
-      desubEvaUuid.trim(),
-      desubRexUuid.trim() || null
-    );
+    maestroSocket.current.emit("unsubscribeToEva", Number(desubMissionId), desubEvaUuid.trim());
   };
 
   const emitGetEverything = () => {
@@ -270,6 +262,16 @@ const MaestroV2: React.FunctionComponent = () => {
     } catch (e) {
       setSendMdauJsonError(`Invalid JSON: ${String(e)}`);
     }
+  };
+
+  const emitGetExecuteUuids = () => {
+    if (!maestroSocket.current?.connected) return;
+    maestroSocket.current.emit(
+      "getExecuteUuids",
+      Number(executeUuidsMissionId),
+      executeUuidsRexUuid.trim(),
+      () => {}
+    );
   };
 
   const isMaestroConnected = maestroConnectionStatus === "connected";
@@ -559,15 +561,7 @@ const MaestroV2: React.FunctionComponent = () => {
                 type="text"
                 value={subEvaUuid}
                 onChange={(e) => setSubEvaUuid(e.target.value)}
-                placeholder="EVA RefUuid"
-                style={wideInput}
-              />
-              <input
-                className={adminCommon.formInput}
-                type="text"
-                value={subRexUuid}
-                onChange={(e) => setSubRexUuid(e.target.value)}
-                placeholder="Rex Uuid (optional, null if empty)"
+                placeholder="EVA Uuid"
                 style={wideInput}
               />
               <button
@@ -595,15 +589,7 @@ const MaestroV2: React.FunctionComponent = () => {
                 type="text"
                 value={desubEvaUuid}
                 onChange={(e) => setDesubEvaUuid(e.target.value)}
-                placeholder="EVA RefUuid"
-                style={wideInput}
-              />
-              <input
-                className={adminCommon.formInput}
-                type="text"
-                value={desubRexUuid}
-                onChange={(e) => setDesubRexUuid(e.target.value)}
-                placeholder="Rex Uuid (optional, null if empty)"
+                placeholder="EVA Uuid"
                 style={wideInput}
               />
               <button
@@ -677,6 +663,34 @@ const MaestroV2: React.FunctionComponent = () => {
                   Emit
                 </button>
               </div>
+            </EmitCard>
+
+            {/* getExecuteUuids */}
+            <EmitCard title="getExecuteUuids">
+              <input
+                className={adminCommon.formInput}
+                type="number"
+                value={executeUuidsMissionId}
+                onChange={(e) => setExecuteUuidsMissionId(e.target.value)}
+                placeholder="Mission ID"
+                style={narrowInput}
+              />
+              <input
+                className={adminCommon.formInput}
+                type="text"
+                value={executeUuidsRexUuid}
+                onChange={(e) => setExecuteUuidsRexUuid(e.target.value)}
+                placeholder="Rex Uuid"
+                style={wideInput}
+              />
+              <button
+                className={adminCommon.buttonPrimary}
+                onClick={emitGetExecuteUuids}
+                disabled={!isMaestroConnected || !executeUuidsMissionId || !executeUuidsRexUuid}
+                style={{ marginTop: "auto" }}
+              >
+                Emit
+              </button>
             </EmitCard>
           </div>
         </section>

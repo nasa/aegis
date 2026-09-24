@@ -28,28 +28,26 @@ export declare namespace MDAU {
 
   interface EvaSequenceItem {
     type: "station" | "traverse";
-    refUuid: string;
+    uuid: string;
   }
 
   type MdauStation = {
-    refUuid: string;
+    uuid: string;
     name: string;
     duration: number | null;
-    actionOrderRefUuids: string[] | null;
+    actionOrderUuids: string[] | null;
     updatedAt: number;
-    rexUuid?: string;
   };
 
   type MdauTraverse = {
-    refUuid: string;
+    uuid: string;
     duration: number | null;
-    actionOrderRefUuids: string[] | null;
+    actionOrderUuids: string[] | null;
     updatedAt: number;
-    rexUuid?: string;
   };
 
   type MdauEva = {
-    refUuid: string;
+    uuid: string;
     name: string;
     /**
      * Maestro's executeEventId
@@ -59,14 +57,13 @@ export declare namespace MDAU {
      * The full URL to the event (what is in your browser when following)
      */
     maestroEventUrl: string;
-    sequenceRefUuids: EvaSequenceItem[];
+    sequence: EvaSequenceItem[];
     datetime: number | null;
     updatedAt: number;
-    rexUuid?: string;
   };
 
   type MdauAction = {
-    refUuid: string;
+    uuid: string;
     name: string;
     descriptionTask: string | null;
     duration: number | null;
@@ -76,7 +73,6 @@ export declare namespace MDAU {
     actors: string[]; // crewAssigned in AEGIS
     enabled: boolean;
     updatedAt: number;
-    rexUuid?: string;
   };
 
   type MdauRex = {
@@ -121,8 +117,8 @@ export declare namespace MDAU {
     /**
      * Just the non-REX info from activities
      */
-    maestroActivityPropertiesByRefUuid: {
-      [refUuid: string]: {
+    maestroActivityProperties: {
+      [uuid: string]: {
         /**
          * Hex color for the activity
          */
@@ -139,22 +135,22 @@ export declare namespace MDAU {
     /**
      * Station activities/sequence items
      */
-    stationEntriesByRefUuid: {
-      [stationOrTraverseRefUuid: string]: AegisActivityEntry;
+    stationEntries: {
+      [stationOrTraverseUuid: string]: AegisActivityEntry;
     };
 
     /**
      * Traverse activities/sequence items
      */
-    traverseEntriesByRefUuid: {
-      [stationOrTraverseRefUuid: string]: AegisActivityEntry;
+    traverseEntries: {
+      [stationOrTraverseUuid: string]: AegisActivityEntry;
     };
 
     /**
      * Data from steps with AEGIS Action fields
      */
-    actionEntriesByRefUuid: {
-      [actionRefUuid: string]: {
+    actionEntries: {
+      [actionUuid: string]: {
         rexStatus: AegisRexStatus;
 
         /**
@@ -177,19 +173,19 @@ export declare namespace MDAU {
 
   type MaestroDataAegisUses = {
     aegisStations?: {
-      [stationRefUuid: string]: MdauStation;
+      [stationUuid: string]: MdauStation;
     };
 
     aegisTraverse?: {
-      [traverseRefUuid: string]: MdauTraverse;
+      [traverseUuid: string]: MdauTraverse;
     };
 
     aegisEva?: {
-      [evaRefUuid: string]: MdauEva;
+      [evaUuid: string]: MdauEva;
     };
 
     aegisAction?: {
-      [actionRefUuid: string]: MdauAction;
+      [actionUuid: string]: MdauAction;
     };
     aegisRexes?: {
       [rexUuid: string]: MdauRex;

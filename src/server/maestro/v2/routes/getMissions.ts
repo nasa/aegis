@@ -6,7 +6,18 @@ import express from "express";
 import { serverLogger } from "utils/logging/serverLogger";
 import { emssTokenIsValid } from "utils/permissions";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
-import type { MissionsWithEvas } from "server/maestro/v2/types/socketioRequests";
+
+// used in getMissions maestro route
+export type MissionsWithEvas = {
+  [missionId: number]: {
+    missionName: string;
+    missionActionSystemVersion: number;
+    evas: {
+      uuid: string;
+      evaName: string;
+    }[];
+  };
+};
 
 const router = express.Router();
 
@@ -68,7 +79,7 @@ export async function getMissionsData(): Promise<MissionsWithEvas> {
       missionName: mission.name,
       missionActionSystemVersion: mission.actionSystemVersion,
       evas: asPlannedEvas.map((e) => ({
-        refUuid: e.refUuid,
+        uuid: e.uuid,
         evaName: e.name,
       })),
     };
