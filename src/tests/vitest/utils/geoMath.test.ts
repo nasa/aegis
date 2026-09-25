@@ -29,6 +29,10 @@ describe("Geomath Functions", () => {
     expect(getDistanceBetweenTwoCoordinates(point, point, 0)).toBe(0);
   });
 
+  test("returns null if point not given", () => {
+    expect(getGridCoordinatesFromPoint(null, 1737400, true, undefined, true)).toBe(null);
+  });
+
   describe("getDistanceBetweenTwoCoordinates", () => {
     test("should correctly calculate distance between two points", () => {
       const point1: AEGISPoint = { lat: 37.7749, lng: -122.4194 }; // San Francisco

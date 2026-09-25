@@ -119,14 +119,21 @@ const Info_Panel: FunctionComponent<{
     });
   }, [docMaps, selectedStation]);
 
-  const countEvasUsingThisStation = useMissionDocSelector((mission) => {
+  const evasUsingThisStation = useMissionDocSelector((mission) => {
     let numEvas = 0;
+    let evaNamesTooltip = "";
+    const evaNames: string[] = [];
+
     Object.values(mission?.evas ?? {}).forEach((eva) => {
       if (eva.sequence.some((sequenceItem) => sequenceItem.uuid === selectedStationUuid)) {
         numEvas++;
+        evaNames.push(eva.name);
       }
     });
-    return numEvas;
+    if (evaNames.length > 0) {
+      evaNamesTooltip += evaNames.join(", ");
+    }
+    return { numEvas, evaNamesTooltip };
   }, refEqual);
 
   const calculatedFields = useMemo(() => {
@@ -449,9 +456,14 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>EVAs Using this Station:</div>
                     </div>
-                    <div className={paneStyles.panelColumnTableCell}>
+                    <div
+                      className={paneStyles.panelColumnTableCell}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-content={evasUsingThisStation.evaNamesTooltip}
+                      data-tooltip-hidden={evasUsingThisStation.numEvas === 0}
+                    >
                       <div className={paneStyles.displayFieldValue}>
-                        {countEvasUsingThisStation}
+                        {evasUsingThisStation.numEvas}
                       </div>
                     </div>
                   </div>
