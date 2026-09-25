@@ -456,13 +456,13 @@ const Info_Panel: FunctionComponent<{
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldLabel}>EVAs Using this Station:</div>
                     </div>
-                    <div
-                      className={paneStyles.panelColumnTableCell}
-                      data-tooltip-id="aegis-tooltip"
-                      data-tooltip-content={evasUsingThisStation.evaNamesTooltip}
-                      data-tooltip-hidden={evasUsingThisStation.numEvas === 0}
-                    >
-                      <div className={paneStyles.displayFieldValue}>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div
+                        className={paneStyles.displayFieldValue}
+                        data-tooltip-id="aegis-tooltip"
+                        data-tooltip-content={evasUsingThisStation.evaNamesTooltip}
+                        data-tooltip-hidden={evasUsingThisStation.numEvas === 0}
+                      >
                         {evasUsingThisStation.numEvas}
                       </div>
                     </div>
