@@ -34,13 +34,23 @@ const GroupDetail: React.FunctionComponent = () => {
   const loadAll = useCallback(async () => {
     if (!groupId) return;
 
-    const [groupsRes, membersRes, missionsRes, grantsRes] = await Promise.all([
+    const responses = await Promise.all([
       getUserGroups(),
       getGroupMembers(groupId),
       getMissionHomepageItems(true),
       getGroupMissionGrants(groupId),
     ]);
 
+    // A failed request would otherwise render as an empty page, which on a permissions screen
+    // reads as "this group grants nothing" rather than "we could not find out".
+    const failure = responses.find((response) => response.status !== "success");
+    if (failure) {
+      setError(failure.message ?? "Failed to load this group.");
+      return;
+    }
+    setError(null);
+
+    const [groupsRes, membersRes, missionsRes, grantsRes] = responses;
     const found = (groupsRes.data ?? []).find((g) => g.id === groupId) ?? null;
     setGroup(found);
     setName(found?.name ?? "");

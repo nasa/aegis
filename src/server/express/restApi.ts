@@ -87,7 +87,7 @@ app.get("/api/v1/version", (req, res) => {
 });
 
 // Return server time for the emss dashboard
-app.use("/api/v1/time", (req, res) => {
+app.get("/api/v1/time", (req, res) => {
   res.set("Cache-Control", "no-store");
   res.send({ time: new Date().toISOString() });
 });

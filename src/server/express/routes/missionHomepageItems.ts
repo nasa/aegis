@@ -17,7 +17,18 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
 
   // Do not return an unauthorized response from this endpoint. If a user has no permissions
-  // just return an empty list
+  // just return an empty list. Log it because this shouldn't happen and also
+  // an empty list is also what a broken auth middleware produces
+  if (!seesEverything && viewableMissions.length === 0) {
+    serverLogger.apiRoute({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 200,
+      routeName: "missionHomepageItems",
+      appUsername: logUsername(req.currentUser),
+      message: "Caller holds no mission grants; returning an empty list",
+    });
+  }
 
   try {
     // A super user holds no explicit permissions, so null here means every mission.

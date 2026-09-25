@@ -41,12 +41,22 @@ const MissionPermissions: React.FunctionComponent = () => {
   const loadAll = useCallback(async () => {
     if (!missionId) return;
 
-    const [accessRes, groupsRes, missionsRes] = await Promise.all([
+    const responses = await Promise.all([
       getUserAccessForMission(missionId),
       getUserGroups(),
       getMissionHomepageItems(true),
     ]);
 
+    // A failed request would otherwise render as an empty page, which on a permissions screen
+    // reads as "nobody can reach this mission" rather than "we could not find out".
+    const failure = responses.find((response) => response.status !== "success");
+    if (failure) {
+      setError(failure.message ?? "Failed to load the permissions for this mission.");
+      return;
+    }
+    setError(null);
+
+    const [accessRes, groupsRes, missionsRes] = responses;
     setSummary(accessRes.data ?? null);
     setGroups(groupsRes.data ?? []);
     setMissionName((missionsRes.data ?? []).find((m) => m.id === missionId)?.name ?? "");

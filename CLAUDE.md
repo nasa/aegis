@@ -283,30 +283,30 @@ Identity comes from Launchpad (EMSS OAuth2 proxy); AEGIS never stores passwords.
 
 - One row per Launchpad identity, created by `recordLogin` on the first authenticated request and refreshed on every request afterwards. The pool therefore grows on its own — a row records who has visited, not a grant of anything.
 - **The row is never removed by a permission change.** Revoking a user's last grant leaves it in place. This is what makes `app_user_db.id` stable enough to use as `ownerId` on entities (EVA, POI, REX, station, preset) — a row that came and went with grants would leave those foreign keys pointing at a dead id.
-- The presence of a row is **not** a permission. Check `CurrentUser.grants` / `apiHasPerms`, never the existence of the row.
+- The presence of a row is **not** a permission. Check `CurrentUser.permissions` / `apiHasPerms`, never the existence of the row.
 - A user with no grants can still reach every public mission, since the public baseline is union-ed into everyone's access.
 - **Whether a user has permissions** — holds at least one grant or membership — is computed per request in the `appUsers` list route, not stored. `GET /api/v1/appUsers?withPermissionsOnly=true` narrows the list to those users; the default includes everyone.
 - **There is no delete endpoint for app users, and one must not be added.** Removing a row accomplishes nothing: the identity reappears with a new id on its next authenticated request, and every entity that referenced the old id is left dangling. Access is taken away by revoking grants (`DELETE /api/v1/missionPermission`) and group memberships (`POST /api/v1/userGroup/member` with `action: "remove"`).
 
 #### Public user
 
-- One reserved row, `uupic === PUBLIC_UUPIC` (`"__public__"`, in `src/utils/permissionLevels.ts`), `isSystem: true`, `displayName` "Public".
+- One reserved row, `uupic === PUBLIC_UUPIC` (`"__public__"`, in `src/utils/permissionsClient.ts`), `isSystem: true`, `displayName` "Public".
 - It is a **shared principal, not a person**. It has no Launchpad identity and never logs in.
-- Grants held by the Public user form the **public baseline**: they are union-ed into every authenticated caller's resolved access in `resolveGrants`, giving `source: "public"`.
+- Grants held by the Public user form the **public baseline**: they are union-ed into every authenticated caller's resolved access in `resolvePermissions`, giving `source: "public"`.
 - **Capped at `viewer`.** The grant endpoint rejects any other level, on create and on update alike. This cap is what makes the union safe — the Public user can widen who sees a mission but can never hand out edit rights.
 - Special-cased in two places: it cannot be deleted, and it cannot join a group (membership would make the baseline union recursive). Any new code touching app users must preserve both.
 - Everything it grants is listed on its own user-detail page under `/admin/user`, where it is pinned to the top of the list. There is no separate public-missions page.
 
 #### super user
 
-- Derived entirely from the Launchpad token's NAMS roles — `AEGIS-Superuser` or `EMSS-Superuser`, checked by `isLaunchpadSuperUser` in `src/utils/permissionLevels.ts`. **The super-user role is never stored in AEGIS**, so there is no group to seed, no bootstrap endpoint, and no lockout risk on a fresh deployment. It is also not cached on `CurrentUser` or in Redux — every consumer re-derives it from the token, so there is only ever one source of truth.
+- Derived entirely from the Launchpad token's NAMS roles — `AEGIS-Superuser` or `EMSS-Superuser`, checked by `isLaunchpadSuperUser` in `src/utils/permissionsClient.ts`. **The super-user role is never stored in AEGIS**, so there is no group to seed, no bootstrap endpoint, and no lockout risk on a fresh deployment. It is also not cached on `CurrentUser` or in Redux — every consumer re-derives it from the token, so there is only ever one source of truth.
 - Confers **implicit `edit` on every mission** plus access to every `/admin/*` route and every super-user-only endpoint. A super user holds **no grant rows**, so `CurrentUser.permissions` is deliberately **empty** for them and `missionIdsAtLevel` returns `[]` — any caller enumerating missions must branch on super-user status first.
-- Server-side check: `apiHasSuperUserOrToken(req.currentUser)` from `src/utils/permissions.ts`, which derives the role from `currentUser.launchpadUser` and also returns true for a valid EMSS machine-to-machine token. Client-side: `isLaunchpadSuperUser(state.user.launchpadUser)`, with `<RequireSuperUser>` in `src/App.tsx` gating every admin route.
+- Server-side check: `apiHasSuperUserOrToken(req.currentUser)` from `src/utils/permissionsServer.ts`, which derives the role from `currentUser.launchpadUser` and also returns true for a valid EMSS machine-to-machine token. Client-side: `isLaunchpadSuperUser(state.user.launchpadUser)`, with `<RequireSuperUser>` in `src/App.tsx` gating every admin route.
 - `roles` may arrive as a bare string rather than an array, so `isLaunchpadSuperUser` normalizes before comparing. Comparing against the unnormalized value would substring-match.
 
 #### Permission levels
 
-Per-mission only; there are no global levels. Ordered as a pyramid — each level includes everything below it: `viewer` (1) < `editPartial` (2) < `edit` (3). Compare with `meetsPermLevel`, never with string equality or by hand-rolling the ranking. A grant targets **either** a user **or** a group, never both. Effective level is the **highest** across the user's direct grants, their groups' grants, and the public baseline (`max(rank)` in `resolveGrants`).
+Per-mission only; there are no global levels. Ordered as a pyramid — each level includes everything below it: `viewer` (1) < `editPartial` (2) < `edit` (3). Compare with `meetsPermLevel`, never with string equality or by hand-rolling the ranking. A grant targets **either** a user **or** a group, never both. Effective level is the **highest** across the user's direct grants, their groups' grants, and the public baseline (`max(rank)` in `resolvePermissions`).
 
 Note the resolver returns only the winning level per mission, because that is all authorization needs. The admin API deliberately does not: `GET /api/v1/missionPermission?userId=` returns **every** contributing grant with an `isEffective` flag, so the UI can show a direct grant that a group currently out-ranks.
 

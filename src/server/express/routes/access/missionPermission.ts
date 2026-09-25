@@ -132,9 +132,12 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     // Every mission one user can reach. All contributions are returned, not just the winner,
     // so the admin UI can show a direct grant that a group currently out-ranks.
     if (userId !== undefined) {
-      const byMission = new Map<number, MissionAccessContribution[]>();
+      // `isEffective` is decided once every contribution for a mission is known, so it is not
+      // carried while collecting.
+      type PendingContribution = Omit<MissionAccessContribution, "isEffective">;
+      const byMission = new Map<number, PendingContribution[]>();
 
-      const add = (missionIdKey: number, contribution: MissionAccessContribution): void => {
+      const add = (missionIdKey: number, contribution: PendingContribution): void => {
         const existing = byMission.get(missionIdKey);
         if (existing) existing.push(contribution);
         else byMission.set(missionIdKey, [contribution]);
@@ -146,7 +149,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
           source: "direct",
           permLevel: grant.permLevel,
           notes: grant.notes,
-          isEffective: false,
         });
       }
 
@@ -162,7 +164,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
             groupId: grant.groupId,
             groupName: groups.find((g) => g.id === grant.groupId)?.name,
             notes: grant.notes,
-            isEffective: false,
           });
         }
       }
@@ -176,22 +177,26 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
             source: "public",
             permLevel: grant.permLevel,
             notes: grant.notes,
-            isEffective: false,
           });
         }
       }
 
+      // The highest level present is the one enforced. Every contribution holding it is flagged,
+      // since two sources can tie and the UI shows all of them.
       const data: ResolvedMissionAccess[] = [...byMission.entries()].map(
-        ([resolvedMissionId, contributions]) => {
-          const topRank = Math.max(...contributions.map((c) => PERMISSION_RANK[c.permLevel]));
-          for (const contribution of contributions) {
-            contribution.isEffective = PERMISSION_RANK[contribution.permLevel] === topRank;
-          }
-          const effective = contributions.find((c) => c.isEffective);
+        ([resolvedMissionId, pending]) => {
+          const topRank = Math.max(...pending.map((c) => PERMISSION_RANK[c.permLevel]));
+          const effectivePermLevel = pending.find(
+            (c) => PERMISSION_RANK[c.permLevel] === topRank
+          ).permLevel;
+
           return {
             missionId: resolvedMissionId,
-            effectivePermLevel: effective.permLevel,
-            contributions,
+            effectivePermLevel,
+            contributions: pending.map((contribution) => ({
+              ...contribution,
+              isEffective: PERMISSION_RANK[contribution.permLevel] === topRank,
+            })),
           };
         }
       );

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
 import express from "express";
+import { sql } from "@mikro-orm/postgresql";
 
 import {
   Mission_Permission_db,
@@ -44,18 +45,32 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const em = globalValues.orm.em;
-    const groups = await em.find(User_Group_db, groupId ? { id: groupId } : {}, {
-      orderBy: { name: "asc" },
-    });
 
-    const summaries: UserGroupSummary[] = [];
-    for (const group of groups) {
-      summaries.push({
-        ...toStore(group),
-        memberCount: await em.count(User_Group_Member_db, { groupId: group.id }),
-        missionCount: await em.count(Mission_Permission_db, { groupId: group.id }),
-      });
-    }
+    //Use correlated subqueries so there's only one trip to the server
+    const rows = await em
+      .createQueryBuilder(User_Group_db, "ug")
+      .select([
+        "ug.*",
+        em
+          .createQueryBuilder(User_Group_Member_db, "ugm")
+          .count()
+          .where({ groupId: sql.ref("ug.id") })
+          .as("member_count"),
+        em
+          .createQueryBuilder(Mission_Permission_db, "mp")
+          .count()
+          .where({ groupId: sql.ref("ug.id") })
+          .as("mission_count"),
+      ])
+      .where(groupId ? { id: groupId } : {})
+      .orderBy({ name: "asc" })
+      .execute<(User_Group_db & { member_count: string; mission_count: string })[]>("all");
+
+    const summaries: UserGroupSummary[] = rows.map((row) => ({
+      ...toStore(row),
+      memberCount: Number(row.member_count),
+      missionCount: Number(row.mission_count),
+    }));
 
     res.status(200).json({ status: "success", message: "Groups retrieved", data: summaries });
   } catch (e) {

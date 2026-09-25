@@ -45,13 +45,23 @@ const UserDetail: React.FunctionComponent = () => {
   const loadAll = useCallback(async () => {
     if (!userId) return;
 
-    const [usersRes, accessRes, membershipRes, missionsRes] = await Promise.all([
+    const responses = await Promise.all([
       getAppUsers({ userId }),
       getUserAccessForAllMissions(userId),
       getGroupsForUser(userId),
       getMissionHomepageItems(true),
     ]);
 
+    // A failed request would otherwise render as an empty page, which on a permissions screen
+    // reads as "this user holds nothing" rather than "we could not find out".
+    const failure = responses.find((response) => response.status !== "success");
+    if (failure) {
+      setError(failure.message ?? "Failed to load this user.");
+      return;
+    }
+    setError(null);
+
+    const [usersRes, accessRes, membershipRes, missionsRes] = responses;
     setUser((usersRes.data ?? [])[0] ?? null);
     setAccess(accessRes.data ?? []);
     setMemberGroups(membershipRes.data ?? []);
@@ -145,7 +155,20 @@ const UserDetail: React.FunctionComponent = () => {
     );
   };
 
-  if (!user) return null;
+  // There is nothing to render without the user, but the failure that caused it has to stay
+  // visible rather than becoming a blank page.
+  if (!user) {
+    return (
+      <main className={adminCommon.page}>
+        <div className={adminCommon.container}>
+          <Link to="/admin/user" className={adminCommon.backLink}>
+            ← Users
+          </Link>
+          <div className={adminCommon.statusMessage}>{error ?? "Loading…"}</div>
+        </div>
+      </main>
+    );
+  }
 
   // Missions the user cannot reach at all are noise on a permissions page, so they are hidden
   // until the admin wants to grant one.
