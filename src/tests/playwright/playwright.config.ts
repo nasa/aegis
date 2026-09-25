@@ -4,10 +4,19 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const storageStatePath = path.resolve(__dirname, "../../../.local/playwright/auth.json");
 
 // Smoke tests are read-only and parallelize cleanly.
 const SMOKE_TESTS = /(mapOl|dashboardOl)\.spec\.ts/;
+
+/**
+ * Identity for every request the tests make. *
+ * Use literals here rather than imports so the config does not pull server-side auth code into the
+ * Playwright process.
+ */
+const mockUserHeaders = {
+  "x-override-mock-uupic": "playwright",
+  "x-override-mock-roles": "AEGIS-Superuser",
+};
 
 export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
@@ -40,6 +49,8 @@ export default defineConfig({
     headless: true, // Ensure headless mode is enabled
     viewport: { width: 1960, height: 1080 }, // Set screen resolution
 
+    extraHTTPHeaders: mockUserHeaders,
+
     // Collect trace when retrying the failed test.
     trace: "on-first-retry",
   },
@@ -47,32 +58,19 @@ export default defineConfig({
   // Configure projects for major browsers.
   // chromium runs everything; firefox/webkit run smoke only
   projects: [
-    { name: "auth", testMatch: /.*\.auth\.ts/ },
     {
       name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-        storageState: storageStatePath,
-      },
-      dependencies: ["auth"],
+      use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "firefox",
       testMatch: SMOKE_TESTS,
-      use: {
-        ...devices["Desktop Firefox"],
-        storageState: storageStatePath,
-      },
-      dependencies: ["auth"],
+      use: { ...devices["Desktop Firefox"] },
     },
     {
       name: "webkit",
       testMatch: SMOKE_TESTS,
-      use: {
-        ...devices["Desktop Safari"],
-        storageState: storageStatePath,
-      },
-      dependencies: ["auth"],
+      use: { ...devices["Desktop Safari"] },
     },
   ],
   // Run dev server before starting the tests.
