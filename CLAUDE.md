@@ -295,7 +295,7 @@ Identity comes from Launchpad (EMSS OAuth2 proxy); AEGIS never stores passwords.
 - Grants held by the Public user form the **public baseline**: they are union-ed into every authenticated caller's resolved access in `resolveGrants`, giving `source: "public"`.
 - **Capped at `viewer`.** The grant endpoint rejects any other level, on create and on update alike. This cap is what makes the union safe — the Public user can widen who sees a mission but can never hand out edit rights.
 - Special-cased in two places: it cannot be deleted, and it cannot join a group (membership would make the baseline union recursive). Any new code touching app users must preserve both.
-- `/admin/publicMissions` lists everything it grants.
+- Everything it grants is listed on its own user-detail page under `/admin/user`, where it is pinned to the top of the list. There is no separate public-missions page.
 
 #### super user
 
@@ -326,17 +326,16 @@ There is no promotion or demotion. Granting or revoking a permission only writes
 
 All routes are super-user-only.
 
-| Route                                               | Returns                                                                                                          |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `GET /api/v1/appUsers?search=&withPermissionsOnly=` | Users with group/mission counts and derived `hasPermissions`. Counts are computed in one SQL query, not per row. |
-| `GET /api/v1/missionPermission?missionId=`          | Every subject holding a grant, with each group's members expanded, plus `isPublic` and `publicUserId`.           |
-| `GET /api/v1/missionPermission?userId=`             | Every reachable mission with **all** contributions and `effectivePermLevel`.                                     |
-| `GET /api/v1/missionPermission?groupId=`            | One group's grants, in a single request.                                                                         |
-| `GET /api/v1/missionPermission?public=true`         | Every mission the Public user grants.                                                                            |
-| `GET /api/v1/userGroup/member?groupId=`             | A group's members.                                                                                               |
-| `GET /api/v1/userGroup/member?userId=`              | The groups one user belongs to.                                                                                  |
+| Route                                               | Returns                                                                                                                                                   |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/appUsers?search=&withPermissionsOnly=` | Users with derived `hasPermissions`. Grant and membership counts are rolled up in one SQL query, not per row, and only the resulting boolean is returned. |
+| `GET /api/v1/missionPermission?missionId=`          | Every subject holding a grant, with each group's members expanded, plus `isPublic` and `publicUserId`.                                                    |
+| `GET /api/v1/missionPermission?userId=`             | Every reachable mission with **all** contributions and `effectivePermLevel`.                                                                              |
+| `GET /api/v1/missionPermission?groupId=`            | One group's grants, in a single request.                                                                                                                  |
+| `GET /api/v1/userGroup/member?groupId=`             | A group's members.                                                                                                                                        |
+| `GET /api/v1/userGroup/member?userId=`              | The groups one user belongs to.                                                                                                                           |
 
-`notes` on a grant or group is free text capped at 2000 characters, never used in a permission decision, and discarded when the grant is revoked. It is surfaced and editable on the user-detail, mission-permissions, group-detail, and public-missions admin pages.
+`notes` on a grant is free text capped at 2000 characters, never used in a permission decision, and discarded when the grant is revoked. It is surfaced and editable on the user-detail, mission-permissions, and group-detail admin pages. A group carries the equivalent free text on `description` instead, under the same 2000-character cap; `user_group_db` has no `notes` column.
 
 ## Technology Stack
 

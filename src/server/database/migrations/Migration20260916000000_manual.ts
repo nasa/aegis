@@ -57,7 +57,6 @@ export class Migration20260916000000_manual extends Migration {
         "id" serial primary key,
         "name" text not null,
         "description" text null,
-        "notes" text null,
         "created_at" double precision not null,
         "updated_at" double precision not null,
         "version" int not null default 1

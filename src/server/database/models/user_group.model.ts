@@ -13,7 +13,6 @@ export const User_Group_dbSchema = defineEntity({
     id: p.integer().autoincrement().primary(),
     name: p.text().unique(),
     description: p.text().nullable(),
-    notes: p.text().nullable(),
     members: () => p.oneToMany(UserGroupMemberEntity).mappedBy("groupId"),
     missionPermissions: () => p.oneToMany(MissionPermissionEntity).mappedBy("groupId"),
     createdAt: p.double().$type<number>(),

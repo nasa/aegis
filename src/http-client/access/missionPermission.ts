@@ -30,11 +30,6 @@ export async function getGroupMissionGrants(
   );
 }
 
-/** Every mission visible to every signed-in user through the public baseline. */
-export async function getPublicMissions(): Promise<WrappedResponse<PublicMission[]>> {
-  return checkResponse<PublicMission[]>(await fetch(`/api/v1/missionPermission?public=true`));
-}
-
 export async function upsertMissionPermission(
   body: MissionPermissionGrantRequest
 ): Promise<WrappedResponse<number>> {

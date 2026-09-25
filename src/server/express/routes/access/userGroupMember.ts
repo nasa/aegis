@@ -71,7 +71,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
         id: group.id,
         name: group.name,
         description: group.description,
-        notes: group.notes,
         createdAt: group.createdAt,
         updatedAt: group.updatedAt,
       }));

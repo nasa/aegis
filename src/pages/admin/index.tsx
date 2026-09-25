@@ -72,11 +72,6 @@ const Index: React.FunctionComponent = () => {
                 description="Manage groups, their members, and the missions each group can reach."
               />
               <NavCard
-                to="/admin/publicMissions"
-                title="Public Missions"
-                description="Review which missions every signed-in user can view."
-              />
-              <NavCard
                 to="/admin/serverSocketStatus"
                 title="Visitor Activity"
                 description="Real-time monitoring of all connected visitors organized by mission."

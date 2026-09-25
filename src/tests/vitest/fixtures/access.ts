@@ -71,7 +71,6 @@ export const upsertGroup = async (em: EntityManager, name: string): Promise<User
   const group = em.create(User_Group_db, {
     name,
     description: null,
-    notes: null,
     createdAt: now,
     updatedAt: now,
   });

@@ -24,13 +24,11 @@ const NOTES_MAX_LENGTH = 2000;
  *   ?missionId= every user and group holding a grant on this mission, group members expanded
  *   ?userId=    every mission this user can reach, with all contributing grants
  *   ?groupId=   every mission this group grants
- *   ?public=true every mission the reserved Public user can reach
  */
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const missionId = req.query.missionId ? parseInt(req.query.missionId as string, 10) : undefined;
   const userId = req.query.userId ? parseInt(req.query.userId as string, 10) : undefined;
   const groupId = req.query.groupId ? parseInt(req.query.groupId as string, 10) : undefined;
-  const publicOnly = req.query.public === "true";
 
   if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
@@ -46,18 +44,18 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  if (missionId === undefined && userId === undefined && groupId === undefined && !publicOnly) {
+  if (missionId === undefined && userId === undefined && groupId === undefined) {
     serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
       routeName: "missionPermission",
       appUsername: logUsername(req.currentUser),
-      message: "One of missionId, userId, groupId or public must be supplied",
+      message: "One of missionId, userId or groupId must be supplied",
     });
     res.status(400).json({
       status: "failure",
-      message: "One of missionId, userId, groupId or public must be supplied",
+      message: "One of missionId, userId or groupId must be supplied",
     });
     return;
   }
@@ -195,35 +193,20 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     // Every mission one group grants, in a single request rather than one per mission.
-    if (groupId !== undefined) {
-      const grants = await em.find(Mission_Permission_db, { groupId });
-      const data: MissionPermission[] = grants.map((grant) => ({
-        id: grant.id,
-        missionId: grant.missionId,
-        userId: grant.userId,
-        groupId: grant.groupId,
-        permLevel: grant.permLevel,
-        notes: grant.notes,
-        grantedBy: grant.grantedBy,
-        createdAt: grant.createdAt,
-        updatedAt: grant.updatedAt,
-      }));
-
-      res.status(200).json({ status: "success", message: "Group access retrieved", data });
-      return;
-    }
-
-    // Every public mission, for the admin view that answers "what is visible to everyone?".
-    const publicUser = await em.findOne(App_User_db, { uupic: PUBLIC_UUPIC });
-    const publicGrants = publicUser
-      ? await em.find(Mission_Permission_db, { userId: publicUser.id })
-      : [];
-    const data: PublicMission[] = publicGrants.map((grant) => ({
+    const grants = await em.find(Mission_Permission_db, { groupId });
+    const data: MissionPermission[] = grants.map((grant) => ({
+      id: grant.id,
       missionId: grant.missionId,
+      userId: grant.userId,
+      groupId: grant.groupId,
+      permLevel: grant.permLevel,
       notes: grant.notes,
+      grantedBy: grant.grantedBy,
+      createdAt: grant.createdAt,
+      updatedAt: grant.updatedAt,
     }));
 
-    res.status(200).json({ status: "success", message: "Public missions retrieved", data });
+    res.status(200).json({ status: "success", message: "Group access retrieved", data });
   } catch (e) {
     serverLogger.apiRoute({
       logLevel: "error",

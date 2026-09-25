@@ -373,10 +373,54 @@
   color: #64748b;
 }
 
+/* Multi-line variant of .formInput, for free text that needs more room than a single line */
+.formTextarea {
+  width: 100%;
+  min-height: 62px;
+  padding: 8px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-bg);
+  color: #e2e8f0;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.formTextarea:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgb(96 165 250 / 20%);
+}
+
+.formTextarea::placeholder {
+  color: #64748b;
+}
+
+.formTextarea:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: #64748b;
+}
+
 .formActions {
   display: flex;
   gap: 12px;
   margin-top: 8px;
+}
+
+/* An input paired with its submit button on one line */
+.inlineFormRow {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.inlineFormRow .formInput {
+  flex: 1;
 }
 
 .buttonCancel {
@@ -447,6 +491,27 @@
 
 .table tbody tr:hover {
   background: rgb(255 255 255 / 3%);
+}
+
+/* Column that absorbs the leftover horizontal space, squeezing the others to their content */
+.tableColumnFill {
+  width: 100%;
+}
+
+/* Header of a column the user can sort by */
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortableHeader:hover {
+  color: #ffffff;
+}
+
+.sortIndicator {
+  margin-left: 6px;
+  color: #60a5fa;
 }
 
 /* Collapsible Section */

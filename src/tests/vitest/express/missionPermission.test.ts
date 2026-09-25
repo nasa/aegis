@@ -145,19 +145,6 @@ describe("GET /api/v1/missionPermission", () => {
     expect(grants.map((g) => g.missionId)).toEqual([missions[0].missionId]);
     expect(grants[0].permLevel).toBe("edit");
   });
-
-  test("?public=true lists the missions visible to everyone", async () => {
-    const res = await supertest(app)
-      .get("/api/v1/missionPermission")
-      .set(asSuperUser(SUPER_UUPIC))
-      .query({ public: "true" });
-
-    expect(res.statusCode).toBe(200);
-    const publicMissions = res.body.data as PublicMission[];
-    const own = publicMissions.filter((m) => m.missionId === missions[0].missionId);
-    expect(own).toHaveLength(1);
-    expect(own[0].notes).toBe("vitest public note");
-  });
 });
 
 describe("POST /api/v1/missionPermission", () => {

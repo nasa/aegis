@@ -174,7 +174,6 @@ type UserGroupUpsertRequest = {
   groupId?: number;
   name?: string;
   description?: string | null;
-  notes?: string | null;
 };
 
 type UserGroupDeleteRequest = {

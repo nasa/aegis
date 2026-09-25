@@ -72,14 +72,8 @@ interface MissionAccessSummary {
   publicUserId: number | null;
 }
 
-/** A mission the Public user can reach, for the public-missions admin view. */
-interface PublicMission {
-  missionId: number;
-  notes: string | null;
-}
-
 /**
- * Every Launchpad identity that has authenticated at least once, plus the reserved Public user.
+ * The database table. Every Launchpad identity that has authenticated at least once, plus the reserved Public user.
  * A row exists from first login onward regardless of whether the user holds any permission, so
  * `id` is stable and safe to reference as `ownerId`. Identity fields mirror the Launchpad token.
  */
@@ -95,13 +89,9 @@ interface AppUser {
 }
 
 /**
- * User list row with the counts the admin grid shows. `hasPermissions` is derived rather than
- * stored: a row exists for everyone who has logged in, so it is the counts that distinguish a
- * user with permissions from one who has merely visited.
+ * User list row. `hasPermissions` is derived rather than stored
  */
 interface AppUserSummary extends AppUser {
-  groupCount: number;
-  missionCount: number;
   /** True when the user holds at least one grant or membership, or is reserved. */
   hasPermissions: boolean;
 }
@@ -111,7 +101,6 @@ interface UserGroup {
   id: number;
   name: string;
   description: string | null;
-  notes: string | null;
   createdAt: number;
   updatedAt: number;
 }

@@ -20,14 +20,14 @@ const GroupDetail: React.FunctionComponent = () => {
 
   const [group, setGroup] = useState<UserGroupSummary | null>(null);
   const [members, setMembers] = useState<AppUser[]>([]);
-  const [candidates, setCandidates] = useState<AppUserSummary[]>([]);
+  // Null until a search has been submitted, so "no results" reads differently from "not searched".
+  const [candidates, setCandidates] = useState<AppUserSummary[] | null>(null);
   const [search, setSearch] = useState("");
   const [missions, setMissions] = useState<MissionHomepageItem[]>([]);
   const [grants, setGrants] = useState<MissionPermission[]>([]);
   const [showAllMissions, setShowAllMissions] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [notes, setNotes] = useState("");
   const [grantNotesDraft, setGrantNotesDraft] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +45,6 @@ const GroupDetail: React.FunctionComponent = () => {
     setGroup(found);
     setName(found?.name ?? "");
     setDescription(found?.description ?? "");
-    setNotes(found?.notes ?? "");
     setMembers(membersRes.data ?? []);
     setMissions(missionsRes.data ?? []);
     setGrants(grantsRes.data ?? []);
@@ -56,9 +55,10 @@ const GroupDetail: React.FunctionComponent = () => {
     loadAll();
   }, [loadAll]);
 
-  useEffect(() => {
-    getAppUsers({ search }).then((res) => setCandidates(res.data ?? []));
-  }, [search]);
+  const handleSearch = async () => {
+    const response = await getAppUsers({ search: search.trim() });
+    setCandidates(response.data ?? []);
+  };
 
   const apply = async (response: WrappedResponse<unknown>, failureMessage: string) => {
     if (response.status !== "success") {
@@ -76,7 +76,6 @@ const GroupDetail: React.FunctionComponent = () => {
         groupId,
         name: name.trim() || undefined,
         description: description.trim() || null,
-        notes: notes.trim() || null,
       }),
       "Error saving the group."
     );
@@ -87,6 +86,8 @@ const GroupDetail: React.FunctionComponent = () => {
       await setGroupMembership({ groupId, userId, action }),
       "Error updating group membership."
     );
+    // Drop the result list so an added user cannot be added twice from a now-stale row.
+    if (action === "add") setCandidates(null);
   };
 
   const grantFor = (missionId: number): MissionPermission | undefined =>
@@ -123,6 +124,10 @@ const GroupDetail: React.FunctionComponent = () => {
   if (!group) return null;
 
   const memberIds = new Set(members.map((m) => m.id));
+  // Public is a shared principal, not a person; membership would make the baseline union recursive.
+  const searchResults = (candidates ?? [])
+    .filter((c) => !memberIds.has(c.id) && c.uupic !== PUBLIC_UUPIC)
+    .slice(0, 20);
   const visibleMissions = showAllMissions ? missions : missions.filter((m) => !!grantFor(m.id));
 
   return (
@@ -158,25 +163,14 @@ const GroupDetail: React.FunctionComponent = () => {
                 <label className={adminCommon.formLabel} htmlFor="groupDescription">
                   Description
                 </label>
+                <span className={adminCommon.formHint}>
+                  Why this group exists. Documentation only; never used in a permission decision.
+                </span>
                 <input
                   id="groupDescription"
                   className={adminCommon.formInput}
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
-                />
-              </div>
-              <div className={adminCommon.formGroup}>
-                <label className={adminCommon.formLabel} htmlFor="groupNotes">
-                  Notes
-                </label>
-                <span className={adminCommon.formHint}>
-                  Why this group exists. Documentation only; never used in a permission decision.
-                </span>
-                <input
-                  id="groupNotes"
-                  className={adminCommon.formInput}
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
                 />
               </div>
               <div className={adminCommon.formActions}>
@@ -238,22 +232,29 @@ const GroupDetail: React.FunctionComponent = () => {
               <span className={adminCommon.formHint}>
                 Searches everyone who has signed in at least once.
               </span>
-              <input
-                id="memberSearch"
-                className={adminCommon.formInput}
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by AUID or name"
-              />
+              <div className={adminCommon.inlineFormRow}>
+                <input
+                  id="memberSearch"
+                  className={adminCommon.formInput}
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleSearch();
+                  }}
+                  placeholder="Search by AUID or name"
+                />
+                <button type="button" className={adminCommon.buttonPrimary} onClick={handleSearch}>
+                  Search
+                </button>
+              </div>
             </div>
-            <table className={adminCommon.tableCompact}>
-              <tbody>
-                {candidates
-                  .filter((c) => !memberIds.has(c.id) && c.uupic !== PUBLIC_UUPIC)
-                  .slice(0, 20)
-                  .map((candidate) => (
+
+            {candidates !== null && (
+              <table className={adminCommon.tableCompact}>
+                <tbody>
+                  {searchResults.map((candidate) => (
                     <tr key={candidate.id}>
-                      <td>{candidate.displayName}</td>
+                      <td className={adminCommon.tableColumnFill}>{candidate.displayName}</td>
                       <td>{candidate.auid}</td>
                       <td>
                         <button
@@ -261,13 +262,21 @@ const GroupDetail: React.FunctionComponent = () => {
                           className={adminCommon.button}
                           onClick={() => handleMembership(candidate.id, "add")}
                         >
-                          Add
+                          Add To Group
                         </button>
                       </td>
                     </tr>
                   ))}
-              </tbody>
-            </table>
+                  {searchResults.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className={adminCommon.emptyState}>
+                        No users match who are not already members.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </section>
 
@@ -288,7 +297,7 @@ const GroupDetail: React.FunctionComponent = () => {
                 <tr>
                   <th>Mission</th>
                   <th>Permission Level</th>
-                  <th>Note</th>
+                  <th className={adminCommon.tableColumnFill}>Note</th>
                 </tr>
               </thead>
               <tbody>
@@ -312,8 +321,9 @@ const GroupDetail: React.FunctionComponent = () => {
                         </select>
                       </td>
                       <td>
-                        <input
-                          className={adminCommon.formInput}
+                        <textarea
+                          className={adminCommon.formTextarea}
+                          rows={3}
                           disabled={!grant}
                           value={grantNotesDraft.get(mission.id) ?? ""}
                           placeholder="Why this grant exists"

@@ -55,8 +55,9 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
 
-    // Counting with correlated subqueries rather than per row: the list is every identity that has
-    // ever signed in, so a count query per user does not scale.
+    // Counted with correlated subqueries rather than per row: the list is every identity that has
+    // ever signed in, so a count query per user does not scale. The counts themselves are not
+    // returned; only whether either is non-zero, which is what `hasPermissions` means.
     const rows = await em
       .createQueryBuilder(App_User_db, "au")
       .select([
@@ -76,21 +77,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       .orderBy({ displayName: "asc" })
       .execute<(App_User_db & { group_count: string; mission_count: string })[]>("all");
 
-    const summaries: AppUserSummary[] = rows.map((row) => {
-      const groupCount = Number(row.group_count);
-      const missionCount = Number(row.mission_count);
-      return {
-        id: row.id,
-        uupic: row.uupic,
-        auid: row.auid,
-        displayName: row.displayName,
-        isSystem: row.isSystem,
-        lastLoginAt: row.lastLoginAt != null ? Number(row.lastLoginAt) : null,
-        groupCount,
-        missionCount,
-        hasPermissions: row.isSystem || groupCount > 0 || missionCount > 0,
-      };
-    });
+    const summaries: AppUserSummary[] = rows.map((row) => ({
+      id: row.id,
+      uupic: row.uupic,
+      auid: row.auid,
+      displayName: row.displayName,
+      isSystem: row.isSystem,
+      lastLoginAt: row.lastLoginAt != null ? Number(row.lastLoginAt) : null,
+      hasPermissions: row.isSystem || Number(row.group_count) > 0 || Number(row.mission_count) > 0,
+    }));
 
     const data = withPermissionsOnly ? summaries.filter((u) => u.hasPermissions) : summaries;
 

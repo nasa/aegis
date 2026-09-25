@@ -15,7 +15,6 @@ import AdminUser from "pages/admin/user";
 import AdminUserDetail from "pages/admin/userDetail";
 import AdminGroups from "pages/admin/group";
 import AdminGroupDetail from "pages/admin/groupDetail";
-import AdminPublicMissions from "pages/admin/publicMissions";
 import AdminMissionPermissions from "pages/admin/missionPermissions";
 import ServerSocketStatus from "pages/admin/serverSocketStatus";
 import MaestroV2 from "pages/admin/maestroV2";
@@ -73,7 +72,6 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
                 <Route path="user/:id" element={<AdminUserDetail />} />
                 <Route path="group" element={<AdminGroups />} />
                 <Route path="group/:id" element={<AdminGroupDetail />} />
-                <Route path="publicMissions" element={<AdminPublicMissions />} />
                 <Route path="serverSocketStatus" element={<ServerSocketStatus />} />
                 <Route path="maestroV2" element={<MaestroV2 />} />
                 <Route path="environmentConfig" element={<EnvironmentConfig />} />

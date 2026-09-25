@@ -7,7 +7,6 @@ import {
   upsertMissionPermission,
   deleteMissionPermission,
 } from "http-client/access/missionPermission";
-import { getUserGroups } from "http-client/access/userGroup";
 import { getGroupsForUser, setGroupMembership } from "http-client/access/userGroupMember";
 import { getMissionHomepageItems } from "http-client/mission";
 import { PERMISSION_LEVELS, permissionLevelLabel, PUBLIC_UUPIC } from "utils/permissionsClient";
@@ -23,8 +22,8 @@ const contributionLabel = (contribution: MissionAccessContribution): string => {
  * One user: their group memberships and every mission they can reach.
  *
  * Every contributing grant is listed, not just the winner, so an admin can see a direct grant that
- * a group currently out-ranks. Only direct grants are editable here; group and public rows link to
- * wherever they are actually managed.
+ * a group currently out-ranks. Only direct grants are editable here; group and public rows are
+ * managed wherever they are defined, so the group list is read-only.
  */
 const UserDetail: React.FunctionComponent = () => {
   const params = useParams<{ id: string }>();
@@ -32,8 +31,7 @@ const UserDetail: React.FunctionComponent = () => {
 
   const [user, setUser] = useState<AppUserSummary | null>(null);
   const [access, setAccess] = useState<ResolvedMissionAccess[]>([]);
-  const [groups, setGroups] = useState<UserGroupSummary[]>([]);
-  const [memberGroupIds, setMemberGroupIds] = useState<number[]>([]);
+  const [memberGroups, setMemberGroups] = useState<UserGroup[]>([]);
   const [missions, setMissions] = useState<MissionHomepageItem[]>([]);
   const [showAllMissions, setShowAllMissions] = useState(false);
   const [notesDraft, setNotesDraft] = useState<Map<number, string>>(new Map());
@@ -47,18 +45,16 @@ const UserDetail: React.FunctionComponent = () => {
   const loadAll = useCallback(async () => {
     if (!userId) return;
 
-    const [usersRes, accessRes, groupsRes, membershipRes, missionsRes] = await Promise.all([
+    const [usersRes, accessRes, membershipRes, missionsRes] = await Promise.all([
       getAppUsers({ userId }),
       getUserAccessForAllMissions(userId),
-      getUserGroups(),
       getGroupsForUser(userId),
       getMissionHomepageItems(true),
     ]);
 
     setUser((usersRes.data ?? [])[0] ?? null);
     setAccess(accessRes.data ?? []);
-    setGroups(groupsRes.data ?? []);
-    setMemberGroupIds((membershipRes.data ?? []).map((g) => g.id));
+    setMemberGroups(membershipRes.data ?? []);
     setMissions(missionsRes.data ?? []);
 
     const drafts = new Map<number, string>();
@@ -117,10 +113,35 @@ const UserDetail: React.FunctionComponent = () => {
     );
   };
 
-  const handleMembershipChange = async (groupId: number, add: boolean) => {
+  /**
+   * Strip every direct mission grant and every group membership from this user. The user row
+   * stays, so they keep their identity and any entities they own; they simply drop back to the
+   * public baseline. Group grants and the public baseline are managed elsewhere and are left alone.
+   */
+  const handleRevokeAll = async () => {
+    if (
+      !confirm(
+        `Revoke every mission grant and group membership for ${user.displayName}? They will keep access to public missions.`
+      )
+    ) {
+      return;
+    }
+
+    const directGrantMissionIds = access
+      .filter((entry) => entry.contributions.some((c) => c.source === "direct"))
+      .map((entry) => entry.missionId);
+
+    const responses = await Promise.all([
+      ...directGrantMissionIds.map((missionId) => deleteMissionPermission({ missionId, userId })),
+      ...memberGroups.map((group) =>
+        setGroupMembership({ groupId: group.id, userId, action: "remove" })
+      ),
+    ]);
+
+    const failure = responses.find((response) => response.status !== "success");
     await apply(
-      await setGroupMembership({ groupId, userId, action: add ? "add" : "remove" }),
-      "Error updating group membership."
+      failure ?? { status: "success", message: "Permissions revoked" },
+      "Error revoking permissions."
     );
   };
 
@@ -142,8 +163,7 @@ const UserDetail: React.FunctionComponent = () => {
         </p>
         {isPublic && (
           <div className={adminCommon.missionSubheader}>
-            These missions are visible to <strong>every</strong> signed-in AEGIS user. See{" "}
-            <Link to="/admin/publicMissions">Public Missions</Link> for the full list.
+            These missions are visible to <strong>every</strong> signed-in AEGIS user.
           </div>
         )}
 
@@ -154,38 +174,29 @@ const UserDetail: React.FunctionComponent = () => {
           <section className={adminCommon.section}>
             <h2 className={adminCommon.sectionHeading}>Groups</h2>
             <div className={adminCommon.details}>
+              <p className={adminCommon.descriptionText}>
+                Membership is managed on each group&apos;s own page.
+              </p>
               <table className={adminCommon.table}>
                 <thead>
                   <tr>
                     <th>Group</th>
-                    <th>Description</th>
-                    <th>Missions</th>
-                    <th>Member</th>
+                    <th className={adminCommon.tableColumnFill}>Description</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {groups.map((group) => (
+                  {memberGroups.map((group) => (
                     <tr key={group.id}>
                       <td>
                         <Link to={`/admin/group/${group.id}`}>{group.name}</Link>
                       </td>
                       <td>{group.description ?? "—"}</td>
-                      <td>{group.missionCount}</td>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={memberGroupIds.includes(group.id)}
-                          onChange={(event) =>
-                            handleMembershipChange(group.id, event.target.checked)
-                          }
-                        />
-                      </td>
                     </tr>
                   ))}
-                  {groups.length === 0 && (
+                  {memberGroups.length === 0 && (
                     <tr>
-                      <td colSpan={4} className={adminCommon.emptyState}>
-                        No groups exist yet.
+                      <td colSpan={2} className={adminCommon.emptyState}>
+                        This user belongs to no groups.
                       </td>
                     </tr>
                   )}
@@ -207,14 +218,29 @@ const UserDetail: React.FunctionComponent = () => {
               Show missions this user cannot reach
             </label>
 
+            {/* The Public user's grants are the baseline for everyone, so they are never bulk
+                revoked from here. */}
+            {!isPublic && (
+              <div className={adminCommon.formActions}>
+                <button
+                  type="button"
+                  className={adminCommon.buttonDanger}
+                  disabled={user.isSystem || !user.hasPermissions}
+                  onClick={handleRevokeAll}
+                >
+                  Revoke All
+                </button>
+              </div>
+            )}
+
             <table className={adminCommon.table}>
               <thead>
                 <tr>
                   <th>Mission</th>
                   <th>Effective</th>
                   <th>Where it comes from</th>
-                  <th>Direct Grant</th>
-                  <th>Note on the direct grant</th>
+                  <th>Permissions</th>
+                  <th className={adminCommon.tableColumnFill}>Note</th>
                 </tr>
               </thead>
               <tbody>
@@ -274,8 +300,9 @@ const UserDetail: React.FunctionComponent = () => {
                         </select>
                       </td>
                       <td>
-                        <input
-                          className={adminCommon.formInput}
+                        <textarea
+                          className={adminCommon.formTextarea}
+                          rows={3}
                           disabled={!directLevelFor(mission.id)}
                           value={notesDraft.get(mission.id) ?? ""}
                           placeholder="Why this grant exists"

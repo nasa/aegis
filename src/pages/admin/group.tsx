@@ -9,7 +9,6 @@ const Groups: React.FunctionComponent = () => {
   const [groups, setGroups] = useState<UserGroupSummary[]>([]);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newNotes, setNewNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const loadGroups = useCallback(async () => {
@@ -31,7 +30,6 @@ const Groups: React.FunctionComponent = () => {
     const response = await upsertUserGroup({
       name: newName.trim(),
       description: newDescription.trim() || null,
-      notes: newNotes.trim() || null,
     });
     if (response.status !== "success") {
       alert(
@@ -42,7 +40,6 @@ const Groups: React.FunctionComponent = () => {
     }
     setNewName("");
     setNewDescription("");
-    setNewNotes("");
     await loadGroups();
   };
 
@@ -93,25 +90,14 @@ const Groups: React.FunctionComponent = () => {
                 <label className={adminCommon.formLabel} htmlFor="groupDescription">
                   Description
                 </label>
+                <span className={adminCommon.formHint}>
+                  Why this group exists. Documentation only; never used in a permission decision.
+                </span>
                 <input
                   id="groupDescription"
                   className={adminCommon.formInput}
                   value={newDescription}
                   onChange={(event) => setNewDescription(event.target.value)}
-                />
-              </div>
-              <div className={adminCommon.formGroup}>
-                <label className={adminCommon.formLabel} htmlFor="groupNotes">
-                  Notes
-                </label>
-                <span className={adminCommon.formHint}>
-                  Why this group exists. Documentation only; never used in a permission decision.
-                </span>
-                <input
-                  id="groupNotes"
-                  className={adminCommon.formInput}
-                  value={newNotes}
-                  onChange={(event) => setNewNotes(event.target.value)}
                 />
               </div>
               <div className={adminCommon.formActions}>
@@ -129,50 +115,50 @@ const Groups: React.FunctionComponent = () => {
         </section>
 
         <section className={adminCommon.section}>
-          <table className={adminCommon.table}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Members</th>
-                <th>Missions</th>
-                <th>Notes</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((group) => (
-                <tr key={group.id}>
-                  <td>{group.name}</td>
-                  <td>{group.description ?? "—"}</td>
-                  <td>{group.memberCount}</td>
-                  <td>{group.missionCount}</td>
-                  <td title={group.notes ?? ""}>{group.notes ? "Yes" : "—"}</td>
-                  <td>
-                    <div className={adminCommon.actionButtons}>
-                      <Link to={`/admin/group/${group.id}`} className={adminCommon.button}>
-                        Manage
-                      </Link>
-                      <button
-                        type="button"
-                        className={adminCommon.buttonDanger}
-                        onClick={() => handleDelete(group)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {groups.length === 0 && (
+          <div className={adminCommon.details}>
+            <table className={adminCommon.table}>
+              <thead>
                 <tr>
-                  <td colSpan={6} className={adminCommon.emptyState}>
-                    No groups yet.
-                  </td>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Members</th>
+                  <th>Missions</th>
+                  <th>Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {groups.map((group) => (
+                  <tr key={group.id}>
+                    <td>{group.name}</td>
+                    <td>{group.description ?? "—"}</td>
+                    <td>{group.memberCount}</td>
+                    <td>{group.missionCount}</td>
+                    <td>
+                      <div className={adminCommon.actionButtons}>
+                        <Link to={`/admin/group/${group.id}`} className={adminCommon.button}>
+                          Manage
+                        </Link>
+                        <button
+                          type="button"
+                          className={adminCommon.buttonDanger}
+                          onClick={() => handleDelete(group)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {groups.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className={adminCommon.emptyState}>
+                      No groups yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       </div>
     </main>

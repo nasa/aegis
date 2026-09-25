@@ -15,13 +15,12 @@ import { asError } from "@emss/utils";
 const router = express.Router();
 
 /** Length cap so the free-text justification cannot be used as unbounded storage. */
-const NOTES_MAX_LENGTH = 2000;
+const DESCRIPTION_MAX_LENGTH = 2000;
 
 const toStore = (group: User_Group_db): UserGroup => ({
   id: group.id,
   name: group.name,
   description: group.description,
-  notes: group.notes,
   createdAt: group.createdAt,
   updatedAt: group.updatedAt,
 });
@@ -75,7 +74,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 // Create or update a group
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { groupId, name, description, notes } = req.body as UserGroupUpsertRequest;
+  const { groupId, name, description } = req.body as UserGroupUpsertRequest;
 
   if (!apiHasSuperUserOrToken(req.currentUser)) {
     serverLogger.apiRoute({
@@ -91,18 +90,18 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    if (notes != null && notes.length > NOTES_MAX_LENGTH) {
+    if (description != null && description.length > DESCRIPTION_MAX_LENGTH) {
       serverLogger.apiRoute({
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
         routeName: "userGroup",
         appUsername: logUsername(req.currentUser),
-        message: `Notes cannot exceed ${NOTES_MAX_LENGTH} characters`,
+        message: `Description cannot exceed ${DESCRIPTION_MAX_LENGTH} characters`,
       });
       res.status(400).json({
         status: "failure",
-        message: `Notes cannot exceed ${NOTES_MAX_LENGTH} characters`,
+        message: `Description cannot exceed ${DESCRIPTION_MAX_LENGTH} characters`,
       });
       return;
     }
@@ -129,7 +128,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
       if (name !== undefined) group.name = name;
       if (description !== undefined) group.description = description;
-      if (notes !== undefined) group.notes = notes;
       group.updatedAt = now;
       await em.flush();
 
@@ -154,7 +152,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     const created = em.create(User_Group_db, {
       name,
       description: description ?? null,
-      notes: notes ?? null,
       createdAt: now,
       updatedAt: now,
     });
