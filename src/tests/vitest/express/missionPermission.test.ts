@@ -148,6 +148,61 @@ describe("GET /api/v1/missionPermission", () => {
 });
 
 describe("POST /api/v1/missionPermission", () => {
+  test("Rejects a caller without the super-user role", async () => {
+    const res = await supertest(app)
+      .post("/api/v1/missionPermission")
+      .set(asUser(MEMBER_UUPIC))
+      .send({ missionId: missions[1].missionId, userId: member.id, permLevel: "edit" });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  // A missing or garbage missionId used to reach the driver and come back as a 500 carrying raw
+  // ORM text, which reads to the caller as an AEGIS fault rather than a bad request.
+  test.each([
+    ["missing", undefined],
+    ["non-numeric", "abc"],
+    ["zero", 0],
+  ])("Rejects a %s missionId", async (_label, missionId) => {
+    const res = await supertest(app)
+      .post("/api/v1/missionPermission")
+      .set(asSuperUser(SUPER_UUPIC))
+      .send({ missionId, userId: member.id, permLevel: "viewer" });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("A numeric missionId is required");
+  });
+
+  test("Rejects a grant naming neither a user nor a group", async () => {
+    const res = await supertest(app)
+      .post("/api/v1/missionPermission")
+      .set(asSuperUser(SUPER_UUPIC))
+      .send({ missionId: missions[1].missionId, permLevel: "viewer" });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Exactly one of userId or groupId is required");
+  });
+
+  test("Returns 404 for a mission that does not exist", async () => {
+    const res = await supertest(app)
+      .post("/api/v1/missionPermission")
+      .set(asSuperUser(SUPER_UUPIC))
+      .send({ missionId: 2147483600, userId: member.id, permLevel: "viewer" });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toBe("Mission not found");
+  });
+
+  test("Returns 404 for a group that does not exist", async () => {
+    const res = await supertest(app)
+      .post("/api/v1/missionPermission")
+      .set(asSuperUser(SUPER_UUPIC))
+      .send({ missionId: missions[1].missionId, groupId: 2147483600, permLevel: "viewer" });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toBe("Group not found");
+  });
+
   test("Rejects any level above viewer for the Public user", async () => {
     for (const permLevel of ["edit", "editPartial"]) {
       const res = await supertest(app)
@@ -229,6 +284,73 @@ describe("POST /api/v1/missionPermission", () => {
       });
 
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe("DELETE /api/v1/missionPermission", () => {
+  test("Rejects a caller without the super-user role", async () => {
+    const res = await supertest(app)
+      .delete("/api/v1/missionPermission")
+      .set(asUser(MEMBER_UUPIC))
+      .send({ missionId: missions[0].missionId, userId: member.id });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test("Rejects a missing missionId", async () => {
+    const res = await supertest(app)
+      .delete("/api/v1/missionPermission")
+      .set(asSuperUser(SUPER_UUPIC))
+      .send({ userId: member.id });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("A numeric missionId is required");
+  });
+
+  test("Rejects a revoke naming neither a user nor a group", async () => {
+    const res = await supertest(app)
+      .delete("/api/v1/missionPermission")
+      .set(asSuperUser(SUPER_UUPIC))
+      .send({ missionId: missions[0].missionId });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Exactly one of userId or groupId is required");
+  });
+
+  // Revoking is security-critical, so a request that removed nothing must not read as a success.
+  test("Reports a revoke that matched no grant rather than claiming success", async () => {
+    const res = await supertest(app)
+      .delete("/api/v1/missionPermission")
+      .set(asSuperUser(SUPER_UUPIC))
+      .send({ missionId: missions[1].missionId, userId: member.id });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toBe("No matching grant to revoke");
+  });
+
+  test("Revokes only the named grant, leaving the other subjects on that mission alone", async () => {
+    const em = globalValues.orm.em.fork();
+    const target = await grantMissionPerms(em, {
+      missionId: missions[1].missionId,
+      userId: member.id,
+      permLevel: "viewer",
+      notes: "vitest revoke target",
+    });
+
+    const res = await supertest(app)
+      .delete("/api/v1/missionPermission")
+      .set(asSuperUser(SUPER_UUPIC))
+      .send({ missionId: missions[1].missionId, userId: member.id });
+
+    expect(res.statusCode).toBe(200);
+    expect(await em.count(Mission_Permission_db, { id: target.id })).toBe(0);
+    // The member's grant on mission 0 is a different row and must survive.
+    expect(
+      await em.count(Mission_Permission_db, {
+        missionId: missions[0].missionId,
+        userId: member.id,
+      })
+    ).toBe(1);
   });
 });
 

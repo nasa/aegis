@@ -4,6 +4,7 @@ import express from "express";
 
 import {
   App_User_db,
+  Doc_Listing_db,
   Mission_Permission_db,
   User_Group_db,
   User_Group_Member_db,
@@ -18,6 +19,13 @@ const router = express.Router();
 
 /** Length cap so the free-text justification cannot be used as unbounded storage. */
 const NOTES_MAX_LENGTH = 2000;
+
+/**
+ * A grant is meaningless without a mission, and the value goes straight into a query. An absent
+ * or non-numeric id would otherwise reach the driver and surface as a 500 rather than a 400.
+ */
+const isValidMissionId = (missionId: unknown): missionId is number =>
+  typeof missionId === "number" && Number.isInteger(missionId) && missionId > 0;
 
 /**
  * Get permissions with respect to missions, users and groups. Exactly one selector is expected:
@@ -242,6 +250,19 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    if (!isValidMissionId(missionId)) {
+      serverLogger.apiRoute({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "missionPermission",
+        appUsername: logUsername(req.currentUser),
+        message: "A numeric missionId is required",
+      });
+      res.status(400).json({ status: "failure", message: "A numeric missionId is required" });
+      return;
+    }
+
     if (!(typeof permLevel === "string" && permLevel in PERMISSION_RANK)) {
       serverLogger.apiRoute({
         logLevel: "notice",
@@ -290,6 +311,39 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     const em = globalValues.orm.em;
+
+    const mission = await em.findOne(Doc_Listing_db, { missionId });
+    if (!mission) {
+      serverLogger.apiRoute({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 404,
+        routeName: "missionPermission",
+        appUsername: logUsername(req.currentUser),
+        missionId,
+        message: "Mission not found",
+      });
+      res.status(404).json({ status: "failure", message: "Mission not found" });
+      return;
+    }
+
+    if (groupId != null) {
+      const targetGroup = await em.findOne(User_Group_db, { id: groupId });
+      if (!targetGroup) {
+        serverLogger.apiRoute({
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 404,
+          routeName: "missionPermission",
+          appUsername: logUsername(req.currentUser),
+          missionId,
+          uuids: [String(groupId)],
+          message: "Group not found",
+        });
+        res.status(404).json({ status: "failure", message: "Group not found" });
+        return;
+      }
+    }
 
     if (userId != null) {
       const target = await em.findOne(App_User_db, { id: userId });
@@ -386,12 +440,56 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    if (!isValidMissionId(missionId)) {
+      serverLogger.apiRoute({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 400,
+        routeName: "missionPermission",
+        appUsername: logUsername(req.currentUser),
+        message: "A numeric missionId is required",
+      });
+      res.status(400).json({ status: "failure", message: "A numeric missionId is required" });
+      return;
+    }
+
+    if ((userId == null) === (groupId == null)) {
+      serverLogger.apiRoute({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 400,
+        routeName: "missionPermission",
+        appUsername: logUsername(req.currentUser),
+        missionId,
+        message: "Exactly one of userId or groupId is required",
+      });
+      res
+        .status(400)
+        .json({ status: "failure", message: "Exactly one of userId or groupId is required" });
+      return;
+    }
+
     const em = globalValues.orm.em;
-    await em.nativeDelete(Mission_Permission_db, {
+    const revokedCount = await em.nativeDelete(Mission_Permission_db, {
       missionId,
       userId: userId ?? null,
       groupId: groupId ?? null,
     });
+
+    if (revokedCount === 0) {
+      serverLogger.apiRoute({
+        logLevel: "notice",
+        httpMethod: "DELETE",
+        responseStatus: 404,
+        routeName: "missionPermission",
+        appUsername: logUsername(req.currentUser),
+        missionId,
+        uuids: [String(userId ?? groupId)],
+        message: "No matching grant to revoke",
+      });
+      res.status(404).json({ status: "failure", message: "No matching grant to revoke" });
+      return;
+    }
 
     res.status(200).json({ status: "success", message: "Grant revoked", data: true });
   } catch (e) {

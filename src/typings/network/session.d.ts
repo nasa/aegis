@@ -1,6 +1,6 @@
 import type {} from "express";
 
-// RequestUser itself lives in the global permissions typings so server-only modules that are not
+// CurrentUser itself lives in the global permissions typings so server-only modules that are not
 // express-aware can reference it without importing.
 declare module "express-serve-static-core" {
   interface Request {

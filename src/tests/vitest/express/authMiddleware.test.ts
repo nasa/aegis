@@ -136,6 +136,21 @@ describe("resolveGrants", () => {
 
     await em.nativeDelete(App_User_db, { id: outsider.id });
   });
+
+  // Every group grant row carries a null user_id by the table's check constraint, so a null userId
+  // must not be matched against that column: it would return the union of every group grant in the
+  // database. The caller gets the public baseline and nothing else.
+  it("gives a null user only the public baseline, never the group grants", async () => {
+    const em = globalValues.orm.em.fork();
+
+    const grants = await resolvePermissions(em, null);
+    const ownIds = missions.map((m) => m.missionId).filter((id) => id in grants);
+
+    // Mission 1 is reachable only through the group, so its presence would mean over-matching.
+    expect(ownIds).toEqual([missions[2].missionId]);
+    expect(grants[missions[1].missionId]).toBeUndefined();
+    expect(grants[missions[2].missionId]).toBe("viewer");
+  });
 });
 
 afterAll(async () => {

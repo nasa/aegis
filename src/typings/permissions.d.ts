@@ -85,7 +85,7 @@ interface AppUser {
   displayName: string;
   /** True only for reserved rows the application depends on (currently just Public). */
   isSystem: boolean;
-  lastLoginAt: number;
+  lastLoginAt: number | null;
 }
 
 /**

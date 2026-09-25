@@ -171,11 +171,6 @@ export const config: DotenvConfig<typeof environments> = {
       type: "required-from-secret",
     },
   },
-  LOADTEST_PASSWORD: {
-    default: {
-      type: "required-from-secret",
-    },
-  },
 
   /**
    * Maestro

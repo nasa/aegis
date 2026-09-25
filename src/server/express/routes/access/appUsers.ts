@@ -18,8 +18,8 @@ const router = express.Router();
 
 /**
  * List users.
- *   ?userId=            one user
- *   ?search=            match on auid or display name
+ *   ?userId=               one user
+ *   ?search=               match on auid or display name
  *   ?withPermissionsOnly=  only users holding a grant, a membership, or reserved status
  *
  * Every identity that has ever signed in has a row here, so the default list includes people who

@@ -8,7 +8,7 @@ export const apiHasPerms = ({
   requiredPermLevel: required,
   user,
 }: {
-  missionId: number | null;
+  missionId: number;
   requiredPermLevel: PermissionLevel;
   user: CurrentUser | undefined;
 }): boolean => {
@@ -18,12 +18,16 @@ export const apiHasPerms = ({
   } else if (apiHasSuperUserOrToken(user)) {
     permLevel = "edit"; // machine-to-machine / NAMS super user: implicit edit everywhere
   } else {
-    permLevel = user.permissions[missionId] ?? null;
+    // Keyed by string, so the lookup has to be too.
+    permLevel = user.permissions[String(missionId)] ?? null;
   }
   return meetsPermLevel(permLevel, required);
 };
 
-/** Is the user have a name superUser or an EMSS token. Token is already validated at this point */
+/**
+ * Does the caller hold a NAMS super-user role, or a valid EMSS machine-to-machine token?
+ * The token is already validated at this point
+ */
 export const apiHasSuperUserOrToken = (user: CurrentUser | undefined): boolean =>
   !!user && (user.isEmssToken || isLaunchpadSuperUser(user.launchpadUser));
 

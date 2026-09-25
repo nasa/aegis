@@ -46,12 +46,23 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
     // Disable TLS certificate validation for load testing locally with self-signed certs
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-    // Identity comes from the SSO token. Against a load-test target
-    // running with MOCK_USER the resolved identity is the mock user.
+    // Identity comes from the SSO token, and the load test sends no credentials, so the target
+    // has to be running with MOCK_USER=true. A target enforcing real Launchpad auth answers the
+    // oauth2 sign-in redirect here instead of the api, which is what the content-type check
+    // catches: without it the html body fails to parse and the worker dies with a json error
+    // that says nothing about the cause.
     const accessRes = await fetch(`${serverURL}/api/v1/user/current`);
+    if (!accessRes.ok || !accessRes.headers.get("content-type")?.includes("application/json")) {
+      console.error(
+        `Unable to resolve the current user: ${serverURL} answered ${accessRes.status} ` +
+          `${accessRes.headers.get("content-type")}. The load test sends no credentials, so the ` +
+          `target must be running with MOCK_USER=true.`
+      );
+      process.exit(1);
+    }
     const access = (await accessRes.json()) as CurrentUser;
     if (!access?.launchpadUser) {
-      console.error("Unable to resolve the current user");
+      console.error("Unable to resolve the current user: no launchpad identity in the response");
       process.exit(1);
     }
     dispatch(
@@ -94,6 +105,15 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
       },
       automergeRepo,
     });
+    // populateStore returns undefined when a request it depends on fails. Without this the run
+    // continues against empty state and every worker agrees on nothing, reporting a false pass.
+    if (!wholeStoreState) {
+      console.error(
+        `Unable to populate the store for mission ${TEST_MISSION_ID}. The api rejected a request, ` +
+          `most likely because the target enforces Launchpad auth.`
+      );
+      process.exit(1);
+    }
     dispatch(setAllSliceStores(wholeStoreState));
     // these values are defined in esbuild.loadtest.mjs and are set at build time
     dispatch(

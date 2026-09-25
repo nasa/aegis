@@ -24,11 +24,7 @@ export const userSlice = createSlice({
     setAppUserId: (state, action: { payload: number | null }) => {
       state.appUserId = action.payload;
     },
-    setMissionPermLevel: (state, action: { payload: PermissionLevel | null }) => {
-      state.missionPermLevel = action.payload;
-    },
   },
 });
 
-export const { setUserState, setLaunchpadUser, setAppUserId, setMissionPermLevel } =
-  userSlice.actions;
+export const { setUserState, setLaunchpadUser, setAppUserId } = userSlice.actions;

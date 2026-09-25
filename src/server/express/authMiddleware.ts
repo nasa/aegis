@@ -1,4 +1,4 @@
-import type { EntityManager } from "@mikro-orm/postgresql";
+import type { EntityManager, ObjectQuery } from "@mikro-orm/postgresql";
 import type { NextFunction, Request, Response } from "express";
 
 import { getLaunchpadUser } from "packages/getUser";
@@ -29,7 +29,7 @@ export const recordLogin = async (
     auid: string;
     displayName: string;
   }
-): Promise<App_User_db | null> => {
+): Promise<App_User_db> => {
   // Concurrent requests from the same new identity will race here. Uupic is unique. Let the
   // database settle it rather than failing the request that loses. Only the identity fields merge.
   return em.upsert(
@@ -59,19 +59,27 @@ export const resolvePermissions = async (
   em: EntityManager,
   userId: number | null
 ): Promise<Record<string, PermissionLevel>> => {
-  const groupIdsForUser = em
-    .createQueryBuilder(User_Group_Member_db, "ugm")
-    .select("ugm.groupId")
-    .where({ userId });
-
   const publicUserId = em
     .createQueryBuilder(App_User_db, "pu")
     .select("pu.id")
     .where({ uupic: PUBLIC_UUPIC });
 
-  const rows = await em.find(Mission_Permission_db, {
-    $or: [{ userId }, { groupId: { $in: groupIdsForUser } }, { userId: { $in: publicUserId } }],
-  });
+  // The public baseline applies to everyone, so it is the one branch that is always present.
+  const orConditions: ObjectQuery<Mission_Permission_db>[] = [{ userId: { $in: publicUserId } }];
+
+  // Only look up a user's own grants when there is a user. Every group grant row has a null
+  // user_id by the table's check constraint, so a null here would compile to `user_id is null`
+  // and match all of them, handing the caller the union of every group grant in the system.
+  if (userId != null) {
+    const groupIdsForUser = em
+      .createQueryBuilder(User_Group_Member_db, "ugm")
+      .select("ugm.groupId")
+      .where({ userId });
+
+    orConditions.push({ userId }, { groupId: { $in: groupIdsForUser } });
+  }
+
+  const rows = await em.find(Mission_Permission_db, { $or: orConditions });
 
   const grants: Record<string, PermissionLevel> = {};
   for (const row of rows) {
@@ -129,22 +137,18 @@ export const authMiddleware = async (
     });
 
     // A super user has implicit edit everywhere, so the grant lookup is skipped entirely.
-    const permissionsForMissions = isSuperUser
-      ? {}
-      : await resolvePermissions(em, appUser?.id ?? null);
+    const permissionsForMissions = isSuperUser ? {} : await resolvePermissions(em, appUser.id);
 
     const requestUser: CurrentUser = {
       launchpadUser,
-      appUser: appUser
-        ? {
-            id: appUser.id,
-            uupic: appUser.uupic,
-            auid: appUser.auid,
-            displayName: appUser.displayName,
-            isSystem: appUser.isSystem,
-            lastLoginAt: appUser.lastLoginAt ?? null,
-          }
-        : null,
+      appUser: {
+        id: appUser.id,
+        uupic: appUser.uupic,
+        auid: appUser.auid,
+        displayName: appUser.displayName,
+        isSystem: appUser.isSystem,
+        lastLoginAt: appUser.lastLoginAt,
+      },
       permissions: permissionsForMissions,
       isEmssToken,
     };

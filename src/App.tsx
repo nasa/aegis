@@ -34,9 +34,15 @@ const TestMapPerformant = React.lazy(() => import("pages/testMapPerformant"));
 
 const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElement => {
   const dispatch = useAppDispatch();
-  if (!(props.launchpadUser instanceof Error)) {
-    dispatch(setLaunchpadUser(props.launchpadUser));
-  }
+  const { launchpadUser } = props;
+
+  // Dispatching in the render body is a side effect during render, which double-invokes under
+  // StrictMode and concurrent rendering.
+  useEffect(() => {
+    if (!(launchpadUser instanceof Error)) {
+      dispatch(setLaunchpadUser(launchpadUser));
+    }
+  }, [dispatch, launchpadUser]);
 
   return (
     <>
