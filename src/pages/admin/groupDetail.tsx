@@ -145,7 +145,7 @@ const GroupDetail: React.FunctionComponent = () => {
         {error && <div className={adminCommon.statusMessage}>{error}</div>}
 
         <section className={adminCommon.section}>
-          <h2 className={adminCommon.sectionHeading}>Details</h2>
+          <h2 className={adminCommon.sectionHeading}>Group Details</h2>
           <div className={adminCommon.details}>
             <div className={adminCommon.form}>
               <div className={adminCommon.formGroup}>
@@ -218,7 +218,7 @@ const GroupDetail: React.FunctionComponent = () => {
                 {members.length === 0 && (
                   <tr>
                     <td colSpan={3} className={adminCommon.emptyState}>
-                      No members yet.
+                      No members
                     </td>
                   </tr>
                 )}
@@ -229,9 +229,6 @@ const GroupDetail: React.FunctionComponent = () => {
               <label className={adminCommon.formLabel} htmlFor="memberSearch">
                 Add a member
               </label>
-              <span className={adminCommon.formHint}>
-                Searches everyone who has signed in at least once.
-              </span>
               <div className={adminCommon.inlineFormRow}>
                 <input
                   id="memberSearch"
@@ -242,6 +239,7 @@ const GroupDetail: React.FunctionComponent = () => {
                     if (event.key === "Enter") handleSearch();
                   }}
                   placeholder="Search by AUID or name"
+                  style={{ maxWidth: 400 }}
                 />
                 <button type="button" className={adminCommon.buttonPrimary} onClick={handleSearch}>
                   Search
@@ -254,7 +252,7 @@ const GroupDetail: React.FunctionComponent = () => {
                 <tbody>
                   {searchResults.map((candidate) => (
                     <tr key={candidate.id}>
-                      <td className={adminCommon.tableColumnFill}>{candidate.displayName}</td>
+                      <td>{candidate.displayName}</td>
                       <td>{candidate.auid}</td>
                       <td>
                         <button
@@ -291,13 +289,13 @@ const GroupDetail: React.FunctionComponent = () => {
               />
               Show missions this group does not grant
             </label>
-
-            <table className={adminCommon.table}>
+            <br />
+            <table className={`${adminCommon.table} ${adminCommon.missionGrantTable}`}>
               <thead>
                 <tr>
                   <th>Mission</th>
                   <th>Permission Level</th>
-                  <th className={adminCommon.tableColumnFill}>Note</th>
+                  <th>Note</th>
                 </tr>
               </thead>
               <tbody>
@@ -323,7 +321,7 @@ const GroupDetail: React.FunctionComponent = () => {
                       <td>
                         <textarea
                           className={adminCommon.formTextarea}
-                          rows={3}
+                          rows={2}
                           disabled={!grant}
                           value={grantNotesDraft.get(mission.id) ?? ""}
                           placeholder="Why this grant exists"

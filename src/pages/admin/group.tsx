@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { deleteUserGroup, getUserGroups, upsertUserGroup } from "http-client/access/userGroup";
 import adminCommon from "./adminCommon.module.css";
 
 /** Groups grant missions to several users at once. There are no reserved groups. */
 const Groups: React.FunctionComponent = () => {
+  const navigate = useNavigate();
+
   const [groups, setGroups] = useState<UserGroupSummary[]>([]);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -135,9 +137,15 @@ const Groups: React.FunctionComponent = () => {
                     <td>{group.missionCount}</td>
                     <td>
                       <div className={adminCommon.actionButtons}>
-                        <Link to={`/admin/group/${group.id}`} className={adminCommon.button}>
+                        <button
+                          className={adminCommon.button}
+                          type="button"
+                          onClick={() => {
+                            navigate(`/admin/group/${group.id}`);
+                          }}
+                        >
                           Manage
-                        </Link>
+                        </button>
                         <button
                           type="button"
                           className={adminCommon.buttonDanger}

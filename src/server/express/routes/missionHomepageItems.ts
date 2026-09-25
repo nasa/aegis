@@ -16,20 +16,11 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const seesEverything = apiHasSuperUserOrToken(req.currentUser);
   const viewableMissions = missionIdsAtLevel(req.currentUser, "viewer");
 
-  if (!seesEverything && viewableMissions.length === 0) {
-    serverLogger.apiRoute({
-      logLevel: "warning",
-      httpMethod: "GET",
-      responseStatus: 401,
-      routeName: "missionHomepageItems",
-      appUsername: logUsername(req.currentUser),
-      message: "Unauthorized",
-    });
-    res.status(401).json({ status: "failure", message: "Unauthorized" });
-    return;
-  }
+  // Do not return an unauthorized response from this endpoint. If a user has no permissions
+  // just return an empty list
+
   try {
-    // A super user holds no grant rows, so null here means every mission.
+    // A super user holds no explicit permissions, so null here means every mission.
     const records = await getHomepageMissionItems(
       seesEverything ? null : viewableMissions,
       includeArchived

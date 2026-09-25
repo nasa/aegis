@@ -137,9 +137,7 @@
 .emptyState {
   margin-top: 12px;
   padding: 20px;
-  border: 1px dashed var(--admin-border);
   border-radius: 6px;
-  background: var(--admin-panel);
   color: #93c5fd;
   font-weight: 500;
 }
@@ -182,6 +180,10 @@
   flex-direction: column;
   gap: 4px;
   margin: 0;
+
+  /* Zeroes the browser's ul indent and bullets when this class is used on a list element */
+  padding: 0;
+  list-style: none;
 }
 
 .definitionRow {
@@ -412,11 +414,21 @@
   margin-top: 8px;
 }
 
+/* A filter control on the left paired with its action button on the right, above a table */
+.tableToolbarRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
 /* An input paired with its submit button on one line */
 .inlineFormRow {
   display: flex;
   gap: 10px;
   align-items: stretch;
+  justify-content: flex-start;
 }
 
 .inlineFormRow .formInput {
@@ -491,6 +503,35 @@
 
 .table tbody tr:hover {
   background: rgb(255 255 255 / 3%);
+}
+
+/* A permission grant table: one row per mission, every cell a small control. Default table and
+   form padding makes these lists far taller than the information in them warrants, so the cells
+   and the controls inside them are tightened. */
+.missionGrantTable td,
+.missionGrantTable th {
+  padding: 3px 10px;
+}
+
+.missionGrantTable .formInput,
+.missionGrantTable .formTextarea {
+  min-height: 0;
+  padding: 3px 8px;
+  font-size: 0.85rem;
+}
+
+.missionGrantTable .definitionList {
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.missionGrantTable .definitionRow {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+  border-bottom: none;
 }
 
 /* Column that absorbs the leftover horizontal space, squeezing the others to their content */

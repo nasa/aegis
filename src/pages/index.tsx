@@ -24,7 +24,7 @@ const MissionSelect = ({ launchpadUser }: { launchpadUser: LaunchpadUser }) => {
       if (!launchpadUser) return;
 
       const missionHomepageItemsRes = await getMissionHomepageItems();
-      setMissionHomepageItems(missionHomepageItemsRes.data);
+      setMissionHomepageItems(missionHomepageItemsRes.data ?? []);
     }
 
     populateMissionHomepage().catch((e) => {
@@ -40,22 +40,27 @@ const MissionSelect = ({ launchpadUser }: { launchpadUser: LaunchpadUser }) => {
 
   return (
     <div className={styles.missionSelect}>
-      <div className={styles.title}>Select a Mission</div>
-      <div className={`${styles.container}`}>
-        <table className={styles.table}>
-          <tbody>
-            {missionHomepageItems &&
-              missionHomepageItems.map((missionHomepageItem) => {
-                return (
-                  <MissionHomepageItem
-                    key={missionHomepageItem.id}
-                    missionHomepageItem={missionHomepageItem}
-                  />
-                );
-              })}
-          </tbody>
-        </table>
-      </div>
+      {missionHomepageItems.length > 0 ? (
+        <>
+          <div className={styles.title}>Select a Mission</div>
+          <div className={`${styles.container}`}>
+            <table className={styles.table}>
+              <tbody>
+                {missionHomepageItems.map((missionHomepageItem) => {
+                  return (
+                    <MissionHomepageItem
+                      key={missionHomepageItem.id}
+                      missionHomepageItem={missionHomepageItem}
+                    />
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <div className={styles.title}>No Missions Available</div>
+      )}
     </div>
   );
 };

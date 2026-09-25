@@ -101,6 +101,16 @@ describe("missionHomepageItems API Endpoint", () => {
       expect(ownIds(res.body).sort()).toEqual(testMissionsPartial.map((m) => m.id).sort());
     });
 
+    test("A user resolving to no missions gets an empty list, not an error", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/missionHomepageItems")
+        .set(asUser(NO_PERMS_UUPIC));
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+      expect(ownIds(res.body)).toEqual([]);
+    });
+
     test("The public baseline is unioned into a user with no grants of their own", async () => {
       // Public grants apply to everyone, so marking a mission public gives a grantless user that
       // mission and nothing else of this test's set.

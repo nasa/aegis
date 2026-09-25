@@ -159,13 +159,10 @@ const UserDetail: React.FunctionComponent = () => {
         </Link>
         <h1 className={adminCommon.pageTitle}>{user.displayName}</h1>
         <p className={adminCommon.introText}>
-          {user.auid} · {user.uupic}
+          <strong>AUID:</strong> {user.auid}
+          <br />
+          <strong>UUPIC:</strong> {user.uupic}
         </p>
-        {isPublic && (
-          <div className={adminCommon.missionSubheader}>
-            These missions are visible to <strong>every</strong> signed-in AEGIS user.
-          </div>
-        )}
 
         {error && <div className={adminCommon.statusMessage}>{error}</div>}
 
@@ -209,19 +206,18 @@ const UserDetail: React.FunctionComponent = () => {
         <section className={adminCommon.section}>
           <h2 className={adminCommon.sectionHeading}>Missions</h2>
           <div className={adminCommon.details}>
-            <label className={adminCommon.checkboxItem}>
-              <input
-                type="checkbox"
-                checked={showAllMissions}
-                onChange={(event) => setShowAllMissions(event.target.checked)}
-              />
-              Show missions this user cannot reach
-            </label>
-
-            {/* The Public user's grants are the baseline for everyone, so they are never bulk
-                revoked from here. */}
-            {!isPublic && (
-              <div className={adminCommon.formActions}>
+            <div className={adminCommon.tableToolbarRow}>
+              <label className={adminCommon.checkboxItem}>
+                <input
+                  type="checkbox"
+                  checked={showAllMissions}
+                  onChange={(event) => setShowAllMissions(event.target.checked)}
+                />
+                Show missions this user cannot reach
+              </label>
+              {/* The Public user's grants are the baseline for everyone, so they are never bulk
+                  revoked from here. */}
+              {!isPublic && (
                 <button
                   type="button"
                   className={adminCommon.buttonDanger}
@@ -230,16 +226,16 @@ const UserDetail: React.FunctionComponent = () => {
                 >
                   Revoke All
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
-            <table className={adminCommon.table}>
+            <table className={`${adminCommon.table} ${adminCommon.missionGrantTable}`}>
               <thead>
                 <tr>
-                  <th>Mission</th>
+                  <th style={{ minWidth: "300px" }}>Mission</th>
                   <th>Effective</th>
-                  <th>Where it comes from</th>
-                  <th>Permissions</th>
+                  <th style={{ minWidth: "400px" }}>All Grants</th>
+                  <th>Grant Permissions</th>
                   <th className={adminCommon.tableColumnFill}>Note</th>
                 </tr>
               </thead>
@@ -302,7 +298,7 @@ const UserDetail: React.FunctionComponent = () => {
                       <td>
                         <textarea
                           className={adminCommon.formTextarea}
-                          rows={3}
+                          rows={2}
                           disabled={!directLevelFor(mission.id)}
                           value={notesDraft.get(mission.id) ?? ""}
                           placeholder="Why this grant exists"

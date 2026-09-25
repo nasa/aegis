@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { getAppUsers } from "http-client/access/appUsers";
 import { PUBLIC_UUPIC } from "utils/permissionsClient";
@@ -29,6 +29,8 @@ const SORTABLE_COLUMNS: { column: SortColumn; label: string }[] = [
  * is taken away by revoking the grants and memberships instead, which leaves the row intact.
  */
 const Users: React.FunctionComponent = () => {
+  const navigate = useNavigate();
+
   const [users, setUsers] = useState<AppUserSummary[]>([]);
   const [search, setSearch] = useState("");
   const [withPermissionsOnly, setWithPermissionsOnly] = useState(true);
@@ -87,11 +89,9 @@ const Users: React.FunctionComponent = () => {
         </Link>
         <h1 className={adminCommon.pageTitle}>Users</h1>
         <p className={adminCommon.introText}>
-          Everyone who has signed in at least once. Rows are never removed — an identity that signs
-          in again simply reappears — so access is taken away by revoking grants and group
-          memberships. A user with no grants and no group membership can still see every mission
-          granted to the Public user, listed first below. Super-user access comes from the Launchpad
-          role and is not granted here.
+          Everyone who has signed in at least once. Rows are never removed. A user with permissions
+          can still see missions granted to the Public user. Super-user access comes from the
+          Launchpad role.
         </p>
 
         {error && <div className={adminCommon.statusMessage}>{error}</div>}
@@ -107,16 +107,17 @@ const Users: React.FunctionComponent = () => {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by AUID or name"
+              style={{ maxWidth: "300px" }}
             />
           </div>
-
+          <br />
           <label className={adminCommon.checkboxItem}>
             <input
               type="checkbox"
               checked={withPermissionsOnly}
               onChange={(event) => setWithPermissionsOnly(event.target.checked)}
             />
-            Only users with grants or group memberships
+            Show only users with grants or group memberships
           </label>
 
           <div className={adminCommon.details}>
@@ -142,17 +143,9 @@ const Users: React.FunctionComponent = () => {
               </thead>
               <tbody>
                 {sortedUsers.map((user) => {
-                  const isPublic = user.uupic === PUBLIC_UUPIC;
                   return (
                     <tr key={user.id}>
-                      <td>
-                        {user.displayName}
-                        {isPublic && (
-                          <span className={adminCommon.badgeNeutral}>
-                            Visible to every signed-in user
-                          </span>
-                        )}
-                      </td>
+                      <td>{user.displayName}</td>
                       <td>{user.auid}</td>
                       <td>{user.uupic}</td>
                       <td>
@@ -164,9 +157,15 @@ const Users: React.FunctionComponent = () => {
                       </td>
                       <td>{formatLastLogin(user.lastLoginAt)}</td>
                       <td>
-                        <Link to={`/admin/user/${user.id}`} className={adminCommon.button}>
+                        <button
+                          className={adminCommon.button}
+                          type="button"
+                          onClick={() => {
+                            navigate(`/admin/user/${user.id}`);
+                          }}
+                        >
                           Permissions
-                        </Link>
+                        </button>
                       </td>
                     </tr>
                   );
