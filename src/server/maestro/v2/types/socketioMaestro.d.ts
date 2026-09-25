@@ -8,7 +8,13 @@ export interface MaestroServerToClientEvents {
 }
 
 export interface MaestroClientToServerEvents {
-  missionJoin: (missionId: number, maestroVisitor: MaestroVisitor) => void;
+  missionJoin: (
+    missionId: number,
+    maestroVisitor: MaestroVisitor,
+    callback?: (
+      response: { status: "success"; message: string } | { status: "error"; message: string }
+    ) => void
+  ) => void;
   missionLeave: (missionId: number) => void;
   subscribeToEva: (
     missionId: number,
@@ -21,7 +27,6 @@ export interface MaestroClientToServerEvents {
     callback: (
       response:
         | { status: "success"; message: string; data: AegisSlice.AegisSlice }
-        | { status: "failure"; message: string }
         | { status: "error"; message: string }
     ) => void
   ) => void;

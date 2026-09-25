@@ -85,6 +85,7 @@ const MaestroV2: React.FunctionComponent = () => {
   const [emssToken, setEmssToken] = useState<string>("");
   const [joinMissionId, setJoinMissionId] = useState<string>("");
   const [joinVisitorName, setJoinVisitorName] = useState<string>("Maestro V2 Monitor Page");
+  const [joinResponseMessage, setJoinResponseMessage] = useState<string | null>(null);
 
   // ── missionLeave form ────────────────────────────────────────────────────
   const [leaveMissionId, setLeaveMissionId] = useState<string>("");
@@ -196,7 +197,9 @@ const MaestroV2: React.FunctionComponent = () => {
         name: joinVisitorName.trim() || "Maestro V2 Monitor Page",
         connectedAt: Date.now(),
       };
-      sock.emit("missionJoin", missionId, maestroVisitor);
+      sock.emit("missionJoin", missionId, maestroVisitor, (response) => {
+        setJoinResponseMessage(`${response.status}: ${response.message}`);
+      });
       // Populate the debug tables now that we have an authenticated socket.
       sock.emit("getDebugInfo", (data) => setDebugInfo(data));
     });
@@ -228,6 +231,7 @@ const MaestroV2: React.FunctionComponent = () => {
       setMaestroSocketId(null);
       // Debug info came from the maestro socket — clear it when we disconnect.
       setDebugInfo(null);
+      setJoinResponseMessage(null);
     }
   };
 
@@ -478,6 +482,9 @@ const MaestroV2: React.FunctionComponent = () => {
                     {maestroSocketId}
                   </span>
                 </div>
+              )}
+              {joinResponseMessage && (
+                <div style={{ color: "#cbd5e1", fontSize: "0.8em" }}>{joinResponseMessage}</div>
               )}
               <input
                 className={adminCommon.formInput}

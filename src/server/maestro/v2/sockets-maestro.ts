@@ -80,13 +80,14 @@ export const setupMaestroNamespace = (
     (
       socket: Socket<MaestroClientToServerEvents, MaestroServerToClientEvents, DefaultEventsMap, {}>
     ) => {
-      socket.on("missionJoin", (missionId: number, maestroVisitor: MaestroVisitor) => {
+      socket.on("missionJoin", (missionId: number, maestroVisitor: MaestroVisitor, callback) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
             logId: "socket-maestro-v2",
             maestroName: maestroVisitor?.name || "unknown",
             logValue: `missionJoin - invalid missionId ${missionId}`,
           });
+          callback?.({ status: "error", message: `Invalid missionId ${missionId}` });
           return;
         }
 
@@ -115,6 +116,8 @@ export const setupMaestroNamespace = (
         globalValues.socketio
           .to("inspector")
           .emit("inspectorUpdate", globalValues.serverSocketStatus);
+
+        callback?.({ status: "success", message: `Joined mission ${missionId}` });
       });
 
       socket.on("missionLeave", (missionId: number) => {
@@ -198,7 +201,7 @@ export const setupMaestroNamespace = (
             logId: "socket-maestro-v2",
             logValue: `getEverything - invalid missionId ${missionId}`,
           });
-          callback({ status: "failure", message: "Invalid mission ID" });
+          callback({ status: "error", message: "Invalid mission ID" });
           return;
         }
         try {

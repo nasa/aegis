@@ -247,6 +247,48 @@ describe("maestro namespace socket handlers", () => {
 
       expect(mockSocket.join).not.toHaveBeenCalledWith(getMaestroSocketRoomName(null));
     });
+
+    it("calls the callback with a success response when the join succeeds", () => {
+      const visitor: MaestroVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+      const callback = vi.fn();
+
+      mockSocket._handlers["missionJoin"](MISSION_ID, visitor, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "success",
+        message: expect.any(String),
+      });
+    });
+
+    it("calls the callback with an error response when missionId is invalid", () => {
+      const visitor: MaestroVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+      const callback = vi.fn();
+
+      mockSocket._handlers["missionJoin"](null, visitor, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.any(String),
+      });
+    });
+
+    it("does not throw when no callback is provided", () => {
+      const visitor: MaestroVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+
+      expect(() => mockSocket._handlers["missionJoin"](MISSION_ID, visitor)).not.toThrow();
+    });
   });
 
   describe("subscribeToEva", () => {
@@ -552,16 +594,16 @@ describe("maestro namespace socket handlers", () => {
   // ─── getEverything ──────────────────────────────────────────────────────────
 
   describe("getEverything", () => {
-    it("returns failure for null missionId", async () => {
+    it("returns error for null missionId", async () => {
       const callback = vi.fn();
       await mockSocket._handlers["getEverything"](null, callback);
-      expect(callback).toHaveBeenCalledWith({ status: "failure", message: "Invalid mission ID" });
+      expect(callback).toHaveBeenCalledWith({ status: "error", message: "Invalid mission ID" });
     });
 
-    it("returns failure for NaN missionId", async () => {
+    it("returns error for NaN missionId", async () => {
       const callback = vi.fn();
       await mockSocket._handlers["getEverything"](NaN, callback);
-      expect(callback).toHaveBeenCalledWith({ status: "failure", message: "Invalid mission ID" });
+      expect(callback).toHaveBeenCalledWith({ status: "error", message: "Invalid mission ID" });
     });
 
     it("calls callback with success when data is retrieved", async () => {
