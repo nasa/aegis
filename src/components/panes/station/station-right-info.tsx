@@ -131,7 +131,7 @@ const Info_Panel: FunctionComponent<{
       }
     });
     if (evaNames.length > 0) {
-      evaNamesTooltip += evaNames.join(", ");
+      evaNamesTooltip += evaNames.join("\n");
     }
     return { numEvas, evaNamesTooltip };
   }, refEqual);
