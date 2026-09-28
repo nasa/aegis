@@ -31,8 +31,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 const EvaItemMenu: FunctionComponent<{
   selectedEvaUuid: string;
   asPlannedEvaUuid: string;
-  selectedStyleState: string | null;
-}> = ({ selectedEvaUuid, asPlannedEvaUuid, selectedStyleState }) => {
+}> = ({ selectedEvaUuid, asPlannedEvaUuid }) => {
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
@@ -125,42 +124,6 @@ const EvaItemMenu: FunctionComponent<{
           }}
         >
           <div ref={menuRef} className={evaStyles.menu}>
-            {!isSelectedEvaUuidARex && (
-              <>
-                <div
-                  className={evaStyles.menuItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dialogRef.current?.close();
-                    handleDuplicateEVA();
-                  }}
-                >
-                  <div className={evaStyles.menuItemIcon}>
-                    <FontAwesomeIcon icon={faClone} size="sm" />
-                  </div>
-                  <div className={evaStyles.menuItemText}>Duplicate</div>
-                </div>
-              </>
-            )}
-
-            {
-              <>
-                <div
-                  className={evaStyles.menuItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dialogRef.current?.close();
-                    handleDuplicateEVAWithStations();
-                  }}
-                >
-                  <div className={evaStyles.menuItemIcon}>
-                    <FontAwesomeIcon icon={faClone} size="sm" />
-                  </div>
-                  <div className={evaStyles.menuItemText}>Dup w. Stns</div>
-                </div>
-              </>
-            }
-
             <div
               className={evaStyles.menuItem}
               onClick={(e) => {
@@ -174,6 +137,36 @@ const EvaItemMenu: FunctionComponent<{
               </div>
               <div className={evaStyles.menuItemText}>Add REX</div>
             </div>
+            {!isSelectedEvaUuidARex && (
+              <>
+                <div
+                  className={evaStyles.menuItem}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dialogRef.current?.close();
+                    handleDuplicateEVA();
+                  }}
+                >
+                  <div className={evaStyles.menuItemIcon}>
+                    <FontAwesomeIcon icon={faClone} size="sm" />
+                  </div>
+                  <div className={evaStyles.menuItemText}>Duplicate EVA</div>
+                </div>
+              </>
+            )}
+            <div
+              className={evaStyles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                dialogRef.current?.close();
+                handleDuplicateEVAWithStations();
+              }}
+            >
+              <div className={evaStyles.menuItemIcon}>
+                <FontAwesomeIcon icon={faClone} size="sm" />
+              </div>
+              <div className={evaStyles.menuItemText}>Duplicate w/ Stations</div>
+            </div>
           </div>
         </dialog>
         <FontAwesomeIcon
@@ -185,11 +178,7 @@ const EvaItemMenu: FunctionComponent<{
             handleMenuOpen(e);
             dialogRef.current?.showModal();
           }}
-          style={{
-            width: "15px",
-            color: `${selectedStyleState === "highlight" ? "black" : "white"}`,
-            outline: "none",
-          }}
+          className={evaStyles.kebabIcon}
           tabIndex={0}
         />
 
@@ -348,11 +337,7 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
               />
             )}
             {showEvaMenu && (
-              <EvaItemMenu
-                selectedEvaUuid={selectedEvaUuid}
-                asPlannedEvaUuid={asPlannedEva.uuid}
-                selectedStyleState={selectedStyleState}
-              />
+              <EvaItemMenu selectedEvaUuid={selectedEvaUuid} asPlannedEvaUuid={asPlannedEva.uuid} />
             )}
           </div>
           <div className={evaStyles.nameBottomRow}>

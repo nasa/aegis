@@ -537,3 +537,8 @@
 .menuItemText {
   flex: 1 1 auto;
 }
+
+.kebabIcon {
+  width: 15px;
+  outline: none;
+}
