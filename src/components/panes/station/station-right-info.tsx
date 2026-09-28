@@ -325,7 +325,7 @@ const Info_Panel: FunctionComponent<{
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableRow} style={{ display: "inline" }}>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>Time (mins):</div>
                     </div>
