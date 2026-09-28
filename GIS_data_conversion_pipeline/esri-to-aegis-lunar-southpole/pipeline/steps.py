@@ -9,6 +9,7 @@ input-driven :func:`default_steps` are consumed by ``main.py``.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -29,6 +30,7 @@ STRETCH_TO_8BIT = ROOT / "common" / "raster_to_8bit.py"
 COLORIZE_SLOPE = ROOT / "slope" / "colorize_slope.py"
 COLORIZE_VIEWSHED = ROOT / "viewshed" / "colorize_viewshed.py"
 COLORIZE_CLASSIFIED_MASK = ROOT / "common" / "colorize_classified_mask.py"
+COLORIZE_CATEGORICAL_RASTER = ROOT / "common" / "colorize_categorical_raster.py"
 SHP_TO_GEOJSON = ROOT / "vector" / "shp_to_geojson.py"
 DEM_PRODUCTS = ROOT / "products" / "dem_products.py"
 LYRX_TO_RAMP = ROOT / "products" / "lyrx_to_ramp.py"
@@ -54,6 +56,15 @@ def require_input(path: Path, what: str, flag: str) -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+
+
+def sha256_file(path: Path) -> str:
+    """Return a streaming SHA-256 checksum for source/output preflight."""
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def clear_layer_dir(layer_dir: Path, overwrite: bool) -> bool:
@@ -483,6 +494,12 @@ def step_vectors(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         cmd.append("--repair-invalid")
     if args.expect_vector_features is not None:
         cmd.extend(["--expect-features", str(args.expect_vector_features)])
+    for assignment in args.fill_null_vector_property:
+        cmd.extend(["--fill-null-property", assignment])
+    for property_name in args.require_vector_property:
+        cmd.extend(["--require-property", property_name])
+    for property_name in args.require_unique_vector_property:
+        cmd.extend(["--require-unique-property", property_name])
     run(cmd)
 
 
@@ -861,6 +878,150 @@ def _write_classified_mask_properties(
     )
 
 
+def _write_categorical_properties(
+    layer_dir: Path, name: str, product: str, classes: list[dict]
+) -> None:
+    """Write the full declared categorical vocabulary in source order."""
+    properties = {
+        "name": name,
+        "description": f"Delivered {product} categorical communications coverage.",
+        "legend": {
+            "legend": [
+                {"color": entry["color"], "description": entry["label"]}
+                for entry in classes
+            ],
+            "unitsAbbr": "",
+            "version": "",
+        },
+    }
+    (layer_dir / "properties.json").write_text(
+        json.dumps(properties, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def step_categorical_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Palette-indexed categorical rasters -> exact-color RGBA COG sublayers."""
+    banner("categorical-cogs — palette-indexed rasters -> exact-color RGBA COGs")
+    count = len(args.in_categorical_raster)
+    if len(args.categorical_class_definition) != count:
+        raise SystemExit(
+            "--categorical-class-definition must be provided once for each "
+            "--in-categorical-raster"
+        )
+    if len(args.categorical_product) != count:
+        raise SystemExit(
+            "--categorical-product must be provided once for each --in-categorical-raster"
+        )
+    if args.out_categorical_raster and len(args.out_categorical_raster) != count:
+        raise SystemExit(
+            "--out-categorical-raster must be provided once for each "
+            "--in-categorical-raster, or omitted to use each source filename"
+        )
+
+    selected_sources = [Path(value) for value in args.in_categorical_raster]
+    malformed = [
+        source.name
+        for source in selected_sources
+        if source.name.endswith(("Classtif.tif", "Bivariatetif.tif"))
+    ]
+    if malformed:
+        raise SystemExit(
+            "Malformed doubled-extension categorical raster(s) are not accepted: "
+            + ", ".join(malformed)
+        )
+    checksums: dict[str, Path] = {}
+    for source in selected_sources:
+        require_input(source, "categorical GeoTIFF", "--in-categorical-raster")
+        digest = sha256_file(source)
+        duplicate = checksums.get(digest)
+        if duplicate is not None:
+            raise SystemExit(
+                f"Duplicate categorical raster content: {duplicate.name} and {source.name}"
+            )
+        checksums[digest] = source
+
+    p.layers.mkdir(parents=True, exist_ok=True)
+    scratch = p.out / "scratch_categorical_cogs"
+    scratch.mkdir(parents=True, exist_ok=True)
+    try:
+        for index, raster in enumerate(selected_sources):
+            definition = Path(args.categorical_class_definition[index])
+            product = args.categorical_product[index]
+            require_input(raster, "categorical GeoTIFF", "--in-categorical-raster")
+            require_input(
+                definition,
+                "categorical class definition",
+                "--categorical-class-definition",
+            )
+            base_name = (
+                args.out_categorical_raster[index]
+                if args.out_categorical_raster
+                else _classified_mask_layer_name(raster)
+            )
+            if (
+                not base_name
+                or base_name in {".", ".."}
+                or "/" in base_name
+                or "\\" in base_name
+            ):
+                raise SystemExit(f"Invalid categorical layer name: {base_name!r}")
+            layer_name = p.layer_name(base_name)
+            layer_dir = p.layers / layer_name
+            out_cog = layer_dir / config.cog_layer_filename(layer_name)
+            if out_cog.exists() and not args.overwrite:
+                tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
+                continue
+
+            layer_dir.mkdir(parents=True, exist_ok=True)
+            rgba = scratch / f"{layer_name}_rgba.tif"
+            audit_path = layer_dir / "conversion_audit.json"
+            tee(f"\n  categorical: {raster} -> {out_cog}")
+            try:
+                run(
+                    [
+                        PYTHON,
+                        COLORIZE_CATEGORICAL_RASTER,
+                        raster,
+                        rgba,
+                        "--class-definition",
+                        definition,
+                        "--product",
+                        product,
+                        "--audit-out",
+                        audit_path,
+                    ]
+                )
+                run(
+                    [
+                        PYTHON,
+                        GEOTIFF_TO_COG,
+                        rgba,
+                        "-o",
+                        out_cog,
+                        "--compress",
+                        config.COG_COMPRESS,
+                        "--overview-resampling",
+                        "nearest",
+                    ]
+                )
+                audit = json.loads(audit_path.read_text(encoding="utf-8"))
+                _write_categorical_properties(
+                    layer_dir, layer_name, product, audit["classes"]
+                )
+                audit["output"] = str(out_cog.resolve())
+                audit["output_checksum_sha256"] = sha256_file(out_cog)
+                audit_path.write_text(
+                    json.dumps(audit, indent=2) + "\n", encoding="utf-8"
+                )
+            finally:
+                rgba.unlink(missing_ok=True)
+    finally:
+        try:
+            scratch.rmdir()
+        except OSError:
+            pass
+
+
 def step_viewshed_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Classified viewshed rasters -> transparent-mask RGBA COG sublayers."""
     banner("viewshed-cogs — classified viewshed rasters -> RGBA COG masks")
@@ -911,6 +1072,8 @@ def step_viewshed_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> Non
                         rgba,
                         "--visible-value",
                         str(config.VIEWSHED_VALUE_VISIBLE),
+                        "--background-value",
+                        str(config.VIEWSHED_VALUE_BACKGROUND),
                         "--nonvisible-value",
                         str(config.VIEWSHED_VALUE_NONVISIBLE),
                         "--nodata-value",
@@ -930,6 +1093,8 @@ def step_viewshed_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> Non
                         out_cog,
                         "--compress",
                         config.COG_COMPRESS,
+                        "--overview-resampling",
+                        "nearest",
                     ]
                 )
                 _write_classified_mask_properties(
@@ -1015,6 +1180,8 @@ def step_keepout_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None
                         out_cog,
                         "--compress",
                         config.COG_COMPRESS,
+                        "--overview-resampling",
+                        "nearest",
                     ]
                 )
                 _write_classified_mask_properties(
@@ -1145,6 +1312,10 @@ STEPS: list[tuple[str, str]] = [
         "Time-series rasters (--in-time-cog-dir) → one nested COG layer + manifest",
     ),
     (
+        "categorical-cogs",
+        "Palette-indexed rasters (--in-categorical-raster) → exact-color RGBA COGs",
+    ),
+    (
         "viewshed-cogs",
         "Classified viewshed rasters (--in-viewshed-raster) → transparent-mask RGBA COGs",
     ),
@@ -1173,6 +1344,7 @@ STEP_FNS = {
     "contours": step_contours,
     "cogs": step_cogs,
     "time-cogs": step_time_cogs,
+    "categorical-cogs": step_categorical_cogs,
     "viewshed-cogs": step_viewshed_cogs,
     "keepout-cogs": step_keepout_cogs,
     "grid": step_grid,
@@ -1196,6 +1368,7 @@ DATA_STEPS = {
     "contours",
     "cogs",
     "time-cogs",
+    "categorical-cogs",
     "viewshed-cogs",
     "keepout-cogs",
     "grid",
@@ -1229,6 +1402,8 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("cogs")
     if args.in_time_cog_dir:
         chosen.append("time-cogs")
+    if args.in_categorical_raster:
+        chosen.append("categorical-cogs")
     if args.in_viewshed_raster:
         chosen.append("viewshed-cogs")
     if args.in_keepout_raster:
