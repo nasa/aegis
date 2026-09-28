@@ -6,7 +6,7 @@ import { deepEqual } from "utils/useAppSelector";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faList, faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import { Button, Checkbox } from "components/interface/form/globalFields";
-import { regExValidators, validators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { toDecimal } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -143,9 +143,6 @@ const EquipmentItem: FunctionComponent<{
                 validators.mustBeInteger,
                 validators.required,
               ],
-            }}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
             }}
             value={equipItem.quantity?.toString()}
             onSubmit={(val: string) => {

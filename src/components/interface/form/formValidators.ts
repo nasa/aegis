@@ -231,11 +231,3 @@ export const getFiltersForValidators = (
 
   return composeFilters(...filters);
 };
-
-// Regex validators to match characters NOT in the accepted pattern
-
-const regExNumber = /[^\d\.]/;
-
-export const regExValidators = {
-  regExNumber,
-};

@@ -34,7 +34,7 @@ import {
 } from "../actions-action-body-multiselectors";
 import { collapseActions, expandActions } from "store/action";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { validators, regExValidators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import { toDecimal } from "utils/formatting";
 import { getActionDefinitionLabel } from "store/selectors";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
@@ -431,12 +431,6 @@ const ActionTemplateItem: FunctionComponent<{
                                 // validators.mustBeNumberGTZero,
                               ],
                             }}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            }}
                             onSubmit={(value: string) => {
                               withMissionChange((m) =>
                                 applyUpdateActionTemplateByField(m, {
@@ -479,12 +473,6 @@ const ActionTemplateItem: FunctionComponent<{
                                 validators.maxLength(4),
                                 validators.mustBeInteger,
                               ],
-                            }}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
                             }}
                             onSubmit={(value: string) => {
                               withMissionChange((m) =>

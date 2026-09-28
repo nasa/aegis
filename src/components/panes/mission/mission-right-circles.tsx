@@ -2,7 +2,7 @@ import type { FunctionComponent } from "react";
 import { memo, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import { faPlusCircle, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
-import { regExValidators, validators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import missionStyles from "./mission.module.css";
 import { Button } from "components/interface/form/globalFields";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -158,9 +158,6 @@ const RadiusItem: FunctionComponent<{
                 validators.mustBeInteger,
                 validators.required,
               ],
-            }}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
             }}
             value={circleDef.radius?.toString()}
             onSubmit={async (val: string) => {

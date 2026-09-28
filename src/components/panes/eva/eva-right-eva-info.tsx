@@ -29,7 +29,7 @@ import {
   faRoute,
   faGlobe,
 } from "@fortawesome/free-solid-svg-icons";
-import { regExValidators, validators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import { getCalcFieldsForEva } from "store/processing/calculatedFields";
 import { faClock } from "@fortawesome/free-regular-svg-icons";
 
@@ -331,12 +331,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                               validators.maxLength(5),
                               validators.mustBeInteger,
                             ],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
                           }}
                           onSubmit={(val: string) => {
                             withMissionChange((m) =>
@@ -367,12 +361,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             name: "traverseRate",
                             ariaLabel: "Average Traverse Rate",
                             validators: [validators.mustBeNumber, validators.maxLength(4)],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
                           }}
                           onSubmit={(val: string) => {
                             withMissionChange((m) =>

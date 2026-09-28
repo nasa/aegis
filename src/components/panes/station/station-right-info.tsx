@@ -27,7 +27,7 @@ import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDocResetWalkback, thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { makeTraverseRateString } from "utils/component-helpers";
-import { validators, regExValidators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { setOriginalPoints, updateMapDirective } from "store/map";
@@ -343,12 +343,6 @@ const Info_Panel: FunctionComponent<{
                               validators.mustBeInteger,
                               validators.mustBeNumberGTZero,
                             ],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
                           }}
                           onSubmit={(val: string) => {
                             withMissionChange((m) =>
@@ -797,12 +791,6 @@ const Info_Panel: FunctionComponent<{
                               name: "walkbackTraverseRate",
                               ariaLabel: "Average Walkback Traverse Rate",
                               validators: [validators.mustBeNumber, validators.maxLength(4)],
-                              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                                e.target.value = e.target.value.replace(
-                                  regExValidators.regExNumber,
-                                  ""
-                                );
-                              },
                             }}
                             onSubmit={(val: string) => {
                               withMissionChange((m) =>
