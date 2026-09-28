@@ -176,46 +176,29 @@ export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
  * They work with the validators above
  */
 
-const filterNumbersOnly = (value: Stringy): string => {
+export const filterNumbersOnly = (value: Stringy): string => {
   return String(value).replace(/[^0-9.-]/g, "");
 };
 
-const filterIntegersOnly = (value: Stringy): string => {
+export const filterIntegersOnly = (value: Stringy): string => {
   return String(value).replace(/[^0-9-]/g, "");
 };
 
-const filterNumbersGTZero = (value: Stringy): string => {
-  return String(value).replace(/[^1-9.]/g, "");
-};
-
-const filterNumbersGTEZero = (value: Stringy): string => {
-  return String(value).replace(/[^0-9.]/g, "");
-};
-
-const filterHHMMSS = (value: Stringy): string => {
+export const filterHHMMSS = (value: Stringy): string => {
   return String(value).replace(/[^0-9:+-]/g, "");
 };
 
-const filterYYYYMMDD = (value: Stringy): string => {
-  return String(value).replace(/[^0-9-]/g, "");
-};
-
-const filterValidJSON = (value: Stringy): string => {
-  return String(value).replace(/[^\w\s:{}[\],".-]/g, "");
-};
-
-const filterISOString = (value: Stringy): string => {
+export const filterISOString = (value: Stringy): string => {
   return String(value).replace(/[^0-9T:Z.-]/g, "");
 };
 
+const filterNumbersValidators = ["mustBeNumber", "mustBeNumberGTZero", "mustBeNumberGTEZero"];
+
 const validatorsWithFilters: Record<string, (value: Stringy) => string> = {
-  mustBeNumber: filterNumbersOnly,
+  ...Object.fromEntries(filterNumbersValidators.map((validator) => [validator, filterNumbersOnly])),
+
   mustBeInteger: filterIntegersOnly,
-  mustbeNumberGTZero: filterNumbersGTZero,
-  mustBeNumberGTEZero: filterNumbersGTEZero,
   mustBeHHMMSS: filterHHMMSS,
-  mustBeYYYYMMDD: filterYYYYMMDD,
-  mustBeValidJSON: filterValidJSON,
   mustBeISOString: filterISOString,
 };
 
