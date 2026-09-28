@@ -174,7 +174,6 @@ export const CollaborationInputField: FunctionComponent<{
                             style={{ width: "100%", textAlign: isRightAligned ? "right" : "left" }}
                             onChange={(event) => {
                               if (onChange) onChange(event);
-                              input.onChange(event); //call native on change
                               input.onChange(composedFilter(event.target.value));
                               form.submit();
                             }}
