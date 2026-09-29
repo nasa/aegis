@@ -18,12 +18,6 @@ export async function teardown(): Promise<void> {
   delete from "sublayer_db" where name like '%Vitest%';
   delete from "layer_db" where name like '%Vitest%';
   delete from "preset_db" where name like '%Vitest%';
-  delete from "action_db" where name like '%Vitest%';
-  delete from "poi_db" where name like '%Vitest%';
-  delete from "station_db" where name like '%Vitest%';
-  delete from "traverse_db" where name like '%Vitest%';
-  delete from "eva_db" where name like '%Vitest%';
-  delete from "rex_db" where name like '%Vitest%';
   delete from "stm_level3_db" where name like '%Vitest%';
   delete from "stm_level2_db" where name like '%Vitest%';
   delete from "stm_level1_db" where name like '%Vitest%';
