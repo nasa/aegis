@@ -76,4 +76,4 @@ ENTRYPOINT ["/sbin/tini", "--"]
 # SQL-to-Automerge data boundaries safely. First, create initial Automerge documents before
 # mission_db is removed. Second, create the Automerge migration ledger and run pending document
 # backfills before grid_db is removed. Finally, apply all remaining migrations and start the API.
-CMD ["/bin/sh", "-c", "npm run migration:up && npm run api"]
+CMD ["/bin/sh", "-c", "migration:up:run && npm run api"]
