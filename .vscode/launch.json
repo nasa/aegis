@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Node Attach",
+      "skipFiles": ["<node_internals>/**"],
+      "port": 8229
+    },
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "Chrome Attach",
+      "port": 9222,
+      "urlFilter": "http://localhost:4000/*",
+      "webRoot": "${workspaceFolder}/src"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Vitest All",
+      "program": "${workspaceFolder}/node_modules/.bin/vitest",
+      "args": ["run"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Vitest Current",
+      "program": "${workspaceFolder}/node_modules/.bin/vitest",
+      "args": ["run", "${fileBasenameNoExtension}"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

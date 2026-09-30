@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500" height="500" viewBox="0 0 500 500">
+  <defs>
+    <style>
+      .cls-2 {
+        fill: #fff;
+        fill-rule: evenodd;
+        stroke: #000;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 14.75px;
+      }
+    </style>
+  </defs>
+  <g id="Legend">
+    <g id="Science_Stations_Group" data-name="Science_Stations Group">
+      <g id="Patch_19" data-name="Patch 19">
+        <polygon class="cls-2" points="250 15 365 250 250 485 135 250 250 15"/>
+      </g>
+    </g>
+  </g>
+</svg>

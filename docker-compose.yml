@@ -1,0 +1,131 @@
+# Prefixing with x- just means this isn't actually used by Docker Compose.
+# Instead, this holds values that are included elsewhere in this file.
+x-wrapper: &send_container_logs_to_syslog
+  # `logging` property to be added to any services below where we want logs.
+  # In FIT, adding this to a service makes the service log to the VM's
+  # Rsyslog service running on the host. In local dev we would need to stand
+  # up an Rsyslog of some type, perhaps in a container, that could forward
+  # logs from a locally-running app to a locally-running logging server.
+  logging:
+    driver: syslog
+    options:
+      syslog-address: "${LOG_INTERNAL_ENDPOINT}"
+      # If syslog-address endpoint goes down, don't freak out
+      mode: "non-blocking"
+      # This tag sends the container name to the logging server, where the
+      # container name is the app ID plus the service name. See the
+      # `container_name` properties for the apps below.
+      # Unfortunately the container name can't just be the service name, i.e.
+      # "nginx", because then in local dev if you want to have both CODA and
+      # AEGIS running simultaneously then the second will fail because there
+      # is already an "nginx" container present. So container names are
+      # prefixed with their LOG_DATA_APP_ID. The log server splits this up
+      # to store the app ID and service name separately. The server name,
+      # e.g. "carbon", is handled entirely by the host's Rsyslog config.
+      tag: "{{.Name}}"
+
+services:
+  nginx:
+    container_name: "${LOG_DATA_APP_ID}--nginx"
+    image: ${REGISTRY_IMAGE}/nginx:${IMAGE_VERSION}
+    restart: always
+    depends_on:
+      - apiv1
+    <<: *send_container_logs_to_syslog
+    volumes:
+      - ${STATIC_DIR}:/usr/share/nginx/html/static:ro
+      - ${DOCKER_SSL_CERTS_DIR}:/etc/pki/tls/certs
+      - ${DOCKER_SSL_PRIVATE_DIR}:/etc/pki/tls/private
+
+    ports:
+      # AEGIS requires launchpad, so must be over HTTPS and not have a port specified in the URL
+      # e.g. https://aegis.fit.nasa.gov not https://aegis.fit.nasa.gov:8000
+      - "443:443"
+
+  apiv1:
+    container_name: "${LOG_DATA_APP_ID}--apiv1"
+    image: ${REGISTRY_IMAGE}/apiv1:${IMAGE_VERSION}
+    depends_on:
+      database:
+        condition: service_healthy
+    <<: *send_container_logs_to_syslog
+    restart: always
+    env_file:
+      # Any .env variables needed at runtime must be specified here or listed out in the `environment` property
+      #
+      # First the .env file is used to SET environment variables on the container. The .env file is
+      # NOT actually moved over onto the container, just the variables are set.
+      - ./.env
+    volumes:
+      - ${STATIC_DIR}:/${STATIC_DIR}
+
+  database:
+    container_name: "${LOG_DATA_APP_ID}--database"
+    image: ${DOCKER_IMAGE_DATABASE}
+    restart: always
+    <<: *send_container_logs_to_syslog
+    environment:
+      # Used for setting up a DB for the first time. These are not stored in the container
+      # but rather in the db data itself
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+    healthcheck:
+      test: "pg_isready -U postgres && psql --username=postgres --list && psql --username=postgres ${DB_NAME} -c 'SELECT tablename FROM pg_catalog.pg_tables LIMIT 1'"
+      interval: 30s # how often to check health
+      timeout: 5s # fail if it takes longer than this
+      retries: 6 # max consecutive failures
+      start_period: 15s # db takes about 20 seconds to come up
+    volumes:
+      # map the DB data to be stored outside the container
+      - ${DOCKER_DB_DATA_DIR}:/var/lib/postgresql/data
+      - ${DOCKER_DB_INIT_DIR}:/docker-entrypoint-initdb.d
+
+  oauth2-proxy:
+    container_name: "${LOG_DATA_APP_ID}--oauth2"
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.11.0
+    restart: always
+    <<: *send_container_logs_to_syslog
+    command:
+      - --http-address
+      - 0.0.0.0:4180
+    depends_on:
+      - redis
+    environment:
+      OAUTH2_PROXY_PROVIDER: adfs
+      OAUTH2_PROXY_OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL}
+      OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID}
+      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET}
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_REDIRECT_URL: ${OAUTH2_PROXY_REDIRECT_URL}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
+      OAUTH2_PROXY_COOKIE_SECURE: true
+      OAUTH2_PROXY_REVERSE_PROXY: true
+
+      OAUTH2_PROXY_SKIP_OIDC_DISCOVERY: true
+      OAUTH2_PROXY_LOGIN_URL: ${OAUTH2_PROXY_LOGIN_URL}
+      OAUTH2_PROXY_REDEEM_URL: ${OAUTH2_PROXY_REDEEM_URL}
+      OAUTH2_PROXY_OIDC_JWKS_URL: ${OAUTH2_PROXY_OIDC_JWKS_URL}
+      OAUTH2_PROXY_WHITELIST_DOMAIN: ${OAUTH2_PROXY_WHITELIST_DOMAIN}
+
+      OAUTH2_PROXY_SET_XAUTHREQUEST: true
+      OAUTH2_PROXY_PASS_ACCESS_TOKEN: true
+      OAUTH2_PROXY_OIDC_EMAIL_CLAIM: AUID
+
+      OAUTH2_PROXYSET_SET_AUTHORIZATION_HEADER: true
+      OAUTH2_PROXYSET_SET_BASIC_AUTH: true
+
+      # Just do LaunchPad auth, don't make the user click a button
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: true
+
+      OAUTH2_PROXY_COOKIE_NAME: SESSION
+      OAUTH2_PROXY_COOKIE_SAMESITE: lax
+      OAUTH2_PROXY_SESSION_STORE_TYPE: redis
+      OAUTH2_PROXY_REDIS_CONNECTION_URL: redis://redis
+
+  redis:
+    container_name: "${LOG_DATA_APP_ID}--redis"
+    image: redis:7.2.5-alpine3.19
+    restart: always
+    <<: *send_container_logs_to_syslog
+    volumes:
+      - ${REDIS_CACHE_DIR}:/data

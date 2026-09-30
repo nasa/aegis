@@ -1,0 +1,133 @@
+.timelineContainer {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  background-color: var(--grey1);
+}
+
+.timelineBodyItem {
+  height: 100%;
+  background-color: var(--grey2);
+  border-radius: var(--panelRadius);
+}
+
+.timelineRight {
+  padding-left: 4px;
+  margin: 4px 0 4px 0;
+  width: 60px;
+  background-color: var(--grey2);
+  border-radius: var(--panelRadius);
+}
+
+.timelineOptions {
+  display: flex;
+  flex-direction: row;
+  justify-content: right;
+  background-color: var(--grey1);
+}
+
+.timelineHoverContainer {
+  flex: 0 0 150px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 4px;
+  background-color: var(--grey1);
+  font-size: 0.8rem;
+  border-radius: var(--panelRadius);
+
+  margin: 4px 0 4px 4px;
+}
+
+.timelineHoverValues {
+  background-color: var(--grey2);
+  border-radius: var(--panelRadius);
+  flex-grow: 1;
+}
+
+.timelineHoverValueItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 5px;
+}
+
+.timelineHoverValueTitle {
+  color: var(--grey4);
+  user-select: none;
+}
+
+.timelineHoverValue {
+  height: 1em;
+  text-align: right;
+}
+
+.timelineButton {
+  width: 30px;
+  font-size: 1em;
+  padding-left: 10px;
+}
+
+.canvasContainer {
+  flex: 1 1 auto;
+  bottom: 0;
+  left: 0;
+  z-index: 500;
+  background-color: var(--grey1);
+  margin: 4px;
+}
+
+.canvasContainer canvas {
+  height: 100%;
+  width: 100%;
+}
+
+.timelineKey {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background-color: var(--grey2);
+  border-radius: var(--panelRadius);
+  flex-grow: 1;
+}
+
+.timelineKeyItem {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  color: var(--grey4);
+  margin-bottom: 4px;
+  padding: 0 4px;
+}
+
+.timelineKeyName {
+  margin-right: 4px;
+}
+
+.timelinKeySymbols {
+  display: flex;
+  flex-direction: row;
+}
+
+.timelinKeySvgSymbols {
+  display: flex;
+  flex-direction: row;
+}
+
+/* make a line */
+.line {
+  float: right;
+  margin: 8px 0 0 4px;
+  border-top: 2px solid var(--grey4);
+  height: 2px;
+  width: 20px;
+}
+
+.svgLine {
+  margin: 3px 0 0 4px;
+  width: 20px;
+  height: 0.5rem;
+}
+
+/* make a dashed line using gradient */

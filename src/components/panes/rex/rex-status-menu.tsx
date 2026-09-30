@@ -1,0 +1,160 @@
+import type { CSSProperties, FunctionComponent } from "react";
+import { useRef } from "react";
+
+import rexStyles from "./rex.module.css";
+import evaStyles from "../eva/eva.module.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { thunkDocAddRexStatusEntry } from "store/thunk/thunkRex";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { getRexStatusDisplayProperties } from "utils/component-helpers";
+import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import RexSkippedIcon from "assets/draw-rex-skipped-icon.svg?react";
+
+export const RexStatusMenu: FunctionComponent<{
+  rexStatus: RexStatus;
+  divClassName: string;
+  divStyle?: CSSProperties;
+  entryType: "action" | "station" | "traverse";
+  uuid: string;
+  editPerms: boolean;
+  maestroControlled: boolean;
+}> = ({
+  rexStatus,
+  divClassName,
+  divStyle = {},
+  entryType,
+  uuid,
+  editPerms,
+  maestroControlled,
+}): JSX.Element => {
+  const dispatch = useAppDispatch();
+  const rexStatusDisplayProperties = getRexStatusDisplayProperties(rexStatus);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const maestroDialogRef = useRef<HTMLDialogElement>(null);
+
+  const handleMenuOpen = (e: React.MouseEvent) => {
+    if (!editPerms) return;
+
+    if (maestroControlled) {
+      const maestroDialogElement = maestroDialogRef.current;
+      if (maestroDialogElement) {
+        const x = e.clientX + 145; // width of the menu
+        maestroDialogElement.style.left = `${x}px`;
+        maestroDialogElement.style.top = `${e.clientY}px`;
+        maestroDialogElement.showModal();
+      }
+      return;
+    }
+
+    const statusDialogElement = dialogRef.current;
+    const statusMenuElement = menuRef.current;
+    if (statusDialogElement && statusMenuElement) {
+      const x = e.clientX + 5; // width of the menu
+      statusMenuElement.style.left = `${x}px`;
+      statusMenuElement.style.top = `${e.clientY}px`;
+      statusDialogElement.showModal();
+    }
+  };
+
+  const handleRexStatusClick = async (rexStatus: RexStatus) => {
+    const result = await dispatch(thunkDocAddRexStatusEntry({ entryType, uuid, rexStatus }));
+    if (thunkDocAddRexStatusEntry.rejected.match(result) && result.payload) {
+      alert(result.payload);
+    }
+    dialogRef.current?.close();
+  };
+
+  return (
+    <>
+      <dialog
+        ref={dialogRef}
+        className={rexStyles.rexStatusContainer}
+        onClick={(e) => {
+          e.stopPropagation();
+          dialogRef.current?.close();
+        }}
+      >
+        <div ref={menuRef} className={rexStyles.rexStatusMenu}>
+          <RexStatusMenuItem
+            rexStatus="pending"
+            title="Pending"
+            handleRexStatusClick={handleRexStatusClick}
+          />
+          <RexStatusMenuItem
+            rexStatus="in-progress"
+            title="In-Progress"
+            handleRexStatusClick={handleRexStatusClick}
+          />
+          <RexStatusMenuItem
+            rexStatus="complete"
+            title="Complete"
+            handleRexStatusClick={handleRexStatusClick}
+          />
+          <RexStatusMenuItem
+            rexStatus="skipped"
+            title="Skipped"
+            handleRexStatusClick={handleRexStatusClick}
+          />
+        </div>
+      </dialog>
+      <dialog
+        ref={maestroDialogRef}
+        className={rexStyles.maestroDialogContainer}
+        onClick={(e) => {
+          e.stopPropagation();
+          maestroDialogRef.current?.close();
+        }}
+      >
+        <div className={rexStyles.maestroDialogMenu}>
+          <FontAwesomeIcon icon={faTriangleExclamation} style={{ color: "var(--error)" }} /> Item
+          status is controlled by Maestro
+        </div>
+      </dialog>
+      <div
+        className={divClassName}
+        style={{ ...divStyle, cursor: editPerms && !maestroControlled ? "pointer" : "default" }}
+        onClick={(e) => {
+          handleMenuOpen(e);
+          e.stopPropagation();
+        }}
+        data-tooltip-id="aegis-tooltip"
+        data-tooltip-content={rexStatusDisplayProperties.tooltip}
+      >
+        {rexStatus !== "skipped" ? (
+          <FontAwesomeIcon
+            icon={rexStatusDisplayProperties.icon}
+            className={`${evaStyles.rexStatusIcon} ${rexStatusDisplayProperties.iconStyle}`}
+          />
+        ) : (
+          <RexSkippedIcon className={rexStyles.rexStatusIconSkipped} />
+        )}
+      </div>
+    </>
+  );
+};
+
+const RexStatusMenuItem: FunctionComponent<{
+  rexStatus: RexStatus;
+  title: string;
+  handleRexStatusClick: Function;
+}> = ({ rexStatus, title, handleRexStatusClick }) => {
+  return (
+    <div
+      className={rexStyles.rexStatusMenuItem}
+      onClick={() => {
+        handleRexStatusClick(rexStatus);
+      }}
+    >
+      {rexStatus !== "skipped" ? (
+        <FontAwesomeIcon
+          icon={getRexStatusDisplayProperties(rexStatus).icon}
+          className={`${evaStyles.rexStatusMenuIcon} ${getRexStatusDisplayProperties(rexStatus).iconStyle}`}
+        />
+      ) : (
+        <RexSkippedIcon className={rexStyles.rexStatusIconSkipped} />
+      )}
+      <div className={rexStyles.rexStatusMenuItemTitle}>{title}</div>
+    </div>
+  );
+};

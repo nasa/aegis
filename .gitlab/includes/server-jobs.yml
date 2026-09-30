@@ -1,0 +1,277 @@
+# Contains server related jobs
+#   Exporting the database
+#   Collecting container logs
+#   Restarting the containers
+
+#
+# Adds jobs to export the database from various servers.
+#
+
+.db-export-template:
+  needs: []
+  # I don't think we want to do this, because I don't think we want GitLab to consider this a
+  # deployment. It's just grabbing some data off of Production.
+  # environment:
+  #   name: production
+  #   url: https://aegis.fit.nasa.gov
+  when: manual
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none
+  script:
+    # init sudo ability
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+    - PROJECT_DIR=$(pwd)
+    - cd /opt/aegis
+    # Exclude PostGIS schemas/tables and strip PostGIS DDL/COPY blocks from the dump.
+    # pg_dump has no --exclude-extension flag, so extension CREATE/COMMENT lines are piped
+    # through sed. The tiger/topology schema DDL and spatial_ref_sys / tiger.* / topology.*
+    # COPY blocks are also stripped as defense-in-depth: --exclude-schema removes contents
+    # but pg_dump can still emit the empty schema shell. Import jobs also strip (defense-
+    # in-depth for old cached dumps that predate --exclude-schema on the export side).
+    # IMPORTANT: Keep the PostGIS pattern synchronized with .gitlab/scripts/load-sql-dump.mjs,
+    # scripts/upgrade-db.sh, and .gitlab/includes/db-import.yml
+    - sudo docker compose exec database pg_dump -U postgres aegis
+      --exclude-schema=tiger
+      --exclude-schema=tiger_data
+      --exclude-schema=topology
+      --exclude-table=public.spatial_ref_sys
+      | sed -E
+      '/^CREATE EXTENSION.*(postgis|tiger|topology|fuzzystrmatch).*;$/d;
+      /^COMMENT ON EXTENSION (postgis|tiger|topology|fuzzystrmatch).*;$/d;
+      /^CREATE SCHEMA (tiger|tiger_data|topology);$/d;
+      /^ALTER SCHEMA (tiger|tiger_data|topology) OWNER TO .*;$/d;
+      /^COMMENT ON SCHEMA (tiger|tiger_data|topology) .*;$/d;
+      /^COPY (public\.spatial_ref_sys|tiger\.[a-z_]+|topology\.[a-z_]+) .* FROM stdin;$/,/^\\.$/d'
+      > "${PROJECT_DIR}/aegis.sql"
+  artifacts:
+    paths:
+      - aegis.sql
+    expire_in: 1 day
+
+z:db-export:prod:
+  extends: .db-export-template
+  when: always
+  tags: ["emss-aegis-prod"]
+  resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
+  variables:
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD} #CI/CD Variable
+
+z:db-export:int:
+  extends: .db-export-template
+  tags: ["emss-aegis-int"]
+  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
+  variables:
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
+
+z:db-export:argon:
+  extends:
+    - .db-export-template
+    - .argon-access
+
+z:db-export:carbon:
+  extends:
+    - .db-export-template
+    - .carbon-access
+
+z:db-export:gold:
+  extends:
+    - .db-export-template
+    - .gold-access
+
+z:db-export:helium:
+  extends:
+    - .db-export-template
+    - .helium-access
+
+z:db-export:iron:
+  extends:
+    - .db-export-template
+    - .iron-access
+
+z:db-export:neon:
+  extends:
+    - .db-export-template
+    - .neon-access
+
+z:db-export:oxygen:
+  extends:
+    - .db-export-template
+    - .oxygen-access
+
+z:db-export:silver:
+  extends:
+    - .db-export-template
+    - .silver-access
+
+#
+# Adds jobs to trigger log collection on various servers.
+#
+
+.container-logs-template:
+  when: manual
+  needs: []
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+
+    # OS info and partition usage
+    - cat /etc/os-release
+    - df -h
+
+    # Setup artifact directories
+    - LOG_ARTIFACTS=$(pwd)/log_artifacts
+    - mkdir -p "${LOG_ARTIFACTS}"
+
+    - cd /opt/aegis
+
+    - sudo docker compose ps
+    - sudo docker compose stats --no-stream
+
+    # print last 100 lines to job output
+    - sudo docker compose logs nginx --tail 100
+    - sudo docker compose logs database --tail 100
+    - sudo docker compose logs apiv1 --tail 100
+    - sudo journalctl --unit=rsyslog -n 200 --no-pager
+
+    # Put the full logs into artifacts. Full logs may hit the job log length
+    # limit, and generally make the job log un-readably long
+    - sudo docker compose logs nginx > "${LOG_ARTIFACTS}/nginx"
+    - sudo docker compose logs database > "${LOG_ARTIFACTS}/database"
+    - sudo docker compose logs apiv1 > "${LOG_ARTIFACTS}/apiv1"
+    - sudo journalctl --unit=rsyslog --no-pager > "${LOG_ARTIFACTS}/host-rsyslog"
+
+  artifacts:
+    when: always
+    paths:
+      - ./log_artifacts
+    expire_in: 1 day
+
+z:logs:argon:
+  extends:
+    - .container-logs-template
+    - .argon-access
+
+z:logs:carbon:
+  extends:
+    - .container-logs-template
+    - .carbon-access
+
+z:logs:gold:
+  extends:
+    - .container-logs-template
+    - .gold-access
+
+z:logs:helium:
+  extends:
+    - .container-logs-template
+    - .helium-access
+
+z:logs:iron:
+  extends:
+    - .container-logs-template
+    - .iron-access
+
+z:logs:neon:
+  extends:
+    - .container-logs-template
+    - .neon-access
+
+z:logs:oxygen:
+  extends:
+    - .container-logs-template
+    - .oxygen-access
+
+z:logs:silver:
+  extends:
+    - .container-logs-template
+    - .silver-access
+
+z:logs:int:
+  extends: .container-logs-template
+  tags: ["emss-aegis-int"]
+  variables:
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
+
+z:logs:prod:
+  extends: .container-logs-template
+  tags: ["emss-aegis-prod"]
+  variables:
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD} #CI/CD Variable
+
+#
+# Add jobs to restart all containers on a given environment.
+#
+
+.restart-containers-template:
+  when: manual
+  needs: []
+  stage: stageless
+  timeout: 10 minutes
+  variables:
+    GIT_STRATEGY: none
+  script:
+    # init sudo ability
+    - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
+    - cd /opt/aegis
+    # cannot use docker compose restart because that does not clear the containers internal storage
+    - sudo docker compose down
+    - sudo docker compose up -d
+
+z:restart-containers:argon:
+  extends:
+    - .restart-containers-template
+    - .argon-access
+
+z:restart-containers:carbon:
+  extends:
+    - .restart-containers-template
+    - .carbon-access
+
+z:restart-containers:gold:
+  extends:
+    - .restart-containers-template
+    - .gold-access
+
+z:restart-containers:helium:
+  extends:
+    - .restart-containers-template
+    - .helium-access
+
+z:restart-containers:iron:
+  extends:
+    - .restart-containers-template
+    - .iron-access
+
+z:restart-containers:neon:
+  extends:
+    - .restart-containers-template
+    - .neon-access
+
+z:restart-containers:oxygen:
+  extends:
+    - .restart-containers-template
+    - .oxygen-access
+
+z:restart-containers:silver:
+  extends:
+    - .restart-containers-template
+    - .silver-access
+
+z:restart-containers:int:
+  extends: .restart-containers-template
+  tags: ["emss-aegis-int"]
+  resource_group: int # prevents concurrent executions on this environment when there are multiple pipelines
+  variables:
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT}
+
+z:restart-containers:prod:
+  extends: .restart-containers-template
+  tags: ["emss-aegis-prod"]
+  resource_group: prod # prevents concurrent executions on this environment when there are multiple pipelines
+  variables:
+    DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_PROD}

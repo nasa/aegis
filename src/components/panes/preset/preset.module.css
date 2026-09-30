@@ -1,0 +1,174 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--grey1);
+}
+
+.presetItem {
+  display: flex;
+  padding: 2px 5px 2px 5px;
+  user-select: none;
+}
+
+.itemIcon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+
+  align-items: center;
+
+  font-size: 16px;
+  margin: 0 2px 0 2px;
+
+  border-radius: 5px;
+  padding: 0 1px 1px 1px;
+  width: 28px;
+  height: 28px;
+}
+
+.presetTitle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+  cursor: pointer;
+}
+
+.presetItemSelected {
+  background-color: var(--grey5);
+  font-weight: 500;
+  color: black;
+  cursor: pointer;
+}
+
+.presetItemHovered {
+  background-color: var(--grey1);
+}
+
+.defaultText {
+  font-size: 0.8em;
+  font-weight: 400;
+  margin-left: 5px;
+}
+
+.presetIcon {
+  width: 20px;
+  margin-left: 1px;
+  margin-right: 1px;
+  cursor: pointer;
+  height: 100%;
+  color: white;
+}
+
+.presetIconSelected {
+  color: black !important;
+}
+
+.expandoCaret {
+  width: 15px;
+}
+
+.presetDetail {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16px;
+  display: block;
+  width: 100%;
+  align-items: center;
+  color: #ffffff;
+  opacity: 0.5;
+  white-space: normal;
+}
+
+.presetInsert {
+  display: flex;
+  align-items: center;
+}
+
+.presetName {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 0 0 4px;
+  gap: 2px;
+  color: white;
+
+  width: 173px;
+  height: 30px;
+
+  background: rgb(0 0 0 / 10%);
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 5px;
+}
+
+.presetAdd {
+  /* Auto layout */
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  gap: 10px;
+  margin-left: 10px;
+  height: 30px;
+  font-size: 14px;
+  color: #ffffff;
+  text-align: center;
+  background: #616574;
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.presetHighlight {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding-left: 4px;
+  margin-left: -4px;
+  width: 100%;
+
+  /* AEGIS - Map Imagery */
+  background: #66def9;
+  border-radius: 5px;
+  color: black;
+}
+
+.toggleMenuItemRow {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+}
+.toggleLeft {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+  margin: 2px 0 0 5px;
+  padding: 2px 4px 2px 4px;
+  min-width: 20px;
+  margin-right: 1px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.toggleRight {
+  font-size: 0.8rem;
+  background-color: var(--grey3);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  min-width: 20px;
+  margin: 2px 0;
+  padding: 2px 4px 2px 4px;
+  text-align: center;
+  user-select: none;
+  cursor: pointer;
+}
+.toggleSelected {
+  background-color: var(--grey5);
+  color: var(--grey1);
+  font-weight: 600;
+}

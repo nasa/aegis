@@ -1,0 +1,38 @@
+{
+  "git.ignoreLimitWarning": true,
+  // Point the VS Code Vitest extension at the root "projects" aggregator so
+  // it discovers both the node/jsdom suite (src/tests/vitest) and the
+  // Playwright-backed browser suite (src/tests/vitest-browser). A single
+  // rootConfig pointing at just one of the two sub-configs would hide the
+  // other suite's tests from the Testing sidebar.
+  "vitest.rootConfig": "vitest.config.mts",
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "[yaml]": {
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true
+  },
+  "workbench.editorAssociations": {
+    "*.svg": "default"
+  },
+  "svg.preview.mode": "svg",
+  "cssModules.camelCase": true
+}

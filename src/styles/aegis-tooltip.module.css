@@ -1,0 +1,16 @@
+/*
+ * Shared styling for all react-tooltip instances. Apply via the
+ * `className` prop on `<Tooltip>` (e.g. `className={aegisTooltipStyles.tooltip}`).
+ */
+.tooltip {
+  --rt-color-dark: white;
+  --rt-color-white: black;
+  --rt-opacity: 1;
+
+  z-index: 900;
+  max-width: 300px;
+}
+
+.tooltip div {
+  font-size: 0.8rem;
+}

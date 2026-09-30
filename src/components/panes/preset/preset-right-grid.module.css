@@ -1,0 +1,36 @@
+.gridBody {
+  margin: 5px;
+}
+
+.gridGroup {
+  margin: 6px 5px;
+  user-select: none;
+}
+
+.grid {
+  display: flex;
+  gap: 8px;
+}
+
+.gridContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.panelSection {
+  margin: 10px;
+}
+
+.gridToggles {
+  display: flex;
+  gap: 20px;
+  padding: 5px 10px 5px 0;
+  transform: scale(0.9);
+  font-weight: 400;
+  color: var(--grey5);
+  user-select: none;
+}
+
+.gridInfo {
+  padding: 8px 10px 0 12px;
+}

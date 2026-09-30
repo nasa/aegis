@@ -1,0 +1,85 @@
+.page {
+  background-color: #1f2026;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #313440 0%, #1f2026 100%);
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: row;
+  background-color: #1f2026;
+  column-gap: 8px;
+  height: 100%;
+  margin: 0 8px 8px 8px;
+}
+
+.leftPanel {
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+  min-width: 300px;
+  border-top-left-radius: var(--panelRadius);
+  border-bottom-left-radius: var(--panelRadius);
+}
+
+.middlePanel {
+  display: flex;
+  border-radius: var(--panelRadius);
+  overflow: hidden;
+}
+.mapBody {
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+.rightPanel {
+  display: flex;
+  border-top-right-radius: var(--panelRadius);
+  border-bottom-right-radius: var(--panelRadius);
+}
+
+.minimapWrapper {
+  position: absolute;
+  width: 25%;
+  height: 35%;
+  bottom: 4px;
+  right: 4px;
+  z-index: 10;
+  border-radius: var(--panelRadius);
+  overflow: hidden;
+  border: 2px solid black;
+  box-sizing: border-box;
+  background-color: black;
+}
+
+.infoMessageWrapper {
+  background-color: var(--dashboardBackground);
+  color: var(--grey5);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--panelRadius);
+}
+.infoMessageTitle {
+  font-size: 2.5em;
+  font-weight: 800;
+}
+.infoMessageSubText {
+  font-size: 2em;
+}
+.emssLogo {
+  padding-top: 30px;
+  height: 500px;
+}

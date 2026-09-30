@@ -1,0 +1,101 @@
+.flexRow {
+  flex-direction: row;
+}
+.flexColumn {
+  flex-direction: column;
+}
+
+.stm_mini {
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  width: fit-content;
+  cursor: default;
+  height: 100%;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+.stmHorizontal_mini {
+  column-gap: 5px;
+  row-gap: 3px;
+  flex-direction: row;
+}
+.stmVertical_mini {
+  column-gap: 3px;
+  row-gap: 5px;
+  flex-direction: column;
+}
+
+.level1_mini {
+  display: flex;
+  border-radius: var(--radius);
+  padding: 3px;
+  column-gap: 3px;
+  row-gap: 3px;
+  align-items: center;
+}
+.level1NumberingRow_mini {
+  color: white;
+  font-size: 0.7rem;
+  font-family: sans-serif;
+}
+.level1NumberingCol_mini {
+  color: white;
+  font-size: 0.7rem;
+  font-family: sans-serif;
+}
+
+.goalsContainer_mini {
+  display: flex;
+  column-gap: 4px;
+  row-gap: 4px;
+  align-items: center;
+}
+
+.level3sContainer {
+  display: flex;
+  column-gap: 1px;
+  row-gap: 1px;
+}
+.level3NumberingCol_mini {
+  background-color: var(--grey1);
+  color: black;
+  text-align: center;
+  font-size: 0.4rem;
+  width: 0.5rem;
+}
+.level3NumberingCol_miniStart {
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+.level3NumberingCol_miniEnd {
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+.level3NumberingRow_mini {
+  background-color: var(--grey1);
+  color: black;
+  text-align: center;
+  font-size: 0.5rem;
+  width: 0.4rem;
+}
+.level3NumberingRow_miniStart {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+.level3NumberingRow_miniEnd {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.highlight {
+  background-color: var(--grey5);
+}
+.rexCompleted {
+  background-color: var(--rex);
+}
+.rexInProgress {
+  background-color: white;
+  box-shadow: inset 0 0 0 1.5px var(--rex);
+}

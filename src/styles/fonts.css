@@ -1,0 +1,38 @@
+/* Modern, self-hosted variable fonts optimized for offline environments */
+/* Variable fonts support any weight value (100-900) with a single file */
+
+/* Inter - Variable font supporting weights 100-900 */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/InterVariable.woff2") format("woff2-variations");
+}
+
+/* Aldrich - Static font (no variable version available) */
+@font-face {
+  font-family: Aldrich;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/aldrich-v11-latin-regular.woff2") format("woff2");
+}
+
+/* Roboto Mono - Variable font supporting weights 100-700 */
+@font-face {
+  font-family: "Roboto Mono";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+  src: url("/fonts/roboto-mono-variable.woff2") format("woff2-variations");
+}
+
+/* Roboto - Variable font supporting weights 100-900 */
+@font-face {
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/roboto-variable.woff2") format("woff2-variations");
+}

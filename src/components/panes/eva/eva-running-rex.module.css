@@ -1,0 +1,101 @@
+.runningRexContainer {
+  display: flex;
+  flex-direction: column;
+  margin: 5px 5px 0 5px;
+  border: 3px solid var(--rexDim);
+  border-radius: var(--panelRadius);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.runningRexContainerSelected {
+  display: flex;
+  flex-direction: column;
+  margin: 5px 5px 0 5px;
+  border: 2px solid var(--rex);
+  border-radius: var(--radius);
+  overflow-y: hidden;
+  overflow-x: hidden;
+}
+
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  font-size: 0.9em;
+  font-weight: 500;
+  text-transform: uppercase;
+  padding: 3px;
+  cursor: pointer;
+  align-items: center;
+  color: black;
+}
+
+.nameSelected {
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nameitem {
+  display: flex;
+  user-select: none;
+  background-color: var(--rexDim);
+}
+
+.nameitemSelected {
+  display: flex;
+  user-select: none;
+  background-color: var(--rex);
+}
+
+.nameCaret {
+  margin: 2px 5px;
+  width: 12px;
+  cursor: pointer !important; /* override the draggableItem cursor */
+  color: black;
+}
+
+.nameTopRow {
+  flex: 1;
+  width: 100%;
+  display: flex;
+}
+
+.nameBottomRow {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: right;
+}
+
+.nameText {
+  margin-right: 4px;
+}
+
+.nameSpacer {
+  flex: 1;
+}
+
+.rexIconWrapper {
+  color: black;
+  padding: 2px 4px 2px 4px;
+  border-radius: var(--radius);
+}
+
+.evaSequenceContainer {
+  margin: 0 0 0 20px;
+  padding-bottom: 4px;
+  overflow-y: auto;
+}
+
+.evaFooterContainer {
+  margin: 0 0 0 10px;
+}
+
+.iconButtons {
+  display: flex;
+  gap: 6px;
+  flex-direction: row;
+  margin: 0 0 5px 0;
+}

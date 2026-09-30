@@ -1,0 +1,100 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--grey1);
+}
+
+.poiItem {
+  display: flex;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  user-select: none;
+}
+
+.poiAssocDescription {
+  margin-left: 35px;
+}
+
+.itemIcon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+
+  align-items: center;
+
+  font-size: 16px;
+  margin: 0 2px 0 2px;
+
+  border-radius: 5px;
+  padding: 0 1px 1px 1px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+  cursor: pointer;
+}
+
+.nameSelected {
+  background-color: var(--grey5);
+  font-weight: 500;
+  color: black;
+  cursor: pointer;
+}
+
+.nameHovered {
+  background-color: var(--grey1);
+}
+
+.nameSelected:hover {
+  color: black !important;
+}
+
+.name.nohover {
+  cursor: default;
+}
+
+.name.nohover:hover {
+  background-color: transparent;
+}
+
+.poiRightSpacer {
+  flex: 1;
+}
+
+.folderContainer {
+  margin-bottom: 8px;
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+}
+
+.folder {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.folder:hover {
+  background-color: var(--grey3);
+}
+
+.folderName {
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+.folderContents {
+  padding-left: 20px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}

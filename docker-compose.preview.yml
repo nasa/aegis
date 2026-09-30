@@ -1,0 +1,32 @@
+#
+# DOCKER OVERRIDE FILE:
+# This is an override file. It is intended to be used on top of the base docker-compose.yml file.
+#
+# SUMMARY:
+# Do the exact same thing as the production `docker-compose.yml`, just build locally from the Dockerfile
+# instead of pulling the image from the container registry.
+# Use this as a way to quickly preview what a production build would do.
+#
+services:
+  nginx:
+    image: aegis-preview-nginx:latest
+    build:
+      context: .
+      dockerfile: ./docker/nginx/Dockerfile
+      target: prod
+      args:
+        # .env is excluded from the Docker build context (.dockerignore), so these must be
+        # passed explicitly as build args
+        VITE_PUBLIC_CONSOLE_LOG_LEVEL: ${VITE_PUBLIC_CONSOLE_LOG_LEVEL}
+        VITE_PUBLIC_REMOTE_LOG_LEVEL: ${VITE_PUBLIC_REMOTE_LOG_LEVEL}
+
+  apiv1:
+    image: aegis-preview-apiv1:latest
+    build:
+      context: .
+      dockerfile: ./docker/apiv1/Dockerfile
+      target: prod
+    environment:
+      # Override what is in .env (which may be "localhost" to support native local dev) such
+      # that it is always "database" in a full Docker-Compose setup.
+      - DB_HOST=database

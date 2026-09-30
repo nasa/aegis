@@ -1,0 +1,310 @@
+import type { Dispatch, FunctionComponent, SetStateAction } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { listFiles, deleteFile, renameFile } from "http-client/file";
+import { isLoggedIn } from "http-client/login";
+import UploadFile from "./uploadFile";
+import adminStyles from "components/admin/admin.module.css";
+import DownloadFromBox from "./downloadFromBox";
+import { useNavigate } from "react-router";
+import prettyBytes from "pretty-bytes";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
+
+const FileManager: FunctionComponent<{
+  missionId: number;
+  path: string; //path off of STATIC_DIR
+  setFileList?: Dispatch<SetStateAction<GISfile[]>>; //optional to pass back updated file listing
+  isUsed?: (folderName: string) => boolean; //optional check to display message if this folder is in use by the config
+  /** only allow uploading zip files. if false, any file type upload is allowed */
+  zipOnly: boolean;
+}> = (props: {
+  missionId: number;
+  path: string;
+  setFileList: Dispatch<SetStateAction<GISfile[]>>;
+  isUsed?: (folderName: string) => boolean;
+  zipOnly: boolean;
+}) => {
+  const { path, setFileList, isUsed } = { ...props };
+  const [dirListing, setDirListing] = useState<fileState[]>([]);
+  const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(false);
+  const [hideDirectoryListing, setHideDirectoryListing] = useState(false);
+
+  const navigate = useNavigate();
+
+  //custom type to store states of each file
+  type fileState = {
+    key: string;
+    type: string; //directory or file
+    count: number;
+    name: string;
+    showRename: boolean; //toggle to show/hide rename input field
+    newName: string; //used in rename function
+    size: number;
+  };
+
+  //call api to get the directory listing
+  const getDirListing = useCallback(async () => {
+    const fileList: GISfile[] | void = await listFiles(path).catch(console.error); //get files
+    //convert to type fileState and store in state
+    if (fileList) {
+      const fileStates: fileState[] = fileList.map((file) => {
+        const filetype: string = file.isDir ? "dir" : "file";
+        return {
+          key: `${filetype}_${file.name}`,
+          type: filetype,
+          count: file.fileCount,
+          name: file.name,
+          showRename: false,
+          newName: file.name,
+          size: file.size,
+        };
+      });
+      setDirListing(fileStates);
+      if (setFileList) setFileList(fileList);
+    } else {
+      setDirListing([]);
+      if (setFileList) setFileList([]);
+    }
+  }, [path, setFileList]);
+
+  useEffect(() => {
+    if (refreshDirectoryListing) {
+      getDirListing();
+      setRefreshDirectoryListing(false);
+    }
+  }, [refreshDirectoryListing, getDirListing]);
+
+  //show or hide the rename field
+  function showHideRename(key: string) {
+    const newState = [...dirListing];
+    const index = newState.findIndex((file) => {
+      return file.key === key;
+    }); //find this item
+    newState[index].showRename = !newState[index].showRename; //toggle value
+    setDirListing(newState); //set new state
+  }
+
+  //on change handler when a new name is typed in the input field
+  function renameChangeHandler(key: string, newName: string) {
+    const newState = [...dirListing];
+    const index = newState.findIndex((file) => {
+      return file.key === key;
+    }); //find this item
+    newState[index].newName = newName; //toggle value
+    setDirListing(newState); //set new state
+  }
+
+  //save the new renamed file or folder
+  async function saveRename(key: string) {
+    const index = dirListing.findIndex((file) => {
+      return file.key === key;
+    }); //find this item
+    const res = await renameFile(path, dirListing[index].name, dirListing[index].newName);
+    const message = await res.json();
+    if (res.status !== 200) {
+      alert(`Rename Error. Status ${res.status}. ${message}`);
+    }
+    await getDirListing();
+  }
+
+  //delete a file
+  async function deleteFileToAPI(e: React.MouseEvent, filename: string): Promise<void> {
+    const confirmDelete = confirm("Are you sure you want to delete " + filename);
+    if (confirmDelete) {
+      const res = await deleteFile(`${path}/${filename}`);
+      const message = await res.json();
+      if (res.status !== 200) {
+        alert(`Delete Error. Status ${res.status}. ${message}`);
+      }
+      await getDirListing();
+    }
+    e.preventDefault();
+    return;
+  }
+
+  //delete unused folders
+  async function deleteUnusedFolders() {
+    // get all unused folders
+    const unusedFolders = dirListing.filter((file) => {
+      return file.type === "dir" && !isUsed?.(file.name);
+    });
+    if (unusedFolders.length === 0) {
+      alert("No unused folders to delete");
+      return;
+    }
+    const confirmDelete = confirm(
+      `Are you sure you want to delete ${unusedFolders.length} unused folders?`
+    );
+    if (confirmDelete) {
+      const errors: string[] = [];
+
+      for (const folder of unusedFolders) {
+        const res = await deleteFile(`${path}/${folder.name}`);
+        const message = await res.json();
+        if (res.status !== 200) {
+          errors.push(`Failed to delete ${folder.name}: ${message}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        alert(`Delete Errors:\n${errors.join("\n")}`);
+      }
+
+      await getDirListing();
+    }
+    return;
+  }
+
+  useEffect(() => {
+    const isLoggedInAsync = async () => {
+      const response = await isLoggedIn(); //check user is logged in
+      if (response.status === "success") {
+        await getDirListing(); //load directory listing on mount/start
+      } else {
+        //user is not logged in. Redirect to homepage using react-router
+        navigate("/");
+      }
+    };
+    isLoggedInAsync();
+  }, [navigate, getDirListing]);
+
+  return (
+    <div>
+      <div className={adminStyles.layerContainer}>
+        <div className={adminStyles.divWithBorder}>
+          <UploadFile path={path} cb={getDirListing} zipOnly={props.zipOnly} />
+        </div>
+        <div className={adminStyles.divWithBorder}>
+          <DownloadFromBox
+            missionId={props.missionId}
+            path={path}
+            setRefreshDirectoryListing={setRefreshDirectoryListing}
+          />
+        </div>
+      </div>
+      <br />
+
+      <div
+        className={adminStyles.sectionDivHeading}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          cursor: "pointer",
+          userSelect: "none",
+        }}
+        onClick={() => setHideDirectoryListing(!hideDirectoryListing)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setHideDirectoryListing(!hideDirectoryListing);
+        }}
+      >
+        <FontAwesomeIcon
+          icon={hideDirectoryListing ? faCaretRight : faCaretDown}
+          style={{ color: "#94a3b8", width: 14 }}
+        />
+        Directory Listing
+        <button
+          className={adminStyles.deleteButton}
+          style={{ marginLeft: "auto" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            deleteUnusedFolders();
+          }}
+        >
+          Delete Unused Folders
+        </button>
+      </div>
+      {!hideDirectoryListing && (
+        <div>
+          {dirListing.length > 0 ? (
+            <table className={adminStyles.fileTable}>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>File Count</th>
+                  <th>Size</th>
+                  <th>Name</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {dirListing.map((file) => {
+                  return (
+                    <tr key={file.key}>
+                      <td>{file.type}</td>
+                      <td>{file.count}</td>
+                      <td>{prettyBytes(file.size)}</td>
+                      <td>{file.name}</td>
+                      <td>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {file.showRename ? (
+                            <>
+                              <input
+                                className={adminStyles.renameInput}
+                                type="text"
+                                title="New Name"
+                                value={file.newName}
+                                onChange={(e) => {
+                                  renameChangeHandler(file.key, e.target.value);
+                                }}
+                              />
+                              <button
+                                className={adminStyles.button}
+                                onClick={() => {
+                                  saveRename(file.key);
+                                }}
+                              >
+                                Save
+                              </button>
+                            </>
+                          ) : (
+                            <></>
+                          )}
+                          <button
+                            className={adminStyles.button}
+                            onClick={() => {
+                              showHideRename(file.key);
+                            }}
+                          >
+                            {file.showRename ? "Cancel" : "Rename"}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              deleteFileToAPI(e, file.name);
+                            }}
+                            className={adminStyles.deleteButton}
+                          >
+                            Delete
+                          </button>
+                          {isUsed ? !isUsed(file.name) && "Not assigned to a layer" : ""}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <div>No files</div>
+          )}
+          <br />
+          <button className={adminStyles.button} onClick={getDirListing}>
+            Refresh
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FileManager;

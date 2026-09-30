@@ -1,0 +1,32 @@
+.petClock {
+  height: 64px;
+  width: 230px;
+  background-color: white;
+  border-radius: var(--panelRadius);
+  display: flex;
+  align-items: center;
+}
+
+.petClockTextContainer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  width: 100%;
+  padding: 0 10px;
+}
+
+.petClockLabel {
+  display: flex;
+  align-items: center;
+  color: black;
+  font-weight: bold;
+  margin-right: 4px;
+  font-size: 1.2em;
+}
+
+.petClockValue {
+  color: black;
+  font-weight: bold;
+  font-size: 2.3em;
+  margin-left: 4px;
+}

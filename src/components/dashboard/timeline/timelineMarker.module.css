@@ -1,0 +1,18 @@
+.markerContainer {
+  position: relative;
+  height: 0;
+  top: 0;
+  left: 0;
+  z-index: 15;
+}
+
+.marker {
+  position: relative;
+  height: 0;
+}
+
+.markerLine {
+  position: relative;
+  height: 0;
+  width: 100%;
+}

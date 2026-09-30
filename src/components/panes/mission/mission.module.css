@@ -1,0 +1,131 @@
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  padding: 5px;
+  background-color: var(--grey2);
+  border-radius: var(--panelRadius);
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+  cursor: pointer;
+}
+
+.nameSelected {
+  background-color: var(--grey5);
+  font-weight: 500;
+  color: black;
+  cursor: pointer;
+}
+
+.rightSpacer {
+  flex: 1;
+}
+
+.lander {
+  color: var(--grey5);
+  display: flex;
+  flex-direction: row;
+}
+
+.propertyRow {
+  display: flex;
+  flex-direction: row;
+  border-radius: var(--radius);
+}
+
+.propertyRowHeader {
+  display: flex;
+  flex-direction: row;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #ffffff;
+}
+
+.propertyRowName {
+  width: 100%;
+}
+
+.propertyRowLongAbbr {
+  flex: 0 0 105px;
+}
+
+.propertyRowAbbr {
+  flex: 0 0 auto;
+}
+
+.propertyRowQuantity {
+  flex: 0 0 30px;
+}
+
+.propertyRowRadius {
+  flex: 0 0 auto;
+}
+
+.propertyRowSingleUse {
+  flex: 0 0 80px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.propertyRowSingleUseCheckbox {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  font-size: 0.8rem;
+}
+
+.propertyRowTrash {
+  cursor: pointer;
+  flex: 0 0 20px;
+}
+
+.propertyRowTrashContainer {
+  flex: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  margin-left: 5px;
+}
+
+.propertyList {
+  list-style-type: none;
+  padding: 5px;
+  margin: 0;
+}
+
+.propertyListItem {
+  text-align: left;
+}
+
+.templateTitle {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: var(--grey5);
+  user-select: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.templateActionListContainer {
+  padding-top: 5px;
+}
+
+.exportCheckboxLabel {
+  font-size: 0.8em;
+  font-weight: 400;
+  color: var(--grey4);
+  user-select: none;
+  line-height: 1.6em;
+}

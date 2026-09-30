@@ -1,0 +1,209 @@
+import type { FunctionComponent } from "react";
+import { Fragment, useMemo } from "react";
+import styles from "./stm-viewer-indicators.module.css";
+import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { stmViewSetHoveredTopItem } from "store/stm";
+import sortBy from "lodash/sortBy";
+import { selectAsPlannedStations } from "store/selectors";
+
+export const IndicatorGridRow: FunctionComponent<{
+  level3Uuid: string;
+  actionType?: ActionType;
+  actionUuid?: string;
+}> = ({ level3Uuid, actionType, actionUuid }) => {
+  const sortedEvaUuids = useMissionDocSelector((mission) => {
+    if (!mission?.evas || !mission?.rexes) return [];
+    const allRexEvasUuids = Object.values(mission.rexes).map((rex) => rex.evaUuid);
+    const sortedAsPlannedEvas = sortBy(
+      Object.values(mission.evas).filter((eva) => !allRexEvasUuids.includes(eva.uuid)),
+      [(eva) => eva.name?.toLowerCase()]
+    );
+    return sortedAsPlannedEvas.map((eva) => eva.uuid);
+  }, shallowEqual);
+  const stmViewSelectedEvas = useAppSelector(
+    (state) => state.stm.stmViewSelectedEvas,
+    shallowEqual
+  );
+  const filteredSortedEvaUuids = useMemo(
+    () => sortedEvaUuids.filter((uuid) => stmViewSelectedEvas.includes(uuid)),
+    [sortedEvaUuids, stmViewSelectedEvas]
+  );
+  const allStationsNotInASelectedEvas = useMissionDocSelector((mission) => {
+    const sortedAsPlannedStations = selectAsPlannedStations(mission);
+    for (const evaUuid of stmViewSelectedEvas) {
+      const eva = mission?.evas?.[evaUuid];
+      if (eva) {
+        const stationUuids = eva.sequence
+          .filter((sequenceItem) => sequenceItem.type === "station")
+          .map((sequenceItem) => sequenceItem.uuid);
+        for (const stationUuid of stationUuids) {
+          const station = sortedAsPlannedStations.find((station) => station.uuid === stationUuid);
+          if (station) {
+            sortedAsPlannedStations.splice(sortedAsPlannedStations.indexOf(station), 1);
+          }
+        }
+      }
+    }
+    return sortedAsPlannedStations;
+  }, deepEqual);
+
+  return (
+    <div className={styles.indicatorGridRow}>
+      {filteredSortedEvaUuids.map((evaUuid, index) => (
+        <Fragment key={evaUuid}>
+          {index > 0 && <div className={styles.indicatorGridCellDivider}></div>}
+          <IndicatorGridStationGroup
+            level3Uuid={level3Uuid}
+            evaUuid={evaUuid}
+            actionType={actionType}
+            actionUuid={actionUuid}
+          />
+        </Fragment>
+      ))}
+      {filteredSortedEvaUuids.length > 0 && <div className={styles.indicatorGridCellDivider}></div>}
+      {allStationsNotInASelectedEvas.map((station) => (
+        <IndicatorGridCell
+          key={`${station.uuid}_standalone`}
+          level3Uuid={level3Uuid}
+          stationUuid={station.uuid}
+          actionType={actionType}
+          actionUuid={actionUuid}
+        />
+      ))}
+    </div>
+  );
+};
+
+const IndicatorGridStationGroup: FunctionComponent<{
+  level3Uuid: string;
+  evaUuid: string;
+  actionType?: ActionType;
+  actionUuid?: string;
+}> = ({ level3Uuid, evaUuid, actionType, actionUuid }) => {
+  const allStations =
+    useMissionDocSelector(
+      (mission) =>
+        sortBy(Object.values(mission.stations), [(station) => station.name.toLowerCase()]),
+      deepEqual
+    ) ?? [];
+  const eva = useMissionDocSelector((mission) => mission.evas?.[evaUuid], deepEqual);
+  let stations: Station[] = [];
+  if (eva) {
+    // filter stations by evaUuid
+    const stationUuids = eva.sequence
+      .filter((sequenceItem) => sequenceItem.type === "station")
+      .map((sequenceItem) => sequenceItem.uuid);
+    // preserve the order of stationUuids because this is the sequence order
+    for (const stationUuid of stationUuids) {
+      const station = allStations.find((station) => station.uuid === stationUuid);
+      if (station) {
+        stations.push(station);
+      }
+    }
+  } else {
+    stations = allStations;
+  }
+
+  return (
+    <>
+      {stations.map((station) => (
+        <IndicatorGridCell
+          key={`${station.uuid}_${evaUuid}`}
+          level3Uuid={level3Uuid}
+          stationUuid={station.uuid}
+          actionType={actionType}
+          actionUuid={actionUuid}
+        />
+      ))}
+    </>
+  );
+};
+
+type IndicatorStyle = {
+  string: string;
+  cssStyle: string;
+};
+
+const IndicatorGridCell: FunctionComponent<{
+  level3Uuid: string;
+  stationUuid: string;
+  actionType?: ActionType;
+  actionUuid?: string;
+}> = ({ level3Uuid, stationUuid, actionType = null, actionUuid = null }) => {
+  const dispatch = useAppDispatch();
+  const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
+  const stmViewHoveredTopItem = useAppSelector(
+    (state) => (state.stm.stmViewShowCrosshairs ? state.stm.stmViewHoveredTopItem : null),
+    refEqual
+  );
+  const indicator: IndicatorStyle = useAppSelector((state) => {
+    const stationActions = Object.values(allActionRecords).filter(
+      (action) => action.stationUuid === stationUuid
+    );
+    if (stationActions.length === 0) {
+      return null;
+    }
+    let actionsWithThisLevel3 = stationActions.filter(
+      (action) => action.stmPriorities && Object.keys(action.stmPriorities).includes(level3Uuid)
+    );
+
+    // filter against stmViewSelectedActionTypes
+    const selectedActionTypes = state.stm.stmViewSelectedActionTypes;
+    actionsWithThisLevel3 = actionsWithThisLevel3.filter((action) =>
+      selectedActionTypes.includes(action.type)
+    );
+
+    // also filter by actionType if provided
+    if (actionType) {
+      actionsWithThisLevel3 = actionsWithThisLevel3.filter((action) => action.type === actionType);
+    }
+
+    // also filter by actionUuid if provided
+    if (actionUuid) {
+      actionsWithThisLevel3 = actionsWithThisLevel3.filter((action) => action.uuid === actionUuid);
+    }
+
+    if (actionsWithThisLevel3.length === 0) {
+      return null;
+    }
+
+    // hightest priority has the lowest numerical value
+    let lowestLevelPriority = 3;
+    actionsWithThisLevel3.forEach((action) => {
+      const priority = action.stmPriorities[level3Uuid];
+      if (priority < lowestLevelPriority) {
+        lowestLevelPriority = priority;
+      }
+    });
+    switch (lowestLevelPriority) {
+      case 1:
+        return { string: "H", cssStyle: styles.indicatorHigh };
+      case 2:
+        return { string: "M", cssStyle: styles.indicatorMedium };
+      case 3:
+        return { string: "L", cssStyle: styles.indicatorLow };
+      default:
+        return null;
+    }
+  }, shallowEqual);
+
+  return (
+    <div
+      className={styles.indicatorGridCell}
+      onMouseEnter={() => {
+        dispatch(stmViewSetHoveredTopItem(stationUuid));
+      }}
+      style={
+        stmViewHoveredTopItem === stationUuid ? { backgroundColor: "var(--stmTableHover)" } : null
+      }
+    >
+      {indicator && (
+        <div className={`${styles.indicatorGridCellIndicator} ${indicator.cssStyle}`}>
+          <div className={`${styles.indicatorGridCellIndicatorText} `}>{indicator.string}</div>
+        </div>
+      )}
+    </div>
+  );
+};

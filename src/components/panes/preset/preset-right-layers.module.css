@@ -1,0 +1,201 @@
+.layersContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.layersHeader {
+  display: flex;
+  flex-direction: row;
+  font-weight: 700;
+  margin: 5px;
+  user-select: none;
+}
+
+.layerDisabled {
+  color: var(--grey3);
+}
+
+.layersBody {
+  margin: 5px;
+}
+
+.layerGroup {
+  margin: 6px 5px;
+  user-select: none;
+}
+
+.layer {
+  display: flex;
+  gap: 8px;
+}
+
+.layerHeader {
+  margin: 0 0 5px 0;
+}
+
+.sublayer {
+  display: flex;
+  flex-direction: row;
+  background-color: var(--grey1);
+  padding-left: 6px;
+  margin-top: 2px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 0.9em;
+  height: 24px;
+  cursor: pointer;
+}
+
+.sublayerDisabled {
+  background-color: var(--grey2);
+  color: var(--grey3) !important;
+}
+
+.sublayerTitle {
+  font-size: 0.95em;
+  flex: 1 1 auto;
+  height: max-content;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sublayerToolIcons {
+  display: flex;
+  flex-direction: row;
+  width: 60px;
+  flex: 0 0 60px;
+  padding-left: 10px;
+}
+
+.sublayerCircleDefinitionsToolIcons {
+  display: flex;
+  flex-direction: row;
+  width: 60px;
+  flex: 0 0 50px;
+  padding-left: 0;
+}
+
+.sublayerToolIcon {
+  color: white;
+  width: 20px;
+  margin-left: 1px;
+  margin-right: 1px;
+  cursor: pointer;
+  height: 100%;
+}
+
+.sublayerItemContainer {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+}
+
+.sublayerExpando {
+  background-color: var(--grey1);
+}
+
+.expandoCaretDisabled {
+  color: var(--grey3);
+}
+
+.visibility {
+  width: 15px;
+  margin-right: 4px;
+  flex: 0 0 15px;
+}
+
+.visible {
+  color: white;
+}
+
+.inVisible {
+  color: var(--grey3);
+}
+
+.reorderIcon {
+  margin-left: 3px;
+  transform: scaleX(0.8);
+  cursor: grab;
+}
+
+.reorderIcon:hover:active {
+  cursor: grabbing;
+}
+
+.reorderIconSublayer {
+  margin-left: 3px;
+  margin-right: 5px;
+  transform: scaleX(0.8);
+  cursor: grab;
+}
+
+.reorderIconSublayer:hover:active {
+  cursor: grabbing;
+}
+
+.sublayerGroup {
+  padding-left: 12px;
+}
+
+.listItemSlider {
+  display: flex;
+  margin-left: 5px;
+  margin-top: 2px;
+  width: 100%;
+}
+
+.listItemValue {
+  flex: 0 0 180px;
+  color: var(--grey4);
+  font-size: 0.9em;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.slider {
+  flex: 1 1 auto;
+  appearance: none;
+  margin-top: 5px;
+  height: 6px;
+  background: rgb(255 255 255 / 60%);
+  border-radius: 5px;
+  background-color: var(--grey3);
+}
+
+.slider::-webkit-slider-runnable-track {
+  appearance: none;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 15px;
+  width: 15px;
+  border-radius: 50%;
+  background: white;
+  cursor: ew-resize;
+}
+
+.timeSliderContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 13px 15px 13px 15px;
+}
+
+.timeSliderHeader {
+  padding: 0 0 0 3px;
+  display: flex;
+  flex-direction: row;
+  user-select: none;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timeSliderCheckbox {
+  padding-left: 5px;
+  margin-right: auto;
+}

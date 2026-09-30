@@ -1,0 +1,42 @@
+import { getTraverseNeighborUuids } from "./evaSequence";
+
+/**
+ * Resolves the before/after locations and names for a traverse's endpoints
+ * within an EVA sequence.
+ *
+ * Neighbor resolution is delegated to `getTraverseNeighborUuids`, so this
+ * function does not need to know where the egress/ingress locations are stored.
+ *
+ * The optional `stationOverride` lets callers substitute a different location/name
+ * for a specific station UUID — used when a station is being edited and
+ * the doc has not yet been updated.
+ */
+
+export function getTraverseEndpoints(
+  traverseUuid: string,
+  sequence: readonly EvaSequenceItem[] | undefined,
+  stations: { [uuid: string]: Station } | undefined,
+  stationOverride?: { uuid: string; location: AEGISPoint; name: string }
+): TraverseEndpointsResult {
+  const getLocationAndName = (
+    uuid: string | undefined
+  ): { location: AEGISPoint | undefined; name: string } => {
+    if (uuid === undefined) return { location: undefined, name: "" };
+    if (stationOverride && uuid === stationOverride.uuid) {
+      return { location: stationOverride.location, name: stationOverride.name };
+    }
+    const station = stations?.[uuid];
+    return { location: station?.location, name: station?.name ?? "" };
+  };
+
+  const { beforeUuid, afterUuid } = getTraverseNeighborUuids(sequence, traverseUuid);
+  const before = getLocationAndName(beforeUuid);
+  const after = getLocationAndName(afterUuid);
+
+  return {
+    locationBefore: before.location,
+    locationAfter: after.location,
+    nameBefore: before.name,
+    nameAfter: after.name,
+  };
+}

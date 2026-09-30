@@ -1,0 +1,114 @@
+.stmCoverage {
+  display: flex;
+  flex-direction: row;
+  column-gap: 10px;
+  padding-left: 15px;
+  align-items: center;
+}
+
+.actionListContainer {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 50px;
+}
+
+.dragableActionList {
+  flex-grow: 2;
+}
+
+.actionlist {
+  flex: 1 1 auto;
+  list-style-type: none;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.actionlistitem {
+  border-color: var(--grey1);
+  border-width: 0 3px 5px 2px;
+  border-style: solid;
+  display: flex;
+  flex-direction: row;
+}
+
+.actionlistitemOrdinal {
+  flex: 0 0 14px;
+  color: var(--grey4);
+  font-size: 0.8rem;
+  margin: 3px 3px 0 0;
+  text-align: right;
+}
+
+.actionlistitemAction {
+  flex: 1 1 auto;
+}
+
+.actionlistitem:last-child {
+  border-bottom: 0;
+}
+
+.rightBodyItem {
+  padding-left: 8px;
+}
+
+.actionListHeader {
+  display: flex;
+  flex-direction: row;
+  padding: 0 0 0 8px;
+  font-size: 0.8rem;
+  color: var(--grey4);
+  margin: 5px 4px 2px 15px;
+  align-items: flex-end;
+}
+
+.actionListHeaderRex {
+  flex: 0 0 18px;
+  transform-origin: 25%;
+  transform: rotate(-35deg);
+}
+
+.actionListHeaderType {
+  flex: 0 0 95px;
+}
+
+.actionListHeaderTitle {
+  flex-grow: 1;
+}
+
+.actionListHeaderTime {
+  flex: 0 0 30px;
+  transform-origin: 25%;
+  transform: rotate(-35deg);
+}
+
+.actionListHeaderCrew {
+  flex: 0 0 38px;
+  transform-origin: 25%;
+  transform: rotate(-35deg);
+}
+
+.addActionRow {
+  display: flex;
+  column-gap: 5px;
+}
+
+.evaActionsStationTitleContainer {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  font-size: 0.8rem;
+  padding: 5px 0 5px 6px;
+}
+
+.evaActionsStationTitleLine {
+  flex: 1 1 auto;
+  border-bottom: 1px solid var(--grey3);
+  margin: auto 6px auto 6px;
+}
+
+.rexColor {
+  color: var(--rex);
+}

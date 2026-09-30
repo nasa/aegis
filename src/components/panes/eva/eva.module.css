@@ -1,0 +1,491 @@
+.titleWrapper {
+  flex: 0 0 1em;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-left: 10px;
+  margin-top: 10px;
+  margin-right: 10px;
+  align-items: center;
+}
+.title {
+  font-size: 1.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--eva);
+}
+
+.nameitem {
+  display: flex;
+  padding: 2px 4px 2px 0;
+  user-select: none;
+}
+
+.name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  font-size: 0.9em;
+  font-weight: 500;
+  text-transform: uppercase;
+  padding: 3px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: 1px solid var(--grey2);
+  align-items: center;
+}
+
+.nameTopRow {
+  flex: 1;
+  width: 100%;
+  display: flex;
+}
+
+.nameBottomRow {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: right;
+}
+
+.addRexButton {
+  height: 20px;
+  width: 110px;
+  margin-left: 3px;
+  text-transform: none;
+}
+
+.noRexes {
+  width: 100%;
+  font-size: 0.8rem;
+  color: var(--grey4);
+  text-transform: none;
+  margin-top: auto;
+}
+
+.nameSelected {
+  background-color: var(--grey5);
+  font-weight: 500;
+  color: black;
+  cursor: pointer;
+}
+
+.name.nameSelected:hover {
+  background-color: var(--grey5);
+}
+
+.nameEmphasized {
+  background-color: var(--grey3);
+}
+
+.name:hover {
+  background-color: var(--grey1);
+}
+
+.nameText {
+  margin-right: 4px;
+}
+
+.nameSpacer {
+  flex: 1;
+}
+
+.nameCaret {
+  margin: 2px 5px;
+  width: 12px;
+  cursor: pointer !important; /* override the draggableItem cursor */
+}
+
+.nameIcons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdownArrow {
+  top: 1px;
+  color: #ffffff;
+}
+.dropdownSelector {
+  width: 100%;
+}
+
+.sliderIcon {
+  font-size: 0.9em;
+  padding-left: 4px;
+  padding-right: 4px;
+  height: 20px;
+}
+
+.slideIconEmphasized {
+  font-size: 0.9em;
+  padding-left: 4px;
+  padding-right: 4px;
+  height: 20px;
+  background-color: var(--grey2);
+}
+
+.evaContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.verticalCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.evaSequenceContainer {
+  margin: 0 0 0 20px;
+  padding-bottom: 4px;
+}
+
+.evaFooterContainer {
+  margin: 0 0 0 10px;
+}
+
+.evaSequence {
+  display: flex;
+  flex-direction: column;
+}
+
+.evaItem {
+  display: flex;
+  flex-direction: row;
+  border-radius: var(--radius);
+  /* small vertical gap between adjacent rows so colored backgrounds (selected,
+     hover, in-progress, etc.) don't visually merge into one another */
+  margin: 1px 0;
+}
+
+.evaItemHover {
+  background-color: var(--grey1);
+}
+
+.evaItemSelected {
+  background-color: var(--grey5);
+}
+
+.evaItemRexInProgress {
+  background-color: var(--rexDim);
+}
+
+/* complete + skipped (when not selected) share the same row background */
+.evaItemRexComplete,
+.evaItemRexSkipped {
+  background-color: var(--grey1);
+}
+
+.evaItemRexInProgressSelected {
+  background-color: var(--rex);
+}
+
+/* skipped + selected uses the same background as the regular selected state */
+.evaItemRexSkippedSelected {
+  background-color: var(--grey5);
+}
+
+/* When the row is selected, override the rex status icon colors so they
+   remain visible against the selected background. Scoped to .rexStatusWrapper
+   so the override does NOT apply to the rex status menu dialog (which is a
+   DOM descendant when opened via showModal()). */
+.evaItemSelected .rexStatusWrapper :global(.svg-inline--fa),
+.evaItemRexInProgressSelected .rexStatusWrapper :global(.svg-inline--fa),
+.evaItemRexSkippedSelected .rexStatusWrapper :global(.svg-inline--fa) {
+  color: var(--grey3);
+}
+
+/* Override the skipped icon (background-image SVG) to grey3 when the row is
+   selected. Uses the same SVG path with the grey3 hex (#616574) embedded. */
+.evaItemSelected .rexStatusWrapper > svg,
+.evaItemRexInProgressSelected .rexStatusWrapper > svg,
+.evaItemRexSkippedSelected .rexStatusWrapper > svg {
+  color: var(--grey3);
+}
+
+.evaItemName {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  font-size: 0.9em;
+  padding: 4px 5px 4px 5px;
+  border-radius: var(--radius);
+  user-select: none;
+}
+
+/* The inner name div only carries text-color / font-weight overrides that need
+   to sit on top of the parent row's background. Backgrounds for selected /
+   hover / rex states are owned by the parent .evaItem row classes above. */
+.evaItemNameSelected {
+  font-weight: 500;
+  color: black;
+}
+
+.evaItemNameRexInProgress {
+  color: var(--grey5);
+}
+
+.evaItemNameRexInProgressSelected {
+  color: var(--grey1);
+  font-weight: 500;
+}
+
+.evaItemNameRexSkippedSelected {
+  color: var(--grey1);
+}
+
+.evaItemLeft {
+  flex: 1 1 auto;
+  display: flex;
+}
+
+.evaItemNameText {
+  flex: 1 1 auto;
+  margin-right: 1px;
+  align-self: center;
+}
+
+.evaTraverseNameText {
+  flex: 1 1 auto;
+  margin-right: 1px;
+  align-self: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.evaItemRight {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  justify-content: space-around;
+}
+
+.evaItemRightItem {
+  text-align: right;
+}
+
+.evaItemNameButtons {
+  display: flex;
+  flex-direction: row;
+
+  justify-content: right;
+}
+
+.evaItemNameButton {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  background-color: var(--grey3);
+  color: #ffffff;
+
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 2px;
+  cursor: pointer;
+}
+
+.evaItemNameButton.disabled {
+  background-color: var(--grey3);
+  color: var(--grey2);
+  cursor: default;
+}
+
+.evaItemNameButton.disabled:hover {
+  background-color: var(--grey3);
+  color: var(--grey2);
+}
+
+.evaItemNameButtonLabel {
+  margin: 0 auto;
+}
+
+.iconCustom {
+  flex: 0 0 28px;
+  display: flex;
+  align-self: center;
+
+  font-size: 18px;
+  border-radius: var(--radius);
+}
+.iconCustomSmall {
+  font-size: 0.8rem;
+  width: 20px;
+}
+
+.landerImage {
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+}
+
+.stationWrapperRight {
+  display: flex;
+  user-select: none;
+}
+
+.stationIconRight {
+  flex: 0 0 25px;
+  display: flex;
+  align-self: center;
+
+  font-size: 16px;
+  border-radius: var(--radius);
+}
+
+.stationNameRight {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-self: center;
+  margin-top: 2px;
+  margin-left: 5px;
+}
+
+.evaTraverseIndicator {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 0 0 20px;
+  padding: 3px 0 3px 0;
+}
+
+.iconTraverseDotsContainer {
+  margin-left: 10px;
+  width: 18px;
+}
+
+.iconTraverse {
+  border-left: 5px dotted var(--eva);
+  overflow-y: visible;
+  height: 21px;
+}
+
+/* When the traverse row is selected, color the dotted indicator yellow. */
+.evaItemSelected .iconTraverse,
+.evaItemRexInProgressSelected .iconTraverse,
+.evaItemRexSkippedSelected .iconTraverse {
+  border-left-color: #c49900;
+}
+
+.iconTraverseDotsContainerSmall {
+  margin-left: 6px;
+  width: 14px;
+}
+
+.iconTraverseSmall {
+  border-left: 3px dotted var(--eva);
+  overflow-y: visible;
+  height: 0.8rem;
+}
+
+.statusLoading {
+  width: 18px;
+  min-height: 18px;
+  display: inline-block;
+  margin-left: 0.1em;
+  padding-right: 0.4em;
+
+  background-size: 18px 18px;
+  background-repeat: no-repeat;
+
+  background-position: center;
+  background-image: url("/images/icon_status_loading.svg");
+}
+
+.rexStatusWrapper {
+  flex: 0 0 20px;
+  user-select: none;
+  align-self: center;
+}
+
+.rightTopTitleText {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  column-gap: 5px;
+}
+
+.rexIconWrapper {
+  background-color: var(--rex);
+  color: black;
+  padding: 2px 4px 2px 4px;
+  margin-right: 4px;
+  border: 1px solid var(--rex);
+  border-radius: var(--radius);
+}
+.rexIconWrapperSelected {
+  border: 1px solid var(--grey3);
+}
+
+.executingEvaContainer {
+  max-height: 50%;
+  display: flex;
+  flex-direction: column;
+}
+
+.executingEvaContainerCollapsed {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.executingEvaContainerOnly {
+  display: flex;
+  flex-direction: column;
+  border-bottom: none;
+}
+
+.allEvaContainer {
+  max-height: calc(100% - 93px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.allEvaContainerRexCollapsed {
+  max-height: calc(100% - 88px);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.allEvaContainerNoExecuting {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.rightPaneExecuting {
+  height: 100%;
+  border-radius: var(--radius);
+  border: 2px solid var(--rex);
+  display: flex;
+  flex-direction: column;
+}
+
+.rightPane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.evaCheckboxContainer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}

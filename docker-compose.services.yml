@@ -1,0 +1,22 @@
+#
+# DOCKER OVERRIDE FILE:
+# This is an override file. It is intended to be used on top of the base docker-compose.yml file.
+#
+# SUMMARY:
+# 1. Rather than pull images from a container registry as done in the main docker-compose.yml,
+#    instead build the images locally using the Dockerfile.
+#
+services:
+  database:
+    logging: !reset null # turn off logging
+    ports:
+      # For local dev, expose the database outside the docker network in case devs want to use
+      # a SQL client on their machine (e.g. HeidiSQL, etc)
+      # 5430 is for TalkyBot. AEGIS uses 5432, CODA, 5431
+      - "5432:5432"
+
+  # Don't start any of these services
+  nginx: !reset null
+  apiv1: !reset null
+  oauth2-proxy: !reset null
+  redis: !reset null

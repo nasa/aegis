@@ -1,0 +1,52 @@
+.info {
+  color: var(--grey5);
+}
+.warning {
+  color: var(--warning);
+}
+.error {
+  color: var(--error);
+}
+.alert {
+  color: var(--alert);
+}
+.reportItems {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.reportItem {
+  font-size: 0.8em;
+  padding: 4px 8px 4px 8px;
+  margin: 4px 8px 0 8px;
+  border-radius: var(--panelRadius);
+  cursor: default;
+
+  display: flex;
+}
+.reportItem:first-child {
+  margin-top: 0;
+}
+
+.reportItemIcon {
+  margin-right: 8px;
+}
+
+.noReportItem {
+  font-size: 0.8em;
+  padding: 4px 8px 4px 8px;
+  margin: 0 8px 0 8px;
+  border-radius: var(--panelRadius);
+  cursor: default;
+}
+
+.evaReportSequenceTitle {
+  font-size: 1.1em;
+  font-weight: bold;
+  margin: 15px 0 0 8px;
+}
+.evaReportSequenceItemName {
+  font-size: 0.8em;
+  cursor: pointer;
+  margin-bottom: 4px;
+}

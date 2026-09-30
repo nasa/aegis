@@ -1,0 +1,162 @@
+import styles from "./header.module.css";
+import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
+import { useNavigate } from "react-router";
+import type { FunctionComponent } from "react";
+import { useState } from "react";
+import {
+  faArrowDownUpAcrossLine,
+  faArrowRightArrowLeft,
+  faBars,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Tooltip } from "react-tooltip";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
+import DashboardPETClock from "./headerPetClock";
+import { longDateFromDateString } from "utils/formatting";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+
+const DashboardHeader: FunctionComponent = () => {
+  const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
+
+  const runningRexName = useMissionDocSelector((mission) => {
+    if (!mission?.rexes) return undefined;
+    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.name;
+  }, refEqual);
+  const runningAsPlannedEvaName = useMissionDocSelector((mission) => {
+    if (!mission?.rexes || !mission?.evas) return "";
+    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
+    if (!runningRex) return "";
+    const runningEva = mission.evas[runningRex.evaUuid];
+    if (!runningEva) return "";
+    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, runningEva.refUuid);
+    return asPlannedEva?.name;
+  }, refEqual);
+  const socketStatus = useAppSelector((state) => state.connection.socketStatus, deepEqual);
+
+  const [isMouseInHeader, setIsMouseInHeader] = useState(false);
+
+  return (
+    <div
+      className={styles.headerWrapper}
+      onMouseEnter={() => {
+        setIsMouseInHeader(true);
+      }}
+      onMouseLeave={() => {
+        setIsMouseInHeader(false);
+      }}
+    >
+      <div className={styles.left}>
+        <div className={styles.item}>
+          <div className={styles.headerLabel}>Mission</div>
+          <div className={styles.headerText}>{missionName}</div>
+        </div>
+        {runningAsPlannedEvaName && (
+          <div className={styles.item}>
+            <div className={styles.headerLabel}>EVA</div>
+            <div className={styles.headerText}>{runningAsPlannedEvaName}</div>
+          </div>
+        )}
+        {runningRexName && (
+          <div className={styles.item}>
+            <div className={styles.headerLabel}>Execution</div>
+            <div className={styles.headerText}>{runningRexName}</div>
+          </div>
+        )}
+      </div>
+      <div className={styles.right}>
+        <div className={` ${styles.item}`}>
+          <div className={`${!isMouseInHeader && styles.hide}`}>
+            <DashboardMenu />
+          </div>
+        </div>
+        <div className={`${styles.item}`}>
+          <FontAwesomeIcon
+            icon={
+              socketStatus.connectionStatus === "connected"
+                ? faArrowRightArrowLeft
+                : faArrowDownUpAcrossLine
+            }
+            size="xl"
+            className={
+              socketStatus.connectionStatus === "connected"
+                ? styles.connectionIcon
+                : styles.connectionIconBroken
+            }
+            data-tooltip-id="dashboard-header-connection"
+          />
+          <Tooltip
+            id="dashboard-header-connection"
+            className={aegisTooltipStyles.tooltip}
+            clickable={true}
+            delayShow={1000}
+            delayHide={500}
+          >
+            <div>Connected to server</div>
+            <div>
+              Last Server Status:{" "}
+              {longDateFromDateString(
+                new Date(socketStatus.lastStatusFromServer.timestamp).toISOString()
+              ) || "None"}
+            </div>
+            <div>
+              Last Edit Event:{" "}
+              {longDateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
+            </div>
+            <div>Editors: {socketStatus.lastStatusFromServer.visitorCounts.editors}</div>
+            <div>Viewers: {socketStatus.lastStatusFromServer.visitorCounts.viewers}</div>
+          </Tooltip>
+        </div>
+        <div className={styles.item}>
+          <div className={styles.logoRight}>
+            <div>
+              <img className={styles.meatball} src="/images/logo_NASA.svg" alt="NASA meatball" />
+            </div>
+            <div
+              className={styles.logoEmssWrapper}
+              onClick={() => {
+                window.open(
+                  "https://wiki.jsc.nasa.gov/fod/index.php/EVA_Mission_Systems_Software",
+                  "_blank"
+                );
+              }}
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-content="More info about EVA Mission System Software (EMSS)"
+            >
+              <span className={styles.logoEmss} />
+            </div>
+          </div>
+        </div>
+        {runningRexName && (
+          <div className={styles.item}>
+            <DashboardPETClock />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DashboardHeader;
+
+const DashboardMenu: FunctionComponent = () => {
+  const navigate = useNavigate();
+
+  const [showMenu, setShowMenu] = useState(false);
+
+  return (
+    <>
+      <div
+        className={styles.hamburgerMenu}
+        onClick={(e) => {
+          setShowMenu(!showMenu);
+          navigate("/");
+          e.stopPropagation();
+        }}
+      >
+        <FontAwesomeIcon icon={faBars} size="xl" />
+      </div>
+      {showMenu && <></>}
+    </>
+  );
+};

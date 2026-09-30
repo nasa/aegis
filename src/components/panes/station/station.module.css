@@ -1,0 +1,154 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--grey1);
+}
+
+.verticalCenter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.body {
+  height: 0;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.stationItem {
+  display: flex;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  user-select: none;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 0.9em;
+  padding: 3px 2px 3px 5px;
+  cursor: pointer;
+}
+
+.nameSelected {
+  background-color: var(--grey5);
+  font-weight: 500;
+  color: black;
+  cursor: pointer;
+}
+
+.nameHovered {
+  background-color: var(--grey1);
+}
+
+.nameSelected:hover {
+  color: black !important;
+}
+
+.stationRightSpacer {
+  flex: 1;
+}
+
+.stmItem {
+  display: inline-block;
+}
+
+.stationColor {
+  color: var(--station);
+}
+
+.associatedPoisContainer {
+  overflow-y: auto;
+  padding-top: 5px;
+}
+
+.stationActionsHeadingTitle {
+  margin-top: 0;
+}
+
+.actionsHeading {
+  display: flex;
+}
+
+.itemIcon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+
+  font-size: 16px;
+  margin: 0 2px 0 2px;
+
+  border-radius: 5px;
+  padding: 1px;
+  width: 28px;
+  height: 28px;
+}
+
+.iconDisplay {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 3px 0 0;
+}
+
+.iconDisplayIcon {
+  font-size: 1.7em;
+  padding-right: 5px;
+  cursor: default;
+}
+
+.iconDisplayButton {
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.iconPickerContainer {
+  position: relative;
+}
+
+.iconPicker {
+  position: absolute;
+  left: -90px;
+  top: 40px;
+  z-index: 100;
+}
+
+.statusLoading {
+  width: 18px;
+  min-height: 18px;
+  display: inline-block;
+  margin-left: 0.1em;
+  padding-right: 0.4em;
+
+  background-size: 18px 18px;
+  background-repeat: no-repeat;
+
+  background-position: center;
+  background-image: url("/images/icon_status_loading.svg");
+}
+
+.poiCheckboxLabel {
+  display: flex;
+}
+
+.poiIcon {
+  font-size: 16px;
+  margin: 0 0 0 8px;
+}
+
+.poiLabel {
+  font-size: 0.9em;
+  padding-left: 2px;
+}
+
+.poiItem {
+  display: flex;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  user-select: none;
+}

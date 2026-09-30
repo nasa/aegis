@@ -1,0 +1,83 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+/src/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# Ignore any `dist` directory
+**/dist
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env
+.env.nondockerdev
+.env.secret
+env.secret.ts
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# Initially used `.docker` for local database, files, and general storage. Switched to `.local`
+.docker
+.local
+
+.idea
+
+# Test coverage file
+junit.xml
+
+# MS Office temp files
+~$*
+temp
+
+# static files in the public folder
+/public/static/**
+
+# any __pycache__ folder or pyc file
+__pycache__
+*.py[cod]
+/static
+*.egg-info
+.venv
+.pixi
+
+# playwright testing stuff
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+**/playwright/.auth
+.vitest-reports
+
+# Agents
+.claude
+# vitest browser-mode failure artifacts (auto-screenshots, attachments)
+/.vitest-attachments/
+**/__screenshots__/
+
+# ignore AI instructions
+agent.md

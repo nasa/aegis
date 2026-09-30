@@ -1,0 +1,382 @@
+import isNil from "lodash/isNil";
+import isEmpty from "lodash/isEmpty";
+
+/**
+ * Return a zero padded string of a number
+ */
+export function padZeros(num: number, size: number): string {
+  const s = num.toString();
+  return s.padStart(size, "0");
+}
+
+/**
+ * Calculates seconds into day (appSeconds) of any isoString timestamp
+ */
+export function appSecondsFromDateString(dateStringParam: string): number {
+  const isoString = isoStringFromAnyDateString(dateStringParam);
+  const startOfDay = new Date(`${isoString.split("T")[0]}T00:00:00Z`);
+  const isoDate = new Date(isoString);
+  return (isoDate.getTime() - startOfDay.getTime()) / 1000;
+}
+
+/**
+ * Formats any isoString timestamp into hh:mm:ss
+ */
+export function hhmmssFromDateString(dateStringParam: string): string {
+  if (dateStringParam === "") {
+    return "";
+  }
+  const isoString = isoStringFromAnyDateString(dateStringParam);
+  const tempDate = new Date(isoString);
+  const hh = padZeros(tempDate.getUTCHours(), 2);
+  const mm = padZeros(tempDate.getUTCMinutes(), 2);
+  const ss = padZeros(tempDate.getUTCSeconds(), 2);
+  return `${hh}:${mm}:${ss}`;
+}
+
+/**
+ * Formats any appSeconds value into +hh:mm:ss equivalent
+ */
+export function hhmmssFromSeconds(secondsParam: number): string {
+  const posSeconds = Math.abs(secondsParam);
+  const hours = Math.abs(Math.trunc(posSeconds / 3600));
+  const minutes = (Math.abs(Math.trunc(posSeconds / 60)) % 60) % 60;
+  let seconds = Math.abs(Math.trunc(posSeconds)) % 60;
+  seconds = Math.floor(seconds);
+  let timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2) + ":" + padZeros(seconds, 2);
+  if (secondsParam < 0) {
+    timeStr = "-" + timeStr;
+  } else {
+    timeStr = "+" + timeStr;
+  }
+  return timeStr;
+}
+
+/**
+ * Formats any appSeconds value into hh:mm:ss.mmm equivalent
+ */
+export function hhmmssmmmFromSeconds(secondsParam: number): string {
+  const hours = Math.abs(Math.trunc(secondsParam / 3600));
+  const minutes = (Math.abs(Math.trunc(secondsParam / 60)) % 60) % 60;
+  const seconds = Math.abs(Math.trunc(secondsParam)) % 60;
+  const milliseconds = (secondsParam - Math.trunc(secondsParam)).toFixed(3);
+  let timeStr =
+    padZeros(hours, 2) +
+    ":" +
+    padZeros(minutes, 2) +
+    ":" +
+    padZeros(seconds, 2) +
+    "." +
+    milliseconds.toString().substring(2);
+  if (secondsParam < 0) {
+    timeStr = "-" + timeStr;
+  }
+  return timeStr;
+}
+
+/**
+ * Formats any minutes into hh:mm equivalent
+ */
+export function hhmmFromMinutes(minutesParam: number): string {
+  const hours = Math.abs(Math.trunc(minutesParam / 60));
+  const minutes = Math.abs(Math.ceil(minutesParam)) % 60;
+  let timeStr = padZeros(hours, 2) + ":" + padZeros(minutes, 2);
+  if (minutesParam < 0) {
+    timeStr = "-" + timeStr;
+  }
+  return timeStr;
+}
+
+/**
+ * Formats any minutes into h:mm equivalent
+ */
+export function hmmFromMinutes(minutesParam: number): string {
+  const hours = Math.abs(Math.trunc(minutesParam / 60));
+  const minutes = Math.abs(Math.ceil(minutesParam)) % 60;
+  let timeStr = padZeros(hours, 1) + ":" + padZeros(minutes, 2);
+  if (minutesParam < 0) {
+    timeStr = "-" + timeStr;
+  }
+  return timeStr;
+}
+
+/**
+ * Formats any isoString timestamp into yyyy-mm-dd
+ */
+export function shortDateFromDateString(dateString: string): string {
+  if (!dateString) return "";
+
+  const isoString = isoStringFromAnyDateString(dateString);
+  const tempDate = new Date(isoString);
+  return (
+    tempDate.getUTCFullYear() +
+    "-" +
+    padZeros(tempDate.getUTCMonth() + 1, 2) +
+    "-" +
+    padZeros(tempDate.getUTCDate(), 2)
+  );
+}
+
+/**
+ * Formats any unix time (ms since 1/1/1970) into yyyy-mm-dd hh:mm:ss
+ */
+export function longDateFromDateNumeric(dateNumeric: number): string {
+  if (!dateNumeric) return "";
+
+  const tempDate = new Date(dateNumeric);
+  return (
+    tempDate.getUTCFullYear() +
+    "-" +
+    padZeros(tempDate.getUTCMonth() + 1, 2) +
+    "-" +
+    padZeros(tempDate.getUTCDate(), 2) +
+    " " +
+    padZeros(tempDate.getUTCHours(), 2) +
+    ":" +
+    padZeros(tempDate.getUTCMinutes(), 2) +
+    ":" +
+    padZeros(tempDate.getUTCSeconds(), 2)
+  );
+}
+
+/**
+ * Formats any isoString timestamp into yyyy-mm-dd hh:mm:ss
+ */
+export function longDateFromDateString(dateString: string): string {
+  if (!dateString) return "";
+
+  const isoString = isoStringFromAnyDateString(dateString);
+
+  const tempDate = new Date(isoString);
+  return (
+    tempDate.getUTCFullYear() +
+    "-" +
+    padZeros(tempDate.getUTCMonth() + 1, 2) +
+    "-" +
+    padZeros(tempDate.getUTCDate(), 2) +
+    " " +
+    padZeros(tempDate.getUTCHours(), 2) +
+    ":" +
+    padZeros(tempDate.getUTCMinutes(), 2) +
+    ":" +
+    padZeros(tempDate.getUTCSeconds(), 2)
+  );
+}
+
+/**
+ * Takes a date string and returns an isoString, throwing an error if conversion is impossible
+ */
+export function isoStringFromAnyDateString(dateString: string): string {
+  const tempDate = new Date(dateString); // works with ISO and UTC date strings
+  if (isNaN(tempDate.valueOf())) {
+    throw new Error(
+      `isoStringFromAnyDateString() - The date string couldn't be converted into a Date: ${dateString}`
+    );
+  }
+  const isoString = tempDate.toISOString();
+  if (!isoString) {
+    throw new Error(
+      `isoStringFromAnyDateString() - The date string couldn't be converted into an ISO string: ${tempDate}`
+    );
+  }
+  return isoString;
+}
+
+/** Get a formatted pseudo-julian date */
+export function getJulianDate(date: Date): string {
+  const year = date.getUTCFullYear();
+
+  // borrowed from https://stackoverflow.com/a/8619946
+  const start = new Date(Date.UTC(year, 0, 0));
+  const msDiff = date.valueOf() - start.valueOf();
+  const msOneDay = 1000 * 60 * 60 * 24;
+  const jd = Math.floor(msDiff / msOneDay);
+
+  return `${year}/${jd}`;
+}
+
+/**
+ * Convert any string to a valid decimal number by stripping out all non-numeric characters
+ */
+export function toDecimal(str: string): number {
+  if (isEmpty(str)) return null;
+  const removedChars = str.replace(/[^0-9.-]/g, "");
+  // make sure string contains only one decimal point
+  const decimalCount = (removedChars.match(/\./g) || []).length;
+  let result;
+  if (decimalCount > 1) {
+    //split string at first decimal point
+    const splitString = removedChars.split(".");
+    //join string back together, but only include the first decimal point
+    let joinedString = splitString[0] + ".";
+    //add the rest of the string back on
+    for (let i = 1; i < splitString.length; i++) {
+      joinedString += splitString[i];
+    }
+    result = parseFloat(joinedString);
+  } else {
+    result = parseFloat(removedChars);
+  }
+
+  return isNaN(result) ? null : result;
+}
+
+/**
+ * Convert an emoji "unified" string to a multi-byte emoji character
+ */
+export const decodeEmoji = (str: string): string => {
+  if (!str) return "";
+  let emoji;
+  try {
+    emoji = str
+      .split("-")
+      .map((codePoint) => String.fromCodePoint(parseInt(codePoint, 16)))
+      .join("");
+  } catch (e) {
+    return "";
+  }
+  return emoji;
+};
+
+/**
+ * Format a number to a string with commas and 2 decimal places
+ */
+export function formatNumberWithCommas(num: number): string {
+  if (isNil(num)) return "";
+  return num.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+export const getPercentOrDefault = (value: number | undefined): number => {
+  return typeof value === "number" ? Math.round(value * 100) : 100;
+};
+
+export const titleCase = (str: string): string => {
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+/**
+ * Get accurate time using timeOffsetMs stored in sessionStorage (if it exists)
+ */
+export function getAccurateNow(): Date {
+  if (typeof window === "undefined") return new Date();
+  const timeOffsetMs = Number(sessionStorage.getItem("timeOffsetMs"));
+  if (timeOffsetMs === null || isNaN(timeOffsetMs)) return new Date();
+  if (Math.abs(timeOffsetMs) < 1000) return new Date(); // if timeOffsetMs is less than 1 second, don't bother adjusting time
+
+  if (timeOffsetMs > 0) {
+    return new Date(Date.now() - timeOffsetMs);
+  } else {
+    return new Date(Date.now() + timeOffsetMs);
+  }
+}
+
+/**
+ * @param hhmmss string in +hh:mm:ss format
+ * @returns number of seconds
+ */
+export function secondsFromhhmmss(hhmmss: string): number {
+  const [hhStr, mm, ss] = hhmmss.split(":");
+  const sign = hhStr.substring(0, 1);
+  const hh = hhStr.substring(1);
+  const seconds = +ss + 60 * +mm + 3600 * +hh;
+  return sign === "-" && seconds !== 0 ? -seconds : seconds;
+}
+
+/**
+ * calculate PET seconds from rex record
+ * @returns string in hh:mm:ss format
+ */
+
+export const calculatePetValue = ({
+  petStartStopTimestamp,
+  petValueAtStartStop,
+}: {
+  petStartStopTimestamp: string;
+  petValueAtStartStop: string;
+}): string => {
+  const accurateNow = getAccurateNow().getTime();
+  const datePetStartStopTimestamp = Date.parse(petStartStopTimestamp) || 0;
+  const petSecondsAtStartStop = secondsFromhhmmss(petValueAtStartStop);
+
+  let newPetSeconds = accurateNow - datePetStartStopTimestamp;
+  newPetSeconds = newPetSeconds + petSecondsAtStartStop * 1000;
+  newPetSeconds = Math.ceil(newPetSeconds / 1000);
+
+  return hhmmssFromSeconds(newPetSeconds);
+};
+
+/**
+ * Abbreviate a string to a certain length and add ellipsis if necessary
+ */
+export function abbreviateString(str: string, maxLength: number): string {
+  if (str.length <= maxLength) return str;
+  return str.substring(0, maxLength - 3) + "...";
+}
+
+export const getISOStringFromDateAndTime = (date: string, time: string): string => {
+  if (time.split(":")[0].length === 1) {
+    time = `0${time}`;
+  }
+  return `${date}T${time}Z`;
+};
+
+export const getDateAndTimeFromISOString = (datetime: string): [string, string] => {
+  if (!datetime || datetime === "") return ["", ""];
+  const [date, time] = datetime.split("T");
+  return [date, time.slice(0, -1)];
+};
+
+export const roundUpSecondsFromISOString = (datetime: string): string => {
+  const ms = Date.parse(datetime);
+  const roundedMs = Math.ceil(ms / 1000) * 1000;
+  return new Date(roundedMs).toISOString();
+};
+
+export const isISOString = (isoString: string): boolean => {
+  if (!/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z/.test(isoString)) {
+    return false;
+  }
+  const testDate = new Date(isoString);
+  const normalizedISOString = isoString.includes(".") ? isoString : isoString.replace("Z", ".000Z");
+  return !isNaN(testDate.getTime()) && testDate.toISOString() === normalizedISOString;
+};
+
+/**
+ * Converts a numeric Unix timestamp (ms) to an ISO string.
+ * Returns null if the value is null/undefined.
+ */
+export const numericDatetimeToISO = (datetime: number | null | undefined): string | null => {
+  if (datetime == null) return null;
+  return new Date(datetime).toISOString();
+};
+
+/**
+ * Converts a string or number datetime to a numeric Unix timestamp (ms).
+ * Accepts ISO strings (legacy) or numeric values (current format).
+ * Returns null for empty string, null, or undefined.
+ */
+export const toNumericDatetime = (datetime: string | number | null | undefined): number | null => {
+  if (datetime == null || datetime === "") return null;
+  if (typeof datetime === "number") return datetime;
+  const ms = new Date(datetime).getTime();
+  return isNaN(ms) ? null : ms;
+};
+
+export const isNotNumber = (value: unknown): boolean => {
+  return value === null || value === undefined || isNaN(Number(value)) || typeof value !== "number";
+};
+
+export const letterOrdinal = (n: number): string => {
+  if (n < 1) throw new Error("Input must be a positive integer");
+  let result = "";
+  while (n > 0) {
+    n--; // Convert to 0-based indexing (A=0, B=1, ..., Z=25)
+    result = String.fromCharCode(65 + (n % 26)) + result; // Get current letter and prepend to result
+    n = Math.floor(n / 26); // Move to next "digit" position in base-26 system
+  }
+  return result;
+};

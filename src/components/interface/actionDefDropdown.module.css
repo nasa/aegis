@@ -1,0 +1,71 @@
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.selected {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  background-color: var(--grey3);
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  height: 1.5em;
+}
+
+.selected:hover {
+  filter: brightness(1.1);
+}
+
+.caret {
+  color: var(--grey5);
+}
+
+.dialog {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.dialog::backdrop {
+  background: transparent;
+}
+
+.menu {
+  position: fixed;
+  min-width: 200px;
+  max-width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: var(--grey3);
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 40%);
+}
+
+.menuItem {
+  padding: 4px 6px;
+  cursor: pointer;
+  color: white;
+  white-space: nowrap;
+  font-size: 1em;
+}
+
+.menuItem:hover {
+  background-color: var(--grey2);
+}
+
+.menuItemSelected {
+  background-color: var(--grey2);
+  font-weight: 600;
+}
+
+.menuItemSelected:hover {
+  background-color: var(--grey2);
+}
