@@ -1,3 +1,28 @@
+/** How much of a running REX's EVA may be edited. */
+type RexExecuteEditMode = "unrestricted" | "limited" | "none";
+
+/**
+ * Bookkeeping captured the first time a REX is executed. Its presence also
+ * means `executeEditMode` is frozen. The arrays and letter map are only
+ * populated under `limited`; the other two modes store an empty state purely
+ * to record that execution has happened.
+ */
+type RexExecuteEditState = {
+  /** Stations created in the REX EVA under limited editing. */
+  addedStationUuids: string[];
+  /** Traverses created in the REX EVA under limited editing. */
+  addedTraverseUuids: string[];
+  /** Actions created under limited editing. */
+  addedActionUuids: string[];
+  /**
+   * Station/traverse uuid -> the action uuid order each action's displayed
+   * letter is derived from. Captured at first execution; reordering the live
+   * list does not change it. Parents in `addedStationUuids` /
+   * `addedTraverseUuids` have no entry here and render positionally.
+   */
+  actionLetterOrderByParent: { [parentUuid: string]: string[] };
+};
+
 type Rex = {
   missionId: number;
   uuid: string;
@@ -19,6 +44,10 @@ type Rex = {
   maestroEventId: string | null;
   maestroEventUrl: string | null;
   maestroActivityProperties: MaestroActivityProperties | null;
+  /** Chosen before execution, frozen once the REX has been executed. */
+  executeEditMode: RexExecuteEditMode;
+  /** Null until the REX is first executed. */
+  executeEditState: RexExecuteEditState | null;
   createdAt?: number;
   updatedAt?: number;
 };
@@ -49,7 +78,12 @@ type RexWithLegacyFields = Rex & {
  */
 type Rex_db_type = Omit<
   RexWithLegacyFields,
-  "createdAt" | "updatedAt" | "maestroActivityProperties"
+  | "createdAt"
+  | "updatedAt"
+  | "maestroActivityProperties"
+  // The legacy Postgres `rex` table has no columns for the execute-edit fields.
+  | "executeEditMode"
+  | "executeEditState"
 > & {
   createdAt?: Date;
   updatedAt?: Date;

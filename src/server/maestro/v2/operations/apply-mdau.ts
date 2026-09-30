@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
+import { applyFreezeExecuteEditMode } from "operations/apply/apply-rex";
 import type { MdauStageData } from "../types/mdauStageData";
 
 /**
@@ -97,6 +98,9 @@ export const applyMdauRexes = (m: Mission, stage: MdauStageData): void => {
     // Generate initial crew position entries when transitioning to running.
     if (rexStage.startsRunning) {
       generateInitialPosEntries(m, rex);
+      // A Maestro-started REX must freeze its execute edit mode and capture the
+      // action-letter baseline just like a REX started from the AEGIS UI.
+      applyFreezeExecuteEditMode(m, { rexUuid: rex.uuid });
     }
 
     // Station activity entries (merged with any existing entry).

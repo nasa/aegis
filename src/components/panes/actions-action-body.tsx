@@ -46,6 +46,8 @@ import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/t
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import type { ActionEditCapabilities } from "utils/rexExecuteEditMode";
+import { UNRESTRICTED_ACTION_EDIT_CAPABILITIES } from "utils/rexExecuteEditMode";
 import { MissionPriorityDropdown } from "./mission/mission-right-missionPriorities";
 
 const RightActionBody: FunctionComponent<{
@@ -56,7 +58,20 @@ const RightActionBody: FunctionComponent<{
   parentElevation: number;
   rexUuid: string;
   allowRexEdit: boolean;
-}> = ({ editMode, action, parentType, parentLocation, parentElevation, rexUuid, allowRexEdit }) => {
+  rexEditCapabilities?: ActionEditCapabilities;
+}> = ({
+  editMode: editModeProp,
+  action,
+  parentType,
+  parentLocation,
+  parentElevation,
+  rexUuid,
+  allowRexEdit,
+  rexEditCapabilities = UNRESTRICTED_ACTION_EDIT_CAPABILITIES,
+}) => {
+  // Under a restricted REX mode the general planning fields in this body are
+  // read-only; executed mass and the collection IDs are gated separately below.
+  const editMode = editModeProp && rexEditCapabilities.generalFields;
   const dispatch = useAppDispatch();
   const resolvedGrid = useResolvedMissionGrid();
   const partialMission = useMissionDocSelector(
@@ -440,7 +455,9 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.mass?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit}
+                      editMode={
+                        !isNull(rexUuid) && allowRexEdit && rexEditCapabilities.executedMass
+                      }
                       fieldProps={{
                         name: "mass",
                         ariaLabel: "Executed Sample Mass",
@@ -494,7 +511,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.markerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "markerId",
                         ariaLabel: "Sample Marker ID",
@@ -522,7 +544,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.containerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "containerId",
                         ariaLabel: "Container ID",
@@ -550,7 +577,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.secondaryContainerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "secondaryContainerId",
                         ariaLabel: "Secondary Container ID",
