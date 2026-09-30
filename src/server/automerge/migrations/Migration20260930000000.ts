@@ -1,10 +1,12 @@
 import type { AutomergeMigration } from "server/automerge/migrations/types";
 import { serverLogger } from "utils/logging/serverLogger";
 
-/** Replace the boolean isArchived field with an archivedAt timestamp (null when not archived). */
+// Migration: Rename `maestroActivityPropertiesByRefUuid` to
+// `maestroActivityProperties` and rekey any legacy refUuid keys to the
+// matching station/traverse uuid within the REX's own scope.
 export const Migration20260930000000: AutomergeMigration = {
   version: 20260930000000,
-  name: "replace-is-archived-with-archived-at",
+  name: "maegistro-replace-refuuid-with-uuid",
   migrate: async (docHandle) => {
     docHandle.change((mission: Mission) => {
       for (const rex of Object.values(mission.rexes ?? {})) {
