@@ -15,17 +15,26 @@
 
 .detailsTable {
   flex: 1 1 auto;
-  display: flex;
-  flex-direction: row;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 155px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
 }
+.investigationHeader {
+  grid-column: 1 / -1;
+  padding: 0 5px 8px;
+  border-bottom: 1px solid var(--grey2);
+}
 .detailsLeft {
-  flex: 0 0 155px;
+  min-height: 0;
+  padding-top: 31px;
   display: flex;
   flex-direction: column;
 }
 .detailsRight {
-  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -64,13 +73,24 @@
 .stmName {
   display: flex;
   flex-direction: row;
-  gap: 5px;
+  align-items: baseline;
+  gap: 12px;
   margin: 3px 5px;
-  padding: 3px 5px;
+  padding: 10px 12px;
   background-color: var(--grey2);
-  font-size: 0.9rem;
+  font-size: 1rem;
+  line-height: 1.5;
   font-weight: 400;
   border-radius: var(--panelRadius);
+}
+.stmNameOrdinal {
+  flex-shrink: 0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stmNameNameText {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .stmRuleContainer {
   display: flex;

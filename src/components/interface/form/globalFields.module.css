@@ -390,9 +390,19 @@
 }
 
 .multiselectDropdownItems {
+  max-height: min(240px, 40vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-top: 1px solid var(--grey2);
   margin-top: 5px;
   padding-top: 2px;
+}
+
+.multiselectDropdownLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .multiselectDropdownItem {
@@ -403,7 +413,13 @@
   font-size: 0.9em;
 }
 
+.multiselectDropdownItem:hover {
+  background-color: rgb(255 255 255 / 8%);
+}
+
 .multiselectDropdownItemTitle {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   justify-content: space-around;
