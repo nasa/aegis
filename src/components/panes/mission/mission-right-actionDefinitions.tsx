@@ -160,13 +160,6 @@ const ActionDefinitions: FunctionComponent<{
     ([, a], [, b]) => a.name.localeCompare(b.name)
   );
 
-  let buttonWidth = "90px";
-  if (type === "nouns") {
-    buttonWidth = "100px";
-  } else if (type === "adjectives") {
-    buttonWidth = "120px";
-  }
-
   return (
     <div className={paneStyles.panelSection}>
       <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
@@ -207,7 +200,7 @@ const ActionDefinitions: FunctionComponent<{
           <Button
             icon={faPlusCircle}
             label={`Add ${actionDefinitionLabels.singular}`}
-            style={{ width: buttonWidth, marginLeft: "8px", marginTop: "8px" }}
+            className={missionStyles.addActionDefinitionButton}
             onClick={async () => {
               withMissionChange((m) => applyCreateActionDefinitionItem(m, { type }));
             }}
