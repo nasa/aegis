@@ -85,7 +85,7 @@ export const stmSlice = createSlice({
       state.rules = state.rules.filter((rule) => !action.payload.includes(rule.uuid));
     },
     deleteSTMRulesFromDb: (state, action: { payload: string[] }) => {
-      state.rules = state.rulesFromDb.filter((rule) => !action.payload.includes(rule.uuid));
+      state.rulesFromDb = state.rulesFromDb.filter((rule) => !action.payload.includes(rule.uuid));
     },
     setRuleEditingUuid: (state, action: { payload: string }) => {
       state.ruleEditingUuid = action.payload;
