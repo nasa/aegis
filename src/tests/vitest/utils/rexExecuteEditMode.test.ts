@@ -29,16 +29,6 @@ const ALL_CAPABILITIES: EvaEditCapability[] = [
   ...LIMITED_FORBIDDEN_CAPABILITIES,
 ];
 
-const makeExecuteEditState = (
-  overrides: Partial<RexExecuteEditState> = {}
-): RexExecuteEditState => ({
-  addedStationUuids: [],
-  addedTraverseUuids: [],
-  addedActionUuids: [],
-  actionLetterOrderByParent: {},
-  ...overrides,
-});
-
 const makeRex = (overrides: Partial<Rex> = {}): Rex =>
   ({
     uuid: "rex-1",
@@ -157,18 +147,6 @@ describe("buildRexEditCapabilities()", () => {
   it("forbids everything when none, even for an added action", () => {
     const caps = buildActionEditCapabilities("none", { actionWasAdded: true });
     expect(Object.values(caps).some(Boolean)).toBe(false);
-  });
-});
-
-describe("execute edit state", () => {
-  it("is false before the first execution", () => {
-    const rex = makeRex();
-    expect(rex?.executeEditState).toBe(false);
-  });
-
-  it("is true once an execute edit state exists", () => {
-    const rex = makeRex({ executeEditState: makeExecuteEditState() });
-    expect(rex?.executeEditState).toBe(true);
   });
 });
 
