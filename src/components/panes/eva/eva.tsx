@@ -4,14 +4,10 @@ import evaStyles from "./eva.module.css";
 import EvaItem from "./eva-item";
 import { refEqual, deepEqual, useAppSelector } from "utils/useAppSelector";
 import { Button } from "components/interface/form/globalFields";
-import { faClone, faEye, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { LoadingOverlay } from "components/interface/_global-elements";
-import {
-  thunkDocCreateEva,
-  thunkDocDuplicateEva,
-  thunkUISetOnlyShowRunningRexEva,
-} from "store/thunk/thunkEva";
+import { thunkDocCreateEva, thunkUISetOnlyShowRunningRexEva } from "store/thunk/thunkEva";
 import { FolderOrganizer } from "components/interface/folders";
 import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
 import sortBy from "lodash/sortBy";
@@ -30,14 +26,6 @@ const EvaPlannerLeft: FunctionComponent = () => {
     refEqual
   );
 
-  const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
-  const isSelectedEvaUuidARex = useMissionDocSelector(
-    (mission) =>
-      mission.rexes
-        ? Object.values(mission.rexes).some((rex) => rex.evaUuid === selectedEvaUuid)
-        : false,
-    refEqual
-  );
   const showRunningRexOnly = useAppSelector((state) => state.eva.showRunningRexOnly, refEqual);
 
   const isRexRunning = useMissionDocSelector(
@@ -167,63 +155,6 @@ const EvaPlannerLeft: FunctionComponent = () => {
                       icon={faPlusCircle}
                       style={{ width: "65px" }}
                       toolTip="Add a new EVA"
-                    />
-                    <Button
-                      ariaLabel="duplicateEva"
-                      onClick={async () => {
-                        if (selectedEvaUuid) {
-                          setShowOverlay({ showOverlay: true, message: "Duplicating EVA..." });
-                          try {
-                            await dispatch(
-                              thunkDocDuplicateEva({
-                                evaUuid: selectedEvaUuid,
-                                includeStations: false,
-                                isRexEva: false,
-                              })
-                            );
-                          } finally {
-                            setShowOverlay({ showOverlay: false });
-                          }
-                        }
-                      }}
-                      label="Duplicate"
-                      icon={faClone}
-                      enabled={!!selectedEvaUuid && !isSelectedEvaUuidARex}
-                      style={{ width: "95px" }}
-                      toolTip="Duplicate this EVA and its Traverses"
-                    />
-                    <Button
-                      ariaLabel="duplicateEvaWithStations"
-                      onClick={async () => {
-                        if (selectedEvaUuid) {
-                          if (
-                            confirm(
-                              "This will duplicate the EVA and also make duplicates of all stations in this EVA and will name them 'station name (copy X)'. Are you sure?"
-                            )
-                          ) {
-                            setShowOverlay({
-                              showOverlay: true,
-                              message: "Duplicating EVA with Stations...",
-                            });
-                            try {
-                              await dispatch(
-                                thunkDocDuplicateEva({
-                                  evaUuid: selectedEvaUuid,
-                                  includeStations: true,
-                                  isRexEva: false,
-                                })
-                              );
-                            } finally {
-                              setShowOverlay({ showOverlay: false });
-                            }
-                          }
-                        }
-                      }}
-                      label="Dup w/ Stns"
-                      icon={faClone}
-                      enabled={!!selectedEvaUuid}
-                      style={{ width: "110px" }}
-                      toolTip="Duplicate this EVA and its Traverses and Stations"
                     />
                   </>
                 )}
