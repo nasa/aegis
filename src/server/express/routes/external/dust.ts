@@ -38,13 +38,16 @@ const parseQuery = (query: Query) => {
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
+  const dustToken = req.headers["dust-token"] as string;
 
-  const viewPermission = hasPerms({
-    missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
-    emssToken,
-  });
+  const viewPermission =
+    dustToken === process.env.DUST_TOKEN ||
+    hasPerms({
+      missionId: queryObj.missionId,
+      permission: "view",
+      appUser: req.session.appUser,
+      emssToken,
+    });
   if (!viewPermission) {
     serverLogger.apiRoute({
       logLevel: "warning",
