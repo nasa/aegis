@@ -74,6 +74,11 @@ vi.mock("@mikro-orm/postgresql", async (importOriginal) => {
 import { getMaestroSocketRoomName } from "server/maestro/v2/sockets-maestro";
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankRex } from "store/storeUtils/rex";
 import type { AegisSlice } from "server/maestro/v2/types/aegisSlice";
 import type { MaestroVisitor } from "server/maestro/v2/types/socketioMaestro";
 import type { MDAU } from "server/maestro/v2/types/mdau";
@@ -82,9 +87,9 @@ import type { MDAU } from "server/maestro/v2/types/mdau";
 
 const MISSION_ID = 9999;
 
-// Shared mutable EVA registry used by the mockGetAutomergeMissions implementation.
-// Tests populate this with { [evaUuid]: { uuid, refUuid } } entries before calling handlers.
-let evaRegistry: Record<string, { uuid: string; refUuid: string }> = {};
+// Shared mutable EVA registry backing the mission doc handle registered for MISSION_ID.
+// Tests populate this with { [evaUuid]: { uuid } } entries before calling handlers.
+let evaRegistry: Record<string, { uuid: string }> = {};
 
 const createMockMaestroNamespace = () => {
   const rooms = new Map<string, Set<string>>();
@@ -116,27 +121,21 @@ beforeEach(() => {
   };
   globalValues.automergeRepo = { find: vi.fn().mockResolvedValue(defaultDocHandle) } as never;
   mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://default-url" }]);
-  // Mock em.fork() so getEvaUuid resolves evaRefUuid directly as the evaUuid.
-  const mockEm = {
-    find: vi.fn().mockImplementation((_entity: unknown, where: Record<string, unknown>) => {
-      // For Rex_db lookup (evaUuid: { $in: [...] }) return empty — no rexes exist
-      if (where?.evaUuid) return Promise.resolve([]);
-      // For Eva_db lookup by refUuid, return a fake eva whose uuid === refUuid
-      const refUuid = where?.refUuid as string | undefined;
-      if (refUuid) return Promise.resolve([{ uuid: refUuid }]);
-      return Promise.resolve([]);
-    }),
-    findOne: vi.fn().mockResolvedValue(null),
-  };
-  globalValues.orm = { em: { fork: vi.fn().mockReturnValue(mockEm) } } as never;
+  // getEverything wraps its work in RequestContext.create(globalValues.orm.em, ...),
+  // which is mocked as a pass-through, so only a stub em is required here.
+  globalValues.orm = { em: { fork: vi.fn() } } as never;
   globalValues.maestroV2.evaSubscriptions = new Map();
   globalValues.maestroV2.socketio = null;
   globalValues.maestroV2.docListeners = new Map();
   globalValues.maestroV2.visitorData = {};
   globalValues.maestroV2.docHandles = new Map();
-  // Configure getAutomergeMissions to return a mission whose evas registry is
-  // built from a shared mutable object that tests can populate before calling handlers.
+  // Register a doc handle for MISSION_ID whose document exposes the shared mutable
+  // eva registry. subscribeToEva resolves evas from this handle, so tests populate
+  // evaRegistry before calling the handler.
   evaRegistry = {};
+  globalValues.maestroV2.docHandles.set(MISSION_ID, {
+    doc: vi.fn(() => ({ evas: evaRegistry, rexes: {} })),
+  } as never);
   mockGetAutomergeMissions.mockImplementation(() =>
     Promise.resolve([{ evas: evaRegistry, rexes: {} }])
   );
@@ -248,119 +247,158 @@ describe("maestro namespace socket handlers", () => {
 
       expect(mockSocket.join).not.toHaveBeenCalledWith(getMaestroSocketRoomName(null));
     });
+
+    it("calls the callback with a success response when the join succeeds", async () => {
+      const visitor: MaestroVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+      const callback = vi.fn();
+
+      await mockSocket._handlers["missionJoin"](MISSION_ID, visitor, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "success",
+        message: expect.any(String),
+      });
+    });
+
+    it("calls the callback with an error response when missionId is invalid", () => {
+      const visitor: MaestroVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+      const callback = vi.fn();
+
+      mockSocket._handlers["missionJoin"](null, visitor, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.any(String),
+      });
+    });
+
+    it("does not throw when no callback is provided", () => {
+      const visitor: MaestroVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      };
+
+      expect(() => mockSocket._handlers["missionJoin"](MISSION_ID, visitor)).not.toThrow();
+    });
   });
 
   describe("subscribeToEva", () => {
-    it("adds EVA refUuid to evaSubscriptions for the mission", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
+    it("adds EVA uuid to evaSubscriptions for the mission", async () => {
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
-      expect(subs).toContain(evaRefUuid);
+      expect(subs).toContain(evaUuid);
     });
 
-    it("does not duplicate EVA refUuid on repeated subscribe", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null);
+    it("does not duplicate EVA uuid on repeated subscribe", async () => {
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
-      expect(subs.filter((u: string) => u === evaRefUuid)).toHaveLength(1);
+      expect(subs.filter((u: string) => u === evaUuid)).toHaveLength(1);
     });
 
     it("supports multiple EVA subscriptions for the same mission", async () => {
-      const evaRefUuid1 = uuidv4();
-      const evaRefUuid2 = uuidv4();
-      evaRegistry[evaRefUuid1] = { uuid: evaRefUuid1, refUuid: evaRefUuid1 };
-      evaRegistry[evaRefUuid2] = { uuid: evaRefUuid2, refUuid: evaRefUuid2 };
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid1, null);
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid2, null);
+      const evaUuid1 = uuidv4();
+      const evaUuid2 = uuidv4();
+      evaRegistry[evaUuid1] = { uuid: evaUuid1 };
+      evaRegistry[evaUuid2] = { uuid: evaUuid2 };
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid1);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid2);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
       expect(subs).toHaveLength(2);
-      expect(subs).toContain(evaRefUuid1);
-      expect(subs).toContain(evaRefUuid2);
+      expect(subs).toContain(evaUuid1);
+      expect(subs).toContain(evaUuid2);
     });
 
     it("calls the callback with a success response when the eva is found", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
       const callback = vi.fn();
 
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null, callback);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid, callback);
 
       expect(callback).toHaveBeenCalledWith({ status: "success" });
     });
 
     it("calls the callback with an error response when the eva cannot be resolved", async () => {
-      const evaRefUuid = uuidv4();
-      // Not added to evaRegistry, so getEvaUuid will fail to resolve it
+      const evaUuid = uuidv4();
+      // Not added to evaRegistry, so the existence check fails
       const callback = vi.fn();
 
-      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null, callback);
+      await mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid, callback);
 
       expect(callback).toHaveBeenCalledWith({
         status: "error",
         message: expect.any(String),
       });
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
-      expect(subs ?? []).not.toContain(evaRefUuid);
+      expect(subs ?? []).not.toContain(evaUuid);
     });
 
     it("does not throw when no callback is provided", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
 
       await expect(
-        mockSocket._handlers["subscribeToEva"](MISSION_ID, evaRefUuid, null)
+        mockSocket._handlers["subscribeToEva"](MISSION_ID, evaUuid)
       ).resolves.not.toThrow();
     });
   });
 
   describe("unsubscribeToEva", () => {
-    it("removes the EVA refUuid from subscriptions", async () => {
-      const evaRefUuid = uuidv4();
-      // evaSubscriptions stores the resolved evaUuid; via our mock, that equals evaRefUuid
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
-      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaRefUuid]);
+    it("removes the EVA uuid from subscriptions", () => {
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaUuid]);
 
-      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid, null);
+      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaUuid);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
       expect(subs).toBeUndefined();
     });
 
-    it("deletes the mission entry when last subscription is removed", async () => {
-      const evaRefUuid = uuidv4();
-      evaRegistry[evaRefUuid] = { uuid: evaRefUuid, refUuid: evaRefUuid };
-      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaRefUuid]);
+    it("deletes the mission entry when last subscription is removed", () => {
+      const evaUuid = uuidv4();
+      evaRegistry[evaUuid] = { uuid: evaUuid };
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaUuid]);
 
-      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid, null);
+      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaUuid);
 
       expect(globalValues.maestroV2.evaSubscriptions.has(MISSION_ID)).toBe(false);
     });
 
-    it("only removes the specified EVA when multiple are subscribed", async () => {
-      const evaRefUuid1 = uuidv4();
-      const evaRefUuid2 = uuidv4();
-      evaRegistry[evaRefUuid1] = { uuid: evaRefUuid1, refUuid: evaRefUuid1 };
-      evaRegistry[evaRefUuid2] = { uuid: evaRefUuid2, refUuid: evaRefUuid2 };
-      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaRefUuid1, evaRefUuid2]);
+    it("only removes the specified EVA when multiple are subscribed", () => {
+      const evaUuid1 = uuidv4();
+      const evaUuid2 = uuidv4();
+      evaRegistry[evaUuid1] = { uuid: evaUuid1 };
+      evaRegistry[evaUuid2] = { uuid: evaUuid2 };
+      globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaUuid1, evaUuid2]);
 
-      await mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaRefUuid1, null);
+      mockSocket._handlers["unsubscribeToEva"](MISSION_ID, evaUuid1);
 
       const subs = globalValues.maestroV2.evaSubscriptions.get(MISSION_ID);
-      expect(subs).not.toContain(evaRefUuid1);
-      expect(subs).toContain(evaRefUuid2);
+      expect(subs).not.toContain(evaUuid1);
+      expect(subs).toContain(evaUuid2);
       expect(subs).toHaveLength(1);
     });
 
-    it("does nothing when there are no subscriptions for the mission", async () => {
-      await expect(
-        mockSocket._handlers["unsubscribeToEva"](MISSION_ID, uuidv4(), null)
-      ).resolves.not.toThrow();
+    it("does nothing when there are no subscriptions for the mission", () => {
+      expect(() => mockSocket._handlers["unsubscribeToEva"](MISSION_ID, uuidv4())).not.toThrow();
     });
   });
 
@@ -556,16 +594,16 @@ describe("maestro namespace socket handlers", () => {
   // ─── getEverything ──────────────────────────────────────────────────────────
 
   describe("getEverything", () => {
-    it("returns failure for null missionId", async () => {
+    it("returns error for null missionId", async () => {
       const callback = vi.fn();
       await mockSocket._handlers["getEverything"](null, callback);
-      expect(callback).toHaveBeenCalledWith({ status: "failure", message: "Invalid mission ID" });
+      expect(callback).toHaveBeenCalledWith({ status: "error", message: "Invalid mission ID" });
     });
 
-    it("returns failure for NaN missionId", async () => {
+    it("returns error for NaN missionId", async () => {
       const callback = vi.fn();
       await mockSocket._handlers["getEverything"](NaN, callback);
-      expect(callback).toHaveBeenCalledWith({ status: "failure", message: "Invalid mission ID" });
+      expect(callback).toHaveBeenCalledWith({ status: "error", message: "Invalid mission ID" });
     });
 
     it("calls callback with success when data is retrieved", async () => {
@@ -599,8 +637,20 @@ describe("maestro namespace socket handlers", () => {
   describe("sendMDAU", () => {
     // A minimal doc handle registered for MISSION_ID so the sendMDAU handler
     // can resolve one. Only the sendMDAU tests need this; the subscribe/eva
-    // tests intentionally rely on an empty docHandles map.
-    const sendMdauDocHandle = { doc: vi.fn().mockReturnValue({}) };
+    // tests intentionally rely on an empty docHandles map. The doc carries the
+    // action definitions and mission priorities the payloads below reference so
+    // mdauDataValidator passes.
+    const sendMdauMission = {
+      actionDefinitions: {
+        verbs: { "verb-1": { name: "Collect", abbr: "COL" } },
+        nouns: { "noun-1": { name: "Regolith", abbr: "REG" } },
+        adjectives: { "adj-1": { name: "Shadowed", abbr: "SHD" } },
+      },
+      missionPriorities: {
+        "priority-1": { trace: "SIMD-0005.1", category: "Vitest Category" },
+      },
+    };
+    const sendMdauDocHandle = { doc: vi.fn().mockReturnValue(sendMdauMission) };
     beforeEach(() => {
       globalValues.maestroV2.docHandles.set(MISSION_ID, sendMdauDocHandle as never);
     });
@@ -624,11 +674,11 @@ describe("maestro namespace socket handlers", () => {
     it("calls opUpdateMdau with the resolved doc handle and the full mdau payload", () => {
       const mdau: MDAU.MaestroDataAegisUses = {
         aegisStations: {
-          "ref-uuid-1": {
-            refUuid: "ref-uuid-1",
+          "station-uuid-9": {
+            uuid: "station-uuid-9",
             name: "Vitest Station",
             duration: 30,
-            actionOrderRefUuids: null,
+            actionOrderUuids: null,
             updatedAt: Date.now(),
           },
         },
@@ -637,57 +687,95 @@ describe("maestro namespace socket handlers", () => {
       expect(mockOpUpdateMdau).toHaveBeenCalledWith(sendMdauDocHandle, MISSION_ID, mdau);
     });
 
+    it("rejects the payload when data validation fails, before any processing", () => {
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+      const mdau: MDAU.MaestroDataAegisUses = {
+        aegisAction: {
+          "action-uuid-1": {
+            uuid: "action-uuid-1",
+            name: "Vitest Action",
+            descriptionTask: null,
+            duration: null,
+            // noun-2 is not in the mission's noun catalog.
+            actionDefinition: { verbUuid: "verb-1", nounUuid: "noun-2" },
+            missionPriorityUuid: null,
+            stmAction: false,
+            actors: ["EV1"],
+            enabled: true,
+            updatedAt: Date.now(),
+          },
+        },
+      };
+
+      mockSocket._handlers["sendMDAU"](MISSION_ID, mdau, callback);
+
+      expect(mockOpUpdateMdau).not.toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalled();
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "error",
+          message: expect.stringContaining("Invalid MDAU payload"),
+        })
+      );
+
+      errorSpy.mockRestore();
+    });
+
     it("processes a fully-populated MDAU payload without logging any errors", async () => {
       // Build a full MDAU sample that exercises every top-level collection and
       // every field of every sub-type defined in MDAU.MaestroDataAegisUses.
       const now = Date.now();
-      const stationRefUuid = "station-ref-1";
-      const traverseRefUuid = "traverse-ref-1";
-      const evaRefUuid = "eva-ref-1";
-      const actionRefUuid = "action-ref-1";
+      const stationUuid = "station-uuid-1";
+      const traverseUuid = "traverse-uuid-1";
+      const evaUuid = "eva-uuid-1";
+      const actionUuid = "action-uuid-1";
       const rexUuid = "rex-uuid-1";
 
       const fullMdau: MDAU.MaestroDataAegisUses = {
         aegisStations: {
-          [stationRefUuid]: {
-            refUuid: stationRefUuid,
+          [stationUuid]: {
+            uuid: stationUuid,
             name: "Vitest Full Station",
             duration: 42,
-            actionOrderRefUuids: [actionRefUuid],
+            actionOrderUuids: [actionUuid],
             updatedAt: now,
-            rexUuid,
           },
         },
         aegisTraverse: {
-          [traverseRefUuid]: {
-            refUuid: traverseRefUuid,
+          [traverseUuid]: {
+            uuid: traverseUuid,
             duration: 15,
-            actionOrderRefUuids: null,
+            actionOrderUuids: null,
             updatedAt: now,
-            rexUuid,
           },
         },
         aegisEva: {
-          [evaRefUuid]: {
-            refUuid: evaRefUuid,
+          [evaUuid]: {
+            uuid: evaUuid,
             name: "Vitest Full EVA",
             maestroEventId: "maestro-event-1",
             maestroEventUrl: "https://maestro.example/events/1",
-            sequenceRefUuids: [
-              { type: "station", refUuid: stationRefUuid },
-              { type: "traverse", refUuid: traverseRefUuid },
+            sequence: [
+              { type: "station", uuid: stationUuid },
+              { type: "traverse", uuid: traverseUuid },
             ],
             datetime: now,
             updatedAt: now,
-            rexUuid,
           },
         },
         aegisAction: {
-          [actionRefUuid]: {
-            refUuid: actionRefUuid,
+          [actionUuid]: {
+            uuid: actionUuid,
+            name: "Vitest Full Action",
+            descriptionTask: "Collect the sample",
+            duration: 12,
+            actionDefinition: { verbUuid: "verb-1", nounUuid: "noun-1", adjectiveUuid: "adj-1" },
+            missionPriorityUuid: "priority-1",
+            stmAction: true,
             actors: ["EV1"],
+            enabled: true,
             updatedAt: now,
-            rexUuid,
           },
         },
         aegisRexes: {
@@ -699,26 +787,26 @@ describe("maestro namespace socket handlers", () => {
             isRunning: true,
             maestroControlled: true,
             updatedAt: now,
-            maestroActivityPropertiesByRefUuid: {
-              [stationRefUuid]: { color: "#ff0000", number: "1" },
-              [traverseRefUuid]: { color: "#00ff00", number: "2" },
+            maestroActivityProperties: {
+              [stationUuid]: { color: "#ff0000", number: "1" },
+              [traverseUuid]: { color: "#00ff00", number: "2" },
             },
-            stationEntriesByRefUuid: {
-              [stationRefUuid]: {
+            stationEntries: {
+              [stationUuid]: {
                 rexStatus: "in-progress",
                 maestroPercentCompleteEv1: 50,
                 maestroPercentCompleteEv2: 25,
               },
             },
-            traverseEntriesByRefUuid: {
-              [traverseRefUuid]: {
+            traverseEntries: {
+              [traverseUuid]: {
                 rexStatus: "pending",
                 maestroPercentCompleteEv1: 0,
                 maestroPercentCompleteEv2: 0,
               },
             },
-            actionEntriesByRefUuid: {
-              [actionRefUuid]: {
+            actionEntries: {
+              [actionUuid]: {
                 rexStatus: "complete",
                 markerId: "M-001",
                 containerId: "C-001",
@@ -740,6 +828,287 @@ describe("maestro namespace socket handlers", () => {
       expect(errorSpy).not.toHaveBeenCalled();
 
       errorSpy.mockRestore();
+    });
+  });
+
+  // ─── getExecuteUuids ───────────────────────────────────────────────────────
+
+  describe("getExecuteUuids", () => {
+    /**
+     * Builds a mission doc containing an as-planned EVA scope and a REX scope
+     * duplicated from it. Every duplicated entity keeps its `refUuid` and gets
+     * a new `uuid`, which is exactly what getExecuteUuids has to pair up.
+     */
+    const buildRexMission = () => {
+      // As-planned scope
+      const plannedStation1 = generateBlankStation({ name: "Planned Station 1" });
+      const plannedStation2 = generateBlankStation({ name: "Planned Station 2" });
+      const plannedTraverse = generateBlankTraverse({ name: "Planned Traverse" });
+      const plannedEva = generateBlankEVA({
+        name: "Planned EVA",
+        sequence: [
+          { type: "station", uuid: plannedStation1.uuid },
+          { type: "traverse", uuid: plannedTraverse.uuid },
+          { type: "station", uuid: plannedStation2.uuid },
+        ],
+      });
+      const plannedStationAction = generateBlankAction({
+        name: "Planned Station Action",
+        stationUuid: plannedStation1.uuid,
+      });
+      const plannedTraverseAction = generateBlankAction({
+        name: "Planned Traverse Action",
+        traverseUuid: plannedTraverse.uuid,
+      });
+
+      // REX scope — same refUuids, new uuids
+      const rexStation1 = generateBlankStation({
+        name: "Rex Station 1",
+        refUuid: plannedStation1.refUuid,
+      });
+      const rexStation2 = generateBlankStation({
+        name: "Rex Station 2",
+        refUuid: plannedStation2.refUuid,
+      });
+      const rexTraverse = generateBlankTraverse({
+        name: "Rex Traverse",
+        refUuid: plannedTraverse.refUuid,
+      });
+      const rexEva = generateBlankEVA({
+        name: "Rex EVA",
+        refUuid: plannedEva.refUuid,
+        sequence: [
+          { type: "station", uuid: rexStation1.uuid },
+          { type: "traverse", uuid: rexTraverse.uuid },
+          { type: "station", uuid: rexStation2.uuid },
+        ],
+      });
+      const rexStationAction = generateBlankAction({
+        name: "Rex Station Action",
+        refUuid: plannedStationAction.refUuid,
+        stationUuid: rexStation1.uuid,
+      });
+      const rexTraverseAction = generateBlankAction({
+        name: "Rex Traverse Action",
+        refUuid: plannedTraverseAction.refUuid,
+        traverseUuid: rexTraverse.uuid,
+      });
+
+      const rex = generateBlankRex({ name: "Vitest Rex", evaUuid: rexEva.uuid });
+
+      // An unrelated EVA scope that must never appear in the resulting maps
+      const otherStation = generateBlankStation({ name: "Other Station" });
+      const otherEva = generateBlankEVA({
+        name: "Other EVA",
+        sequence: [{ type: "station", uuid: otherStation.uuid }],
+      });
+      const otherAction = generateBlankAction({
+        name: "Other Action",
+        stationUuid: otherStation.uuid,
+      });
+
+      const byUuid = <T extends { uuid: string }>(items: T[]): Record<string, T> =>
+        Object.fromEntries(items.map((item) => [item.uuid, item]));
+
+      const mission = {
+        id: MISSION_ID,
+        evas: byUuid([plannedEva, rexEva, otherEva]),
+        stations: byUuid([
+          plannedStation1,
+          plannedStation2,
+          rexStation1,
+          rexStation2,
+          otherStation,
+        ]),
+        traverses: byUuid([plannedTraverse, rexTraverse]),
+        actions: byUuid([
+          plannedStationAction,
+          plannedTraverseAction,
+          rexStationAction,
+          rexTraverseAction,
+          otherAction,
+        ]),
+        rexes: byUuid([rex]),
+      } as unknown as Mission;
+
+      return {
+        mission,
+        rex,
+        plannedEva,
+        rexEva,
+        plannedStation1,
+        plannedStation2,
+        plannedTraverse,
+        plannedStationAction,
+        plannedTraverseAction,
+        rexStation1,
+        rexStation2,
+        rexTraverse,
+        rexStationAction,
+        rexTraverseAction,
+        otherEva,
+        otherStation,
+        otherAction,
+      };
+    };
+
+    /** Registers a doc handle for MISSION_ID serving the given mission doc. */
+    const setMissionDoc = (mission: Mission) => {
+      globalValues.maestroV2.docHandles.set(MISSION_ID, {
+        doc: vi.fn(() => mission),
+      } as never);
+    };
+
+    it("maps every as-planned uuid to its REX copy", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "success",
+        executeUuidMap: {
+          eva: { [f.plannedEva.uuid]: f.rexEva.uuid },
+          station: {
+            [f.plannedStation1.uuid]: f.rexStation1.uuid,
+            [f.plannedStation2.uuid]: f.rexStation2.uuid,
+          },
+          traverse: { [f.plannedTraverse.uuid]: f.rexTraverse.uuid },
+          action: {
+            [f.plannedStationAction.uuid]: f.rexStationAction.uuid,
+            [f.plannedTraverseAction.uuid]: f.rexTraverseAction.uuid,
+          },
+        },
+      });
+    });
+
+    it("excludes entities belonging to other EVA scopes", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      const { executeUuidMap } = callback.mock.calls[0][0];
+      expect(executeUuidMap.eva).not.toHaveProperty(f.otherEva.uuid);
+      expect(executeUuidMap.station).not.toHaveProperty(f.otherStation.uuid);
+      expect(executeUuidMap.action).not.toHaveProperty(f.otherAction.uuid);
+    });
+
+    it("skips as-planned entities that have no REX counterpart", () => {
+      const f = buildRexMission();
+      // Simulate the second station being removed from the REX copy
+      delete f.mission.stations[f.rexStation2.uuid];
+      f.rexEva.sequence = f.rexEva.sequence.filter(
+        (item) => item.uuid !== f.rexStation2.uuid
+      ) as typeof f.rexEva.sequence;
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      const { executeUuidMap } = callback.mock.calls[0][0];
+      expect(executeUuidMap.station).toEqual({ [f.plannedStation1.uuid]: f.rexStation1.uuid });
+      expect(executeUuidMap.station).not.toHaveProperty(f.plannedStation2.uuid);
+    });
+
+    it("ignores empty uuid placeholders in the EVA sequence", () => {
+      const f = buildRexMission();
+      f.plannedEva.sequence = [
+        ...f.plannedEva.sequence,
+        { type: "traverse", uuid: "" },
+        { type: "station", uuid: "" },
+      ] as typeof f.plannedEva.sequence;
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      const { executeUuidMap } = callback.mock.calls[0][0];
+      expect(Object.keys(executeUuidMap.station)).not.toContain("");
+      expect(Object.keys(executeUuidMap.traverse)).not.toContain("");
+      expect(Object.keys(executeUuidMap.station)).toHaveLength(2);
+    });
+
+    it("does not call the callback when missionId is invalid", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](null, f.rex.uuid, callback);
+      mockSocket._handlers["getExecuteUuids"](NaN, f.rex.uuid, callback);
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("returns an error when no doc handle exists for the mission", () => {
+      globalValues.maestroV2.docHandles.delete(MISSION_ID);
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, "any-rex-uuid", callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("No doc handle available"),
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("returns an error when the rex does not exist", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, "missing-rex-uuid", callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("missing-rex-uuid"),
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("returns an error when the rex references a missing EVA", () => {
+      const f = buildRexMission();
+      delete f.mission.evas[f.rexEva.uuid];
+      setMissionDoc(f.mission);
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("missing EVA"),
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("returns an error when no as-planned EVA matches the rex EVA refUuid", () => {
+      const f = buildRexMission();
+      // Removing the as-planned EVA leaves only the REX EVA carrying that refUuid
+      delete f.mission.evas[f.plannedEva.uuid];
+      setMissionDoc(f.mission);
+      const errorSpy = vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      const callback = vi.fn();
+
+      mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("No as-planned EVA found"),
+      });
+      errorSpy.mockRestore();
+    });
+
+    it("does not throw when no callback is provided", () => {
+      const f = buildRexMission();
+      setMissionDoc(f.mission);
+
+      expect(() => mockSocket._handlers["getExecuteUuids"](MISSION_ID, f.rex.uuid)).not.toThrow();
     });
   });
 

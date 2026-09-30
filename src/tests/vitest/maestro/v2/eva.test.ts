@@ -213,13 +213,13 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
       expect(res.body.data).toEqual([]);
     });
 
-    test("Returns only the as-planned EVA matching refUuid", async () => {
+    test("Returns only the as-planned EVA matching uuid", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/eva")
         .set("emss-token", emssToken)
         .query({
           missionId: testAutomergeDocListings[0].missionId,
-          refUuid: asPlannedEva0.refUuid,
+          uuid: asPlannedEva0.uuid,
         });
 
       expect(res.statusCode).toBe(200);
@@ -230,13 +230,13 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
       expect(evas[0].uuid).toBe(asPlannedEva0.uuid);
     });
 
-    test("Returns empty array when refUuid does not match any EVA", async () => {
+    test("Returns empty array when uuid does not match any EVA", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/eva")
         .set("emss-token", emssToken)
         .query({
           missionId: testAutomergeDocListings[0].missionId,
-          refUuid: "non-existent-ref-uuid",
+          uuid: "non-existent-uuid",
         });
 
       expect(res.statusCode).toBe(200);
@@ -244,17 +244,13 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
       expect(res.body.data).toEqual([]);
     });
 
-    test("Returns the rex-eva copy when rexUuid is given", async () => {
-      // Find the rex uuid for rexEva0.
-      const rexUuid = Object.values(testMissionsPartial[0].rexes).find(
-        (r) => r.evaUuid === rexEva0.uuid
-      ).uuid;
+    test("Returns the rex-eva copy when its uuid is given", async () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/eva")
         .set("emss-token", emssToken)
         .query({
           missionId: testAutomergeDocListings[0].missionId,
-          rexUuid,
+          uuid: rexEva0.uuid,
         });
 
       expect(res.statusCode).toBe(200);
@@ -262,43 +258,6 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
       const evas: ExportEva[] = res.body.data;
       expect(evas).toHaveLength(1);
       expect(evas[0].uuid).toBe(rexEva0.uuid);
-    });
-
-    test("rexUuid takes precedence over refUuid", async () => {
-      const rexUuid = Object.values(testMissionsPartial[0].rexes).find(
-        (r) => r.evaUuid === rexEva0.uuid
-      ).uuid;
-      const res = await supertest(app)
-        .get("/api/v1/maestro/v2/eva")
-        .set("emss-token", emssToken)
-        .query({
-          missionId: testAutomergeDocListings[0].missionId,
-          // A refUuid that would otherwise match asPlannedEva1
-          refUuid: asPlannedEva1.refUuid,
-          rexUuid,
-        });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      const evas: ExportEva[] = res.body.data;
-      expect(evas).toHaveLength(1);
-      // Should return the rex-eva pointed to by rexUuid, not the as-planned eva
-      // matched by refUuid.
-      expect(evas[0].uuid).toBe(rexEva0.uuid);
-    });
-
-    test("Returns empty array when rexUuid does not exist", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/maestro/v2/eva")
-        .set("emss-token", emssToken)
-        .query({
-          missionId: testAutomergeDocListings[0].missionId,
-          rexUuid: "non-existent-rex-uuid",
-        });
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe("success");
-      expect(res.body.data).toEqual([]);
     });
 
     test("Returned EVAs have ExportEva shape (_itemType, sequenceReadable, calculatedFields)", async () => {

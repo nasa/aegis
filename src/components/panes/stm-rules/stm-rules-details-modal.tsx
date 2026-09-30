@@ -100,15 +100,17 @@ const STMRuleDetails: FunctionComponent<{
         e.stopPropagation();
       }}
     >
-      <div className={styles.detailsLeft}>
+      <div className={styles.investigationHeader}>
         <div className={styles.detailsHeader}>{partialMission.stmLevel3Name}</div>
-        <div className={styles.detailsContent}>
-          <div className={styles.stmName}>
-            <div className={styles.stmNameOrdinal}>
-              {`${partialMission.stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}${level3STMItem.numbering}`}
-            </div>
-            <div className={styles.stmNameNameText}>{level3STMItem?.name}</div>
+        <div className={styles.stmName}>
+          <div className={styles.stmNameOrdinal}>
+            {`${partialMission.stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}-${level3STMItem.numbering}`}
           </div>
+          <div className={styles.stmNameNameText}>{level3STMItem?.name}</div>
+        </div>
+      </div>
+      <div className={styles.detailsLeft}>
+        <div className={styles.detailsContent}>
           <RexSelector startOpen={true} />
         </div>
       </div>

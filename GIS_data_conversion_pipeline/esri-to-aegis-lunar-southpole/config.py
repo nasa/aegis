@@ -119,6 +119,7 @@ OUT_SLOPE_COLORBLIND_RGBA_NAME = "slope_colorblind_rgba.tif"  # scratch
 
 # Delivered viewshed rasters use these class values. The GIS .lyrx uses 50%
 # opacity, but the AEGIS layer opacity control owns transparency at runtime.
+VIEWSHED_VALUE_BACKGROUND = 0
 VIEWSHED_VALUE_VISIBLE = 1
 VIEWSHED_VALUE_NONVISIBLE = 2
 VIEWSHED_NODATA = 255

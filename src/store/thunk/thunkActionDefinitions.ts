@@ -3,7 +3,7 @@ import { getAccurateNow } from "utils/formatting";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 
 type ActionDefPrintableListItem = {
-  parentType: "Action in Station" | "Rule in STM Item" | "Action Template";
+  parentType: string;
   parentName: string;
 };
 
@@ -21,9 +21,9 @@ export const thunkDocDeleteActionDefItem = appCreateAsyncThunk<
   const actionsUsingActionDef = Object.values(mission?.actions ?? {}).filter(
     (action) =>
       action.stmAction &&
-      (action.actionDefinition.verbUuid === uuid ||
-        action.actionDefinition.nounUuid === uuid ||
-        action.actionDefinition.adjectiveUuid === uuid)
+      (action.actionDefinition?.verbUuid === uuid ||
+        action.actionDefinition?.nounUuid === uuid ||
+        action.actionDefinition?.adjectiveUuid === uuid)
   );
   const rulesUsingActionDef = getState().stm.rules.filter(
     (rule) =>
@@ -43,12 +43,28 @@ export const thunkDocDeleteActionDefItem = appCreateAsyncThunk<
   const printableList: ActionDefPrintableListItem[] = [];
   if (actionsUsingActionDef?.length > 0) {
     const stations = getMissionDocHandle()?.doc()?.stations;
+    const traverses = getMissionDocHandle()?.doc()?.traverses;
+    const pois = getMissionDocHandle()?.doc()?.pois;
     const actionsList: ActionDefPrintableListItem[] = actionsUsingActionDef.map((action) => {
-      const parentName = stations?.[action.stationUuid]?.name;
-      return {
-        parentType: "Action in Station",
-        parentName,
-      };
+      if (action.traverseUuid) {
+        const parentName = traverses?.[action.traverseUuid]?.name;
+        return {
+          parentType: "Action in Traverse",
+          parentName,
+        };
+      } else if (action.stationUuid) {
+        const parentName = stations?.[action.stationUuid]?.name;
+        return {
+          parentType: "Action in Station",
+          parentName,
+        };
+      } else if (action.poiUuid) {
+        const parentName = pois?.[action.poiUuid]?.name;
+        return {
+          parentType: "Action in POI",
+          parentName,
+        };
+      }
     });
     printableList.push(...actionsList);
   }
@@ -76,7 +92,7 @@ export const thunkDocDeleteActionDefItem = appCreateAsyncThunk<
   }
 
   if (printableList.length > 0) {
-    let alertMessage = `This action definition is being used by one or more actions in a Station, STM rule, or Action template. Please remove it from the following before deleting.\n\n`;
+    let alertMessage = `This action definition is being used by one or more actions. Please remove it from the following before deleting.\n\n`;
     printableList.forEach((item) => {
       alertMessage += `${item.parentType}: ${item.parentName}\n`;
     });

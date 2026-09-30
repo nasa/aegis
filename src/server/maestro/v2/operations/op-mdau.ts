@@ -9,6 +9,7 @@ import { globalValues } from "server/express/global";
 import {
   applyMdauActions,
   applyMdauEvas,
+  applyMdauRexEventInfo,
   applyMdauRexes,
   applyMdauStations,
   applyMdauTraverses,
@@ -42,7 +43,8 @@ export const opUpdateMdau = (
     stage.traverses.length === 0 &&
     stage.evas.length === 0 &&
     stage.actions.length === 0 &&
-    stage.rexes.length === 0
+    stage.rexes.length === 0 &&
+    stage.rexEventInfo.length === 0
   )
     // If empty and nothing to apply, just return
     return;
@@ -75,6 +77,7 @@ export const opUpdateMdau = (
     applyMdauTraverses(m, stage);
     applyTraverseRenames(m, traverseRenames);
     applyMdauEvas(m, stage);
+    applyMdauRexEventInfo(m, stage);
     applyMdauActions(m, stage);
     stopOtherRexes(m, rexUuidsToStop);
     applyMdauRexes(m, stage);

@@ -9,7 +9,6 @@ import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 import { getGrid } from "../../../express/routes/grid";
-import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
 
 /**
@@ -18,30 +17,20 @@ import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
 
 interface ReadableEvaParams {
   missionId: number;
-  evaRefUuid?: string;
-  rexUuid?: string;
+  evaUuid?: string;
 }
 
 const router = express.Router();
 
 export async function getReadableEvaData(params: ReadableEvaParams): Promise<ExportEva[]> {
-  const { missionId, evaRefUuid, rexUuid } = params;
+  const { missionId, evaUuid } = params;
 
   const mission = (await getAutomergeMissions([missionId]))[0];
   let evas: Eva[] = [];
 
-  if (rexUuid) {
-    // Specific eva from a rex uuid
-    const rexEva = mission.rexes[rexUuid];
-    if (rexEva) {
-      const eva = mission.evas[rexEva.evaUuid];
-      if (eva) evas = [eva];
-    }
-  } else if (evaRefUuid) {
-    // Get the as-planned copy of this eva. The as-planned eva is one that has the same refUuid, but is not a rex eva
-    // If they had provided a rexUuid, it would have been caught in the previous if statement
-    const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, evaRefUuid);
-    if (asPlannedEva) evas = [asPlannedEva];
+  if (evaUuid) {
+    const eva = mission.evas[evaUuid];
+    if (eva) evas = [eva];
   } else {
     // All as-planned evas for this mission
     const allRexEvas = Object.values(mission.rexes).map((r) => r.evaUuid);
@@ -75,18 +64,14 @@ export async function getReadableEvaData(params: ReadableEvaParams): Promise<Exp
 }
 
 const parseQuery = (query: Query) => {
-  const { missionId, refUuid, rexUuid } = query;
+  const { missionId, uuid } = query;
   const queryObj = {
     missionId: missionId ? parseInt(missionId as string) : undefined,
-    evaRefUuid: refUuid ? (refUuid as string) : undefined,
-    rexUuid: rexUuid ? (rexUuid as string) : undefined, // if !rexUuid then use the as-planned EVA copy
+    evaUuid: uuid ? (uuid as string) : undefined, // if !uuid then return all as-planned EVAs
   };
   return queryObj;
 };
 
-/**
- * If users provide a rexUuid than it will take precedence over evaRefUuid.
- */
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
@@ -128,8 +113,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const data = await getReadableEvaData({
       missionId: queryObj.missionId,
-      evaRefUuid: queryObj.evaRefUuid,
-      rexUuid: queryObj.rexUuid,
+      evaUuid: queryObj.evaUuid,
     });
     res.status(200).json({ status: "success", message: "readable evas retrieved", data });
   } catch (e) {

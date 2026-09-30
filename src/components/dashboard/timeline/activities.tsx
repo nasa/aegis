@@ -4,7 +4,6 @@ import { deepEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { EmojiRenderer } from "components/interface/emojis";
 import styles from "./activities.module.css";
-import { selectConvertMaestroActivityPropertiesByRefUuidToUuid } from "store/selectors";
 
 const Activities: FunctionComponent<{
   sequenceItems: EVASequenceItemForTimeline[];
@@ -12,11 +11,7 @@ const Activities: FunctionComponent<{
   rex: Rex;
 }> = ({ sequenceItems, pixelsPerSecondY, rex }) => {
   const maestroActivityProperties = useMissionDocSelector(
-    (mission) =>
-      selectConvertMaestroActivityPropertiesByRefUuidToUuid(mission, {
-        maestroActivityPropertiesByRefUuid: rex?.maestroActivityPropertiesByRefUuid,
-        rexUuid: rex?.uuid || "",
-      }),
+    (mission) => mission.rexes?.[rex?.uuid]?.maestroActivityProperties ?? {},
     deepEqual
   );
 

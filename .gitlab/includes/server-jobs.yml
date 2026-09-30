@@ -65,6 +65,11 @@ z:db-export:int:
   variables:
     DEPLOY_SUDO_PASS: ${DEPLOY_SUDO_PASS_INT} #CI/CD Variable
 
+z:db-export:argon:
+  extends:
+    - .db-export-template
+    - .argon-access
+
 z:db-export:carbon:
   extends:
     - .db-export-template
@@ -74,6 +79,11 @@ z:db-export:gold:
   extends:
     - .db-export-template
     - .gold-access
+
+z:db-export:helium:
+  extends:
+    - .db-export-template
+    - .helium-access
 
 z:db-export:iron:
   extends:
@@ -89,6 +99,11 @@ z:db-export:oxygen:
   extends:
     - .db-export-template
     - .oxygen-access
+
+z:db-export:silver:
+  extends:
+    - .db-export-template
+    - .silver-access
 
 #
 # Adds jobs to trigger log collection on various servers.
@@ -136,6 +151,11 @@ z:db-export:oxygen:
       - ./log_artifacts
     expire_in: 1 day
 
+z:logs:argon:
+  extends:
+    - .container-logs-template
+    - .argon-access
+
 z:logs:carbon:
   extends:
     - .container-logs-template
@@ -145,6 +165,11 @@ z:logs:gold:
   extends:
     - .container-logs-template
     - .gold-access
+
+z:logs:helium:
+  extends:
+    - .container-logs-template
+    - .helium-access
 
 z:logs:iron:
   extends:
@@ -160,6 +185,11 @@ z:logs:oxygen:
   extends:
     - .container-logs-template
     - .oxygen-access
+
+z:logs:silver:
+  extends:
+    - .container-logs-template
+    - .silver-access
 
 z:logs:int:
   extends: .container-logs-template
@@ -192,6 +222,11 @@ z:logs:prod:
     - sudo docker compose down
     - sudo docker compose up -d
 
+z:restart-containers:argon:
+  extends:
+    - .restart-containers-template
+    - .argon-access
+
 z:restart-containers:carbon:
   extends:
     - .restart-containers-template
@@ -201,6 +236,11 @@ z:restart-containers:gold:
   extends:
     - .restart-containers-template
     - .gold-access
+
+z:restart-containers:helium:
+  extends:
+    - .restart-containers-template
+    - .helium-access
 
 z:restart-containers:iron:
   extends:
@@ -216,6 +256,11 @@ z:restart-containers:oxygen:
   extends:
     - .restart-containers-template
     - .oxygen-access
+
+z:restart-containers:silver:
+  extends:
+    - .restart-containers-template
+    - .silver-access
 
 z:restart-containers:int:
   extends: .restart-containers-template

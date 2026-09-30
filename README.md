@@ -2,11 +2,11 @@
   <img src="src/public/images/logo_NASA.svg" alt="NASA logo" height="48" />
 </p>
 
-# Artemis EVA GIS (AEGIS)
+# Application for Exploration Geospatial Integration and Scheduling (AEGIS)
 
-AEGIS (Artemis EVA Geographic Information System) is a NASA planning tool aimed at enabling NASA's Artemis Extravehicular Activity (EVA) operations. AEGIS supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. AEGIS also integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. The product's goal is to enable flight controllers, which includes the mission science team, to execute successful missions.
+AEGIS (Application for Exploration Geospatial Integration and Scheduling) is a NASA planning tool aimed at enabling NASA's Artemis Extravehicular Activity (EVA) operations. AEGIS supports the creation of EVA stations, complete with activity definitions, crew assignments, contingency plans, and safety measures. AEGIS facilitates EVA planning by automating complex calculations and offering a spatiotemporal view of EVA plans. AEGIS also integrates Science Traceability Matrix (STM) objectives with spatial maps to help the flight controller community maximize the coverage of science objectives in the dynamic environment of lunar EVAs. The product's goal is to enable flight controllers, which includes the mission science team, to execute successful missions.
 
-  <img src="src/public/images/EMSS.svg" alt="EMSS logo" height="220" />
+<img src="src/public/images/EMSS.svg" alt="EMSS logo" height="220" />
 
 AEGIS is one of the Exploration Mission System Software (EMSS) tools built by the EMSS team at NASA Johnson Space Center to support the Flight Operations **plan, train, fly, explore** work processes. It evolved from early field-test prototypes (e.g., [JETT3](https://ntrs.nasa.gov/citations/20230010686), Fall 2022) into the prime surface mission-planning tool for EVA operations in just three years, and works alongside sibling tools such as Maestro (EVA procedure authoring and execution), [CODA](https://github.com/nasa/coda) (temporal alignment of disparate data sets), and Talky Bot (real-time voice-loop transcription).
 
@@ -143,11 +143,14 @@ Internal references and environments:
 
 EMSS dev servers all have element names, and are:
 
+- https://argon-emss-dev.fit.nasa.gov
 - https://carbon-emss-dev.fit.nasa.gov
 - https://gold-emss-dev.fit.nasa.gov
+- https://helium-emss-dev.fit.nasa.gov
 - https://iron-emss-dev.fit.nasa.gov
 - https://neon-emss-dev.fit.nasa.gov
 - https://oxygen-emss-dev.fit.nasa.gov
+- https://silver-emss-dev.fit.nasa.gov
 
 We need to setup the local environment before spinning up the app.
 
@@ -264,14 +267,29 @@ npm run test:all
 
 **Apply migrations**
 
-You've made changes to the database schema or automerge schema and now you want to apply them.
+Use the complete migration command after pulling changes that modify either the PostgreSQL schema
+or the Automerge document schema:
 
 ```sh
 npm run migration:up
-npm run schema:create
-npm run automerge:migration:build
+```
+
+`migration:up` handles the required ordering automatically. It applies the early MikroORM
+migrations, bootstraps any missing Automerge documents from the legacy `mission_db` table, runs
+pending versioned Automerge migrations while their required legacy tables still exist, and then
+applies the remaining MikroORM migrations.
+
+To run only the pending Automerge migrations against a database whose relational migrations and
+Automerge migration ledger are already present, use:
+
+```sh
 npm run automerge:migration
 ```
+
+Automerge migrations live in `src/server/automerge/migrations/`. Add each migration as a separate
+timestamped `MigrationYYYYMMDDHHMMSS.ts` file and register it in
+`src/server/automerge/migrations/index.ts`. Once a migration has run in a shared environment, do
+not modify its version, name, or behavior; add a new migration instead.
 
 **Create or reset to a fresh database (with prod data)**
 

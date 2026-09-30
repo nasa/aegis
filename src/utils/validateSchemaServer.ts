@@ -18,7 +18,7 @@ export const missionValidator = ajv.compile<Mission>(missionSchema);
 
 // Maegistro V2 for sendMDAU
 const mdauSchema = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, "mdau.json"), "utf8"));
-export const mdauValidator = ajv.compile<MDAU.MaestroDataAegisUses>(mdauSchema);
+export const mdauSchemaValidator = ajv.compile<MDAU.MaestroDataAegisUses>(mdauSchema);
 
 const missionFieldsSchema = JSON.parse(
   fs.readFileSync(path.join(SCHEMA_DIR, "missionFields.json"), "utf8")

@@ -50,11 +50,11 @@ export const Z_INDEX = {
   /** Selection highlight */
   SELECTION: 19,
 
-  /** Place labels / gazetteer */
-  PLACE_LABELS: 20,
-
   /** Position entry paths */
-  POS_ENTRIES: 22,
+  POS_ENTRIES: 20,
+
+  /** Place labels / gazetteer */
+  PLACE_LABELS: 21,
 
   /** Position entry markers (above paths + place labels) */
   POS_MARKERS: 23,
