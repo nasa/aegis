@@ -26,6 +26,11 @@ import { selectAsPlannedStations } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/dropdown-options";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { canMoveStation, isXgressIndex } from "operations/helpers/evaSequence";
+import {
+  canEditInRexScope,
+  findRexUuidForEntity,
+  useRexExecuteEditMode,
+} from "utils/rexExecuteEditMode";
 
 const SequenceItemStation: FunctionComponent<{
   evaUuid: string;
@@ -60,6 +65,20 @@ const SequenceItemStation: FunctionComponent<{
       ? "egress"
       : "ingress";
   const isAtLander = thisStation?.isLanderXgress === true;
+
+  const rowRexUuid = useMissionDocSelector(
+    (mission) => findRexUuidForEntity(mission, { evaUuid }),
+    refEqual
+  );
+  const { mode: rexEditMode, isEntityAdded } = useRexExecuteEditMode(rowRexUuid ?? null);
+  const stationWasAdded = isEntityAdded(stationUuid);
+  const canReorderRow = canEditInRexScope(rexEditMode, "evaSequenceReorder");
+  // Only an empty slot awaiting a pick, or a station added under the restriction,
+  // may have its station swapped or be removed.
+  const canChangeRowStation = rexEditMode === "unrestricted" || !stationUuid || stationWasAdded;
+  const canRemoveRow = rexEditMode === "unrestricted" || stationWasAdded;
+  // The xgress dropdown is never available under a restricted mode.
+  const canChangeXgress = rexEditMode === "unrestricted";
 
   const landerLabel = `${isAtLander && thisStation?.name ? thisStation.name : "Lander"}${
     isRexEva && isAtLander ? " (As Executed)" : ""
@@ -261,73 +280,90 @@ const SequenceItemStation: FunctionComponent<{
         ) : (
           <div className={evaStyles.evaItemName}>
             <div className={evaStyles.evaItemLeft}>
-              <Dropdown
-                selected={isAtLander ? "lander" : thisStation?.uuid || ""}
-                arrowStyle={{ top: "1px" }}
-                selectStyle={{ width: "100%" }}
-                onChange={(val) => {
-                  if (xgressType) {
+              {!(xgressType ? canChangeXgress : canChangeRowStation) ? (
+                // Read-only rows need the selected / rex-status text colors that
+                // the dropdown branch gets from the native select's own styling.
+                <div
+                  className={`${evaStyles.evaItemNameText} ${nameClassName} ${
+                    getRexStatusDisplayProperties(stationRexStatus).customTextClassName ?? ""
+                  }`}
+                >
+                  {thisStation?.name ? thisStation.name : `< Station not selected >`}
+                </div>
+              ) : (
+                <Dropdown
+                  selected={isAtLander ? "lander" : thisStation?.uuid || ""}
+                  arrowStyle={{ top: "1px" }}
+                  selectStyle={{ width: "100%" }}
+                  onChange={(val) => {
+                    if (xgressType) {
+                      dispatch(
+                        thunkDocChangeIngressEgress({
+                          type: xgressType,
+                          evaUuid,
+                          newStationUuidOrLander: val,
+                          isRexEva,
+                        })
+                      );
+                      return;
+                    }
                     dispatch(
-                      thunkDocChangeIngressEgress({
-                        type: xgressType,
+                      thunkDocChangeStationInEva({
+                        sequenceIndex: sequenceIndex,
+                        newStationUuid: val,
+                        oldStationUuid: stationUuid,
                         evaUuid,
-                        newStationUuidOrLander: val,
                         isRexEva,
                       })
                     );
-                    return;
+                  }}
+                  toolTip={
+                    xgressType === "egress"
+                      ? "Egress Location"
+                      : xgressType === "ingress"
+                        ? "Ingress Location"
+                        : "Station"
                   }
-                  dispatch(
-                    thunkDocChangeStationInEva({
-                      sequenceIndex: sequenceIndex,
-                      newStationUuid: val,
-                      oldStationUuid: stationUuid,
-                      evaUuid,
-                      isRexEva,
-                    })
-                  );
-                }}
-                toolTip={
-                  xgressType === "egress"
-                    ? "Egress Location"
-                    : xgressType === "ingress"
-                      ? "Ingress Location"
-                      : "Station"
-                }
-              >
-                {isXgress ? (
-                  <option value="lander">{landerLabel}</option>
-                ) : (
-                  <option value="">-- Select a station --</option>
-                )}
-                {stationDropdownOptions}
-              </Dropdown>
+                >
+                  {isXgress ? (
+                    <option value="lander">{landerLabel}</option>
+                  ) : (
+                    <option value="">-- Select a station --</option>
+                  )}
+                  {stationDropdownOptions}
+                </Dropdown>
+              )}
             </div>
             {/* Xgress rows are pinned to the ends of the sequence and cannot be
                 reordered or removed, so they get no buttons at all. */}
-            {!isXgress && (
+            {!isXgress && (canRemoveRow || canReorderRow) ? (
               <div className={evaStyles.evaItemNameButtons}>
                 <div
-                  className={`${evaStyles.evaItemNameButton} ${!canMoveUp && evaStyles.disabled}`}
+                  className={`${evaStyles.evaItemNameButton} ${
+                    (!canMoveUp || !canReorderRow) && evaStyles.disabled
+                  }`}
                   onClick={() => {
-                    if (!canMoveUp) return;
+                    if (!canMoveUp || !canReorderRow) return;
                     handleMoveStationUp(sequenceIndex);
                   }}
                 >
                   <FontAwesomeIcon icon={faArrowUp} />
                 </div>
                 <div
-                  className={`${evaStyles.evaItemNameButton} ${!canMoveDown && evaStyles.disabled}`}
+                  className={`${evaStyles.evaItemNameButton} ${
+                    (!canMoveDown || !canReorderRow) && evaStyles.disabled
+                  }`}
                   onClick={() => {
-                    if (!canMoveDown) return;
+                    if (!canMoveDown || !canReorderRow) return;
                     handleMoveStationDown(sequenceIndex);
                   }}
                 >
                   <FontAwesomeIcon icon={faArrowDown} />
                 </div>
                 <div
-                  className={evaStyles.evaItemNameButton}
+                  className={`${evaStyles.evaItemNameButton} ${!canRemoveRow && evaStyles.disabled}`}
                   onClick={() => {
+                    if (!canRemoveRow) return;
                     dispatch(
                       thunkDocDeleteStationFromEva({
                         evaSequence,
@@ -339,6 +375,17 @@ const SequenceItemStation: FunctionComponent<{
                   }}
                 >
                   <FontAwesomeIcon icon={faTrash} />
+                </div>
+              </div>
+            ) : (
+              <div className={evaStyles.evaItemRight}>
+                <div
+                  className={`${evaStyles.evaItemRightItem} ${nameClassName}`}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-content={"Total dwell time (h:mm)"}
+                  data-tooltip-place="right"
+                >
+                  {displayedStationDwellTime}
                 </div>
               </div>
             )}

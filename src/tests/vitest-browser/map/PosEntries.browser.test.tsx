@@ -133,6 +133,8 @@ function makeRex(overrides: Partial<Rex> = {}): Rex {
     maestroEventId: null,
     maestroEventUrl: null,
     maestroActivityPropertiesByRefUuid: null,
+    executeEditMode: "unrestricted",
+    executeEditState: null,
     ...overrides,
   };
 }

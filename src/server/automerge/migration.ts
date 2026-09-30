@@ -399,6 +399,9 @@ getORM()
             maestroEventId: dbRex.maestroEventId,
             maestroEventUrl: dbRex.maestroEventUrl,
             maestroActivityPropertiesByRefUuid: dbRex.maestroActivityPropertiesByRefUuid,
+            // The legacy table has no columns for these; seed the defaults.
+            executeEditMode: "unrestricted",
+            executeEditState: null,
             createdAt: dbRex.createdAt.getTime(), // Make dates numeric
             updatedAt: dbRex.updatedAt.getTime(), // Make dates numeric
           };
@@ -835,6 +838,21 @@ getORM()
       });
     };
 
+    // Migration: add the per-REX execute-edit restriction mode. Existing REXes backfill as
+    // `unrestricted` with an unfrozen mode — they ran under the old unrestricted behavior, and
+    // the mode freezes on their next execution.
+    const automergeMigration20260928AddRexExecuteEditMode = async (
+      docHandle: DocHandle<Mission>
+    ) => {
+      docHandle.change((mission: Mission) => {
+        for (const rex of Object.values(mission.rexes ?? {})) {
+          const partialRex = rex as Partial<Rex>;
+          if (!("executeEditMode" in partialRex)) partialRex.executeEditMode = "unrestricted";
+          if (!("executeEditState" in partialRex)) partialRex.executeEditState = null;
+        }
+      });
+    };
+
     serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
     // Add migration functions to the list and run all the migrations on every doc
     const migrationFunctions: ((docHandle: DocHandle<Mission>) => Promise<void>)[] = [
@@ -848,6 +866,7 @@ getORM()
       automergeMigration20260902AddTraverseAbsoluteSlopes,
       automergeMigration20260909AddArchivedAt,
       automergeMigration20260901AddMissionPriorities,
+      automergeMigration20260928AddRexExecuteEditMode,
     ];
     // Run all the migrations in the list above
     for (const func of migrationFunctions) {
