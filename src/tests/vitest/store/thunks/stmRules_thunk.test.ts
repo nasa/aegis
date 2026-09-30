@@ -97,4 +97,44 @@ describe("Thunk StmRules Tests", () => {
     // Assert that the rule in the store is the same as the one in the db
     expect(store.getState().stm.rules[0].count).toEqual(1);
   });
+
+  test("deleting saved rules consecutively does not restore a deleted blank rule", async () => {
+    const blankRule = generateBlankStmRule({ stmUuid: "test" });
+    const secondRule = generateBlankStmRule({ stmUuid: "test" });
+    secondRule.count = 2;
+    const store = createCustomTestStore({
+      stm: {
+        ...stmInitialState,
+        rules: [blankRule, secondRule],
+        rulesFromDb: [blankRule, secondRule],
+      },
+    });
+
+    await store.dispatch(thunkStmRules.thunkDeleteStmRuleByUuid({ stmRuleUuid: blankRule.uuid }));
+    await store.dispatch(thunkStmRules.thunkDeleteStmRuleByUuid({ stmRuleUuid: secondRule.uuid }));
+
+    expect(store.getState().stm.rules).toEqual([]);
+    expect(store.getState().stm.rulesFromDb).toEqual([]);
+    expect(httpClient_stm.deleteStmRules).toHaveBeenCalledTimes(2);
+    expect(httpClient_stm.upsertStmRules).not.toHaveBeenCalled();
+  });
+
+  test("deleting a saved rule preserves unsaved changes to other rules", async () => {
+    const deletedRule = generateBlankStmRule({ stmUuid: "test" });
+    const savedRule = generateBlankStmRule({ stmUuid: "test" });
+    const editedRule = { ...savedRule, count: 3 };
+    const draftRule = generateBlankStmRule({ stmUuid: "test" });
+    const store = createCustomTestStore({
+      stm: {
+        ...stmInitialState,
+        rules: [deletedRule, editedRule, draftRule],
+        rulesFromDb: [deletedRule, savedRule],
+      },
+    });
+
+    await store.dispatch(thunkStmRules.thunkDeleteStmRuleByUuid({ stmRuleUuid: deletedRule.uuid }));
+
+    expect(store.getState().stm.rules).toEqual([editedRule, draftRule]);
+    expect(store.getState().stm.rulesFromDb).toEqual([savedRule]);
+  });
 });

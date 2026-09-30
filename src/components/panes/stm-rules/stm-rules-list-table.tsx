@@ -171,24 +171,26 @@ const STMLevel3: FunctionComponent<{
   const minHeightEm = 1.2 * numLines;
   return (
     <div className={styles.gridCellLevel3Container}>
-      <div
-        className={styles.gridCellLevel3Heading}
-        onClick={() => {
-          dispatch(thunkCreateStmRule({ stmUuid: level3.uuid }));
-        }}
-      >
+      <div className={styles.gridCellLevel3Heading}>
         <div
           className={styles.gridCellLevel3Ordinal}
-        >{`${stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}${level3.numbering}`}</div>
+        >{`${stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}-${level3.numbering}`}</div>
         <div
           className={`${styles.gridCellLevel3Name}`}
           style={{ WebkitLineClamp: numLines, minHeight: `${minHeightEm}em` }}
         >
           {level3.name}
         </div>
-        <div className={styles.stmRuleCreateButton}>
+        <button
+          type="button"
+          className={styles.stmRuleCreateButton}
+          aria-label={`Add rule for ${stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}-${level3.numbering}`}
+          onClick={() => {
+            dispatch(thunkCreateStmRule({ stmUuid: level3.uuid }));
+          }}
+        >
           <FontAwesomeIcon icon={faSquarePlus} size="lg" />
-        </div>
+        </button>
       </div>
       <STMRules stmUuid={level3.uuid} />
     </div>

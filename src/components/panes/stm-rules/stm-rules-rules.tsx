@@ -139,7 +139,10 @@ export const STMRuleSet: FunctionComponent<{
                   }
                   dispatch(upsertSTMRuleByField(stmRule.uuid, uuidKeyString, uuidArray));
                 }}
-                titleLabel={`${actionDefinitionLabels.plural}...`}
+                titleLabel={
+                  actionDefinitionItemsToDisplay.map((item) => item.name).join(", ") ||
+                  `${actionDefinitionLabels.plural}...`
+                }
                 containerStyle={{ zIndex: 10, width: "170px" }}
                 containerClassName={styles.stmRuleSetMultiselectContainer}
                 headerClassName={styles.multiselectDropdownHeader}

@@ -267,8 +267,10 @@ export const MultiSelectDropdown: FunctionComponent<{
         tabIndex={0}
         className={`${formStyles.multiselectDropdownContainer} ${containerClassName}`}
         style={containerStyle}
-        onBlur={() => {
-          if (closeOnBlur) setMenuOpen(false);
+        onBlur={(event) => {
+          if (closeOnBlur && !event.currentTarget.contains(event.relatedTarget)) {
+            setMenuOpen(false);
+          }
         }}
       >
         <div
@@ -277,10 +279,12 @@ export const MultiSelectDropdown: FunctionComponent<{
             setMenuOpen(!menuOpen);
           }}
         >
-          {titleLabel}
+          <span className={formStyles.multiselectDropdownLabel} title={titleLabel}>
+            {titleLabel}
+          </span>
           <FontAwesomeIcon
             icon={menuOpen ? faChevronUp : faChevronDown}
-            style={{ width: "15px", color: "var(--grey5)", outline: "none" }}
+            style={{ width: "15px", flexShrink: 0, color: "var(--grey5)", outline: "none" }}
             tabIndex={0}
           />
         </div>
