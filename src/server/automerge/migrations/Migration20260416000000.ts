@@ -20,6 +20,7 @@ type LegacyEva = Eva & {
 
 type LegacyRex = Rex & {
   xgressEntries?: Record<string, { rexStatus: RexStatus }> | null;
+  maestroActivityPropertiesByRefUuid?: MaestroActivityProperties | null;
 };
 
 export const Migration20260416000000: AutomergeMigration = {
@@ -242,6 +243,7 @@ export const Migration20260416000000: AutomergeMigration = {
           maestroEventId: dbRex.maestroEventId,
           maestroEventUrl: dbRex.maestroEventUrl,
           maestroActivityPropertiesByRefUuid: dbRex.maestroActivityPropertiesByRefUuid,
+          maestroActivityProperties: dbRex.maestroActivityPropertiesByRefUuid,
           createdAt: dbRex.createdAt.getTime(),
           updatedAt: dbRex.updatedAt.getTime(),
         };

@@ -23,7 +23,7 @@ beforeAll(async () => {
 
   testAutomergeDocListings = await new DocListingFactory(em)
     .each((record) => {
-      record.automergeUrl = `automerge:VitestTestMissionGetRexesByEvaRefV2`;
+      record.automergeUrl = `automerge:VitestTestMissionGetRexesByEvaV2`;
     })
     .create(1);
 
@@ -48,7 +48,7 @@ beforeAll(async () => {
   testMissionsPartial = [
     {
       id: testAutomergeDocListings[0].missionId,
-      name: "Vitest Test Mission GetRexesByEvaRef V2",
+      name: "Vitest Test Mission GetRexesByEva V2",
       archivedAt: null,
       evas: evasRecord,
       rexes: rexesRecord,
@@ -58,12 +58,12 @@ beforeAll(async () => {
   globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
 });
 
-describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
+describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
   describe("Authentication", () => {
     test("Fails without emss-token", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
-        .query({ evaRefUuid: testEvas[0].refUuid });
+        .get("/api/v1/maestro/v2/getRexesByEva")
+        .query({ evaUuid: testEvas[0].uuid });
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
       expect(res.body.message).toBe("Unauthorized");
@@ -71,42 +71,42 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
 
     test("Fails with invalid emss-token", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", "invalid-token")
-        .query({ evaRefUuid: testEvas[0].refUuid });
+        .query({ evaUuid: testEvas[0].uuid });
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
       expect(res.body.message).toBe("Unauthorized");
     });
   });
 
-  describe("Eva Ref validation", () => {
-    test("Errors for missing evaRefUuid", async () => {
+  describe("Eva uuid validation", () => {
+    test("Errors for missing evaUuid", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken);
       expect(res.statusCode).toBe(400);
       expect(res.body.status).toBe("failure");
-      expect(res.body.message).toContain("No EVA Ref given");
+      expect(res.body.message).toContain("No EVA uuid given");
     });
   });
 
-  describe("Eva Ref functionality", () => {
-    test("Returns empty array for non-existent ref", async () => {
+  describe("Eva uuid functionality", () => {
+    test("Returns empty array for non-existent eva uuid", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaRefUuid: "non-existent-ref" });
+        .query({ evaUuid: "non-existent-uuid" });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.data).toEqual([]);
     });
 
-    test("Retrieves rexes for existing ref", async () => {
+    test("Retrieves rexes for an existing as-planned eva", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
+        .query({ evaUuid: testEvas[0].uuid });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.message).toContain("Rexes retrieved");
@@ -117,9 +117,9 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
 
     test("Returns correct isRunning value for a non-running rex", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
+        .query({ evaUuid: testEvas[0].uuid });
       expect(res.statusCode).toBe(200);
       const rex0 = res.body.data.find((r: { uuid: string }) => r.uuid === testRexes[0].uuid);
       expect(rex0.isRunning).toBe(false);
@@ -127,9 +127,9 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
 
     test("Returns correct isRunning value for a running rex", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
+        .query({ evaUuid: testEvas[0].uuid });
       expect(res.statusCode).toBe(200);
       const rex1 = res.body.data.find((r: { uuid: string }) => r.uuid === testRexes[1].uuid);
       expect(rex1.isRunning).toBe(true);
@@ -137,9 +137,9 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
 
     test("Returns createdAt and updatedAt as numbers", async () => {
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
+        .query({ evaUuid: testEvas[0].uuid });
       expect(res.statusCode).toBe(200);
       expect(res.body.data.length).toBe(2);
       for (const rex of res.body.data) {
@@ -158,9 +158,9 @@ describe("GET REX BY EVA REF Endpoint (Maegistro V2)", () => {
       });
 
       const res = await supertest(app)
-        .get("/api/v1/maestro/v2/getRexesByEvaRef")
+        .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaRefUuid: testEvas[0].refUuid });
+        .query({ evaUuid: testEvas[0].uuid });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.message).toContain("Rexes retrieved");

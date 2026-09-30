@@ -156,6 +156,8 @@ Poi_dbSchema.setClass(Poi_db);
 
 type LegacyXgressEntries = Record<string, { rexStatus: RexStatus }>;
 
+type MaestroActivityPropertiesByRefUuid = MaestroActivityProperties;
+
 export const Rex_dbSchema = defineEntity({
   name: "Rex_db",
   properties: {
