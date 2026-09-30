@@ -5,6 +5,7 @@ import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
 import { App_User_db } from "server/database/models/app_user.model";
+import { isLoggedIn, logout } from "http-client/login";
 
 let testAdmin: App_User_db;
 
@@ -23,6 +24,14 @@ beforeAll(async () => {
 });
 
 describe("Login functions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("isLoggedIn responds with failure when not logged in", async () => {
     const response = await supertest(app)
       .get("/api/v1/auth/isLoggedIn")
@@ -80,6 +89,38 @@ describe("Login functions", () => {
       message: "Logged out",
       data: true,
     });
+  });
+  it("isLoggedIn() handles non-200 status with JSON error message", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 401,
+      json: vi.fn().mockResolvedValue({
+        message: "mock-error",
+      }),
+    });
+
+    const result = await isLoggedIn();
+
+    expect(result).toEqual({
+      status: "error",
+      message: "mock-error",
+    });
+    expect(fetch).toHaveBeenCalledWith("/api/v1/auth/isLoggedIn");
+  });
+  it("logout() handles non-200 status with JSON error message", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 401,
+      json: vi.fn().mockResolvedValue({
+        message: "mock-error",
+      }),
+    });
+
+    const result = await logout();
+
+    expect(result).toEqual({
+      status: "error",
+      message: "mock-error",
+    });
+    expect(fetch).toHaveBeenCalledWith("/api/v1/auth/logout");
   });
 });
 

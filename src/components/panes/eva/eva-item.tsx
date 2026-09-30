@@ -1,6 +1,6 @@
 import { LoadingOverlay } from "components/interface/_global-elements";
-import { Button, Dropdown } from "components/interface/form/globalFields";
-import type { FunctionComponent } from "react";
+import { Dropdown } from "components/interface/form/globalFields";
+import type { FunctionComponent, MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import {
@@ -15,16 +15,178 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCaretDown,
   faCaretRight,
+  faClone,
+  faEllipsisV,
   faPersonWalkingArrowRight,
   faPlusCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkUIChangeEvaDropdown } from "store/thunk/thunkEva";
+import { thunkDocDuplicateEva, thunkUIChangeEvaDropdown } from "store/thunk/thunkEva";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { thunkDocCreateRex } from "store/thunk/thunkRex";
 import { setSelectedRexUuid } from "store/rex";
 import { EvaSequence } from "./eva-item-sequence";
 import { useMissionDocSelector } from "utils/useDocSelector";
+
+const EvaItemMenu: FunctionComponent<{
+  selectedEvaUuid: string;
+  asPlannedEvaUuid: string;
+}> = ({ selectedEvaUuid, asPlannedEvaUuid }) => {
+  const dispatch = useAppDispatch();
+  const dialogRef = useRef(null);
+  const menuRef = useRef(null);
+  const isSelectedEvaUuidARex = useMissionDocSelector(
+    (mission) =>
+      mission.rexes
+        ? Object.values(mission.rexes).some((rex) => rex.evaUuid === selectedEvaUuid)
+        : false,
+    refEqual
+  );
+  const [showOverlay, setShowOverlay] = useState<{ showOverlay: boolean; message?: string }>({
+    showOverlay: false,
+    message: "",
+  });
+  const showRunningRexOnly = useAppSelector((state) => state.eva.showRunningRexOnly, refEqual);
+
+  const handleMenuOpen = (e: MouseEvent) => {
+    const x = e.clientX + 5;
+    menuRef.current.style.left = `${x}px`;
+    menuRef.current.style.top = `${e.clientY}px`;
+  };
+
+  // enabled: !!selectedEvaUuid && !isSelectedEvaUuidARex
+  const handleDuplicateEVA = async () => {
+    if (selectedEvaUuid) {
+      setShowOverlay({ showOverlay: true, message: "Duplicating EVA..." });
+      try {
+        await dispatch(
+          thunkDocDuplicateEva({
+            evaUuid: selectedEvaUuid,
+            includeStations: false,
+            isRexEva: false,
+          })
+        );
+      } finally {
+        setShowOverlay({ showOverlay: false });
+      }
+    }
+  };
+
+  // enabled: !!selectedEvaUuid
+  const handleDuplicateEVAWithStations = async () => {
+    if (selectedEvaUuid) {
+      if (
+        confirm(
+          "This will duplicate the EVA and also make duplicates of all stations in this EVA and will name them 'station name (copy X)'. Are you sure?"
+        )
+      ) {
+        setShowOverlay({
+          showOverlay: true,
+          message: "Duplicating EVA with Stations...",
+        });
+        try {
+          await dispatch(
+            thunkDocDuplicateEva({
+              evaUuid: selectedEvaUuid,
+              includeStations: true,
+              isRexEva: false,
+            })
+          );
+        } finally {
+          setShowOverlay({ showOverlay: false });
+        }
+      }
+    }
+  };
+
+  const handleAddRex = async () => {
+    setShowOverlay({
+      showOverlay: true,
+      message: "Creating Real-time Execution (REX)...",
+    });
+    try {
+      await dispatch(thunkDocCreateRex({ asPlannedEvaUuid }));
+    } finally {
+      setShowOverlay({ showOverlay: false });
+    }
+  };
+
+  return (
+    !showRunningRexOnly && (
+      <>
+        <dialog
+          ref={dialogRef}
+          className={evaStyles.menuContainer}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dialogRef.current?.close();
+          }}
+        >
+          <div ref={menuRef} className={evaStyles.menu}>
+            <div
+              className={evaStyles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                dialogRef.current?.close();
+                handleAddRex();
+              }}
+            >
+              <div className={evaStyles.menuItemIcon}>
+                <FontAwesomeIcon icon={faPlusCircle} size="sm" />
+              </div>
+              <div className={evaStyles.menuItemText}>Add REX</div>
+            </div>
+            {!isSelectedEvaUuidARex && (
+              <>
+                <div
+                  className={evaStyles.menuItem}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dialogRef.current?.close();
+                    handleDuplicateEVA();
+                  }}
+                >
+                  <div className={evaStyles.menuItemIcon}>
+                    <FontAwesomeIcon icon={faClone} size="sm" />
+                  </div>
+                  <div className={evaStyles.menuItemText}>Duplicate EVA</div>
+                </div>
+              </>
+            )}
+            <div
+              className={evaStyles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                dialogRef.current?.close();
+                handleDuplicateEVAWithStations();
+              }}
+            >
+              <div className={evaStyles.menuItemIcon}>
+                <FontAwesomeIcon icon={faClone} size="sm" />
+              </div>
+              <div className={evaStyles.menuItemText}>Duplicate w/ Stations</div>
+            </div>
+          </div>
+        </dialog>
+        <FontAwesomeIcon
+          icon={faEllipsisV}
+          size="sm"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMenuOpen(e);
+            dialogRef.current?.showModal();
+          }}
+          className={evaStyles.kebabIcon}
+          tabIndex={0}
+        />
+
+        {showOverlay.showOverlay && <LoadingOverlay message={showOverlay.message} />}
+      </>
+    )
+  );
+};
 
 const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> = ({
   asPlannedEvaUuid,
@@ -62,6 +224,11 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
     return evaRexesPartialForDropdown ?? [];
   }, [evaRexesPartialForDropdown, showRunningRexOnly]);
 
+  const showEvaMenu = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
+
   const dropdownEvaUuid = useAppSelector(
     (state) => state.eva.evaDropdownUIStates[asPlannedEvaUuid] || asPlannedEvaUuid,
     refEqual
@@ -88,10 +255,6 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
   const isExpanded = useAppSelector(
     (state) => state.eva.expandedEvaUuids.includes(asPlannedEvaUuid),
     shallowEqual
-  );
-  const showAddRexButton = useAppSelector(
-    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
-    refEqual
   );
 
   // Set styles. if this eva is selected, highlight it. if the sequence item is selected, emphasize it
@@ -129,9 +292,6 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
       itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   }, [selectedStyleState]);
-
-  // Used for the loading overlay when creating a new REX
-  const [isCreatingRex, setIsCreatingRex] = useState(false);
 
   if (!asPlannedEva) return null;
 
@@ -176,6 +336,9 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
                 data-tooltip-content={"Execution in Progress"}
               />
             )}
+            {showEvaMenu && (
+              <EvaItemMenu selectedEvaUuid={selectedEvaUuid} asPlannedEvaUuid={asPlannedEva.uuid} />
+            )}
           </div>
           <div className={evaStyles.nameBottomRow}>
             {filteredEvaRexesPartialForDropdown.length > 0 ? (
@@ -207,31 +370,10 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
             ) : (
               <div className={evaStyles.noRexes}>As Planned</div>
             )}
-
-            {showAddRexButton && (
-              <Button
-                onClick={async (e) => {
-                  e.stopPropagation(); // Prevent click from bubbling to the EVA name div and triggering deselection
-                  setIsCreatingRex(true);
-                  try {
-                    await dispatch(thunkDocCreateRex({ asPlannedEvaUuid: asPlannedEva.uuid }));
-                  } finally {
-                    setIsCreatingRex(false);
-                  }
-                }}
-                label={"Add REX"}
-                icon={faPlusCircle}
-                className={evaStyles.addRexButton}
-                enabled={true}
-                toolTip="Add Real-time Execution (REX)"
-              />
-            )}
           </div>
         </div>
       </div>
       {isExpanded && <EvaSequence evaUuid={dropdownEvaUuid} />}
-
-      {isCreatingRex && <LoadingOverlay message="Creating Real-time Execution (REX)..." />}
     </div>
   );
 };
