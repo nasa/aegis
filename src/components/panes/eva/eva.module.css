@@ -512,6 +512,7 @@
   font-size: 0.8em;
   display: flex;
   flex-direction: column;
+  text-transform: none;
 }
 
 .menuItem {
