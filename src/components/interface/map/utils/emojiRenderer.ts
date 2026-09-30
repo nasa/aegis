@@ -1,3 +1,5 @@
+import { isWindows10 } from "utils/browser";
+
 /**
  * Emoji Renderer — renders emoji characters to canvas ImageData for OL Icon styles.
  *
@@ -57,16 +59,27 @@ export function renderEmojiToCanvas(emoji: string, size = 32): HTMLCanvasElement
   const drawX = size / 2 - (inkRight - inkLeft) / 2;
   const drawY = size / 2 + (inkAscent - inkDescent) / 2;
 
-  // Soft black shadow behind the emoji character.
-  // Draw twice so the soft shadow builds up enough contrast on light terrain,
-  // then a final pass with the shadow disabled keeps the glyph itself crisp.
-  ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
-  ctx.shadowBlur = Math.max(2, size * 0.12);
-  ctx.fillText(char, drawX, drawY);
-  ctx.fillText(char, drawX, drawY);
-  ctx.shadowColor = "transparent";
-  ctx.shadowBlur = 0;
-  ctx.fillText(char, drawX, drawY);
+  const isWin10 = isWindows10();
+
+  if (isWin10) {
+    ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+    ctx.shadowBlur = Math.max(2, size * 0.12);
+    ctx.fillText(char, drawX, drawY);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.fillText(char, drawX, drawY);
+  } else {
+    // Soft black shadow behind the emoji character.
+    // Draw twice so the soft shadow builds up enough contrast on light terrain,
+    // then a final pass with the shadow disabled keeps the glyph itself crisp.
+    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.shadowBlur = Math.max(2, size * 0.12);
+    ctx.fillText(char, drawX, drawY);
+    ctx.fillText(char, drawX, drawY);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.fillText(char, drawX, drawY);
+  }
 
   canvasCache.set(key, canvas);
   return canvas;
