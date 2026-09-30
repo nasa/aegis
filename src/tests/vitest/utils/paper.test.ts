@@ -223,6 +223,10 @@ describe("getGraphSlopeAtX", () => {
     expect(getGraphSlopeAtX(data, 10)).toBeNull();
     expect(getGraphSlopeAtX(data, 15)).toBeNull();
   });
+
+  it("should return null if graphArray is empty", () => {
+    expect(getGraphSlopeAtX([], 5)).toBe(null);
+  });
 });
 
 describe("calculateWindowedPathSlopes", () => {
