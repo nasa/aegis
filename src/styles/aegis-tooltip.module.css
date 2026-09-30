@@ -13,4 +13,5 @@
 
 .tooltip div {
   font-size: 0.8rem;
+  white-space: pre;
 }
