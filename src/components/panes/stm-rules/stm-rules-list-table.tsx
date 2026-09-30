@@ -179,7 +179,7 @@ const STMLevel3: FunctionComponent<{
       >
         <div
           className={styles.gridCellLevel3Ordinal}
-        >{`${stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}${level3.numbering}`}</div>
+        >{`${stmLevel1Enabled ? level1Numbering : ""}${level2Numbering.toLocaleUpperCase()}-${level3.numbering}`}</div>
         <div
           className={`${styles.gridCellLevel3Name}`}
           style={{ WebkitLineClamp: numLines, minHeight: `${minHeightEm}em` }}
