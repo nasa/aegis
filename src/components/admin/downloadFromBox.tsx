@@ -42,9 +42,7 @@ function getDownloadPercent(progress: BoxDownloadProgress | undefined): number |
 }
 
 type FolderLoadingTarget =
-  | { type: "folder"; id: string }
-  | { type: "breadcrumb"; id: string }
-  | { type: "parent" };
+  { type: "folder"; id: string } | { type: "breadcrumb"; id: string } | { type: "parent" };
 
 const FolderLoadingStatus: FunctionComponent = () => (
   <span className={adminStyles.folderLoadingStatus} role="status">

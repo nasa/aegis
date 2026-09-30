@@ -12,14 +12,7 @@ import lotr from "./lotr";
 import profanityFilter from "leo-profanity";
 
 type DictName =
-  | "adjectives"
-  | "animals"
-  | "colors"
-  | "countries"
-  | "names"
-  | "starWars"
-  | "starTrek"
-  | "lotr";
+  "adjectives" | "animals" | "colors" | "countries" | "names" | "starWars" | "starTrek" | "lotr";
 
 export function generateUniqueName({
   dictName,

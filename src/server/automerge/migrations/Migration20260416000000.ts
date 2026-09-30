@@ -34,9 +34,14 @@ export const Migration20260416000000: AutomergeMigration = {
     const needsEvas = !("evas" in doc);
     const needsRexes = !("rexes" in doc);
 
-    if (
-      !(needsPois || needsActions || needsStations || needsTraverses || needsEvas || needsRexes)
-    ) {
+    if (!(
+      needsPois ||
+      needsActions ||
+      needsStations ||
+      needsTraverses ||
+      needsEvas ||
+      needsRexes
+    )) {
       return;
     }
 
