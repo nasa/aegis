@@ -63,29 +63,40 @@
   border-bottom: none;
 }
 .gridCellLevel3Heading {
+  position: relative;
   display: grid;
-  grid-template-columns: 25px auto;
+  grid-template-columns: fit-content(40%) minmax(0, 1fr);
   gap: 5px;
+  padding-left: 4px;
   border-right: 1px solid var(--grey0);
-  cursor: pointer;
 }
 .gridCellLevel3Ordinal {
   font-family: "Roboto Mono", monospace;
   font-size: 0.9em;
   justify-self: right;
   padding-top: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .gridCellLevel3Name {
   padding: 3px 3px 1em 0;
+  overflow-wrap: anywhere;
 }
 .stmRuleCreateButton {
   position: absolute;
-  left: 265px;
+  right: 5px;
   bottom: 5px;
-  display: none;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0;
 }
-.gridCellLevel3Heading:hover .stmRuleCreateButton {
-  display: inline;
+.gridCellLevel3Heading:hover .stmRuleCreateButton,
+.gridCellLevel3Heading:focus-within .stmRuleCreateButton {
+  opacity: 1;
 }
 
 .truncateXLine {
