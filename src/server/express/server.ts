@@ -12,6 +12,7 @@ import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
 import { setupMaestroNamespace as setupMaestroNamespaceV2 } from "../maestro/v2/sockets-maestro";
+import { setupDustNamespace as setupDustNamespaceV1 } from "../dust/v1/sockets-dust";
 import { globalValues } from "./global";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
@@ -88,6 +89,8 @@ initializeBase64Wasm(automergeWasmBase64);
   setupSocketIO();
   // v2 Maegistro lives on the /api/socket server under the /maestro/v2 namespace.
   setupMaestroNamespaceV2(globalValues.socketio);
+  // v1 DUST lives on the /api/socket server under the /dust/v1 namespace.
+  setupDustNamespaceV1(globalValues.socketio);
 
   // express request handler
   server.on("request", app);

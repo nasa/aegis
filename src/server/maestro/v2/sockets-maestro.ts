@@ -111,7 +111,6 @@ export const setupMaestroNamespace = (
 
           // Attach automerge listener for this mission if not already attached
           // The listener will be removed when the last maestro visitor for this mission disconnects
-          // No need to await here, the code below doesn't depend on this function
           await addMaestroDocListenerForMission(missionId);
 
           // Update the inspector room on the default namespace
