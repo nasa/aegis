@@ -40,8 +40,7 @@ export interface MaestroClientToServerEvents {
     rexUuid: string,
     callback: (
       response:
-        | { status: "success"; executeUuidMap: ExecuteUuidMap }
-        | { status: "error"; message: string }
+        { status: "success"; executeUuidMap: ExecuteUuidMap } | { status: "error"; message: string }
     ) => void
   ) => void;
 
