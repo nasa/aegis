@@ -95,9 +95,7 @@ export const STMRuleSet: FunctionComponent<{
 
   const actionDefinitionItemsToDisplay: { uuid: string; name: string; abbr: string }[] = [];
   const ruleItemUuidsKeyString = `${type.slice(0, -1)}Uuids` as
-    | "verbUuids"
-    | "nounUuids"
-    | "adjectiveUuids";
+    "verbUuids" | "nounUuids" | "adjectiveUuids";
   const ruleAnyKeyString = `${type.slice(0, -1)}Any` as "verbAny" | "nounAny" | "adjectiveAny";
   for (const ruleItemUuid of stmRule[ruleItemUuidsKeyString] as string[]) {
     const actionDef = actionDefinitions[type][ruleItemUuid];
@@ -127,9 +125,7 @@ export const STMRuleSet: FunctionComponent<{
                 selectedItemsValues={stmRule[ruleItemUuidsKeyString]}
                 toggleItem={(uuid) => {
                   const uuidKeyString = `${type.slice(0, -1)}Uuids` as
-                    | "verbUuids"
-                    | "nounUuids"
-                    | "adjectiveUuids";
+                    "verbUuids" | "nounUuids" | "adjectiveUuids";
                   const uuidArray = cloneDeep(stmRule[uuidKeyString]);
                   const index = uuidArray.indexOf(uuid);
                   if (index > -1) {
@@ -155,16 +151,12 @@ export const STMRuleSet: FunctionComponent<{
               editable={isEditing}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const anyKeyString = `${type.slice(0, -1)}Any` as
-                  | "verbAny"
-                  | "nounAny"
-                  | "adjectiveAny";
+                  "verbAny" | "nounAny" | "adjectiveAny";
                 dispatch(upsertSTMRuleByField(stmRule.uuid, anyKeyString, e.target.checked));
               }}
               onClick={() => {
                 const anyKeyString = `${type.slice(0, -1)}Any` as
-                  | "verbAny"
-                  | "nounAny"
-                  | "adjectiveAny";
+                  "verbAny" | "nounAny" | "adjectiveAny";
                 dispatch(
                   upsertSTMRuleByField(stmRule.uuid, anyKeyString, !stmRule[ruleAnyKeyString])
                 );

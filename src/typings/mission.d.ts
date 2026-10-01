@@ -202,9 +202,7 @@ type MissionGrid = {
 type GridRenderMode = "server-file" | "dynamic-lgrs";
 
 type ResolvedMissionGrid =
-  | { kind: "none" }
-  | { kind: "dynamic-lgrs" }
-  | { kind: "server-file"; grid: MissionGrid };
+  { kind: "none" } | { kind: "dynamic-lgrs" } | { kind: "server-file"; grid: MissionGrid };
 
 /**
  * Grid metadata stored on the mission Automerge doc (`mission.serverFileGrid`).

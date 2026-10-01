@@ -27,14 +27,7 @@ type CircleStrokeMode = "solid" | "dashed" | "checkerboard";
 
 /** Compass position for label placement relative to centre */
 type LabelPosition =
-  | "top"
-  | "bottom"
-  | "left"
-  | "right"
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
+  "top" | "bottom" | "left" | "right" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
 /** Options for the circle's stroke appearance */
 interface CircleStrokeOptions {
