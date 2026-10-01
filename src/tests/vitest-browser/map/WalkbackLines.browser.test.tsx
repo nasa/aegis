@@ -127,8 +127,7 @@ function findWalkbackLayer(): VectorLayer<VectorSource> | null {
   const layers = map.getLayers().getArray();
   return (
     (layers.find((l) => l.getZIndex() === Z_INDEX.POLYLINES) as
-      | VectorLayer<VectorSource>
-      | undefined) ?? null
+      VectorLayer<VectorSource> | undefined) ?? null
   );
 }
 

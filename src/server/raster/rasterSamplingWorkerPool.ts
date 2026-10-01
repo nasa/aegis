@@ -22,8 +22,7 @@ type RasterSamplingWorkerShutdownRequest = {
 };
 
 export type RasterSamplingWorkerMessage =
-  | RasterSamplingWorkerRequest
-  | RasterSamplingWorkerShutdownRequest;
+  RasterSamplingWorkerRequest | RasterSamplingWorkerShutdownRequest;
 
 type SerializedWorkerError = {
   name: string;

@@ -227,8 +227,7 @@ function findPathLayer(): VectorLayer<VectorSource> | null {
   const layers = map.getLayers().getArray();
   return (
     (layers.find((l) => l.getZIndex() === Z_INDEX.POS_ENTRIES) as
-      | VectorLayer<VectorSource>
-      | undefined) ?? null
+      VectorLayer<VectorSource> | undefined) ?? null
   );
 }
 
@@ -236,8 +235,7 @@ function findMarkerLayer(): VectorLayer<VectorSource> | null {
   const layers = map.getLayers().getArray();
   return (
     (layers.find((l) => l.getZIndex() === Z_INDEX.POS_MARKERS) as
-      | VectorLayer<VectorSource>
-      | undefined) ?? null
+      VectorLayer<VectorSource> | undefined) ?? null
   );
 }
 

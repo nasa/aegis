@@ -27,7 +27,10 @@
 
     "skipLibCheck": false /* Skip type checking all .d.ts files. */,
 
-    "lib": ["dom", "dom.iterable", "es2022"],
+    // "esnext.temporal" supplies the Temporal namespace referenced by
+    // postgres-interval's .d.ts (a transitive dep of @mikro-orm/postgresql).
+    // Types only — no runtime Temporal usage in this codebase.
+    "lib": ["dom", "dom.iterable", "es2022", "esnext.temporal"],
     "allowJs": true,
     "alwaysStrict": true,
     "strictBindCallApply": true,

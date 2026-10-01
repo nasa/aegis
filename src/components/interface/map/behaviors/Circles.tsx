@@ -39,8 +39,7 @@ export function Circles(): null {
 
   // --- State -----------------------------------------------------------------
   const circleDefinitions = useMissionDocSelector((doc) => doc.circleDefinitions, deepEqual) as
-    | CircleDefinitions
-    | undefined;
+    CircleDefinitions | undefined;
 
   const landerLocation = useMissionDocSelector(
     (doc) => doc.landerLocation,

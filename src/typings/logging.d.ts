@@ -3,15 +3,7 @@
  * "off" disables all logging.
  */
 type LogLevel =
-  | "off"
-  | "emergency"
-  | "alert"
-  | "critical"
-  | "error"
-  | "warning"
-  | "notice"
-  | "info"
-  | "debug";
+  "off" | "emergency" | "alert" | "critical" | "error" | "warning" | "notice" | "info" | "debug";
 
 /**
  * Minimal interface for the remote logger created by @emss/logger.

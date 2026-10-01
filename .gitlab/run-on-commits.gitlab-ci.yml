@@ -241,7 +241,8 @@ test-playwright:
     NUM_SHARDS: 4
   extends: .test_template
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.61.0-jammy
+  # Keep this tag in sync with the @playwright/test version in package.json.
+  image: mcr.microsoft.com/playwright:v1.63.0-jammy
   needs:
     - install_dependencies
     - make-dotenv:test
@@ -270,7 +271,8 @@ test-playwright:
 
 test-vitest:browser:
   stage: stageless
-  image: mcr.microsoft.com/playwright:v1.61.0-jammy
+  # Keep this tag in sync with the @playwright/test version in package.json.
+  image: mcr.microsoft.com/playwright:v1.63.0-jammy
   needs:
     - install_dependencies
   tags: ["openshift"]
