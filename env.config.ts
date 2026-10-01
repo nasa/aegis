@@ -117,6 +117,16 @@ export const config: DotenvConfig<typeof environments> = {
     },
   },
 
+  /**
+   * DUST Token
+   * This is the token used to authenticate the DUST server's connection to AEGIS.
+   */
+  DUST_TOKEN: {
+    default: {
+      type: "required-from-secret",
+    },
+  },
+
   // Ultimately need to alter this based on what server we're on (prod/int/dev). Currently this override
   // happens in the pipeline deploy script. `INSERT_SUBDOMAIN` that gets replaced
   // with the appropriate subdomain during deploy.

@@ -15,6 +15,7 @@ import AdminUser from "pages/admin/user";
 import ServerSocketStatus from "pages/admin/serverSocketStatus";
 import Emss from "pages/admin/emss";
 import MaestroV2 from "pages/admin/maestroV2";
+import DustV1 from "pages/admin/dustV1";
 import EnvironmentConfig from "pages/admin/environmentConfig";
 import ManageAutomergeDoc from "pages/admin/automerge";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -54,6 +55,7 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
         <Route path="/admin/user" element={<AdminUser />} />
         <Route path="/admin/serverSocketStatus" element={<ServerSocketStatus />} />
         <Route path="/admin/maestroV2" element={<MaestroV2 />} />
+        <Route path="/admin/dustV1" element={<DustV1 />} />
         <Route path="/admin/environmentConfig" element={<EnvironmentConfig />} />
         <Route path="/admin/emss" element={<Emss />} />
       </Routes>

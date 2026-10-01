@@ -37,3 +37,7 @@ export const hasPerms = ({
 export const emssTokenIsValid = (emssToken: string): boolean => {
   return globalValues.isEmssApiEnabled && emssToken && emssToken === process.env.EMSS_TOKEN;
 };
+
+export const dustTokenIsValid = (dustToken: string): boolean => {
+  return Boolean(dustToken) && dustToken === process.env.DUST_TOKEN;
+};
