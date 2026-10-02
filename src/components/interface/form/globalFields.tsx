@@ -588,7 +588,7 @@ export const DegreesInputSlider: FunctionComponent<{
         labelColor="var(--grey4)"
         labelFontSize="0.8rem"
         valueFontSize={editable ? "0rem" : "1rem"}
-        verticalOffset={editable ? "2.5rem" : "0.5rem"}
+        verticalOffset={editable ? "2.4rem" : "0.5rem"}
         knobPosition="top"
         knobColor={"var(--grey3)"}
         knobSize={20}
