@@ -9,6 +9,8 @@ import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { Checkbox, DegreesInputSlider } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import azimuthStyles from "./preset-right-azimuth.module.css";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
+import { validators } from "components/interface/form/formValidators";
 
 const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -19,6 +21,8 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   );
 
   const [isDragging, setIsDragging] = useState(false);
+  const [sunAzimuth, setSunAzimuth] = useState(selectedPreset.sunAzimuth);
+  const [earthAzimuth, setEarthAzimuth] = useState(selectedPreset.earthAzimuth);
 
   const sunThrottledFunc = useRef(
     throttle((preset: Preset, value: number) => {
@@ -34,9 +38,9 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   );
 
   const handleOnChangeSunAzimuth = useCallback(
-    (preset: Preset, value: number) => {
+    (preset: Preset, value: number | string) => {
       //hook into isDragging to prevent this from triggering when values are reset via "Cancel" button
-      if (isDragging) sunThrottledFunc.current(preset, value);
+      if (isDragging) sunThrottledFunc.current(preset, Number(value));
     },
     [sunThrottledFunc, isDragging]
   );
@@ -85,18 +89,43 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                       <div className={paneStyles.panelSectionRow}>
                         <div className={paneStyles.degreesInputContainer}>
                           <div className={paneStyles.descriptionContainer}>
-                            <DegreesInputSlider
-                              value={selectedPreset.sunAzimuth}
-                              editable={editMode}
-                              label="Azimuth"
-                              onChange={(value: number) => {
-                                handleOnChangeSunAzimuth(selectedPreset, value);
-                              }}
-                              isDragging={(value: boolean) => {
-                                setIsDragging(value);
-                              }}
-                              icon={faSun}
-                            />
+                            {editMode ? (
+                              <div className={paneStyles.inputFieldContainerAzimuth}>
+                                <ValidatedInputField
+                                  value={String(sunAzimuth) + "°"}
+                                  editMode={editMode}
+                                  fieldProps={{
+                                    name: "Duration",
+                                    ariaLabel: "Duration",
+                                    validators: [
+                                      validators.mustBeNumber,
+                                      validators.maxLength(5),
+                                      validators.mustBeInteger,
+                                    ],
+                                  }}
+                                  onSubmit={(value: string) => {
+                                    handleOnChangeSunAzimuth(selectedPreset, value);
+                                    setSunAzimuth(Number(value));
+                                  }}
+                                  displayStyle={{ fontSize: "1em", color: "var(--grey4)" }}
+                                />
+                              </div>
+                            ) : null}
+                            <div className={paneStyles.sliderWrapper}>
+                              <DegreesInputSlider
+                                value={sunAzimuth}
+                                editable={editMode}
+                                label="Azimuth"
+                                onChange={(value: number) => {
+                                  handleOnChangeSunAzimuth(selectedPreset, value);
+                                  setSunAzimuth(value);
+                                }}
+                                isDragging={(value: boolean) => {
+                                  setIsDragging(value);
+                                }}
+                                icon={faSun}
+                              />
+                            </div>
                           </div>
                           <div
                             className={paneStyles.displayFieldLabel}

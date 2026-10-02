@@ -444,6 +444,32 @@
 
 .descriptionContainer {
   padding-left: 13px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.inputFieldValueAzimuth {
+  font-size: 1rem;
+  font-weight: 400;
+  align-self: center;
+  color: white;
+  overflow: auto;
+}
+
+.inputFieldContainerAzimuth {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: calc(-0.5rem);
+  z-index: 10;
+}
+
+.sliderWrapper {
+  position: relative;
+  display: inline-block;
+  width: 100px;
 }
 
 .fieldContainerAutomerge {
