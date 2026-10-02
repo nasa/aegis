@@ -225,7 +225,6 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                               label="Azimuth"
                               onChange={(value: number) => {
                                 handleOnChangeEarthAzimuth(selectedPreset, value);
-                                setDisplayEarthAzimuth(Number(value));
                               }}
                               icon={selectedPreset.earthAsMoon ? faMoon : faEarthAmerica}
                               isDragging={(value: boolean) => {
