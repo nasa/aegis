@@ -79,14 +79,7 @@ interface STMViewExpandedItem {
 }
 
 type InterfaceSection =
-  | "mission"
-  | "preset"
-  | "poi"
-  | "station"
-  | "evas"
-  | "stmViewer"
-  | "stmRules"
-  | "reports";
+  "mission" | "preset" | "poi" | "station" | "evas" | "stmViewer" | "stmRules" | "reports";
 type BottomInterfaceSection = "timeline" | "measure";
 type SlopeColorMode = "standard" | "colorblind";
 interface InterfaceState {
