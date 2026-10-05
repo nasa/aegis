@@ -26,8 +26,8 @@ const isCellSelected = (
 
 /**
  * All cells for one (level3 row × column): a single summary cell when the
- * column is collapsed, or per-station/per-traverse sub-cells (in EVA sequence
- * order) + Total when expanded. Sub-cell counts always sum to the Total cell.
+ * column is collapsed, or a Total followed by per-station/per-traverse sub-cells
+ * in EVA sequence order when expanded. Sub-cell counts always sum to the Total cell.
  */
 export const EvaStmCoverageColumnCells: FunctionComponent<{
   column: EvaReportColumn;
@@ -74,6 +74,7 @@ export const EvaStmCoverageColumnCells: FunctionComponent<{
 
   return (
     <>
+      <SummaryCell column={column} stmUuid={stmUuid} coverage={coverage} />
       {sequenceItems.map((item) => {
         const count =
           (item.type === "station"
@@ -98,7 +99,6 @@ export const EvaStmCoverageColumnCells: FunctionComponent<{
           />
         );
       })}
-      <SummaryCell column={column} stmUuid={stmUuid} coverage={coverage} />
     </>
   );
 };

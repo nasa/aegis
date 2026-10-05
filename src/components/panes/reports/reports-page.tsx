@@ -1,11 +1,11 @@
 import type { FunctionComponent } from "react";
-import { useState } from "react";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { reportSetActiveTab } from "store/report";
 import styles from "../stm-rules/stm-rules-page.module.css";
 import EvaStmCoveragePage from "./eva-stm-coverage/eva-stm-coverage-page";
 import EvaComparisonPage from "./eva-comparison/eva-comparison-page";
 import PoiTraceabilityPage from "./poi-traceability/poi-traceability-page";
-
-type ReportsTab = "coverage" | "comparison" | "poiTrace";
 
 const TABS: { key: ReportsTab; label: string }[] = [
   { key: "coverage", label: "EVA STM Coverage" },
@@ -20,7 +20,8 @@ const TABS: { key: ReportsTab; label: string }[] = [
  * through EVA adoption and execution, using the shared campaign resolution.
  */
 const ReportsPage: FunctionComponent = () => {
-  const [activeTab, setActiveTab] = useState<ReportsTab>("coverage");
+  const activeTab = useAppSelector((state) => state.report.activeTab, refEqual);
+  const dispatch = useAppDispatch();
 
   return (
     <div className={styles.body}>
@@ -30,7 +31,7 @@ const ReportsPage: FunctionComponent = () => {
             <div
               key={tab.key}
               className={tab.key === activeTab ? `${styles.tab} ${styles.tabActive}` : styles.tab}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => dispatch(reportSetActiveTab(tab.key))}
             >
               {tab.label}
             </div>

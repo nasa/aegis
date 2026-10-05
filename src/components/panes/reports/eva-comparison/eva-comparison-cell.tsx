@@ -15,7 +15,7 @@ const formatNumber = (row: EvaComparisonMetricRow, value: number): string => {
 
 /**
  * All cells for one (metric row × column): a single value cell when collapsed,
- * or per-member-EVA sub-cells + a Total when an expanded campaign column. Sub-
+ * or a Total followed by sub-cells for the stations/traverses or campaign EVAs. Sub-
  * cells show absolute member values; the Total honours diff mode like coverage.
  */
 export const EvaComparisonColumnCells: FunctionComponent<{
@@ -37,6 +37,7 @@ export const EvaComparisonColumnCells: FunctionComponent<{
 
   return (
     <>
+      <SummaryCell column={column} row={row} />
       {sequenceItems.map((item) => (
         <MemberCell
           key={item.uuid}
@@ -45,7 +46,6 @@ export const EvaComparisonColumnCells: FunctionComponent<{
           name={item.name}
         />
       ))}
-      <SummaryCell column={column} row={row} />
     </>
   );
 };

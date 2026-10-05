@@ -122,9 +122,9 @@ const EvaStmCoverageHelp: FunctionComponent = () => {
             <div className={styles.helpSection}>
               <div className={styles.helpSectionTitle}>Diff view (comparing to a baseline)</div>
               <p>
-                Pick a <strong>Baseline</strong> column (click any column header to set it) and turn
-                on <strong>Diff</strong>. Every other column then shows how its coverage differs
-                from the baseline instead of a raw count:
+                Pick a column from the <strong>Baseline</strong> dropdown and turn on{" "}
+                <strong>Diff</strong>. Every other column then shows how its coverage differs from
+                the baseline instead of a raw count:
               </p>
               <div className={styles.helpLegendRow}>
                 <div className={`${styles.helpSwatch} ${styles.cellDiffPositive}`}>+2</div>
@@ -178,11 +178,11 @@ const EvaStmCoverageHelp: FunctionComponent = () => {
                 <li>
                   Click any cell to open the drilldown and see which actions matched each rule.
                 </li>
+                <li>Choose the comparison baseline from the Baseline dropdown.</li>
                 <li>
-                  Click a column header to set it as the baseline; click it again to clear it.
-                </li>
-                <li>
-                  Use the + / − icon in a header to expand a column into per-station sub-columns.
+                  Click a column header or its + / − icon to expand or collapse it. Sub-columns
+                  appear to the right of the Total: stations and traverses for an EVA, member EVAs
+                  for a campaign.
                 </li>
                 <li>
                   <strong>Differences only</strong> hides rows and columns that are identical to the

@@ -8,8 +8,8 @@
 
 // PoiTraceScope is declared alongside the report UI state in store.d.ts.
 
-/** Collapsed execution status for a promoted action in a REX. */
-type PoiTraceActionStatus = "pending" | "complete" | "skipped" | "notIncluded";
+/** Execution status for a promoted action, including absence from a REX. */
+type PoiTraceActionStatus = RexStatus | "notIncluded";
 
 /**
  * One station-action copy of a POI action (an action whose parentActionUuid is

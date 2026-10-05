@@ -186,7 +186,7 @@ const ReportCampaignsDialog: FunctionComponent = () => {
                     onChange={(event) => updateCampaign("description", event.target.value || null)}
                   />
                   <div className={styles.membersHeader}>
-                    <span>As-planned EVAs</span>
+                    <span>Planned EVAs / Execution REX</span>
                     <span>
                       {executedCount} of {existingMemberCount} executed
                     </span>
@@ -213,7 +213,9 @@ const ReportCampaignsDialog: FunctionComponent = () => {
                               onChange={(value) => selectExecutionRex(eva.uuid, value)}
                               toolTip="Execution REX used by this campaign"
                             >
-                              <option value="">Latest</option>
+                              <option value="">
+                                {rexes.length ? "Latest REX" : "No REX available"}
+                              </option>
                               {rexes.map((rex) => (
                                 <option key={rex.uuid} value={rex.uuid}>
                                   {rex.name}

@@ -197,8 +197,22 @@ const EvaStmCoveragePage: FunctionComponent = () => {
             dispatch(reportSetHoveredLeftItem({ reportId: REPORT_ID, item: null }));
           }}
         >
-          <ReportColumnHeader leftAxis={<CoverageHeaderLeftAxis />} />
-          <EvaStmCoverageTable />
+          {level3s.length === 0 ? (
+            <div className={styles.emptyState}>
+              No STM objectives are configured. EVA STM Coverage requires STM objectives and
+              matching rules.
+            </div>
+          ) : (
+            <>
+              {rules.length === 0 && (
+                <div className={styles.emptyState}>
+                  No STM rules are configured. Add matching rules to calculate EVA coverage.
+                </div>
+              )}
+              <ReportColumnHeader leftAxis={<CoverageHeaderLeftAxis />} />
+              <EvaStmCoverageTable />
+            </>
+          )}
         </div>
         {cellSelection && <EvaStmCoverageDrilldown />}
       </div>

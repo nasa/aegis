@@ -433,6 +433,21 @@ describe("computePoiTraceability() — executed scope", () => {
     }
   });
 
+  test("preserves in-progress outcomes without counting them as completed or skipped", () => {
+    const { mission } = buildExecuted();
+    mission.rexes.rex1.actionEntries.miss = { rexStatus: "in-progress" };
+
+    const [row] = computePoiTraceability({
+      mission,
+      scope: { type: "campaignExecuted", campaignUuid: "c1" },
+    });
+    expect(
+      row.actions.find((action) => action.poiActionUuid === "pa3")!.stationCopies[0].executions[0]
+    ).toMatchObject({ actionUuid: "miss", status: "in-progress" });
+    expect(row.completeCount).toBe(1);
+    expect(row.skippedCount).toBe(1);
+  });
+
   test("all scope preserves historical adoptions when the current plan has no matching copy", () => {
     const { mission } = buildExecuted();
     const [row] = computePoiTraceability({ mission, scope: { type: "all" } });

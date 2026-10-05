@@ -6,11 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMinusCircle, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
-import {
-  reportSetBaselineColumnKey,
-  reportSetHoveredTopItem,
-  reportToggleColumnExpansion,
-} from "store/report";
+import { reportSetHoveredTopItem, reportToggleColumnExpansion } from "store/report";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { groupCoverageColumns } from "utils/evaReportColumns";
 import { EmojiRenderer } from "components/interface/emojis";
@@ -45,7 +41,7 @@ const columnTooltipName = (column: EvaReportColumn) =>
  * ordered in as-planned EVA families (plan column followed by its REX
  * executions), then one planned/executed pair per campaign. The thick divider
  * separates families; a labelled divider separates the EVA/REX section from the
- * CAMPAIGNS section.
+ * Campaigns section.
  *
  * `leftAxis` is the report's own left-header content (STM tier titles for
  * coverage, the metric-group header for comparison), rendered in the sticky
@@ -69,7 +65,7 @@ const ReportColumnHeader: FunctionComponent<{ leftAxis: React.ReactNode }> = ({ 
             {index === 0 && (
               <div className={`${styles.columnDivider} ${styles.campaignDivider}`}>
                 <span className={styles.sectionDividerLabel}>
-                  {group.columns[0]?.campaignUuid ? "CAMPAIGNS" : "EVAs and REXs"}
+                  {group.columns[0]?.campaignUuid ? "Campaigns" : "EVAs and REXs"}
                 </span>
               </div>
             )}
@@ -82,7 +78,7 @@ const ReportColumnHeader: FunctionComponent<{ leftAxis: React.ReactNode }> = ({ 
                 }`}
               >
                 {group.columns[0]?.campaignUuid && !groups[index - 1]?.columns[0]?.campaignUuid ? (
-                  <span className={styles.sectionDividerLabel}>CAMPAIGNS</span>
+                  <span className={styles.sectionDividerLabel}>Campaigns</span>
                 ) : null}
               </div>
             )}
@@ -160,7 +156,7 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
   // whose descendants use writing-mode: vertical-rl (the rotated labels below)
   // — see https://bugzilla.mozilla.org/show_bug.cgi?id=1332555. Sidestep it by
   // giving the group its exact pixel width up front: one .stationHeaderCell per
-  // sequence item plus the trailing "Total" .columnHeaderCell. Comparison sub-
+  // sequence item plus the leading "Total" .columnHeaderCell. Comparison sub-
   // cells hold metric values, so they use the wider summary width (must match
   // the --stmCoverageStationCellWidth the comparison page sets).
   const stationCellWidth =
@@ -169,9 +165,6 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
   return (
     <div className={styles.columnGroup} style={{ width: groupWidth }}>
       <div className={styles.headerColumns}>
-        {sequenceItems.map((item) => (
-          <SequenceHeaderCell key={item.uuid} column={column} item={item} />
-        ))}
         <SummaryHeaderCell
           column={column}
           isBaseline={isBaseline}
@@ -179,6 +172,9 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
           cellKey={column.key}
           label={`${columnTitle(column)} (Total)`}
         />
+        {sequenceItems.map((item) => (
+          <SequenceHeaderCell key={item.uuid} column={column} item={item} />
+        ))}
       </div>
     </div>
   );
@@ -194,21 +190,34 @@ const SummaryHeaderCell: FunctionComponent<{
   const dispatch = useAppDispatch();
   const reportId = useReportId();
   const hoveredTopItem = useAppSelector((state) => state.report[reportId].hoveredTopItem, refEqual);
+  const toggleExpansion = () =>
+    dispatch(reportToggleColumnExpansion({ reportId, columnKey: column.key }));
+  const expansionLabel = isExpanded
+    ? column.campaignUuid
+      ? "Collapse EVAs"
+      : "Collapse stations"
+    : column.campaignUuid
+      ? "Expand into member EVAs"
+      : "Expand into stations";
 
   return (
     <div
       className={`${styles.columnHeaderCell} ${isBaseline ? styles.columnHeaderCellBaseline : ""}`}
       style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
-      onClick={() =>
-        dispatch(
-          reportSetBaselineColumnKey({ reportId, columnKey: isBaseline ? null : column.key })
-        )
-      }
+      role="button"
+      tabIndex={0}
+      aria-expanded={isExpanded}
+      aria-label={`${columnTooltipName(column)}: ${expansionLabel}`}
+      onClick={toggleExpansion}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          toggleExpansion();
+        }
+      }}
       onMouseEnter={() => dispatch(reportSetHoveredTopItem({ reportId, item: cellKey }))}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`${columnTooltipName(column)}${
-        isBaseline ? " (baseline)" : " — click to set as baseline"
-      }`}
+      data-tooltip-html={`${columnTooltipName(column)}${isBaseline ? " (baseline)" : ""} — ${expansionLabel}`}
       data-tooltip-place="left-start"
     >
       <div className={styles.rotatedLabel}>{label}</div>
@@ -216,18 +225,10 @@ const SummaryHeaderCell: FunctionComponent<{
         className={styles.columnHeaderIcons}
         onClick={(e) => {
           e.stopPropagation();
-          dispatch(reportToggleColumnExpansion({ reportId, columnKey: column.key }));
+          toggleExpansion();
         }}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={
-          isExpanded
-            ? column.campaignUuid
-              ? "Collapse EVAs"
-              : "Collapse stations"
-            : column.campaignUuid
-              ? "Expand into member EVAs"
-              : "Expand into stations"
-        }
+        data-tooltip-html={expansionLabel}
       >
         <FontAwesomeIcon icon={isExpanded ? faMinusCircle : faPlusCircle} />
       </span>

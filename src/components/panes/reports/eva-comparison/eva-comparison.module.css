@@ -5,6 +5,11 @@
  * the group sub-headers are comparison-specific.
  */
 
+.table {
+  width: max-content;
+  min-width: 100%;
+}
+
 .metricLabelCorner {
   flex: 0 0 var(--reportMetricLabelWidth, 260px);
   display: flex;

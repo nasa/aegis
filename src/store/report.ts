@@ -30,6 +30,7 @@ const initialColumnReportState = (): ColumnReportState => ({
 });
 
 export const initialState: ReportState = {
+  activeTab: "coverage",
   stmCoverage: initialColumnReportState(),
   comparison: initialColumnReportState(),
   poiTrace: {
@@ -41,6 +42,9 @@ export const reportSlice = createSlice({
   name: "report",
   initialState,
   reducers: {
+    reportSetActiveTab: (state, action: { payload: ReportsTab }) => {
+      state.activeTab = action.payload;
+    },
     reportSetBaselineColumnKey: (
       state,
       action: { payload: { reportId: ColumnReportId; columnKey: string | null } }
@@ -151,6 +155,7 @@ export const reportSlice = createSlice({
 });
 
 export const {
+  reportSetActiveTab,
   reportSetBaselineColumnKey,
   reportToggleDiffMode,
   reportToggleDifferencesOnly,

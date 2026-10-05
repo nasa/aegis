@@ -1,4 +1,5 @@
 import sortBy from "lodash/sortBy";
+import { getActionDisplayName } from "utils/component-helpers";
 import { selectAsPlannedStations, selectEvaStations, selectEvaTraverses } from "store/selectors";
 import {
   getAsPlannedEvas,
@@ -12,9 +13,9 @@ import {
  * while action/location refUuids link each planned child to its REX copies.
  */
 
-/** Collapse a REX action status (or a missing entry) to the report's tri-state. */
+/** Preserve the REX status, treating a missing entry as pending. */
 const toTraceStatus = (rexStatus: RexStatus | null | undefined): PoiTraceActionStatus =>
-  rexStatus === "complete" ? "complete" : rexStatus === "skipped" ? "skipped" : "pending";
+  rexStatus ?? "pending";
 
 /** The in-scope EVA uuids for a scope (as-planned EVAs, or a campaign's set). */
 export const resolveScopeEvaUuids = (mission: Mission, scope: PoiTraceScope): string[] => {
@@ -223,7 +224,7 @@ export const computePoiTraceability = ({
 
         stationCopies.push({
           stationActionUuid: copy.uuid,
-          actionName: copy.name,
+          actionName: getActionDisplayName({ action: copy, mission }),
           enabled: copy.enabled,
           executionOnly,
           stationUuid: copy.stationUuid ?? null,
@@ -240,7 +241,11 @@ export const computePoiTraceability = ({
       }
 
       if (stationCopies.length > 0) promotedActionCount += 1;
-      actions.push({ poiActionUuid, name: poiAction.name, stationCopies });
+      actions.push({
+        poiActionUuid,
+        name: getActionDisplayName({ action: poiAction, mission }),
+        stationCopies,
+      });
     }
 
     rows.push({

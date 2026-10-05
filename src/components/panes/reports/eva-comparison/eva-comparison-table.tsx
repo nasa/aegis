@@ -35,7 +35,7 @@ const EvaComparisonTable: FunctionComponent = () => {
   const rowVisible = (rowId: string) => !visibleRowIds || visibleRowIds.includes(rowId);
 
   return (
-    <div>
+    <div className={comparisonStyles.table}>
       {GROUP_ORDER.map((group) => {
         const rows = EVA_COMPARISON_METRIC_ROWS.filter(
           (row) => row.group === group && rowVisible(row.id)

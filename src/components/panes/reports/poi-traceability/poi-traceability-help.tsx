@@ -68,8 +68,10 @@ const PoiTraceabilityHelp: FunctionComponent = () => {
                   <strong>Skipped</strong>: the action was marked skipped.
                 </li>
                 <li>
-                  <strong>Pending</strong>: the action is in the execution, without a completed or
-                  skipped status.
+                  <strong>In progress</strong>: the action has started in that REX.
+                </li>
+                <li>
+                  <strong>Pending</strong>: the action has not started or has no recorded status.
                 </li>
                 <li>
                   <strong>Not in this execution</strong>: this EVA has a REX, but it does not

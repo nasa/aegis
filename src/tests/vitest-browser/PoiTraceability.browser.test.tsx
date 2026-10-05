@@ -20,6 +20,8 @@ import { generateBlankRex } from "store/storeUtils/rex";
 import { stageDuplicateEva } from "operations/stage/stage-eva";
 import { applyDuplicateEvaStage } from "operations/apply/apply-eva";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
+import reportStyles from "components/panes/reports/shared/report-grid.module.css";
+import actionStyles from "components/panes/actions-action.module.css";
 import "styles/globals.css";
 
 const fixture = vi.hoisted(() => ({ mission: null as Mission | null }));
@@ -126,6 +128,173 @@ beforeEach(() => {
 afterEach(() => harness.unmount());
 
 describe("POI action family tree", () => {
+  it("uses shared STM colors and priority badges for original, adopted, and executed actions", () => {
+    const mission = fixture.mission!;
+    mission.actionDefinitions = {
+      verbs: { sample: { name: "Sample", abbr: "s" } },
+      nouns: {
+        rock: { name: "Rock", abbr: "r" },
+        boulder: { name: "Boulder", abbr: "b" },
+      },
+      adjectives: { crater: { name: "Crater", abbr: "c" } },
+    };
+    mission.missionPriorities = {
+      original: { trace: "SIMD-0005.1", category: "Science" },
+      adopted: { trace: "SIMD-0005.2", category: "Science" },
+      executed: { trace: "SIMD-0005.3", category: "Science" },
+    };
+    mission.actionDefinitionConjunctions = { verbToNoun: "on", nounToAdjective: "within" };
+    for (const action of Object.values(mission.actions)) {
+      if (action.uuid !== "pa1" && action.parentActionUuid !== "pa1") continue;
+      action.name = "";
+      action.stmAction = true;
+      action.actionDefinition = { verbUuid: "sample", nounUuid: "rock", adjectiveUuid: "crater" };
+      action.missionPriorityUuid = "original";
+    }
+    mission.actions.sa1.missionPriorityUuid = "adopted";
+    const executed = Object.values(mission.actions).find(
+      (action) => !!mission.rexes[Object.keys(mission.rexes)[1]].actionEntries?.[action.uuid]
+    )!;
+    executed.actionDefinition = { ...executed.actionDefinition, nounUuid: "boulder" };
+    executed.missionPriorityUuid = "executed";
+    const render = () =>
+      harness.render(
+        <Provider store={store}>
+          <PoiTraceabilityPage />
+        </Provider>
+      );
+    render();
+    expect(harness.container.querySelector('nav[aria-label="POI actions"]')?.textContent).toContain(
+      "Sample on Rock"
+    );
+    expect(harness.container.querySelector("h3")?.textContent).toContain("Sample on Rock");
+    expect(harness.container.textContent).toContain("Action: Sample on Boulder");
+    expect(harness.container.textContent).not.toContain("Unnamed action");
+
+    const reference = document.createElement("span");
+    document.body.appendChild(reference);
+    for (const [className, color] of [
+      [reportStyles.drilldownRuleVerb, "verb"],
+      [reportStyles.drilldownRuleNoun, "noun"],
+      [reportStyles.drilldownRuleAdjective, "adjective"],
+    ]) {
+      reference.style.color = `var(--${color})`;
+      const parts = harness.container.querySelectorAll(`.${className}`);
+      expect(parts.length).toBeGreaterThanOrEqual(4);
+      for (const part of parts) {
+        expect(getComputedStyle(part).color).toBe(getComputedStyle(reference).color);
+      }
+    }
+    reference.remove();
+    for (const trace of ["SIMD-0005.1", "SIMD-0005.2", "SIMD-0005.3"]) {
+      const badge = harness.container.querySelector(`[aria-label="Mission priority: ${trace}"]`)!;
+      expect(badge.classList.contains(actionStyles.actionHeadingPriority)).toBe(true);
+      expect(badge.getAttribute("data-tooltip-content")).toBe(
+        `Mission priority: ${trace} | Science`
+      );
+    }
+
+    mission.actionDefinitions = {
+      ...mission.actionDefinitions,
+      verbs: { sample: { name: "Collect", abbr: "c" } },
+    };
+    render();
+    expect(harness.container.querySelector("h3")?.textContent).toContain("Collect on Rock");
+    expect(harness.container.textContent).toContain("Action: Collect on Boulder");
+  });
+
+  it.each([
+    { conjunction: "Pri", label: "Adjective", name: "GEO-07.02" },
+    { conjunction: "in", label: "Priority", name: "GEO-07.02" },
+    { conjunction: "in", label: "Adjective", name: "Pri GEO-07.02" },
+  ])(
+    "badges legacy priorities in the left list and source title ($conjunction / $label / $name)",
+    ({ conjunction, label, name }) => {
+      const mission = fixture.mission!;
+      mission.actionDefinitions = {
+        verbs: { sample: { name: "Sealed Double Drive Tube", abbr: "s" } },
+        nouns: { cold: { name: "Cold1", abbr: "c" } },
+        adjectives: { priority: { name, abbr: "p" } },
+      };
+      mission.actionDefinitionConjunctions = { verbToNoun: "at", nounToAdjective: conjunction };
+      mission.actionDefinitionLabels = {
+        ...mission.actionDefinitionLabels,
+        adjective: { singular: label, plural: `${label}s` },
+      };
+      mission.actions.pa1.stmAction = true;
+      mission.actions.pa1.name = "";
+      mission.actions.pa1.actionDefinition = {
+        verbUuid: "sample",
+        nounUuid: "cold",
+        adjectiveUuid: "priority",
+      };
+      mission.actions.sa1.stmAction = true;
+      mission.actions.sa1.actionDefinition = {
+        ...mission.actions.pa1.actionDefinition,
+        adjectiveUuid: null,
+      };
+      mission.actions.sa1.missionPriorityUuid = "converted";
+      mission.missionPriorities = { converted: { trace: "GEO-0007.02", category: "Geology" } };
+      harness.render(
+        <Provider store={store}>
+          <PoiTraceabilityPage />
+        </Provider>
+      );
+
+      const list = harness.container.querySelector('nav[aria-label="POI actions"]')!;
+      const title = harness.container.querySelector("h3")!;
+      const adoptedBadge = harness.container.querySelector(
+        '[aria-label="Mission priority: GEO-0007.02"]'
+      )!;
+      for (const container of [list, title]) {
+        expect(container.textContent).toContain("Sealed Double Drive Tube at Cold1");
+        expect(container.textContent).not.toMatch(/\bPri\b/);
+        const badge = container.querySelector('[aria-label="Mission priority: GEO-07.02"]')!;
+        expect(badge.textContent).toBe("GEO-07.02");
+        expect(badge.classList.contains(actionStyles.actionHeadingPriority)).toBe(true);
+        expect(container.querySelector(`.${reportStyles.drilldownRuleAdjective}`)).toBeNull();
+        for (const property of [
+          "color",
+          "border",
+          "borderRadius",
+          "padding",
+          "fontWeight",
+        ] as const) {
+          expect(getComputedStyle(badge)[property]).toBe(getComputedStyle(adoptedBadge)[property]);
+        }
+      }
+    }
+  );
+
+  it("displays in-progress execution status separately from pending", () => {
+    const mission = fixture.mission!;
+    const rex = Object.values(mission.rexes)[1];
+    fixture.mission = {
+      ...mission,
+      rexes: {
+        ...mission.rexes,
+        [rex.uuid]: {
+          ...rex,
+          actionEntries: Object.fromEntries(
+            Object.entries(rex.actionEntries!).map(([uuid, entry]) => [
+              uuid,
+              { ...entry, rexStatus: "in-progress" as const },
+            ])
+          ),
+        },
+      },
+    };
+    harness.render(
+      <Provider store={store}>
+        <PoiTraceabilityPage />
+      </Provider>
+    );
+    const outcomes = harness.container.querySelector('ul[aria-label="Execution outcomes"]')!;
+    expect(outcomes.textContent).toContain("In progress");
+    expect(outcomes.textContent).not.toContain("Pending");
+    expect(outcomes.textContent).not.toContain("Completed");
+  });
+
   it("opens the first POI/action directly and places execution outcomes under the correct EVA", () => {
     const branches = harness.container.querySelectorAll('ul[aria-label="EVA adoptions"] > li');
     expect(branches).toHaveLength(2);

@@ -267,6 +267,8 @@
   z-index: 5;
   display: flex;
   flex-direction: row;
+  width: max-content;
+  min-width: 100%;
   background-color: var(--grey2);
   border-bottom: 2px solid var(--grey0);
 }
@@ -311,6 +313,16 @@
 .columnHeaderCellBaseline {
   background-color: var(--grey4);
   color: var(--grey0);
+}
+.columnHeaderCell:focus-visible {
+  outline: 2px solid var(--grey5);
+  outline-offset: -2px;
+}
+
+.emptyState {
+  padding: 12px;
+  color: var(--grey4);
+  font-size: 0.9em;
 }
 
 .stationHeaderCell {

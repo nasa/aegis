@@ -2,13 +2,16 @@ import type { FunctionComponent } from "react";
 import { useState } from "react";
 import styles from "./poi-traceability.module.css";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { getActionDisplayName } from "utils/component-helpers";
 import ActionPreview, { type ActionPreviewTarget } from "./action-preview";
 import TraceIcon from "./trace-icon";
+import ReportActionTitle from "../shared/report-action-title";
 
 const STATUS_LABEL: Record<PoiTraceActionStatus, string> = {
   complete: "Completed",
   skipped: "Skipped",
   pending: "Pending",
+  "in-progress": "In progress",
   notIncluded: "Not in this execution",
 };
 
@@ -16,6 +19,7 @@ const STATUS_CLASS: Record<PoiTraceActionStatus, string> = {
   complete: styles.complete,
   skipped: styles.skipped,
   pending: styles.pending,
+  "in-progress": styles.inProgress,
   notIncluded: styles.pending,
 };
 
@@ -30,6 +34,10 @@ const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow; mission: M
     setPreview({ actionUuid, evaUuid, rexUuid });
   const action =
     row.actions.find((item) => item.poiActionUuid === selectedActionUuid) ?? row.actions[0];
+  const executedActionName = (actionUuid: string) => {
+    const executed = mission.actions[actionUuid];
+    return executed ? getActionDisplayName({ action: executed, mission }) : "";
+  };
   const branches =
     action?.stationCopies.flatMap((copy) =>
       copy.inScopeEvaUuids.map((evaUuid) => ({ copy, evaUuid }))
@@ -83,7 +91,11 @@ const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow; mission: M
                 >
                   <span>
                     <TraceIcon icon={mission.actions[item.poiActionUuid]?.icon} />
-                    {item.name || "Unnamed action"}
+                    <ReportActionTitle
+                      action={mission.actions[item.poiActionUuid]}
+                      mission={mission}
+                      fallbackName={item.name}
+                    />
                   </span>
                   <span className={styles.meta}>
                     {adoptions === 0
@@ -100,7 +112,11 @@ const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow; mission: M
                 <div className={styles.sourceHeading}>
                   <h3>
                     <TraceIcon icon={mission.actions[action.poiActionUuid]?.icon} />
-                    {action.name || "Unnamed action"}
+                    <ReportActionTitle
+                      action={mission.actions[action.poiActionUuid]}
+                      mission={mission}
+                      fallbackName={action.name}
+                    />
                   </h3>
                   <button
                     type="button"
@@ -157,9 +173,19 @@ const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow; mission: M
                               {copy.stationName ?? copy.traverseName ?? "Unknown location"}
                             </span>
                           </div>
-                          {copy.actionName && copy.actionName !== action.name && (
-                            <div className={styles.meta}>Action: {copy.actionName}</div>
-                          )}
+                          {copy.actionName &&
+                            (copy.actionName !== action.name ||
+                              mission.actions[copy.stationActionUuid]?.missionPriorityUuid !==
+                                mission.actions[action.poiActionUuid]?.missionPriorityUuid) && (
+                              <div className={styles.meta}>
+                                Action:{" "}
+                                <ReportActionTitle
+                                  action={mission.actions[copy.stationActionUuid]}
+                                  mission={mission}
+                                  fallbackName={copy.actionName}
+                                />
+                              </div>
+                            )}
                           {copy.parentCopyDate != null && (
                             <div className={styles.meta}>
                               Adopted {new Date(copy.parentCopyDate).toLocaleDateString()}
@@ -205,11 +231,16 @@ const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow; mission: M
                                     </button>
                                   )}
                                   {execution.actionUuid &&
-                                    mission.actions[execution.actionUuid]?.name !== action.name && (
+                                    (executedActionName(execution.actionUuid) !== action.name ||
+                                      mission.actions[execution.actionUuid]?.missionPriorityUuid !==
+                                        mission.actions[action.poiActionUuid]
+                                          ?.missionPriorityUuid) && (
                                       <span className={styles.executedName}>
                                         Action:{" "}
-                                        {mission.actions[execution.actionUuid]?.name ||
-                                          "Unnamed action"}
+                                        <ReportActionTitle
+                                          action={mission.actions[execution.actionUuid]}
+                                          mission={mission}
+                                        />
                                       </span>
                                     )}
                                 </li>
@@ -223,8 +254,8 @@ const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow; mission: M
                 </ul>
               )}
               <p className={styles.legend}>
-                Completed means the action was marked complete in a REX. Pending means it is present
-                without a completed or skipped status.
+                Completed means the action was marked complete in a REX. In progress means it has
+                started. Pending means it has not started or has no recorded status.
               </p>
             </div>
           )}

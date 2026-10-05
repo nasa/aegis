@@ -18,6 +18,10 @@ const PoiTraceabilityPage: FunctionComponent = () => {
       evas: m?.evas,
       rexes: m?.rexes,
       actions: m?.actions,
+      actionSystemVersion: m?.actionSystemVersion,
+      actionDefinitions: m?.actionDefinitions,
+      actionDefinitionConjunctions: m?.actionDefinitionConjunctions,
+      actionDefinitionLabels: m?.actionDefinitionLabels,
     }),
     shallowEqual
   );

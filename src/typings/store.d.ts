@@ -192,9 +192,11 @@ interface PoiTraceState {
 
 type ColumnReportId = "stmCoverage" | "comparison";
 type ReportId = ColumnReportId | "poiTrace";
+type ReportsTab = "coverage" | "comparison" | "poiTrace";
 
 /** All Reports-pane UI/derived state, keyed by report id. */
 interface ReportState {
+  activeTab: ReportsTab;
   stmCoverage: ColumnReportState;
   comparison: ColumnReportState;
   poiTrace: PoiTraceState;
