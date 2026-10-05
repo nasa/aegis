@@ -2,7 +2,7 @@
  *  to outer-scope variables so test assertions can read what the hook returned. */
 
 /**
- * Unit tests for `useMapDateTime` — pure derivation hook.
+ * Unit tests for `useMapDateTime`, the shared map time hook.
  *
  * Renders the hook through a tiny <Probe> component inside a real Redux
  * store with the relevant slices preloaded. Exercises each branch of the
@@ -19,8 +19,11 @@ import { presetSlice, initialState as presetInit } from "store/preset";
 import { interfaceSlice, initialState as interfaceInit } from "store/interface";
 import { missionSlice, initialState as missionInit } from "store/mission";
 import { evaSlice, initialState as evaInit } from "store/eva";
+import { getLayersToShow } from "components/interface/map/utils/getLayersToShow";
+import { generateBlankPreset } from "store/storeUtils/preset";
+import { generateBlankSublayer, defaultSublayerStyle } from "store/storeUtils/sublayer";
 
-// Mutable doc state — tests set fields directly before rendering.
+// Mutable doc state: tests set fields directly before rendering.
 // The selector mock calls the selector with this object as the doc.
 const docState: Partial<Mission> = {};
 
@@ -114,26 +117,89 @@ describe("useMapDateTime", () => {
     expect(captured).toBeNull();
   });
 
-  it("returns selected EVA datetime when set and is a valid ISO string", () => {
+  it("returns selected EVA timestamp as an ISO datetime", () => {
     const evaUuid = "eva-1";
     docState.evas = {
-      [evaUuid]: { uuid: evaUuid, datetime: "2026-04-15T08:30:00Z" } as unknown as Eva,
+      [evaUuid]: { uuid: evaUuid, datetime: Date.parse("2026-04-15T08:30:00Z") } as Eva,
     };
     const store = makeStore({
       eva: { ...evaInit, selectedEvaUuid: evaUuid },
     });
     render(store);
-    expect(captured).toBe("2026-04-15T08:30:00Z");
+    expect(captured).toBe("2026-04-15T08:30:00.000Z");
   });
 
-  it("ignores EVA datetime when not a valid ISO string", () => {
+  it.each([NaN, Infinity, 8.64e15 + 1, null])("ignores EVA timestamp %s", (datetime) => {
     const evaUuid = "eva-1";
-    docState.evas = { [evaUuid]: { uuid: evaUuid, datetime: "not-a-date" } as unknown as Eva };
+    docState.evas = { [evaUuid]: { uuid: evaUuid, datetime } as Eva };
     const store = makeStore({
       eva: { ...evaInit, selectedEvaUuid: evaUuid },
     });
     render(store);
     expect(captured).toBeNull();
+  });
+
+  it("uses an EVA timestamp of zero", () => {
+    docState.evas = { "eva-1": { uuid: "eva-1", datetime: 0 } as Eva };
+    render(makeStore({ eva: { ...evaInit, selectedEvaUuid: "eva-1" } }));
+    expect(captured).toBe("1970-01-01T00:00:00.000Z");
+  });
+
+  it("selects the same time layer for an EVA as for preset preview", () => {
+    const previewTime = "2026-03-02T00:00:00Z";
+    const sublayer = generateBlankSublayer({
+      uuid: "time-layer",
+      path: "/time-layer",
+      isTimeBased: true,
+      timeLayerManifest: [
+        {
+          datetime: "2026-03-01T00:00:00Z",
+          dirName: "first",
+          lowerBound: "2026-03-01T00:00:00Z",
+          upperBound: "2026-03-01T12:00:00Z",
+        },
+        {
+          datetime: previewTime,
+          dirName: "second",
+          lowerBound: "2026-03-01T12:00:00Z",
+          upperBound: previewTime,
+        },
+      ],
+    });
+    const preset = generateBlankPreset({
+      layerOrder: [{ layerUuid: sublayer.layerUuid, sublayerUuids: [sublayer.uuid] }],
+      mapSublayerControls: {
+        [sublayer.uuid]: {
+          sublayerUuid: sublayer.uuid,
+          name: sublayer.name,
+          visible: true,
+          style: { ...defaultSublayerStyle },
+        },
+      },
+    });
+    docState.evas = {
+      "eva-1": { uuid: "eva-1", datetime: Date.parse(previewTime) } as Eva,
+    };
+    const store = makeStore({
+      preset: { ...presetInit, presetPreviewTime: previewTime },
+      interface: { ...interfaceInit, sectionSelectedLabel: "preset" },
+      mission: { ...missionInit, sublayers: [sublayer] },
+      eva: { ...evaInit, selectedEvaUuid: "eva-1" },
+    });
+    const resolveLayers = () =>
+      getLayersToShow({
+        selectedPreset: preset,
+        missionSublayers: [sublayer],
+        missionLayers: [],
+        mapDateTime: captured ?? null,
+      });
+
+    render(store);
+    const previewLayers = resolveLayers();
+    expect(previewLayers[0].path).toBe("/time-layer/second");
+
+    flushSync(() => store.dispatch(interfaceSlice.actions.setSectionSelected("evas")));
+    expect(resolveLayers()).toEqual(previewLayers);
   });
 
   it("falls back to first time-based sublayer manifest entry", () => {
@@ -166,7 +232,7 @@ describe("useMapDateTime", () => {
   it("preset preview time takes priority over EVA datetime", () => {
     const evaUuid = "eva-1";
     docState.evas = {
-      [evaUuid]: { uuid: evaUuid, datetime: "2026-04-15T08:30:00Z" } as unknown as Eva,
+      [evaUuid]: { uuid: evaUuid, datetime: Date.parse("2026-04-15T08:30:00Z") } as Eva,
     };
     const store = makeStore({
       preset: { ...presetInit, presetPreviewTime: "2026-05-01T12:00:00Z" },
@@ -180,7 +246,7 @@ describe("useMapDateTime", () => {
   it("EVA datetime takes priority over time-based sublayer manifest", () => {
     const evaUuid = "eva-1";
     docState.evas = {
-      [evaUuid]: { uuid: evaUuid, datetime: "2026-04-15T08:30:00Z" } as unknown as Eva,
+      [evaUuid]: { uuid: evaUuid, datetime: Date.parse("2026-04-15T08:30:00Z") } as Eva,
     };
     const store = makeStore({
       eva: { ...evaInit, selectedEvaUuid: evaUuid },
@@ -197,6 +263,6 @@ describe("useMapDateTime", () => {
       },
     });
     render(store);
-    expect(captured).toBe("2026-04-15T08:30:00Z");
+    expect(captured).toBe("2026-04-15T08:30:00.000Z");
   });
 });
