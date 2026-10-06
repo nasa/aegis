@@ -95,6 +95,12 @@ export const applyMdauRexes = (m: Mission, stage: MdauStageData): void => {
     const rex = m.rexes[rexStage.uuid];
     if (!rex) continue;
 
+    // Only settable before the rex's first execution; stageRexes already
+    // withholds this once executeEditState exists. Applied before the
+    // startsRunning freeze below so a same-payload mode change takes effect
+    // prior to being locked in.
+    if (rexStage.executeEditMode !== undefined) rex.executeEditMode = rexStage.executeEditMode;
+
     // Generate initial crew position entries when transitioning to running.
     if (rexStage.startsRunning) {
       generateInitialPosEntries(m, rex);
