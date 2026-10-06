@@ -1,10 +1,11 @@
 import { globalValues } from "server/express/global";
-import type { DocHandle } from "@automerge/automerge-repo";
+import type { DocHandle, DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { getDustSocketRoomName } from "./sockets-dust";
 import type { DustPosEntriesUpdate, DustReadablePosEntry } from "./types/socketioDust";
+import { getAutomergeDocListing } from "server/express/routes/docListing";
 
 type DustMissionSnapshot = {
   [rexUuid: string]: {
@@ -173,7 +174,11 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
   globalValues.dustV1.docListeners.set(missionId, () => {});
 
   try {
-    const missionDocHandle = globalValues.dustV1.docHandles.get(missionId);
+    // Get automerge doc handle
+    const automergeListing = (await getAutomergeDocListing([missionId]))[0];
+    const missionDocHandle = await globalValues.automergeRepo.find<Mission>(
+      automergeListing.automergeUrl as DocumentId
+    );
 
     // The last visitor may have disconnected while the lookups above were awaiting.
     // Installing now would orphan the listener.

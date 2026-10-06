@@ -17,7 +17,7 @@ vi.mock("server/dust/v1/sockets-dust-emitters", async () => {
   return {
     ...actual,
     addDustDocListenerForMission: mockAddDustDocListenerForMission,
-    buildDustEverything: mockBuildDustEverything,
+    getEverythingForDust: mockBuildDustEverything,
   };
 });
 

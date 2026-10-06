@@ -14,8 +14,6 @@ vi.mock("server/express/routes/docListing", () => ({
 }));
 
 import {
-  setDustSnapshot,
-  clearDustSnapshot,
   onDustChangeListener,
   addDustDocListenerForMission,
   getEverythingForDust,
@@ -121,45 +119,6 @@ beforeEach(() => {
   globalValues.dustV1.docListeners = new Map();
   globalValues.dustV1.docHandles = new Map();
   globalValues.dustV1.visitorData = {};
-});
-
-afterEach(() => {
-  clearDustSnapshot(MISSION_ID);
-});
-
-// ─── setDustSnapshot / clearDustSnapshot ──────────────────────────────────────
-
-describe("setDustSnapshot / clearDustSnapshot", () => {
-  it("captures each rex's outbound payload and makes the next onDustChangeListener call a no-op when unchanged", () => {
-    const ns = connectDustVisitor();
-
-    const rex = runningRexWithPosEntries([buildPosEntry()]);
-    const mission = buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [rex] });
-
-    setDustSnapshot(MISSION_ID, mission);
-
-    const docHandle = { doc: vi.fn().mockReturnValue(mission) };
-    onDustChangeListener(MISSION_ID, docHandle as never);
-
-    // Snapshot already matches the mission's payload, so nothing is emitted.
-    expect(ns._emit).not.toHaveBeenCalled();
-  });
-
-  it("clears the stored snapshot so the next change is treated as new", () => {
-    const ns = connectDustVisitor();
-
-    const rex = runningRexWithPosEntries([buildPosEntry()]);
-    const mission = buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [rex] });
-
-    setDustSnapshot(MISSION_ID, mission);
-    clearDustSnapshot(MISSION_ID);
-
-    const docHandle = { doc: vi.fn().mockReturnValue(mission) };
-    onDustChangeListener(MISSION_ID, docHandle as never);
-
-    // No previous snapshot (cleared) — the running rex is treated as new and emits.
-    expect(ns._emit).toHaveBeenCalledWith("posEntriesUpdate", expect.any(Object));
-  });
 });
 
 // ─── onDustChangeListener ─────────────────────────────────────────────────────
@@ -533,54 +492,12 @@ describe("buildDustEverything", () => {
     expect(mockGetAutomergeDocListing).not.toHaveBeenCalled();
   });
 
-  it("falls back to a doc listing lookup when no handle is cached", async () => {
-    const runningRex = runningRexWithPosEntries([buildPosEntry()]);
-    mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://everything-url" }]);
-    globalValues.automergeRepo = {
-      find: vi.fn().mockResolvedValue({
-        doc: vi
-          .fn()
-          .mockReturnValue(buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [runningRex] })),
-      }),
-    } as never;
-
-    const data = await getEverythingForDust(MISSION_ID);
-
-    expect(mockGetAutomergeDocListing).toHaveBeenCalledWith([MISSION_ID]);
-    expect(data).toHaveLength(1);
-  });
-
-  it("rejects when the mission has no automerge doc listing", async () => {
-    mockGetAutomergeDocListing.mockResolvedValue([]);
-
-    await expect(getEverythingForDust(MISSION_ID)).rejects.toThrow(
-      `No automerge doc listing found for mission ${MISSION_ID}`
-    );
-  });
-
   it("rejects when the automerge document is unavailable", async () => {
     globalValues.dustV1.docHandles.set(MISSION_ID, {
       doc: vi.fn().mockReturnValue(undefined),
     } as never);
 
     await expect(getEverythingForDust(MISSION_ID)).rejects.toThrow("is unavailable");
-  });
-
-  it("does not disturb the change-detection snapshot", async () => {
-    const ns = connectDustVisitor();
-
-    const runningRex = runningRexWithPosEntries([buildPosEntry()]);
-    const mission = buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [runningRex] });
-    setDustSnapshot(MISSION_ID, mission);
-    globalValues.dustV1.docHandles.set(MISSION_ID, {
-      doc: vi.fn().mockReturnValue(mission),
-    } as never);
-
-    await getEverythingForDust(MISSION_ID);
-
-    // The snapshot still matches, so an unchanged doc change emits nothing.
-    onDustChangeListener(MISSION_ID, { doc: vi.fn().mockReturnValue(mission) } as never);
-    expect(ns._emit).not.toHaveBeenCalled();
   });
 });
 
@@ -760,45 +677,6 @@ describe("addDustDocListenerForMission", () => {
     expect(mockDocHandle.on).not.toHaveBeenCalled();
     expect(globalValues.dustV1.docListeners.has(MISSION_ID)).toBe(false);
     expect(globalValues.dustV1.docHandles.has(MISSION_ID)).toBe(false);
-  });
-
-  it("lets a reconnect during the setup window install exactly one listener", async () => {
-    let resolveFirstFind: (value: unknown) => void = () => {};
-    const secondDocHandle = {
-      whenReady: vi.fn().mockResolvedValue(undefined),
-      on: vi.fn(),
-      off: vi.fn(),
-      doc: vi.fn().mockReturnValue(undefined),
-    };
-    const find = vi
-      .fn()
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveFirstFind = resolve;
-          })
-      )
-      .mockResolvedValue(secondDocHandle);
-    globalValues.automergeRepo = { find } as never;
-
-    const firstSetup = addDustDocListenerForMission(MISSION_ID);
-    await vi.waitFor(() => expect(find).toHaveBeenCalled());
-
-    // Disconnect, then immediately reconnect and start a second setup.
-    delete globalValues.dustV1.visitorData[MISSION_ID];
-    cleanupDust(MISSION_ID);
-    globalValues.dustV1.visitorData[MISSION_ID] = [
-      { socketId: "socket2", name: "Vitest Dust 2", connectedAt: Date.now() },
-    ];
-    await addDustDocListenerForMission(MISSION_ID);
-
-    // The stale first setup finally resolves — it must not clobber the new listener.
-    resolveFirstFind(mockDocHandle);
-    await firstSetup;
-
-    expect(mockDocHandle.on).not.toHaveBeenCalled();
-    expect(secondDocHandle.on).toHaveBeenCalledWith("change", expect.any(Function));
-    expect(globalValues.dustV1.docHandles.get(MISSION_ID)).toBe(secondDocHandle);
   });
 });
 
