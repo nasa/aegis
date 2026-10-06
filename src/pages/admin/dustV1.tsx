@@ -96,6 +96,18 @@ const DustV1: React.FunctionComponent = () => {
     null
   );
 
+  // ── getEverything (on-demand full resync) ────────────────────────────────
+  const [everything, setEverything] = useState<DustPosEntriesUpdate[] | null>(null);
+  const [everythingMessage, setEverythingMessage] = useState<string | null>(null);
+
+  const requestEverything = () => {
+    if (!dustSocket.current?.connected || !joinMissionId) return;
+    dustSocket.current.emit("getEverything", Number(joinMissionId), (response) => {
+      setEverythingMessage(`${response.status}: ${response.message}`);
+      setEverything(response.status === "success" ? response.data : null);
+    });
+  };
+
   const refreshDebugInfo = () => {
     if (!dustSocket.current?.connected) return;
     dustSocket.current.emit("getDebugInfo", (data) => {
@@ -149,6 +161,13 @@ const DustV1: React.FunctionComponent = () => {
       socket.off("disconnect");
       socket.off("inspectorUpdate");
       socket.disconnect();
+      // Also tear down the DUST socket so navigating away doesn't leave a
+      // server-side visitor and doc listener alive.
+      if (dustSocket.current) {
+        dustSocket.current.removeAllListeners();
+        dustSocket.current.disconnect();
+        dustSocket.current = null;
+      }
     };
   }, [navigate]);
 
@@ -215,6 +234,8 @@ const DustV1: React.FunctionComponent = () => {
       setDebugInfo(null);
       setJoinResponseMessage(null);
       setLastPosEntriesUpdate(null);
+      setEverything(null);
+      setEverythingMessage(null);
     }
   };
 
@@ -427,6 +448,33 @@ const DustV1: React.FunctionComponent = () => {
                   Disconnect
                 </button>
               </div>
+            </EmitCard>
+
+            {/* getEverything */}
+            <EmitCard title="getEverything" fullWidth>
+              <div style={{ color: "#94a3b8", fontSize: "0.85em" }}>
+                Requests the current state of every rex on the joined mission — running or not —
+                each in the same shape as a <code>posEntriesUpdate</code> payload.
+              </div>
+              {everythingMessage && (
+                <div style={{ color: "#cbd5e1", fontSize: "0.8em" }}>{everythingMessage}</div>
+              )}
+              <button
+                className={adminCommon.buttonPrimary}
+                onClick={requestEverything}
+                disabled={!isDustConnected || !joinMissionId}
+                style={{ alignSelf: "flex-start" }}
+              >
+                Get Everything
+              </button>
+              {everything &&
+                (everything.length === 0 ? (
+                  <div className={adminCommon.emptyState}>No rexes on this mission.</div>
+                ) : (
+                  everything.map((update) => (
+                    <PrintPosEntriesUpdate key={update.rexUuid} update={update} />
+                  ))
+                ))}
             </EmitCard>
           </div>
         </section>

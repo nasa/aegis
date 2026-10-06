@@ -4,10 +4,12 @@ import { v4 as uuidv4 } from "uuid";
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 // vi.hoisted ensures these are available when vi.mock factories run (hoisted to top)
-const { mockAddDustDocListenerForMission, mockGetAutomergeDocListing } = vi.hoisted(() => ({
-  mockAddDustDocListenerForMission: vi.fn().mockResolvedValue(undefined),
-  mockGetAutomergeDocListing: vi.fn(),
-}));
+const { mockAddDustDocListenerForMission, mockBuildDustEverything, mockGetAutomergeDocListing } =
+  vi.hoisted(() => ({
+    mockAddDustDocListenerForMission: vi.fn().mockResolvedValue(undefined),
+    mockBuildDustEverything: vi.fn().mockResolvedValue([]),
+    mockGetAutomergeDocListing: vi.fn(),
+  }));
 
 // Mock addDustDocListenerForMission to avoid DB calls from automerge doc listing
 vi.mock("server/dust/v1/sockets-dust-emitters", async () => {
@@ -15,8 +17,15 @@ vi.mock("server/dust/v1/sockets-dust-emitters", async () => {
   return {
     ...actual,
     addDustDocListenerForMission: mockAddDustDocListenerForMission,
+    buildDustEverything: mockBuildDustEverything,
   };
 });
+
+// getEverything wraps its work in RequestContext.create(globalValues.orm.em, ...),
+// mocked here as a pass-through so only a stub em is required.
+vi.mock("@mikro-orm/postgresql", () => ({
+  RequestContext: { create: (_em: unknown, fn: () => unknown) => fn() },
+}));
 
 vi.mock("utils/permissions", () => ({
   dustTokenIsValid: vi.fn().mockReturnValue(true),
@@ -30,9 +39,10 @@ vi.mock("server/express/routes/docListing", () => ({
 import {
   getDustSocketRoomName,
   getMissionIdFromDustSocketRoomName,
+  removeDustVisitor,
 } from "server/dust/v1/sockets-dust";
 import { dustTokenIsValid, emssTokenIsValid } from "utils/permissions";
-import type { DustVisitor } from "server/dust/v1/types/socketioDust";
+import type { DustPosEntriesUpdate, DustVisitor } from "server/dust/v1/types/socketioDust";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +68,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Re-apply mock implementations after clearAllMocks so module-level mocks still resolve
   mockAddDustDocListenerForMission.mockResolvedValue(undefined);
+  mockBuildDustEverything.mockResolvedValue([]);
+  globalValues.orm = { em: { fork: vi.fn() } } as never;
   vi.mocked(dustTokenIsValid).mockReturnValue(true);
   vi.mocked(emssTokenIsValid).mockReturnValue(false);
   // Provide automerge infrastructure mocks globally so the real addDustDocListenerForMission
@@ -95,11 +107,47 @@ describe("getMissionIdFromDustSocketRoomName", () => {
   });
 });
 
+describe("removeDustVisitor", () => {
+  it("does nothing when the mission has no visitors tracked", () => {
+    expect(() => removeDustVisitor("socket-unknown", MISSION_ID)).not.toThrow();
+    expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+  });
+
+  it("removes the mission entry and cleans up when the last visitor leaves", () => {
+    const removeListenerFn = vi.fn();
+    globalValues.dustV1.docListeners.set(MISSION_ID, removeListenerFn);
+    globalValues.dustV1.visitorData[MISSION_ID] = [
+      { socketId: "socket-a", name: "Vitest Dust", connectedAt: Date.now() },
+    ];
+
+    removeDustVisitor("socket-a", MISSION_ID);
+
+    expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+    expect(removeListenerFn).toHaveBeenCalled();
+  });
+
+  it("keeps the mission entry and listener when other visitors remain", () => {
+    const removeListenerFn = vi.fn();
+    globalValues.dustV1.docListeners.set(MISSION_ID, removeListenerFn);
+    globalValues.dustV1.visitorData[MISSION_ID] = [
+      { socketId: "socket-a", name: "Vitest Dust A", connectedAt: Date.now() },
+      { socketId: "socket-b", name: "Vitest Dust B", connectedAt: Date.now() },
+    ];
+
+    removeDustVisitor("socket-a", MISSION_ID);
+
+    expect(globalValues.dustV1.visitorData[MISSION_ID]).toHaveLength(1);
+    expect(removeListenerFn).not.toHaveBeenCalled();
+  });
+});
+
 // ─── setupDustNamespace socket handlers ──────────────────────────────────────
 
 describe("dust namespace socket handlers", () => {
   let mockSocket: {
     join: ReturnType<typeof vi.fn>;
+    leave: ReturnType<typeof vi.fn>;
+    emit: ReturnType<typeof vi.fn>;
     id: string;
     handshake: { auth: { token: string } };
     on: ReturnType<typeof vi.fn>;
@@ -116,6 +164,8 @@ describe("dust namespace socket handlers", () => {
 
     mockSocket = {
       join: vi.fn(),
+      leave: vi.fn(),
+      emit: vi.fn(),
       id: `socket-${uuidv4()}`,
       handshake: { auth: { token: "validToken" } },
       on: vi.fn(),
@@ -251,6 +301,53 @@ describe("dust namespace socket handlers", () => {
       await mockSocket._handlers["missionJoin"](MISSION_ID, visitor);
 
       expect(mockAddDustDocListenerForMission).toHaveBeenCalledWith(MISSION_ID);
+    });
+
+    it("calls back with an error and undoes the join when listener setup fails", async () => {
+      const { serverLogger } = await import("utils/logging/serverLogger");
+      vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      mockAddDustDocListenerForMission.mockRejectedValueOnce(new Error("db down"));
+
+      const visitor: DustVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestDust",
+        connectedAt: Date.now(),
+      };
+      const callback = vi.fn();
+
+      await mockSocket._handlers["missionJoin"](MISSION_ID, visitor, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.any(String),
+      });
+      expect(mockSocket.leave).toHaveBeenCalledWith(getDustSocketRoomName(MISSION_ID));
+      expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+    });
+
+    it("succeeds on a retry after a failed setup attempt", async () => {
+      const { serverLogger } = await import("utils/logging/serverLogger");
+      vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      mockAddDustDocListenerForMission.mockRejectedValueOnce(new Error("transient"));
+
+      const visitor: DustVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestDust",
+        connectedAt: Date.now(),
+      };
+
+      const firstCallback = vi.fn();
+      await mockSocket._handlers["missionJoin"](MISSION_ID, visitor, firstCallback);
+      expect(firstCallback).toHaveBeenCalledWith({ status: "error", message: expect.any(String) });
+
+      const secondCallback = vi.fn();
+      await mockSocket._handlers["missionJoin"](MISSION_ID, visitor, secondCallback);
+
+      expect(secondCallback).toHaveBeenCalledWith({
+        status: "success",
+        message: expect.any(String),
+      });
+      expect(globalValues.dustV1.visitorData[MISSION_ID]).toHaveLength(1);
     });
 
     it("emits inspectorUpdate after the visitor joins", async () => {
@@ -390,6 +487,90 @@ describe("dust namespace socket handlers", () => {
       vi.mocked(emssTokenIsValid).mockReturnValue(false);
       middleware(socket, next);
       expect(next).toHaveBeenCalledWith(expect.any(Error));
+    });
+  });
+
+  // ─── getEverything ─────────────────────────────────────────────────────────
+
+  describe("getEverything", () => {
+    it("calls back with every rex payload for the mission", async () => {
+      const data: DustPosEntriesUpdate[] = [
+        {
+          missionId: MISSION_ID,
+          missionName: "Vitest Mission",
+          rexUuid: "rex-1",
+          rexName: "Vitest Rex",
+          evaUuid: "eva-1",
+          evaName: "Vitest EVA",
+          posEntries: [],
+        },
+      ];
+      mockBuildDustEverything.mockResolvedValue(data);
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getEverything"](MISSION_ID, callback);
+
+      expect(mockBuildDustEverything).toHaveBeenCalledWith(MISSION_ID);
+      expect(callback).toHaveBeenCalledWith({
+        status: "success",
+        message: "Everything retrieved",
+        data,
+      });
+    });
+
+    it("calls back with success and an empty list when the mission has no rexes", async () => {
+      mockBuildDustEverything.mockResolvedValue([]);
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getEverything"](MISSION_ID, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "success",
+        message: "Everything retrieved",
+        data: [],
+      });
+    });
+
+    it("returns an error for a null missionId without building anything", async () => {
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getEverything"](null, callback);
+
+      expect(callback).toHaveBeenCalledWith({ status: "error", message: expect.any(String) });
+      expect(mockBuildDustEverything).not.toHaveBeenCalled();
+    });
+
+    it("returns an error for a NaN missionId", async () => {
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getEverything"](NaN, callback);
+
+      expect(callback).toHaveBeenCalledWith({ status: "error", message: expect.any(String) });
+      expect(mockBuildDustEverything).not.toHaveBeenCalled();
+    });
+
+    it("returns an error when building the payload fails", async () => {
+      const { serverLogger } = await import("utils/logging/serverLogger");
+      vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      mockBuildDustEverything.mockRejectedValue(new Error("doc unavailable"));
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getEverything"](MISSION_ID, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("doc unavailable"),
+      });
+    });
+
+    it("does not require the caller to have joined the mission first", async () => {
+      mockBuildDustEverything.mockResolvedValue([]);
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getEverything"](MISSION_ID, callback);
+
+      expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+      expect(callback).toHaveBeenCalledWith(expect.objectContaining({ status: "success" }));
     });
   });
 

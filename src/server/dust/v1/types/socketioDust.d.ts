@@ -1,13 +1,23 @@
 // ─── /dust namespace — DUST API client ────────────────────────────────────────
 
+import type { DefaultEventsMap, Socket } from "socket.io";
+
 export interface DustServerToClientEvents {
   /**
-   * Sent whenever the posEntries (crew positions) of a running REX change —
-   * edits to existing entries, adds, or deletes. Only emitted to the room for
-   * the mission the REX belongs to.
+   * Sent whenever anything in a running REX's payload changes — crew position
+   * adds/edits/deletes, pos type/source renames, and mission/REX/EVA renames.
+   * Only emitted to the room for the mission the REX belongs to.
    */
   posEntriesUpdate: (payload: DustPosEntriesUpdate) => void;
 }
+
+/** A socket connected to the /dust/v1 namespace. */
+export type DustSocket = Socket<
+  DustClientToServerEvents,
+  DustServerToClientEvents,
+  DefaultEventsMap,
+  {}
+>;
 
 export interface DustClientToServerEvents {
   missionJoin: (
@@ -15,6 +25,20 @@ export interface DustClientToServerEvents {
     dustVisitor: DustVisitor,
     callback?: (
       response: { status: "success"; message: string } | { status: "error"; message: string }
+    ) => void
+  ) => void;
+
+  /**
+   * On-demand full resynchronization. Returns the current state of every REX on
+   * the mission — running or not — each in the same shape as a `posEntriesUpdate`
+   * payload.
+   */
+  getEverything: (
+    missionId: number,
+    callback: (
+      response:
+        | { status: "success"; message: string; data: DustPosEntriesUpdate[] }
+        | { status: "error"; message: string }
     ) => void
   ) => void;
 

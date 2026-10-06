@@ -1,31 +1,20 @@
 import { globalValues } from "server/express/global";
-import { getAutomergeDocListing } from "../../express/routes/docListing";
-import type { DocHandle, DocumentId } from "@automerge/automerge-repo";
+import type { DocHandle } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { getDustSocketRoomName } from "./sockets-dust";
 import type { DustPosEntriesUpdate, DustReadablePosEntry } from "./types/socketioDust";
 
-/**
- * Per-mission snapshot of each rex's `posEntries` array reference, used to detect
- * which rexes had an add/edit/delete since the last doc change.
- * Automerge keeps unchanged sub-objects referentially stable, so a reference change
- * on `posEntries` means something in that array changed.
- */
-const dustPosEntriesSnapshots = new Map<number, { [rexUuid: string]: PosEntry[] | null }>();
-
-export const setDustSnapshot = (missionId: number, mission: Mission): void => {
-  const snapshot: { [rexUuid: string]: PosEntry[] | null } = {};
-  for (const rexUuid in mission.rexes) {
-    snapshot[rexUuid] = mission.rexes[rexUuid].posEntries;
-  }
-  dustPosEntriesSnapshots.set(missionId, snapshot);
+type DustMissionSnapshot = {
+  [rexUuid: string]: {
+    posEntriesUpdate: DustPosEntriesUpdate;
+    /** Canonical serialization of `payload`, used for cheap change detection. */
+    posEntriesUpdateJson: string;
+  };
 };
 
-export const clearDustSnapshot = (missionId: number): void => {
-  dustPosEntriesSnapshots.delete(missionId);
-};
+const dustSnapshots = new Map<number, DustMissionSnapshot>();
 
 /**
  * Resolves a rex's posEntries into a DUST-readable form — posType/posSource
@@ -51,9 +40,45 @@ const buildReadablePosEntries = (rex: Rex): DustReadablePosEntry[] => {
 };
 
 /**
+ * Builds the complete outbound payload for a single rex.
+ */
+export const buildDustPosEntriesUpdate = (
+  missionId: number,
+  mission: Mission,
+  rex: Rex
+): DustPosEntriesUpdate => {
+  // The rex's own EVA copy has no name (REX EVAs are unnamed) — resolve the
+  // as-planned EVA sharing the same refUuid to get a human-readable name.
+  const eva = mission.evas?.[rex.evaUuid];
+  const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, eva?.refUuid);
+
+  return {
+    missionId,
+    missionName: mission.name,
+    rexUuid: rex.uuid,
+    rexName: rex.name,
+    evaUuid: eva?.uuid ?? rex.evaUuid,
+    evaName: asPlannedEva?.name ?? "",
+    posEntries: buildReadablePosEntries(rex),
+  };
+};
+
+const buildDustMissionSnapshot = (missionId: number, mission: Mission): DustMissionSnapshot => {
+  const snapshot: DustMissionSnapshot = {};
+  for (const rexUuid in mission.rexes) {
+    const payload = buildDustPosEntriesUpdate(missionId, mission, mission.rexes[rexUuid]);
+    snapshot[rexUuid] = {
+      posEntriesUpdate: payload,
+      posEntriesUpdateJson: JSON.stringify(payload),
+    };
+  }
+  return snapshot;
+};
+
+/**
  * Main function that is called whenever there is a change to the automerge document.
- * Determines whether a running rex's posEntries changed and, if so, emits the full
- * updated posEntries list to the DUST room for that mission.
+ * Diffs the json outbound payload of every running rex against the last
+ * snapshot and emits the ones that changed to the DUST room for that mission.
  *
  * Bails out immediately if no DUST servers are connected at all (skips every other
  * check), and skips emitting for a mission whose DUST room currently has no one in it.
@@ -67,41 +92,35 @@ export function onDustChangeListener(
     // No DUST servers connected to any mission — bypass all other checks.
     if (!dustNamespace || dustNamespace.sockets.size === 0) return;
 
+    const roomName = getDustSocketRoomName(missionId);
+    const roomSize = dustNamespace.adapter.rooms.get(roomName)?.size ?? 0;
+    // No DUST visitors for this mission.
+    if (roomSize === 0) return;
+
     const mission = missionDocHandle.doc();
     if (!mission) return;
 
-    const prevSnapshot = dustPosEntriesSnapshots.get(missionId);
-    // Always update the snapshot, even if nothing relevant changed, so a no-op
-    // change doesn't cause the next change to look like a larger delta.
-    setDustSnapshot(missionId, mission);
+    const prevSnapshot = dustSnapshots.get(missionId);
+    const nextSnapshot = buildDustMissionSnapshot(missionId, mission);
 
-    const roomName = getDustSocketRoomName(missionId);
-    const roomSize = dustNamespace.adapter.rooms.get(roomName)?.size ?? 0;
-    if (roomSize === 0) return; // no DUST visitors for this mission
+    const payloads: DustPosEntriesUpdate[] = [];
 
-    for (const rexUuid in mission.rexes) {
-      const rex = mission.rexes[rexUuid];
+    for (const rexUuid in nextSnapshot) {
       // Crew positions can only be added while a rex is running.
-      if (!rex.isRunning) continue;
+      if (!mission.rexes[rexUuid].isRunning) continue;
 
-      const prevPosEntries = prevSnapshot?.[rexUuid];
-      if (prevPosEntries === rex.posEntries) continue; // unchanged, skip
+      const next = nextSnapshot[rexUuid];
+      const prev = prevSnapshot?.[rexUuid];
+      if (prev && prev.posEntriesUpdateJson === next.posEntriesUpdateJson) continue; // unchanged, skip
 
-      // The rex's own EVA copy has no name (REX EVAs are unnamed) — resolve the
-      // as-planned EVA sharing the same refUuid to get a human-readable name.
-      const eva = mission.evas?.[rex.evaUuid];
-      const asPlannedEva = getAsPlannedEvaFromRefUuid(mission, eva?.refUuid);
+      payloads.push(next.posEntriesUpdate);
+    }
 
-      const payload: DustPosEntriesUpdate = {
-        missionId,
-        missionName: mission.name,
-        rexUuid: rex.uuid,
-        rexName: rex.name,
-        evaUuid: eva?.uuid ?? rex.evaUuid,
-        evaName: asPlannedEva?.name ?? "",
-        posEntries: buildReadablePosEntries(rex),
-      };
+    // Always store the new snapshot, even if nothing relevant changed, so a no-op
+    // change doesn't cause the next change to look like a larger delta.
+    dustSnapshots.set(missionId, nextSnapshot);
 
+    for (const payload of payloads) {
       dustNamespace.to(roomName).emit("posEntriesUpdate", payload);
     }
   } catch (error) {
@@ -117,8 +136,34 @@ export function onDustChangeListener(
 }
 
 /**
+ * Builds the full current state of every rex on a mission — running or not
+ */
+export const getEverythingForDust = async (missionId: number): Promise<DustPosEntriesUpdate[]> => {
+  const missionDocHandle = globalValues.dustV1.docHandles.get(missionId);
+  const mission = missionDocHandle.doc();
+  if (!mission) throw new Error(`Automerge document for mission ${missionId} is unavailable`);
+
+  return Object.values(mission.rexes ?? {}).map((rex) =>
+    buildDustPosEntriesUpdate(missionId, mission, rex)
+  );
+};
+
+/**
+ * Drops every provisional piece of state created by a setup attempt.
+ */
+const discardDustSetupState = (missionId: number): void => {
+  globalValues.dustV1.docListeners.delete(missionId);
+  globalValues.dustV1.docHandles.delete(missionId);
+  dustSnapshots.delete(missionId);
+};
+
+/**
  * Adds a new automerge doc listener for a mission and emits DUST posEntries updates
- * whenever a running rex's posEntries change. Called when a DUST visitor joins a mission.
+ * whenever a running rex changes. Called when a DUST visitor joins a mission.
+ *
+ * Throws if the mission's document cannot be resolved, after rolling back the
+ * provisional state, so the caller can fail the join rather than leaving the client
+ * joined to a mission that will never receive updates.
  */
 export const addDustDocListenerForMission = async (missionId: number): Promise<void> => {
   if (globalValues.dustV1.docListeners.has(missionId)) return; // Already listening, exit
@@ -128,10 +173,18 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
   globalValues.dustV1.docListeners.set(missionId, () => {});
 
   try {
-    const automergeListing = (await getAutomergeDocListing([missionId]))[0];
-    const missionDocHandle = await globalValues.automergeRepo.find<Mission>(
-      automergeListing.automergeUrl as DocumentId
-    );
+    const missionDocHandle = globalValues.dustV1.docHandles.get(missionId);
+
+    // The last visitor may have disconnected while the lookups above were awaiting.
+    // Installing now would orphan the listener.
+    if (!((globalValues.dustV1.visitorData[missionId]?.length ?? 0) > 0)) {
+      discardDustSetupState(missionId);
+      serverLogger.debug({
+        logId: "socket-dust-v1",
+        logValue: `addDustDocListenerForMission - Abandoned dust doc listener setup for mission ${missionId}, no visitors remain`,
+      });
+      return;
+    }
 
     // Save the reference to the handle so we can access the document faster without having to find it.
     globalValues.dustV1.docHandles.set(missionId, missionDocHandle);
@@ -139,7 +192,7 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
     // Initialize first snapshot with the current doc state.
     const initialDoc = missionDocHandle.doc();
     if (initialDoc) {
-      setDustSnapshot(missionId, initialDoc);
+      dustSnapshots.set(missionId, buildDustMissionSnapshot(missionId, initialDoc));
     }
 
     const throttledListener = throttle(
@@ -155,6 +208,8 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
 
     missionDocHandle.on("change", throttledListener);
     globalValues.dustV1.docListeners.set(missionId, () => {
+      // Drop any queued trailing invocation so it can't run after cleanup.
+      throttledListener.cancel();
       missionDocHandle.off("change", throttledListener);
     });
 
@@ -163,6 +218,7 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
       logValue: `addDustDocListenerForMission - Added dust automerge doc listener for mission ${missionId}`,
     });
   } catch (error) {
+    discardDustSetupState(missionId);
     serverLogger.error(
       {
         logId: "socket-dust-v1",
@@ -170,6 +226,7 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
       },
       error instanceof Error ? error : new Error(String(error))
     );
+    throw error instanceof Error ? error : new Error(String(error));
   }
 };
 
@@ -191,7 +248,7 @@ export const cleanupDust = (missionId: number): void => {
   }
 
   // Remove snapshot
-  clearDustSnapshot(missionId);
+  dustSnapshots.delete(missionId);
 
   // Remove global doc handle reference
   const docHandleRemoved = globalValues.dustV1.docHandles.delete(missionId);
