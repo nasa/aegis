@@ -33,7 +33,15 @@ import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 import CalculatedDwell from "../calculated-dwell";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
-const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+const Info_Panel: FunctionComponent<{
+  editMode: boolean;
+  /** Narrower than `editMode`: a running REX may permit duration without the rest. */
+  durationEditMode?: boolean;
+  /** Narrower than `editMode`: a running REX may permit path editing without the rest. */
+  pathEditMode?: boolean;
+}> = ({ editMode, durationEditMode: durationEditModeProp, pathEditMode: pathEditModeProp }) => {
+  const durationEditMode = durationEditModeProp ?? editMode;
+  const pathEditMode = pathEditModeProp ?? editMode;
   const dispatch = useAppDispatch();
   const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
   const usingLGRSCoordinates = useMissionDocSelector(
@@ -221,7 +229,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div className={paneStyles.inputFieldValue}>
                         <ValidatedInputField
                           value={selectedTraverse.duration?.toString()}
-                          editMode={editMode}
+                          editMode={durationEditMode}
                           fieldProps={{
                             name: "duration",
                             ariaLabel: "Duration",
@@ -272,7 +280,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div className={paneStyles.inputFieldValue}>
                         <ValidatedInputField
                           value={selectedTraverse.traverseRate?.toString()}
-                          editMode={editMode}
+                          editMode={durationEditMode}
                           fieldProps={{
                             name: "traverseRate",
                             ariaLabel: "Average Traverse Rate",
@@ -319,10 +327,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
               <SubpanelHeading icon={faRoute}>Path</SubpanelHeading>
             </div>
 
-            {editMode ? (
+            {pathEditMode ? (
               <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
                 <>
-                  {editMode && mapAction === null ? (
+                  {pathEditMode && mapAction === null ? (
                     <>
                       <Button
                         onClick={() => {
@@ -343,7 +351,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                   ) : (
                     <div className={paneStyles.buttonPlaceholder} />
                   )}
-                  {editMode && mapAction === "editPolyline" ? (
+                  {pathEditMode && mapAction === "editPolyline" ? (
                     saveButtonState === "pending" ? (
                       <>
                         <span className={traverseStyles.statusLoading} />

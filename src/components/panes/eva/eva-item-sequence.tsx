@@ -9,19 +9,30 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDocAddStationToEva } from "store/thunk/thunkEva";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import {
+  canEditInRexScope,
+  findRexUuidForEntity,
+  useRexExecuteEditMode,
+} from "utils/rexExecuteEditMode";
 
 export const EvaSequence: FunctionComponent<{
   evaUuid: string;
 }> = ({ evaUuid }) => {
   const dispatch = useAppDispatch();
   const editMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
+  const sequenceRexUuid = useMissionDocSelector(
+    (mission) => findRexUuidForEntity(mission, { evaUuid }),
+    refEqual
+  );
+  const { mode: rexEditMode } = useRexExecuteEditMode(sequenceRexUuid ?? null);
+  const canAddStation = canEditInRexScope(rexEditMode, "evaSequenceAdd");
 
   return (
     <>
       <div className={evaStyles.evaSequenceContainer}>
         <EvaItemSequence evaUuid={evaUuid} />
       </div>
-      {editMode && (
+      {editMode && canAddStation && (
         <div className={evaStyles.evaFooterContainer}>
           <div className={paneStyles.iconButtons}>
             <Button
