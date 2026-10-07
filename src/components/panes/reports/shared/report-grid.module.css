@@ -1,0 +1,782 @@
+/*
+ * EVA Coverage grid styling. The 22px cell rhythm, rotated column labels,
+ * group dividers and crosshair hover are deliberately DUPLICATED from the v1
+ * stm-viewer css (v1 is legacy and must stay untouched — never share).
+ */
+
+.coverageBody {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.gridScroll {
+  flex: 1 1 auto;
+  /* allow the grid to shrink when the drilldown opens/widens instead of
+     pushing the drilldown off the page */
+  min-width: 0;
+  overflow: auto;
+}
+
+.controls {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 8px 8px 0;
+  font-size: 0.9em;
+}
+.controlGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+.controlLabel {
+  font-size: 0.85em;
+  font-weight: 300;
+  white-space: nowrap;
+}
+.columnVisibilityPanelOutside {
+  flex: 0 0 auto;
+}
+
+.columnVisibilityPanelButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 3px 10px;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background: var(--grey3);
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.columnVisibilityPanelButton[aria-expanded="true"],
+.columnVisibilityPanelButton:hover {
+  background: var(--grey3);
+}
+
+.columnVisibilityPanel {
+  position: fixed;
+  width: min(400px, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--grey3);
+  border-radius: 8px;
+  background: var(--grey1);
+  color: var(--grey5);
+  box-shadow: 0 10px 32px rgb(0 0 0 / 40%);
+  font-size: 13px;
+  z-index: 1000;
+}
+
+.columnVisibilityPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+}
+
+.columnVisibilityHint {
+  margin-top: 4px;
+  color: var(--grey4);
+  font-size: 12px;
+}
+
+.columnVisibilityClose {
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.columnVisibilityTools {
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--grey3);
+}
+
+.columnVisibilityTools input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--grey3);
+  border-radius: 4px;
+  background: var(--grey0);
+  color: inherit;
+  font: inherit;
+}
+
+.columnVisibilityTools input::placeholder {
+  color: var(--grey4);
+}
+
+.columnVisibilityActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.columnVisibilityActions > span {
+  flex: 1;
+  color: var(--grey4);
+}
+
+.columnVisibilityActions button {
+  border: 0;
+  border-radius: 4px;
+  background: var(--grey2);
+  color: inherit;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.columnVisibilityList {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+}
+
+.columnVisibilitySection + .columnVisibilitySection {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--grey3);
+}
+
+.columnVisibilitySectionHeader,
+.columnVisibilityGroupRow,
+.columnVisibilityChildRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 4px 8px;
+}
+
+.columnVisibilitySectionHeader {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--grey4);
+}
+
+.columnVisibilityGroup {
+  border-radius: 4px;
+  margin-top: 2px;
+  background: var(--grey2);
+}
+
+.columnVisibilityGroupRow {
+  font-weight: 500;
+}
+
+.columnVisibilityCheckbox {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--blue, #4a90e2);
+  cursor: pointer;
+}
+
+.columnVisibilityExpandButton {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.columnVisibilityGroupLabel {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.columnVisibilityCount {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.columnVisibilityChildren {
+  margin: 0 8px 0 15px;
+  padding: 0 0 6px 8px;
+  border-left: 1px solid var(--grey3);
+}
+
+.columnVisibilityChildRow {
+  cursor: pointer;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.columnVisibilityKind {
+  flex: 0 0 58px;
+  color: var(--grey4);
+  font-size: 11px;
+}
+
+.columnVisibilityChildRow:hover,
+.columnVisibilityClose:hover,
+.columnVisibilityActions button:hover {
+  background: var(--grey3);
+}
+
+.columnVisibilityPanel :focus-visible,
+.columnVisibilityPanelButton:focus-visible {
+  outline: 2px solid var(--grey5);
+  outline-offset: 2px;
+}
+
+.columnVisibilityEmpty {
+  padding: 24px 8px;
+  text-align: center;
+  color: var(--grey4);
+}
+
+/* ---------- header ---------- */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: row;
+  width: max-content;
+  min-width: 100%;
+  background-color: var(--grey2);
+  border-bottom: 2px solid var(--grey0);
+}
+.headerLeft {
+  flex: 0 0 auto;
+  display: grid;
+  align-content: end;
+}
+.headerColumns {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.columnGroup {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* width is set inline (see ColumnHeader) rather than left to auto/content
+     sizing: Firefox miscomputes a flex item's intrinsic width when its
+     descendants use writing-mode: vertical-rl (the rotated labels below),
+     https://bugzilla.mozilla.org/show_bug.cgi?id=1332555. flex-shrink: 0
+     keeps that explicit width from being squeezed under space pressure. */
+  flex-shrink: 0;
+}
+.columnGroup > .headerColumns {
+  flex: 1;
+}
+
+.columnHeaderCell {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  flex: 0 0 var(--stmCoverageSummaryCellWidth, 40px);
+  background-color: var(--grey3);
+  border-top: 1px solid var(--grey0);
+  border-left: 1px solid var(--grey0);
+  cursor: pointer;
+  overflow: hidden;
+}
+.columnHeaderCellBaseline {
+  background-color: var(--grey4);
+  color: var(--grey0);
+}
+.columnHeaderCell:focus-visible {
+  outline: 2px solid var(--grey5);
+  outline-offset: -2px;
+}
+
+.emptyState {
+  padding: 12px;
+  color: var(--grey4);
+  font-size: 0.9em;
+}
+
+.stationHeaderCell {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  flex: 0 0 var(--stmCoverageStationCellWidth, 22px);
+  background-color: var(--grey3);
+  border-top: 1px solid var(--grey0);
+  border-left: 1px solid var(--grey0);
+  overflow: hidden;
+}
+
+/* Grow with the name up to 240px, then wrap at word boundaries. Two vertical
+   lines fit in the 40px summary/comparison columns; narrow coverage columns
+   clip any extra lines. Full names remain available in the cell tooltips. */
+.rotatedLabel {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  min-height: 140px;
+  height: max-content;
+  max-height: 240px;
+  /* Show only whole lines when a name exceeds the available column width. */
+  max-width: round(down, 100%, 1lh);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 0.85em;
+  line-height: 1.4;
+  /* After rotation, continuation lines start 12px above the first line. */
+  padding: 20px 0 8px;
+  text-indent: -12px;
+}
+
+.columnHeaderIcons {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 16px;
+  font-size: 0.75em;
+  /* follow the header cell's text color so the icon darkens with it on light
+     backgrounds (e.g. the baseline column) */
+  color: inherit;
+  opacity: 1;
+  margin-top: 2px;
+}
+.columnHeaderIcons:hover {
+  opacity: 1;
+}
+
+/* icon strip at the foot of an expanded station/traverse sub-column header;
+   fixed height keeps station and traverse headers the same size and lines up
+   with the 16px + 2px expand/collapse strip of the summary column */
+.sequenceHeaderIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  font-size: 0.8em;
+  margin-top: 2px;
+}
+/* miniature of the Matches tab traverse glyph: a short dotted vertical line */
+.sequenceHeaderTraverseIcon {
+  border-left: 3px dotted var(--eva);
+  height: 12px;
+}
+
+.columnDivider {
+  flex: 0 0 4px;
+  align-self: stretch;
+  background-color: var(--grey0);
+}
+
+.campaignDivider {
+  flex-basis: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sectionDividerLabel {
+  color: white;
+  font-size: 0.75em;
+  font-weight: 600;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
+
+/* ---------- table rows ---------- */
+
+.tableRowCells {
+  display: flex;
+  flex-direction: row;
+}
+
+/*
+ * Cells stretch to the full row height (rows grow when the level3 name wraps)
+ * so the 1px column borders and status backgrounds read as a continuous table
+ * grid. The value keeps the 22px rhythm via line-height + flex-start; row
+ * separators come from gridCellLevel3Container's border-bottom.
+ */
+.cell {
+  flex: 0 0 var(--stmCoverageSummaryCellWidth, 40px);
+  min-height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  line-height: 22px;
+  font-size: 0.75em;
+  font-weight: 600;
+  border-left: 1px solid var(--grey0);
+  cursor: pointer;
+  user-select: none;
+}
+.cellStation {
+  flex: 0 0 var(--stmCoverageStationCellWidth, 22px);
+}
+.cellHovered {
+  background-color: var(--stmCoverageHover);
+}
+
+/*
+ * ---------- status colors (absolute mode) ----------
+ * Soft pastels drawn from the app palette (see timeline-init.ts / globals.css):
+ * satisfied = pastel green (--adjective family), partial = pastel blue
+ * (--noun / timeline blue). Each background pairs with an explicit light text
+ * color so the number stays legible regardless of the tint underneath.
+ */
+.cellSatisfied {
+  background-color: #52f0751f;
+  color: #a8e8b6;
+}
+.cellPartial {
+  background-color: #6ee5ff1f;
+  color: #a5dcec;
+}
+.cellNone {
+  color: var(--grey4);
+}
+.cellNoRules {
+  color: var(--grey3);
+}
+
+/*
+ * ---------- diff colors ----------
+ * Tinted backgrounds mirror the status pastels so a positive delta reads as
+ * "more coverage" (green) and a negative delta as "less" (soft red). Text
+ * colors are lightened tints of the same hue for high contrast on the dark
+ * grid, never a saturated fill behind saturated text.
+ */
+.cellDiffEqual {
+  color: var(--grey4);
+}
+.cellDiffPositive {
+  background-color: #52f0751a;
+  color: #a8e8b6;
+}
+.cellDiffNegative {
+  background-color: #ff70701a;
+  color: #f0aeae;
+}
+/* Diff cells stack the added and removed counts vertically ("+2" over "−1")
+   so the paired deltas read as a compact two-line stack rather than a wide
+   "+2 −1" run; each value keeps its own color regardless of the net tint. */
+.cellDiffValues {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+  padding: 3px 0;
+}
+.cellDiffAdded {
+  color: #a8e8b6;
+}
+.cellDiffRemoved {
+  color: #f0aeae;
+}
+/* coverage status flipped (e.g. satisfied -> partial) between baseline and
+   this column: a subtle pastel-blue outline draws the eye without clashing
+   with the diff background tint underneath. */
+.cellStatusChanged {
+  outline: 1px solid #6ee5ff99;
+  outline-offset: -1px;
+}
+/* the cell whose breakdown is open in the drilldown panel. Inset box-shadow
+   (not outline) so it can coexist with the cellStatusChanged outline. */
+.cellSelected {
+  box-shadow: inset 0 0 0 2px var(--grey5);
+}
+
+/* ---------- drilldown panel ---------- */
+
+/* drag handle between the grid and the drilldown; doubles as the divider */
+.drilldownResizer {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background-color: var(--grey0);
+  touch-action: none;
+}
+.drilldownResizer:hover,
+.drilldownResizer:active {
+  background-color: var(--grey3);
+}
+
+.drilldown {
+  /* width set inline from stmCoverageDrilldownWidth; the resizer drags it.
+     max-width mirrors the drag clamp (300px grid + 6px resizer) so a width
+     stored in a wider window can't push the panel off-screen after a resize */
+  flex: 0 0 auto;
+  min-width: 220px;
+  max-width: calc(100% - 306px);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--grey2);
+  overflow: auto;
+  font-size: 0.9em;
+}
+.drilldownHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--grey0);
+}
+.drilldownTitle {
+  font-weight: 500;
+}
+.drilldownSubtitle {
+  font-size: 0.85em;
+  font-weight: 300;
+  color: var(--grey4);
+}
+.drilldownClose {
+  cursor: pointer;
+  color: var(--grey4);
+  padding: 0 2px;
+}
+.drilldownClose:hover {
+  color: var(--grey5);
+}
+.drilldownContent {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  gap: 8px;
+}
+.drilldownRule {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--grey1);
+  border-radius: var(--radius);
+  padding: 5px;
+  gap: 3px;
+}
+.drilldownRuleSentence {
+  font-size: 0.9em;
+}
+.drilldownRuleVerb {
+  color: var(--verb);
+}
+.drilldownRuleNoun {
+  color: var(--noun);
+}
+.drilldownRuleAdjective {
+  color: var(--adjective);
+}
+.drilldownRuleCounts {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85em;
+}
+.drilldownRuleSatisfied {
+  color: #a8e8b6;
+}
+.drilldownRuleUnsatisfied {
+  color: #f0aeae;
+}
+.drilldownBaselineNote {
+  color: var(--grey4);
+}
+.drilldownActionRow {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  font-size: 0.85em;
+  padding: 1px 0 0 8px;
+}
+.drilldownActionSequenceName {
+  color: var(--grey4);
+  white-space: nowrap;
+}
+/* Diff rows: same tints as the grid's .cellDiffPositive/.cellDiffNegative so
+   drilldown pluses/minuses read identically to cell deltas. */
+.drilldownDiffIndicator {
+  width: 10px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--grey4);
+}
+.drilldownActionPlus {
+  background-color: #52f0751a;
+  border-radius: 3px;
+}
+.drilldownActionPlus .drilldownDiffIndicator {
+  color: #a8e8b6;
+}
+.drilldownActionMinus {
+  background-color: #ff70701a;
+  border-radius: 3px;
+}
+.drilldownActionMinus .drilldownDiffIndicator {
+  color: #f0aeae;
+}
+.drilldownBaselineSectionLabel {
+  color: var(--grey4);
+  font-size: 0.8em;
+  padding-left: 8px;
+  margin-top: 2px;
+}
+
+/* ---------- help button + modal ---------- */
+
+.helpButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--grey4);
+  cursor: pointer;
+  font-size: 1em;
+}
+.helpButton:hover {
+  color: var(--grey5);
+}
+
+.helpDialog {
+  padding: 0;
+  border: 1px solid var(--grey3);
+  border-radius: var(--panelRadius);
+  background-color: var(--grey1);
+  color: var(--grey5);
+  box-shadow: 0 4px 20px rgb(0 0 0 / 50%);
+  max-width: 560px;
+  width: calc(100% - 40px);
+  max-height: calc(100vh - 60px);
+  overflow: hidden;
+}
+.helpDialog::backdrop {
+  background: rgb(0 0 0 / 40%);
+}
+.helpDialogInner {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 60px);
+}
+
+.helpDialogHeader {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--grey0);
+  background-color: var(--grey2);
+  border-radius: var(--panelRadius) var(--panelRadius) 0 0;
+}
+.helpDialogTitle {
+  font-size: 1.05em;
+  font-weight: 500;
+}
+.helpDialogClose {
+  cursor: pointer;
+  color: var(--grey4);
+  padding: 0 4px;
+  font-size: 1.1em;
+}
+.helpDialogClose:hover {
+  color: var(--grey5);
+}
+
+.helpDialogContent {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 12px 16px 16px;
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+.helpDialogContent p {
+  margin: 0 0 4px;
+}
+.helpIntro {
+  color: var(--grey5);
+  margin-bottom: 12px !important;
+}
+
+.helpSection {
+  margin-top: 14px;
+}
+.helpSectionTitle {
+  font-weight: 500;
+  color: var(--base);
+  margin-bottom: 6px;
+  font-size: 0.95em;
+}
+
+.helpLegendRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin: 5px 0;
+}
+/* legend swatch reuses the real cell status/diff classes; this only sets the
+   shared box shape so a swatch renders identically to a grid cell. It must NOT
+   set background-color here: this rule is defined after the status/diff classes,
+   so an equal-specificity background-color would win by source order and paint
+   over the very colors the legend is trying to demonstrate. Swatches with no
+   status class (the "no fill" / dash cases) fall back to the transparent grid
+   cell look, matching how those cells actually render. */
+.helpSwatch {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  font-weight: 600;
+  border: 1px solid var(--grey0);
+  border-radius: var(--radius);
+}
+.helpLegendText {
+  flex: 1 1 auto;
+  color: var(--grey5);
+}
+
+.helpInlineIcon {
+  color: var(--grey4);
+  margin: 0 1px;
+}
+
+.helpList {
+  margin: 0;
+  padding-left: 18px;
+}
+.helpList li {
+  margin: 3px 0;
+}

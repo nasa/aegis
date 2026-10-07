@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { Fragment, useMemo } from "react";
-import styles from "./stm-viewer-indicators.module.css";
+import styles from "./stm-legacy-viewer-indicators.module.css";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useAppDispatch } from "utils/useAppDispatch";

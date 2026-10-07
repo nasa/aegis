@@ -122,4 +122,21 @@ describe("validateMission", () => {
     const errors = await validateMission(generateBlankMission());
     expect(errors.length).toBe(0);
   });
+
+  test("Returns no errors for a mission with a report campaign", async () => {
+    (global.fetch as Mock).mockResolvedValueOnce(makeMockSuccessResponse());
+    const campaign: ReportCampaign = {
+      uuid: "campaign-1",
+      name: "Campaign 1",
+      description: "First reporting campaign",
+      memberEvaUuids: ["eva-1"],
+      executionRexUuidByEvaUuid: { "eva-1": "rex-1" },
+      createdAt: 1,
+      updatedAt: null,
+    };
+    const errors = await validateMission(
+      generateBlankMission({ reportCampaigns: { [campaign.uuid]: campaign } })
+    );
+    expect(errors.length).toBe(0);
+  });
 });

@@ -12,6 +12,7 @@ import { initialState as stationInitialState } from "store/station";
 import { initialState as rexInitialState } from "store/rex";
 import { initialState as hoverInitialState } from "store/hover";
 import { initialState as stmInitialState } from "store/stm";
+import { initialState as reportInitialState } from "store/report";
 import { initialState as userInitialState } from "store/user";
 import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as connectionInitialState } from "store/connection";
@@ -88,6 +89,7 @@ export const createTestStoreWithAutomergeMission = (): StoreType => {
       level2s: [stmLevel2],
       level3s: [stmLevel3],
     },
+    report: { ...reportInitialState },
     preset: {
       ...presetInitialState,
       presets: [preset],
