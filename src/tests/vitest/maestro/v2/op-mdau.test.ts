@@ -1105,6 +1105,296 @@ describe("opUpdateMdau() — rexes", () => {
   });
 });
 
+// ── opUpdateMdau: action add / delete ────────────────────────────────────────
+
+describe("opUpdateMdau() — action add/delete", () => {
+  /** Build a mission with two actions on one station and one on a traverse. */
+  const buildAddDeleteMission = () => {
+    const station = generateBlankStation({ name: "Vitest Alpha" });
+    const traverse = generateBlankTraverse({ name: "Vitest Path" });
+    const actionA = generateBlankAction({ stationUuid: station.uuid, name: "A" });
+    const actionB = generateBlankAction({ stationUuid: station.uuid, name: "B" });
+    const traverseAction = generateBlankAction({ traverseUuid: traverse.uuid, name: "T" });
+    station.actionOrderUuids = [actionA.uuid, actionB.uuid];
+    traverse.actionOrderUuids = [traverseAction.uuid];
+    const eva = generateBlankEVA({
+      sequence: [
+        { type: "station", uuid: station.uuid },
+        { type: "traverse", uuid: traverse.uuid },
+      ],
+    });
+    const rex = generateBlankRex({ evaUuid: eva.uuid, isRunning: false, posEntries: [] });
+    rex.actionEntries = {
+      [actionB.uuid]: {
+        rexStatus: "pending",
+        markerId: "",
+        containerId: "",
+        secondaryContainerId: "",
+      },
+    };
+
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.stations[station.uuid] = station;
+      m.traverses[traverse.uuid] = traverse;
+      m.actions[actionA.uuid] = actionA;
+      m.actions[actionB.uuid] = actionB;
+      m.actions[traverseAction.uuid] = traverseAction;
+      m.evas[eva.uuid] = eva;
+      m.rexes[rex.uuid] = rex;
+    });
+    return { handle, station, traverse, actionA, actionB, traverseAction, rex };
+  };
+
+  const mdauActionFrom = (
+    action: Pick<Action, "uuid" | "name">,
+    overrides: Partial<MDAU.MdauAction> = {}
+  ): MDAU.MdauAction => ({
+    uuid: action.uuid,
+    name: action.name,
+    descriptionTask: null,
+    duration: 6,
+    actionDefinition: null,
+    missionPriorityUuid: null,
+    stmAction: false,
+    actors: [],
+    enabled: true,
+    updatedAt: Date.now(),
+    ...overrides,
+  });
+
+  const mdauStationFrom = (station: Station, actionOrderUuids: string[]): MDAU.MdauStation => ({
+    uuid: station.uuid,
+    name: station.name,
+    duration: station.duration,
+    actionOrderUuids,
+    updatedAt: station.updatedAt,
+  });
+
+  it("adds a new action listed in its parent station's actionOrderUuids", () => {
+    const { handle, station, actionA, actionB, traverseAction } = buildAddDeleteMission();
+    const newActionUuid = "vitest-new-action";
+    const updatedAt = Date.now() + 1000;
+
+    runMdau(handle, {
+      aegisStations: {
+        [station.uuid]: mdauStationFrom(station, [actionA.uuid, newActionUuid, actionB.uuid]),
+      },
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [actionB.uuid]: mdauActionFrom(actionB),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+        [newActionUuid]: mdauActionFrom(
+          { uuid: newActionUuid, name: "New" },
+          { duration: 15, actors: ["EV2"], descriptionTask: "Collect sample", updatedAt }
+        ),
+      },
+    });
+
+    const doc = handle.doc();
+    const created = doc.actions[newActionUuid];
+    expect(created).toBeDefined();
+    expect(created.stationUuid).toBe(station.uuid);
+    expect(created.traverseUuid).toBeNull();
+    expect(created.name).toBe("New");
+    expect(created.duration).toBe(15);
+    expect(created.crewAssigned).toEqual(["EV2"]);
+    expect(created.descriptionTask).toBe("Collect sample");
+    expect(created.updatedAt).toBe(updatedAt);
+    expect(doc.stations[station.uuid].actionOrderUuids).toEqual([
+      actionA.uuid,
+      newActionUuid,
+      actionB.uuid,
+    ]);
+  });
+
+  it("adds a new action to a traverse", () => {
+    const { handle, traverse, actionA, actionB, traverseAction } = buildAddDeleteMission();
+    const newActionUuid = "vitest-new-traverse-action";
+
+    runMdau(handle, {
+      aegisTraverse: {
+        [traverse.uuid]: {
+          uuid: traverse.uuid,
+          duration: traverse.duration,
+          actionOrderUuids: [newActionUuid, traverseAction.uuid],
+          updatedAt: traverse.updatedAt,
+        },
+      },
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [actionB.uuid]: mdauActionFrom(actionB),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+        [newActionUuid]: mdauActionFrom({ uuid: newActionUuid, name: "New" }),
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.actions[newActionUuid].traverseUuid).toBe(traverse.uuid);
+    expect(doc.actions[newActionUuid].stationUuid).toBeNull();
+    expect(doc.traverses[traverse.uuid].actionOrderUuids).toEqual([
+      newActionUuid,
+      traverseAction.uuid,
+    ]);
+  });
+
+  it("ignores a new action that no parent's actionOrderUuids lists", () => {
+    const { handle, actionA, actionB, traverseAction } = buildAddDeleteMission();
+    const warnSpy = vi.spyOn(serverLogger, "warning").mockImplementation(() => {});
+    const newActionUuid = "vitest-orphan-action";
+
+    runMdau(handle, {
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [actionB.uuid]: mdauActionFrom(actionB),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+        [newActionUuid]: mdauActionFrom({ uuid: newActionUuid, name: "Orphan" }),
+      },
+    });
+
+    expect(handle.doc().actions[newActionUuid]).toBeUndefined();
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("deletes an action missing from aegisAction when its parent station is sent", () => {
+    const { handle, station, actionA, actionB, traverseAction, rex } = buildAddDeleteMission();
+
+    runMdau(handle, {
+      aegisStations: { [station.uuid]: mdauStationFrom(station, [actionA.uuid]) },
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.actions[actionB.uuid]).toBeUndefined();
+    expect(doc.actions[actionA.uuid]).toBeDefined();
+    expect(doc.stations[station.uuid].actionOrderUuids).toEqual([actionA.uuid]);
+    expect(doc.rexes[rex.uuid].actionEntries?.[actionB.uuid]).toBeUndefined();
+  });
+
+  it("does not delete a missing action whose parent is not in the payload", () => {
+    const { handle, station, actionA, actionB, traverseAction } = buildAddDeleteMission();
+
+    runMdau(handle, {
+      aegisStations: { [station.uuid]: mdauStationFrom(station, [actionA.uuid, actionB.uuid]) },
+      // traverseAction is missing, but its traverse is not in the payload.
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [actionB.uuid]: mdauActionFrom(actionB),
+      },
+    });
+
+    expect(handle.doc().actions[traverseAction.uuid]).toBeDefined();
+  });
+
+  it("does not delete anything when aegisAction is absent", () => {
+    const { handle, station, actionA, actionB } = buildAddDeleteMission();
+
+    runMdau(handle, {
+      aegisStations: { [station.uuid]: mdauStationFrom(station, [actionB.uuid, actionA.uuid]) },
+    });
+
+    const doc = handle.doc();
+    expect(doc.actions[actionA.uuid]).toBeDefined();
+    expect(doc.actions[actionB.uuid]).toBeDefined();
+    expect(doc.stations[station.uuid].actionOrderUuids).toEqual([actionB.uuid, actionA.uuid]);
+  });
+
+  it("adds and deletes actions on the same station in one payload", () => {
+    const { handle, station, actionA, actionB, traverseAction } = buildAddDeleteMission();
+    const newActionUuid = "vitest-replacement-action";
+
+    runMdau(handle, {
+      aegisStations: { [station.uuid]: mdauStationFrom(station, [newActionUuid, actionB.uuid]) },
+      aegisAction: {
+        [actionB.uuid]: mdauActionFrom(actionB),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+        [newActionUuid]: mdauActionFrom({ uuid: newActionUuid, name: "Replacement" }),
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.actions[actionA.uuid]).toBeUndefined();
+    expect(doc.actions[newActionUuid].stationUuid).toBe(station.uuid);
+    expect(doc.stations[station.uuid].actionOrderUuids).toEqual([newActionUuid, actionB.uuid]);
+  });
+
+  it("rejects an actionOrderUuids that drops an action still present in aegisAction", () => {
+    const { handle, station, actionA, actionB, traverseAction } = buildAddDeleteMission();
+    const warnSpy = vi.spyOn(serverLogger, "warning").mockImplementation(() => {});
+
+    runMdau(handle, {
+      aegisStations: { [station.uuid]: mdauStationFrom(station, [actionA.uuid]) },
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [actionB.uuid]: mdauActionFrom(actionB),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.actions[actionB.uuid]).toBeDefined();
+    expect(doc.stations[station.uuid].actionOrderUuids).toEqual([actionA.uuid, actionB.uuid]);
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("does not delete an action missing from aegisAction that is still in the parent's actionOrderUuids", () => {
+    const { handle, station, actionA, actionB, traverseAction } = buildAddDeleteMission();
+
+    runMdau(handle, {
+      aegisStations: { [station.uuid]: mdauStationFrom(station, [actionA.uuid, actionB.uuid]) },
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.actions[actionB.uuid]).toBeDefined();
+    expect(doc.stations[station.uuid].actionOrderUuids).toEqual([actionA.uuid, actionB.uuid]);
+  });
+
+  it("does not add an action listed in actionOrderUuids that is missing from aegisAction", () => {
+    const { handle, station, actionA, actionB, traverseAction } = buildAddDeleteMission();
+    const warnSpy = vi.spyOn(serverLogger, "warning").mockImplementation(() => {});
+    const unknownActionUuid = "vitest-unknown-action";
+
+    runMdau(handle, {
+      aegisStations: {
+        [station.uuid]: mdauStationFrom(station, [actionA.uuid, actionB.uuid, unknownActionUuid]),
+      },
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [actionB.uuid]: mdauActionFrom(actionB),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.actions[unknownActionUuid]).toBeUndefined();
+    expect(doc.stations[station.uuid].actionOrderUuids).toEqual([actionA.uuid, actionB.uuid]);
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("does not delete a missing action when the parent's actionOrderUuids is null", () => {
+    const { handle, station, actionA, traverseAction, actionB } = buildAddDeleteMission();
+
+    runMdau(handle, {
+      aegisStations: {
+        [station.uuid]: { ...mdauStationFrom(station, []), actionOrderUuids: null },
+      },
+      aegisAction: {
+        [actionA.uuid]: mdauActionFrom(actionA),
+        [traverseAction.uuid]: mdauActionFrom(traverseAction),
+      },
+    });
+
+    expect(handle.doc().actions[actionB.uuid]).toBeDefined();
+  });
+});
+
 // ── opUpdateMdau: subscription gating ────────────────────────────────────────
 
 describe("opUpdateMdau() — subscription gating", () => {
