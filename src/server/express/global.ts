@@ -16,4 +16,10 @@ export const globalValues: GlobalValues = {
     docHandles: new Map(),
     evaSubscriptions: new Map(),
   },
+  dustV1: {
+    visitorData: {},
+    socketio: null,
+    docListeners: new Map(),
+    docHandles: new Map(),
+  },
 };
