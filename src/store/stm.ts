@@ -20,6 +20,10 @@ export const initialState: STMState = {
   stmViewHoveredTopItem: null,
   stmViewHoveredLeftItem: null,
   stmRulesSelectedRexes: [],
+  stmRulesActiveTab: "rules",
+  stmRulesSelectedStmUuid: null,
+  stmRulesSelectedRuleUuid: null,
+  stmRulesTierExpansion: { level1: true, level2: true },
 };
 
 export const stmSlice = createSlice({
@@ -87,7 +91,7 @@ export const stmSlice = createSlice({
     deleteSTMRulesFromDb: (state, action: { payload: string[] }) => {
       state.rulesFromDb = state.rulesFromDb.filter((rule) => !action.payload.includes(rule.uuid));
     },
-    setRuleEditingUuid: (state, action: { payload: string }) => {
+    setRuleEditingUuid: (state, action: { payload: string | null }) => {
       state.ruleEditingUuid = action.payload;
     },
     stmViewExpandItem: (state, action: { payload: STMViewExpandedItem }) => {
@@ -126,10 +130,10 @@ export const stmSlice = createSlice({
     stmViewToggleExpandTopTiers: (state) => {
       state.stmViewExpandTopTiers = !state.stmViewExpandTopTiers;
     },
-    stmViewSetHoveredTopItem: (state, action: { payload: string }) => {
+    stmViewSetHoveredTopItem: (state, action: { payload: string | null }) => {
       state.stmViewHoveredTopItem = action.payload;
     },
-    stmViewSetHoveredLeftItem: (state, action: { payload: string }) => {
+    stmViewSetHoveredLeftItem: (state, action: { payload: string | null }) => {
       state.stmViewHoveredLeftItem = action.payload;
     },
     stmViewToggleCrosshairs: (state) => {
@@ -142,6 +146,18 @@ export const stmSlice = createSlice({
       } else {
         state.stmRulesSelectedRexes.push(action.payload);
       }
+    },
+    setStmRulesActiveTab: (state, action: { payload: StmRulesTab }) => {
+      state.stmRulesActiveTab = action.payload;
+    },
+    setStmRulesSelectedStmUuid: (state, action: { payload: string | null }) => {
+      state.stmRulesSelectedStmUuid = action.payload;
+    },
+    setStmRulesSelectedRuleUuid: (state, action: { payload: string | null }) => {
+      state.stmRulesSelectedRuleUuid = action.payload;
+    },
+    stmRulesToggleTierExpansion: (state, action: { payload: keyof StmRulesTierExpansion }) => {
+      state.stmRulesTierExpansion[action.payload] = !state.stmRulesTierExpansion[action.payload];
     },
     obliterateState: (state) => {
       //eslint-disable-next-line
@@ -173,5 +189,9 @@ export const {
   stmViewSetHoveredTopItem,
   stmViewSetHoveredLeftItem,
   stmRulesToggleRex,
+  setStmRulesActiveTab,
+  setStmRulesSelectedStmUuid,
+  setStmRulesSelectedRuleUuid,
+  stmRulesToggleTierExpansion,
   obliterateState,
 } = stmSlice.actions;
