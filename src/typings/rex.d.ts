@@ -153,6 +153,7 @@ type EvaEditCapability =
   | "traversePath"
   | "evaSequenceAdd" // Add Station (creates a station slot + traverse)
   | "evaSequenceReorder" // up/down arrows
+  | "evaSequenceRemove" // trash icon (removes a station and its following traverse)
   | "actionCreate"
   | "actionReorder" // drag-and-drop writing actionOrderUuids
   | "actionCrewAssigned"

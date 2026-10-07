@@ -12,6 +12,7 @@ const LIMITED_MODE_EVA_EDIT_CAPABILITIES: ReadonlySet<EvaEditCapability> =
     "traversePath",
     "evaSequenceAdd",
     "evaSequenceReorder",
+    "evaSequenceRemove",
     "actionCreate",
     "actionReorder",
     "actionCrewAssigned",

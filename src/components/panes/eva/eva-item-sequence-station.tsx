@@ -74,9 +74,9 @@ const SequenceItemStation: FunctionComponent<{
   const stationWasAdded = isEntityAdded(stationUuid);
   const canReorderRow = canEditInRexScope(rexEditMode, "evaSequenceReorder");
   // Only an empty slot awaiting a pick, or a station added under the restriction,
-  // may have its station swapped or be removed.
+  // may have its station swapped.
   const canChangeRowStation = rexEditMode === "unrestricted" || !stationUuid || stationWasAdded;
-  const canRemoveRow = rexEditMode === "unrestricted" || stationWasAdded;
+  const canRemoveRow = canEditInRexScope(rexEditMode, "evaSequenceRemove");
   // The xgress dropdown is never available under a restricted mode.
   const canChangeXgress = rexEditMode === "unrestricted";
 

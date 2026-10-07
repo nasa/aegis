@@ -12,6 +12,7 @@ const LIMITED_ALLOWED_CAPABILITIES: EvaEditCapability[] = [
   "traversePath",
   "evaSequenceAdd",
   "evaSequenceReorder",
+  "evaSequenceRemove",
   "actionCreate",
   "actionReorder",
   "actionCrewAssigned",

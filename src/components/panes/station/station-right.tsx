@@ -92,9 +92,10 @@ const StationEditorRight: FunctionComponent = () => {
   const { mode: rexEditMode, isEntityAdded } = useRexExecuteEditMode(stationRexUuid ?? null);
   /** A station added under limited editing is exempt from the restriction. */
   const stationWasAdded = isEntityAdded(selectedStationUuid);
-  /** Name, icon, POIs, circles and delete are only available when unrestricted. */
+  /** Name, icon, POIs and circles are only available when unrestricted. */
   const stationGeneralEditMode =
     isInEditMode && (rexEditMode === "unrestricted" || stationWasAdded);
+  const canDeleteStation = isInEditMode && canEditInRexScope(rexEditMode, "evaSequenceRemove");
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -236,7 +237,7 @@ const StationEditorRight: FunctionComponent = () => {
             dispatchFunction={setSelectedStationRightNavItem}
           />
           <div className={paneStyles.saveCancelContainer}>
-            {stationGeneralEditMode && (
+            {canDeleteStation && (
               <Button
                 ariaLabel="deleteStation"
                 icon={faTrashAlt}
