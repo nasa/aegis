@@ -446,6 +446,28 @@
   padding-left: 13px;
 }
 
+.azimuthContainer {
+  padding-left: 13px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.inputFieldContainerAzimuth {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: -0.5rem;
+  z-index: 10;
+}
+
+.sliderWrapper {
+  position: relative;
+  display: inline-block;
+  width: 100px;
+}
+
 .fieldContainerAutomerge {
   padding-left: 13px;
   display: flex;

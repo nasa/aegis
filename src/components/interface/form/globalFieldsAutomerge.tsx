@@ -455,6 +455,7 @@ export const ValidatedInputField: FunctionComponent<{
   focusContents?: boolean;
   onChange?: React.ChangeEventHandler;
   displayStyle?: CSSProperties;
+  displayValue?: string;
 }> = ({
   value,
   editMode,
@@ -464,6 +465,7 @@ export const ValidatedInputField: FunctionComponent<{
   focusContents,
   onChange,
   displayStyle,
+  displayValue,
 }) => {
   const valueToShow = value || "";
 
@@ -647,7 +649,7 @@ export const ValidatedInputField: FunctionComponent<{
           aria-label={fieldProps.ariaLabel}
           style={displayStyle}
         >
-          {valueToShow}
+          {displayValue ?? valueToShow}
         </div>
         {editMode && (
           <div className={formStyles.editPencilWrapper}>
