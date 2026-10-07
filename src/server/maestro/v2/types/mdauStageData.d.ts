@@ -75,6 +75,12 @@ export interface RexStage {
   >;
   /** Whether the incoming payload flips this rex to running (used for stop-others + posEntries). */
   startsRunning: boolean;
+  /**
+   * The incoming `executeEditMode`, staged only when it differs from the doc
+   * and the rex is not yet frozen (`executeEditState` is null). Once frozen,
+   * the mode is fixed for the REX's life and Maestro's value is ignored.
+   */
+  executeEditMode?: RexExecuteEditMode;
   maestroActivityProperties: MaestroActivityProperties | null;
   /**
    * Resolved station/traverse activity entries keyed by sequence uuid.

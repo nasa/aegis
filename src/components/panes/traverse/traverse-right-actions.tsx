@@ -5,6 +5,7 @@ import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { findRexUuidForEntity } from "utils/rexExecuteEditMode";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 
@@ -52,18 +53,12 @@ const Actions_Panel: FunctionComponent<{
     };
   }, deepEqual);
 
-  const traverseInRunningRex: boolean = useMissionDocSelector((mission) => {
-    if (!mission?.rexes || !mission?.evas) return false;
-    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
-    if (!runningRex) return false;
-    const runningRexEva = mission.evas[runningRex.evaUuid];
-    return runningRexEva?.sequence.some((s) => s.uuid === selectedTraverse?.uuid) ?? false;
-  }, refEqual);
-
-  const runningRexUuid = useMissionDocSelector((mission) => {
-    if (!mission?.rexes) return null;
-    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.uuid ?? null;
-  }, refEqual);
+  // The REX owning this traverse, whether or not it is running, so its execute
+  // edit mode and action letters keep applying after execution stops.
+  const traverseRexUuid = useMissionDocSelector(
+    (mission) => findRexUuidForEntity(mission, { traverseUuid: selectedTraverse?.uuid }),
+    refEqual
+  );
 
   return (
     <div className={paneStyles.rightBody}>
@@ -87,7 +82,7 @@ const Actions_Panel: FunctionComponent<{
           actionParentUuid={{ traverseUuid: selectedTraverse.uuid }}
           parentType="traverse"
           actionsCalculatedFields={actionsCalculatedFields}
-          rexUuid={traverseInRunningRex ? runningRexUuid : null}
+          rexUuid={traverseRexUuid}
         />
       </div>
     </div>

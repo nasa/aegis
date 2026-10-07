@@ -880,6 +880,7 @@ describe("opUpdateMdau() — rexes", () => {
       petRunning: true,
       isRunning: true,
       maestroControlled: true,
+      executeEditMode: "unrestricted",
       updatedAt: rexUpdatedAt,
       maestroActivityProperties: {
         [station.uuid]: { color: "#ff0000", number: "1" },
@@ -954,6 +955,7 @@ describe("opUpdateMdau() — rexes", () => {
           petRunning: true,
           isRunning: true,
           maestroControlled: true,
+          executeEditMode: "unrestricted",
           updatedAt: Date.now(),
           maestroActivityProperties: {},
           stationEntries: {},
@@ -980,6 +982,7 @@ describe("opUpdateMdau() — rexes", () => {
           petRunning: true,
           isRunning: true,
           maestroControlled: true,
+          executeEditMode: "unrestricted",
           updatedAt: Date.now(),
           maestroActivityProperties: {},
           stationEntries: {},
@@ -994,6 +997,107 @@ describe("opUpdateMdau() — rexes", () => {
     for (const entry of updated.posEntries) {
       expect(entry.location).toEqual(egressStation.location);
     }
+  });
+
+  it("writes executeEditMode before the rex has ever been executed", () => {
+    const { handle, rex } = buildRexMission();
+    expect(rex.executeEditMode).toBe("unrestricted");
+
+    runMdau(handle, {
+      aegisRexes: {
+        [rex.uuid]: {
+          uuid: rex.uuid,
+          petStartStopTimestamp: null,
+          petValueAtStartStop: "+00:00:00",
+          petRunning: false,
+          isRunning: false,
+          maestroControlled: true,
+          executeEditMode: "limited",
+          updatedAt: Date.now(),
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
+        },
+      },
+    });
+
+    expect(handle.doc().rexes[rex.uuid].executeEditMode).toBe("limited");
+  });
+
+  it("applies an incoming executeEditMode before freezing it when the same payload starts the rex", () => {
+    const { handle, rex } = buildRexMission();
+
+    runMdau(handle, {
+      aegisRexes: {
+        [rex.uuid]: {
+          uuid: rex.uuid,
+          petStartStopTimestamp: null,
+          petValueAtStartStop: "+00:00:00",
+          petRunning: true,
+          isRunning: true,
+          maestroControlled: true,
+          executeEditMode: "none",
+          updatedAt: Date.now(),
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
+        },
+      },
+    });
+
+    const updated = handle.doc().rexes[rex.uuid];
+    expect(updated.executeEditMode).toBe("none");
+    expect(updated.executeEditState).not.toBeNull();
+  });
+
+  it("ignores executeEditMode once the rex has already been executed", () => {
+    const { handle, rex } = buildRexMission();
+
+    // First payload starts and freezes the rex under "limited".
+    runMdau(handle, {
+      aegisRexes: {
+        [rex.uuid]: {
+          uuid: rex.uuid,
+          petStartStopTimestamp: null,
+          petValueAtStartStop: "+00:00:00",
+          petRunning: true,
+          isRunning: true,
+          maestroControlled: true,
+          executeEditMode: "limited",
+          updatedAt: Date.now(),
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
+        },
+      },
+    });
+    expect(handle.doc().rexes[rex.uuid].executeEditMode).toBe("limited");
+
+    // A later payload trying to switch to "none" must be ignored since the
+    // rex is already frozen.
+    runMdau(handle, {
+      aegisRexes: {
+        [rex.uuid]: {
+          uuid: rex.uuid,
+          petStartStopTimestamp: null,
+          petValueAtStartStop: "+00:00:00",
+          petRunning: false,
+          isRunning: false,
+          maestroControlled: true,
+          executeEditMode: "none",
+          updatedAt: Date.now(),
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
+        },
+      },
+    });
+
+    expect(handle.doc().rexes[rex.uuid].executeEditMode).toBe("limited");
   });
 });
 
@@ -1145,6 +1249,7 @@ describe("opUpdateMdau() — subscription gating", () => {
           petRunning: true,
           isRunning: true,
           maestroControlled: true,
+          executeEditMode: "unrestricted",
           updatedAt: Date.now(),
           maestroActivityProperties: {},
           stationEntries: {},

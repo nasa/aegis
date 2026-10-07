@@ -92,6 +92,117 @@ export function applyDeleteRexStage(m: Mission, stage: RexDeletionStageData): vo
 }
 
 /**
+ * Record that a REX has been executed, which freezes its `executeEditMode` and
+ * establishes the action-letter baseline. Idempotent: a stop / re-execute cycle
+ * never re-snapshots.
+ *
+ * The baseline is captured for every mode, since its presence is what marks the
+ * mode as frozen. It records each REX-EVA station's and traverse's action order
+ * at execution time, which is what pins an action's displayed letter under
+ * limited editing.
+ */
+export function applyFreezeExecuteEditMode(m: Mission, { rexUuid }: { rexUuid: string }): void {
+  const rex = m.rexes[rexUuid];
+  if (!rex || rex.executeEditState) return;
+
+  const actionLetterOrderByParent: { [parentUuid: string]: string[] } = {};
+  const eva = m.evas?.[rex.evaUuid];
+  for (const item of eva?.sequence ?? []) {
+    // An unselected station slot is a supported state.
+    if (!item.uuid) continue;
+    const stationOrTraverse =
+      item.type === "station" ? m.stations?.[item.uuid] : m.traverses?.[item.uuid];
+    if (!stationOrTraverse) continue;
+    actionLetterOrderByParent[item.uuid] = [...(stationOrTraverse.actionOrderUuids ?? [])];
+  }
+
+  rex.executeEditState = {
+    addedStationUuids: [],
+    addedTraverseUuids: [],
+    addedActionUuids: [],
+    actionLetterOrderByParent,
+  };
+  rex.updatedAt = getAccurateNow().getTime();
+}
+
+/** Mark a station as created in this REX's EVA under limited editing. */
+export function applyRegisterAddedStation(
+  m: Mission,
+  { rexUuid, stationUuid }: { rexUuid: string; stationUuid: string }
+): void {
+  const executeEditState = m.rexes[rexUuid]?.executeEditState;
+  if (!executeEditState || !stationUuid) return;
+  if (!executeEditState.addedStationUuids.includes(stationUuid))
+    executeEditState.addedStationUuids.push(stationUuid);
+}
+
+/** Mark a traverse as created in this REX's EVA under limited editing. */
+export function applyRegisterAddedTraverse(
+  m: Mission,
+  { rexUuid, traverseUuid }: { rexUuid: string; traverseUuid: string }
+): void {
+  const executeEditState = m.rexes[rexUuid]?.executeEditState;
+  if (!executeEditState || !traverseUuid) return;
+  if (!executeEditState.addedTraverseUuids.includes(traverseUuid))
+    executeEditState.addedTraverseUuids.push(traverseUuid);
+}
+
+/**
+ * Mark an action as created under limited editing. When its parent existed
+ * before execution, the action is also appended to that parent's letter
+ * baseline, which is what gives it the next letter in sequence.
+ */
+export function applyRegisterAddedAction(
+  m: Mission,
+  { rexUuid, actionUuid, parentUuid }: { rexUuid: string; actionUuid: string; parentUuid: string }
+): void {
+  const executeEditState = m.rexes[rexUuid]?.executeEditState;
+  if (!executeEditState || !actionUuid) return;
+  if (!executeEditState.addedActionUuids.includes(actionUuid))
+    executeEditState.addedActionUuids.push(actionUuid);
+
+  const baseline = executeEditState.actionLetterOrderByParent?.[parentUuid];
+  if (baseline && !baseline.includes(actionUuid)) baseline.push(actionUuid);
+}
+
+/** Undo `applyRegisterAddedStation`, e.g. when an added sequence slot is re-picked. */
+export function applyUnregisterAddedStation(
+  m: Mission,
+  { rexUuid, stationUuid }: { rexUuid: string; stationUuid: string }
+): void {
+  const executeEditState = m.rexes[rexUuid]?.executeEditState;
+  if (!executeEditState) return;
+  const index = executeEditState.addedStationUuids.indexOf(stationUuid);
+  if (index >= 0) executeEditState.addedStationUuids.splice(index, 1);
+}
+
+/** Undo `applyRegisterAddedTraverse`. */
+export function applyUnregisterAddedTraverse(
+  m: Mission,
+  { rexUuid, traverseUuid }: { rexUuid: string; traverseUuid: string }
+): void {
+  const executeEditState = m.rexes[rexUuid]?.executeEditState;
+  if (!executeEditState) return;
+  const index = executeEditState.addedTraverseUuids.indexOf(traverseUuid);
+  if (index >= 0) executeEditState.addedTraverseUuids.splice(index, 1);
+}
+
+/**
+ * Undo `applyRegisterAddedAction`. Pre-existing parents never need baseline
+ * compaction — their actions cannot be deleted — so only the added-action list
+ * is touched.
+ */
+export function applyUnregisterAddedAction(
+  m: Mission,
+  { rexUuid, actionUuid }: { rexUuid: string; actionUuid: string }
+): void {
+  const executeEditState = m.rexes[rexUuid]?.executeEditState;
+  if (!executeEditState) return;
+  const index = executeEditState.addedActionUuids.indexOf(actionUuid);
+  if (index >= 0) executeEditState.addedActionUuids.splice(index, 1);
+}
+
+/**
  * Update PET timer start/stop state directly on a REX in the Mission draft.
  */
 export function applyRexPetStartStop(
