@@ -467,13 +467,13 @@ export const ValidatedInputField: FunctionComponent<{
   displayStyle,
   displayValue,
 }) => {
-  const valueToShow = displayValue || value || "";
+  const valueToShow = value || "";
 
   const dialogRef = useRef<HTMLDialogElement>(null); // Used to control the dialog box (open/close)
   const dialogChildrenRef = useRef<HTMLDivElement>(null); // Used to position the dialog box
   const containerRef = useRef<HTMLDivElement>(null); // Used to position the dialog box
   const inputRef = useRef<HTMLInputElement>(null); // Used to focus the input when dialog opens
-  const initialValueRef = useRef<string>(value); // Track last successfully submitted value
+  const initialValueRef = useRef<string>(valueToShow); // Track last successfully submitted value
   const formApiRef = useRef<FormApi<Record<string, string>> | null>(null); // Access the form outside of the form
   const [isNarrowDialog, setIsNarrowDialog] = useState<boolean>(false); // Track if dialog width is <= 130px
   const [isRightAligned, setIsRightAligned] = useState<boolean>(false); // Track if dialog should be right-aligned
@@ -528,7 +528,7 @@ export const ValidatedInputField: FunctionComponent<{
         e.stopPropagation();
         setDialogLocation();
         dialogRef.current?.showModal();
-        initialValueRef.current = value; // Initialize valid value when dialog opens
+        initialValueRef.current = valueToShow; // Initialize valid value when dialog opens
       }}
     >
       <dialog
@@ -554,7 +554,7 @@ export const ValidatedInputField: FunctionComponent<{
               const newValue = formValues[fieldProps.name] ?? "";
               onSubmit(newValue);
             }}
-            initialValues={{ [fieldProps.name]: value }}
+            initialValues={{ [fieldProps.name]: valueToShow }}
             render={({ handleSubmit, form }) => {
               formApiRef.current = form;
 
@@ -649,7 +649,7 @@ export const ValidatedInputField: FunctionComponent<{
           aria-label={fieldProps.ariaLabel}
           style={displayStyle}
         >
-          {valueToShow}
+          {displayValue ?? valueToShow}
         </div>
         {editMode && (
           <div className={formStyles.editPencilWrapper}>

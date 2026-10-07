@@ -444,17 +444,13 @@
 
 .descriptionContainer {
   padding-left: 13px;
+}
+
+.azimuthContainer {
+  padding-left: 13px;
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.inputFieldValueAzimuth {
-  font-size: 1rem;
-  font-weight: 400;
-  align-self: center;
-  color: white;
-  overflow: auto;
 }
 
 .inputFieldContainerAzimuth {
@@ -462,7 +458,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: calc(-0.5rem);
+  margin-bottom: -0.5rem;
   z-index: 10;
 }
 

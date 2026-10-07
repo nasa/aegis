@@ -1,6 +1,6 @@
 import express from "express";
 import supertest from "supertest";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import allRoutes from "server/express/routes/all";
 
 const app = express();
@@ -10,7 +10,6 @@ const originalEmssToken = process.env.EMSS_TOKEN;
 
 describe("GET /api/v1/all", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
     process.env.EMSS_TOKEN = "test-emss-token";
   });
 

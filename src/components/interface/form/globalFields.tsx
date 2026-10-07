@@ -571,8 +571,8 @@ export const DegreesInputSlider: FunctionComponent<{
   onChange: Function;
   icon: IconDefinition;
   isDragging?: Function;
-  labelFontSize?: string;
-}> = ({ value, label, editable = true, onChange, icon, isDragging }) => {
+  hideValue?: boolean;
+}> = ({ value, label, editable = true, onChange, icon, isDragging, hideValue }) => {
   const editableStyle = editable ? "" : formStyles.notEditable;
 
   return (
@@ -586,8 +586,8 @@ export const DegreesInputSlider: FunctionComponent<{
         label={label}
         labelColor="var(--grey4)"
         labelFontSize="0.8rem"
-        valueFontSize={editable ? "0rem" : "1rem"}
-        verticalOffset={editable ? "2.4rem" : "0.5rem"}
+        valueFontSize={hideValue ? "0rem" : "1rem"}
+        verticalOffset={hideValue ? "2.4rem" : "0.5rem"}
         knobPosition="top"
         knobColor={"var(--grey3)"}
         knobSize={20}
