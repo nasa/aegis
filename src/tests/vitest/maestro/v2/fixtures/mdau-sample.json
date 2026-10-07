@@ -313,6 +313,7 @@
         "petStartStopTimestamp": "2026-07-29T22:06:49.865Z",
         "petValueAtStartStop": "+00:00:00",
         "petRunning": true,
+        "executeEditMode": "unrestricted",
         "updatedAt": 1785359210188,
         "maestroActivityProperties": {
           "e0000000-0000-4000-8000-00000000e6e5": {

@@ -42,10 +42,20 @@ import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/qu
 const Info_Panel: FunctionComponent<{
   editMode: boolean;
   isLanderXgress?: boolean;
-}> = ({ editMode, isLanderXgress = false }) => {
+  /** Narrower than `editMode`: a running REX may permit location without the rest. */
+  locationEditMode?: boolean;
+  /** Narrower than `editMode`: a running REX may permit duration without the rest. */
+  durationEditMode?: boolean;
+}> = ({
+  editMode,
+  isLanderXgress = false,
+  locationEditMode: locationEditModeProp,
+  durationEditMode: durationEditModeProp,
+}) => {
   const dispatch = useAppDispatch();
   /** Lander copies are pinned to the lander so some fields won't be editable. */
-  const locationEditMode = editMode && !isLanderXgress;
+  const locationEditMode = (locationEditModeProp ?? editMode) && !isLanderXgress;
+  const durationEditMode = durationEditModeProp ?? editMode;
   const resolvedGrid = useResolvedMissionGrid();
   const partialMission = useMissionDocSelector(
     (mission) => ({
@@ -340,7 +350,7 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.inputFieldValue}>
                         <ValidatedInputField
                           value={selectedStation.duration?.toString()}
-                          editMode={editMode}
+                          editMode={durationEditMode}
                           fieldProps={{
                             name: "duration",
                             ariaLabel: "Time in minutes",

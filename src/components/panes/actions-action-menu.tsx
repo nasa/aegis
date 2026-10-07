@@ -18,10 +18,19 @@ import {
   applyUpdateActionByField,
 } from "operations/apply/apply-action";
 import { applyCreateTemplateFromAction } from "operations/apply/apply-mission-actionTemplate";
+import { applyRegisterAddedAction, applyUnregisterAddedAction } from "operations/apply/apply-rex";
+import { UNRESTRICTED_ACTION_EDIT_CAPABILITIES } from "utils/rexExecuteEditMode";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
-}> = ({ action }) => {
+  rexEditCapabilities?: ActionEditCapabilities;
+  /** Set when the action's list is scoped to a REX under a restricted mode. */
+  restrictedRexUuid?: string | null;
+}> = ({
+  action,
+  rexEditCapabilities = UNRESTRICTED_ACTION_EDIT_CAPABILITIES,
+  restrictedRexUuid = null,
+}) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -50,44 +59,54 @@ export const ActionMenu: FunctionComponent<{
         }}
       >
         <div ref={menuRef} className={actionStyles.menu}>
-          <div
-            className={actionStyles.menuItem}
-            onClick={() => {
-              withMissionChange((m) =>
-                applyUpdateActionByField(m, {
-                  actionUuid: action.uuid,
-                  fieldName: "enabled",
-                  value: !action.enabled,
-                })
-              );
-              dialogRef.current?.close();
-            }}
-          >
-            <div className={actionStyles.menuItemIcon}>
-              <FontAwesomeIcon icon={action.enabled ? faEyeSlash : faEye} size="sm" />
-            </div>
-            <div className={actionStyles.menuItemText}>
-              {action.enabled ? "Deactivate" : "Activate"} Action
-            </div>
-          </div>
-          <div
-            className={actionStyles.menuItem}
-            onClick={(e) => {
-              if (window.confirm("Are you sure you want to delete this Action?")) {
+          {rexEditCapabilities.enabled && (
+            <div
+              className={actionStyles.menuItem}
+              onClick={() => {
                 withMissionChange((m) =>
-                  applyDeleteActionAndUpdateParent(m, { uuid: action.uuid })
+                  applyUpdateActionByField(m, {
+                    actionUuid: action.uuid,
+                    fieldName: "enabled",
+                    value: !action.enabled,
+                  })
                 );
-                e.stopPropagation();
-              }
-              dialogRef.current?.close();
-            }}
-          >
-            <div className={actionStyles.menuItemIcon}>
-              <FontAwesomeIcon icon={faTrashAlt} size="sm" />
+                dialogRef.current?.close();
+              }}
+            >
+              <div className={actionStyles.menuItemIcon}>
+                <FontAwesomeIcon icon={action.enabled ? faEyeSlash : faEye} size="sm" />
+              </div>
+              <div className={actionStyles.menuItemText}>
+                {action.enabled ? "Deactivate" : "Activate"} Action
+              </div>
             </div>
-            <div className={actionStyles.menuItemText}>Delete Action</div>
-          </div>
-          {missionEditPerms && (
+          )}
+          {rexEditCapabilities.destructive && (
+            <div
+              className={actionStyles.menuItem}
+              onClick={(e) => {
+                if (window.confirm("Are you sure you want to delete this Action?")) {
+                  withMissionChange((m) => {
+                    applyDeleteActionAndUpdateParent(m, { uuid: action.uuid });
+                    if (restrictedRexUuid) {
+                      applyUnregisterAddedAction(m, {
+                        rexUuid: restrictedRexUuid,
+                        actionUuid: action.uuid,
+                      });
+                    }
+                  });
+                  e.stopPropagation();
+                }
+                dialogRef.current?.close();
+              }}
+            >
+              <div className={actionStyles.menuItemIcon}>
+                <FontAwesomeIcon icon={faTrashAlt} size="sm" />
+              </div>
+              <div className={actionStyles.menuItemText}>Delete Action</div>
+            </div>
+          )}
+          {rexEditCapabilities.destructive && missionEditPerms && (
             <div
               className={actionStyles.menuItem}
               onClick={async (e) => {
@@ -106,27 +125,42 @@ export const ActionMenu: FunctionComponent<{
               <div className={actionStyles.menuItemText}>Save as Template</div>
             </div>
           )}
-          <div
-            className={actionStyles.menuItem}
-            onClick={(e) => {
-              e.stopPropagation();
-              withMissionChange((m) =>
-                applyDuplicateActions(m, {
-                  actions: [action],
-                  stationUuid: action.stationUuid,
-                  poiUuid: action.poiUuid,
-                  traverseUuid: action.traverseUuid,
-                  preserveRefUuid: false,
-                })
-              );
-              dialogRef.current?.close();
-            }}
-          >
-            <div className={actionStyles.menuItemIcon}>
-              <FontAwesomeIcon icon={faClone} size="sm" />
+          {rexEditCapabilities.destructive && (
+            <div
+              className={actionStyles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                withMissionChange((m) => {
+                  const uuidsBefore = new Set(Object.keys(m.actions ?? {}));
+                  applyDuplicateActions(m, {
+                    actions: [action],
+                    stationUuid: action.stationUuid,
+                    poiUuid: action.poiUuid,
+                    traverseUuid: action.traverseUuid,
+                    preserveRefUuid: false,
+                  });
+                  // A copy of an action that was itself added under limited
+                  // editing inherits the same exemption.
+                  if (!restrictedRexUuid) return;
+                  const parentUuid = action.stationUuid ?? action.traverseUuid;
+                  for (const uuid of Object.keys(m.actions ?? {})) {
+                    if (uuidsBefore.has(uuid)) continue;
+                    applyRegisterAddedAction(m, {
+                      rexUuid: restrictedRexUuid,
+                      actionUuid: uuid,
+                      parentUuid,
+                    });
+                  }
+                });
+                dialogRef.current?.close();
+              }}
+            >
+              <div className={actionStyles.menuItemIcon}>
+                <FontAwesomeIcon icon={faClone} size="sm" />
+              </div>
+              <div className={actionStyles.menuItemText}>Duplicate Action</div>
             </div>
-            <div className={actionStyles.menuItemText}>Duplicate Action</div>
-          </div>
+          )}
         </div>
       </dialog>
 
