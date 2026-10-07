@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { hasPerms } from "utils/permissions";
+import { dustTokenIsValid, hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -41,7 +41,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   const dustToken = req.headers["dust-token"] as string;
 
   const viewPermission =
-    dustToken === process.env.DUST_TOKEN ||
+    dustTokenIsValid(dustToken) ||
     hasPerms({
       missionId: queryObj.missionId,
       permission: "view",
