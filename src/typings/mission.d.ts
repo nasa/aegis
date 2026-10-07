@@ -37,7 +37,7 @@ interface Mission {
   projResZoomLevel: number | null;
   projResUnitsPerPixel: number | null;
   circleDefinitions: CircleDefinitions | null;
-  reportCampaigns?: { [uuid: string]: ReportCampaign } | null;
+  reportCampaigns: { [uuid: string]: ReportCampaign } | null;
   actionTemplates: ActionTemplates | null;
   stmLevel1Enabled?: boolean;
   stmLevel1Name?: string;
