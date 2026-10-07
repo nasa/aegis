@@ -70,23 +70,7 @@ export const ActionMenu: FunctionComponent<{
               {action.enabled ? "Deactivate" : "Activate"} Action
             </div>
           </div>
-          <div
-            className={actionStyles.menuItem}
-            onClick={(e) => {
-              if (window.confirm("Are you sure you want to delete this Action?")) {
-                withMissionChange((m) =>
-                  applyDeleteActionAndUpdateParent(m, { uuid: action.uuid })
-                );
-                e.stopPropagation();
-              }
-              dialogRef.current?.close();
-            }}
-          >
-            <div className={actionStyles.menuItemIcon}>
-              <FontAwesomeIcon icon={faTrashAlt} size="sm" />
-            </div>
-            <div className={actionStyles.menuItemText}>Delete Action</div>
-          </div>
+
           {missionEditPerms && (
             <div
               className={actionStyles.menuItem}
@@ -126,6 +110,23 @@ export const ActionMenu: FunctionComponent<{
               <FontAwesomeIcon icon={faClone} size="sm" />
             </div>
             <div className={actionStyles.menuItemText}>Duplicate Action</div>
+          </div>
+          <div
+            className={actionStyles.menuItem}
+            onClick={(e) => {
+              if (window.confirm("Are you sure you want to delete this Action?")) {
+                withMissionChange((m) =>
+                  applyDeleteActionAndUpdateParent(m, { uuid: action.uuid })
+                );
+                e.stopPropagation();
+              }
+              dialogRef.current?.close();
+            }}
+          >
+            <div className={actionStyles.menuItemIcon}>
+              <FontAwesomeIcon icon={faTrashAlt} size="sm" />
+            </div>
+            <div className={actionStyles.menuItemText}>Delete Action</div>
           </div>
         </div>
       </dialog>
