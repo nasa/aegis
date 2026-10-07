@@ -18,7 +18,13 @@ import { letterOrdinal } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyCreateAction } from "operations/apply/apply-action";
+import { applyRegisterAddedAction } from "operations/apply/apply-rex";
 import { getHighlightedActions } from "store/selectors";
+import {
+  buildActionOrdinalLabels,
+  canEditInRexScope,
+  useRexExecuteEditMode,
+} from "utils/rexExecuteEditMode";
 
 const Actions: FunctionComponent<{
   editMode: boolean;
@@ -61,6 +67,27 @@ const Actions: FunctionComponent<{
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
+  // The parent this list belongs to, used to scope the REX edit restrictions.
+  const actionParentEntityUuid = actionParentUuid?.stationUuid ?? actionParentUuid?.traverseUuid;
+  const {
+    mode: rexEditMode,
+    isEntityAdded,
+    baselineActionOrderFor,
+  } = useRexExecuteEditMode(rexUuid ?? null);
+  const parentWasAddedUnderLimitedEdit = isEntityAdded(actionParentEntityUuid);
+  const canAddAction = canEditInRexScope(rexEditMode, "actionCreate", {
+    entityWasAdded: parentWasAddedUnderLimitedEdit,
+  });
+  const canReorderActions = canEditInRexScope(rexEditMode, "actionReorder", {
+    entityWasAdded: parentWasAddedUnderLimitedEdit,
+  });
+  const actionOrdinalLabels = buildActionOrdinalLabels({
+    actionOrderUuids,
+    usePinnedLetters: rexEditMode === "limited",
+    parentWasAddedUnderLimitedEdit,
+    baselineActionOrder: baselineActionOrderFor(actionParentEntityUuid),
+  });
+
   const [isActionHighlighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
   const [newActionUuid, setNewActionUuid] = useState(undefined);
@@ -82,7 +109,7 @@ const Actions: FunctionComponent<{
   //reorder actions and save back to state.
   const reorder = useCallback(
     (fromIndex: number, toIndex: number) => {
-      if (!actionOrderUuids) return;
+      if (!actionOrderUuids || !canReorderActions) return;
       const actionOrder: string[] = clone(actionOrderUuids);
       const actionBeingMoved = actionOrder.splice(fromIndex, 1)[0]; //remove action uuid
       actionOrder.splice(toIndex, 0, actionBeingMoved); //reinsert in new position
@@ -90,7 +117,7 @@ const Actions: FunctionComponent<{
       //save new action ordering
       setActionOrderUuids(actionOrder);
     },
-    [actionOrderUuids, setActionOrderUuids]
+    [actionOrderUuids, canReorderActions, setActionOrderUuids]
   );
 
   // Un-marks newest list item as "new" after a short timeout (for auto focusing)
@@ -123,6 +150,8 @@ const Actions: FunctionComponent<{
           <ReactDragListView onDragEnd={reorder} nodeSelector="li" handleSelector="a">
             <ActionList
               editMode={editMode}
+              canReorderActions={canReorderActions}
+              actionOrdinalLabels={actionOrdinalLabels}
               rexUuid={rexUuid}
               parentType={parentType}
               actionOrderUuids={actionOrderUuids}
@@ -149,7 +178,7 @@ const Actions: FunctionComponent<{
       )}
 
       <div className={actionsStyles.rightBodyItem} style={{ marginTop: "8px" }}>
-        {editMode && (
+        {editMode && canAddAction && (
           <div className={actionsStyles.addActionRow}>
             <Button
               icon={faPlusCircle}
@@ -160,12 +189,22 @@ const Actions: FunctionComponent<{
                   ? sortedActionTemplates.find((sat) => sat[0] === selectedTemplateUuid)?.[1]
                   : null;
                 setNewActionUuid(
-                  withMissionChange((m) =>
-                    applyCreateAction(m, {
+                  withMissionChange((m) => {
+                    const newActionUuid = applyCreateAction(m, {
                       actionParentUuid,
                       actionTemplate,
-                    })
-                  )
+                    });
+                    // Under a restricted mode the new action is exempt from the
+                    // restriction and must claim its letter in the baseline.
+                    if (rexUuid && rexEditMode !== "unrestricted") {
+                      applyRegisterAddedAction(m, {
+                        rexUuid,
+                        actionUuid: newActionUuid,
+                        parentUuid: actionParentEntityUuid,
+                      });
+                    }
+                    return newActionUuid;
+                  })
                 );
               }}
             />
@@ -441,6 +480,9 @@ export const ActionList: FunctionComponent<{
   pois: POI[];
   rexUuid: string;
   newActionUuid?: string;
+  /** Defaults preserve the plain positional behavior for non-REX lists. */
+  canReorderActions?: boolean;
+  actionOrdinalLabels?: string[];
 }> = ({
   editMode,
   actionOrderUuids,
@@ -450,6 +492,8 @@ export const ActionList: FunctionComponent<{
   pois,
   rexUuid,
   newActionUuid,
+  canReorderActions = true,
+  actionOrdinalLabels,
 }) => {
   return (
     <ul className={actionsStyles.actionlist}>
@@ -469,10 +513,11 @@ export const ActionList: FunctionComponent<{
               className={actionsStyles.actionlistitemOrdinal}
               style={{ marginTop: editMode ? "8px" : "4px" }}
             >
-              {letterOrdinal(index + 1)}
+              {actionOrdinalLabels?.[index] ?? letterOrdinal(index + 1)}
             </div>
             <Action
               editMode={editMode}
+              canReorder={canReorderActions}
               actionUuid={actionUuid}
               highlight={highlight}
               parentType={parentType}

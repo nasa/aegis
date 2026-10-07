@@ -23,6 +23,11 @@ import { Button } from "components/interface/form/globalFields";
 import { thunkDocAddStationToEva } from "store/thunk/thunkEva";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import {
+  canEditInRexScope,
+  findRexUuidForEntity,
+  useRexExecuteEditMode,
+} from "utils/rexExecuteEditMode";
 
 const EvaRunningRex: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -139,13 +144,19 @@ export const EvaSequenceRunningRex: FunctionComponent<{
 }> = ({ evaUuid }) => {
   const dispatch = useAppDispatch();
   const editMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
+  const sequenceRexUuid = useMissionDocSelector(
+    (mission) => findRexUuidForEntity(mission, { evaUuid }),
+    refEqual
+  );
+  const { mode: rexEditMode } = useRexExecuteEditMode(sequenceRexUuid ?? null);
+  const canAddStation = canEditInRexScope(rexEditMode, "evaSequenceAdd");
 
   return (
     <>
       <div className={styles.evaSequenceContainer}>
         <EvaItemSequence evaUuid={evaUuid} />
       </div>
-      {editMode && (
+      {editMode && canAddStation && (
         <div className={styles.evaFooterContainer}>
           <div className={styles.iconButtons}>
             <Button

@@ -30,6 +30,7 @@ import { getRexStatusDisplayProperties } from "../../utils/component-helpers";
 import { RexStatusMenu } from "./rex/rex-status-menu";
 import { actionTypes } from "store/storeUtils/action";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { buildActionEditCapabilities, useRexExecuteEditMode } from "utils/rexExecuteEditMode";
 
 const RightAction: FunctionComponent<{
   editMode: boolean;
@@ -44,6 +45,8 @@ const RightAction: FunctionComponent<{
   /** Optional controlled expansion for isolated views such as previews. */
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  /** False when the REX's execute edit mode forbids reordering this list. */
+  canReorder?: boolean;
 }> = ({
   editMode,
   actionUuid,
@@ -56,6 +59,7 @@ const RightAction: FunctionComponent<{
   allowEdit = true,
   expanded,
   onExpandedChange,
+  canReorder = true,
 }) => {
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
@@ -97,6 +101,18 @@ const RightAction: FunctionComponent<{
   );
 
   const editPerms = allowEdit && editPermsStore && isRexRunning;
+
+  const { mode: rexEditMode, isEntityAdded } = useRexExecuteEditMode(rexUuid);
+  // A station or traverse added under limited editing is fully editable, and so
+  // is everything hanging off it — including the actions that came along with
+  // the duplicated station, not just the ones created afterwards.
+  const actionParentWasAdded = isEntityAdded(action?.stationUuid ?? action?.traverseUuid);
+  const rexEditCapabilities = buildActionEditCapabilities(rexEditMode, {
+    actionWasAdded: isEntityAdded(actionUuid) || actionParentWasAdded,
+  });
+  /** Header fields that are only editable unrestricted, or on an added action. */
+  const headerEditMode = editMode && rexEditCapabilities.generalFields;
+  const crewEditMode = editMode && rexEditCapabilities.crewAssigned;
 
   const toggleCrewAssigned = (crewMember: Crew) => {
     const currentCrew = action.crewAssigned || [];
@@ -195,7 +211,7 @@ const RightAction: FunctionComponent<{
                 ...(editMode ? { padding: "4px 0px 4px 0px" } : { padding: "2px 0px 2px 0px" }),
               }}
             >
-              {editMode && (
+              {editMode && canReorder && (
                 <a>
                   <FontAwesomeIcon
                     icon={faGripVertical}
@@ -228,7 +244,7 @@ const RightAction: FunctionComponent<{
 
               {partialMission.actionSystemVersion === 1 && (
                 <>
-                  {!editMode ? (
+                  {!headerEditMode ? (
                     <div
                       className={actionStyles.actionHeadingType}
                       onClick={() => {
@@ -270,7 +286,7 @@ const RightAction: FunctionComponent<{
                   <div>
                     <ValidatedInputField
                       value={action.name}
-                      editMode={editMode}
+                      editMode={headerEditMode}
                       fieldProps={{
                         name: "Name",
                         ariaLabel: "Action Name",
@@ -310,7 +326,7 @@ const RightAction: FunctionComponent<{
                       actionUuid={action.uuid}
                       type={"verbs"}
                       selectedUuid={action.actionDefinition?.verbUuid}
-                      editMode={editMode}
+                      editMode={headerEditMode}
                       actionDefinitionItems={partialMission.actionDefinitions?.verbs}
                     />
                     <div className={actionStyles.actionDefType}>{conjunctions.verbToNoun}</div>
@@ -318,10 +334,10 @@ const RightAction: FunctionComponent<{
                       actionUuid={action.uuid}
                       type={"nouns"}
                       selectedUuid={action.actionDefinition?.nounUuid}
-                      editMode={editMode}
+                      editMode={headerEditMode}
                       actionDefinitionItems={partialMission.actionDefinitions?.nouns}
                     />
-                    {(editMode || action.actionDefinition?.adjectiveUuid) && (
+                    {(headerEditMode || action.actionDefinition?.adjectiveUuid) && (
                       <>
                         <div className={actionStyles.actionDefType}>
                           {conjunctions.nounToAdjective}
@@ -330,7 +346,7 @@ const RightAction: FunctionComponent<{
                           actionUuid={action.uuid}
                           type={"adjectives"}
                           selectedUuid={action.actionDefinition?.adjectiveUuid}
-                          editMode={editMode}
+                          editMode={headerEditMode}
                           actionDefinitionItems={partialMission.actionDefinitions?.adjectives}
                         />
                       </>
@@ -377,13 +393,13 @@ const RightAction: FunctionComponent<{
                   <div className={actionStyles.actionHeadingRightItem}>
                     <div
                       className={actionStyles.actionDualButtons}
-                      style={{ cursor: editMode ? "pointer" : "default" }}
+                      style={{ cursor: crewEditMode ? "pointer" : "default" }}
                     >
                       <>
                         <div
                           className={`${actionStyles.actionDualButtonsLeft} ${crewLeftStyle}`}
                           onClick={() => {
-                            if (editMode) toggleCrewAssigned("EV1");
+                            if (crewEditMode) toggleCrewAssigned("EV1");
                           }}
                         >
                           1
@@ -392,7 +408,7 @@ const RightAction: FunctionComponent<{
                         <div
                           className={`${actionStyles.actionDualButtonsRight} ${crewRightStyle}`}
                           onClick={() => {
-                            if (editMode) toggleCrewAssigned("EV2");
+                            if (crewEditMode) toggleCrewAssigned("EV2");
                           }}
                         >
                           2
@@ -402,7 +418,13 @@ const RightAction: FunctionComponent<{
                   </div>
                 )}
 
-                {editMode && <ActionMenu action={action} />}
+                {editMode && (rexEditCapabilities.enabled || rexEditCapabilities.destructive) && (
+                  <ActionMenu
+                    action={action}
+                    rexEditCapabilities={rexEditCapabilities}
+                    restrictedRexUuid={rexEditMode === "unrestricted" ? null : rexUuid}
+                  />
+                )}
               </div>
             </div>
             {isExpanded && (
@@ -414,6 +436,7 @@ const RightAction: FunctionComponent<{
                 parentElevation={parentElevation}
                 rexUuid={rexUuid}
                 allowRexEdit={editPerms}
+                rexEditCapabilities={rexEditCapabilities}
               />
             )}
           </div>

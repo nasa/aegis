@@ -395,6 +395,10 @@ const stageRexes = (
         maestroControlled: mdau.maestroControlled,
       },
       startsRunning: mdau.isRunning && !rex.isRunning,
+      executeEditMode:
+        !rex.executeEditState && mdau.executeEditMode !== rex.executeEditMode
+          ? mdau.executeEditMode
+          : undefined,
       maestroActivityProperties: stageMaestroActivityProperties(
         mission,
         mdau.maestroActivityProperties
