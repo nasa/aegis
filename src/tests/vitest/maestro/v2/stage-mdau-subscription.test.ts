@@ -430,6 +430,7 @@ describe("stageMdau() subscription check — rex scopes", () => {
       petRunning: true,
       isRunning: true,
       maestroControlled: true,
+      executeEditMode: "unrestricted",
       updatedAt: 1_700_000_000_000,
       maestroActivityProperties: {},
       stationEntries: {},

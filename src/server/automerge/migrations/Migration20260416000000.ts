@@ -249,6 +249,9 @@ export const Migration20260416000000: AutomergeMigration = {
           maestroEventUrl: dbRex.maestroEventUrl,
           maestroActivityPropertiesByRefUuid: dbRex.maestroActivityPropertiesByRefUuid,
           maestroActivityProperties: dbRex.maestroActivityPropertiesByRefUuid,
+          // The legacy table has no columns for these; seed the defaults.
+          executeEditMode: "unrestricted",
+          executeEditState: null,
           createdAt: dbRex.createdAt.getTime(),
           updatedAt: dbRex.updatedAt.getTime(),
         };

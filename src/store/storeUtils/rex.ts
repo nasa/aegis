@@ -72,6 +72,8 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     maestroEventId: null,
     maestroEventUrl: null,
     maestroActivityProperties: null,
+    executeEditMode: "unrestricted",
+    executeEditState: null,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

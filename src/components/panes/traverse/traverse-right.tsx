@@ -16,6 +16,11 @@ import { RightTabs } from "components/interface/side-controls";
 import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import {
+  canEditInRexScope,
+  findRexUuidForEntity,
+  useRexExecuteEditMode,
+} from "utils/rexExecuteEditMode";
 
 const TraverseEditorRight: FunctionComponent = () => {
   const selectedRightNavItem = useAppSelector(
@@ -55,6 +60,13 @@ const TraverseEditorRight: FunctionComponent = () => {
     });
   }, deepEqual);
 
+  const traverseRexUuid = useMissionDocSelector(
+    (mission) => findRexUuidForEntity(mission, { traverseUuid: selectedEvaSequenceItemUuid }),
+    refEqual
+  );
+  const { mode: rexEditMode, isEntityAdded } = useRexExecuteEditMode(traverseRexUuid ?? null);
+  const traverseWasAdded = isEntityAdded(selectedEvaSequenceItemUuid);
+
   // set reports tab icon color
   const reportsTabIconColor = getAlertColor(calculatedFields?.reportItems) || "white";
 
@@ -63,7 +75,13 @@ const TraverseEditorRight: FunctionComponent = () => {
       title: "Traverse Information",
       panel: Info_Panel,
       panelProps: {
-        editMode: isInEditMode,
+        editMode: isInEditMode && (rexEditMode === "unrestricted" || traverseWasAdded),
+        durationEditMode:
+          isInEditMode &&
+          canEditInRexScope(rexEditMode, "activityDuration", { entityWasAdded: traverseWasAdded }),
+        pathEditMode:
+          isInEditMode &&
+          canEditInRexScope(rexEditMode, "traversePath", { entityWasAdded: traverseWasAdded }),
       },
       selectedColor: "white",
       icon: faCircleInfo,

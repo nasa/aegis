@@ -6,6 +6,7 @@ import Actions from "../actions";
 import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselectors";
 import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { findRexUuidForEntity } from "utils/rexExecuteEditMode";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
 
@@ -57,18 +58,12 @@ const Actions_Panel: FunctionComponent<{
     };
   }, [docMaps, selectedStation, missionWalkbackRate]);
 
-  const stationInRunningRex: boolean = useMissionDocSelector((mission) => {
-    if (!mission?.rexes || !mission?.evas) return false;
-    const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
-    if (!runningRex) return false;
-    const runningRexEva = mission.evas[runningRex.evaUuid];
-    return runningRexEva?.sequence.some((s) => s.uuid === selectedStation?.uuid) ?? false;
-  }, refEqual);
-
-  const runningRexUuid = useMissionDocSelector((mission) => {
-    if (!mission?.rexes) return null;
-    return Object.values(mission.rexes).find((rex) => rex.isRunning)?.uuid ?? null;
-  }, refEqual);
+  // The REX owning this station, whether or not it is running, so its execute
+  // edit mode and action letters keep applying after execution stops.
+  const stationRexUuid = useMissionDocSelector(
+    (mission) => findRexUuidForEntity(mission, { stationUuid: selectedStation?.uuid }),
+    refEqual
+  );
 
   return (
     <div className={paneStyles.rightBody}>
@@ -92,7 +87,7 @@ const Actions_Panel: FunctionComponent<{
           actionParentUuid={{ stationUuid: selectedStation.uuid }}
           parentType="station"
           actionsCalculatedFields={actionsCalculatedFields}
-          rexUuid={stationInRunningRex ? runningRexUuid : null}
+          rexUuid={stationRexUuid}
         />
       </div>
     </div>
