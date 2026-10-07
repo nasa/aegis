@@ -1,4 +1,4 @@
-/** How much of a running REX's EVA may be edited. */
+/** How much of an executed REX's EVA may be edited. */
 type RexExecuteEditMode = "unrestricted" | "limited" | "none";
 
 /**

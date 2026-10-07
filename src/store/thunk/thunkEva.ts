@@ -65,7 +65,7 @@ import { clientLogger } from "utils/logging/clientLogger";
 import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
 
 /**
- * The uuid of the REX owning this EVA when that REX is running under a
+ * The uuid of the REX owning this EVA when that REX has been executed under a
  * restricted execute edit mode, otherwise null.
  */
 const getRestrictedRexUuidForEva = (mission: Mission, evaUuid: string): string | null => {

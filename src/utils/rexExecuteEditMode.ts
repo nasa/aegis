@@ -23,7 +23,8 @@ const LIMITED_MODE_EVA_EDIT_CAPABILITIES: ReadonlySet<EvaEditCapability> =
 
 /**
  * The mode in force for a REX scope. Returns "unrestricted" for a null scope
- * (as-planned) or a REX that is not currently running.
+ * (as-planned) or a REX that has never been executed. Once executed, the mode
+ * keeps applying after execution stops.
  */
 export const resolveRexExecuteEditMode = (
   mission: Mission | undefined,
@@ -31,7 +32,7 @@ export const resolveRexExecuteEditMode = (
 ): RexExecuteEditMode => {
   if (!mission || !rexUuid) return "unrestricted";
   const rex = mission.rexes?.[rexUuid];
-  if (!rex || !rex.isRunning) return "unrestricted";
+  if (!rex || (!rex.isRunning && !rex.executeEditState)) return "unrestricted";
   return rex.executeEditMode ?? "unrestricted";
 };
 

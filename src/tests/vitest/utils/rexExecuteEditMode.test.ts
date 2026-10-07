@@ -62,10 +62,29 @@ describe("resolveRexExecuteEditMode()", () => {
   });
 
   it.each(["limited", "none"] as RexExecuteEditMode[])(
-    "returns unrestricted for a stopped rex stored as %s",
+    "returns unrestricted for a never-executed rex stored as %s",
     (mode) => {
       const mission = makeMission(makeRex({ isRunning: false, executeEditMode: mode }));
       expect(resolveRexExecuteEditMode(mission, "rex-1")).toBe("unrestricted");
+    }
+  );
+
+  it.each(["unrestricted", "limited", "none"] as RexExecuteEditMode[])(
+    "returns the stored %s mode for a rex stopped after execution",
+    (mode) => {
+      const mission = makeMission(
+        makeRex({
+          isRunning: false,
+          executeEditMode: mode,
+          executeEditState: {
+            addedStationUuids: [],
+            addedTraverseUuids: [],
+            addedActionUuids: [],
+            actionLetterOrderByParent: {},
+          },
+        })
+      );
+      expect(resolveRexExecuteEditMode(mission, "rex-1")).toBe(mode);
     }
   );
 
