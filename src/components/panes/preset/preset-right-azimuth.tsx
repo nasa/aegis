@@ -1,7 +1,7 @@
 import throttle from "lodash/throttle";
 import paneStyles from "../global-pane-styles.module.css";
 import type { FunctionComponent } from "react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { faEarthAmerica, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
 import { upsertPresets } from "store/preset";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -9,6 +9,8 @@ import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { Checkbox, DegreesInputSlider } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import azimuthStyles from "./preset-right-azimuth.module.css";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
+import { validators } from "components/interface/form/formValidators";
 
 const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -19,6 +21,13 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   );
 
   const [isDragging, setIsDragging] = useState(false);
+  const [displaySunAzimuth, setDisplaySunAzimuth] = useState(selectedPreset.sunAzimuth);
+  const [displayEarthAzimuth, setDisplayEarthAzimuth] = useState(selectedPreset.earthAzimuth);
+
+  useEffect(() => {
+    setDisplaySunAzimuth(selectedPreset.sunAzimuth);
+    setDisplayEarthAzimuth(selectedPreset.earthAzimuth);
+  }, [selectedPreset]);
 
   const sunThrottledFunc = useRef(
     throttle((preset: Preset, value: number) => {
@@ -36,7 +45,10 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
   const handleOnChangeSunAzimuth = useCallback(
     (preset: Preset, value: number) => {
       //hook into isDragging to prevent this from triggering when values are reset via "Cancel" button
-      if (isDragging) sunThrottledFunc.current(preset, value);
+      if (isDragging) {
+        setDisplaySunAzimuth(value);
+        sunThrottledFunc.current(preset, value);
+      }
     },
     [sunThrottledFunc, isDragging]
   );
@@ -56,7 +68,10 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
 
   const handleOnChangeEarthAzimuth = useCallback(
     (preset: Preset, value: number) => {
-      if (isDragging) earthThrottledFunc.current(preset, value);
+      if (isDragging) {
+        setDisplayEarthAzimuth(value);
+        earthThrottledFunc.current(preset, value);
+      }
     },
     [earthThrottledFunc, isDragging]
   );
@@ -84,19 +99,56 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                       </div>
                       <div className={paneStyles.panelSectionRow}>
                         <div className={paneStyles.degreesInputContainer}>
-                          <div className={paneStyles.descriptionContainer}>
-                            <DegreesInputSlider
-                              value={selectedPreset.sunAzimuth}
-                              editable={editMode}
-                              label="Azimuth"
-                              onChange={(value: number) => {
-                                handleOnChangeSunAzimuth(selectedPreset, value);
-                              }}
-                              isDragging={(value: boolean) => {
-                                setIsDragging(value);
-                              }}
-                              icon={faSun}
-                            />
+                          <div className={paneStyles.azimuthContainer}>
+                            {editMode ? (
+                              <div className={paneStyles.inputFieldContainerAzimuth}>
+                                <ValidatedInputField
+                                  value={String(displaySunAzimuth)}
+                                  editMode={editMode}
+                                  fieldProps={{
+                                    name: "SunDegrees",
+                                    ariaLabel: "SunDegrees",
+                                    validators: [
+                                      validators.mustBeNumber,
+                                      validators.maxLength(3),
+                                      validators.mustBeInteger,
+                                      validators.minValue(0),
+                                      validators.maxValue(359),
+                                      validators.required,
+                                    ],
+                                  }}
+                                  onSubmit={(value: string) => {
+                                    const numValue = Number(value);
+                                    setDisplaySunAzimuth(numValue);
+                                    dispatch(
+                                      upsertPresets([
+                                        {
+                                          ...selectedPreset,
+                                          sunAzimuth: numValue,
+                                        },
+                                      ])
+                                    );
+                                  }}
+                                  displayStyle={{ fontSize: "1em", color: "var(--grey4)" }}
+                                  displayValue={`${displaySunAzimuth}°`}
+                                />
+                              </div>
+                            ) : null}
+                            <div className={paneStyles.sliderWrapper}>
+                              <DegreesInputSlider
+                                value={displaySunAzimuth}
+                                editable={editMode}
+                                label="Azimuth"
+                                onChange={(value: number) => {
+                                  handleOnChangeSunAzimuth(selectedPreset, value);
+                                }}
+                                isDragging={(value: boolean) => {
+                                  setIsDragging(value);
+                                }}
+                                icon={faSun}
+                                hideValue={editMode}
+                              />
+                            </div>
                           </div>
                           <div
                             className={paneStyles.displayFieldLabel}
@@ -153,19 +205,56 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                       </div>
                       <div className={paneStyles.panelSectionRow}>
                         <div className={paneStyles.degreesInputContainer}>
-                          <div className={paneStyles.descriptionContainer}>
-                            <DegreesInputSlider
-                              value={selectedPreset.earthAzimuth}
-                              editable={editMode}
-                              label="Azimuth"
-                              onChange={(value: number) => {
-                                handleOnChangeEarthAzimuth(selectedPreset, value);
-                              }}
-                              icon={selectedPreset.earthAsMoon ? faMoon : faEarthAmerica}
-                              isDragging={(value: boolean) => {
-                                setIsDragging(value);
-                              }}
-                            />
+                          <div className={paneStyles.azimuthContainer}>
+                            {editMode ? (
+                              <div className={paneStyles.inputFieldContainerAzimuth}>
+                                <ValidatedInputField
+                                  value={String(displayEarthAzimuth)}
+                                  editMode={editMode}
+                                  fieldProps={{
+                                    name: "EarthDegrees",
+                                    ariaLabel: "EarthDegrees",
+                                    validators: [
+                                      validators.mustBeNumber,
+                                      validators.maxLength(3),
+                                      validators.mustBeInteger,
+                                      validators.minValue(0),
+                                      validators.maxValue(359),
+                                      validators.required,
+                                    ],
+                                  }}
+                                  onSubmit={(value: string) => {
+                                    const numValue = Number(value);
+                                    setDisplayEarthAzimuth(numValue);
+                                    dispatch(
+                                      upsertPresets([
+                                        {
+                                          ...selectedPreset,
+                                          earthAzimuth: numValue,
+                                        },
+                                      ])
+                                    );
+                                  }}
+                                  displayStyle={{ fontSize: "1em", color: "var(--grey4)" }}
+                                  displayValue={`${displayEarthAzimuth}°`}
+                                />
+                              </div>
+                            ) : null}
+                            <div className={paneStyles.sliderWrapper}>
+                              <DegreesInputSlider
+                                value={displayEarthAzimuth}
+                                editable={editMode}
+                                label="Azimuth"
+                                onChange={(value: number) => {
+                                  handleOnChangeEarthAzimuth(selectedPreset, value);
+                                }}
+                                icon={selectedPreset.earthAsMoon ? faMoon : faEarthAmerica}
+                                isDragging={(value: boolean) => {
+                                  setIsDragging(value);
+                                }}
+                                hideValue={editMode}
+                              />
+                            </div>
                           </div>
                           <div
                             className={paneStyles.displayFieldLabel}
