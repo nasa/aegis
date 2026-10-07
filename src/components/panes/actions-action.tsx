@@ -280,6 +280,18 @@ const RightAction: FunctionComponent<{
                       styleContainer={{ margin: "-3px" }}
                     />
                   </div>
+                  {missionPriority?.trace && (
+                    <span
+                      className={actionStyles.actionHeadingPriority}
+                      aria-label={`Mission priority: ${missionPriority.trace}`}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-content={`Mission priority: ${missionPriority.trace}${
+                        missionPriority.category ? ` | ${missionPriority.category}` : ""
+                      }`}
+                    >
+                      {missionPriority.trace}
+                    </span>
+                  )}
                 </div>
               ) : (
                 <>
