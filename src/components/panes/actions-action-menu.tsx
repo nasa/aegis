@@ -19,7 +19,6 @@ import {
 } from "operations/apply/apply-action";
 import { applyCreateTemplateFromAction } from "operations/apply/apply-mission-actionTemplate";
 import { applyRegisterAddedAction, applyUnregisterAddedAction } from "operations/apply/apply-rex";
-import type { ActionEditCapabilities } from "utils/rexExecuteEditMode";
 import { UNRESTRICTED_ACTION_EDIT_CAPABILITIES } from "utils/rexExecuteEditMode";
 
 export const ActionMenu: FunctionComponent<{

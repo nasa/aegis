@@ -145,3 +145,33 @@ interface ActionEntry {
 interface ActionEntries {
   [actionUuid: string]: ActionEntry;
 }
+
+/** Each distinct thing that `limited` mode permits across the REX EVA. */
+type EvaEditCapability =
+  | "activityDuration" // station, traverse, and xgress-station duration
+  | "stationLocation" // location, elevation, and walkback traverse rate
+  | "traversePath"
+  | "evaSequenceAdd" // Add Station (creates a station slot + traverse)
+  | "evaSequenceReorder" // up/down arrows
+  | "actionCreate"
+  | "actionReorder" // drag-and-drop writing actionOrderUuids
+  | "actionCrewAssigned"
+  | "actionEnabled" // Activate/Deactivate in the kabob
+  | "sampleCollectionIds"
+  | "executedSampleMass";
+
+/**
+ * The per-action edit permissions threaded through the action tree. Bundled
+ * rather than passed as separate booleans because every level forwards them.
+ */
+type ActionEditCapabilities = {
+  crewAssigned: boolean;
+  enabled: boolean;
+  sampleIds: boolean;
+  executedMass: boolean;
+  reorder: boolean;
+  /** name, type, priority, duration, planned mass, equipment, geo units, STM */
+  generalFields: boolean;
+  /** delete, duplicate, save-as-template */
+  destructive: boolean;
+};

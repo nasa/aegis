@@ -46,7 +46,6 @@ import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/t
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
-import type { ActionEditCapabilities } from "utils/rexExecuteEditMode";
 import { UNRESTRICTED_ACTION_EDIT_CAPABILITIES } from "utils/rexExecuteEditMode";
 import { MissionPriorityDropdown } from "./mission/mission-right-missionPriorities";
 

@@ -5,7 +5,6 @@ import {
   findRexUuidForEntity,
   resolveRexExecuteEditMode,
 } from "utils/rexExecuteEditMode";
-import type { EvaEditCapability } from "utils/rexExecuteEditMode";
 
 /** Capabilities limited editing permits on entities that existed before execution. */
 const LIMITED_ALLOWED_CAPABILITIES: EvaEditCapability[] = [
