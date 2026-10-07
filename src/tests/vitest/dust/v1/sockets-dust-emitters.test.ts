@@ -421,9 +421,9 @@ describe("onDustChangeListener", () => {
   });
 });
 
-// ─── buildDustEverything ──────────────────────────────────────────────────────
+// ─── getEverythingForDust ──────────────────────────────────────────────────────
 
-describe("buildDustEverything", () => {
+describe("getEverythingForDust", () => {
   const stoppedRex = generateBlankRex({
     name: "Vitest Stopped Rex",
     evaUuid: rexEva.uuid,
