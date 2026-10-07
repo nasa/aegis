@@ -40,6 +40,7 @@ body {
   --rexDim: #39634d;
   --maestroConnection: #8ff4a5;
   --stmViewer: #5f97ff;
+  --reports: #b98cff;
   --alert: #cb0000;
   --alert-disabled: #650000;
   --info: #2b6092;
@@ -48,6 +49,9 @@ body {
   --error: #ff4040;
   --errorText: #cb0000;
   --stmTableHover: #fff50050;
+  /* neutral pastel-blue crosshair hover for the EVA Coverage grid (v2); the
+     legacy v1 stm-viewer keeps the yellow --stmTableHover above) */
+  --stmCoverageHover: #6ee5ff26;
   --radius: 3px;
   --panelRadius: 6px;
   --dashboardRadius: 20px;

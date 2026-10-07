@@ -13,16 +13,7 @@
 import { useMemo } from "react";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-
-// Require a full ISO 8601 datetime (date + T + time). Date.parse alone is too
-// lenient — strings like "2024", "Mar", or just a year parse to finite numbers
-// in many engines and would silently set the map time to garbage.
-const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
-function isISOString(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  if (!ISO_DATETIME_RE.test(value)) return false;
-  return !isNaN(Date.parse(value));
-}
+import { numericDatetimeToISO } from "utils/formatting";
 
 /**
  * Returns the currently active map datetime string (ISO), or null.
@@ -49,8 +40,8 @@ export function useMapDateTime(): string | null {
     if (presetPreviewTime && sectionSelected === "preset") {
       return presetPreviewTime;
     }
-    if (selectedEvaDatetime && isISOString(selectedEvaDatetime)) {
-      return selectedEvaDatetime;
+    if (selectedEvaDatetime != null && !isNaN(new Date(selectedEvaDatetime).getTime())) {
+      return numericDatetimeToISO(selectedEvaDatetime);
     }
     if (missionSublayers) {
       const firstTimeBased = missionSublayers.find((sl) => sl.isTimeBased);

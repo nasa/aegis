@@ -37,6 +37,7 @@ interface Mission {
   projResZoomLevel: number | null;
   projResUnitsPerPixel: number | null;
   circleDefinitions: CircleDefinitions | null;
+  reportCampaigns: { [uuid: string]: ReportCampaign } | null;
   actionTemplates: ActionTemplates | null;
   stmLevel1Enabled?: boolean;
   stmLevel1Name?: string;
@@ -176,6 +177,16 @@ type CircleDefinition = {
   radius: number;
 };
 
+interface ReportCampaign {
+  uuid: string;
+  name: string;
+  description: string | null;
+  memberEvaUuids: string[];
+  executionRexUuidByEvaUuid: { [evaUuid: string]: string } | null;
+  createdAt: number;
+  updatedAt: number | null;
+}
+
 type MissionHomepageItem = {
   id: number;
   name: string;
@@ -202,9 +213,7 @@ type MissionGrid = {
 type GridRenderMode = "server-file" | "dynamic-lgrs";
 
 type ResolvedMissionGrid =
-  | { kind: "none" }
-  | { kind: "dynamic-lgrs" }
-  | { kind: "server-file"; grid: MissionGrid };
+  { kind: "none" } | { kind: "dynamic-lgrs" } | { kind: "server-file"; grid: MissionGrid };
 
 /**
  * Grid metadata stored on the mission Automerge doc (`mission.serverFileGrid`).

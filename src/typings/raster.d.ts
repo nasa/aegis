@@ -11,8 +11,7 @@ type PixelPoint = {
 };
 
 type RasterSample =
-  | { status: "value"; value: number }
-  | { status: "missing"; reason: "out-of-bounds" | "nodata" };
+  { status: "value"; value: number } | { status: "missing"; reason: "out-of-bounds" | "nodata" };
 
 type RasterDescriptor = {
   absolutePath: string;

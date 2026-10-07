@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { hasPerms } from "utils/permissions";
+import { dustTokenIsValid, hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
@@ -38,13 +38,16 @@ const parseQuery = (query: Query) => {
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const queryObj = parseQuery(req.query);
   const emssToken = req.headers["emss-token"] as string;
+  const dustToken = req.headers["dust-token"] as string;
 
-  const viewPermission = hasPerms({
-    missionId: queryObj.missionId,
-    permission: "view",
-    appUser: req.session.appUser,
-    emssToken,
-  });
+  const viewPermission =
+    dustTokenIsValid(dustToken) ||
+    hasPerms({
+      missionId: queryObj.missionId,
+      permission: "view",
+      appUser: req.session.appUser,
+      emssToken,
+    });
   if (!viewPermission) {
     serverLogger.apiRoute({
       logLevel: "warning",

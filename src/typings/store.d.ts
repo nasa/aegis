@@ -79,13 +79,7 @@ interface STMViewExpandedItem {
 }
 
 type InterfaceSection =
-  | "mission"
-  | "preset"
-  | "poi"
-  | "station"
-  | "evas"
-  | "stmViewer"
-  | "stmRules";
+  "mission" | "preset" | "poi" | "station" | "evas" | "stmViewer" | "stmRules" | "reports";
 type BottomInterfaceSection = "timeline" | "measure";
 type SlopeColorMode = "standard" | "colorblind";
 interface InterfaceState {
@@ -118,15 +112,94 @@ interface STMState {
   level3s: STMLevel3[];
   rules: STMRule[];
   rulesFromDb: STMRule[];
-  ruleEditingUuid: string;
+  ruleEditingUuid: string | null;
   stmViewExpandedItems: STMViewExpandedItem[];
   stmViewSelectedEvas: string[];
   stmViewSelectedActionTypes: ActionType[];
   stmViewExpandTopTiers: boolean;
   stmViewShowCrosshairs: boolean;
-  stmViewHoveredTopItem: string;
-  stmViewHoveredLeftItem: string;
+  stmViewHoveredTopItem: string | null;
+  stmViewHoveredLeftItem: string | null;
   stmRulesSelectedRexes: string[];
+  // v2 STM Satisfaction Rules pane (tabs). Deliberately separate from the legacy
+  // v1 stmView* state above — v1 and v2 never share UI state. The column-report
+  // UI/derived state (EVA STM Coverage, EVA Comparison) now lives in the `report`
+  // slice, keyed by report id — see ReportState.
+  stmRulesActiveTab: StmRulesTab;
+  stmRulesSelectedStmUuid: string | null;
+  stmRulesSelectedRuleUuid: string | null;
+  stmRulesTierExpansion: StmRulesTierExpansion;
+}
+
+/**
+ * UI + derived state for the column-family reports (EVA STM Coverage, EVA
+ * Comparison). Both reports share the same column header band, grouping,
+ * expansion, baseline + diff grammar and controls, so they share this shape.
+ * The per-report instances are kept apart in ReportState so each tab keeps its
+ * own baseline/diff/hidden/expanded columns and derived data.
+ */
+interface ColumnReportState {
+  baselineColumnKey: string | null;
+  diffMode: boolean;
+  differencesOnly: boolean;
+  rexStatusFilter: RexStatusFilter;
+  hiddenColumns: string[];
+  expandedColumns: string[];
+  hoveredTopItem: string | null;
+  hoveredLeftItem: string | null;
+  drilldownWidth: number;
+  // Drilldown diff filter: hide matched rows, show only plus/minus rows.
+  drilldownChangesOnly: boolean;
+  // Currently-selected cell (drives the coverage drilldown panel).
+  cellSelection: StmCoverageCellSelection;
+  // Derived data, computed once in the report page from the mission doc + the
+  // stm slice and mirrored here so the grid components can read it without
+  // prop-drilling. coverageByColumnKey is used by EVA STM Coverage;
+  // metricsByColumnKey by EVA Comparison.
+  visibleColumns: EvaReportColumn[];
+  resolvedBaselineKey: string | null;
+  sequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
+  // Left-axis row ids to show when "differences only" is on; null = show all.
+  // (level3 uuids for coverage, metric-row ids for comparison.) Array, not Set,
+  // to keep the store serializable.
+  visibleRowIds: string[] | null;
+  coverageByColumnKey: {
+    [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 };
+  };
+  metricsByColumnKey: { [columnKey: string]: EvaComparisonColumnValues };
+}
+
+/** Patch pushed into a column report each render by its page's derived-data effect. */
+type ColumnReportDerivedData = {
+  visibleColumns: EvaReportColumn[];
+  resolvedBaselineKey: string | null;
+  sequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
+  visibleRowIds: string[] | null;
+  coverageByColumnKey?: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
+  metricsByColumnKey?: { [columnKey: string]: EvaComparisonColumnValues };
+};
+
+/** Which set of EVAs the POI Traceability report is scoped to. */
+type PoiTraceScope =
+  | { type: "all" }
+  | { type: "campaignPlanned"; campaignUuid: string }
+  | { type: "campaignExecuted"; campaignUuid: string };
+
+/** UI state for the POI Traceability report (its own report-slice slot). */
+interface PoiTraceState {
+  selectedPoiUuid: string | null;
+}
+
+type ColumnReportId = "stmCoverage" | "comparison";
+type ReportId = ColumnReportId | "poiTrace";
+type ReportsTab = "coverage" | "comparison" | "poiTrace";
+
+/** All Reports-pane UI/derived state, keyed by report id. */
+interface ReportState {
+  activeTab: ReportsTab;
+  stmCoverage: ColumnReportState;
+  comparison: ColumnReportState;
+  poiTrace: PoiTraceState;
 }
 
 interface StationState {
@@ -173,6 +246,7 @@ interface WholeStoreState {
   interface: InterfaceState;
   connection: ConnectionState;
   stm: STMState;
+  report: ReportState;
   station: StationState;
   action: ActionState;
   rex: RexState;

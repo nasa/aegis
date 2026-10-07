@@ -45,6 +45,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     projResZoomLevel: 0,
     projResUnitsPerPixel: 0,
     circleDefinitions: {},
+    reportCampaigns: {},
     actionTemplates: {},
     pois: {},
     actions: {},

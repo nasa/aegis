@@ -43,6 +43,36 @@ describe("QuickMap URL adapter", () => {
     expect(omittedGeometryCount).toBe(0);
   });
 
+  it("includes a timestamp when supplied", () => {
+    const { url } = buildQuickMapLink(baseUrl, {
+      ...linkState,
+      time: "1971-02-05T00:00:00.000Z",
+    });
+
+    expect(url.searchParams.get("time")).toBe("1971-02-05T00:00:00.000Z");
+  });
+
+  it("includes a bounded playback range only when both ends are supplied", () => {
+    const { url } = buildQuickMapLink(baseUrl, {
+      ...linkState,
+      startTime: "1971-02-05T00:00:00.000Z",
+      stopTime: "1971-02-05T06:30:00.000Z",
+    });
+
+    expect(url.searchParams.get("startTime")).toBe("1971-02-05T00:00:00.000Z");
+    expect(url.searchParams.get("stopTime")).toBe("1971-02-05T06:30:00.000Z");
+  });
+
+  it("does not send an incomplete playback range", () => {
+    const { url } = buildQuickMapLink(baseUrl, {
+      ...linkState,
+      startTime: "1971-02-05T00:00:00.000Z",
+    });
+
+    expect(url.searchParams.has("startTime")).toBe(false);
+    expect(url.searchParams.has("stopTime")).toBe(false);
+  });
+
   it("normalizes longitude at the antimeridian", () => {
     expect(normalizeQuickMapLongitude(540)).toBe(180);
     expect(normalizeQuickMapLongitude(-540)).toBe(-180);
