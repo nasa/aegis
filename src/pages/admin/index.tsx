@@ -124,6 +124,12 @@ const Index: React.FunctionComponent = () => {
                 enabled={!!user?.isSuperAdmin}
               />
               <NavCard
+                to="/admin/dustV1"
+                title="DUST Monitor"
+                description="Monitor DUST connections on /api/socket on the /dust namespace."
+                enabled={!!user?.isSuperAdmin}
+              />
+              <NavCard
                 to="/admin/emss"
                 title="EMSS"
                 description="Manage EMSS API Token."
