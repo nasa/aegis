@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { applyDeleteActionAndUpdateParent } from "operations/apply/apply-action";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
 import { applyFreezeExecuteEditMode } from "operations/apply/apply-rex";
 import type { MdauStageData } from "../types/mdauStageData";
@@ -64,6 +65,14 @@ export const applyMdauRexEventInfo = (m: Mission, stage: MdauStageData): void =>
 };
 
 export const applyMdauActions = (m: Mission, stage: MdauStageData): void => {
+  for (const uuid of stage.deletedActionUuids) {
+    applyDeleteActionAndUpdateParent(m, { uuid });
+  }
+  // The parent's actionOrderUuids already lists each new action (written by
+  // the station/traverse writers).
+  for (const newAction of stage.newActions) {
+    m.actions[newAction.uuid] = newAction;
+  }
   for (const a of stage.actions) {
     const action = m.actions[a.uuid];
     if (!action) continue;
