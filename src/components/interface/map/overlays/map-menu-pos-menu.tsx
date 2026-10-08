@@ -35,7 +35,9 @@ export const PosKabobMenu: FunctionComponent<{
   const handleEdit = async (posEntryUuid: string) => {
     //cancel out anything else in edit before putting this one in edit
     await dispatch(thunkUICancelPosEntryInEdit());
-    dispatch(setPosEntryInEdit(posEntry));
+    // Store a plain copy: the doc entry's nested arrays/objects are Automerge objects, and
+    // writing them back into the doc later (e.g. a new entry reusing posTypeUuids) throws.
+    dispatch(setPosEntryInEdit(JSON.parse(JSON.stringify(posEntry))));
     dispatch(setSelectedPosEntryUuid(posEntryUuid));
   };
   return (

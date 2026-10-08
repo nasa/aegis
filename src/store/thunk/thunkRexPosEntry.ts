@@ -21,7 +21,8 @@ export const thunkDocUpdatePosEntryWithLocation = appCreateAsyncThunk<{
 
   // Step 1: Read the selected REX UUID and the pos entry in edit from state.
   const selectedRexUuid = getState().rex.selectedRexUuid;
-  const posEntryInEdit = getState().rex.posEntryInEdit;
+  // Serialized through JSON so no nested value is still an Automerge object from the doc.
+  const posEntryInEdit: PosEntry = JSON.parse(JSON.stringify(getState().rex.posEntryInEdit));
   const missionDocHandle = getMissionDocHandle();
   if (!missionDocHandle) return;
 
