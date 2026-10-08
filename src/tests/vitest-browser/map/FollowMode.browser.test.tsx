@@ -162,6 +162,7 @@ function makeMapDisplayPos(overrides: Partial<MapSubmenuPos> = {}): MapSubmenuPo
     showOldMarkers: true,
     fadeOldMarkers: true,
     sourceUuids: [],
+    pathMode: "merged",
     ...overrides,
   };
 }
