@@ -8,7 +8,7 @@ export interface StationStage {
   uuid: string;
   name?: string;
   duration?: number;
-  /** Reordered action uuids (reorder-only; already validated). */
+  /** New action order, including added and excluding deleted actions (already validated). */
   actionOrderUuids?: string[];
   updatedAt?: number;
 }
@@ -104,6 +104,10 @@ export interface MdauStageData {
   traverses: TraverseStage[];
   evas: EvaStage[];
   actions: ActionStage[];
+  /** Actions Maestro added, fully built with their parent set. */
+  newActions: Action[];
+  /** Actions Maestro deleted. */
+  deletedActionUuids: string[];
   rexes: RexStage[];
   rexEventInfo: RexEventInfoStage[];
 }
