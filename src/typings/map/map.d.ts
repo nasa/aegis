@@ -55,7 +55,15 @@ interface MapSubmenuPos {
   showOldMarkers: boolean;
   fadeOldMarkers: boolean;
   sourceUuids: string[];
+  pathMode: PosPathMode;
 }
+
+/**
+ * How POS paths are drawn across sources. "merged" joins entries from every
+ * shown source into one path per posType (colored by posType); "separate"
+ * draws one path per source per posType (colored by source).
+ */
+type PosPathMode = "merged" | "separate";
 
 /**
  * station menu state
@@ -80,13 +88,13 @@ type MapMenuCookie = {
   submenuActions: MapSubmenuMarkers;
   submenuPos: MapSubmenuPos;
   showArrows: boolean;
-  showBearings?: boolean;
-  showDistances?: boolean;
+  showBearings: boolean;
+  showDistances: boolean;
   showSunEarth: boolean;
   showScaleBar: boolean;
   showMouseLatLon: boolean;
-  gridSpacingMode?: GridSpacingMode;
-  gridLabelInterval?: GridSpacingMode;
+  gridSpacingMode: GridSpacingMode;
+  gridLabelInterval: GridSpacingMode;
 };
 
 /*

@@ -63,6 +63,7 @@ describe("Thunk Rex PosSource Tests", () => {
           uuid: `extra-${rex.posSources.length}`,
           abbr: "X",
           name: "Vitest Extra",
+          pathColor: "#ffffff",
         });
       }
       getMissionDocHandle().change((m) => {
@@ -104,8 +105,8 @@ describe("Thunk Rex PosSource Tests", () => {
       const posSourceUuid = rex.posSources[0].uuid;
       const posSourceUuid2 = rex.posSources[1].uuid;
       rex.posSources = [
-        { uuid: posSourceUuid, abbr: "A", name: "Source A" },
-        { uuid: posSourceUuid2, abbr: "B", name: "Source B" },
+        { uuid: posSourceUuid, abbr: "A", name: "Source A", pathColor: "#ffffff" },
+        { uuid: posSourceUuid2, abbr: "B", name: "Source B", pathColor: "#ffffff" },
       ];
       rex.posEntries = [];
       getMissionDocHandle().change((m) => {
@@ -128,7 +129,7 @@ describe("Thunk Rex PosSource Tests", () => {
       const eva = generateBlankEVA({ name: "Vitest EVA" });
       const posSourceUuid = uuidv4();
       const rex = generateBlankRex({ name: "Vitest Rex", evaUuid: eva.uuid });
-      rex.posSources = [{ uuid: posSourceUuid, abbr: "A", name: "Source A" }];
+      rex.posSources = [{ uuid: posSourceUuid, abbr: "A", name: "Source A", pathColor: "#ffffff" }];
       rex.posEntries = [];
       getMissionDocHandle().change((m) => {
         m.evas[eva.uuid] = eva;

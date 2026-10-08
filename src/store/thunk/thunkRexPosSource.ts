@@ -18,6 +18,7 @@ export const thunkDocCreatePosSource = appCreateAsyncThunk<void>(
       uuid: uuidv4(),
       abbr: "B",
       name: "(Blank)",
+      pathColor: "#ffffff",
     };
 
     const newRexPosSources: PosSource[] = cloneDeep(selectedRex.posSources) || [];

@@ -11,6 +11,7 @@ import { Migration20260902000000 } from "server/automerge/migrations/Migration20
 import { Migration20260909000000 } from "server/automerge/migrations/Migration20260909000000";
 import { Migration20260930000000 } from "server/automerge/migrations/Migration20260930000000";
 import { Migration20261007000000 } from "server/automerge/migrations/Migration20261007000000";
+import { Migration20261008000000 } from "server/automerge/migrations/Migration20261008000000";
 
 import type {
   AutomergeMigration,
@@ -31,6 +32,7 @@ export const AUTOMERGE_MIGRATIONS: readonly AutomergeMigration[] = [
   Migration20260909000000,
   Migration20260930000000,
   Migration20261007000000,
+  Migration20261008000000,
 ];
 
 export const getPendingAutomergeMigrations = (

@@ -26,6 +26,7 @@ import View from "ol/View";
 import { flushSync } from "react-dom";
 import type VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
+import type LineString from "ol/geom/LineString";
 
 import { CookiesProvider, Cookies } from "react-cookie";
 import { MapContext } from "components/interface/map/MapProvider";
@@ -107,8 +108,8 @@ function makePosType(uuid: string, color = "#00aaff", abbr = "P"): PosType {
   return { uuid, abbr, name: `Type ${abbr}`, icon: "1f535", pathColor: color };
 }
 
-function makePosSource(uuid: string, abbr = "S"): PosSource {
-  return { uuid, name: `Source ${abbr}`, abbr };
+function makePosSource(uuid: string, abbr = "S", pathColor = "#ffffff"): PosSource {
+  return { uuid, name: `Source ${abbr}`, abbr, pathColor };
 }
 
 function makeRex(overrides: Partial<Rex> = {}): Rex {
@@ -149,6 +150,7 @@ function defaultMapDisplayPos(overrides: Partial<MapSubmenuPos> = {}): MapSubmen
     showOldMarkers: true,
     fadeOldMarkers: true,
     sourceUuids: [],
+    pathMode: "merged",
     ...overrides,
   };
 }
@@ -427,6 +429,60 @@ describe("PosEntries", () => {
     expect(features.length).toBeGreaterThanOrEqual(1);
     expect(features.some((f) => (f.getId() as string).includes(POSTYPE_A_UUID))).toBe(true);
     expect(features.some((f) => (f.getId() as string).includes(POSTYPE_B_UUID))).toBe(false);
+  });
+
+  it("merged paths join entries across sources and use the posType color", () => {
+    const e1 = makePosEntry("e1", 10, 20, [POSTYPE_A_UUID], SOURCE_A_UUID, "2026-01-01T00:00:00Z");
+    const e2 = makePosEntry("e2", 11, 21, [POSTYPE_A_UUID], SOURCE_B_UUID, "2026-01-01T00:01:00Z");
+    const rex = makeRex({
+      posEntries: [e1, e2],
+      posTypes: [makePosType(POSTYPE_A_UUID, "#00aaff")],
+      posSources: [
+        makePosSource(SOURCE_A_UUID, "A", "#ff0000"),
+        makePosSource(SOURCE_B_UUID, "B", "#009CE0"),
+      ],
+    });
+    store = makeStore(preloaded({ rex }));
+    renderPosEntries();
+    flushSync(() => {
+      capturedSetters!.setSubmenuPos(defaultMapDisplayPos({ fadeOldPaths: false }));
+    });
+
+    const features = posPathSource!.getFeatures();
+    expect(features).toHaveLength(1);
+    expect(features[0].get("color")).toBe("#00aaff");
+  });
+
+  it("separate paths draw one path per source per posType using the source color", () => {
+    const e1 = makePosEntry("e1", 10, 20, [POSTYPE_A_UUID], SOURCE_A_UUID, "2026-01-01T00:00:00Z");
+    const e2 = makePosEntry("e2", 11, 21, [POSTYPE_A_UUID], SOURCE_B_UUID, "2026-01-01T00:01:00Z");
+    const e3 = makePosEntry("e3", 12, 22, [POSTYPE_A_UUID], SOURCE_A_UUID, "2026-01-01T00:02:00Z");
+    const e4 = makePosEntry("e4", 13, 23, [POSTYPE_A_UUID], SOURCE_B_UUID, "2026-01-01T00:03:00Z");
+    const rex = makeRex({
+      posEntries: [e1, e2, e3, e4],
+      posTypes: [makePosType(POSTYPE_A_UUID, "#00aaff")],
+      posSources: [
+        makePosSource(SOURCE_A_UUID, "A", "#ff0000"),
+        makePosSource(SOURCE_B_UUID, "B", "#009CE0"),
+      ],
+    });
+    store = makeStore(preloaded({ rex }));
+    renderPosEntries();
+    flushSync(() => {
+      capturedSetters!.setSubmenuPos(
+        defaultMapDisplayPos({ fadeOldPaths: false, pathMode: "separate" })
+      );
+    });
+
+    const features = posPathSource!.getFeatures();
+    expect(features).toHaveLength(2);
+    const sourceAPath = features.find((f) => (f.getId() as string).includes(SOURCE_A_UUID))!;
+    const sourceBPath = features.find((f) => (f.getId() as string).includes(SOURCE_B_UUID))!;
+    expect(sourceAPath.get("color")).toBe("#ff0000");
+    expect(sourceBPath.get("color")).toBe("#009CE0");
+    // Each source path connects only that source's entries.
+    expect((sourceAPath.getGeometry() as LineString).getCoordinates()).toHaveLength(2);
+    expect((sourceBPath.getGeometry() as LineString).getCoordinates()).toHaveLength(2);
   });
 
   it("clears path features when mapDisplayPos.showPaths toggles off", () => {
