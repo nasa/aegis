@@ -37,18 +37,21 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     uuid: uuidv4(),
     name: "Crew",
     abbr: "C",
+    pathColor: "#ff0000",
   };
 
   const posSourceTask: PosSource = {
     uuid: uuidv4(),
     name: "Task",
     abbr: "T",
+    pathColor: "#009CE0",
   };
 
   const posSourceScience: PosSource = {
     uuid: uuidv4(),
     name: "SER",
     abbr: "S",
+    pathColor: "#68BC00",
   };
 
   const defaultNewRex: Rex = {

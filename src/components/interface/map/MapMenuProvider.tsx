@@ -17,6 +17,8 @@ import {
   useState,
   useEffect,
   useMemo,
+  useRef,
+  useCallback,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
@@ -51,6 +53,8 @@ export interface MapMenuSetters {
   setShowSunEarth: Dispatch<SetStateAction<boolean>>;
   setGridSpacingMode: Dispatch<SetStateAction<GridSpacingMode>>;
   setGridLabelInterval: Dispatch<SetStateAction<GridSpacingMode>>;
+  /** Applies the default position-source selection once, only when no cookie existed on load. */
+  applyDefaultSourceUuids: (sourceUuids: string[]) => void;
 }
 
 const DEFAULT_SETTINGS: MapMenuSettings = {
@@ -68,6 +72,7 @@ const DEFAULT_SETTINGS: MapMenuSettings = {
     showOldMarkers: true,
     fadeOldMarkers: true,
     sourceUuids: [],
+    pathMode: "merged",
   },
   showArrows: true,
   showBearings: true,
@@ -78,6 +83,38 @@ const DEFAULT_SETTINGS: MapMenuSettings = {
   gridSpacingMode: "auto",
   gridLabelInterval: "auto",
 };
+
+const GRID_SPACING_MODES: GridSpacingMode[] = ["auto", 10, 100, 1000];
+
+/**
+ * Fill every setting missing from the saved cookie (including fields inside the
+ * submenu objects) with its default. Returns all defaults when there is no cookie.
+ */
+function mergeCookieWithDefaults(saved: Partial<MapMenuCookie> | undefined): MapMenuSettings {
+  const merged = { ...DEFAULT_SETTINGS };
+  if (!saved || typeof saved !== "object") return merged;
+  for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof MapMenuSettings)[]) {
+    const savedValue = saved[key];
+    if (savedValue === undefined || savedValue === null) continue;
+    const defaultValue = DEFAULT_SETTINGS[key];
+    if (typeof defaultValue === "object" && typeof savedValue === "object") {
+      const mergedSubmenu: Record<string, unknown> = { ...defaultValue };
+      for (const [field, value] of Object.entries(savedValue)) {
+        if (field in defaultValue && value !== undefined && value !== null) {
+          mergedSubmenu[field] = value;
+        }
+      }
+      (merged as Record<string, unknown>)[key] = mergedSubmenu;
+    } else if (key === "gridSpacingMode" || key === "gridLabelInterval") {
+      if (GRID_SPACING_MODES.includes(savedValue as GridSpacingMode)) {
+        merged[key] = savedValue as GridSpacingMode;
+      }
+    } else if (typeof savedValue === typeof defaultValue) {
+      (merged as Record<string, unknown>)[key] = savedValue;
+    }
+  }
+  return merged;
+}
 
 // ---------------------------------------------------------------------------
 // Contexts
@@ -107,48 +144,46 @@ interface MapMenuProviderProps {
 }
 
 export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element {
-  // --- State ---
-  const [submenuStations, setSubmenuStations] = useState<MapSubmenuStations>(
-    DEFAULT_SETTINGS.submenuStations
-  );
-  const [submenuPois, setSubmenuPois] = useState<MapSubmenuMarkers>(DEFAULT_SETTINGS.submenuPois);
-  const [submenuActions, setSubmenuActions] = useState<MapSubmenuMarkers>(
-    DEFAULT_SETTINGS.submenuActions
-  );
-  const [submenuPos, setSubmenuPos] = useState<MapSubmenuPos>(DEFAULT_SETTINGS.submenuPos);
-  const [showArrows, setShowArrows] = useState(DEFAULT_SETTINGS.showArrows);
-  const [showBearings, setShowBearings] = useState(DEFAULT_SETTINGS.showBearings);
-  const [showDistances, setShowDistances] = useState(DEFAULT_SETTINGS.showDistances);
-  const [showScaleBar, setShowScaleBar] = useState(DEFAULT_SETTINGS.showScaleBar);
-  const [showMouseLatLon, setShowMouseLatLon] = useState(DEFAULT_SETTINGS.showMouseLatLon);
-  const [showSunEarth, setShowSunEarth] = useState(DEFAULT_SETTINGS.showSunEarth);
-  const [gridSpacingMode, setGridSpacingMode] = useState<GridSpacingMode>(
-    DEFAULT_SETTINGS.gridSpacingMode
-  );
-  const [gridLabelInterval, setGridLabelInterval] = useState<GridSpacingMode>(
-    DEFAULT_SETTINGS.gridLabelInterval
-  );
-
   // --- Cookie persistence ---
   const [cookie, setCookie] = useCookies(["AEGIS_Map_Menu_Settings"]);
 
-  // Load from cookie on mount
-  useEffect(() => {
-    const saved: MapMenuCookie | undefined = cookie["AEGIS_Map_Menu_Settings"];
-    if (!saved) return;
-    if (saved.submenuPois) setSubmenuPois(saved.submenuPois);
-    if (saved.submenuStations) setSubmenuStations(saved.submenuStations);
-    if (saved.submenuActions) setSubmenuActions(saved.submenuActions);
-    if (saved.submenuPos) setSubmenuPos(saved.submenuPos);
-    if (saved.showArrows !== undefined) setShowArrows(saved.showArrows);
-    if (saved.showBearings !== undefined) setShowBearings(saved.showBearings);
-    if (saved.showDistances !== undefined) setShowDistances(saved.showDistances);
-    setShowScaleBar(saved.showScaleBar ?? true);
-    setShowMouseLatLon(saved.showMouseLatLon ?? true);
-    setShowSunEarth(saved.showSunEarth ?? false);
-    if (saved.gridSpacingMode !== undefined) setGridSpacingMode(saved.gridSpacingMode);
-    if (saved.gridLabelInterval !== undefined) setGridLabelInterval(saved.gridLabelInterval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Read the cookie once, during the first render, so every setting starts from the saved
+  // value (or its default when missing). The persist effect below then writes the complete
+  // settings back, creating the cookie or filling in any missing values.
+  const [savedCookie] = useState<Partial<MapMenuCookie> | undefined>(
+    () => cookie["AEGIS_Map_Menu_Settings"]
+  );
+  const [initialSettings] = useState(() => mergeCookieWithDefaults(savedCookie));
+
+  // --- State ---
+  const [submenuStations, setSubmenuStations] = useState<MapSubmenuStations>(
+    initialSettings.submenuStations
+  );
+  const [submenuPois, setSubmenuPois] = useState<MapSubmenuMarkers>(initialSettings.submenuPois);
+  const [submenuActions, setSubmenuActions] = useState<MapSubmenuMarkers>(
+    initialSettings.submenuActions
+  );
+  const [submenuPos, setSubmenuPos] = useState<MapSubmenuPos>(initialSettings.submenuPos);
+  const [showArrows, setShowArrows] = useState(initialSettings.showArrows);
+  const [showBearings, setShowBearings] = useState(initialSettings.showBearings);
+  const [showDistances, setShowDistances] = useState(initialSettings.showDistances);
+  const [showScaleBar, setShowScaleBar] = useState(initialSettings.showScaleBar);
+  const [showMouseLatLon, setShowMouseLatLon] = useState(initialSettings.showMouseLatLon);
+  const [showSunEarth, setShowSunEarth] = useState(initialSettings.showSunEarth);
+  const [gridSpacingMode, setGridSpacingMode] = useState<GridSpacingMode>(
+    initialSettings.gridSpacingMode
+  );
+  const [gridLabelInterval, setGridLabelInterval] = useState<GridSpacingMode>(
+    initialSettings.gridLabelInterval
+  );
+
+  // The default source selection depends on the REX's source uuids, so it can't be part of
+  // DEFAULT_SETTINGS. It is applied once, only when the cookie had no saved selection.
+  const sourceUuidsSettledRef = useRef(Array.isArray(savedCookie?.submenuPos?.sourceUuids));
+  const applyDefaultSourceUuids = useCallback((sourceUuids: string[]) => {
+    if (sourceUuidsSettledRef.current) return;
+    sourceUuidsSettledRef.current = true;
+    setSubmenuPos((current) => ({ ...current, sourceUuids }));
   }, []);
 
   // Persist to cookie on change
@@ -235,10 +270,10 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       setShowSunEarth,
       setGridSpacingMode,
       setGridLabelInterval,
+      applyDefaultSourceUuids,
     }),
-    // State setters from useState are stable references — no deps needed
-
-    []
+    // State setters from useState and the empty-deps callback are stable references
+    [applyDefaultSourceUuids]
   );
 
   return (

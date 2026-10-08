@@ -59,6 +59,7 @@ interface PosSource {
   uuid: string;
   name: string;
   abbr: string;
+  pathColor: string; // path color for this source's entries when map paths are "separate"
 }
 
 interface PosEntry {

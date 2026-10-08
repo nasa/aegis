@@ -34,7 +34,7 @@ export function getCompatibleGridLabelInterval(
 }
 
 export const MapMenuPosSourceSync: FunctionComponent = () => {
-  const { setSubmenuPos } = useMapMenuSetters();
+  const { applyDefaultSourceUuids } = useMapMenuSetters();
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
   const selectedRexPosSources = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return undefined;
@@ -47,11 +47,11 @@ export const MapMenuPosSourceSync: FunctionComponent = () => {
     if (!selectedRexPosSources) return;
     const taskPosSourceUuid = selectedRexPosSources.find((source) => source.abbr === "T")?.uuid;
     const crewPosSourceUuid = selectedRexPosSources.find((source) => source.abbr === "C")?.uuid;
-    setSubmenuPos((current) => ({
-      ...current,
-      sourceUuids: [taskPosSourceUuid, crewPosSourceUuid].filter((uuid) => uuid !== undefined),
-    }));
-  }, [selectedRexPosSources, setSubmenuPos]);
+    // The provider ignores this when settings were restored from the cookie.
+    applyDefaultSourceUuids(
+      [taskPosSourceUuid, crewPosSourceUuid].filter((uuid) => uuid !== undefined)
+    );
+  }, [selectedRexPosSources, applyDefaultSourceUuids]);
 
   return null;
 };
@@ -385,6 +385,35 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                     </div>
                   );
                 })}
+              </div>
+              <div
+                className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle} ${styles.menuItemContent}`}
+              >
+                Paths
+                <div
+                  className={`${styles.toggleLeft} ${styles.center} ${
+                    mapDisplayPos.pathMode === "merged" && styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPos({ ...mapDisplayPos, pathMode: "merged" });
+                  }}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-content="One path per position type across all shown sources"
+                >
+                  Merged
+                </div>
+                <div
+                  className={`${styles.toggleRight} ${styles.center} ${
+                    mapDisplayPos.pathMode === "separate" && styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPos({ ...mapDisplayPos, pathMode: "separate" });
+                  }}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-content="One path per position type for each source, colored by source"
+                >
+                  Separate
+                </div>
               </div>
               <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
                 Markers

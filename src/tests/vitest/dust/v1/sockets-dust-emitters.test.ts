@@ -86,7 +86,7 @@ const rexEva = generateBlankEVA({
 });
 
 const posType1 = { uuid: "pos-type-1", abbr: "1", name: "EV1", icon: "icon1", pathColor: "#fff" };
-const posSourceCrew = { uuid: "pos-source-crew", name: "Crew", abbr: "C" };
+const posSourceCrew = { uuid: "pos-source-crew", name: "Crew", abbr: "C", pathColor: "#ff0000" };
 
 const buildPosEntry = (overrides?: Partial<PosEntry>): PosEntry => ({
   uuid: "pos-entry-1",
