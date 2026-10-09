@@ -8,7 +8,7 @@
  * DOM elements). These overlays are viewport-relative UI.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FunctionComponent } from "react";
 
 import { ScaleBar } from "./ScaleBar";
 import { MouseCoordinateDisplay } from "./MouseCoordinateDisplay";
@@ -21,7 +21,6 @@ import {
   MapMenuPosSourceSync,
 } from "components/interface/map/overlays/map-menu";
 import MapPresetMenu from "components/interface/map/overlays/map-menu-preset";
-import { MapPositionMenu } from "components/interface/map/overlays/map-menu-pos";
 import { MapFollowMenu } from "components/interface/map/overlays/map-follow-menu";
 import { SunEarth } from "components/interface/map/overlays/map-sunearth";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
@@ -30,6 +29,10 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { setSelectedPresetUuid } from "store/preset";
 
 import mapStyles from "./mapOverlays.module.css";
+import rexMenuStyles from "./map-menu-pos.module.css";
+import { setRexMenuIsMinimized } from "store/interface";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCrosshairs } from "@fortawesome/free-solid-svg-icons";
 
 export function MapOverlays(): JSX.Element {
   const { map, mode } = useMapContext();
@@ -69,6 +72,10 @@ export function MapOverlays(): JSX.Element {
   const selectedRex = useMissionDocSelector((m) => {
     return selectedRexUuid ? (m.rexes?.[selectedRexUuid] ?? null) : null;
   }, deepEqual);
+  const rexMenuIsMinimized = useAppSelector(
+    (state) => state.interface.rexMenuIsMinimized,
+    refEqual
+  );
 
   return (
     <>
@@ -147,8 +154,48 @@ export function MapOverlays(): JSX.Element {
         />
       )}
 
-      {/* POS menu — top right (editor only, when EVAs section active and a REX is selected) */}
-      {config.mode === "editor" && sectionSelected === "evas" && selectedRex && <MapPositionMenu />}
+      {/* Rex Menu launcher — top right while the floating Rex Menu widget is minimized (editor
+          only, when EVAs section active and a REX is selected) */}
+      {config.mode === "editor" &&
+        sectionSelected === "evas" &&
+        selectedRex &&
+        rexMenuIsMinimized && <RexMenuLauncher />}
     </>
   );
 }
+
+// Shown in the top-right of the map while the floating Rex Menu widget is minimized.
+const RexMenuLauncher: FunctionComponent = () => {
+  const dispatch = useAppDispatch();
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const selectedRexIsExecuting = useMissionDocSelector((mission) => {
+    return (selectedRexUuid ? mission.rexes?.[selectedRexUuid] : null)?.isRunning ?? false;
+  }, refEqual);
+  const posMapClass = selectedRexIsExecuting
+    ? rexMenuStyles.rexMenuDisplayExecuting
+    : rexMenuStyles.rexMenuDisplay;
+
+  return (
+    <div className={rexMenuStyles.rexMenuLauncherContainer} data-testid="rex-menu-launcher">
+      <div className={`${posMapClass} ${rexMenuStyles.rexMenuLauncherCollapsed}`}>
+        <div
+          className={rexMenuStyles.rexMenuLauncherIcon}
+          onClick={(e) => {
+            dispatch(setRexMenuIsMinimized(false));
+            e.stopPropagation();
+          }}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content="Rex Menu"
+        >
+          <FontAwesomeIcon
+            icon={faCrosshairs}
+            size="sm"
+            style={{ marginTop: "3px", width: "15px", color: "var(--grey5)", outline: "none" }}
+            tabIndex={0}
+          />
+          <div className={rexMenuStyles.rexMenuLauncherTriangle} />
+        </div>
+      </div>
+    </div>
+  );
+};
