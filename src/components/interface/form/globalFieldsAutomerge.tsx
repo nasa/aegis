@@ -377,7 +377,6 @@ export const CollaborationTextArea: FunctionComponent<{
                               boxSizing: "border-box",
                             }}
                             onChange={(event) => {
-                              input.onChange(event); //call native on change
                               autoResizeTextarea();
                               input.onChange(composedFilter(event.target.value));
                               form.submit();
@@ -604,7 +603,6 @@ export const ValidatedInputField: FunctionComponent<{
                             }}
                             onChange={(event) => {
                               if (onChange) onChange(event);
-                              input.onChange(event);
                               input.onChange(composedFilter(event.target.value));
                             }}
                             ref={inputRef}
@@ -802,7 +800,6 @@ export const ValidatedTextArea: FunctionComponent<{
                             }}
                             onChange={(event) => {
                               autoResizeTextarea();
-                              input.onChange(event); //call native on change
                               input.onChange(composedFilter(event.target.value));
                             }}
                             onClick={(event) => {

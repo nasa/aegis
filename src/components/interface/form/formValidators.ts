@@ -198,6 +198,7 @@ const validatorsWithFilters: Record<string, (value: Stringy) => string> = {
   ...Object.fromEntries(filterNumbersValidators.map((validator) => [validator, filterNumbersOnly])),
 
   mustBeInteger: filterIntegersOnly,
+  mustBeYYYYMMDD: filterIntegersOnly,
   mustBeHHMMSS: filterHHMMSS,
   mustBeISOString: filterISOString,
 };
