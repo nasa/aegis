@@ -31,7 +31,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { longDateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import STMSelector from "./stm-legacy/stm-legacy-selector";
-import { validators, regExValidators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import round from "lodash/round";
 import isNull from "lodash/isNull";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
@@ -315,9 +315,6 @@ const RightActionBody: FunctionComponent<{
                           validators.required,
                           // validators.mustBeNumberGTZero,
                         ],
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                        },
                       }}
                       onSubmit={(value: string) => {
                         withMissionChange((m) =>
@@ -359,12 +356,6 @@ const RightActionBody: FunctionComponent<{
                           name: "priority",
                           ariaLabel: "Priority",
                           validators: [validators.maxLength(2), validators.mustBeInteger],
-                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                            e.target.value = e.target.value.replace(
-                              regExValidators.regExNumber,
-                              ""
-                            );
-                          },
                         }}
                         onSubmit={(value: string) => {
                           withMissionChange((m) =>
@@ -412,9 +403,6 @@ const RightActionBody: FunctionComponent<{
                           validators.mustBeInteger,
                         ],
                       }}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                      }}
                       onSubmit={(value: string) => {
                         withMissionChange((m) =>
                           applyUpdateActionByField(m, {
@@ -449,9 +437,6 @@ const RightActionBody: FunctionComponent<{
                           validators.mustBeInteger,
                           validators.mustBeNumberGTEZero,
                         ],
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                        },
                       }}
                       onSubmit={(value: string) => {
                         dispatch(
