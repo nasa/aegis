@@ -383,8 +383,26 @@ POI and Action markers **reuse the `station` config** (iconSize, clickable, hove
 
 `overlays/MapOverlays.tsx` is a React UI subtree positioned over the canvas (**not** `ol/Overlay`):
 eyeball menu (`map-menu.tsx`), preset selector (`map-menu-preset.tsx`), follow menu (dashboard),
-`ScaleBar`, `MouseCoordinateDisplay`, sun/earth compass (`map-sunearth.tsx`), POS menu
-(`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`).
+`ScaleBar`, `MouseCoordinateDisplay`, sun/earth compass (`map-sunearth.tsx`), and the Rex Menu
+launcher (crosshair icon, shown only while the Rex Menu widget is minimized).
+
+**Rex Menu (editor only) is a dockview floating group, not a map overlay.** It is created by
+`MissionDockviewLayout` (`src/components/interface/dockview/`) when the EVA section is active and
+a REX is selected, and removed otherwise. It holds two non-closable tabs:
+
+- **Positions** — `MapPositionMenu` (`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`): pos-type /
+  source toggles, New/Edit Pos., and the position table.
+- **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`): placeholder ("Asset Management Coming
+  Soon"). Add asset management components here.
+
+Dockview owns drag (via the tab bar's empty space, clamped to the map by
+`transformFloatingGroupDrag`) and resize. A minimize button in the group's header actions sets
+`state.interface.rexMenuIsMinimized`, which hides the group with `group.api.setVisible(false)`
+(content stays mounted, so in-progress state survives) and shows `RexMenuLauncher` in
+`MapOverlays`; clicking the launcher restores it. The tabs use a custom `nonClosable` tab component.
+Floating groups mount in `.dv-floating-overlay-host` (outside `.dv-dockview`), so their tab theme
+variables are set on that element. Docking into other areas still requires removing the layout's
+`disableDnd`/`locked` settings and the main panels' `no-drop-target` locks.
 
 Distinct from these, `ol/Overlay` (a real DOM node anchored to a coordinate) is used for the
 **timeline astronaut** (`TimelineAstronaut`). POS markers are **not** overlays — they are vector
