@@ -2,6 +2,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-solid-svg-icons";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useEffect, useState } from "react";
+import type { DockviewApi } from "dockview-react";
 import styles from "./map-menu.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
@@ -857,3 +858,82 @@ const MenuItem: FunctionComponent<{
     </div>
   );
 };
+
+const MAP_MENU_WIDTH = 285;
+const MAP_MENU_HEIGHT = 356;
+const MAP_MENU_LEFT_OFFSET = 45;
+const MAP_MENU_TOP_OFFSET = 10;
+
+function getMapBounds(api: DockviewApi) {
+  return api.getPanel("map")?.group.api.boundingBox;
+}
+
+export function setMapMenuSize(
+  panel: ReturnType<DockviewApi["getPanel"]>,
+  mapBounds: { width: number; height: number }
+): void {
+  if (!panel) return;
+  const width = Math.min(MAP_MENU_WIDTH, mapBounds.width);
+  const height = Math.min(MAP_MENU_HEIGHT, mapBounds.height);
+  panel.group.api.setConstraints({
+    minimumWidth: width,
+    minimumHeight: height,
+    maximumWidth: width,
+    maximumHeight: height,
+  });
+  panel.group.api.setSize({ width, height });
+}
+
+export const MapMenuDockviewPanel: FunctionComponent = () => (
+  <div className={styles.mapMenuPanel} data-testid="map-menu-floating-panel">
+    <MapMenuPanel />
+  </div>
+);
+
+// Manages the floating "Map Item Visibility" dockview panel: creates/removes it when
+// mapMenuIsOpen toggles, and keeps Redux in sync if the panel is removed directly (e.g. dragged
+// off the map via the floating titlebar close button).
+export function useMapMenuDockviewPanel(api: DockviewApi | null): void {
+  const dispatch = useAppDispatch();
+  const mapMenuIsOpen = useAppSelector((state) => state.interface.mapMenuIsOpen, refEqual);
+
+  useEffect(() => {
+    if (!api) return;
+    const existingPanel = api.getPanel("map-menu");
+    if (!mapMenuIsOpen) {
+      if (existingPanel) api.removePanel(existingPanel);
+      return;
+    }
+    if (existingPanel) {
+      existingPanel.api.setActive();
+      return;
+    }
+
+    const mapBounds = getMapBounds(api);
+    if (!mapBounds) return;
+    const width = Math.min(MAP_MENU_WIDTH, mapBounds.width);
+    const height = Math.min(MAP_MENU_HEIGHT, mapBounds.height);
+    const panel = api.addPanel({
+      id: "map-menu",
+      component: "map-menu",
+      title: "Map Item Visibility",
+      floating: {
+        x: mapBounds.left + Math.min(MAP_MENU_LEFT_OFFSET, Math.max(0, mapBounds.width - width)),
+        y: mapBounds.top + Math.min(MAP_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
+        width,
+        height,
+        dragHandle: "titlebar",
+      },
+    });
+    panel.group.header.hidden = true;
+    setMapMenuSize(panel, mapBounds);
+  }, [api, mapMenuIsOpen]);
+
+  useEffect(() => {
+    if (!api) return;
+    const removeDisposable = api.onDidRemovePanel((panel) => {
+      if (panel.id === "map-menu") dispatch(setMapMenuIsOpen(false));
+    });
+    return () => removeDisposable.dispose();
+  }, [api, dispatch]);
+}

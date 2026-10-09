@@ -84,6 +84,8 @@ export const MapPositionMenu: FunctionComponent = () => {
   // reset the pos entry in edit when pos source or pos type list changes
   // this covers when the rex selection changes too
   useEffect(() => {
+    if (!allPosSources) return;
+
     // Reset all the values in posEntryInEdit
     const nullPosEntry: PosEntry = {
       uuid: null,
