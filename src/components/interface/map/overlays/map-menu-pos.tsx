@@ -1,5 +1,5 @@
-import type { CSSProperties, FunctionComponent, PointerEvent as ReactPointerEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { FunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import posMenuStyles from "./map-menu-pos.module.css";
 import {
   faBan,
@@ -7,7 +7,6 @@ import {
   faChevronUp,
   faCrosshairs,
   faFloppyDisk,
-  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../../form/globalFields";
@@ -30,10 +29,6 @@ import { updateMapDirective } from "store/map";
 import { generateBlankPosEntry } from "store/storeUtils/rex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
-
-type ResizeDirection = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
-
-const resizeDirections: ResizeDirection[] = ["n", "ne", "e", "se", "s", "sw", "w", "nw"];
 
 export const MapPositionMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -85,160 +80,6 @@ export const MapPositionMenu: FunctionComponent = () => {
   const thisMapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 
   const [showPosList, setShowPosList] = useState(false);
-  const [showMenu, setShowMenu] = useState(true);
-
-  // Dragging switches the open menu to explicit parent-relative coordinates. Toggling restores
-  // the fixed top-right anchor while preserving user-resized open dimensions.
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
-  const [openSize, setOpenSize] = useState<{ width: number; height: number } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragStartRef = useRef<{
-    pointerId: number;
-    pointerX: number;
-    pointerY: number;
-    left: number;
-    top: number;
-  } | null>(null);
-  const resizeStartRef = useRef<{
-    pointerId: number;
-    direction: ResizeDirection;
-    pointerX: number;
-    pointerY: number;
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
-
-  const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("[data-rex-menu-close]")) return;
-    const container = containerRef.current;
-    const offsetParent = container?.offsetParent as HTMLElement | null;
-    if (!container || !offsetParent) return;
-    const containerBox = container.getBoundingClientRect();
-    const parentBox = offsetParent.getBoundingClientRect();
-    dragStartRef.current = {
-      pointerId: event.pointerId,
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      left: containerBox.left - parentBox.left,
-      top: containerBox.top - parentBox.top,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
-  };
-
-  const drag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const start = dragStartRef.current;
-    const container = containerRef.current;
-    const offsetParent = container?.offsetParent as HTMLElement | null;
-    if (!start || !container || !offsetParent || start.pointerId !== event.pointerId) return;
-    setPosition({
-      left: Math.max(
-        0,
-        Math.min(
-          start.left + event.clientX - start.pointerX,
-          offsetParent.clientWidth - container.offsetWidth
-        )
-      ),
-      top: Math.max(
-        0,
-        Math.min(
-          start.top + event.clientY - start.pointerY,
-          offsetParent.clientHeight - container.offsetHeight
-        )
-      ),
-    });
-  };
-
-  const stopDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragStartRef.current?.pointerId !== event.pointerId) return;
-    dragStartRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  const startResize = (event: ReactPointerEvent<HTMLDivElement>, direction: ResizeDirection) => {
-    const container = containerRef.current;
-    const offsetParent = container?.offsetParent as HTMLElement | null;
-    if (!container || !offsetParent) return;
-    const containerBox = container.getBoundingClientRect();
-    const parentBox = offsetParent.getBoundingClientRect();
-    const start = {
-      pointerId: event.pointerId,
-      direction,
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      left: containerBox.left - parentBox.left,
-      top: containerBox.top - parentBox.top,
-      width: containerBox.width,
-      height: containerBox.height,
-    };
-    resizeStartRef.current = start;
-    setPosition({ left: start.left, top: start.top });
-    setOpenSize({ width: start.width, height: start.height });
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const start = resizeStartRef.current;
-    const container = containerRef.current;
-    const offsetParent = container?.offsetParent as HTMLElement | null;
-    if (!start || !container || !offsetParent || start.pointerId !== event.pointerId) return;
-
-    const deltaX = event.clientX - start.pointerX;
-    const deltaY = event.clientY - start.pointerY;
-    const minWidth = Math.min(300, offsetParent.clientWidth);
-    const minHeight = Math.min(150, offsetParent.clientHeight);
-    let left = start.left;
-    let top = start.top;
-    let width = start.width;
-    let height = start.height;
-
-    if (start.direction.includes("e")) {
-      width = Math.max(
-        minWidth,
-        Math.min(start.width + deltaX, offsetParent.clientWidth - start.left)
-      );
-    }
-    if (start.direction.includes("w")) {
-      left = Math.max(0, Math.min(start.left + deltaX, start.left + start.width - minWidth));
-      width = start.left + start.width - left;
-    }
-    if (start.direction.includes("s")) {
-      height = Math.max(
-        minHeight,
-        Math.min(start.height + deltaY, offsetParent.clientHeight - start.top)
-      );
-    }
-    if (start.direction.includes("n")) {
-      top = Math.max(0, Math.min(start.top + deltaY, start.top + start.height - minHeight));
-      height = start.top + start.height - top;
-    }
-
-    setPosition({ left, top });
-    setOpenSize({ width, height });
-  };
-
-  const stopResize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (resizeStartRef.current?.pointerId !== event.pointerId) return;
-    resizeStartRef.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  };
-
-  const toggleMenu = () => {
-    const container = containerRef.current;
-    if (showMenu && container) {
-      setOpenSize({ width: container.clientWidth, height: container.clientHeight });
-    }
-    setPosition(null);
-    setShowMenu((current) => !current);
-  };
 
   // reset the pos entry in edit when pos source or pos type list changes
   // this covers when the rex selection changes too
@@ -285,380 +126,293 @@ export const MapPositionMenu: FunctionComponent = () => {
   });
 
   const posMapClass = selectedRexIsExecuting
-    ? posMenuStyles.mapPosDisplayExecuting
-    : posMenuStyles.mapPosDisplay;
-  const containerStyle: CSSProperties = position
-    ? { left: position.left, top: position.top, right: "auto" }
-    : {};
-
-  if (!showMenu) {
-    containerStyle.width = "auto";
-    containerStyle.height = "auto";
-  } else if (openSize) {
-    containerStyle.width = openSize.width;
-    containerStyle.height = openSize.height;
-  }
+    ? posMenuStyles.rexMenuDisplayExecuting
+    : posMenuStyles.rexMenuDisplay;
 
   return (
-    <div
-      ref={containerRef}
-      className={`${posMenuStyles.mapPosDisplayContainer} ${
-        showMenu ? posMenuStyles.mapPosDisplayContainerOpen : ""
-      }`}
-      style={containerStyle}
-      data-testid="rex-map-menu"
-    >
-      {showMenu &&
-        resizeDirections.map((direction) => (
-          <div
-            key={direction}
-            className={`${posMenuStyles.resizeHandle} ${posMenuStyles[`resizeHandle${direction.toUpperCase()}`]}`}
-            onPointerDown={(event) => startResize(event, direction)}
-            onPointerMove={resize}
-            onPointerUp={stopResize}
-            onPointerCancel={stopResize}
-            data-testid={`rex-map-menu-resize-${direction}`}
-          />
-        ))}
-      <div
-        className={`${posMapClass} ${showMenu ? posMenuStyles.menuOpen : posMenuStyles.menuClosed}`}
-      >
-        {!showMenu && (
-          <div
-            className={posMenuStyles.menuIcon}
-            onClick={(e) => {
-              toggleMenu();
-              e.stopPropagation();
-            }}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-content="Map View Settings"
-          >
-            <FontAwesomeIcon
-              icon={faCrosshairs}
-              size="sm"
-              style={{ marginTop: "3px", width: "15px", color: "var(--grey5)", outline: "none" }}
-              tabIndex={0}
-            />
-            <div className={posMenuStyles.bottomTriangle} />
-          </div>
-        )}
-
-        <div className={`${!showMenu && posMenuStyles.hideMenu} ${posMenuStyles.menuContainer}`}>
-          <div
-            className={posMenuStyles.titleContainer}
-            onPointerDown={startDrag}
-            onPointerMove={drag}
-            onPointerUp={stopDrag}
-            onPointerCancel={stopDrag}
-            data-testid="rex-map-menu-drag-handle"
-          >
-            {evaAndRexName}
-            <div
-              className={posMenuStyles.menuIconOpen}
-              onClick={(e) => {
-                toggleMenu();
-                e.stopPropagation();
-              }}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-content="Map View Settings"
-              data-rex-menu-close
-            >
-              <FontAwesomeIcon
-                icon={showMenu ? faXmark : faCrosshairs}
-                size="sm"
-                style={{
-                  cursor: "pointer",
-                  marginTop: "3px",
-                  width: "15px",
-                  color: "var(--grey5)",
-                  outline: "none",
-                }}
-                tabIndex={0}
-              />
-              <div className={posMenuStyles.topTriangle} />
-            </div>
-          </div>
-          <div
-            className={`${editPerms ? posMenuStyles.buttonContainer : posMenuStyles.viewOnlyButtonContainer}`}
-          >
-            {editPerms && (
-              <>
-                <div className={posMenuStyles.toggleContainer}>
-                  {allPosTypes?.map((posType, index) => {
-                    let toggleStyle = posMenuStyles.toggleMiddle;
-                    if (index === 0) {
-                      toggleStyle = posMenuStyles.toggleLeft;
-                    } else if (index === allPosTypes.length - 1) {
-                      toggleStyle = posMenuStyles.toggleRight;
-                    }
-                    return (
-                      <div
-                        key={posType.uuid}
-                        className={`${toggleStyle} ${posMenuStyles.center} ${
-                          posEntryInEdit?.posTypeUuids?.includes(posType.uuid) &&
-                          posMenuStyles.toggleSelected
-                        }`}
-                        onClick={() => {
-                          if (!selectedRex) return;
-                          const currentPosTypeUuids = posEntryInEdit?.posTypeUuids || [];
-                          if (currentPosTypeUuids.includes(posType.uuid)) {
-                            // Remove the posType.uuid if it's already selected
-                            dispatch(
-                              setPosEntryInEdit({
-                                ...posEntryInEdit,
-                                posTypeUuids: currentPosTypeUuids.filter(
-                                  (uuid) => uuid !== posType.uuid
-                                ),
-                              })
-                            );
-                          } else {
-                            // Add the posType.uuid
-                            dispatch(
-                              setPosEntryInEdit({
-                                ...posEntryInEdit,
-                                posTypeUuids: [...currentPosTypeUuids, posType.uuid],
-                              })
-                            );
-                          }
-                        }}
-                        data-tooltip-id="aegis-tooltip"
-                        data-tooltip-content={posType.name}
-                        style={{
-                          cursor: selectedRex.isRunning ? "pointer" : "default",
-                          // if rex is running, use color from the className
-                          ...(selectedRex.isRunning ? {} : { color: "var(--grey4)" }),
-                        }}
-                      >
-                        {posType.abbr}
-                      </div>
-                    );
-                  })}
-                  <div className={posMenuStyles.setPosButton}>
-                    {thisMapAction === null && (
-                      <Button
-                        onClick={async () => {
-                          if (posEntryInEdit?.createdAt) {
-                            // edit an existing position entry
-                            await dispatch(
-                              thunkUpdateMapDirective({
-                                mapItemType: "posEntry",
-                                uuid: posEntryInEdit.uuid,
-                                mapAction: "editMarker",
-                              })
-                            );
-                          } else {
-                            // clicking the "new pos" will set the uuid, petSeconds, and createdAt/updatedAt dates
-                            const seconds = secondsFromhhmmss(
-                              selectedRex.petRunning
-                                ? calculatePetValue(selectedRex)
-                                : selectedRex.petValueAtStartStop
-                            );
-                            const newPosEntry = generateBlankPosEntry({
-                              petSeconds: seconds,
-                              posTypeUuids: posEntryInEdit.posTypeUuids,
-                              posSourceUuid: posEntryInEdit.posSourceUuid,
-                            });
-                            dispatch(setPosEntryInEdit(newPosEntry));
-                            await dispatch(
-                              thunkUpdateMapDirective({
-                                mapItemType: "posEntry",
-                                uuid: newPosEntry.uuid,
-                                mapAction: "createMarker",
-                              })
-                            );
-                          }
-                        }}
-                        label={posEntryInEdit?.location ? "Edit Pos." : "New Pos."}
-                        icon={faCrosshairs}
-                        style={{ height: "1.75em", width: "90px", marginLeft: 0 }}
-                        enabled={posEntryInEdit?.posTypeUuids?.length > 0 && selectedRex.isRunning}
-                      />
-                    )}
-                    {(thisMapAction === "createMarker" || thisMapAction === "editMarker") && (
-                      <Button
-                        onClick={() => {
-                          // Cancel out map actions
-                          if (thisMapAction === "createMarker") {
-                            dispatch(
-                              updateMapDirective({
-                                mapItemType: "posEntry",
-                                uuid: posEntryInEdit.uuid,
-                                mapAction: "cancelCreateMarker",
-                              })
-                            );
-                          } else if (thisMapAction === "editMarker") {
-                            dispatch(
-                              updateMapDirective({
-                                mapItemType: "posEntry",
-                                uuid: posEntryInEdit.uuid,
-                                mapAction: "cancelEditMarker",
-                              })
-                            );
-                          }
-                          // clear out the pos entry in edit by replacing it with a blank one
-                          dispatch(clearPosEntryInEdit());
-                        }}
-                        icon={faBan}
-                        label="Cancel Pos."
-                        style={{ height: "1.75em", width: "100px", marginLeft: 0 }}
-                      />
-                    )}
-                  </div>
-                  {posEntryInEdit?.location && (
-                    <div className={posMenuStyles.saveCancelButtons}>
-                      <div>
-                        <Button
-                          onClick={async () => {
-                            // update selected types and source
-                            await dispatch(thunkDocSavePosEntryNoLocation());
-                          }}
-                          icon={faFloppyDisk}
-                          toolTip={`Save Position Markers ${modified ? "" : " (nothing to save)"}`}
-                          enabled={modified && posEntryInEdit?.posTypeUuids?.length > 0}
-                          style={{
-                            height: "1.75em",
-                            backgroundColor:
-                              modified && posEntryInEdit?.posTypeUuids?.length > 0
-                                ? "var(--alert)"
-                                : "var(--alert-disabled)",
-                            color:
-                              modified && posEntryInEdit?.posTypeUuids?.length > 0
-                                ? "white"
-                                : "var(--grey4)",
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Button
-                          onClick={() => {
-                            dispatch(clearPosEntryInEdit());
-                          }}
-                          icon={faBan}
-                          toolTip="Cancel Edit"
-                          style={{ height: "1.75em" }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className={posMenuStyles.toggleContainer}>
-                  <div className={posMenuStyles.sourceText}>Source:</div>
-                  {allPosSources?.map((posSource, index) => {
-                    // set style
-                    let toggleStyle = posMenuStyles.toggleMiddle;
-                    if (index === 0) {
-                      toggleStyle = posMenuStyles.toggleLeft;
-                    } else if (index === allPosSources.length - 1) {
-                      toggleStyle = posMenuStyles.toggleRight;
-                    }
-                    return (
-                      <div
-                        key={posSource.uuid}
-                        className={`${toggleStyle} ${posMenuStyles.center} ${
-                          selectedRex.isRunning &&
-                          posEntryInEdit?.posSourceUuid === posSource.uuid &&
-                          posMenuStyles.toggleSelected
-                        }`}
-                        onClick={() => {
+    <div className={`${posMapClass} ${posMenuStyles.menuOpen}`} data-testid="positions-menu">
+      <div className={posMenuStyles.menuContainer}>
+        <div className={posMenuStyles.titleContainer}>{evaAndRexName}</div>
+        <div
+          className={`${editPerms ? posMenuStyles.buttonContainer : posMenuStyles.viewOnlyButtonContainer}`}
+        >
+          {editPerms && (
+            <>
+              <div className={posMenuStyles.toggleContainer}>
+                {allPosTypes?.map((posType, index) => {
+                  let toggleStyle = posMenuStyles.toggleMiddle;
+                  if (index === 0) {
+                    toggleStyle = posMenuStyles.toggleLeft;
+                  } else if (index === allPosTypes.length - 1) {
+                    toggleStyle = posMenuStyles.toggleRight;
+                  }
+                  return (
+                    <div
+                      key={posType.uuid}
+                      className={`${toggleStyle} ${posMenuStyles.center} ${
+                        posEntryInEdit?.posTypeUuids?.includes(posType.uuid) &&
+                        posMenuStyles.toggleSelected
+                      }`}
+                      onClick={() => {
+                        if (!selectedRex) return;
+                        const currentPosTypeUuids = posEntryInEdit?.posTypeUuids || [];
+                        if (currentPosTypeUuids.includes(posType.uuid)) {
+                          // Remove the posType.uuid if it's already selected
                           dispatch(
                             setPosEntryInEdit({
                               ...posEntryInEdit,
-                              posSourceUuid: posSource.uuid,
+                              posTypeUuids: currentPosTypeUuids.filter(
+                                (uuid) => uuid !== posType.uuid
+                              ),
                             })
                           );
+                        } else {
+                          // Add the posType.uuid
+                          dispatch(
+                            setPosEntryInEdit({
+                              ...posEntryInEdit,
+                              posTypeUuids: [...currentPosTypeUuids, posType.uuid],
+                            })
+                          );
+                        }
+                      }}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-content={posType.name}
+                      style={{
+                        cursor: selectedRex.isRunning ? "pointer" : "default",
+                        // if rex is running, use color from the className
+                        ...(selectedRex.isRunning ? {} : { color: "var(--grey4)" }),
+                      }}
+                    >
+                      {posType.abbr}
+                    </div>
+                  );
+                })}
+                <div className={posMenuStyles.setPosButton}>
+                  {thisMapAction === null && (
+                    <Button
+                      onClick={async () => {
+                        if (posEntryInEdit?.createdAt) {
+                          // edit an existing position entry
+                          await dispatch(
+                            thunkUpdateMapDirective({
+                              mapItemType: "posEntry",
+                              uuid: posEntryInEdit.uuid,
+                              mapAction: "editMarker",
+                            })
+                          );
+                        } else {
+                          // clicking the "new pos" will set the uuid, petSeconds, and createdAt/updatedAt dates
+                          const seconds = secondsFromhhmmss(
+                            selectedRex.petRunning
+                              ? calculatePetValue(selectedRex)
+                              : selectedRex.petValueAtStartStop
+                          );
+                          const newPosEntry = generateBlankPosEntry({
+                            petSeconds: seconds,
+                            posTypeUuids: posEntryInEdit.posTypeUuids,
+                            posSourceUuid: posEntryInEdit.posSourceUuid,
+                          });
+                          dispatch(setPosEntryInEdit(newPosEntry));
+                          await dispatch(
+                            thunkUpdateMapDirective({
+                              mapItemType: "posEntry",
+                              uuid: newPosEntry.uuid,
+                              mapAction: "createMarker",
+                            })
+                          );
+                        }
+                      }}
+                      label={posEntryInEdit?.location ? "Edit Pos." : "New Pos."}
+                      icon={faCrosshairs}
+                      style={{ height: "1.75em", width: "90px", marginLeft: 0 }}
+                      enabled={posEntryInEdit?.posTypeUuids?.length > 0 && selectedRex.isRunning}
+                    />
+                  )}
+                  {(thisMapAction === "createMarker" || thisMapAction === "editMarker") && (
+                    <Button
+                      onClick={() => {
+                        // Cancel out map actions
+                        if (thisMapAction === "createMarker") {
+                          dispatch(
+                            updateMapDirective({
+                              mapItemType: "posEntry",
+                              uuid: posEntryInEdit.uuid,
+                              mapAction: "cancelCreateMarker",
+                            })
+                          );
+                        } else if (thisMapAction === "editMarker") {
+                          dispatch(
+                            updateMapDirective({
+                              mapItemType: "posEntry",
+                              uuid: posEntryInEdit.uuid,
+                              mapAction: "cancelEditMarker",
+                            })
+                          );
+                        }
+                        // clear out the pos entry in edit by replacing it with a blank one
+                        dispatch(clearPosEntryInEdit());
+                      }}
+                      icon={faBan}
+                      label="Cancel Pos."
+                      style={{ height: "1.75em", width: "100px", marginLeft: 0 }}
+                    />
+                  )}
+                </div>
+                {posEntryInEdit?.location && (
+                  <div className={posMenuStyles.saveCancelButtons}>
+                    <div>
+                      <Button
+                        onClick={async () => {
+                          // update selected types and source
+                          await dispatch(thunkDocSavePosEntryNoLocation());
                         }}
-                        data-tooltip-id="aegis-tooltip"
-                        data-tooltip-content={posSource.name}
+                        icon={faFloppyDisk}
+                        toolTip={`Save Position Markers ${modified ? "" : " (nothing to save)"}`}
+                        enabled={modified && posEntryInEdit?.posTypeUuids?.length > 0}
                         style={{
-                          cursor: selectedRex.isRunning ? "pointer" : "default",
-                          // if rex is running, use color from the className
-                          ...(selectedRex.isRunning ? {} : { color: "var(--grey4)" }),
+                          height: "1.75em",
+                          backgroundColor:
+                            modified && posEntryInEdit?.posTypeUuids?.length > 0
+                              ? "var(--alert)"
+                              : "var(--alert-disabled)",
+                          color:
+                            modified && posEntryInEdit?.posTypeUuids?.length > 0
+                              ? "white"
+                              : "var(--grey4)",
                         }}
-                      >
-                        {posSource.abbr}
-                      </div>
+                      />
+                    </div>
+                    <div>
+                      <Button
+                        onClick={() => {
+                          dispatch(clearPosEntryInEdit());
+                        }}
+                        icon={faBan}
+                        toolTip="Cancel Edit"
+                        style={{ height: "1.75em" }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className={posMenuStyles.toggleContainer}>
+                <div className={posMenuStyles.sourceText}>Source:</div>
+                {allPosSources?.map((posSource, index) => {
+                  // set style
+                  let toggleStyle = posMenuStyles.toggleMiddle;
+                  if (index === 0) {
+                    toggleStyle = posMenuStyles.toggleLeft;
+                  } else if (index === allPosSources.length - 1) {
+                    toggleStyle = posMenuStyles.toggleRight;
+                  }
+                  return (
+                    <div
+                      key={posSource.uuid}
+                      className={`${toggleStyle} ${posMenuStyles.center} ${
+                        selectedRex.isRunning &&
+                        posEntryInEdit?.posSourceUuid === posSource.uuid &&
+                        posMenuStyles.toggleSelected
+                      }`}
+                      onClick={() => {
+                        dispatch(
+                          setPosEntryInEdit({
+                            ...posEntryInEdit,
+                            posSourceUuid: posSource.uuid,
+                          })
+                        );
+                      }}
+                      data-tooltip-id="aegis-tooltip"
+                      data-tooltip-content={posSource.name}
+                      style={{
+                        cursor: selectedRex.isRunning ? "pointer" : "default",
+                        // if rex is running, use color from the className
+                        ...(selectedRex.isRunning ? {} : { color: "var(--grey4)" }),
+                      }}
+                    >
+                      {posSource.abbr}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+        <div className={posMenuStyles.posTableContainer}>
+          <table className={posMenuStyles.posTable}>
+            <thead>
+              <tr className={posMenuStyles.historicPosHeader}>
+                <td>#</td>
+                <td className={posMenuStyles.petColumn}>PET</td>
+                <td className={posMenuStyles.markerColumn}>Markers</td>
+                <td>
+                  Lander
+                  <br />
+                  Dist. (m)
+                </td>
+                <td>
+                  WB Dur.
+                  <br />
+                  (mins)
+                </td>
+                <td>Src</td>
+              </tr>
+            </thead>
+            <tbody>
+              {posEntries?.length > 0 && (
+                <>
+                  {posEntries.map((posEntry, index) => {
+                    if (!posEntriesTopList.includes(posEntry)) return null;
+
+                    return (
+                      <PositionRow
+                        key={posEntry.uuid}
+                        posEntry={posEntry}
+                        showKabob={editPerms && selectedRex.isRunning}
+                        numbering={posEntries.length - index}
+                        isEditing={posEntryInEdit?.uuid === posEntry.uuid}
+                      />
                     );
                   })}
-                </div>
-              </>
-            )}
-          </div>
-          <div className={posMenuStyles.posTableContainer}>
-            <table className={posMenuStyles.posTable}>
-              <thead>
-                <tr className={posMenuStyles.historicPosHeader}>
-                  <td>#</td>
-                  <td className={posMenuStyles.petColumn}>PET</td>
-                  <td className={posMenuStyles.markerColumn}>Markers</td>
-                  <td>
-                    Lander
-                    <br />
-                    Dist. (m)
-                  </td>
-                  <td>
-                    WB Dur.
-                    <br />
-                    (mins)
-                  </td>
-                  <td>Src</td>
-                </tr>
-              </thead>
-              <tbody>
-                {posEntries?.length > 0 && (
-                  <>
-                    {posEntries.map((posEntry, index) => {
-                      if (!posEntriesTopList.includes(posEntry)) return null;
-
-                      return (
-                        <PositionRow
-                          key={posEntry.uuid}
-                          posEntry={posEntry}
-                          showKabob={editPerms && selectedRex.isRunning}
-                          numbering={posEntries.length - index}
-                          isEditing={posEntryInEdit?.uuid === posEntry.uuid}
-                        />
-                      );
-                    })}
-                  </>
-                )}
-                <tr>
-                  <td
-                    className={posMenuStyles.historicPosTitle}
-                    onClick={() => {
-                      setShowPosList(!showPosList);
-                    }}
-                    colSpan={5}
-                  >
-                    All Positions
-                    <FontAwesomeIcon
-                      icon={showPosList ? faChevronDown : faChevronUp}
-                      size="sm"
-                      style={{ paddingLeft: "5px" }}
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            {showPosList && posEntries && (
-              <div className={posMenuStyles.allPositionsContainer}>
-                <table className={posMenuStyles.posTable}>
-                  <tbody>
-                    {posEntries.map((posEntry, index, posEntries) => {
-                      return (
-                        <PositionRow
-                          key={posEntry.uuid}
-                          posEntry={posEntry}
-                          showKabob={editPerms && selectedRex.isRunning}
-                          numbering={posEntries.length - index}
-                          isEditing={posEntryInEdit?.uuid === posEntry.uuid}
-                        />
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                </>
+              )}
+              <tr>
+                <td
+                  className={posMenuStyles.historicPosTitle}
+                  onClick={() => {
+                    setShowPosList(!showPosList);
+                  }}
+                  colSpan={5}
+                >
+                  All Positions
+                  <FontAwesomeIcon
+                    icon={showPosList ? faChevronDown : faChevronUp}
+                    size="sm"
+                    style={{ paddingLeft: "5px" }}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          {showPosList && posEntries && (
+            <div className={posMenuStyles.allPositionsContainer}>
+              <table className={posMenuStyles.posTable}>
+                <tbody>
+                  {posEntries.map((posEntry, index, posEntries) => {
+                    return (
+                      <PositionRow
+                        key={posEntry.uuid}
+                        posEntry={posEntry}
+                        showKabob={editPerms && selectedRex.isRunning}
+                        numbering={posEntries.length - index}
+                        isEditing={posEntryInEdit?.uuid === posEntry.uuid}
+                      />
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -7,11 +7,16 @@ import {
   type FunctionComponent,
 } from "react";
 import {
+  DockviewDefaultTab,
   DockviewReact,
   type DockviewApi,
   type DockviewReadyEvent,
   type FloatingGroupDragContext,
+  type IDockviewHeaderActionsProps,
+  type IDockviewPanelHeaderProps,
 } from "dockview-react";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "dockview-react/dist/styles/dockview.css";
 
 import {
@@ -25,9 +30,12 @@ import {
 } from "components/interface/side-controls";
 import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
 import { MapMenuPanel } from "components/interface/map/overlays/map-menu";
-import { setMapMenuIsOpen } from "store/interface";
+import { MapPositionMenu } from "components/interface/map/overlays/map-menu-pos";
+import { MapAssetsMenu } from "components/interface/map/overlays/map-menu-assets";
+import { setMapMenuIsOpen, setRexMenuIsMinimized } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 
 import styles from "./missionDockviewLayout.module.css";
 
@@ -42,6 +50,13 @@ const MAP_MENU_HEIGHT = 356;
 const MAP_MENU_LEFT_OFFSET = 45;
 const MAP_MENU_TOP_OFFSET = 10;
 const PANEL_SEPARATOR_SIZE = 1;
+const REX_MENU_WIDTH = 384;
+const REX_MENU_HEIGHT = 320;
+const REX_MENU_TOP_OFFSET = 10;
+const REX_MENU_RIGHT_OFFSET = 10;
+// Panels that live in the floating Rex Menu widget (Positions + Assets tabs). Their tabs cannot
+// be closed; the whole widget is minimized instead.
+const REX_MENU_PANEL_IDS = ["positions", "assets"];
 
 const LeftPanel: FunctionComponent = () => {
   const selectedNavItem = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
@@ -78,12 +93,55 @@ const MapMenuDockviewPanel: FunctionComponent = () => (
   </div>
 );
 
+const PositionsDockviewPanel: FunctionComponent = () => (
+  <div className={styles.positionsPanel} data-testid="positions-floating-panel">
+    <MapPositionMenu />
+  </div>
+);
+
+const AssetsDockviewPanel: FunctionComponent = () => (
+  <div className={styles.assetsPanel} data-testid="assets-floating-panel">
+    <MapAssetsMenu />
+  </div>
+);
+
 const components = {
   left: LeftPanel,
   map: MapPanel,
   bottom: BottomPanel,
   right: RightPanel,
   "map-menu": MapMenuDockviewPanel,
+  positions: PositionsDockviewPanel,
+  assets: AssetsDockviewPanel,
+};
+
+const NonClosableTab: FunctionComponent<IDockviewPanelHeaderProps> = (props) => (
+  <DockviewDefaultTab {...props} hideClose={true} />
+);
+
+const tabComponents = {
+  nonClosable: NonClosableTab,
+};
+
+const RexMenuHeaderActions: FunctionComponent<IDockviewHeaderActionsProps> = ({ panels }) => {
+  const dispatch = useAppDispatch();
+  if (!panels.some((panel) => REX_MENU_PANEL_IDS.includes(panel.id))) return null;
+  return (
+    <div className={`${styles.headerActions}`}>
+      <div className={styles.headerActionButtonTriangle} />
+      <button
+        className={styles.headerActionButton}
+        onClick={() => dispatch(setRexMenuIsMinimized(true))}
+        data-tooltip-id="aegis-tooltip"
+        data-tooltip-content="Minimize"
+        aria-label="Minimize Rex Menu"
+        data-testid="rex-menu-minimize"
+        type="button"
+      >
+        <FontAwesomeIcon icon={faXmark} size="sm" />
+      </button>
+    </div>
+  );
 };
 
 function getMapBounds(api: DockviewApi) {
@@ -129,6 +187,17 @@ export function MissionDockviewLayout(): JSX.Element {
   const bottomPanelIsOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
   const rightPanelIsOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
   const mapMenuIsOpen = useAppSelector((state) => state.interface.mapMenuIsOpen, refEqual);
+  const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
+  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
+  const selectedRexExists = useMissionDocSelector(
+    (mission) => !!(selectedRexUuid && mission.rexes?.[selectedRexUuid]),
+    refEqual
+  );
+  const showRexMenu = sectionSelected === "evas" && selectedRexExists;
+  const rexMenuIsMinimized = useAppSelector(
+    (state) => state.interface.rexMenuIsMinimized,
+    refEqual
+  );
 
   useEffect(() => {
     if (!api) return;
@@ -161,6 +230,49 @@ export function MissionDockviewLayout(): JSX.Element {
     panel.group.header.hidden = true;
     setMapMenuSize(panel, mapBounds);
   }, [api, mapMenuIsOpen]);
+
+  useEffect(() => {
+    if (!api) return;
+    const existingPanels = REX_MENU_PANEL_IDS.map((id) => api.getPanel(id)).filter(
+      (panel) => !!panel
+    );
+    if (!showRexMenu) {
+      for (const panel of existingPanels) api.removePanel(panel);
+      return;
+    }
+    if (existingPanels.length > 0) return;
+
+    const mapBounds = getMapBounds(api);
+    if (!mapBounds) return;
+    const width = Math.min(REX_MENU_WIDTH, mapBounds.width);
+    const height = Math.min(REX_MENU_HEIGHT, mapBounds.height);
+    const positionsPanel = api.addPanel({
+      id: "positions",
+      component: "positions",
+      tabComponent: "nonClosable",
+      title: "Positions",
+      floating: {
+        x: mapBounds.left + Math.max(0, mapBounds.width - width - REX_MENU_RIGHT_OFFSET),
+        y: mapBounds.top + Math.min(REX_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
+        width,
+        height,
+        dragHandle: "tabbar",
+      },
+    });
+    api.addPanel({
+      id: "assets",
+      component: "assets",
+      tabComponent: "nonClosable",
+      title: "Assets",
+      position: { referencePanel: positionsPanel, direction: "within" },
+      inactive: true,
+    });
+  }, [api, showRexMenu]);
+
+  useEffect(() => {
+    if (!api || !showRexMenu) return;
+    api.getPanel("positions")?.group.api.setVisible(!rexMenuIsMinimized);
+  }, [api, showRexMenu, rexMenuIsMinimized]);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
     const dockviewApi = event.api;
@@ -276,7 +388,10 @@ export function MissionDockviewLayout(): JSX.Element {
 
   const transformFloatingGroupDrag = useCallback(
     ({ group, proposed }: FloatingGroupDragContext) => {
-      if (!api || group.panels[0]?.id !== "map-menu") return;
+      const isMapWidget = group.panels.some(
+        (panel) => panel.id === "map-menu" || REX_MENU_PANEL_IDS.includes(panel.id)
+      );
+      if (!api || !isMapWidget) return;
       const mapBounds = getMapBounds(api);
       if (!mapBounds) return;
       return {
@@ -297,6 +412,8 @@ export function MissionDockviewLayout(): JSX.Element {
     <div ref={containerRef} className={styles.container} data-testid="mission-dockview">
       <DockviewReact
         components={components}
+        tabComponents={tabComponents}
+        rightHeaderActionsComponent={RexMenuHeaderActions}
         onReady={onReady}
         locked={true}
         disableDnd={true}
