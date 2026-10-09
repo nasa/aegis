@@ -22,7 +22,7 @@ import traverseStyles from "./traverse.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDocResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
-import { validators, regExValidators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { setOriginalPoints, updateMapDirective } from "store/map";
 import { makeTraverseRateString } from "utils/component-helpers";
@@ -231,12 +231,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               validators.mustBeInteger,
                               validators.mustBeNumberGTEZero,
                             ],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
                           }}
                           onSubmit={(val: string) => {
                             withMissionChange((m) =>
@@ -277,12 +271,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             name: "traverseRate",
                             ariaLabel: "Average Traverse Rate",
                             validators: [validators.mustBeNumber, validators.maxLength(4)],
-                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            },
                           }}
                           onSubmit={(val: string) => {
                             withMissionChange((m) =>
