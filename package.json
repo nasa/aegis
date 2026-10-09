@@ -27,6 +27,7 @@
     "test:playwright:ui": "playwright test --config ./src/tests/playwright/playwright.config.ts --ui",
     "test:loadtest:build": "node ./src/tests/loadTest/esbuild.loadtest.mjs",
     "test:loadtest": "node ./.local/express/dist/loadTest/startLoadTest.js",
+    "db:init": "bash ./scripts/db-init.sh",
     "seed": "npx mikro-orm seeder:run",
     "seed:demo": "npm run migration:fresh && npm run automerge:seed:build && npm run automerge:seed",
     "migration:up": "npm run schema:create && npm run automerge:migration:build && npm run migration:up:run",
