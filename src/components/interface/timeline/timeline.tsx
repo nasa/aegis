@@ -203,10 +203,13 @@ const NavTimeline: FunctionComponent = () => {
   const processPosEntriesFromStore = useCallback(() => {
     if (!partialMission || !selectedRex) return;
     const posForPaper: PosEntry_PaperJS[] = [];
+
+    // check if there is a filter on positions by source
     const mapDisplayPosUuids = display.submenuPos.sourceUuids;
-    const selectedPos = selectedRex.posEntries.filter((pos) =>
-      mapDisplayPosUuids.includes(pos.posSourceUuid)
-    );
+    const selectedPos = mapDisplayPosUuids.length
+      ? selectedRex.posEntries.filter((pos) => mapDisplayPosUuids.includes(pos.posSourceUuid))
+      : selectedRex.posEntries;
+
     for (const posEntry of selectedPos || []) {
       const distFromLander = getDistanceBetweenTwoCoordinates(
         partialMission.landerLocation,
@@ -265,7 +268,7 @@ const NavTimeline: FunctionComponent = () => {
         selectedEvaSequenceItemUuid
       );
     }
-    // HERE
+
     // only draw crew pos if the eva we've selected matches the rex's eva
     if (selectedRex && selectedEva?.uuid === selectedRex.evaUuid) {
       processPosEntriesFromStore();
