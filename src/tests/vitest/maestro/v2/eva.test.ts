@@ -9,6 +9,7 @@ import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 let testAutomergeDocListings: Doc_Listing_db[];
 let testMissionsPartial: Partial<Mission>[];
@@ -16,6 +17,8 @@ let asPlannedEva0: Eva;
 let asPlannedEva1: Eva;
 let rexEva0: Eva;
 let rexEva1: Eva;
+let evaWithTraverse: Eva;
+let traverseWithDistance: Traverse;
 let testAppUser: App_User_db;
 let noPermsAppUser: App_User_db;
 const emssToken = process.env.EMSS_TOKEN;
@@ -46,27 +49,43 @@ beforeAll(async () => {
     refUuid: asPlannedEva1.refUuid,
   });
 
+  // An as-planned EVA with a single traverse, used to verify the exported
+  // traverse's calculatedFields.durationMinutes.
+  traverseWithDistance = generateBlankTraverse({
+    name: "Vitest Traverse With Distance",
+    pathSegmentDistances: [1000, 1000], // 2km total
+  });
+  evaWithTraverse = generateBlankEVA({
+    name: "Vitest EVA With Traverse",
+    sequence: [{ type: "traverse", uuid: traverseWithDistance.uuid }],
+  });
+
   const rexes = [
     generateBlankRex({ name: "Vitest REX-0", evaUuid: rexEva0.uuid }),
     generateBlankRex({ name: "Vitest REX-1", evaUuid: rexEva1.uuid }),
   ];
 
   const mission1Evas: Record<string, Eva> = {};
-  for (const e of [asPlannedEva0, asPlannedEva1, rexEva0, rexEva1]) {
+  for (const e of [asPlannedEva0, asPlannedEva1, rexEva0, rexEva1, evaWithTraverse]) {
     mission1Evas[e.uuid] = e;
   }
   const mission1Rexes: Record<string, Rex> = {};
   for (const r of rexes) {
     mission1Rexes[r.uuid] = r;
   }
+  const mission1Traverses: Record<string, Traverse> = {
+    [traverseWithDistance.uuid]: traverseWithDistance,
+  };
 
   testMissionsPartial = [
     {
       id: testAutomergeDocListings[0].missionId,
       name: "Vitest Test Mission Maegistro V2 Eva 1",
       archivedAt: null,
+      traverseRate: 2, // km/h, so 2km traverse takes 60 minutes
       evas: mission1Evas,
       rexes: mission1Rexes,
+      traverses: mission1Traverses,
     },
     {
       id: testAutomergeDocListings[1].missionId,
@@ -271,6 +290,26 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
       expect(eva).toHaveProperty("sequenceReadable");
       expect(eva).toHaveProperty("sequenceRefUuids");
       expect(eva).toHaveProperty("calculatedFields");
+    });
+
+    test("Returns durationMinutes in the calculatedFields of a traverse in the sequence", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/maestro/v2/eva")
+        .set("emss-token", emssToken)
+        .query({
+          missionId: testAutomergeDocListings[0].missionId,
+          uuid: evaWithTraverse.uuid,
+        });
+
+      expect(res.statusCode).toBe(200);
+      const eva: ExportEva = res.body.data[0];
+      const traverseReadable = eva.sequenceReadable[0] as ExportTraverse;
+      expect(traverseReadable.uuid).toBe(traverseWithDistance.uuid);
+      // 2km traverse at 2km/h => 60 minutes
+      expect(traverseReadable.calculatedFields.durationMinutes).toBe(60);
+      expect(traverseReadable.calculatedFields.durationMinutes).toBe(
+        traverseReadable.calculatedFields.movementDurationMinutes
+      );
     });
   });
 });
