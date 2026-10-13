@@ -16,14 +16,10 @@ import missionHomepageItemsRoutes from "./routes/missionHomepageItems";
 import missionDup from "./routes/missionDup";
 import missionDump from "./routes/missionDump";
 import metricsRoutes from "./routes/metrics";
-import presetRoutes from "./routes/preset";
 import gridRoutes from "./routes/grid";
-import stmRoutes from "./routes/stm";
-import stmRulesRoutes from "./routes/stmRules";
 import sublayerRoutes from "./routes/sublayer";
 import appUsersRoutes from "./routes/appUsers";
 import timeRoutes from "./routes/time";
-import folderRoutes from "./routes/folder";
 
 import rexByEvaV2 from "../maestro/v2/routes/getRexesByEva";
 import getMissionsV2 from "../maestro/v2/routes/getMissions";
@@ -34,7 +30,6 @@ import docCreateV2 from "../maestro/v2/routes/docCreate";
 
 import enableEmssApi from "./routes/emss/enableEmssApi";
 
-import socketLastEditEventRoutes from "./routes/socket/lastEditEvent";
 import serverSocketStatus from "./routes/socket/serverSocketStatus";
 
 import boxDownloadFileRoute from "./routes/file/boxDownloadFile";
@@ -75,7 +70,6 @@ app.use("/static", express.static(path.join(__dirname, `../../../../${process.en
 
 // socket stuff
 app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
-app.use("/api/v1/socket/lastEditEvent", socketLastEditEventRoutes);
 
 // Mikro-ORM RequestContext should be last middleware before routes
 // <https://mikro-orm.io/docs/identity-map#request-context>
@@ -119,9 +113,6 @@ app.use("/api/v1/missionHomepageItems", missionHomepageItemsRoutes);
 app.use("/api/v1/missionDup", missionDup);
 app.use("/api/v1/missionDump", missionDump);
 app.use("/api/v1/metrics", metricsRoutes);
-app.use("/api/v1/preset", presetRoutes);
-app.use("/api/v1/stm", stmRoutes);
-app.use("/api/v1/stmRules", stmRulesRoutes);
 app.use("/api/v1/sublayer", sublayerRoutes);
 app.use("/api/v1/appUsers", appUsersRoutes);
 app.use("/api/v1/time", timeRoutes);
@@ -132,7 +123,6 @@ app.use("/api/v1/file/list", fileListRoute);
 app.use("/api/v1/file/rename", fileRenameRoute);
 app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
-app.use("/api/v1/folder", folderRoutes);
 app.use("/api/v1/docListing", docListingRoute);
 app.use("/api/v1/environmentConfig", environmentConfigRoute);
 

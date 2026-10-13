@@ -115,8 +115,8 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
 }) => {
   const [showMenu, setShowMenu] = useState(floating);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const selectedPreset = useAppSelector(
-    (state) => state.preset.presets.find((p) => p.uuid === selectedPresetUuid),
+  const selectedPreset = useMissionDocSelector(
+    (mission) => mission.presets?.[selectedPresetUuid],
     deepEqual
   );
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);

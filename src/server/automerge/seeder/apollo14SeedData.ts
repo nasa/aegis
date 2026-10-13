@@ -842,8 +842,7 @@ const evas: { [uuid: string]: Eva } = {
  * The hierarchy is:
  *   Level1 (Goal) -> Level2 (Objective) -> Level3 (Investigation)
  *
- * These are seeded straight to the DB by {@link file://./seedApollo14.ts}
- * (STM is not part of the Mission Automerge document).
+ * These are placed on the mission document by {@link buildApollo14Mission}.
  */
 export const apollo14StmLevel1s: STMLevel1[] = Object.values({
   "c25a9f75-8077-4651-a4e0-342263b5da6e": generateBlankStmLvl1({
@@ -1203,8 +1202,17 @@ export const buildApollo14Mission = (): Mission =>
       traverses,
       actions,
       evas,
+      layers: byUuid(apollo14Layers),
+      sublayers: byUuid(apollo14Sublayers),
+      presets: byUuid([apollo14Preset]),
+      stmLevel1s: byUuid(apollo14StmLevel1s),
+      stmLevel2s: byUuid(apollo14StmLevel2s),
+      stmLevel3s: byUuid(apollo14StmLevel3s),
     })
   );
+
+const byUuid = <T extends { uuid: string }>(items: T[]): { [uuid: string]: T } =>
+  Object.fromEntries(items.map((item) => [item.uuid, item]));
 
 /**
  * Stamp a mission id onto the mission document and every entity that carries a
@@ -1219,6 +1227,12 @@ export const stampMissionId = (mission: Mission, missionId: number): void => {
   for (const action of Object.values(mission.actions)) action.missionId = missionId;
   for (const eva of Object.values(mission.evas)) eva.missionId = missionId;
   for (const rex of Object.values(mission.rexes)) rex.missionId = missionId;
+  for (const layer of Object.values(mission.layers)) layer.missionId = missionId;
+  for (const sublayer of Object.values(mission.sublayers)) sublayer.missionId = missionId;
+  for (const preset of Object.values(mission.presets)) preset.missionId = missionId;
+  for (const level1 of Object.values(mission.stmLevel1s)) level1.missionId = missionId;
+  for (const folder of Object.values(mission.folders)) folder.missionId = missionId;
+  for (const rule of Object.values(mission.stmRules)) rule.missionId = missionId;
 };
 
 /**
@@ -1302,7 +1316,7 @@ const sublayerControl = (uuid: string, name: string, visible: boolean): MapSubla
 /**
  * The mission-default map preset. Shows the NAC ortho by default with the other
  * sublayers available but hidden. References the deterministic layer/sublayer uuids
- * above. `missionId`/`createdAt`/`updatedAt` are assigned at seed time.
+ * above. `missionId` is assigned at seed time.
  */
 export const apollo14Preset: Preset = generateBlankPreset({
   uuid: PRESET_UUID,

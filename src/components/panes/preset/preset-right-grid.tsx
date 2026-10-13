@@ -3,8 +3,9 @@ import paneStyles from "../global-pane-styles.module.css";
 import gridStyles from "./preset-right-grid.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faInfo, faPaintBrush } from "@fortawesome/free-solid-svg-icons";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { upsertPresetByField } from "store/preset";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdatePresetByField } from "operations/apply/apply-mission-preset";
 import { defaultGridStyle } from "store/storeUtils/sublayer";
 import Settings_subpanel from "components/interface/settings-and-slider";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
@@ -12,14 +13,18 @@ import { Checkbox } from "components/interface/form/globalFields";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
 const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
   const resolvedGrid = useResolvedMissionGrid();
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const selectedPreset: Preset = useAppSelector(
-    (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
+  const selectedPreset: Preset | undefined = useMissionDocSelector(
+    (mission) => mission.presets?.[selectedPresetUuid],
     deepEqual
   );
+  const setGridControl = (presetUuid: string, value: MapGridControl) => {
+    withMissionChange((m) =>
+      applyUpdatePresetByField(m, { presetUuid, fieldName: "mapGridControl", value })
+    );
+  };
   const presetGridControl = selectedPreset?.mapGridControl;
   const gridControl: MapGridControl = {
     visible: !!presetGridControl?.visible,
@@ -42,7 +47,7 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       labelsVisible: gridControl.labelsVisible,
       style: layerStyle,
     };
-    dispatch(upsertPresetByField(uuid, "mapGridControl", updatedGridControl));
+    setGridControl(uuid, updatedGridControl);
   };
 
   return (
@@ -121,15 +126,11 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           <Checkbox
                             checked={gridControl.visible}
                             onChange={(e) => {
-                              dispatch(
-                                upsertPresetByField(selectedPresetUuid, "mapGridControl", {
-                                  ...gridControl,
-                                  visible: e.target.checked,
-                                  labelsVisible: e.target.checked
-                                    ? gridControl.labelsVisible
-                                    : false,
-                                })
-                              );
+                              setGridControl(selectedPresetUuid, {
+                                ...gridControl,
+                                visible: e.target.checked,
+                                labelsVisible: e.target.checked ? gridControl.labelsVisible : false,
+                              });
                             }}
                             editable={editMode}
                             toolTip={`Show Grid`}
@@ -138,12 +139,10 @@ const Grid_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                           <Checkbox
                             checked={gridControl.labelsVisible}
                             onChange={(e) => {
-                              dispatch(
-                                upsertPresetByField(selectedPresetUuid, "mapGridControl", {
-                                  ...gridControl,
-                                  labelsVisible: e.target.checked,
-                                })
-                              );
+                              setGridControl(selectedPresetUuid, {
+                                ...gridControl,
+                                labelsVisible: e.target.checked,
+                              });
                             }}
                             editable={editMode && !!presetGridControl?.visible}
                             toolTip={`Show Grid Labels`}

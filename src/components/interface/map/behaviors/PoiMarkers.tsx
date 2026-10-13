@@ -21,6 +21,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkMarkerOnClick } from "store/thunk/thunkMap";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { EMPTY_DOC_LIST } from "store/selectors";
 import { setHoverUuidsForSequence, clearMapItemHover } from "store/hover";
 import { updateMapDirective } from "store/map";
 
@@ -47,7 +48,8 @@ export function PoiMarkers(): null {
   // --- Automerge doc state ---
   const poisFromDoc = useMissionDocSelector((m) => Object.values(m.pois ?? {}), deepEqual);
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
-  const folders = useAppSelector((s) => s.interface.folders, deepEqual);
+  const folders: Folder[] =
+    useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
   const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
 
@@ -87,9 +89,7 @@ export function PoiMarkers(): null {
         if (poi.uuid === selectedPoiUuid) return true;
         const folder = poiFolders.find((f: Folder) => f.items.includes(poi.uuid));
         if (!folder) return true;
-        const fi = foldersInterface.find(
-          (fi: { uuid: string; visible: boolean }) => fi.uuid === folder.uuid
-        );
+        const fi = foldersInterface[folder.uuid];
         return !fi || fi.visible;
       });
     } else if (selectedPoiUuid && sectionSelected === "poi") {

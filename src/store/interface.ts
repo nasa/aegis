@@ -14,9 +14,21 @@ export const initialState: InterfaceState = {
   timelineShowDistanceFromLander: true,
   timelineShowElevation: true,
   slopeColorMode: "standard",
-  folders: [],
-  foldersInterface: [],
+  foldersInterface: {},
 };
+
+/** Folder UI state for a folder, with defaults for folders that have no saved state yet. */
+export const getFolderInterface = (
+  foldersInterface: FoldersInterfaceState,
+  folderUuid: string
+): FolderInterface =>
+  foldersInterface[folderUuid] ?? {
+    uuid: folderUuid,
+    isOpen: true,
+    visible: true,
+    editing: false,
+    editingNameValue: null,
+  };
 
 export const interfaceSlice = createSlice({
   name: "interface",
@@ -62,76 +74,35 @@ export const interfaceSlice = createSlice({
     setSlopeColorMode: (state, action: { payload: SlopeColorMode }) => {
       state.slopeColorMode = action.payload;
     },
-    setFolders: (state, action: { payload: Folder[] }) => {
-      state.folders = action.payload;
-
-      // Automatically handle folder interfaces when folders are set
-      const existingInterfaces = state.foldersInterface || [];
-      const newFolderInterfaces: FolderInterface[] = [];
-
-      // Check for new folders that need interfaces
-      for (const folder of action.payload) {
-        const existingInterface = existingInterfaces.find((f) => f.uuid === folder.uuid);
-        if (!existingInterface) {
-          newFolderInterfaces.push({
-            uuid: folder.uuid,
-            isOpen: true,
-            visible: true,
-            editing: false,
-            editingNameValue: null,
-          });
-        }
-      }
-
-      // Update interfaces array with new interfaces if any were created
-      if (newFolderInterfaces.length > 0) {
-        state.foldersInterface = [...existingInterfaces, ...newFolderInterfaces];
-      }
-
-      // Remove interfaces for folders that no longer exist
-      const folderUuids = action.payload.map((f) => f.uuid);
-      state.foldersInterface = state.foldersInterface.filter((fi) => folderUuids.includes(fi.uuid));
-    },
-
     folderToggleOpenClose: (state, action: { payload: { uuid: string } }) => {
-      const folder = state.foldersInterface.find((folder) => folder.uuid === action.payload.uuid);
-      if (folder) {
-        folder.isOpen = !folder.isOpen;
-      }
+      const folder = getFolderInterface(state.foldersInterface, action.payload.uuid);
+      state.foldersInterface[action.payload.uuid] = { ...folder, isOpen: !folder.isOpen };
     },
     folderToggleVisible: (state, action: { payload: { uuid: string } }) => {
-      const folder = state.foldersInterface.find((folder) => folder.uuid === action.payload.uuid);
-      if (folder) {
-        folder.visible = !folder.visible;
-      }
+      const folder = getFolderInterface(state.foldersInterface, action.payload.uuid);
+      state.foldersInterface[action.payload.uuid] = { ...folder, visible: !folder.visible };
     },
     setFolderInterfaceEditing: (
       state,
-      action: { payload: { folderUuid: string; editing: boolean } }
+      action: { payload: { folderUuid: string; editing: boolean; folderName?: string } }
     ) => {
-      const folder = state.foldersInterface.find((f) => f.uuid === action.payload.folderUuid);
-      if (folder) {
-        folder.editing = action.payload.editing;
-        if (action.payload.editing) {
-          // When setting to editing mode, set the editingNameValue to the current folder name
-          const actualFolder = state.folders.find((f) => f.uuid === action.payload.folderUuid);
-          if (actualFolder) {
-            folder.editingNameValue = actualFolder.name;
-          }
-        } else {
-          // When exiting editing mode, clear the editingNameValue
-          folder.editingNameValue = null;
-        }
-      }
+      const folder = getFolderInterface(state.foldersInterface, action.payload.folderUuid);
+      state.foldersInterface[action.payload.folderUuid] = {
+        ...folder,
+        editing: action.payload.editing,
+        // Entering edit mode starts from the current folder name; leaving it clears the value
+        editingNameValue: action.payload.editing ? (action.payload.folderName ?? null) : null,
+      };
     },
     setFolderInterfaceNameValue: (
       state,
       action: { payload: { folderUuid: string; editingNameValue: string } }
     ) => {
-      const folder = state.foldersInterface.find((f) => f.uuid === action.payload.folderUuid);
-      if (folder) {
-        folder.editingNameValue = action.payload.editingNameValue;
-      }
+      const folder = getFolderInterface(state.foldersInterface, action.payload.folderUuid);
+      state.foldersInterface[action.payload.folderUuid] = {
+        ...folder,
+        editingNameValue: action.payload.editingNameValue,
+      };
     },
     obliterateState: (state) => {
       //eslint-disable-next-line
@@ -160,7 +131,6 @@ export const {
   setShowDistanceFromLander,
   setShowElevation,
   setSlopeColorMode,
-  setFolders,
   folderToggleOpenClose,
   folderToggleVisible,
   setFolderInterfaceEditing,

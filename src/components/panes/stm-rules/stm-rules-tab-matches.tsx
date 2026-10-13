@@ -8,7 +8,6 @@ import ruleStyles from "./stm-rules-rules.module.css";
 import actionsStyles from "../actions.module.css";
 import { faPersonWalkingArrowRight, faRoute } from "@fortawesome/free-solid-svg-icons";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
-import type { RootState } from "store";
 import { STMRuleSet, ruleSetContainerClass } from "./stm-rules-rules";
 import { useStmRuleColumnWidths } from "./stm-rule-column-widths";
 import { setStmRulesSelectedRuleUuid, stmRulesToggleRex } from "store/stm";
@@ -16,7 +15,14 @@ import { MultiSelectDropdown } from "components/interface/form/globalFields";
 import { getSatisfiedActionsByRule } from "utils/stmRuleEngine";
 import Action from "components/panes/actions-action";
 import { EmojiRenderer } from "components/interface/emojis";
-import { getAsPlannedEvaFromRefUuid, selectAsPlannedStations } from "store/selectors";
+import {
+  getAsPlannedEvaFromRefUuid,
+  selectAsPlannedStations,
+  selectStmLevel1s,
+  selectStmLevel2s,
+  selectStmLevel3s,
+  selectStmRules,
+} from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import STMRulesTable from "./stm-rules-list-table";
 import {
@@ -36,10 +42,11 @@ const StmRulesTabMatches: FunctionComponent = () => {
   const stmLevel3Name = useMissionDocSelector((mission) => mission.stmLevel3Name, refEqual);
   const selectedStmUuid = useAppSelector((state) => state.stm.stmRulesSelectedStmUuid, refEqual);
   const selectedRuleUuid = useAppSelector((state) => state.stm.stmRulesSelectedRuleUuid, refEqual);
-  const rules = useAppSelector(
-    (state) => state.stm.rules.filter((r) => r.stmUuid === selectedStmUuid),
-    deepEqual
-  );
+  const rules =
+    useMissionDocSelector(
+      (mission) => selectStmRules(mission).filter((r) => r.stmUuid === selectedStmUuid),
+      deepEqual
+    ) ?? [];
   const actionDefinitions = useMissionDocSelector(
     (mission) => mission.actionDefinitions,
     deepEqual
@@ -128,19 +135,24 @@ export default StmRulesTabMatches;
 
 const STMItemName: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
   const stmLevel1Enabled = useMissionDocSelector((mission) => mission.stmLevel1Enabled, refEqual);
-  const level3STMItem = useAppSelector(
-    (state) => state.stm.level3s.find((item) => item.uuid === stmUuid),
+  const level3STMItem = useMissionDocSelector(
+    (mission) => selectStmLevel3s(mission).find((item) => item.uuid === stmUuid),
     shallowEqual
   );
-  const level2Numbering = useAppSelector(
-    (state: RootState) =>
-      state.stm.level2s.find((level2) => level2.uuid === level3STMItem?.level2Uuid)?.numbering ||
-      "",
+  const level2Numbering = useMissionDocSelector(
+    (mission) =>
+      selectStmLevel2s(mission).find((level2) => level2.uuid === level3STMItem?.level2Uuid)
+        ?.numbering || "",
     refEqual
   );
-  const level1Numbering = useAppSelector((state: RootState) => {
-    const level2 = state.stm.level2s.find((level2) => level2.uuid === level3STMItem?.level2Uuid);
-    return state.stm.level1s.find((level1) => level1.uuid === level2?.level1Uuid)?.numbering || "";
+  const level1Numbering = useMissionDocSelector((mission) => {
+    const level2 = selectStmLevel2s(mission).find(
+      (level2) => level2.uuid === level3STMItem?.level2Uuid
+    );
+    return (
+      selectStmLevel1s(mission).find((level1) => level1.uuid === level2?.level1Uuid)?.numbering ||
+      ""
+    );
   }, refEqual);
 
   if (!level3STMItem) return null;

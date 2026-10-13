@@ -9,8 +9,6 @@ import { Button } from "components/interface/form/globalFields";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { validators } from "components/interface/form/formValidators";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkDocDeleteActionDefItem } from "store/thunk/thunkActionDefinitions";
 import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
@@ -20,7 +18,8 @@ import {
   applyUpdateActionDefinitionConjunction,
 } from "operations/apply/apply-mission-actionDefinition";
 
-import { withMissionChange } from "client/automergeDocHandles";
+import { withMissionChange, withMissionOp } from "client/automergeDocHandles";
+import { opDeleteActionDefinitionItem } from "operations/op-actionDefinition";
 import { getActionDefinitionLabel } from "store/selectors";
 
 const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -219,8 +218,6 @@ const ActionDefinitionItem: FunctionComponent<{
   evenRow: boolean;
   namePlaceholder: string;
 }> = ({ type, actionDefinitionKeyValue, editMode, evenRow, namePlaceholder }) => {
-  const dispatch = useAppDispatch();
-
   let backgroundColor: string = "var(--grey2)";
   backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
 
@@ -282,12 +279,13 @@ const ActionDefinitionItem: FunctionComponent<{
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  dispatch(
-                    thunkDocDeleteActionDefItem({
-                      type,
-                      uuid: actionDefinitionKeyValue[0],
-                    })
-                  );
+                  const inUseMessage = withMissionOp(opDeleteActionDefinitionItem, {
+                    type,
+                    uuid: actionDefinitionKeyValue[0],
+                  });
+                  if (inUseMessage) {
+                    alert(inUseMessage);
+                  }
                 }}
                 aria-label="deleteButton"
               />

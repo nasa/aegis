@@ -17,7 +17,7 @@ import type VectorSource from "ol/source/Vector";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { selectAsPlannedStations } from "store/selectors";
+import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { createCircleLayer } from "../utils/layers/circleLayer";
 import { withAlpha } from "../utils/layers/layerFactory";
 
@@ -47,8 +47,8 @@ export function Circles(): null {
   ) as AEGISPoint | null;
 
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
-  const presetCircleControls = useAppSelector(
-    (s) => s.preset.presets.find((p) => p.uuid === selectedPresetUuid)?.mapCircleControls,
+  const presetCircleControls = useMissionDocSelector(
+    (m) => m.presets?.[selectedPresetUuid]?.mapCircleControls,
     deepEqual
   ) as MapCircleControls | undefined;
 
@@ -62,7 +62,8 @@ export function Circles(): null {
     deepEqual
   );
   const asPlannedStationsFromDoc = useMissionDocSelector(selectAsPlannedStations, deepEqual);
-  const folders = useAppSelector((s) => s.interface.folders, deepEqual);
+  const folders: Folder[] =
+    useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
   const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
 
   // Compute the same set of visible stations as StationMarkers. Proximity
@@ -90,9 +91,7 @@ export function Circles(): null {
         if (!folder) {
           uuidsToShow.add(station.uuid);
         } else {
-          const fi = foldersInterface.find(
-            (fi: { uuid: string; visible: boolean }) => fi.uuid === folder.uuid
-          );
+          const fi = foldersInterface[folder.uuid];
           if (!fi || fi.visible) {
             uuidsToShow.add(station.uuid);
           }

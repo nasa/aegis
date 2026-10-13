@@ -1,10 +1,11 @@
 import type { FunctionComponent } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
+import { setPresetCircleUIState } from "store/preset";
+import { withMissionChange } from "client/automergeDocHandles";
 import {
-  setPresetCircleStyle,
-  setPresetCircleUIState,
-  togglePresetCircleVisible,
-} from "store/preset";
+  applySetPresetCircleStyle,
+  applyTogglePresetCircleVisible,
+} from "operations/apply/apply-mission-preset";
 import Circles from "../../interface/circles";
 import { useAppDispatch } from "utils/useAppDispatch";
 import paneStyles from "../global-pane-styles.module.css";
@@ -19,9 +20,8 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const mapCircleControls = useAppSelector(
-    (state) =>
-      state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid)?.mapCircleControls,
+  const mapCircleControls = useMissionDocSelector(
+    (mission) => mission.presets?.[selectedPresetUuid]?.mapCircleControls,
     deepEqual
   );
   const presetCircleUIStates = useAppSelector(
@@ -48,11 +48,8 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
   };
 
   const togglePresetCircleVisibleHandler = ({ circleUuid }: { circleUuid: string }) => {
-    dispatch(
-      togglePresetCircleVisible({
-        presetUuid: selectedPresetUuid,
-        circleUuid,
-      })
+    withMissionChange((m) =>
+      applyTogglePresetCircleVisible(m, { presetUuid: selectedPresetUuid, circleUuid })
     );
   };
 
@@ -63,8 +60,8 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
     uuid: string;
     layerStyle: MapSublayerStyle;
   }) => {
-    dispatch(
-      setPresetCircleStyle({
+    withMissionChange((m) =>
+      applySetPresetCircleStyle(m, {
         presetUuid: selectedPresetUuid,
         circleDefUuid: uuid,
         style: layerStyle,

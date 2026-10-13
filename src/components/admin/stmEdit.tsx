@@ -1,10 +1,8 @@
 import type { FunctionComponent } from "react";
-import { useCallback } from "react";
 import { useEffect, useState } from "react";
 import stmStyles from "./stmEdit.module.css";
 import adminStyles from "./admin.module.css";
 import adminCommon from "pages/admin/adminCommon.module.css";
-import { deleteSTMs, upsertSTMs } from "http-client/stm";
 import { v4 as uuidv4 } from "uuid";
 import {
   generateBlankStmLvl1,
@@ -14,20 +12,22 @@ import {
 import { Checkbox, InLineEditInput } from "components/interface/form/globalFields";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { getAccurateNow } from "utils/formatting";
-import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDocSelector } from "utils/useDocSelector";
+import { applyReplaceStmTree, applyUpsertStmLevel } from "operations/apply/apply-mission-stm";
 import { deepEqual } from "utils/useAppSelector";
-import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+type ChangeMission = (updateFn: (m: Mission) => void) => void;
+
 const STMEdit: FunctionComponent<{
-  reloadSTMfromDB: (missionId: number) => void;
+  changeMission: ChangeMission;
   missionId: number;
   automergeUrl: AutomergeUrl;
   allLevel1s: STMLevel1[];
   allLevel2s: STMLevel2[];
   allLevel3s: STMLevel3[];
-}> = ({ reloadSTMfromDB, missionId, automergeUrl, allLevel1s, allLevel2s, allLevel3s }) => {
+}> = ({ changeMission, missionId, automergeUrl, allLevel1s, allLevel2s, allLevel3s }) => {
   //track states of selected STM items in the drop downs
   const [selectedLevel1Uuid, setSelectedLevel1Uuid] = useState(null);
   const [selectedLevel2Uuid, setSelectedLevel2Uuid] = useState(null);
@@ -48,7 +48,7 @@ const STMEdit: FunctionComponent<{
         <div>
           <div className={stmStyles.div_select} />
           <div id="div_addLevel1" className={stmStyles.div_add}>
-            <NewLevel1Fields missionId={missionId} reloadSTM={reloadSTMfromDB} />
+            <NewLevel1Fields missionId={missionId} changeMission={changeMission} />
           </div>
         </div>
         {allLevel1s?.length > 0 && selectedLevel1Uuid && (
@@ -62,11 +62,7 @@ const STMEdit: FunctionComponent<{
               />
             </div>
             <div id="div_addLevel2" className={stmStyles.div_add}>
-              <NewLevel2Fields
-                level1Uuid={selectedLevel1Uuid}
-                missionId={missionId}
-                reloadSTM={reloadSTMfromDB}
-              />
+              <NewLevel2Fields level1Uuid={selectedLevel1Uuid} changeMission={changeMission} />
             </div>
           </div>
         )}
@@ -80,83 +76,82 @@ const STMEdit: FunctionComponent<{
             />
           </div>
           <div id="div_addLevel3" className={stmStyles.div_add}>
-            <NewLevel3Fields
-              level2Uuid={selectedLevel2Uuid}
-              missionId={missionId}
-              reloadSTM={reloadSTMfromDB}
-            />
+            <NewLevel3Fields level2Uuid={selectedLevel2Uuid} changeMission={changeMission} />
           </div>
         </div>
         *STM items can only be deleted if they have no children
       </div>
       <div className={adminStyles.sectionDiv}>
         <div className={adminStyles.sectionDivHeading}>STM Level Names</div>
-        <LevelNames automergeUrl={automergeUrl} />
+        <LevelNames automergeUrl={automergeUrl} changeMission={changeMission} />
       </div>
       <div className={adminStyles.sectionDiv}>
         <div className={adminStyles.sectionDivHeading}>Import/Export STM</div>
         <ExportSTM allLevel1s={allLevel1s} allLevel2s={allLevel2s} allLevel3s={allLevel3s} />
         <div className={stmStyles.importExport}>
-          <ImportSTM missionId={missionId} reloadSTMfromDB={reloadSTMfromDB} />
+          <ImportSTM missionId={missionId} changeMission={changeMission} />
         </div>
       </div>
     </>
   );
 };
 
-const destructiveImportSTM = async (stmJson: string, missionId: number) => {
+/**
+ * Replace every STM item on the mission with the items from an exported STM JSON. New uuids
+ * are allocated so the import never collides with items from another mission.
+ */
+const destructiveImportSTM = (stmJson: string, missionId: number, changeMission: ChangeMission) => {
   const stm = JSON.parse(stmJson);
-  // delete all existing STM items for this mission from the db via the API
-  deleteSTMs(missionId, "ALL");
-
-  // add all STM items from the imported JSON to the store
-  stm.level1s?.forEach(async (obj: STMLevel1) => {
+  const now = getAccurateNow().getTime();
+  const level1s: STMLevel1[] = [];
+  const level2s: STMLevel2[] = [];
+  const level3s: STMLevel3[] = [];
+  for (const obj of (stm.level1s ?? []) as STMLevel1[]) {
     const newLevel1: STMLevel1 = {
       uuid: uuidv4(),
       name: obj.name,
       numbering: obj.numbering,
       missionId,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
-    await upsertSTMs(missionId, [newLevel1], "Level1");
-
-    //get nested level2s
-    const childLevel2s = stm.level2s.filter((g: STMLevel2) => g.level1Uuid === obj.uuid);
-    childLevel2s.forEach(async (level2: STMLevel2) => {
+    level1s.push(newLevel1);
+    for (const level2 of ((stm.level2s ?? []) as STMLevel2[]).filter(
+      (g) => g.level1Uuid === obj.uuid
+    )) {
       const newLevel2: STMLevel2 = {
         uuid: uuidv4(),
         name: level2.name,
         numbering: level2.numbering,
         level1Uuid: newLevel1.uuid,
-        createdAt: getAccurateNow().toISOString(),
-        updatedAt: getAccurateNow().toISOString(),
+        createdAt: now,
+        updatedAt: now,
       };
-      await upsertSTMs(missionId, [newLevel2], "Level2");
-
-      //get nested level3s
-      const childLevel3 = stm.level3s.filter((i: STMLevel3) => i.level2Uuid === level2.uuid);
-      childLevel3.forEach(async (level3s: STMLevel3) => {
-        const newLevel3: STMLevel3 = {
+      level2s.push(newLevel2);
+      for (const level3 of ((stm.level3s ?? []) as STMLevel3[]).filter(
+        (i) => i.level2Uuid === level2.uuid
+      )) {
+        level3s.push({
           uuid: uuidv4(),
-          name: level3s.name,
-          numbering: level3s.numbering,
+          name: level3.name,
+          numbering: level3.numbering,
           level2Uuid: newLevel2.uuid,
-          createdAt: getAccurateNow().toISOString(),
-          updatedAt: getAccurateNow().toISOString(),
-        };
-        await upsertSTMs(missionId, [newLevel3], "Level3");
-      });
-    });
-  });
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+  }
+  changeMission((m) => applyReplaceStmTree(m, { level1s, level2s, level3s }));
 };
 
 const LevelNames: FunctionComponent<{
   automergeUrl: AutomergeUrl;
-}> = ({ automergeUrl }) => {
-  const missionDocHandle = useDocHandle<Mission>(automergeUrl);
-  const partialMission = useMissionDocSelector(
-    (doc) => ({
+  changeMission: ChangeMission;
+}> = ({ automergeUrl, changeMission }) => {
+  const partialMission = useDocSelector(
+    automergeUrl,
+    (doc: Mission) => ({
       id: doc.id,
       stmLevel1Enabled: doc.stmLevel1Enabled,
       stmLevel1Name: doc.stmLevel1Name,
@@ -164,17 +159,6 @@ const LevelNames: FunctionComponent<{
       stmLevel3Name: doc.stmLevel3Name,
     }),
     deepEqual
-  );
-
-  const changeAutomergeMission = useCallback(
-    (updateFn: (m: Mission) => void) => {
-      // eslint-disable-next-line no-restricted-syntax
-      missionDocHandle.change((m: Mission) => {
-        updateFn(m);
-        m.updatedAt = new Date().getTime();
-      });
-    },
-    [missionDocHandle]
   );
 
   return (
@@ -193,7 +177,7 @@ const LevelNames: FunctionComponent<{
                 label: { label: "Level 1 Name", className: adminStyles.editLabel },
               }}
               onSubmit={(value) => {
-                changeAutomergeMission((m: Mission) => {
+                changeMission((m: Mission) => {
                   m.stmLevel1Name = value;
                 });
               }}
@@ -204,7 +188,7 @@ const LevelNames: FunctionComponent<{
               checked={partialMission.stmLevel1Enabled}
               label={"Enable Level 1"}
               onChange={(value) => {
-                changeAutomergeMission((m: Mission) => {
+                changeMission((m: Mission) => {
                   m.stmLevel1Enabled = value.target.checked;
                 });
               }}
@@ -223,7 +207,7 @@ const LevelNames: FunctionComponent<{
                 label: { label: "Level 2 Name", className: adminStyles.editLabel },
               }}
               onSubmit={(value) => {
-                changeAutomergeMission((m: Mission) => {
+                changeMission((m: Mission) => {
                   m.stmLevel2Name = value;
                 });
               }}
@@ -243,7 +227,7 @@ const LevelNames: FunctionComponent<{
                 label: { label: "Level 3 Name", className: adminStyles.editLabel },
               }}
               onSubmit={(value) => {
-                changeAutomergeMission((m: Mission) => {
+                changeMission((m: Mission) => {
                   m.stmLevel3Name = value;
                 });
               }}
@@ -319,8 +303,8 @@ const ExportSTM: FunctionComponent<{
 
 const ImportSTM: FunctionComponent<{
   missionId: number;
-  reloadSTMfromDB: Function;
-}> = ({ missionId, reloadSTMfromDB }) => {
+  changeMission: ChangeMission;
+}> = ({ missionId, changeMission }) => {
   const [stmJson, setStmJson] = useState<string>(null);
 
   return (
@@ -338,8 +322,7 @@ const ImportSTM: FunctionComponent<{
               "Are you sure you want to import? This will destroy all existing STM records for this mission"
             )
           ) {
-            destructiveImportSTM(stmJson, missionId);
-            reloadSTMfromDB(missionId);
+            destructiveImportSTM(stmJson, missionId, changeMission);
           }
         }}
         className={adminCommon.button}
@@ -441,21 +424,20 @@ const Level2Select: FunctionComponent<{
 //Add new level1 component
 const NewLevel1Fields: FunctionComponent<{
   missionId: number;
-  reloadSTM: (id: number) => void;
-}> = ({ missionId, reloadSTM }) => {
+  changeMission: ChangeMission;
+}> = ({ missionId, changeMission }) => {
   const [newLevel1, setNewLevel1] = useState<STMLevel1>(generateBlankStmLvl1());
 
   //add new level1
-  async function addNewLevel1() {
+  function addNewLevel1() {
     const upsertRecord: STMLevel1 = {
       ...newLevel1,
       missionId: missionId,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: getAccurateNow().getTime(),
+      updatedAt: getAccurateNow().getTime(),
     };
-    await upsertSTMs(missionId, [upsertRecord], "Level1");
+    changeMission((m) => applyUpsertStmLevel(m, { collection: "stmLevel1s", level: upsertRecord }));
     setNewLevel1(generateBlankStmLvl1()); //reset to blank new object
-    reloadSTM(missionId);
   }
 
   return (
@@ -498,22 +480,20 @@ const NewLevel1Fields: FunctionComponent<{
 //Add new goal component
 const NewLevel2Fields: FunctionComponent<{
   level1Uuid: string;
-  missionId: number;
-  reloadSTM: (id: number) => void;
-}> = ({ level1Uuid, missionId, reloadSTM }) => {
+  changeMission: ChangeMission;
+}> = ({ level1Uuid, changeMission }) => {
   const [newLevel2, setNewLevel2] = useState<STMLevel2>(generateBlankStmLvl2());
 
   //add new goal
-  async function addNewLevel2() {
+  function addNewLevel2() {
     const upsertRecord: STMLevel2 = {
       ...newLevel2,
       level1Uuid: level1Uuid,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: getAccurateNow().getTime(),
+      updatedAt: getAccurateNow().getTime(),
     };
-    await upsertSTMs(missionId, [upsertRecord], "Level2");
+    changeMission((m) => applyUpsertStmLevel(m, { collection: "stmLevel2s", level: upsertRecord }));
     setNewLevel2(generateBlankStmLvl2()); //reset to blank new object with new uuid
-    reloadSTM(missionId);
   }
 
   return (
@@ -558,22 +538,20 @@ const NewLevel2Fields: FunctionComponent<{
 //Add new level3 component
 const NewLevel3Fields: FunctionComponent<{
   level2Uuid: string;
-  missionId: number;
-  reloadSTM: (id: number) => void;
-}> = ({ level2Uuid, missionId, reloadSTM }) => {
+  changeMission: ChangeMission;
+}> = ({ level2Uuid, changeMission }) => {
   const [newLevel3, setNewLevel3] = useState<STMLevel3>(generateBlankStmLvl3());
 
   //add new level3
-  async function addNewLevel3() {
+  function addNewLevel3() {
     const upsertRecord: STMLevel3 = {
       ...newLevel3,
       level2Uuid: level2Uuid,
-      createdAt: getAccurateNow().toISOString(),
-      updatedAt: getAccurateNow().toISOString(),
+      createdAt: getAccurateNow().getTime(),
+      updatedAt: getAccurateNow().getTime(),
     };
-    await upsertSTMs(missionId, [upsertRecord], "Level3");
+    changeMission((m) => applyUpsertStmLevel(m, { collection: "stmLevel3s", level: upsertRecord }));
     setNewLevel3(generateBlankStmLvl3());
-    reloadSTM(missionId);
   }
 
   return (

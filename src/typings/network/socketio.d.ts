@@ -5,14 +5,10 @@ declare type LaunchpadUser = import("@emss/oauth2-proxy-common").EmssUser;
 interface ServerToClientEvents {
   statusFromServer: (payload: StatusFromServer) => void;
   version: (version: AppVersion) => void; // server version sent to client
-  storeUpsert: (payload: StoreUpsert) => void;
-  storeDelete: (payload: StoreDelete) => void;
   inspectorUpdate: (payload: ServerSocketStatus) => void;
 }
 
 interface ClientToServerEvents {
-  storeUpsert: (payload: StoreUpsert) => void;
-  storeDelete: (payload: StoreDelete) => void;
   visitorJoin: (visitorData: VisitorData) => void;
   inspectorJoin: () => void;
 }
@@ -22,14 +18,12 @@ type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnect
 // information stored in the client redux store about the socket status
 interface ClientSocketStatus {
   connectionStatus: ConnectionStatus;
-  lastEditEvent: EditEvent | null;
   lastStatusFromServer: StatusFromServer;
 }
 
 // information stored in the server's globalValues about the socket status
 interface ServerSocketStatus {
   visitorsData: VisitorData[];
-  lastEditEvents: EditEvents; // last edit events for all missions
 }
 
 // sent by client when joining and stored in server's globalValues
@@ -61,33 +55,4 @@ interface AppVersion {
    * changes whenever the API process restarts
    */
   serverEpochUuid: string;
-}
-
-interface EditEvent {
-  socketId: string;
-  type: SocketStoreType;
-  datestamp: string;
-}
-
-interface EditEvents {
-  [missionId: number]: EditEvent;
-}
-
-type SocketStoreType = "preset" | "stmRule" | "folder";
-type StoreData = Preset | STMRule | Folder;
-
-interface StoreUpsert {
-  socketId: string;
-  missionId: number;
-  type: SocketStoreType;
-  data: StoreData[];
-  lastEditEvent: EditEvent;
-}
-
-interface StoreDelete {
-  socketId: string;
-  missionId: number;
-  type: SocketStoreType;
-  uuids: string[];
-  lastEditEvent: EditEvent;
 }

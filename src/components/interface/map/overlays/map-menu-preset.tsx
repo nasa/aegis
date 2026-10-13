@@ -4,19 +4,18 @@ import styles from "./map-menu-preset.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { Dropdown } from "components/interface/form/globalFields";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { selectFoldersByType } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/dropdown-options";
 
 const MapPresetMenu: React.FC<{
   selectedPreset: Preset;
   setSelectedPreset: Dispatch<SetStateAction<Preset>>;
-  presetsFromDb: Preset[];
-}> = ({ selectedPreset, setSelectedPreset, presetsFromDb }) => {
-  // Get folder data from the Redux store
-  const folders = useAppSelector(
-    (state) => state.interface.folders.filter((f) => f.type === "preset"),
-    deepEqual
-  );
+  presets: Preset[];
+}> = ({ selectedPreset, setSelectedPreset, presets }) => {
+  const folders =
+    useMissionDocSelector((mission) => selectFoldersByType(mission, "preset"), deepEqual) ?? [];
 
   // Create a mapping from preset UUIDs to their folder UUIDs
   const itemsToFolders = folders.reduce<Record<string, string>>((map, folder) => {
@@ -28,7 +27,7 @@ const MapPresetMenu: React.FC<{
 
   // Generate organized dropdown options
   const presetOptions = createFolderOrganizedDropdownOptions({
-    items: presetsFromDb,
+    items: presets,
     folders,
     itemsToFolders,
   });
@@ -46,7 +45,7 @@ const MapPresetMenu: React.FC<{
         selected={selectedPreset?.uuid}
         onChange={(val) => {
           setSelectedPreset(
-            presetsFromDb.find((preset) => {
+            presets.find((preset) => {
               return preset.uuid === val;
             })
           );

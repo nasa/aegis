@@ -18,8 +18,8 @@ function makeLayer(name: string): Layer {
     uuid: uuidv4(),
     missionId: 1,
     name,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   };
 }
 

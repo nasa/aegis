@@ -2,7 +2,7 @@ import type { CSSProperties, FunctionComponent } from "react";
 import styles from "./stm-rules-page.module.css";
 import tableStyles from "./stm-rules-list-table.module.css";
 import STMRulesTable from "./stm-rules-list-table";
-import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, shallowEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   StmTierTitle,
@@ -10,6 +10,7 @@ import {
   STM_LEVEL3_NAME_COLUMN_WIDTH,
 } from "./stm-rules-tier-titles";
 import { useStmRuleColumnWidths } from "./stm-rule-column-widths";
+import { selectStmRules } from "store/selectors";
 
 /**
  * "Rules" tab: STM hierarchy with per-level3 satisfaction rules and inline
@@ -18,7 +19,7 @@ import { useStmRuleColumnWidths } from "./stm-rule-column-widths";
 const StmRulesTabRules: FunctionComponent = () => {
   const { stmLevel1Enabled, tierColumns } = useStmTierExpansion();
   const stmLevel3Name = useMissionDocSelector((mission) => mission.stmLevel3Name, refEqual);
-  const rules = useAppSelector((state) => state.stm.rules, shallowEqual);
+  const rules = useMissionDocSelector((mission) => selectStmRules(mission), shallowEqual) ?? [];
   const actionDefinitions = useMissionDocSelector(
     (mission) => mission.actionDefinitions,
     deepEqual

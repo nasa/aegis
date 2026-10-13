@@ -3,6 +3,7 @@ import cloneDeep from "lodash/cloneDeep";
 import { getAccurateNow } from "utils/formatting";
 
 import { applyDuplicateActionsStage } from "./apply-action";
+import { applyRemoveItemsFromAllFolders } from "./apply-mission-folder";
 import { applyTraverseUpdatesStage } from "./apply-traverse";
 
 /** Insert/replace a station in the doc. */
@@ -36,14 +37,15 @@ export function applyUpdateStationByField<K extends keyof Station>(
 /**
  * Delete a list of stations from the doc.
  *
- * Also cleans up any matching entries from every REX's `stationEntries` map so
- * we don't leave orphaned rex entries pointing at deleted stations.
+ * Also cleans up any matching entries from every REX's `stationEntries` map and
+ * every folder so we don't leave orphaned references pointing at deleted stations.
  */
 export function applyDeleteStations(m: Mission, stationUuids: string[]): void {
   if (stationUuids.length === 0) return;
   for (const uuid of stationUuids) {
     delete m.stations[uuid];
   }
+  applyRemoveItemsFromAllFolders(m, stationUuids);
   for (const rex of Object.values(m.rexes ?? {})) {
     if (!rex.stationEntries) continue;
     for (const uuid of stationUuids) {

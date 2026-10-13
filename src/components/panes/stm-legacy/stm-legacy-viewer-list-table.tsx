@@ -11,12 +11,14 @@ import { titleCase } from "utils/formatting";
 import uniq from "lodash/uniq";
 import sortBy from "lodash/sortBy";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { selectStmLevel1s, selectStmLevel2s, selectStmLevel3s } from "store/selectors";
 
 const STMListTable: FunctionComponent = () => {
-  const level1s = useAppSelector(
-    (state: RootState) => sortBy(state.stm.level1s, "numbering"),
-    shallowEqual
-  );
+  const level1s =
+    useMissionDocSelector(
+      (mission) => sortBy(selectStmLevel1s(mission), "numbering"),
+      shallowEqual
+    ) ?? [];
 
   return (
     <div className={styles.stmTables}>
@@ -30,9 +32,9 @@ const STMListTable: FunctionComponent = () => {
 export default STMListTable;
 
 const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ level1 }) => {
-  const numLevel3s = useAppSelector((state: RootState) => {
-    const level2s = state.stm.level2s.filter((level2) => level2.level1Uuid === level1.uuid);
-    const level3s = state.stm.level3s.filter((level3) =>
+  const numLevel3s = useMissionDocSelector((mission) => {
+    const level2s = selectStmLevel2s(mission).filter((level2) => level2.level1Uuid === level1.uuid);
+    const level3s = selectStmLevel3s(mission).filter((level3) =>
       level2s.some((level2) => level2.uuid === level3.level2Uuid)
     );
     return level3s.length;
@@ -85,21 +87,23 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
 };
 
 const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) => {
-  const level2s = useAppSelector(
-    (state: RootState) =>
-      sortBy(
-        state.stm.level2s.filter((level2) => level2.level1Uuid === level1Uuid),
-        "numbering"
-      ),
-    shallowEqual
-  );
-  const allLevel3sForThisLevel2 = useAppSelector(
-    (state: RootState) =>
-      state.stm.level3s.filter((level3) =>
-        level2s.some((level2) => level2.uuid === level3.level2Uuid)
-      ),
-    shallowEqual
-  );
+  const level2s =
+    useMissionDocSelector(
+      (mission) =>
+        sortBy(
+          selectStmLevel2s(mission).filter((level2) => level2.level1Uuid === level1Uuid),
+          "numbering"
+        ),
+      shallowEqual
+    ) ?? [];
+  const allLevel3sForThisLevel2 =
+    useMissionDocSelector(
+      (mission) =>
+        selectStmLevel3s(mission).filter((level3) =>
+          level2s.some((level2) => level2.uuid === level3.level2Uuid)
+        ),
+      shallowEqual
+    ) ?? [];
   const stmViewExpandTopTiers = useAppSelector(
     (state: RootState) => state.stm.stmViewExpandTopTiers,
     refEqual
@@ -149,14 +153,15 @@ const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) =
 export const STMLevel3s: FunctionComponent<{
   level2Uuid: string;
 }> = ({ level2Uuid }) => {
-  const level3s = useAppSelector(
-    (state: RootState) =>
-      sortBy(
-        state.stm.level3s.filter((level3) => level3.level2Uuid === level2Uuid),
-        "numbering"
-      ),
-    shallowEqual
-  );
+  const level3s =
+    useMissionDocSelector(
+      (mission) =>
+        sortBy(
+          selectStmLevel3s(mission).filter((level3) => level3.level2Uuid === level2Uuid),
+          "numbering"
+        ),
+      shallowEqual
+    ) ?? [];
 
   return (
     <>
@@ -172,13 +177,17 @@ const STMLevel3: FunctionComponent<{
 }> = ({ level3 }) => {
   const dispatch = useAppDispatch();
   const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
-  const level1Numbering = useAppSelector((state: RootState) => {
-    const level2 = state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid);
-    return state.stm.level1s.find((level1) => level1.uuid === level2?.level1Uuid)?.numbering || "";
+  const level1Numbering = useMissionDocSelector((mission) => {
+    const level2 = selectStmLevel2s(mission).find((level2) => level2.uuid === level3.level2Uuid);
+    return (
+      selectStmLevel1s(mission).find((level1) => level1.uuid === level2?.level1Uuid)?.numbering ||
+      ""
+    );
   }, refEqual);
-  const level2Numbering = useAppSelector(
-    (state: RootState) =>
-      state.stm.level2s.find((level2) => level2.uuid === level3.level2Uuid)?.numbering || "",
+  const level2Numbering = useMissionDocSelector(
+    (mission) =>
+      selectStmLevel2s(mission).find((level2) => level2.uuid === level3.level2Uuid)?.numbering ||
+      "",
     refEqual
   );
   const thisInvestigationExpanded = useAppSelector((state: RootState) => {

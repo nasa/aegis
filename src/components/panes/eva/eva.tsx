@@ -9,7 +9,10 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { LoadingOverlay } from "components/interface/_global-elements";
 import { thunkDocCreateEva, thunkUISetOnlyShowRunningRexEva } from "store/thunk/thunkEva";
 import { FolderOrganizer } from "components/interface/folders";
-import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
+import { selectFoldersByType } from "store/selectors";
+import { thunkCreateFolder } from "store/thunk/thunkFolder";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyMoveItemToFolder } from "operations/apply/apply-mission-folder";
 import sortBy from "lodash/sortBy";
 import EvaRunningRex from "./eva-running-rex";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -48,16 +51,8 @@ const EvaPlannerLeft: FunctionComponent = () => {
       ).map((eva) => eva.uuid);
     }, deepEqual) ?? [];
 
-  const folderRecords = useAppSelector((state) => {
-    return state.interface.folders.filter((f) => f.type === "eva");
-  }, deepEqual);
-
-  const foldersInterface = useAppSelector((state) => {
-    const allFoldersInterface = state.interface.foldersInterface;
-    return allFoldersInterface.filter((folderInterface) =>
-      folderRecords.some((folder) => folder.uuid === folderInterface.uuid)
-    );
-  }, deepEqual);
+  const folderRecords =
+    useMissionDocSelector((mission) => selectFoldersByType(mission, "eva"), deepEqual) ?? [];
 
   const itemsToFolders = folderRecords.reduce<Record<string, string>>((map, folder) => {
     folder.items?.forEach((itemUuid) => {
@@ -67,7 +62,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
   }, {});
 
   const setItemFolder = ({ folderUuid, uuid }: { folderUuid: string | null; uuid: string }) => {
-    dispatch(thunkAddRemoveFolderItem({ folderUuid, itemUuid: uuid }));
+    withMissionChange((m) => applyMoveItemToFolder(m, { folderUuid, itemUuid: uuid }));
   };
 
   const renderEvaItem = ({ itemUuid, first }: FolderItemProps) => {
@@ -130,7 +125,6 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 itemUuids={asPlannedEvaUuids}
                 renderItem={renderEvaItem}
                 folders={folderRecords}
-                foldersInterface={foldersInterface}
                 itemsToFolders={itemsToFolders}
                 setItemFolder={setItemFolder}
                 hideMenu={!editPerms}

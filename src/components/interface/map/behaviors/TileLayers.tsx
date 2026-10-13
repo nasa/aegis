@@ -20,6 +20,7 @@ import { PMTiles } from "pmtiles";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { selectLayers, selectSublayers } from "store/selectors";
 import { parseEsriPmtilesMetadata, buildTileGrid } from "../utils/parsers/esriPMTiles";
 
 import { useMapContext } from "../MapProvider";
@@ -49,12 +50,9 @@ export function TileLayers(): null {
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
   // Any active edit directive owns the map's interactions — see InteractionManager.
   const editActive = useAppSelector((s) => !!s.map.mapDirective, refEqual);
-  const selectedPreset = useAppSelector(
-    (s) => s.preset.presets.find((p) => p.uuid === selectedPresetUuid),
-    deepEqual
-  );
-  const missionLayers = useAppSelector((s) => s.mission.layers, deepEqual);
-  const missionSublayers = useAppSelector((s) => s.mission.sublayers, deepEqual);
+  const selectedPreset = useMissionDocSelector((m) => m.presets?.[selectedPresetUuid], deepEqual);
+  const missionLayers = useMissionDocSelector(selectLayers, deepEqual);
+  const missionSublayers = useMissionDocSelector(selectSublayers, deepEqual);
   const missionId = useMissionDocSelector((doc) => doc.id, refEqual);
 
   // --- Mission projection config (for tile grid building) ------------------

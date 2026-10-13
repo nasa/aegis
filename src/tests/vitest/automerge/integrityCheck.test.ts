@@ -14,6 +14,16 @@ import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankRex, generateBlankPosEntry } from "store/storeUtils/rex";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankLayer } from "store/storeUtils/layer";
+import { generateBlankSublayer } from "store/storeUtils/sublayer";
+import { generateBlankPreset } from "store/storeUtils/preset";
+import { generateBlankFolder } from "store/storeUtils/folder";
+import {
+  generateBlankStmLvl1,
+  generateBlankStmLvl2,
+  generateBlankStmLvl3,
+  generateBlankStmRule,
+} from "store/storeUtils/stm";
 import { generateFullMission } from "tests/vitest/fixtures/mission";
 import { v4 as uuidv4 } from "uuid";
 
@@ -603,6 +613,108 @@ describe("checkMissionIntegrity()", () => {
       mission.rexes[rex.uuid] = rex;
 
       expect(checkMissionIntegrity(1, mission)).toEqual([]);
+    });
+  });
+
+  // ── Layers, presets, STM, folders ─────────────────────────────────────────
+
+  describe("layer and preset integrity", () => {
+    it("reports a sublayer whose layer is missing", () => {
+      const mission = makeEmptyMission();
+      const orphanUuid = uuidv4();
+      const sublayer = generateBlankSublayer({ layerUuid: orphanUuid });
+      mission.sublayers[sublayer.uuid] = sublayer;
+
+      const findings = checkMissionIntegrity(1, mission);
+      expect(findings).toEqual([
+        expect.objectContaining({
+          entity: "Sublayer",
+          field: "layerUuid",
+          orphanedUuid: orphanUuid,
+        }),
+      ]);
+    });
+
+    it("reports preset controls and layer order entries for missing layers and sublayers", () => {
+      const mission = makeEmptyMission();
+      const layer = generateBlankLayer();
+      mission.layers[layer.uuid] = layer;
+      const missingSublayerUuid = uuidv4();
+      const missingLayerUuid = uuidv4();
+      const preset = generateBlankPreset({
+        mapSublayerControls: {
+          [missingSublayerUuid]: {
+            name: "gone",
+            sublayerUuid: missingSublayerUuid,
+            visible: true,
+            style: null,
+          },
+        },
+        layerOrder: [
+          { layerUuid: layer.uuid, sublayerUuids: [missingSublayerUuid] },
+          { layerUuid: missingLayerUuid, sublayerUuids: [] },
+        ],
+      });
+      mission.presets[preset.uuid] = preset;
+
+      expect(findingFields(checkMissionIntegrity(1, mission)).sort()).toEqual(
+        ["layerOrder[].layerUuid", "layerOrder[].sublayerUuids", "mapSublayerControls"].sort()
+      );
+    });
+  });
+
+  describe("STM integrity", () => {
+    it("reports broken level links, rule references, and action priorities", () => {
+      const mission = makeEmptyMission();
+      mission.actionDefinitions = generateDefaultActionDefinitions();
+      const level2 = generateBlankStmLvl2({ level1Uuid: uuidv4() });
+      const level3 = generateBlankStmLvl3({ level2Uuid: uuidv4() });
+      mission.stmLevel2s[level2.uuid] = level2;
+      mission.stmLevel3s[level3.uuid] = level3;
+      const rule = { ...generateBlankStmRule({ stmUuid: uuidv4() }), verbUuids: [uuidv4()] };
+      mission.stmRules[rule.uuid] = rule;
+      const action = generateBlankAction({ name: "Vitest A1", stmPriorities: { [uuidv4()]: 1 } });
+      mission.actions[action.uuid] = action;
+
+      const fields = findingFields(checkMissionIntegrity(1, mission));
+      expect(fields).toEqual(
+        expect.arrayContaining([
+          "level1Uuid",
+          "level2Uuid",
+          "stmUuid",
+          "verbUuids",
+          "stmPriorities",
+        ])
+      );
+    });
+
+    it("accepts a consistent STM tree with a rule and priorities", () => {
+      const mission = makeEmptyMission();
+      const level1 = generateBlankStmLvl1();
+      const level2 = generateBlankStmLvl2({ level1Uuid: level1.uuid });
+      const level3 = generateBlankStmLvl3({ level2Uuid: level2.uuid });
+      mission.stmLevel1s[level1.uuid] = level1;
+      mission.stmLevel2s[level2.uuid] = level2;
+      mission.stmLevel3s[level3.uuid] = level3;
+      const rule = generateBlankStmRule({ stmUuid: level3.uuid });
+      mission.stmRules[rule.uuid] = rule;
+
+      expect(checkMissionIntegrity(1, mission)).toEqual([]);
+    });
+  });
+
+  describe("folder integrity", () => {
+    it("reports folder items whose entity of the folder type is missing", () => {
+      const mission = makeEmptyMission();
+      const station = generateBlankStation({ name: "Vitest S1" });
+      mission.stations[station.uuid] = station;
+      // a station uuid inside a poi folder is also an orphan
+      const folder = generateBlankFolder({ type: "poi", items: [station.uuid] });
+      mission.folders[folder.uuid] = folder;
+
+      expect(checkMissionIntegrity(1, mission)).toEqual([
+        expect.objectContaining({ entity: "Folder", field: "items", orphanedUuid: station.uuid }),
+      ]);
     });
   });
 

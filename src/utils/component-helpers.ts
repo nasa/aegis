@@ -1,4 +1,3 @@
-import sortBy from "lodash/sortBy";
 import type { IconDefinition } from "@fortawesome/free-regular-svg-icons";
 import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 import rexStyles from "components/panes/rex/rex.module.css";
@@ -43,36 +42,6 @@ export const getAlertColor = (
     alertIconColor = "var(--warning)";
   }
   return alertIconColor;
-};
-
-/**
- * Compares two arrays of objects that must contain at least uuid and updated at.
- * Objects in array are sorted by uuid before compared
- * @param obj1
- * @param obj2
- * @returns
- */
-export const isModified = (
-  obj1: MustContainIsModified[],
-  obj2: MustContainIsModified[]
-): boolean => {
-  let isDiff = false;
-  //check length
-  if (obj1.length === obj2.length) {
-    //sort before comparing indexes
-    const sortedObjs1 = sortBy(obj1, ["uuid"]);
-    const sortedObjs2 = sortBy(obj2, ["uuid"]);
-    for (let i = 0; i < sortedObjs1.length; i++) {
-      //check updatedAt strings
-      isDiff = sortedObjs1[i]?.updatedAt !== sortedObjs2[i]?.updatedAt;
-      if (isDiff) {
-        break;
-      }
-    }
-  } else {
-    isDiff = true;
-  }
-  return isDiff;
 };
 
 export const makeTraverseRateString = (

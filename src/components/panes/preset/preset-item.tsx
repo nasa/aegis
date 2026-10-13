@@ -1,8 +1,8 @@
-import { ModifiedIndicator } from "components/interface/_global-elements";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { useAppSelector, refEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
 import styles from "./preset.module.css";
 import { setSelectedPresetUuid, setSelectedPresetRightNavItem } from "store/preset";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
@@ -14,20 +14,23 @@ const PresetItem: FunctionComponent<{
   presetUuid: string;
 }> = ({ presetUuid }) => {
   const dispatch = useAppDispatch();
-  const preset = useAppSelector(
-    (state) => state.preset.presets.find((p) => p.uuid === presetUuid),
-    refEqual
-  );
-  const presetFromDb = useAppSelector(
-    (state) => state.preset.presetsFromDb.find((p) => p.uuid === presetUuid),
-    refEqual
-  );
+  const preset = useMissionDocSelector((mission) => mission.presets?.[presetUuid], deepEqual);
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedRightNavItem = useAppSelector(
     (state) => state.preset.selectedRightNavItem,
     refEqual
   );
   const hoverItemUuid = useAppSelector((state) => state.hover.leftPanelHoverItemUuid, refEqual);
+
+  // Scroll into view when this preset becomes selected (e.g. after add/duplicate)
+  const itemRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (presetUuid === selectedPresetUuid) {
+      itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [presetUuid, selectedPresetUuid]);
+
+  if (!preset) return null;
 
   let isSelectedOrHoveredStyle = null;
   let isSelectedLabel = "";
@@ -37,14 +40,6 @@ const PresetItem: FunctionComponent<{
   } else if (preset.uuid === hoverItemUuid) {
     isSelectedOrHoveredStyle = styles.presetItemHovered;
   }
-
-  // Scroll into view when this preset becomes selected (e.g. after add/duplicate)
-  const itemRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (preset.uuid === selectedPresetUuid) {
-      itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-  }, [preset.uuid, selectedPresetUuid]);
 
   const handleClick = () => {
     if (preset.uuid === selectedPresetUuid) return;
@@ -80,7 +75,6 @@ const PresetItem: FunctionComponent<{
         <span className={styles.defaultText} aria-label="leftPresetIsDefault">
           {preset.missionDefault ? "(Default)" : ""}
         </span>
-        <ModifiedIndicator obj1={[preset]} obj2={[presetFromDb]} />
       </div>
     </div>
   );

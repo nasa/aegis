@@ -26,6 +26,7 @@ import { MapFollowMenu } from "components/interface/map/overlays/map-follow-menu
 import { SunEarth } from "components/interface/map/overlays/map-sunearth";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { selectPresets } from "store/selectors";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setSelectedPresetUuid } from "store/preset";
 
@@ -57,12 +58,13 @@ export function MapOverlays(): JSX.Element {
   const setters = useMapMenuSetters();
   const dispatch = useAppDispatch();
 
-  const selectedPreset = useAppSelector(
-    (state) => state.preset.presets.find((p) => p.uuid === state.preset.selectedPresetUuid),
+  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
+  const selectedPreset = useMissionDocSelector(
+    (mission) => mission.presets?.[selectedPresetUuid],
     deepEqual
   );
 
-  const presetsFromDb = useAppSelector((state) => state.preset.presets, deepEqual);
+  const presets = useMissionDocSelector(selectPresets, deepEqual) ?? [];
 
   const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
@@ -114,7 +116,7 @@ export function MapOverlays(): JSX.Element {
           setSelectedPreset={(preset: Preset) => {
             dispatch(setSelectedPresetUuid(preset.uuid));
           }}
-          presetsFromDb={presetsFromDb}
+          presets={presets}
         />
       </div>
 

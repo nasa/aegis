@@ -57,6 +57,14 @@ interface Mission {
   traverses: { [uuid: string]: Traverse };
   evas: { [uuid: string]: Eva };
   rexes: { [uuid: string]: Rex };
+  folders: { [uuid: string]: Folder };
+  layers: { [uuid: string]: Layer };
+  sublayers: { [uuid: string]: Sublayer };
+  presets: { [uuid: string]: Preset };
+  stmLevel1s: { [uuid: string]: STMLevel1 };
+  stmLevel2s: { [uuid: string]: STMLevel2 };
+  stmLevel3s: { [uuid: string]: STMLevel3 };
+  stmRules: { [uuid: string]: STMRule };
   createdAt: number;
   updatedAt: number;
   archivedAt: number | null;
@@ -195,14 +203,6 @@ type MissionHomepageItem = {
 
 type OneMissionToRuleThemAll = {
   mission: Mission;
-  layers: Layer[];
-  presets: Preset[];
-  level1s: STMLevel1[];
-  level2s: STMLevel2[];
-  level3s: STMLevel3[];
-  stmRules: STMRule[];
-  sublayers: Sublayer[];
-  folders: Folder[];
 };
 
 type MissionGrid = {
@@ -238,3 +238,8 @@ type GridIndex = {
   row: number;
   col: number;
 };
+
+interface MissionCopyOptions {
+  nameSuffix: string;
+  copyAssets?: boolean;
+}

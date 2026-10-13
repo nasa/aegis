@@ -1,6 +1,11 @@
+import type { Mock } from "vitest";
 import { isLoggedIn, login, logout } from "http-client/login";
 import { boxDownloadFile } from "http-client/box";
 import { getElevationSinglePoint, getTerrainProfile } from "http-client/terrainProfile";
+import { deleteLayers, upsertLayers } from "http-client/layer";
+import { deleteSublayers, upsertSublayers } from "http-client/sublayer";
+import { generateBlankLayer } from "store/storeUtils/layer";
+import { generateBlankSublayer } from "store/storeUtils/sublayer";
 
 // Helper to mock fetch responses
 const mockFetchResponse = (data: unknown) => {
@@ -57,6 +62,44 @@ describe("Login", () => {
     mockFetchResponse(mockResponse);
     const res = await logout();
     expect(res).toEqual(mockResponse);
+  });
+});
+
+describe("Layer and sublayer clients", () => {
+  // The admin layers page does not set a missionId in sessionStorage; the clients must send the
+  // mission id they are given.
+  beforeEach(() => {
+    window.sessionStorage.removeItem("missionId");
+  });
+
+  const getSentBody = () => JSON.parse((global.fetch as Mock).mock.calls[0][1].body);
+
+  test("upsertLayers sends the given missionId", async () => {
+    mockFetchResponse({ status: "success", data: [] });
+    const layer = generateBlankLayer({ name: "Vitest Client Layer" });
+    await upsertLayers(42, [layer]);
+    expect((global.fetch as Mock).mock.calls[0][0]).toBe("/api/v1/layer");
+    expect(getSentBody()).toEqual({ missionId: 42, layers: [layer] });
+  });
+
+  test("deleteLayers sends the given missionId", async () => {
+    mockFetchResponse({ status: "success" });
+    await deleteLayers(42, ["layer-uuid"]);
+    expect(getSentBody()).toEqual({ missionId: 42, layerUuids: ["layer-uuid"] });
+  });
+
+  test("upsertSublayers sends the given missionId", async () => {
+    mockFetchResponse({ status: "success", data: [] });
+    const sublayer = generateBlankSublayer({ layerUuid: "layer-uuid" });
+    await upsertSublayers(42, [sublayer]);
+    expect((global.fetch as Mock).mock.calls[0][0]).toBe("/api/v1/sublayer");
+    expect(getSentBody()).toEqual({ missionId: 42, sublayers: [sublayer] });
+  });
+
+  test("deleteSublayers sends the given missionId", async () => {
+    mockFetchResponse({ status: "success" });
+    await deleteSublayers(42, ["sublayer-uuid"]);
+    expect(getSentBody()).toEqual({ missionId: 42, sublayerUuids: ["sublayer-uuid"] });
   });
 });
 

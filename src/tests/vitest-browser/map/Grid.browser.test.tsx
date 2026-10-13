@@ -216,13 +216,49 @@ function visibleGridState(): PartialPreloadedState {
   } as PartialPreloadedState;
 }
 
+/**
+ * Presets and folders live in the mission doc, so move any seeded into the preloaded Redux
+ * state over to the mocked doc. Folder UI state is a map keyed by folder uuid.
+ */
+function moveDocEntitiesToMockDoc(preloadedState: PartialPreloadedState): PartialPreloadedState {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const state = { ...(preloadedState as any) };
+  if (state.preset?.presets) {
+    const { presets, ...presetState } = state.preset;
+    (mockMissionDoc as Partial<Mission>).presets = Object.fromEntries(
+      (presets as Preset[]).map((preset) => [preset.uuid, preset])
+    );
+    state.preset = presetState;
+  } else {
+    (mockMissionDoc as Partial<Mission>).presets = {};
+  }
+  if (state.interface?.folders || Array.isArray(state.interface?.foldersInterface)) {
+    const { folders = [], foldersInterface = [], ...interfaceState } = state.interface;
+    (mockMissionDoc as Partial<Mission>).folders = Object.fromEntries(
+      (folders as Folder[]).map((folder) => [folder.uuid, folder])
+    );
+    state.interface = {
+      ...interfaceState,
+      foldersInterface: Object.fromEntries(
+        (foldersInterface as FolderInterface[]).map((folderInterface) => [
+          folderInterface.uuid,
+          folderInterface,
+        ])
+      ),
+    };
+  } else {
+    (mockMissionDoc as Partial<Mission>).folders = {};
+  }
+  return state as PartialPreloadedState;
+}
+
 function makeStore(preloadedState: PartialPreloadedState = {}) {
   return configureStore({
     reducer: {
       preset: presetSlice.reducer,
       interface: interfaceSlice.reducer,
     },
-    preloadedState,
+    preloadedState: moveDocEntitiesToMockDoc(preloadedState),
   });
 }
 

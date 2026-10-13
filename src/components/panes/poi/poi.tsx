@@ -9,7 +9,10 @@ import { thunkDocCreatePoi, thunkDocDuplicatePoi } from "store/thunk/thunkPoi";
 import { useAppDispatch } from "utils/useAppDispatch";
 import sortBy from "lodash/sortBy";
 import { FolderOrganizer } from "components/interface/folders";
-import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
+import { selectFoldersByType } from "store/selectors";
+import { thunkCreateFolder } from "store/thunk/thunkFolder";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyMoveItemToFolder } from "operations/apply/apply-mission-folder";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const PoiEditorLeft: FunctionComponent = () => {
@@ -31,17 +34,8 @@ const PoiEditorLeft: FunctionComponent = () => {
     refEqual
   );
 
-  const folderRecords = useAppSelector(
-    (state) => state.interface.folders.filter((f) => f.type === "poi"),
-    deepEqual
-  );
-  const foldersInterface = useAppSelector((state) => {
-    const allFoldersInterface = state.interface.foldersInterface;
-    // Filter the folders interface state to only include folders in folderRecords
-    return allFoldersInterface.filter((folderInterface) =>
-      folderRecords.some((folder) => folder.uuid === folderInterface.uuid)
-    );
-  }, deepEqual);
+  const folderRecords =
+    useMissionDocSelector((mission) => selectFoldersByType(mission, "poi"), deepEqual) ?? [];
 
   // Create a mapping from poi UUIDs to their folder UUIDs based on folder.items arrays
   const itemsToFolders = folderRecords.reduce<Record<string, string>>((map, folder) => {
@@ -53,12 +47,7 @@ const PoiEditorLeft: FunctionComponent = () => {
 
   // Handle folder assignment changes
   const setItemFolder = ({ folderUuid, uuid }: { folderUuid: string | null; uuid: string }) => {
-    dispatch(
-      thunkAddRemoveFolderItem({
-        folderUuid,
-        itemUuid: uuid,
-      })
-    );
+    withMissionChange((m) => applyMoveItemToFolder(m, { folderUuid, itemUuid: uuid }));
   };
 
   // Render a POI item
@@ -82,7 +71,6 @@ const PoiEditorLeft: FunctionComponent = () => {
               itemUuids={poiUuids}
               renderItem={renderPoiItem}
               folders={folderRecords}
-              foldersInterface={foldersInterface}
               itemsToFolders={itemsToFolders}
               setItemFolder={setItemFolder}
             />
