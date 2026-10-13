@@ -164,8 +164,23 @@ describe("Sublayer API Endpoint", () => {
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send(requestBody);
 
-      expect(res.statusCode).toBe(500);
+      expect(res.statusCode).toBe(400);
       expect(res.body.message).toContain("Unknown layerUuid");
+    });
+
+    test("Partial update without a layerUuid keeps the stored layer", async () => {
+      const requestBody = {
+        missionId,
+        sublayers: [{ uuid: existingSublayers[1].uuid, name: "Vitest Sublayer B" }],
+      };
+      const res = await supertest(app)
+        .post("/api/v1/sublayer")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
+
+      expect(res.statusCode).toBe(200);
+      const mission = await getMission();
+      expect(mission.sublayers[existingSublayers[1].uuid].layerUuid).toBe(testLayer.uuid);
     });
 
     test("Create new sublayer adds a hidden control and a layer order slot to every preset", async () => {

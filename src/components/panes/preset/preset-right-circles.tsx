@@ -1,4 +1,5 @@
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import { setPresetCircleUIState } from "store/preset";
 import { withMissionChange } from "client/automergeDocHandles";
@@ -24,10 +25,20 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
     (mission) => mission.presets?.[selectedPresetUuid]?.mapCircleControls,
     deepEqual
   );
-  const presetCircleUIStates = useAppSelector(
+  const storedPresetCircleUIStates = useAppSelector(
     (state) => state.preset.presetCirclesUIStates[selectedPresetUuid],
     shallowEqual
   );
+  // A preset created by another user has no UI states in this store yet, so default each circle
+  const presetCircleUIStates = useMemo(() => {
+    const circleUIStatesWithDefaults: CircleUIStates = {};
+    for (const circleDefUuid of Object.keys(circleDefinitions ?? {})) {
+      circleUIStatesWithDefaults[circleDefUuid] = storedPresetCircleUIStates?.[circleDefUuid] ?? {
+        slidersSelected: false,
+      };
+    }
+    return circleUIStatesWithDefaults;
+  }, [circleDefinitions, storedPresetCircleUIStates]);
   const circleUIStateSetterFunction = ({
     circleDefUuid,
     slidersSelected,
@@ -77,7 +88,7 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
           <div className={paneStyles.panelContainer}>
             <div className={styles.circlesContainer}>
               <div className={styles.circlesBody}>
-                {circleDefinitions && presetCircleUIStates && (
+                {circleDefinitions && (
                   <Circles
                     editMode={editMode}
                     mapCircleControls={mapCircleControls}

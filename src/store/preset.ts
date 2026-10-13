@@ -52,6 +52,8 @@ export const presetSlice = createSlice({
         };
       }
     ) => {
+      // A preset created by another user has no UI states in this store yet
+      state.presetCirclesUIStates[action.payload.presetUuid] ??= {};
       state.presetCirclesUIStates[action.payload.presetUuid][action.payload.circleDefUuid] =
         action.payload.circleUIState;
     },
@@ -60,7 +62,7 @@ export const presetSlice = createSlice({
     },
     resetAllPresetCirclesUIStates: (state, action: { payload: { presetUuid: string } }) => {
       // set all tabSelected values to null
-      Object.keys(state.presetCirclesUIStates[action.payload.presetUuid]).forEach((uuid) => {
+      Object.keys(state.presetCirclesUIStates[action.payload.presetUuid] ?? {}).forEach((uuid) => {
         state.presetCirclesUIStates[action.payload.presetUuid][uuid].slidersSelected = false;
       });
     },

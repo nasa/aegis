@@ -20,6 +20,14 @@ import {
 
 const router = express.Router();
 
+/** Thrown when the request body references data that does not exist; answered as a 400. */
+class SublayerInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SublayerInputError";
+  }
+}
+
 const parseQuery = (query: Query) => {
   const { missionId, uuid } = query;
   const queryObj = {
@@ -203,6 +211,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
+    if (e instanceof SublayerInputError) {
+      serverLogger.apiRoute({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "sublayer",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: sublayers?.map((s) => s.uuid),
+        message: e.message,
+      });
+      res.status(400).json({ status: "failure", message: e.message });
+      return;
+    }
     serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
@@ -322,12 +344,16 @@ export async function getSublayers(missionId: number, sublayerUuid?: string): Pr
 async function upsertSublayers(missionId: number, sublayers: Sublayer[]): Promise<Sublayer[]> {
   const handle = await getAutomergeMissionHandle(missionId);
   if (!handle) throw new Error(`No mission document found for mission ${missionId}`);
-  const layers = handle.doc()?.layers ?? {};
+  const doc = handle.doc();
+  const layers = doc?.layers ?? {};
+  // An omitted layerUuid keeps the stored one, as normalizeSublayerInput does
   const unknownLayerUuids = sublayers
-    .map((sublayer) => sublayer.layerUuid)
-    .filter((layerUuid) => !(layerUuid in layers));
+    .map((sublayer) => sublayer.layerUuid ?? doc?.sublayers?.[sublayer.uuid]?.layerUuid)
+    .filter((layerUuid) => !layerUuid || !(layerUuid in layers));
   if (unknownLayerUuids.length > 0) {
-    throw new Error(`Unknown layerUuid(s): ${[...new Set(unknownLayerUuids)].join(", ")}`);
+    throw new SublayerInputError(
+      `Unknown layerUuid(s): ${[...new Set(unknownLayerUuids.map(String))].join(", ")}`
+    );
   }
   let normalized: Sublayer[] = [];
   handle.change((m: Mission) => {

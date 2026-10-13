@@ -145,6 +145,7 @@ describe("convertLegacyMissionTableRows()", () => {
     pois: {},
     stations: { [station.uuid]: station },
     evas: {},
+    circleDefinitions: null,
   });
 
   it("normalizes nullable layer and sublayer columns and drops orphaned sublayers", () => {
@@ -179,6 +180,55 @@ describe("convertLegacyMissionTableRows()", () => {
       style: defaultGridStyle,
     });
     expect(preset).toMatchObject({ sunAzimuth: 0, sunEnabled: false, earthAzimuth: 12 });
+  });
+
+  it("normalizes legacy halo values and drops unknown style keys", () => {
+    const rows = buildRows(station.uuid);
+    rows.presets[0].mapSublayerControls["sub-1"].style = {
+      labelHaloColor: "rgba(255, 0, 16, 0.5)",
+      labelHaloOpacity: 0.85,
+      strayKey: true,
+    } as unknown as MapSublayerStyle;
+    const { presets } = convertLegacyMissionTableRows(rows, {
+      pois: {},
+      stations: {},
+      evas: {},
+      circleDefinitions: null,
+    });
+    expect(presets["preset-1"].mapSublayerControls["sub-1"].style).toEqual({
+      ...defaultSublayerStyle,
+      labelHaloColor: "#ff0010",
+      labelHaloOpacity: 0.2,
+    });
+  });
+
+  it("builds one circle control per circle definition with backfilled styles", () => {
+    const rows = buildRows(station.uuid);
+    rows.presets[0].mapCircleControls = {
+      "circle-1": {
+        uuid: "circle-1",
+        visible: true,
+        style: { opacity: 0.5, fillOpacity: null } as unknown as MapSublayerStyle,
+      },
+      "circle-deleted": { uuid: "circle-deleted", visible: true, style: defaultSublayerStyle },
+    };
+    const { presets } = convertLegacyMissionTableRows(rows, {
+      pois: {},
+      stations: {},
+      evas: {},
+      circleDefinitions: {
+        "circle-1": { name: "Circle 1", radius: 10 },
+        "circle-2": { name: "Circle 2", radius: 20 },
+      },
+    });
+    expect(presets["preset-1"].mapCircleControls).toEqual({
+      "circle-1": {
+        uuid: "circle-1",
+        visible: true,
+        style: { ...defaultSublayerStyle, opacity: 0.5 },
+      },
+      "circle-2": { uuid: "circle-2", visible: false, style: defaultSublayerStyle },
+    });
   });
 
   it("drops folder items whose entity no longer exists", () => {

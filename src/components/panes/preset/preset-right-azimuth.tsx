@@ -1,4 +1,4 @@
-import throttle from "lodash/throttle";
+import debounce from "lodash/debounce";
 import paneStyles from "../global-pane-styles.module.css";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -7,6 +7,8 @@ import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdatePresetByField } from "operations/apply/apply-mission-preset";
+
+const AZIMUTH_WRITE_DEBOUNCE_MS = 250;
 
 /** Write one preset field to the mission doc. */
 const updatePresetField = <K extends keyof Preset>(
@@ -38,10 +40,11 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     setDisplayEarthAzimuth(selectedPreset?.earthAzimuth ?? 0);
   }, [selectedPreset?.sunAzimuth, selectedPreset?.earthAzimuth]);
 
-  const sunThrottledFunc = useRef(
-    throttle((preset: Preset, value: number) => {
+  // Dragging fires on every step; wait for a pause before writing to the mission doc
+  const sunDebouncedFunc = useRef(
+    debounce((preset: Preset, value: number) => {
       updatePresetField(preset.uuid, "sunAzimuth", value);
-    }, 50)
+    }, AZIMUTH_WRITE_DEBOUNCE_MS)
   );
 
   const handleOnChangeSunAzimuth = useCallback(
@@ -49,26 +52,36 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       //hook into isDragging to prevent this from triggering when values are reset via "Cancel" button
       if (isDragging) {
         setDisplaySunAzimuth(value);
-        sunThrottledFunc.current(preset, value);
+        sunDebouncedFunc.current(preset, value);
       }
     },
-    [sunThrottledFunc, isDragging]
+    [sunDebouncedFunc, isDragging]
   );
 
-  const earthThrottledFunc = useRef(
-    throttle((preset: Preset, value: number) => {
+  const earthDebouncedFunc = useRef(
+    debounce((preset: Preset, value: number) => {
       updatePresetField(preset.uuid, "earthAzimuth", value);
-    }, 50)
+    }, AZIMUTH_WRITE_DEBOUNCE_MS)
   );
+
+  // Write any pending azimuth before switching presets or unmounting
+  useEffect(() => {
+    const sunDebounced = sunDebouncedFunc.current;
+    const earthDebounced = earthDebouncedFunc.current;
+    return () => {
+      sunDebounced.flush();
+      earthDebounced.flush();
+    };
+  }, [selectedPresetUuid]);
 
   const handleOnChangeEarthAzimuth = useCallback(
     (preset: Preset, value: number) => {
       if (isDragging) {
         setDisplayEarthAzimuth(value);
-        earthThrottledFunc.current(preset, value);
+        earthDebouncedFunc.current(preset, value);
       }
     },
-    [earthThrottledFunc, isDragging]
+    [earthDebouncedFunc, isDragging]
   );
 
   return (

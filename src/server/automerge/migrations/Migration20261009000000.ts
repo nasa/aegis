@@ -2,10 +2,7 @@ import isEqual from "lodash/isEqual";
 import type { AutomergeMigration } from "server/automerge/migrations/types";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { defaultGridStyle } from "store/storeUtils/sublayer";
-import {
-  migrateLegacyCircleControlHaloStyles,
-  migrateLegacyHaloStyle,
-} from "store/storeUtils/preset";
+import { migrateLegacyHaloStyle } from "store/storeUtils/preset";
 import { serverLogger } from "utils/logging/serverLogger";
 
 // Raw rows as selected below. Timestamps are converted to epoch ms in SQL.
@@ -159,10 +156,32 @@ const toMs = (value: number | string): number => Number(value);
 const byUuid = <T extends { uuid: string }>(items: T[]): { [uuid: string]: T } =>
   Object.fromEntries(items.map((item) => [item.uuid, item]));
 
+// Style keys that can appear on MapSublayerStyle; anything else is dropped during migration.
+const MAP_SUBLAYER_STYLE_KEYS = new Set<string>([
+  ...Object.keys(defaultSublayerStyle),
+  "labelMinZoom",
+]);
+
+const LEGACY_RGBA_COLOR_PATTERN = /^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,/;
+
+/** Convert an `rgba(r, g, b, a)` color to `#rrggbb`; other values are returned unchanged. */
+const legacyRgbaToHex = (color: unknown): unknown => {
+  if (typeof color !== "string") return color;
+  const match = LEGACY_RGBA_COLOR_PATTERN.exec(color);
+  if (!match) return color;
+  const toHexByte = (channel: string) =>
+    Math.min(255, Math.max(0, Number(channel)))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${toHexByte(match[1])}${toHexByte(match[2])}${toHexByte(match[3])}`;
+};
+
 /**
  * Bring a preset style object in line with the current MapSublayerStyle shape. Covers the
- * label stroke → halo rename and the fillOpacity backfill that the preset_db SQL migrations
- * applied, for databases older than those migrations, plus any other missing style field.
+ * label stroke → halo rename, the halo rgba → hex color and 0.85/0.1 → 0.2 opacity
+ * normalization, and the fillOpacity backfill that the preset_db SQL migrations applied, for
+ * databases older than those migrations, plus any other missing style field. Keys that are not
+ * part of MapSublayerStyle are dropped.
  */
 const normalizeStyle = (
   style: Partial<MapSublayerStyle> | null | undefined,
@@ -170,8 +189,14 @@ const normalizeStyle = (
 ): MapSublayerStyle => {
   const legacyStyle = { ...(style ?? {}) } as MapSublayerStyle;
   migrateLegacyHaloStyle(legacyStyle);
+  if (legacyStyle.labelHaloOpacity === 0.85 || legacyStyle.labelHaloOpacity === 0.1) {
+    legacyStyle.labelHaloOpacity = 0.2;
+  }
+  legacyStyle.labelHaloColor = legacyRgbaToHex(legacyStyle.labelHaloColor) as string;
   const definedValues = Object.fromEntries(
-    Object.entries(legacyStyle).filter(([, value]) => value != null)
+    Object.entries(legacyStyle).filter(
+      ([key, value]) => value != null && MAP_SUBLAYER_STYLE_KEYS.has(key)
+    )
   );
   return { ...defaults, ...definedValues };
 };
@@ -207,7 +232,7 @@ const normalizeLegend = (legend: Partial<Legend> | null): Legend | null => {
  */
 export const convertLegacyMissionTableRows = (
   rows: LegacyMissionTableRows,
-  mission: Pick<Mission, "pois" | "stations" | "evas">
+  mission: Pick<Mission, "pois" | "stations" | "evas" | "circleDefinitions">
 ): MigratedCollections => {
   const layers = byUuid<Layer>(
     rows.layers.map((row) => ({
@@ -284,8 +309,16 @@ export const convertLegacyMissionTableRows = (
         };
       }
 
-      const mapCircleControls: MapCircleControls = structuredClone(row.mapCircleControls ?? {});
-      migrateLegacyCircleControlHaloStyles(mapCircleControls);
+      // One control per circle definition, matching how presets are kept in sync at runtime
+      const mapCircleControls: MapCircleControls = {};
+      for (const circleUuid of Object.keys(mission.circleDefinitions ?? {})) {
+        const existing = row.mapCircleControls?.[circleUuid];
+        mapCircleControls[circleUuid] = {
+          uuid: circleUuid,
+          visible: existing?.visible ?? false,
+          style: normalizeStyle(existing?.style, defaultSublayerStyle),
+        };
+      }
 
       return {
         uuid: row.uuid,
