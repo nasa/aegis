@@ -214,8 +214,8 @@ describe("READABLE EVA Endpoint (Maegistro V2)", () => {
       expect(res.body.status).toBe("success");
       expect(res.body.message).toBe("readable evas retrieved");
       const evas: ExportEva[] = res.body.data;
-      // 2 as-planned evas returned, rex-eva copies excluded.
-      expect(evas).toHaveLength(2);
+      // 3 as-planned evas returned, rex-eva copies excluded.
+      expect(evas).toHaveLength(3);
       const uuids = evas.map((e) => e.uuid);
       expect(uuids).toEqual(expect.arrayContaining([asPlannedEva0.uuid, asPlannedEva1.uuid]));
       expect(uuids).not.toContain(rexEva0.uuid);
