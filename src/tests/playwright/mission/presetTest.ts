@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import { waitForPageReady, toggleEditMode } from "../helpers";
+import { waitForPageReady, toggleEditMode, displayField, editValidatedField } from "../helpers";
 
 /** Click the delete button and accept the resulting confirm dialog. */
 async function deleteSelectedPreset(page: Page): Promise<void> {
@@ -38,15 +38,13 @@ export async function presetTest(page: Page): Promise<string> {
 
   const newPresetQuery = page.getByLabel("selectedPreset", { exact: true });
   await expect(newPresetQuery.getByLabel("leftPresetName", { exact: true })).toBeVisible();
-  await page.getByLabel("Preset Title", { exact: true }).waitFor({ timeout: 5000 });
+  await displayField(page, "Preset Title").waitFor({ timeout: 5000 });
 
-  // Rename the preset to our unique name
-  await page.getByLabel("Preset Title", { exact: true }).fill(presetBaseName);
-  await expect(page.getByLabel("Preset Title", { exact: true })).toHaveValue(presetBaseName);
+  // Rename the preset to our unique name. "Preset Title" is a ValidatedInputField:
+  // click its display <div> to open the dialog, fill the input, then Save.
+  await editValidatedField(page, "Preset Title", presetBaseName);
+  await expect(displayField(page, "Preset Title")).toContainText(presetBaseName);
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 1);
-
-  // The title input commits through a debounce, so wait for the rename to reach
-  // the doc (reflected in the left list item) before continuing.
   await expect(newPresetQuery.getByLabel("leftPresetName", { exact: true })).toContainText(
     presetBaseName
   );
@@ -56,7 +54,7 @@ export async function presetTest(page: Page): Promise<string> {
   await expect(newPresetQuery.getByLabel("leftPresetName", { exact: true })).toContainText(
     copyName
   );
-  await page.getByLabel("Preset Title", { exact: true }).waitFor({ timeout: 5000 });
+  await expect(displayField(page, "Preset Title")).toContainText(copyName);
 
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 2);
 
