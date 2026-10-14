@@ -108,7 +108,7 @@ const Activity: FunctionComponent<{
           {sequenceItem.type === "station" && (
             <div className={styles.stationIcon}>{stationIcon}</div>
           )}
-          {inProgress && (
+          {!complete && (
             <div
               className={styles.progressIndicator}
               style={{ height: `${ev1PercentComplete}%` }}
@@ -124,7 +124,7 @@ const Activity: FunctionComponent<{
             <div className={styles.stationIcon}>{stationIcon}</div>
           )}
         </div>
-        {inProgress && (
+        {!complete && (
           <div
             className={styles.progressIndicator}
             style={{ height: `${ev2PercentComplete}%` }}
