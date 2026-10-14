@@ -1,6 +1,18 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import { waitForPageReady } from "../helpers";
+import { waitForPageReady, toggleEditMode } from "../helpers";
+
+/** Click the delete button and accept the resulting confirm dialog. */
+async function deleteSelectedPreset(page: Page): Promise<void> {
+  const dialogPromise = new Promise<void>((resolve) => {
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+      resolve();
+    });
+  });
+  await page.getByLabel("deleteButton", { exact: true }).click();
+  await dialogPromise;
+}
 
 export async function presetTest(page: Page): Promise<string> {
   // Use a unique suffix per run to avoid collisions with names left behind
@@ -17,13 +29,15 @@ export async function presetTest(page: Page): Promise<string> {
     "Map Display Presets"
   );
 
+  // Add/Duplicate/Delete are only available in edit mode
+  await toggleEditMode(page);
+
   // Add a new preset and make sure it appeared
   const presetCount = await page.getByLabel("leftPresetName", { exact: true }).count();
   await page.getByLabel("Add", { exact: true }).click();
 
   const newPresetQuery = page.getByLabel("selectedPreset", { exact: true });
   await expect(newPresetQuery.getByLabel("leftPresetName", { exact: true })).toBeVisible();
-  await expect(newPresetQuery.getByLabel("Unsaved changes", { exact: true })).toBeVisible();
   await page.getByLabel("Preset Title", { exact: true }).waitFor({ timeout: 5000 });
 
   // Rename the preset to our unique name
@@ -31,15 +45,8 @@ export async function presetTest(page: Page): Promise<string> {
   await expect(page.getByLabel("Preset Title", { exact: true })).toHaveValue(presetBaseName);
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 1);
 
-  // The title input commits through a 50ms debounce, so wait for the rename to
-  // reach the store (reflected in the left list item) before saving. Otherwise
-  // the save can capture — and re-persist — the stale auto-generated name.
-  await expect(newPresetQuery.getByLabel("leftPresetName", { exact: true })).toContainText(
-    presetBaseName
-  );
-
-  await page.getByLabel("saveButton", { exact: true }).click();
-  await page.getByLabel("Edit", { exact: true }).waitFor();
+  // The title input commits through a debounce, so wait for the rename to reach
+  // the doc (reflected in the left list item) before continuing.
   await expect(newPresetQuery.getByLabel("leftPresetName", { exact: true })).toContainText(
     presetBaseName
   );
@@ -54,17 +61,7 @@ export async function presetTest(page: Page): Promise<string> {
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 2);
 
   // Delete the duplicate preset
-  await page.getByLabel("Edit", { exact: true }).waitFor({ state: "visible", timeout: 5000 });
-  await page.getByLabel("Edit", { exact: true }).click();
-  await page.getByLabel("deleteButton", { exact: true }).waitFor({ timeout: 5000 });
-  await page.getByLabel("deleteButton", { exact: true }).click();
-  await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 1);
-
-  // Add and cancel preset
-  await page.getByLabel("Add", { exact: true }).click();
-
-  await page.getByLabel("cancelButton", { exact: true }).waitFor({ timeout: 5000 });
-  await page.getByLabel("cancelButton", { exact: true }).click();
+  await deleteSelectedPreset(page);
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount + 1);
 
   // Delete the original preset to clean up after ourselves
@@ -72,11 +69,12 @@ export async function presetTest(page: Page): Promise<string> {
     .getByLabel("leftPresetName", { exact: true })
     .filter({ hasText: presetBaseName })
     .click();
-  await page.getByLabel("Edit", { exact: true }).waitFor({ state: "visible", timeout: 5000 });
-  await page.getByLabel("Edit", { exact: true }).click();
   await page.getByLabel("deleteButton", { exact: true }).waitFor({ timeout: 5000 });
-  await page.getByLabel("deleteButton", { exact: true }).click();
+  await deleteSelectedPreset(page);
   await expect(page.getByLabel("leftPresetName", { exact: true })).toHaveCount(presetCount);
+
+  // Turn off edit mode
+  await toggleEditMode(page);
 
   return "success";
 }
