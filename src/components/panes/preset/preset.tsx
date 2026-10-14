@@ -95,12 +95,15 @@ const PresetEditorLeft: FunctionComponent = () => {
                   />
                 </>
               )}
-              <Button
-                onClick={() => dispatch(thunkCreateFolder({ type: "preset" }))}
-                label="Folder"
-                icon={faFolderPlus}
-                style={{ width: "80px" }}
-              />
+              {showButtons && (
+                <Button
+                  ariaLabel="addFolder"
+                  onClick={() => dispatch(thunkCreateFolder({ type: "preset" }))}
+                  label="Folder"
+                  icon={faFolderPlus}
+                  style={{ width: "80px" }}
+                />
+              )}
             </div>
           )}
         </div>

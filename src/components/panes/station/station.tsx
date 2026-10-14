@@ -24,7 +24,6 @@ const StationEditorLeft: FunctionComponent = () => {
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
   const showButtons = useAppSelector(
     (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
     refEqual
@@ -104,7 +103,7 @@ const StationEditorLeft: FunctionComponent = () => {
                 />
               </>
             )}
-            {editPerms && (
+            {showButtons && (
               <Button
                 ariaLabel="addFolder"
                 onClick={() => {

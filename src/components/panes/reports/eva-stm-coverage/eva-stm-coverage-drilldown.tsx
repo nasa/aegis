@@ -14,7 +14,7 @@ import { diffRuleActions } from "utils/stmEvaCoverage";
 import { actionBelongsToCampaignMember } from "utils/evaReportColumns";
 import { Checkbox } from "components/interface/form/globalFields";
 import ReportSidePanel from "../shared/report-side-panel";
-import { selectStmLevel3s, selectStmRules } from "store/selectors";
+import { selectStmRules } from "store/selectors";
 
 const REPORT_ID: ColumnReportId = "stmCoverage";
 
@@ -52,7 +52,7 @@ const EvaStmCoverageDrilldown: FunctionComponent = () => {
     refEqual
   );
   const level3 = useMissionDocSelector(
-    (mission) => selectStmLevel3s(mission).find((item) => item.uuid === cellSelection?.stmUuid),
+    (mission) => mission.stmLevel3s?.[cellSelection?.stmUuid],
     shallowEqual
   );
   const rulesByUuid = useMissionDocSelector((mission) => {

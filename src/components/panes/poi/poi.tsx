@@ -28,7 +28,6 @@ const PoiEditorLeft: FunctionComponent = () => {
 
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
 
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
   const showButtons = useAppSelector(
     (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
     refEqual
@@ -101,7 +100,7 @@ const PoiEditorLeft: FunctionComponent = () => {
                 />
               </>
             )}
-            {editPerms && (
+            {showButtons && (
               <Button
                 ariaLabel="addFolder"
                 onClick={() => {

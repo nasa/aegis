@@ -77,15 +77,15 @@ const deleteFolder = (folderUuid: string) => {
 const DraggableItem = ({
   itemUuid,
   children,
-  editPerms = false,
+  canEdit = false,
 }: {
   itemUuid: string;
   children: ReactNode;
-  editPerms?: boolean;
+  canEdit?: boolean;
 }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: itemUuid,
-    disabled: !editPerms,
+    disabled: !canEdit,
   });
 
   // This is to prevent dnd-kit from initiating a drag when clicking on interactive elements within the draggable item.
@@ -105,8 +105,8 @@ const DraggableItem = ({
   return (
     <div
       ref={setNodeRef}
-      {...(editPerms ? listeners : {})}
-      {...(editPerms ? attributes : {})}
+      {...(canEdit ? listeners : {})}
+      {...(canEdit ? attributes : {})}
       className={`${styles.draggableItem} ${isDragging ? styles.isDragging : ""}`}
       onPointerDownCapture={handlePointerDown}
     >
@@ -120,8 +120,8 @@ const FolderMenu: FunctionComponent<{
   folder: Folder;
   folderInterface: FolderInterface;
   handleCancel: (e: MouseEvent) => void;
-  editPerms: boolean;
-}> = ({ folder, folderInterface, handleCancel, editPerms }) => {
+  showButtons: boolean;
+}> = ({ folder, folderInterface, handleCancel, showButtons }) => {
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
@@ -163,7 +163,7 @@ const FolderMenu: FunctionComponent<{
               </div>
             </div>
           )}
-          {editPerms && (
+          {showButtons && (
             <>
               {!folderInterface.editing ? (
                 <div
@@ -254,6 +254,11 @@ const FolderComponent = ({
 }): JSX.Element => {
   const dispatch = useAppDispatch();
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const showButtons = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
+
   const { isOver, setNodeRef } = useDroppable({
     id: folder.uuid,
   });
@@ -345,7 +350,7 @@ const FolderComponent = ({
               folder={folder}
               folderInterface={folderInterface}
               handleCancel={handleCancelEdit}
-              editPerms={editPerms}
+              showButtons={showButtons}
             />
           )}
         </div>
@@ -354,7 +359,7 @@ const FolderComponent = ({
       {folderInterface.isOpen && folderContents.length > 0 && (
         <div className={styles.folderContents}>
           {folderContents.map((itemUuid) => (
-            <DraggableItem key={itemUuid} itemUuid={itemUuid} editPerms={editPerms}>
+            <DraggableItem key={itemUuid} itemUuid={itemUuid} canEdit={showButtons}>
               {renderItem({ itemUuid, isDragging: false, first: false })}
             </DraggableItem>
           ))}
@@ -365,13 +370,13 @@ const FolderComponent = ({
 };
 
 // Root droppable area component
-const RootDroppableArea: FunctionComponent<{ children: ReactNode; editPerms: boolean }> = ({
+const RootDroppableArea: FunctionComponent<{ children: ReactNode; canEdit: boolean }> = ({
   children,
-  editPerms,
+  canEdit,
 }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: "root-area",
-    disabled: !editPerms,
+    disabled: !canEdit,
   });
 
   // Check if children have been passed in, ignoring empty JSX elements and stuff
@@ -380,14 +385,14 @@ const RootDroppableArea: FunctionComponent<{ children: ReactNode; editPerms: boo
   });
 
   // Don't render if no edit permissions and no real children
-  if (!editPerms && !hasRealChildren) {
+  if (!canEdit && !hasRealChildren) {
     return null;
   }
 
   return (
     <div
       ref={setNodeRef}
-      className={`${styles.rootDroppableArea} ${isOver && editPerms ? styles.droppable : ""}`}
+      className={`${styles.rootDroppableArea} ${isOver && canEdit ? styles.droppable : ""}`}
     >
       {children}
     </div>
@@ -413,7 +418,10 @@ export const FolderOrganizer = ({
   const dispatch = useAppDispatch();
   const foldersInterface = useAppSelector((state) => state.interface.foldersInterface, deepEqual);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const canEdit = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -489,14 +497,12 @@ export const FolderOrganizer = ({
         })}
 
         {/* Render unassociated items in root area */}
-        <RootDroppableArea editPerms={editPerms}>
-          {unassociatedItems.length === 0 &&
-            editPerms &&
-            Object.keys(itemsToFolders).length > 0 && (
-              <div className={styles.dropHint}>Drag here to remove item from folder</div>
-            )}
+        <RootDroppableArea canEdit={canEdit}>
+          {unassociatedItems.length === 0 && canEdit && Object.keys(itemsToFolders).length > 0 && (
+            <div className={styles.dropHint}>Drag here to remove item from folder</div>
+          )}
           {unassociatedItems.map((itemUuid, index) => (
-            <DraggableItem key={itemUuid} itemUuid={itemUuid} editPerms={editPerms}>
+            <DraggableItem key={itemUuid} itemUuid={itemUuid} canEdit={canEdit}>
               {renderItem({ itemUuid, isDragging: false, first: index === 0 })}
             </DraggableItem>
           ))}

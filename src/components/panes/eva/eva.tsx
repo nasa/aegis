@@ -152,7 +152,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                     />
                   </>
                 )}
-                {editPerms && (
+                {showButtons && (
                   <Button
                     ariaLabel="addFolder"
                     onClick={() => dispatch(thunkCreateFolder({ type: "eva" }))}

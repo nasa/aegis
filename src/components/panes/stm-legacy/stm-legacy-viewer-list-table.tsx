@@ -14,11 +14,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { selectStmLevel1s, selectStmLevel2s, selectStmLevel3s } from "store/selectors";
 
 const STMListTable: FunctionComponent = () => {
-  const level1s =
-    useMissionDocSelector(
-      (mission) => sortBy(selectStmLevel1s(mission), "numbering"),
-      shallowEqual
-    ) ?? [];
+  const level1s = useMissionDocSelector((mission) => selectStmLevel1s(mission), shallowEqual) ?? [];
 
   return (
     <div className={styles.stmTables}>
@@ -89,11 +85,7 @@ const STMLevel1: FunctionComponent<{ level1: STMLevel1; index: number }> = ({ le
 const STMLevel2s: FunctionComponent<{ level1Uuid: string }> = ({ level1Uuid }) => {
   const level2s =
     useMissionDocSelector(
-      (mission) =>
-        sortBy(
-          selectStmLevel2s(mission).filter((level2) => level2.level1Uuid === level1Uuid),
-          "numbering"
-        ),
+      (mission) => selectStmLevel2s(mission).filter((level2) => level2.level1Uuid === level1Uuid),
       shallowEqual
     ) ?? [];
   const allLevel3sForThisLevel2 =
@@ -155,11 +147,7 @@ export const STMLevel3s: FunctionComponent<{
 }> = ({ level2Uuid }) => {
   const level3s =
     useMissionDocSelector(
-      (mission) =>
-        sortBy(
-          selectStmLevel3s(mission).filter((level3) => level3.level2Uuid === level2Uuid),
-          "numbering"
-        ),
+      (mission) => selectStmLevel3s(mission).filter((level3) => level3.level2Uuid === level2Uuid),
       shallowEqual
     ) ?? [];
 
@@ -178,16 +166,11 @@ const STMLevel3: FunctionComponent<{
   const dispatch = useAppDispatch();
   const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
   const level1Numbering = useMissionDocSelector((mission) => {
-    const level2 = selectStmLevel2s(mission).find((level2) => level2.uuid === level3.level2Uuid);
-    return (
-      selectStmLevel1s(mission).find((level1) => level1.uuid === level2?.level1Uuid)?.numbering ||
-      ""
-    );
+    const level2 = mission.stmLevel2s?.[level3.level2Uuid];
+    return mission.stmLevel1s?.[level2.level1Uuid]?.numbering || "";
   }, refEqual);
   const level2Numbering = useMissionDocSelector(
-    (mission) =>
-      selectStmLevel2s(mission).find((level2) => level2.uuid === level3.level2Uuid)?.numbering ||
-      "",
+    (mission) => mission.stmLevel2s?.[level3.level2Uuid]?.numbering || "",
     refEqual
   );
   const thisInvestigationExpanded = useAppSelector((state: RootState) => {

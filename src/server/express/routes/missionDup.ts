@@ -135,34 +135,6 @@ const setMissionIdOnEntities = (m: Mission, missionId: number): void => {
   }
 };
 
-// Create a new mission based on the original
-const createMissionFromSource = async (
-  originalMission: Mission,
-  nameSuffix: string
-): Promise<DocHandle<Mission>> => {
-  // We are unsure the state of the incoming original mission, so clone it in-case
-  // there are existing Automerge proxy references
-  const sourceMission = cloneDeep(originalMission);
-  const newMission: Mission = {
-    ...sourceMission,
-    id: null, // Let the database assign a new ID
-    name: `${sourceMission.name} - ${nameSuffix}`,
-    createdAt: getAccurateNow().getTime(),
-    updatedAt: getAccurateNow().getTime(),
-  };
-
-  // create an mission automerge document; the copied entities get the assigned mission id
-  const docListing: AutomergeDocListing = await createAutomergeMission(newMission, (m, missionId) =>
-    setMissionIdOnEntities(m, missionId)
-  );
-  // retrieve the mission object
-  const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-    docListing.automergeUrl as AutomergeUrl
-  );
-  await missionDocHandle.whenReady();
-  return missionDocHandle;
-};
-
 // Main function to create a mission copy
 export const createMissionCopy = async (
   sourceData: MissionSourceData,
@@ -170,11 +142,29 @@ export const createMissionCopy = async (
 ): Promise<number> => {
   try {
     // 1. Create new mission. All mission entities ride along on the mission doc copy.
-    const newMissionDocHandle: DocHandle<Mission> = await createMissionFromSource(
-      sourceData.mission,
-      options.nameSuffix
+
+    // We are unsure the state of the incoming original mission, so clone it in-case
+    // there are existing Automerge proxy references
+    const sourceMission = cloneDeep(sourceData.mission);
+    const newMission: Mission = {
+      ...sourceMission,
+      id: null, // Let the database assign a new ID
+      name: `${sourceMission.name} - ${options.nameSuffix}`,
+      createdAt: getAccurateNow().getTime(),
+      updatedAt: getAccurateNow().getTime(),
+    };
+
+    // create an mission automerge document; the copied entities get the assigned mission id
+    const docListing: AutomergeDocListing = await createAutomergeMission(
+      newMission,
+      (m, missionId) => setMissionIdOnEntities(m, missionId)
     );
-    const newMissionId = newMissionDocHandle.doc().id;
+    // retrieve the mission object
+    const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+      docListing.automergeUrl as AutomergeUrl
+    );
+    await missionDocHandle.whenReady();
+    const newMissionId = missionDocHandle.doc().id;
 
     // 2. Copy mission assets (layer tiles, grid coordinate file, etc.) if requested
     if (options.copyAssets && sourceData.mission.id) {

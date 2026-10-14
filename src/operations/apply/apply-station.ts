@@ -1,6 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
+import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 import { applyDuplicateActionsStage } from "./apply-action";
 import { applyRemoveItemsFromAllFolders } from "./apply-mission-folder";
@@ -99,6 +100,36 @@ export function applyUpdateAllStationCircleControls(
     if (!preserveUpdatedAt) {
       station.updatedAt = getAccurateNow().getTime();
     }
+  }
+}
+
+/**
+ * Add/remove `mapCircleControls` entries on every (non-lander) station so they
+ * match the current set of circle definitions on the mission.
+ */
+export function applySyncStationCircleControlsWithCircleDefinitions(m: Mission): void {
+  const circleDefinitions = m.circleDefinitions ?? {};
+  const now = getAccurateNow().getTime();
+  for (const station of Object.values(m.stations)) {
+    if (station.isLanderXgress) continue;
+    let changed = false;
+    for (const circleUuid of Object.keys(circleDefinitions)) {
+      if (!station.mapCircleControls[circleUuid]) {
+        station.mapCircleControls[circleUuid] = {
+          uuid: circleUuid,
+          visible: false,
+          style: { ...defaultSublayerStyle },
+        };
+        changed = true;
+      }
+    }
+    for (const circleUuid of Object.keys(station.mapCircleControls)) {
+      if (!(circleUuid in circleDefinitions)) {
+        delete station.mapCircleControls[circleUuid];
+        changed = true;
+      }
+    }
+    if (changed) station.updatedAt = now;
   }
 }
 

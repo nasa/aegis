@@ -20,7 +20,6 @@ import {
   selectAsPlannedStations,
   selectStmLevel1s,
   selectStmLevel2s,
-  selectStmLevel3s,
   selectStmRules,
 } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -135,10 +134,7 @@ export default StmRulesTabMatches;
 
 const STMItemName: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
   const stmLevel1Enabled = useMissionDocSelector((mission) => mission.stmLevel1Enabled, refEqual);
-  const level3STMItem = useMissionDocSelector(
-    (mission) => selectStmLevel3s(mission).find((item) => item.uuid === stmUuid),
-    shallowEqual
-  );
+  const level3STMItem = useMissionDocSelector((mission) => mission.stmLevel3s?.[stmUuid]);
   const level2Numbering = useMissionDocSelector(
     (mission) =>
       selectStmLevel2s(mission).find((level2) => level2.uuid === level3STMItem?.level2Uuid)

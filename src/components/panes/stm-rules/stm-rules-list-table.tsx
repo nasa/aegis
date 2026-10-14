@@ -10,7 +10,6 @@ import { faSquarePlus } from "@fortawesome/free-solid-svg-icons";
 import { thunkCreateStmRule } from "store/thunk/thunkStmRules";
 import { setStmRulesSelectedStmUuid, stmRulesToggleTierExpansion } from "store/stm";
 import { reportSetHoveredLeftItem } from "store/report";
-import sortBy from "lodash/sortBy";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { selectStmLevel1s, selectStmLevel2s, selectStmLevel3s } from "store/selectors";
 
@@ -29,11 +28,7 @@ const STMRulesTable: FunctionComponent<{
   selectMode?: boolean;
   coverageContent?: (stmUuid: string) => ReactNode;
 }> = ({ selectMode = false, coverageContent }) => {
-  const level1s =
-    useMissionDocSelector(
-      (mission) => sortBy(selectStmLevel1s(mission), "numbering"),
-      shallowEqual
-    ) ?? [];
+  const level1s = useMissionDocSelector((mission) => selectStmLevel1s(mission), shallowEqual) ?? [];
 
   return (
     <div
@@ -141,11 +136,7 @@ const STMLevel2s: FunctionComponent<{
 }> = ({ level1Uuid, selectMode, coverageContent }) => {
   const level2s =
     useMissionDocSelector(
-      (mission) =>
-        sortBy(
-          selectStmLevel2s(mission).filter((level2) => level2.level1Uuid === level1Uuid),
-          "numbering"
-        ),
+      (mission) => selectStmLevel2s(mission).filter((level2) => level2.level1Uuid === level1Uuid),
       shallowEqual
     ) ?? [];
 
@@ -176,13 +167,10 @@ const STMLevel2: FunctionComponent<{
   const level3s =
     useMissionDocSelector(
       (mission) =>
-        sortBy(
-          selectStmLevel3s(mission).filter(
-            (level3) =>
-              level3.level2Uuid === level2.uuid &&
-              (!coverageContent || !visibleStmUuids || visibleStmUuids.includes(level3.uuid))
-          ),
-          "numbering"
+        selectStmLevel3s(mission).filter(
+          (level3) =>
+            level3.level2Uuid === level2.uuid &&
+            (!coverageContent || !visibleStmUuids || visibleStmUuids.includes(level3.uuid))
         ),
       shallowEqual
     ) ?? [];
@@ -236,16 +224,11 @@ const STMLevel3: FunctionComponent<{
   const dispatch = useAppDispatch();
   const stmLevel1Enabled = useMissionDocSelector((mission) => mission.stmLevel1Enabled, refEqual);
   const level1Numbering = useMissionDocSelector((mission) => {
-    const level2 = selectStmLevel2s(mission).find((level2) => level2.uuid === level3.level2Uuid);
-    return (
-      selectStmLevel1s(mission).find((level1) => level1.uuid === level2?.level1Uuid)?.numbering ||
-      ""
-    );
+    const level2 = mission.stmLevel2s?.[level3.level2Uuid];
+    return mission.stmLevel1s?.[level2.level1Uuid]?.numbering || "";
   }, refEqual);
   const level2Numbering = useMissionDocSelector(
-    (mission) =>
-      selectStmLevel2s(mission).find((level2) => level2.uuid === level3.level2Uuid)?.numbering ||
-      "",
+    (mission) => mission.stmLevel2s?.[level3.level2Uuid]?.numbering || "",
     refEqual
   );
   const isSelected = useAppSelector(
