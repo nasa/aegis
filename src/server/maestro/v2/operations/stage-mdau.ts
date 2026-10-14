@@ -542,6 +542,9 @@ const stageRexes = (
       actionEntries[uuid] = { ...mdau.actionEntries[uuid] };
     }
 
+    // A paused PET stops execution of the rex.
+    const isRunning = mdau.isRunning && mdau.petRunning;
+
     stages.push({
       uuid: rexUuid,
       updatedAt: mdau.updatedAt,
@@ -549,10 +552,10 @@ const stageRexes = (
         petStartStopTimestamp: mdau.petStartStopTimestamp,
         petValueAtStartStop: mdau.petValueAtStartStop,
         petRunning: mdau.petRunning,
-        isRunning: mdau.isRunning,
+        isRunning,
         maestroControlled: mdau.maestroControlled,
       },
-      startsRunning: mdau.isRunning && !rex.isRunning,
+      startsRunning: isRunning && !rex.isRunning,
       executeEditMode:
         !rex.executeEditState && mdau.executeEditMode !== rex.executeEditMode
           ? mdau.executeEditMode

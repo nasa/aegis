@@ -974,6 +974,71 @@ describe("opUpdateMdau() — rexes", () => {
     expect(doc.rexes[otherRex.uuid].isRunning).toBe(false);
   });
 
+  it("stops a running rex when Maestro sends petRunning false", () => {
+    const { handle, rex } = buildRexMission();
+    handle.change((m) => {
+      m.rexes[rex.uuid].isRunning = true;
+      m.rexes[rex.uuid].petRunning = true;
+    });
+
+    runMdau(handle, {
+      aegisRexes: {
+        [rex.uuid]: {
+          uuid: rex.uuid,
+          petStartStopTimestamp: "2025-01-21T17:06:59.000Z",
+          petValueAtStartStop: "+00:12:00",
+          petRunning: false,
+          isRunning: true,
+          maestroControlled: true,
+          executeEditMode: "unrestricted",
+          updatedAt: Date.now(),
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
+        },
+      },
+    });
+
+    const updated = handle.doc().rexes[rex.uuid];
+    expect(updated.petRunning).toBe(false);
+    expect(updated.isRunning).toBe(false);
+    expect(updated.petValueAtStartStop).toBe("+00:12:00");
+  });
+
+  it("does not start a rex or stop other rexes when petRunning is false", () => {
+    const { handle, rex } = buildRexMission();
+    const otherEva = generateBlankEVA({ sequence: [] });
+    const otherRex = generateBlankRex({ evaUuid: otherEva.uuid, isRunning: true });
+    handle.change((m) => {
+      m.evas[otherEva.uuid] = otherEva;
+      m.rexes[otherRex.uuid] = otherRex;
+    });
+
+    runMdau(handle, {
+      aegisRexes: {
+        [rex.uuid]: {
+          uuid: rex.uuid,
+          petStartStopTimestamp: null,
+          petValueAtStartStop: "+00:00:00",
+          petRunning: false,
+          isRunning: true,
+          maestroControlled: true,
+          executeEditMode: "unrestricted",
+          updatedAt: Date.now(),
+          maestroActivityProperties: {},
+          stationEntries: {},
+          traverseEntries: {},
+          actionEntries: {},
+        },
+      },
+    });
+
+    const doc = handle.doc();
+    expect(doc.rexes[rex.uuid].isRunning).toBe(false);
+    expect(doc.rexes[otherRex.uuid].isRunning).toBe(true);
+  });
+
   it("generates initial posEntries from the egress station's location when starting", () => {
     const { handle, rex, egressStation } = buildRexMission();
 
