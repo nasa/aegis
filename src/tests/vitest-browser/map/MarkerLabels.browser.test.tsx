@@ -193,6 +193,7 @@ function renderMarkerLabels(mode: "editor" | "dashboard" | "minimap" = "editor")
 }
 
 beforeEach(() => {
+  mockMissionDoc.folders = {};
   mockMissionDoc.landerLocation = null;
   mockMissionDoc.stations = undefined;
   mockMissionDoc.evas = undefined;
@@ -233,6 +234,44 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("MarkerLabels", () => {
+  it("updates station and POI labels from shared folder visibility", () => {
+    mockMissionDoc.stations = { [STATION_A_UUID]: makeStation(STATION_A_UUID, 10, 20) };
+    mockMissionDoc.pois = { [POI_UUID]: makePoi(POI_UUID, 15, 25) };
+    mockMissionDoc.folders = {
+      stations: {
+        uuid: "stations",
+        type: "station",
+        items: [STATION_A_UUID],
+        visible: false,
+      } as Folder,
+      pois: { uuid: "pois", type: "poi", items: [POI_UUID], visible: false } as Folder,
+    };
+    store = makeStore();
+    renderMarkerLabels();
+    flushSync(() => {
+      capturedSetters!.setSubmenuStations({
+        show: true,
+        showLabels: true,
+        showWalkbacks: false,
+        showCircles: false,
+      });
+      capturedSetters!.setSubmenuPois({ show: true, showLabels: true });
+    });
+    expect(labelSource!.getFeatures()).toHaveLength(0);
+
+    mockMissionDoc.folders = {
+      stations: { ...mockMissionDoc.folders.stations, visible: true },
+      pois: { ...mockMissionDoc.folders.pois, visible: true },
+    };
+    renderMarkerLabels();
+    expect(
+      labelSource!
+        .getFeatures()
+        .map((feature) => feature.getId())
+        .sort()
+    ).toEqual([`station-${STATION_A_UUID}`, `poi-${POI_UUID}`].sort());
+  });
+
   it("adds a label VectorLayer at PLACE_LABELS z-index", () => {
     store = makeStore();
     renderMarkerLabels();

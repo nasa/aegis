@@ -51,7 +51,6 @@ export function StationMarkers(): null {
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
   const folders: Folder[] =
     useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
-  const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
 
   // While any map directive is active — a marker/path edit OR a crew-position
@@ -160,8 +159,7 @@ export function StationMarkers(): null {
         if (!folder) {
           uuidsToShow.add(station.uuid);
         } else {
-          const fi = foldersInterface[folder.uuid];
-          if (!fi || fi.visible) {
+          if (folder.visible) {
             uuidsToShow.add(station.uuid);
           }
         }
@@ -196,7 +194,6 @@ export function StationMarkers(): null {
     allStationsFromDoc,
     asPlannedStationsFromDoc,
     folders,
-    foldersInterface,
   ]);
 
   // --- Reconcile features on shared source ---

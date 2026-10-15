@@ -18,6 +18,14 @@ export function applyRenameFolder(
   folder.updatedAt = getAccurateNow().getTime();
 }
 
+/** Toggle shared map visibility without replacing the folder or its contents. */
+export function applyToggleFolderVisible(m: Mission, folderUuid: string): void {
+  const folder = m.folders[folderUuid];
+  if (!folder || (folder.type !== "poi" && folder.type !== "station")) return;
+  folder.visible = !folder.visible;
+  folder.updatedAt = getAccurateNow().getTime();
+}
+
 /** Delete a folder from the doc. */
 export function applyDeleteFolder(m: Mission, folderUuid: string): void {
   delete m.folders[folderUuid];

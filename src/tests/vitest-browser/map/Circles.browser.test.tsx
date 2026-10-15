@@ -530,9 +530,15 @@ describe("Circles", () => {
       interface: {
         ...interfaceSlice.getInitialState(),
         folders: [
-          { uuid: FOLDER_UUID, type: "station", items: [STATION_B_UUID], name: "Hidden Folder" },
+          {
+            uuid: FOLDER_UUID,
+            type: "station",
+            items: [STATION_B_UUID],
+            name: "Hidden Folder",
+            visible: false,
+          },
         ],
-        foldersInterface: [{ uuid: FOLDER_UUID, visible: false }],
+        foldersInterface: [{ uuid: FOLDER_UUID, visible: true }],
       },
       rex: { ...rexSlice.getInitialState(), rexesFromDb: [] },
     } as PartialPreloadedState);
@@ -553,7 +559,13 @@ describe("Circles", () => {
       interface: {
         ...interfaceSlice.getInitialState(),
         folders: [
-          { uuid: FOLDER_UUID, type: "station", items: [STATION_UUID], name: "Visible Folder" },
+          {
+            uuid: FOLDER_UUID,
+            type: "station",
+            items: [STATION_UUID],
+            name: "Visible Folder",
+            visible: true,
+          },
         ],
         foldersInterface: [{ uuid: FOLDER_UUID, visible: true }],
       },

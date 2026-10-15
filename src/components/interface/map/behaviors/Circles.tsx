@@ -64,7 +64,6 @@ export function Circles(): null {
   const asPlannedStationsFromDoc = useMissionDocSelector(selectAsPlannedStations, deepEqual);
   const folders: Folder[] =
     useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
-  const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
 
   // Compute the same set of visible stations as StationMarkers. Proximity
   // circles have no interactions, so they stay visible during an edit (they
@@ -91,8 +90,7 @@ export function Circles(): null {
         if (!folder) {
           uuidsToShow.add(station.uuid);
         } else {
-          const fi = foldersInterface[folder.uuid];
-          if (!fi || fi.visible) {
+          if (folder.visible) {
             uuidsToShow.add(station.uuid);
           }
         }
@@ -107,14 +105,7 @@ export function Circles(): null {
         s.location?.lat != null &&
         s.location?.lng != null
     );
-  }, [
-    selectedEva,
-    mapDisplayStations.show,
-    allStationsFromDoc,
-    asPlannedStationsFromDoc,
-    folders,
-    foldersInterface,
-  ]);
+  }, [selectedEva, mapDisplayStations.show, allStationsFromDoc, asPlannedStationsFromDoc, folders]);
 
   // --- Refs for managed layers -----------------------------------------------
   const landerCircleLayersRef = useRef<Map<string, VectorLayer<VectorSource>>>(new Map());

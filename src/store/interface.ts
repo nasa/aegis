@@ -25,7 +25,6 @@ export const getFolderInterface = (
   foldersInterface[folderUuid] ?? {
     uuid: folderUuid,
     isOpen: true,
-    visible: true,
     editing: false,
     editingNameValue: null,
   };
@@ -78,10 +77,6 @@ export const interfaceSlice = createSlice({
       const folder = getFolderInterface(state.foldersInterface, action.payload.uuid);
       state.foldersInterface[action.payload.uuid] = { ...folder, isOpen: !folder.isOpen };
     },
-    folderToggleVisible: (state, action: { payload: { uuid: string } }) => {
-      const folder = getFolderInterface(state.foldersInterface, action.payload.uuid);
-      state.foldersInterface[action.payload.uuid] = { ...folder, visible: !folder.visible };
-    },
     setFolderInterfaceEditing: (
       state,
       action: { payload: { folderUuid: string; editing: boolean; folderName?: string } }
@@ -132,7 +127,6 @@ export const {
   setShowElevation,
   setSlopeColorMode,
   folderToggleOpenClose,
-  folderToggleVisible,
   setFolderInterfaceEditing,
   setFolderInterfaceNameValue,
   obliterateState,

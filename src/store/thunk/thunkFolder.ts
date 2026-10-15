@@ -5,13 +5,16 @@ import {
   setFolderInterfaceEditing,
   setFolderInterfaceNameValue,
   folderToggleOpenClose,
-  folderToggleVisible,
 } from "store/interface";
 import Cookies from "js-cookie";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getMissionDocHandle, withMissionChange } from "client/automergeDocHandles";
 import { clientLogger } from "utils/logging/clientLogger";
-import { applyRenameFolder, applyUpsertFolder } from "operations/apply/apply-mission-folder";
+import {
+  applyRenameFolder,
+  applyUpsertFolder,
+  applyToggleFolderVisible,
+} from "operations/apply/apply-mission-folder";
 
 export const thunkCreateFolder = appCreateAsyncThunk<{ type: FolderType }>(
   "thunkCreateFolder",
@@ -70,7 +73,6 @@ export const thunkToggleFolderOpen = appCreateAsyncThunk<{ folderUuid: string }>
         JSON.stringify({
           ...parsedStates,
           [folderUuid]: {
-            ...parsedStates[folderUuid],
             isOpen: newIsOpen,
           },
         }),
@@ -90,35 +92,8 @@ export const thunkToggleFolderOpen = appCreateAsyncThunk<{ folderUuid: string }>
 
 export const thunkToggleFolderVisible = appCreateAsyncThunk<{ folderUuid: string }>(
   "thunkToggleFolderVisible",
-  async ({ folderUuid }, { dispatch, getState }) => {
-    // Get the current state of the folder to determine what the new state will be
-    const folderInterface = getFolderInterface(getState().interface.foldersInterface, folderUuid);
-    const newIsVisible = !folderInterface.visible;
-
-    // Update cookie
-    try {
-      const cookieKey = "AEGIS_Folders_Interface";
-      const existingStates = Cookies.get(cookieKey);
-      const parsedStates = existingStates ? JSON.parse(existingStates) : {};
-      Cookies.set(
-        cookieKey,
-        JSON.stringify({
-          ...parsedStates,
-          [folderUuid]: {
-            ...parsedStates[folderUuid],
-            visible: newIsVisible,
-          },
-        }),
-        { path: "/" }
-      );
-    } catch (error) {
-      clientLogger.error(
-        { logId: "thunk-folder", logValue: "Error saving folder state to cookie" },
-        error instanceof Error ? error : new Error(String(error))
-      );
-    }
-
-    // Now dispatch the action to update the Redux store
-    dispatch(folderToggleVisible({ uuid: folderUuid }));
+  async ({ folderUuid }, { getState }) => {
+    if (!getState().user.missionPerms?.permissions.edit) return;
+    withMissionChange((m) => applyToggleFolderVisible(m, folderUuid));
   }
 );
