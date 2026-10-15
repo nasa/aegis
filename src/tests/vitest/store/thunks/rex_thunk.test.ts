@@ -369,7 +369,6 @@ describe("Thunk Rex Tests", () => {
       const landerStation = generateLanderXgressStation({
         xgressType: "egress",
         name: "Egress",
-        missionId: 0,
         location: { lat: 1, lng: 2 },
         elevation: null,
       });
@@ -396,7 +395,6 @@ describe("Thunk Rex Tests", () => {
       const landerStation = generateLanderXgressStation({
         xgressType: "egress",
         name: "Egress",
-        missionId: 0,
         location: { lat: 0, lng: 0 },
         elevation: null,
       });

@@ -1,5 +1,4 @@
 type Rex = {
-  missionId: number;
   uuid: string;
   ownerId: number;
   name: string;
@@ -51,6 +50,7 @@ type Rex_db_type = Omit<
   RexWithLegacyFields,
   "createdAt" | "updatedAt" | "maestroActivityProperties"
 > & {
+  missionId: number; // legacy Postgres column; removed from the Automerge Rex
   createdAt?: Date;
   updatedAt?: Date;
 };

@@ -35,7 +35,6 @@ describe("missionHasLanderDependentEntities", () => {
     const landerEgress = generateLanderXgressStation({
       xgressType: "egress",
       name: "Lander",
-      missionId: 0,
       location: { lat: 1, lng: 2 },
       elevation: null,
     });
@@ -50,7 +49,6 @@ describe("missionHasLanderDependentEntities", () => {
     const landerEgress = generateLanderXgressStation({
       xgressType: "egress",
       name: "Lander",
-      missionId: 0,
       location: { lat: 0, lng: 0 },
       elevation: null,
     });

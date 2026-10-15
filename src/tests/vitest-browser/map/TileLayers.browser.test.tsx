@@ -142,7 +142,6 @@ function makeTileSublayer(uuid: string, name = `Layer ${uuid.slice(-1)}`): Subla
     path: `tiles/${uuid}`,
     tilePattern: "{z}/{x}/{y}.png",
     tileFormat: "xyz",
-    missionId: 42,
   });
 }
 
@@ -155,7 +154,6 @@ function makeCogSublayer(uuid: string): Sublayer {
     layerUuid: LAYER_UUID,
     type: "tile",
     path: `${uuid}-elevation/${uuid}-elevation.tif`,
-    missionId: 42,
   });
 }
 
@@ -186,7 +184,6 @@ function makeTimeBasedSublayer(uuid: string): Sublayer {
       path: `tiles/${uuid}`,
       tilePattern: "{z}/{x}/{y}.png",
       tileFormat: "xyz",
-      missionId: 42,
     }),
     isTimeBased: true,
     timeLayerManifest: TIME_MANIFEST,
@@ -220,7 +217,6 @@ function preloaded({
     {
       uuid: LAYER_UUID,
       name: "Test Layer",
-      missionId: 42,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     } as unknown as Layer,

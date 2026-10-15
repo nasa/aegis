@@ -80,7 +80,6 @@ type ActionTemplates = {
 type ActionTemplate = Omit<
   Action,
   | "uuid"
-  | "missionId"
   | "refUuid"
   | "poiUuid"
   | "stationUuid"

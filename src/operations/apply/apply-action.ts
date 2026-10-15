@@ -34,7 +34,6 @@ export function applyCreateAction(
 
   let blankAction = generateBlankAction({
     ...actionParentUuid,
-    missionId: m.id,
     uuid: actionUuid,
     name: randomName,
     stmAction: m.actionSystemVersion === 2,

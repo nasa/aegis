@@ -43,7 +43,6 @@ export const defaultGridStyle: MapSublayerStyle = {
 export const generateBlankSublayer = (partialSublayer?: Partial<Sublayer>): Sublayer => {
   const defaultNewSublayer: Sublayer = {
     uuid: uuidv4(),
-    missionId: 0,
     layerUuid: "",
     name: "",
     description: "",

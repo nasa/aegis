@@ -489,7 +489,6 @@ export const thunkDocCreateStation = appCreateAsyncThunk<void>(
     }
 
     const blankStation = generateBlankStation({
-      missionId: mission.id,
       name: randomName,
       mapCircleControls: blankMapCircleControls,
       ownerId: getState().user?.appUser?.id ?? null,

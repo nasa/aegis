@@ -38,7 +38,6 @@ export function stageCreateRex(
   // 3. Build the blank REX with evaUuid pointing at the staged (not-yet-
   //    inserted) EVA's uuid.
   const newRex = generateBlankRex({
-    missionId: mission.id,
     name: newRexName,
     evaUuid: newEvaStagedData.newEvaUuid,
     ownerId: args.ownerId,

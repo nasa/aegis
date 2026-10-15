@@ -104,17 +104,15 @@ describe("apply-mission-layer", () => {
     expect(getPreset().mapSublayerControls).toEqual({});
   });
 
-  it("normalizeSublayerInput() fills defaults, stamps numeric dates, and forces the mission id", () => {
+  it("normalizeSublayerInput() fills defaults and stamps numeric dates", () => {
     const sublayer = normalizeSublayerInput(getMission(), {
       uuid: "new-sublayer",
       layerUuid: layer.uuid,
       name: "From pipeline",
-      missionId: 999,
       // the GIS pipeline sends ISO string dates
       createdAt: "2026-01-01T00:00:00Z" as unknown as number,
     });
 
-    expect(sublayer.missionId).toBe(7);
     expect(typeof sublayer.createdAt).toBe("number");
     expect(sublayer.timeLayerManifest).toEqual([]);
     expect(sublayer.isTimeBased).toBe(false);

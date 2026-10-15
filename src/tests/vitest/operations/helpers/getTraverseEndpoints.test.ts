@@ -12,14 +12,12 @@ const stations: { [uuid: string]: Station } = {
   egress: generateLanderXgressStation({
     xgressType: "egress",
     uuid: "egress",
-    missionId: 0,
     location: LANDER_LOCATION,
     elevation: null,
   }),
   ingress: generateLanderXgressStation({
     xgressType: "ingress",
     uuid: "ingress",
-    missionId: 0,
     location: LANDER_LOCATION,
     elevation: null,
   }),

@@ -2,7 +2,6 @@ type FolderType = "poi" | "station" | "eva" | "preset" | "layer";
 
 interface Folder {
   uuid: string;
-  missionId: number;
   name: string;
   type: FolderType;
   items: string[]; // uuids of items in this folder

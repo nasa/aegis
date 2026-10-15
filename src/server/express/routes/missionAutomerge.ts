@@ -373,9 +373,7 @@ export async function getAutomergeMissions(missionIds?: number[]): Promise<Missi
 // Adds new mission to the backup mission db table and adds a listener
 // Returns the new listing for the mission
 export async function createAutomergeMission(
-  sourceMission?: Mission, // optional mission definition to create from
-  // optional extra stamping of the assigned mission id, done in the same change as `m.id`
-  stampMissionId?: (m: Mission, missionId: number) => void
+  sourceMission?: Mission // optional mission definition to create from
 ): Promise<AutomergeDocListing> {
   // create new mission automerge doc and add it to the doc listing table
   const newMission: Mission = sourceMission || generateBlankMission();
@@ -399,7 +397,6 @@ export async function createAutomergeMission(
   // Assign it the one from our newly inserted record
   missionDocHandle.change((m: Mission) => {
     m.id = dbReference.missionId;
-    stampMissionId?.(m, dbReference.missionId);
   });
 
   return dbReference as AutomergeDocListing;

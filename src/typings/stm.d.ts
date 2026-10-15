@@ -33,14 +33,12 @@ type STMLevel1 = {
   uuid: string;
   numbering: string; // e.g. "1"
   name: string; // Understanding Planetary Processes
-  missionId: number;
   createdAt: number;
   updatedAt: number;
 };
 
 type STMRule = {
   uuid: string;
-  missionId: number;
   stmUuid: string;
   count: number;
   verbUuids: string[];

@@ -54,7 +54,6 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
   const defaultNewRex: Rex = {
     uuid: uuidv4(),
     ownerId: 0,
-    missionId: 0,
     name: "",
     description: "",
     petStartStopTimestamp: null,

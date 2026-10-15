@@ -21,10 +21,10 @@ import { generateBlankTraverse } from "store/storeUtils/traverse";
  * generic demo labels and do NOT represent the historical Apollo 14 traverse or
  * sampling sites.
  *
- * The mission `id` and every entity `missionId` are set to a placeholder (1) in this
- * static data. The seed runner ({@link file://./seedApollo14.ts}) stamps the real id
- * onto the mission and every entity at seed time, using the next available id assigned
- * by the `doc_listing` autoincrement
+ * The mission `id` is set to a placeholder (1) in this static data. The seed runner
+ * ({@link file://./seedApollo14.ts}) stamps the real id onto the mission at seed time,
+ * using the next available id assigned by the `doc_listing` autoincrement. Entities are
+ * scoped by the mission document that contains them and carry no `missionId`.
  *
  * The mission scaffold comes from {@link generateBlankMission} so new Mission fields are
  * picked up automatically.
@@ -262,7 +262,6 @@ const pois: { [uuid: string]: POI } = {
       lat: -3.645421873728663,
       lng: -17.47186660766602,
     },
-    missionId: 1,
     name: "Landing Site",
     ownerId: 1,
     priorityOverride: 0,
@@ -282,7 +281,6 @@ const pois: { [uuid: string]: POI } = {
       lat: -3.6305321083381985,
       lng: -17.431614774968363,
     },
-    missionId: 1,
     name: "Sample Point A",
     ownerId: 1,
     priorityOverride: 0,
@@ -302,7 +300,6 @@ const pois: { [uuid: string]: POI } = {
       lat: -3.5999043567467957,
       lng: -17.457869905981727,
     },
-    missionId: 1,
     name: "Sample Point B",
     ownerId: 1,
     priorityOverride: 0,
@@ -322,7 +319,6 @@ const pois: { [uuid: string]: POI } = {
       lat: -3.618220864204467,
       lng: -17.49984741210938,
     },
-    missionId: 1,
     name: "Survey Marker",
     ownerId: 1,
     priorityOverride: 0,
@@ -348,7 +344,6 @@ const stations: { [uuid: string]: Station } = {
       lng: -17.47186660766602,
     },
     mapCircleControls: {},
-    missionId: 1,
     name: "Lander Egress",
     ownerId: 1,
     poiUuids: [],
@@ -371,7 +366,6 @@ const stations: { [uuid: string]: Station } = {
       lng: -17.47186660766602,
     },
     mapCircleControls: {},
-    missionId: 1,
     name: "Lander Ingress",
     ownerId: 1,
     poiUuids: [],
@@ -396,7 +390,6 @@ const stations: { [uuid: string]: Station } = {
       lng: -17.431614774968363,
     },
     mapCircleControls: {},
-    missionId: 1,
     name: "Cone Crater",
     ownerId: 1,
     poiUuids: ["b1a4d0c2-0002-4a02-9a02-000000000002"],
@@ -455,7 +448,6 @@ const stations: { [uuid: string]: Station } = {
       lng: -17.457869905981727,
     },
     mapCircleControls: {},
-    missionId: 1,
     name: "Station 2",
     ownerId: 1,
     poiUuids: ["b1a4d0c2-0003-4a03-9a03-000000000003"],
@@ -511,7 +503,6 @@ const traverses: { [uuid: string]: Traverse } = {
     createdAt: 1700000000000,
     description: "",
     duration: null,
-    missionId: 1,
     name: "Lander Egress to Cone Crater",
     path: [
       {
@@ -557,7 +548,6 @@ const traverses: { [uuid: string]: Traverse } = {
     createdAt: 1700000000000,
     description: "",
     duration: null,
-    missionId: 1,
     name: "Cone Crater to Station 2",
     path: [
       {
@@ -603,7 +593,6 @@ const traverses: { [uuid: string]: Traverse } = {
     createdAt: 1700000000000,
     description: "",
     duration: null,
-    missionId: 1,
     name: "Station 2 to Lander Ingress",
     path: [
       {
@@ -667,7 +656,6 @@ const actions: { [uuid: string]: Action } = {
     icon: "26cf-fe0f",
     location: null,
     mass: null,
-    missionId: 1,
     name: "Dax",
     parentActionUuid: null,
     parentCopyDate: null,
@@ -701,7 +689,6 @@ const actions: { [uuid: string]: Action } = {
     icon: "26cf-fe0f",
     location: null,
     mass: null,
-    missionId: 1,
     name: "Paris",
     parentActionUuid: null,
     parentCopyDate: null,
@@ -735,7 +722,6 @@ const actions: { [uuid: string]: Action } = {
     icon: "26cf-fe0f",
     location: null,
     mass: null,
-    missionId: 1,
     name: "Delta Flyer",
     parentActionUuid: null,
     parentCopyDate: null,
@@ -769,7 +755,6 @@ const actions: { [uuid: string]: Action } = {
     icon: "26cf-fe0f",
     location: null,
     mass: null,
-    missionId: 1,
     name: "Remus",
     parentActionUuid: null,
     parentCopyDate: null,
@@ -793,7 +778,6 @@ const evas: { [uuid: string]: Eva } = {
     datetime: null,
     description: "",
     duration: 240,
-    missionId: 1,
     name: "Aqua",
     ownerId: 1,
     refUuid: "f66f9899-d180-4843-a3bf-f4ce9d03ea2e",
@@ -837,8 +821,6 @@ const evas: { [uuid: string]: Eva } = {
 
 /**
  * Static Science Traceability Matrix for the demo mission.
- * Every level1 entry carries a placeholder missionId (1); the
- * seed runner overrides it with the mission's assigned id at seed time.
  * The hierarchy is:
  *   Level1 (Goal) -> Level2 (Objective) -> Level3 (Investigation)
  *
@@ -849,31 +831,26 @@ export const apollo14StmLevel1s: STMLevel1[] = Object.values({
     uuid: "c25a9f75-8077-4651-a4e0-342263b5da6e",
     numbering: "1",
     name: "Understanding Planetary Processes",
-    missionId: 1,
   }),
   "d81f6f60-2840-4807-80d4-36acdb932a2d": generateBlankStmLvl1({
     uuid: "d81f6f60-2840-4807-80d4-36acdb932a2d",
     numbering: "2",
     name: "Understanding Character and Origin of Lunar Polar Volatiles",
-    missionId: 1,
   }),
   "643c5fe2-2d92-4d71-8cdd-703a9463c265": generateBlankStmLvl1({
     uuid: "643c5fe2-2d92-4d71-8cdd-703a9463c265",
     numbering: "3",
     name: "Interpreting the Impact History of the Earth-Moon System",
-    missionId: 1,
   }),
   "70e521d8-9d33-49e8-ad65-11e26defda5b": generateBlankStmLvl1({
     uuid: "70e521d8-9d33-49e8-ad65-11e26defda5b",
     numbering: "5",
     name: "Observing the Universe and Local Space Environment from a Unique Location",
-    missionId: 1,
   }),
   "c6febf7f-c9b0-43d9-9817-41743adedd93": generateBlankStmLvl1({
     uuid: "c6febf7f-c9b0-43d9-9817-41743adedd93",
     numbering: "7",
     name: "Investigating and Mitigating Exploration Risks",
-    missionId: 1,
   }),
 });
 
@@ -1154,9 +1131,9 @@ export const apollo14StmLevel3s: STMLevel3[] = Object.values({
 });
 
 /**
- * Build the Apollo 14 demo mission document. `id` and entity `missionId`s are set to a
- * placeholder (1); the seed runner stamps the real, next-available id onto the mission
- * and every entity at seed time via {@link stampMissionId}.
+ * Build the Apollo 14 demo mission document. `id` is set to a placeholder (1); the seed
+ * runner stamps the real, next-available id onto the mission at seed time via
+ * {@link stampMissionId}.
  *
  * Returns an independent deep copy each call, so callers (e.g. {@link stampMissionId})
  * can mutate it without touching the shared static seed data.
@@ -1215,24 +1192,13 @@ const byUuid = <T extends { uuid: string }>(items: T[]): { [uuid: string]: T } =
   Object.fromEntries(items.map((item) => [item.uuid, item]));
 
 /**
- * Stamp a mission id onto the mission document and every entity that carries a
- * `missionId`. Called by the seed runner with the id the `doc_listing` table assigned
- * (the next available id). This is safe to call inside an Automerge `.change()`.
+ * Stamp the assigned mission id onto the mission document. Called by the seed runner
+ * with the id the `doc_listing` table assigned (the next available id). This is safe to
+ * call inside an Automerge `.change()`. Entities no longer carry a `missionId`; they are
+ * scoped by the mission document that contains them.
  */
 export const stampMissionId = (mission: Mission, missionId: number): void => {
   mission.id = missionId;
-  for (const poi of Object.values(mission.pois)) poi.missionId = missionId;
-  for (const station of Object.values(mission.stations)) station.missionId = missionId;
-  for (const traverse of Object.values(mission.traverses)) traverse.missionId = missionId;
-  for (const action of Object.values(mission.actions)) action.missionId = missionId;
-  for (const eva of Object.values(mission.evas)) eva.missionId = missionId;
-  for (const rex of Object.values(mission.rexes)) rex.missionId = missionId;
-  for (const layer of Object.values(mission.layers)) layer.missionId = missionId;
-  for (const sublayer of Object.values(mission.sublayers)) sublayer.missionId = missionId;
-  for (const preset of Object.values(mission.presets)) preset.missionId = missionId;
-  for (const level1 of Object.values(mission.stmLevel1s)) level1.missionId = missionId;
-  for (const folder of Object.values(mission.folders)) folder.missionId = missionId;
-  for (const rule of Object.values(mission.stmRules)) rule.missionId = missionId;
 };
 
 /**
@@ -1249,27 +1215,23 @@ const PRESET_UUID = "a2000000-0000-4000-9000-000000000001";
 
 /**
  * The demo mission's map layers. A single "Demo Layers" header layer holds every demo
- * sublayer. `missionId` is a placeholder (`1`); the seed runner stamps the assigned id
- * at seed time.
+ * sublayer.
  */
 export const apollo14Layers: Layer[] = [
   generateBlankLayer({
     uuid: DEMO_LAYER_UUID,
-    missionId: 1,
     name: "Demo Layers",
   }),
 ];
 
 /**
  * The demo mission's sublayers. Each is linked to its parent layer via
- * `layerUuid`. `missionId` is a placeholder (`1`); the seed runner stamps the assigned
- * id at seed time. Any Sublayer field not set here (e.g. `legend`, `isTimeBased`) is
+ * `layerUuid`. Any Sublayer field not set here (e.g. `legend`, `isTimeBased`) is
  * filled with the standard default by `generateBlankSublayer`.
  */
 export const apollo14Sublayers: Sublayer[] = [
   generateBlankSublayer({
     uuid: SUBLAYER_ORTHO_UUID,
-    missionId: 1,
     layerUuid: DEMO_LAYER_UUID,
     name: "NAC Ortho 50cm",
     type: "tile",
@@ -1283,7 +1245,6 @@ export const apollo14Sublayers: Sublayer[] = [
   }),
   generateBlankSublayer({
     uuid: SUBLAYER_HILLSHADE_UUID,
-    missionId: 1,
     layerUuid: DEMO_LAYER_UUID,
     name: "NAC DTM 2m Hillshade",
     type: "tile",
@@ -1297,7 +1258,6 @@ export const apollo14Sublayers: Sublayer[] = [
   }),
   generateBlankSublayer({
     uuid: SUBLAYER_TRAVERSES_UUID,
-    missionId: 1,
     layerUuid: DEMO_LAYER_UUID,
     name: "Traverses",
     type: "vector",
@@ -1316,12 +1276,11 @@ const sublayerControl = (uuid: string, name: string, visible: boolean): MapSubla
 /**
  * The mission-default map preset. Shows the NAC ortho by default with the other
  * sublayers available but hidden. References the deterministic layer/sublayer uuids
- * above. `missionId` is assigned at seed time.
+ * above.
  */
 export const apollo14Preset: Preset = generateBlankPreset({
   uuid: PRESET_UUID,
   ownerId: 1,
-  missionId: 1,
   name: "Map Preset 1",
   missionDefault: true,
   mapSublayerControls: {
