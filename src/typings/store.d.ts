@@ -1,4 +1,5 @@
 interface HoverState {
+  timelineTime: { evaUuid: string; elapsedSeconds: number } | null;
   timelineSeqItemUuid: string; //when hovering over the timeline
   leftPanelHoverItemUuid: string;
   mapItemUuid: string;

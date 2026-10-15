@@ -91,6 +91,8 @@ type Preset = {
   earthAzimuth: number;
   earthEnabled: boolean;
   earthAsMoon: boolean;
+  /** Compute sun/earth azimuths from the lander location and active map datetime. */
+  sunEarthFromDate?: boolean;
   createdAt: number;
   updatedAt: number;
 };

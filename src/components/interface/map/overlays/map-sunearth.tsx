@@ -1,13 +1,18 @@
 import type { FunctionComponent } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import styles from "./map-sunearth.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEarthAmerica, faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
+import { faEarthAmerica, faMoon, faSun, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { Tooltip } from "react-tooltip";
+import { numericDatetimeToISO } from "utils/formatting";
+import { useSunEarthAzimuths } from "../hooks/useSunEarthAzimuths";
 
 export const SunEarth: FunctionComponent<{
   type: "editor" | "dashboard";
   selectedPreset: Preset;
 }> = ({ type, selectedPreset }) => {
+  const azimuths = useSunEarthAzimuths(selectedPreset);
+  const tooltipId = useId();
   if (!selectedPreset) return null;
 
   let height = 180;
@@ -21,16 +26,34 @@ export const SunEarth: FunctionComponent<{
   if (selectedPreset.sunEnabled || selectedPreset.earthEnabled) {
     return (
       <div
-        className={
-          type === "editor" ? styles.sunEarthContainerEditor : styles.sunEarthContainerDashboard
-        }
-        style={{ height: `${height}px` }}
+        className={`${type === "editor" ? styles.sunEarthContainerEditor : styles.sunEarthContainerDashboard} ${azimuths.warning ? styles.hasWarning : ""}`}
+        style={{ height: `${height + 40}px` }}
       >
+        <Tooltip
+          id={tooltipId}
+          place={type === "editor" ? "right" : "left"}
+          className={styles.sourceTooltip}
+        >
+          {azimuths.source === "date" ? (
+            <>
+              <div>Date (UTC): {numericDatetimeToISO(azimuths.datetime)}</div>
+              <div>
+                Date Source:{" "}
+                {azimuths.datetimeSourceLabel?.replace(/ \(fallback\)$/, " (initial date)")}
+              </div>
+            </>
+          ) : (
+            <>
+              <div>Date (UTC): unavailable</div>
+              <div>Date Source: manual preset azimuths</div>
+            </>
+          )}
+        </Tooltip>
         {selectedPreset.sunEnabled && (
           <AzimuthIndicator
             sunEarth="sun"
             earthAsMoon={selectedPreset?.earthAsMoon}
-            azimuth={selectedPreset?.sunAzimuth || 0}
+            azimuth={azimuths.sunAzimuth}
             dashboard={type === "dashboard"}
           />
         )}
@@ -38,10 +61,21 @@ export const SunEarth: FunctionComponent<{
           <AzimuthIndicator
             sunEarth="earth"
             earthAsMoon={selectedPreset?.earthAsMoon}
-            azimuth={selectedPreset?.earthAzimuth || 0}
+            azimuth={azimuths.earthAzimuth}
             dashboard={type === "dashboard"}
           />
         )}
+        <button
+          type="button"
+          className={styles.sourceButton}
+          aria-label="Sun/Earth value source"
+          aria-description={azimuths.warning || azimuths.statusLabel}
+          data-status={azimuths.statusLabel}
+          data-warning={Boolean(azimuths.warning)}
+          data-tooltip-id={tooltipId}
+        >
+          <FontAwesomeIcon icon={faCircleInfo} />
+        </button>
       </div>
     );
   }
@@ -83,7 +117,7 @@ const AzimuthIndicator: FunctionComponent<{
         </div>
         {!dashboard && (
           <div className={styles.azimuthTextContainer}>
-            <div className={styles.azimuthText}>{azimuth}°</div>
+            <div className={styles.azimuthText}>{Math.round(azimuth) % 360}°</div>
           </div>
         )}
         <div
