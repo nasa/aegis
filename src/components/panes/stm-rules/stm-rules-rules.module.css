@@ -8,7 +8,9 @@
 }
 
 .stmRuleContainer {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  /* Matches the "Satisfaction Rules" header width so "Action Matches" lines up. */
+  min-width: var(--stmRulesRegionWidth);
   display: flex;
   flex-direction: row;
   background-color: var(--grey2);
