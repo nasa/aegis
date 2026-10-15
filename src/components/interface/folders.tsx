@@ -43,7 +43,7 @@ import { withMissionOp } from "client/automergeDocHandles";
 import { opDeleteFolder } from "operations/op-folder";
 import { clientLogger } from "utils/logging/clientLogger";
 
-/** Delete a folder from the mission doc and remove its saved open/visible state from the cookie. */
+/** Delete a folder from the mission doc and remove its saved open state from the cookie. */
 const deleteFolder = (folderUuid: string) => {
   let deleted = false;
   const inUseMessage = withMissionOp(opDeleteFolder, folderUuid, () => {
@@ -145,7 +145,7 @@ const FolderMenu: FunctionComponent<{
         }}
       >
         <div ref={menuRef} className={styles.menu}>
-          {(folder.type === "poi" || folder.type === "station") && (
+          {showButtons && (folder.type === "poi" || folder.type === "station") && (
             <div
               className={styles.menuItem}
               onClick={(e) => {
@@ -156,10 +156,10 @@ const FolderMenu: FunctionComponent<{
               }}
             >
               <div className={styles.menuItemIcon}>
-                <FontAwesomeIcon icon={folderInterface.visible ? faEyeSlash : faEye} size="sm" />
+                <FontAwesomeIcon icon={folder.visible ? faEyeSlash : faEye} size="sm" />
               </div>
               <div className={styles.menuItemText}>
-                {folderInterface.visible ? "Hide" : "Show"} Folder Contents on Map
+                {folder.visible ? "Hide" : "Show"} Folder Contents on Map
               </div>
             </div>
           )}
@@ -303,7 +303,7 @@ const FolderComponent = ({
     <div
       ref={setNodeRef}
       className={`${styles.folderContainer} ${isOver ? styles.droppable : ""} ${
-        !folderInterface.visible ? styles.folderHidden : ""
+        !folder.visible ? styles.folderHidden : ""
       }`}
     >
       <div className={styles.folder} onClick={handleFolderClick}>

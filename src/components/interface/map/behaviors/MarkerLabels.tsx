@@ -125,7 +125,6 @@ export function MarkerLabels(): null {
   const selectedSeqItemUuid = useAppSelector((s) => s.eva.selectedEvaSequenceItemUuid, refEqual);
   const folders: Folder[] =
     useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
-  const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
   // While any map directive is active — a marker/path edit OR a crew-position
   // placement — labels stay visible as reference but are not draggable.
@@ -340,8 +339,7 @@ export function MarkerLabels(): null {
         if (!folder) {
           uuidsToShow.add(station.uuid);
         } else {
-          const fi = foldersInterface[folder.uuid];
-          if (!fi || fi.visible) uuidsToShow.add(station.uuid);
+          if (folder.visible) uuidsToShow.add(station.uuid);
         }
       }
 
@@ -373,8 +371,7 @@ export function MarkerLabels(): null {
 
         const folder = poiFolders.find((f: Folder) => f.items.includes(poi.uuid));
         if (folder) {
-          const fi = foldersInterface[folder.uuid];
-          if (fi && !fi.visible && poi.uuid !== selectedPoiUuid) continue;
+          if (!folder.visible && poi.uuid !== selectedPoiUuid) continue;
         }
 
         infos.push({
@@ -599,7 +596,6 @@ export function MarkerLabels(): null {
     selectedTraverseUuid,
     dashboardActionParentUuids,
     folders,
-    foldersInterface,
     toMapCoord,
     hoverMapItemUuid,
     hoverMapItemType,

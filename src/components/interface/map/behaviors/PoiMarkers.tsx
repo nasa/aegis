@@ -50,7 +50,6 @@ export function PoiMarkers(): null {
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
   const folders: Folder[] =
     useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
-  const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
 
   // While any map directive is active — a marker/path edit OR a crew-position
@@ -89,8 +88,7 @@ export function PoiMarkers(): null {
         if (poi.uuid === selectedPoiUuid) return true;
         const folder = poiFolders.find((f: Folder) => f.items.includes(poi.uuid));
         if (!folder) return true;
-        const fi = foldersInterface[folder.uuid];
-        return !fi || fi.visible;
+        return folder.visible;
       });
     } else if (selectedPoiUuid && sectionSelected === "poi") {
       const sel = pois.find((p) => p.uuid === selectedPoiUuid);
@@ -109,15 +107,7 @@ export function PoiMarkers(): null {
     }
 
     return result.filter((p) => p.location?.lat != null && p.location?.lng != null);
-  }, [
-    mapDirective,
-    mapDisplayPois.show,
-    poisFromDoc,
-    selectedPoiUuid,
-    sectionSelected,
-    folders,
-    foldersInterface,
-  ]);
+  }, [mapDirective, mapDisplayPois.show, poisFromDoc, selectedPoiUuid, sectionSelected, folders]);
 
   // --- Reconcile features ---
   useEffect(() => {
