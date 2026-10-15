@@ -143,11 +143,11 @@ const SequenceItemStation: FunctionComponent<{
     });
   }, deepEqual);
 
-  const stationRexStatus = useMissionDocSelector((mission) => {
+  const stationActivityEntry = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return null;
     const rex = Object.values(mission.rexes).find((rex) => rex.evaUuid === evaUuid);
     if (!rex || !rex.stationEntries) return null;
-    return rex.stationEntries[stationUuid]?.rexStatus;
+    return rex.stationEntries[stationUuid];
   }, shallowEqual);
 
   const rexMaestroControlled = useMissionDocSelector((mission) => {
@@ -214,7 +214,7 @@ const SequenceItemStation: FunctionComponent<{
   );
 
   const { rowClassName, nameClassName } = getSequenceItemRowStyles({
-    rexStatus: stationRexStatus,
+    rexActivityEntry: stationActivityEntry,
     isSelected: stationUuid === selectedEvaSequenceItemUuid,
     isHovered: stationUuid === hoverItemUuid,
     isRexEva,
@@ -244,7 +244,7 @@ const SequenceItemStation: FunctionComponent<{
 
         {isRexEva && stationUuid && (
           <RexStatusMenu
-            rexStatus={stationRexStatus}
+            rexStatus={stationActivityEntry.rexStatus}
             divClassName={evaStyles.rexStatusWrapper}
             entryType="station"
             uuid={stationUuid}
@@ -256,7 +256,7 @@ const SequenceItemStation: FunctionComponent<{
         {!editMode ? (
           <div
             className={`${evaStyles.evaItemName} ${nameClassName} ${
-              getRexStatusDisplayProperties(stationRexStatus).customTextClassName ?? ""
+              getRexStatusDisplayProperties(stationActivityEntry).customTextClassName ?? ""
             }`}
           >
             <div className={evaStyles.evaItemLeft}>
@@ -283,7 +283,7 @@ const SequenceItemStation: FunctionComponent<{
                 // the dropdown branch gets from the native select's own styling.
                 <div
                   className={`${evaStyles.evaItemNameText} ${nameClassName} ${
-                    getRexStatusDisplayProperties(stationRexStatus).customTextClassName ?? ""
+                    getRexStatusDisplayProperties(stationActivityEntry).customTextClassName ?? ""
                   }`}
                 >
                   {thisStation?.name ? thisStation.name : `< Station not selected >`}

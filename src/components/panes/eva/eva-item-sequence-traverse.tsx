@@ -129,7 +129,7 @@ const SequenceItemTraverse: FunctionComponent<{
   );
 
   const { rowClassName, nameClassName } = getSequenceItemRowStyles({
-    rexStatus: traverseRexStatus,
+    rexActivityEntry: traverseRexStatus,
     isSelected: traverseUuid === selectedEvaSequenceItemUuid,
     isHovered: traverseUuid === hoverItemUuid,
     isRexEva,
