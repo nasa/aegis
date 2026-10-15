@@ -56,11 +56,11 @@ const SequenceItemTraverse: FunctionComponent<{
     });
   }, deepEqual);
 
-  const traverseRexStatus = useMissionDocSelector((mission) => {
+  const traverseActivityEntry = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return null;
     const rex = Object.values(mission.rexes).find((rex) => rex.evaUuid === evaUuid);
     if (!rex || !rex.traverseEntries) return null;
-    return rex.traverseEntries[traverseUuid]?.rexStatus;
+    return rex.traverseEntries[traverseUuid];
   }, shallowEqual);
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -129,11 +129,19 @@ const SequenceItemTraverse: FunctionComponent<{
   );
 
   const { rowClassName, nameClassName } = getSequenceItemRowStyles({
-    rexActivityEntry: traverseRexStatus,
+    rexActivityEntry: traverseActivityEntry,
     isSelected: traverseUuid === selectedEvaSequenceItemUuid,
     isHovered: traverseUuid === hoverItemUuid,
     isRexEva,
   });
+
+  let rexStatus = traverseActivityEntry?.rexStatus;
+  if (
+    traverseActivityEntry?.maestroPercentCompleteEv1 === 100 &&
+    traverseActivityEntry?.maestroPercentCompleteEv2 === 100
+  ) {
+    rexStatus = "complete";
+  }
 
   return (
     <div className={evaStyles.evaSequence}>
@@ -159,7 +167,7 @@ const SequenceItemTraverse: FunctionComponent<{
 
         {isRexEva && (
           <RexStatusMenu
-            rexStatus={traverseRexStatus}
+            rexActivityEntry={traverseActivityEntry}
             divClassName={evaStyles.rexStatusWrapper}
             entryType="traverse"
             uuid={traverseUuid}
@@ -169,7 +177,7 @@ const SequenceItemTraverse: FunctionComponent<{
         )}
         <div
           className={`${evaStyles.evaItemName} ${nameClassName} ${
-            getRexStatusDisplayProperties(traverseRexStatus).customTextClassName ?? ""
+            getRexStatusDisplayProperties(rexStatus).customTextClassName ?? ""
           }`}
         >
           <div className={evaStyles.evaItemLeft}>

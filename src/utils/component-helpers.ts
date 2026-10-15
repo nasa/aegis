@@ -59,7 +59,7 @@ export const makeTraverseRateString = (
 };
 
 export const getRexStatusDisplayProperties = (
-  rexActivityEntry: ActivityEntry
+  rexStatus: RexStatus
 ): {
   icon: IconDefinition;
   iconStyle: string;
@@ -68,7 +68,7 @@ export const getRexStatusDisplayProperties = (
   bodyBackgroundColor: string;
   customTextClassName: string;
 } => {
-  if (!rexActivityEntry.rexStatus)
+  if (!rexStatus)
     return {
       icon: faSquare,
       iconStyle: rexStyles.rexStatusIconPending,
@@ -78,13 +78,6 @@ export const getRexStatusDisplayProperties = (
       customTextClassName: null,
     };
 
-  let rexStatus = rexActivityEntry?.rexStatus;
-  if (
-    rexActivityEntry.maestroPercentCompleteEv1 === 100 &&
-    rexActivityEntry.maestroPercentCompleteEv2 === 100
-  ) {
-    rexStatus = "complete";
-  }
   switch (rexStatus) {
     case "pending":
       return {
@@ -148,30 +141,30 @@ export const getSequenceItemRowStyles = ({
   let rowClassName = "";
   let nameClassName = "";
   const rexStatusComplete =
-    rexActivityEntry.rexStatus === "complete" ||
-    (rexActivityEntry.maestroPercentCompleteEv1 === 100 &&
-      rexActivityEntry.maestroPercentCompleteEv2 === 100);
+    rexActivityEntry?.rexStatus === "complete" ||
+    (rexActivityEntry?.maestroPercentCompleteEv1 === 100 &&
+      rexActivityEntry?.maestroPercentCompleteEv2 === 100);
 
   if (isSelected) {
     rowClassName = evaStyles.evaItemSelected;
     nameClassName = evaStyles.evaItemNameSelected;
     if (isRexEva) {
-      if (rexActivityEntry.rexStatus === "in-progress") {
+      if (rexActivityEntry?.rexStatus === "in-progress") {
         rowClassName = evaStyles.evaItemRexInProgressSelected;
         nameClassName = evaStyles.evaItemNameRexInProgressSelected;
-      } else if (rexActivityEntry.rexStatus === "skipped") {
+      } else if (rexActivityEntry?.rexStatus === "skipped") {
         rowClassName = evaStyles.evaItemRexSkippedSelected;
         nameClassName = evaStyles.evaItemNameRexSkippedSelected;
       }
       // "complete" + selected falls through to the normal selected styling
     }
-  } else if (isRexEva && rexActivityEntry.rexStatus === "in-progress") {
+  } else if (isRexEva && rexActivityEntry?.rexStatus === "in-progress") {
     rowClassName = evaStyles.evaItemRexInProgress;
     nameClassName = evaStyles.evaItemNameRexInProgress;
   } else if (isRexEva && rexStatusComplete) {
     rowClassName = evaStyles.evaItemRexComplete;
     // text color provided by customTextClassName (headingCompleted)
-  } else if (isRexEva && rexActivityEntry.rexStatus === "skipped") {
+  } else if (isRexEva && rexActivityEntry?.rexStatus === "skipped") {
     rowClassName = evaStyles.evaItemRexSkipped;
     // text color provided by customTextClassName (headingSkipped)
   } else if (isHovered) {

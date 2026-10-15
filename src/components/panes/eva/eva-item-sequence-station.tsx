@@ -220,6 +220,14 @@ const SequenceItemStation: FunctionComponent<{
     isRexEva,
   });
 
+  let rexStatus = stationActivityEntry?.rexStatus;
+  if (
+    stationActivityEntry?.maestroPercentCompleteEv1 === 100 &&
+    stationActivityEntry?.maestroPercentCompleteEv2 === 100
+  ) {
+    rexStatus = "complete";
+  }
+
   return (
     <div className={evaStyles.evaSequence}>
       <div
@@ -244,7 +252,7 @@ const SequenceItemStation: FunctionComponent<{
 
         {isRexEva && stationUuid && (
           <RexStatusMenu
-            rexStatus={stationActivityEntry.rexStatus}
+            rexActivityEntry={stationActivityEntry}
             divClassName={evaStyles.rexStatusWrapper}
             entryType="station"
             uuid={stationUuid}
@@ -256,7 +264,7 @@ const SequenceItemStation: FunctionComponent<{
         {!editMode ? (
           <div
             className={`${evaStyles.evaItemName} ${nameClassName} ${
-              getRexStatusDisplayProperties(stationActivityEntry).customTextClassName ?? ""
+              getRexStatusDisplayProperties(rexStatus).customTextClassName ?? ""
             }`}
           >
             <div className={evaStyles.evaItemLeft}>
@@ -283,7 +291,7 @@ const SequenceItemStation: FunctionComponent<{
                 // the dropdown branch gets from the native select's own styling.
                 <div
                   className={`${evaStyles.evaItemNameText} ${nameClassName} ${
-                    getRexStatusDisplayProperties(stationActivityEntry).customTextClassName ?? ""
+                    getRexStatusDisplayProperties(rexStatus).customTextClassName ?? ""
                   }`}
                 >
                   {thisStation?.name ? thisStation.name : `< Station not selected >`}

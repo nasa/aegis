@@ -88,11 +88,11 @@ const RightAction: FunctionComponent<{
     if (!mission?.rexes) return false;
     return Object.values(mission.rexes).find((rex) => rex.isRunning)?.maestroControlled ?? false;
   }, refEqual);
-  const actionRexStatusEntry = useMissionDocSelector((mission) => {
+  const actionActivityEntry = useMissionDocSelector((mission) => {
     if (!rexUuid || !mission?.rexes) return null;
     const rex = mission.rexes[rexUuid];
     if (!rex?.actionEntries || !rex.actionEntries[actionUuid]) return null;
-    return rex.actionEntries[actionUuid].rexStatus;
+    return rex.actionEntries[actionUuid];
   }, refEqual);
 
   const editPermsStore = useAppSelector(
@@ -173,7 +173,7 @@ const RightAction: FunctionComponent<{
             <>
               {action.enabled ? (
                 <RexStatusMenu
-                  rexStatus={actionRexStatusEntry}
+                  rexActivityEntry={actionActivityEntry}
                   divClassName={actionStyles.actionHeadingRexStatusWrapper}
                   divStyle={{ marginTop: editMode ? "5px" : "3px" }}
                   entryType="action"
@@ -189,8 +189,8 @@ const RightAction: FunctionComponent<{
           <div
             className={`${paneStyles.panelContainer} ${actionStyles.actionPanelContainer} ${actionsStyles.actionlistitemAction} `}
             style={{
-              backgroundColor:
-                getRexStatusDisplayProperties(actionRexStatusEntry).bodyBackgroundColor,
+              backgroundColor: getRexStatusDisplayProperties(actionActivityEntry?.rexStatus)
+                .bodyBackgroundColor,
               borderRadius: "var(--radius)",
             }}
           >
@@ -198,13 +198,14 @@ const RightAction: FunctionComponent<{
               className={`${actionStyles.actionHeading} ${
                 highlight && actionStyles.highlightAction
               } ${!action.enabled && actionStyles.actionHeadingDisabled} ${
-                getRexStatusDisplayProperties(actionRexStatusEntry).customTextClassName
+                getRexStatusDisplayProperties(actionActivityEntry?.rexStatus).customTextClassName
               }`}
               style={{
                 ...(!highlight
                   ? {
                       backgroundColor: action.enabled
-                        ? getRexStatusDisplayProperties(actionRexStatusEntry).headerBackgroundColor
+                        ? getRexStatusDisplayProperties(actionActivityEntry?.rexStatus)
+                            .headerBackgroundColor
                         : "var(--grey1)",
                     }
                   : undefined),
