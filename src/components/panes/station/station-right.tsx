@@ -34,6 +34,11 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange, withMissionOp } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
 import { opUpdateStationName } from "operations/op-station";
+import {
+  canEditInRexScope,
+  findRexUuidForEntity,
+  useRexExecuteEditMode,
+} from "utils/rexExecuteEditMode";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -80,6 +85,18 @@ const StationEditorRight: FunctionComponent = () => {
     refEqual
   );
 
+  const stationRexUuid = useMissionDocSelector(
+    (mission) => findRexUuidForEntity(mission, { stationUuid: selectedStationUuid }),
+    refEqual
+  );
+  const { mode: rexEditMode, isEntityAdded } = useRexExecuteEditMode(stationRexUuid ?? null);
+  /** A station added under limited editing is exempt from the restriction. */
+  const stationWasAdded = isEntityAdded(selectedStationUuid);
+  /** Name, icon, POIs and circles are only available when unrestricted. */
+  const stationGeneralEditMode =
+    isInEditMode && (rexEditMode === "unrestricted" || stationWasAdded);
+  const canDeleteStation = isInEditMode && canEditInRexScope(rexEditMode, "evaSequenceRemove");
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
@@ -94,8 +111,14 @@ const StationEditorRight: FunctionComponent = () => {
       title: "Station Information",
       panel: Info_Panel,
       panelProps: {
-        editMode: isInEditMode,
+        editMode: stationGeneralEditMode,
         isLanderXgress,
+        locationEditMode:
+          isInEditMode &&
+          canEditInRexScope(rexEditMode, "stationLocation", { entityWasAdded: stationWasAdded }),
+        durationEditMode:
+          isInEditMode &&
+          canEditInRexScope(rexEditMode, "activityDuration", { entityWasAdded: stationWasAdded }),
       },
       selectedColor: "white",
       icon: faCircleInfo,
@@ -103,7 +126,7 @@ const StationEditorRight: FunctionComponent = () => {
     poi_panel: {
       title: "Station POIs",
       panel: Poi_Panel,
-      panelProps: { editMode: isInEditMode },
+      panelProps: { editMode: stationGeneralEditMode },
       selectedColor: "white",
       icon: faCircle,
     },
@@ -120,7 +143,7 @@ const StationEditorRight: FunctionComponent = () => {
       title: "Proximity Circles Display",
       panel: Station_Circles_Panel,
       panelProps: {
-        editMode: isInEditMode,
+        editMode: stationGeneralEditMode,
       },
       selectedColor: "white",
       icon: faBullseye,
@@ -150,7 +173,7 @@ const StationEditorRight: FunctionComponent = () => {
             <EmojiRenderer iconValue={selectedStation.icon ? selectedStation.icon : "2754"} />
           </div>
           {/* Lander copies always render the lander SVG, so their icon is not pickable. */}
-          {isInEditMode && !isLanderXgress && (
+          {stationGeneralEditMode && !isLanderXgress && (
             <>
               <div className={stationStyles.iconDisplayButton}>
                 <Button
@@ -188,7 +211,7 @@ const StationEditorRight: FunctionComponent = () => {
           <div className={paneStyles.rightTopTitleText}>
             <ValidatedInputField
               value={selectedStation.name}
-              editMode={isInEditMode && !isLanderXgress}
+              editMode={stationGeneralEditMode && !isLanderXgress}
               fieldProps={{
                 name: "name",
                 ariaLabel: "Station",
@@ -214,7 +237,7 @@ const StationEditorRight: FunctionComponent = () => {
             dispatchFunction={setSelectedStationRightNavItem}
           />
           <div className={paneStyles.saveCancelContainer}>
-            {isInEditMode && (
+            {canDeleteStation && (
               <Button
                 ariaLabel="deleteStation"
                 icon={faTrashAlt}

@@ -8,7 +8,7 @@ export interface StationStage {
   uuid: string;
   name?: string;
   duration?: number;
-  /** Reordered action uuids (reorder-only; already validated). */
+  /** New action order, including added and excluding deleted actions (already validated). */
   actionOrderUuids?: string[];
   updatedAt?: number;
 }
@@ -75,6 +75,12 @@ export interface RexStage {
   >;
   /** Whether the incoming payload flips this rex to running (used for stop-others + posEntries). */
   startsRunning: boolean;
+  /**
+   * The incoming `executeEditMode`, staged only when it differs from the doc
+   * and the rex is not yet frozen (`executeEditState` is null). Once frozen,
+   * the mode is fixed for the REX's life and Maestro's value is ignored.
+   */
+  executeEditMode?: RexExecuteEditMode;
   maestroActivityProperties: MaestroActivityProperties | null;
   /**
    * Resolved station/traverse activity entries keyed by sequence uuid.
@@ -98,6 +104,10 @@ export interface MdauStageData {
   traverses: TraverseStage[];
   evas: EvaStage[];
   actions: ActionStage[];
+  /** Actions Maestro added, fully built with their parent set. */
+  newActions: Action[];
+  /** Actions Maestro deleted. */
+  deletedActionUuids: string[];
   rexes: RexStage[];
   rexEventInfo: RexEventInfoStage[];
 }

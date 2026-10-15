@@ -43,6 +43,8 @@ export const opUpdateMdau = (
     stage.traverses.length === 0 &&
     stage.evas.length === 0 &&
     stage.actions.length === 0 &&
+    stage.newActions.length === 0 &&
+    stage.deletedActionUuids.length === 0 &&
     stage.rexes.length === 0 &&
     stage.rexEventInfo.length === 0
   )

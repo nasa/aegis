@@ -13,11 +13,15 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBackwardFast, faPause, faPlay } from "@fortawesome/free-solid-svg-icons";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
-import { Button, Checkbox } from "components/interface/form/globalFields";
+import { Button, Checkbox, Dropdown } from "components/interface/form/globalFields";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { validators } from "components/interface/form/formValidators";
 import PetInterval from "components/page/petInterval";
-import { applyRexPetStartStop, applyUpdateRexByField } from "operations/apply/apply-rex";
+import {
+  applyFreezeExecuteEditMode,
+  applyRexPetStartStop,
+  applyUpdateRexByField,
+} from "operations/apply/apply-rex";
 import { withMissionChange } from "client/automergeDocHandles";
 import { thunkDocCreateInitialPosEntries } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -60,6 +64,14 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const [rexPetTime, setRexPetTime] = useState("");
 
   if (!selectedRex) return null;
+
+  /** The mode is chosen before the first execution and fixed for the REX's life. */
+  const executeEditModeIsFrozen = Boolean(selectedRex?.executeEditState);
+  const executeEditModeLabels: { [key in RexExecuteEditMode]: string } = {
+    unrestricted: "Unrestricted",
+    limited: "Limited Editing",
+    none: "None",
+  };
 
   return (
     <div className={paneStyles.rightBody}>
@@ -129,6 +141,40 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                     </div>
                   </>
                 )}
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.inputFieldLabel}>Execute Edit Mode:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={rexStyles.selectedEvaLabelRight}>
+                      {editMode && !executeEditModeIsFrozen ? (
+                        <Dropdown
+                          selected={selectedRex.executeEditMode ?? "unrestricted"}
+                          toolTip="Fixed once the EVA has been executed"
+                          onChange={(value) => {
+                            withMissionChange((m) =>
+                              applyUpdateRexByField(m, {
+                                rexUuid: selectedRex.uuid,
+                                fieldName: "executeEditMode",
+                                value: value as RexExecuteEditMode,
+                              })
+                            );
+                          }}
+                        >
+                          {Object.entries(executeEditModeLabels).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </Dropdown>
+                      ) : (
+                        <div>
+                          {executeEditModeLabels[selectedRex.executeEditMode ?? "unrestricted"]}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div className={paneStyles.panelColumnTableRow} style={{ height: "2.5em" }}>
                   <div className={paneStyles.panelColumnTableCell}>
                     <div className={paneStyles.inputFieldLabel}>Execution Status:</div>
@@ -160,14 +206,17 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             }
                           }
 
-                          // Toggle isRunning field
-                          withMissionChange((m) =>
+                          // Toggle isRunning field. Starting also freezes the execute edit
+                          // mode and captures the action-letter baseline (no-op on restart).
+                          withMissionChange((m) => {
                             applyUpdateRexByField(m, {
                               rexUuid: selectedRex.uuid,
                               fieldName: "isRunning",
                               value: !selectedRex.isRunning,
-                            })
-                          );
+                            });
+                            if (selectedRex.isRunning) return;
+                            applyFreezeExecuteEditMode(m, { rexUuid: selectedRex.uuid });
+                          });
                         }}
                         label={selectedRex.isRunning ? "Stop Execution" : "Execute EVA"}
                         style={{ width: "130px" }}

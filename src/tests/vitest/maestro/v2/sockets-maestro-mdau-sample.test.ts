@@ -299,6 +299,7 @@ describe("sendMDAU sample payload — rexes", () => {
     expect(rex.petRunning).toBe(src.petRunning);
     expect(rex.petStartStopTimestamp).toBe(src.petStartStopTimestamp);
     expect(rex.petValueAtStartStop).toBe(src.petValueAtStartStop);
+    expect(rex.executeEditMode).toBe(src.executeEditMode);
   });
 
   it("writes the station / traverse / action entry maps", () => {

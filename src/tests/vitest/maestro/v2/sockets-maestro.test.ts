@@ -780,6 +780,7 @@ describe("maestro namespace socket handlers", () => {
             petRunning: true,
             isRunning: true,
             maestroControlled: true,
+            executeEditMode: "unrestricted",
             updatedAt: now,
             maestroActivityProperties: {
               [stationUuid]: { color: "#ff0000", number: "1" },

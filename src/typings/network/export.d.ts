@@ -70,10 +70,15 @@ interface ExportStationCalculatedFields extends StationCalculatedFields {
 
 interface ExportTraverse extends Traverse {
   _itemType: string;
-  calculatedFields: TraverseCalculatedFields;
+  calculatedFields: ExportTraverseCalculatedFields;
   actionsReadable: ExportAction[];
   actionOrderRefUuids: string[];
   rexUuid: string | null; // the rex uuid if this traverse is in an EVA that is in a rex
+}
+
+interface ExportTraverseCalculatedFields extends TraverseCalculatedFields {
+  // Alias of movementDurationMinutes, exposed for Maestro consumers
+  durationMinutes: number;
 }
 
 interface EvaSequenceItemRefUuid extends EvaSequenceItem {
