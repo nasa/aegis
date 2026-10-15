@@ -1,4 +1,4 @@
-import { useState, type FunctionComponent } from "react";
+import { useEffect, useState, type FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import EvaItem from "./eva-item";
@@ -8,6 +8,7 @@ import { faEye, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-i
 import { useAppDispatch } from "utils/useAppDispatch";
 import { LoadingOverlay } from "components/interface/_global-elements";
 import { thunkDocCreateEva, thunkUISetOnlyShowRunningRexEva } from "store/thunk/thunkEva";
+import { setOnlyShowRunningRex } from "store/eva";
 import { FolderOrganizer } from "components/interface/folders";
 import { selectFoldersByType } from "store/selectors";
 import { thunkCreateFolder } from "store/thunk/thunkFolder";
@@ -36,6 +37,15 @@ const EvaPlannerLeft: FunctionComponent = () => {
       mission.rexes ? Object.values(mission.rexes).some((rex) => rex.isRunning) : false,
     refEqual
   );
+
+  // showRunningRexOnly only makes sense while a rex is actually running. A rex can stop
+  // running from outside this component's control (e.g. Maestro stopping it remotely via
+  // sendMDAU), so enforce the invariant here instead of only at the local stop-button click.
+  useEffect(() => {
+    if (showRunningRexOnly && !isRexRunning) {
+      dispatch(setOnlyShowRunningRex(false));
+    }
+  }, [showRunningRexOnly, isRexRunning, dispatch]);
 
   const runningRexExpanded = useAppSelector((state) => state.eva.runningRexExpanded, refEqual);
 

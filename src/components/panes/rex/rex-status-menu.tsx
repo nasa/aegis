@@ -11,7 +11,7 @@ import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import RexSkippedIcon from "assets/draw-rex-skipped-icon.svg?react";
 
 export const RexStatusMenu: FunctionComponent<{
-  rexStatus: RexStatus;
+  rexActivityEntry: ActivityEntry;
   divClassName: string;
   divStyle?: CSSProperties;
   entryType: "action" | "station" | "traverse";
@@ -19,7 +19,7 @@ export const RexStatusMenu: FunctionComponent<{
   editPerms: boolean;
   maestroControlled: boolean;
 }> = ({
-  rexStatus,
+  rexActivityEntry,
   divClassName,
   divStyle = {},
   entryType,
@@ -28,6 +28,13 @@ export const RexStatusMenu: FunctionComponent<{
   maestroControlled,
 }): JSX.Element => {
   const dispatch = useAppDispatch();
+  let rexStatus = rexActivityEntry?.rexStatus;
+  if (
+    rexActivityEntry?.maestroPercentCompleteEv1 === 100 &&
+    rexActivityEntry?.maestroPercentCompleteEv2 === 100
+  ) {
+    rexStatus = "complete";
+  }
   const rexStatusDisplayProperties = getRexStatusDisplayProperties(rexStatus);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -121,7 +128,7 @@ export const RexStatusMenu: FunctionComponent<{
         data-tooltip-id="aegis-tooltip"
         data-tooltip-content={rexStatusDisplayProperties.tooltip}
       >
-        {rexStatus !== "skipped" ? (
+        {rexActivityEntry?.rexStatus !== "skipped" ? (
           <FontAwesomeIcon
             icon={rexStatusDisplayProperties.icon}
             className={`${evaStyles.rexStatusIcon} ${rexStatusDisplayProperties.iconStyle}`}
