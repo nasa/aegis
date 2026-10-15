@@ -12,7 +12,6 @@ export const generateBlankStmLvl1 = (partialStm?: Partial<STMLevel1>): STMLevel1
     uuid: uuidv4(),
     name: "",
     numbering: "",
-    missionId: 0,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };
@@ -59,7 +58,6 @@ export const generateBlankStmLvl3 = (partialStm?: Partial<STMLevel3>): STMLevel3
 export const generateBlankStmRule = ({ stmUuid }: { stmUuid: string }): STMRule => {
   return {
     uuid: uuidv4(),
-    missionId: 0,
     stmUuid,
     count: 1,
     verbUuids: [],

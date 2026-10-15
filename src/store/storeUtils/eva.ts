@@ -12,7 +12,6 @@ export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
     uuid: uuidv4(),
     refUuid: uuidv4(),
     ownerId: 0,
-    missionId: 0,
     name: "",
     status: "Candidate",
     sequence: [],

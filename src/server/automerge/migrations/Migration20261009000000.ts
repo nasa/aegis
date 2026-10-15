@@ -5,8 +5,12 @@ import { defaultGridStyle } from "store/storeUtils/sublayer";
 import { migrateLegacyHaloStyle } from "store/storeUtils/preset";
 import { serverLogger } from "utils/logging/serverLogger";
 
-// Raw rows as selected below. Timestamps are converted to epoch ms in SQL.
-type LegacyFolderRow = Omit<Folder, "createdAt" | "updatedAt"> & LegacyTimestamps;
+// Raw rows as selected below. Timestamps are converted to epoch ms in SQL. These describe the
+// legacy DB rows, which still have a `mission_id` column, even though the Automerge entity types
+// no longer carry `missionId`; this migration must stay as it originally ran.
+type LegacyFolderRow = Omit<Folder, "createdAt" | "updatedAt"> & {
+  missionId: number;
+} & LegacyTimestamps;
 type LegacyLayerRow = { uuid: string; missionId: number; name: string | null } & LegacyTimestamps;
 type LegacySublayerRow = {
   uuid: string;
@@ -43,10 +47,14 @@ type LegacyPresetRow = {
   earthEnabled: boolean | null;
   earthAsMoon: boolean | null;
 } & LegacyTimestamps;
-type LegacyStmLevel1Row = Omit<STMLevel1, "createdAt" | "updatedAt"> & LegacyTimestamps;
+type LegacyStmLevel1Row = Omit<STMLevel1, "createdAt" | "updatedAt"> & {
+  missionId: number;
+} & LegacyTimestamps;
 type LegacyStmLevel2Row = Omit<STMLevel2, "createdAt" | "updatedAt"> & LegacyTimestamps;
 type LegacyStmLevel3Row = Omit<STMLevel3, "createdAt" | "updatedAt"> & LegacyTimestamps;
-type LegacyStmRuleRow = Omit<STMRule, "createdAt" | "updatedAt"> & LegacyTimestamps;
+type LegacyStmRuleRow = Omit<STMRule, "createdAt" | "updatedAt"> & {
+  missionId: number;
+} & LegacyTimestamps;
 type LegacyTimestamps = { createdAt: number | string; updatedAt: number | string };
 
 export type LegacyMissionTableRows = {

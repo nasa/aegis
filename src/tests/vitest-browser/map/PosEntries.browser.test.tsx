@@ -114,7 +114,6 @@ function makePosSource(uuid: string, abbr = "S"): PosSource {
 function makeRex(overrides: Partial<Rex> = {}): Rex {
   return {
     uuid: REX_UUID,
-    missionId: 42,
     ownerId: 1,
     name: "Test REX",
     description: "",

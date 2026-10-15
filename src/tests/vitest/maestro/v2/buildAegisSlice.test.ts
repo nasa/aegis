@@ -74,14 +74,13 @@ const buildMockCoreData = (overrides: {
 
 // ── Test data ─────────────────────────────────────────────────────────────────
 
-const stationA = generateBlankStation({ name: "Vitest Station A", missionId: MISSION_ID });
-const stationB = generateBlankStation({ name: "Vitest Station B", missionId: MISSION_ID });
-const traverseA = generateBlankTraverse({ name: "Vitest Traverse A", missionId: MISSION_ID });
-const traverseB = generateBlankTraverse({ name: "Vitest Traverse B", missionId: MISSION_ID });
+const stationA = generateBlankStation({ name: "Vitest Station A" });
+const stationB = generateBlankStation({ name: "Vitest Station B" });
+const traverseA = generateBlankTraverse({ name: "Vitest Traverse A" });
+const traverseB = generateBlankTraverse({ name: "Vitest Traverse B" });
 
 const evaSubscribed = generateBlankEVA({
   name: "Vitest EVA Subscribed",
-  missionId: MISSION_ID,
   sequence: [
     { type: "station", uuid: stationA.uuid },
     { type: "traverse", uuid: traverseA.uuid },
@@ -89,7 +88,6 @@ const evaSubscribed = generateBlankEVA({
 });
 const evaNotSubscribed = generateBlankEVA({
   name: "Vitest EVA Not Subscribed",
-  missionId: MISSION_ID,
   sequence: [
     { type: "station", uuid: stationB.uuid },
     { type: "traverse", uuid: traverseB.uuid },
@@ -98,24 +96,20 @@ const evaNotSubscribed = generateBlankEVA({
 
 const actionInSubscribed = generateBlankAction({
   name: "Vitest Action In Subscribed",
-  missionId: MISSION_ID,
   stationUuid: stationA.uuid,
 });
 const actionNotInSubscribed = generateBlankAction({
   name: "Vitest Action Not In Subscribed",
-  missionId: MISSION_ID,
   stationUuid: stationB.uuid,
 });
 
 const rexForSubscribed = generateBlankRex({
   name: "Vitest Rex Subscribed",
   evaUuid: evaSubscribed.uuid,
-  missionId: MISSION_ID,
 });
 const rexForNotSubscribed = generateBlankRex({
   name: "Vitest Rex Not Subscribed",
   evaUuid: evaNotSubscribed.uuid,
-  missionId: MISSION_ID,
 });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -180,7 +174,6 @@ describe("buildAegisSliceForMaestro", () => {
   it("includes actions linked via traverseUuid", async () => {
     const actionOnTraverse = generateBlankAction({
       name: "Vitest Action On Traverse",
-      missionId: MISSION_ID,
       traverseUuid: traverseA.uuid,
     });
 
@@ -203,12 +196,10 @@ describe("buildAegisSliceForMaestro", () => {
   it("passes station actionOrderUuids through", async () => {
     const stationWithOrder = generateBlankStation({
       name: "Vitest Station With Order",
-      missionId: MISSION_ID,
       actionOrderUuids: [actionInSubscribed.uuid],
     });
     const evaWithOrder = generateBlankEVA({
       name: "Vitest EVA With Order",
-      missionId: MISSION_ID,
       sequence: [{ type: "station", uuid: stationWithOrder.uuid }],
     });
 
@@ -232,12 +223,10 @@ describe("buildAegisSliceForMaestro", () => {
   it("passes traverse actionOrderUuids through", async () => {
     const traverseWithOrder = generateBlankTraverse({
       name: "Vitest Traverse With Order",
-      missionId: MISSION_ID,
       actionOrderUuids: [actionInSubscribed.uuid],
     });
     const evaWithOrder = generateBlankEVA({
       name: "Vitest EVA With Traverse Order",
-      missionId: MISSION_ID,
       sequence: [{ type: "traverse", uuid: traverseWithOrder.uuid }],
     });
 
@@ -327,7 +316,6 @@ describe("buildAegisSliceForMaestro", () => {
     const egressStation = generateLanderXgressStation({
       xgressType: "egress",
       name: "Vitest Lander Egress",
-      missionId: MISSION_ID,
       duration: 20,
       location: { ...landerLocation },
       elevation: null,
@@ -335,27 +323,22 @@ describe("buildAegisSliceForMaestro", () => {
     const ingressStation = generateLanderXgressStation({
       xgressType: "ingress",
       name: "Vitest Lander Ingress",
-      missionId: MISSION_ID,
       duration: 25,
       location: { ...landerLocation },
       elevation: null,
     });
     const middleStation = generateBlankStation({
       name: "Vitest Middle Station",
-      missionId: MISSION_ID,
     });
     const traverseOut = generateBlankTraverse({
       name: "Vitest Lander Egress to Vitest Middle Station",
-      missionId: MISSION_ID,
     });
     const traverseBack = generateBlankTraverse({
       name: "Vitest Middle Station to Vitest Lander Ingress",
-      missionId: MISSION_ID,
     });
 
     const eva = generateBlankEVA({
       name: "Vitest EVA With Lander Xgress",
-      missionId: MISSION_ID,
       sequence: [
         { type: "station", uuid: egressStation.uuid },
         { type: "traverse", uuid: traverseOut.uuid },
@@ -435,7 +418,6 @@ describe("buildAegisSliceForMaestro", () => {
     };
     const actionWithDefinition = generateBlankAction({
       name: "Vitest Action With Definition",
-      missionId: MISSION_ID,
       stationUuid: stationA.uuid,
       actionDefinition,
     });
@@ -461,7 +443,6 @@ describe("buildAegisSliceForMaestro", () => {
     const actionDefinition: ActionDefinition = { verbUuid: "verb-1" };
     const actionWithPartialDefinition = generateBlankAction({
       name: "Vitest Action With Partial Definition",
-      missionId: MISSION_ID,
       stationUuid: stationA.uuid,
       actionDefinition,
     });
@@ -502,7 +483,6 @@ describe("buildAegisSliceForMaestro", () => {
   it("passes an action's raw missionPriorityUuid through unchanged", async () => {
     const actionWithPriority = generateBlankAction({
       name: "Vitest Action With Priority",
-      missionId: MISSION_ID,
       stationUuid: stationA.uuid,
       missionPriorityUuid: "vitest-priority-uuid",
     });

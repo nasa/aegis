@@ -334,7 +334,6 @@ describe("Thunk Station Tests", () => {
       const landerStation: Station = generateLanderXgressStation({
         xgressType: "egress",
         name: "Lander",
-        missionId: 0,
         location: { lat: 0, lng: 0 },
         elevation: null,
       });

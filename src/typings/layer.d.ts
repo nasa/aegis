@@ -1,7 +1,6 @@
 /** Represents the DB structure for the Layer table */
 interface Layer {
   uuid: string;
-  missionId: number;
   name: string;
   createdAt: number;
   updatedAt: number;
@@ -12,7 +11,6 @@ type SublayerType = "vector" | "tile" | "vector-tile";
 //add a custom description field to sublayers
 interface Sublayer {
   uuid: string;
-  missionId: number;
   layerUuid: string;
   type: SublayerType;
   name: string;

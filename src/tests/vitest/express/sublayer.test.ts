@@ -43,11 +43,11 @@ beforeAll(async () => {
       id: missionId,
       name: "Vitest Sublayer Route Mission",
       layers: {
-        [testLayer.uuid]: { ...testLayer, missionId },
-        [testLayer2.uuid]: { ...testLayer2, missionId },
+        [testLayer.uuid]: testLayer,
+        [testLayer2.uuid]: testLayer2,
       },
-      sublayers: Object.fromEntries(existingSublayers.map((s) => [s.uuid, { ...s, missionId }])),
-      presets: { [testPreset.uuid]: { ...testPreset, missionId } },
+      sublayers: Object.fromEntries(existingSublayers.map((s) => [s.uuid, s])),
+      presets: { [testPreset.uuid]: testPreset },
     },
   ]);
 

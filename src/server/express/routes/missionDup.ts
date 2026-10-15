@@ -122,19 +122,6 @@ const duplicateMission = async (missionId: number): Promise<number> => {
   }
 };
 
-/**
- * Set the new mission id on the map layer, preset, STM, and folder entities copied with the
- * mission doc. Entity uuids are preserved, so every cross-reference stays valid in the copy.
- */
-const setMissionIdOnEntities = (m: Mission, missionId: number): void => {
-  const collections = [m.folders, m.layers, m.sublayers, m.presets, m.stmLevel1s, m.stmRules];
-  for (const collection of collections) {
-    for (const entity of Object.values(collection ?? {})) {
-      if ("missionId" in entity) entity.missionId = missionId;
-    }
-  }
-};
-
 // Main function to create a mission copy
 export const createMissionCopy = async (
   sourceData: MissionSourceData,
@@ -154,11 +141,8 @@ export const createMissionCopy = async (
       updatedAt: getAccurateNow().getTime(),
     };
 
-    // create an mission automerge document; the copied entities get the assigned mission id
-    const docListing: AutomergeDocListing = await createAutomergeMission(
-      newMission,
-      (m, missionId) => setMissionIdOnEntities(m, missionId)
-    );
+    // create an mission automerge document; entities ride along and are scoped by the new doc
+    const docListing: AutomergeDocListing = await createAutomergeMission(newMission);
     // retrieve the mission object
     const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
       docListing.automergeUrl as AutomergeUrl

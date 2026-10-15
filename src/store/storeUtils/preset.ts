@@ -12,7 +12,6 @@ export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => 
   const defaultNewPreset: Preset = {
     uuid: uuidv4(),
     name: "",
-    missionId: 0,
     ownerId: null,
     description: "",
     missionDefault: false,

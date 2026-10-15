@@ -65,7 +65,6 @@ export function stageEvaXgressChange(
     // Changing to lander. Create a new station
     newLanderStation = generateLanderXgressStation({
       xgressType,
-      missionId: mission.id,
       location: mission.landerLocation,
       elevation: mission.landerElevationMeters ?? null,
       ownerId: args.ownerId,

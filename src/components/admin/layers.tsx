@@ -63,7 +63,6 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   function addNewSublayer() {
     const newSublayer = generateBlankSublayer({
       layerUuid: editSublayerParentUUID,
-      missionId: missionId,
     });
     openEditModal(
       <SublayerEdit
@@ -79,7 +78,7 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   }
 
   function addNewLayer() {
-    const newLayer = generateBlankLayer({ missionId });
+    const newLayer = generateBlankLayer();
     openEditModal(
       <LayerEdit
         ref={editRef}

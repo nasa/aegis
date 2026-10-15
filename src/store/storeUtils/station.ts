@@ -12,7 +12,6 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
     uuid: uuidv4(),
     refUuid: uuidv4(),
     ownerId: 0,
-    missionId: 0,
     poiUuids: [],
     actionOrderUuids: [],
     name: "",
@@ -45,7 +44,6 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
 export function generateLanderXgressStation(
   args: Partial<Station> & {
     xgressType: "egress" | "ingress";
-    missionId: number;
     location: AEGISPoint;
     elevation: number | null;
   }

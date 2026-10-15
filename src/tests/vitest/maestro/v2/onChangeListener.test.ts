@@ -74,14 +74,13 @@ const buildMockCoreData = (overrides: {
 
 // ── Test data builders ───────────────────────────────────────────────────────
 
-const stationA = generateBlankStation({ name: "Vitest Station A", missionId: MISSION_ID });
-const stationB = generateBlankStation({ name: "Vitest Station B", missionId: MISSION_ID });
-const traverseA = generateBlankTraverse({ name: "Vitest Traverse A", missionId: MISSION_ID });
-const traverseB = generateBlankTraverse({ name: "Vitest Traverse B", missionId: MISSION_ID });
+const stationA = generateBlankStation({ name: "Vitest Station A" });
+const stationB = generateBlankStation({ name: "Vitest Station B" });
+const traverseA = generateBlankTraverse({ name: "Vitest Traverse A" });
+const traverseB = generateBlankTraverse({ name: "Vitest Traverse B" });
 
 const evaSubscribed = generateBlankEVA({
   name: "Vitest EVA Subscribed",
-  missionId: MISSION_ID,
   sequence: [
     { type: "station", uuid: stationA.uuid },
     { type: "traverse", uuid: traverseA.uuid },
@@ -89,7 +88,6 @@ const evaSubscribed = generateBlankEVA({
 });
 const evaNotSubscribed = generateBlankEVA({
   name: "Vitest EVA Not Subscribed",
-  missionId: MISSION_ID,
   sequence: [
     { type: "station", uuid: stationB.uuid },
     { type: "traverse", uuid: traverseB.uuid },
@@ -98,24 +96,20 @@ const evaNotSubscribed = generateBlankEVA({
 
 const actionInSubscribed = generateBlankAction({
   name: "Vitest Action In Subscribed",
-  missionId: MISSION_ID,
   stationUuid: stationA.uuid,
 });
 const actionNotInSubscribed = generateBlankAction({
   name: "Vitest Action Not In Subscribed",
-  missionId: MISSION_ID,
   stationUuid: stationB.uuid,
 });
 
 const rexForSubscribed = generateBlankRex({
   name: "Vitest Rex Subscribed",
   evaUuid: evaSubscribed.uuid,
-  missionId: MISSION_ID,
 });
 const rexForNotSubscribed = generateBlankRex({
   name: "Vitest Rex Not Subscribed",
   evaUuid: evaNotSubscribed.uuid,
-  missionId: MISSION_ID,
 });
 
 // ── Setup / Teardown ─────────────────────────────────────────────────────────
@@ -277,7 +271,6 @@ describe("isDiffRelevantToSubscribedEvas", () => {
     it("returns true when action.traverseUuid is in the subscribed EVA's sequence", () => {
       const actionOnTraverse = generateBlankAction({
         name: "Vitest Action On Traverse A",
-        missionId: MISSION_ID,
         traverseUuid: traverseA.uuid,
       });
       const mission = buildMockCoreData({ evas: [evaSubscribed, evaNotSubscribed] });

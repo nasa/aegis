@@ -48,7 +48,7 @@ const STMEdit: FunctionComponent<{
         <div>
           <div className={stmStyles.div_select} />
           <div id="div_addLevel1" className={stmStyles.div_add}>
-            <NewLevel1Fields missionId={missionId} changeMission={changeMission} />
+            <NewLevel1Fields changeMission={changeMission} />
           </div>
         </div>
         {allLevel1s?.length > 0 && selectedLevel1Uuid && (
@@ -111,7 +111,6 @@ const destructiveImportSTM = (stmJson: string, missionId: number, changeMission:
       uuid: uuidv4(),
       name: obj.name,
       numbering: obj.numbering,
-      missionId,
       createdAt: now,
       updatedAt: now,
     };
@@ -246,7 +245,7 @@ const ExportSTM: FunctionComponent<{
   allLevel2s: STMLevel2[];
   allLevel3s: STMLevel3[];
 }> = ({ allLevel1s, allLevel2s, allLevel3s }) => {
-  // strip out missionId, createdAt, and updatedAt from all STM items
+  // strip out createdAt and updatedAt from all STM items
   // keep uuid in order to maintain relationship
   const level1s = allLevel1s.map((level1: STMLevel1) => {
     return {
@@ -423,16 +422,14 @@ const Level2Select: FunctionComponent<{
 
 //Add new level1 component
 const NewLevel1Fields: FunctionComponent<{
-  missionId: number;
   changeMission: ChangeMission;
-}> = ({ missionId, changeMission }) => {
+}> = ({ changeMission }) => {
   const [newLevel1, setNewLevel1] = useState<STMLevel1>(generateBlankStmLvl1());
 
   //add new level1
   function addNewLevel1() {
     const upsertRecord: STMLevel1 = {
       ...newLevel1,
-      missionId: missionId,
       createdAt: getAccurateNow().getTime(),
       updatedAt: getAccurateNow().getTime(),
     };

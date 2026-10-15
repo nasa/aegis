@@ -10,7 +10,6 @@ const makeLanderStation = (location: AEGISPoint): Station =>
   generateLanderXgressStation({
     xgressType: "egress",
     name: "Lander",
-    missionId: 0,
     location: { ...location },
     elevation: null,
   });

@@ -344,7 +344,7 @@ describe("Migration20261009000000", () => {
   it("rebuilds collections from the tables even if a failed run already wrote them", async () => {
     const mission = generateBlankMission({ id: MISSION_ID, name: "Vitest Partially Migrated" });
     mission.layers = {
-      stale: { uuid: "stale", missionId: MISSION_ID, name: "Stale", ...timestamps },
+      stale: { uuid: "stale", name: "Stale", ...timestamps },
     };
     const docHandle = makeDocHandle(mission);
 

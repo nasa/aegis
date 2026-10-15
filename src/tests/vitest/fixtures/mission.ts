@@ -47,7 +47,6 @@ export const generateFullMission = (): Mission => {
   const makeLanderStation = (xgressType: "egress" | "ingress") =>
     generateLanderXgressStation({
       xgressType,
-      missionId: 0,
       location: { lat: 0, lng: 0 },
       elevation: null,
     });

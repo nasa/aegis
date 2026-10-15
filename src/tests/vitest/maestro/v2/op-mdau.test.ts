@@ -269,14 +269,12 @@ describe("opUpdateMdau() — stations", () => {
     const landerLocation: AEGISPoint = { lat: 1, lng: 2 };
     const egressStation = generateLanderXgressStation({
       xgressType: "egress",
-      missionId: 0,
       duration: 20,
       location: { ...landerLocation },
       elevation: null,
     });
     const ingressStation = generateLanderXgressStation({
       xgressType: "ingress",
-      missionId: 0,
       duration: 20,
       location: { ...landerLocation },
       elevation: null,
@@ -839,14 +837,12 @@ describe("opUpdateMdau() — rexes", () => {
     const egressStation = generateLanderXgressStation({
       xgressType: "egress",
       name: "Egress",
-      missionId: 0,
       location: { ...landerLocation },
       elevation: null,
     });
     const ingressStation = generateLanderXgressStation({
       xgressType: "ingress",
       name: "Ingress",
-      missionId: 0,
       location: { ...landerLocation },
       elevation: null,
     });

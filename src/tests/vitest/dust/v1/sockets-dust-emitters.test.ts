@@ -76,13 +76,11 @@ const buildMockMission = (overrides: { evas?: Eva[]; rexes?: Rex[]; name?: strin
 
 const asPlannedEva = generateBlankEVA({
   name: "Vitest As-Planned EVA",
-  missionId: MISSION_ID,
 });
 // REX EVA copy — shares refUuid with the as-planned EVA but, like real REX EVAs, has no name.
 const rexEva = generateBlankEVA({
   name: "",
   refUuid: asPlannedEva.refUuid,
-  missionId: MISSION_ID,
 });
 
 const posType1 = { uuid: "pos-type-1", abbr: "1", name: "EV1", icon: "icon1", pathColor: "#fff" };
@@ -104,7 +102,6 @@ const runningRexWithPosEntries = (posEntries: PosEntry[] | null): Rex =>
   generateBlankRex({
     name: "Vitest Running Rex",
     evaUuid: rexEva.uuid,
-    missionId: MISSION_ID,
     isRunning: true,
     posTypes: [posType1],
     posSources: [posSourceCrew],
@@ -189,7 +186,6 @@ describe("onDustChangeListener", () => {
     const notRunningRex = generateBlankRex({
       name: "Vitest Not Running Rex",
       evaUuid: rexEva.uuid,
-      missionId: MISSION_ID,
       isRunning: false,
       posTypes: [posType1],
       posSources: [posSourceCrew],
@@ -284,12 +280,11 @@ describe("onDustChangeListener", () => {
   it("handles multiple running rexes independently, emitting once per changed rex", () => {
     const ns = connectDustVisitor();
 
-    const otherRexEva = generateBlankEVA({ name: "", missionId: MISSION_ID });
+    const otherRexEva = generateBlankEVA({ name: "" });
     const rex1 = runningRexWithPosEntries([buildPosEntry({ uuid: "rex1-entry" })]);
     const rex2 = generateBlankRex({
       name: "Vitest Other Running Rex",
       evaUuid: otherRexEva.uuid,
-      missionId: MISSION_ID,
       isRunning: true,
       posTypes: [posType1],
       posSources: [posSourceCrew],
@@ -427,7 +422,6 @@ describe("getEverythingForDust", () => {
   const stoppedRex = generateBlankRex({
     name: "Vitest Stopped Rex",
     evaUuid: rexEva.uuid,
-    missionId: MISSION_ID,
     isRunning: false,
     posTypes: [posType1],
     posSources: [posSourceCrew],

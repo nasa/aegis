@@ -54,8 +54,8 @@ export const buildAegisSliceForMaestro = async (
   // Build the only lookup that isn't already a key-value map: sequence-item-uuid → Eva
   const lookups = buildLookupMaps(mission);
   const formattedMission = formatMissionForMaestro(mission);
-  const formattedEvas = formatEvasForMaestro(subscribedEvas);
-  const formattedStations = formatStationsForMaestro(subscribedStations, lookups);
+  const formattedEvas = formatEvasForMaestro(subscribedEvas, missionId);
+  const formattedStations = formatStationsForMaestro(subscribedStations, missionId, lookups);
   const formattedTraverses = formatTraversesForMaestro(subscribedTraverses, mission, lookups);
   const formattedActions = formatActionsForMaestro(subscribedActions, mission);
 
@@ -131,10 +131,10 @@ const buildLookupMaps = (mission: Mission): LookupMaps => {
   return { evaBySequenceUuid, rexByEvaUuid, actionsByStationUuid, actionsByTraverseUuid };
 };
 
-const formatEvasForMaestro = (evas: Eva[]): AegisSlice.AegisEva[] => {
+const formatEvasForMaestro = (evas: Eva[], missionId: number): AegisSlice.AegisEva[] => {
   return evas.map((eva) => {
     return {
-      missionId: eva.missionId,
+      missionId,
       name: eva.name,
       uuid: eva.uuid,
       description: eva.description,
@@ -148,6 +148,7 @@ const formatEvasForMaestro = (evas: Eva[]): AegisSlice.AegisEva[] => {
 
 const formatStationsForMaestro = (
   stations: Station[],
+  missionId: number,
   lookups: LookupMaps
 ): AegisSlice.AegisStation[] => {
   return stations.map((station) => {
@@ -155,7 +156,7 @@ const formatStationsForMaestro = (
       (a) => a.enabled
     );
     return {
-      missionId: station.missionId,
+      missionId,
       name: station.name,
       uuid: station.uuid,
       iconEmojiDecoded: decodeEmoji(station.icon),
@@ -182,7 +183,7 @@ const formatTraversesForMaestro = (
     );
     return {
       uuid: traverse.uuid,
-      missionId: traverse.missionId,
+      missionId: mission.id ?? 0,
       name: traverse.name,
       description: traverse.description,
       actionOrderUuids: traverse.actionOrderUuids ?? [],
@@ -218,7 +219,7 @@ const formatActionsForMaestro = (actions: Action[], mission: Mission): AegisSlic
       }),
       actionDefinition: action.actionDefinition ?? null,
       missionPriorityUuid: action.missionPriorityUuid ?? null,
-      missionId: action.missionId,
+      missionId: mission.id ?? 0,
       icon: action.icon,
       createdAt: action.createdAt,
       updatedAt: action.updatedAt,
