@@ -139,22 +139,6 @@ const ServerSocketStatus: React.FunctionComponent = () => {
             missionNames={missionNames}
           />
         )}
-
-        <section className={adminCommon.section}>
-          <h2>Last Edit Events</h2>
-          <div className={adminCommon.details}>
-            {!serverSocketStatus?.lastEditEvents ||
-            Object.keys(serverSocketStatus.lastEditEvents).length === 0 ? (
-              <div className={adminCommon.emptyState}>No edit events recorded.</div>
-            ) : (
-              <PrintEditEvents
-                lastEditEvents={serverSocketStatus.lastEditEvents}
-                visitorsData={serverSocketStatus.visitorsData}
-                missionNames={missionNames}
-              />
-            )}
-          </div>
-        </section>
       </div>
     </main>
   );
@@ -311,46 +295,6 @@ const PrintUsers: FunctionComponent<{
         </table>
       )}
     </div>
-  );
-};
-
-const PrintEditEvents: FunctionComponent<{
-  lastEditEvents: EditEvents;
-  visitorsData: VisitorData[];
-  missionNames: Map<number, string>;
-}> = ({ lastEditEvents, visitorsData, missionNames }) => {
-  const entries = Object.entries(lastEditEvents)
-    .map(([missionId, event]) => ({ missionId: Number(missionId), event }))
-    .sort((a, b) => a.missionId - b.missionId);
-
-  return (
-    <table className={adminCommon.table}>
-      <thead>
-        <tr>
-          <th>Mission</th>
-          <th>Type</th>
-          <th>Time</th>
-          <th>User</th>
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map(({ missionId, event }) => {
-          const visitor = visitorsData?.find((v) => v.socketId === event.socketId);
-          const user = visitor?.launchpadUser;
-          const displayName = user
-            ? user.display_name || `${user.surname}, ${user.givenname}`
-            : event.socketId;
-          return (
-            <tr key={missionId}>
-              <td>{missionNames.get(missionId) ?? missionId}</td>
-              <td>{event.type}</td>
-              <td>{new Date(event.datestamp).toUTCString()}</td>
-              <td>{displayName}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
   );
 };
 

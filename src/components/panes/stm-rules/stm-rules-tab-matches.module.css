@@ -2,9 +2,9 @@
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: 155px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(min-content, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
+  overflow: auto hidden;
 }
 
 .emptyState {

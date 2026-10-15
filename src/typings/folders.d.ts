@@ -2,29 +2,24 @@ type FolderType = "poi" | "station" | "eva" | "preset" | "layer";
 
 interface Folder {
   uuid: string;
-  missionId: number;
   name: string;
   type: FolderType;
   items: string[]; // uuids of items in this folder
-  createdAt: string;
-  updatedAt: string;
+  visible: boolean; // shared visibility of folder contents on the map
+  createdAt: number;
+  updatedAt: number;
 }
-
-type Folder_db_type = Omit<Folder, "createdAt" | "updatedAt"> & {
-  createdAt?: Date;
-  updatedAt?: Date;
-};
 
 // Stored only in interface store
 interface FolderInterface {
   uuid: string;
   isOpen: boolean;
-  visible: boolean;
   editing: boolean;
   editingNameValue: string | null;
 }
 
-interface FoldersInterfaceCookie {
+// Also the format stored in the cookie AEGIS_Folders_Interface
+interface FoldersInterfaceState {
   [folderUuid: string]: FolderInterface;
 }
 

@@ -5,6 +5,7 @@ import {
 } from "client/automergeDocHandles";
 import {
   applyDeleteStations,
+  applySyncStationCircleControlsWithCircleDefinitions,
   applyToggleStationCircleVisible,
   applyUpdateStationByField,
   applyUpdateStationCircleStyle,
@@ -261,6 +262,42 @@ describe("apply-station", () => {
         expect(getMission().stations[stationA.uuid]).toBeUndefined();
         expect(getMission().rexes[rex.uuid].stationEntries).toBeNull();
       });
+    });
+  });
+
+  describe("applySyncStationCircleControlsWithCircleDefinitions()", () => {
+    it("adds new and removes deleted circle controls on non-lander stations", () => {
+      const station = generateBlankStation({ name: "Vitest Station" });
+      station.mapCircleControls = {
+        "circle-old": { uuid: "circle-old", visible: true, style: { ...defaultSublayerStyle } },
+      };
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+        m.circleDefinitions = { "circle-new": { name: "New", radius: 5 } };
+      });
+
+      // Guards against a regression where reassigning the draft's own
+      // `mapCircleControls` object back onto itself threw
+      // "Cannot create a reference to an existing document object".
+      expect(() =>
+        withMissionChange((m) => applySyncStationCircleControlsWithCircleDefinitions(m))
+      ).not.toThrow();
+
+      const mapCircleControls = getMission().stations[station.uuid].mapCircleControls;
+      expect(Object.keys(mapCircleControls)).toEqual(["circle-new"]);
+      expect(mapCircleControls["circle-new"].visible).toBe(false);
+    });
+
+    it("skips lander stations", () => {
+      const landerStation = generateBlankStation({ name: "Vitest Lander", isLanderXgress: true });
+      getMissionDocHandle().change((m) => {
+        m.stations[landerStation.uuid] = landerStation;
+        m.circleDefinitions = { "circle-new": { name: "New", radius: 5 } };
+      });
+
+      withMissionChange((m) => applySyncStationCircleControlsWithCircleDefinitions(m));
+
+      expect(getMission().stations[landerStation.uuid].mapCircleControls).toEqual({});
     });
   });
 });

@@ -17,7 +17,6 @@ import {
 
 import { getPaneTypes } from "components/interface/_paneTypes";
 import NavTimeline from "components/interface/timeline/timeline";
-import { isModified } from "utils/component-helpers";
 import paneStyles from "../panes/global-pane-styles.module.css";
 import {
   faChartArea,
@@ -268,20 +267,6 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
   const dispatch = useAppDispatch();
   const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
   const selectedPoiUuid = useAppSelector((state) => state.poi.selectedPoiUuid, refEqual);
-  const presets = useAppSelector(
-    (state) =>
-      state.preset.presets.map((p) => {
-        return { uuid: p.uuid, updatedAt: p.updatedAt };
-      }),
-    deepEqual
-  );
-  const presetsFromDb = useAppSelector(
-    (state) =>
-      state.preset.presetsFromDb.map((p) => {
-        return { uuid: p.uuid, updatedAt: p.updatedAt };
-      }),
-    deepEqual
-  );
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
   const selectedStationUuid = useAppSelector(
     (state) => state.station.selectedStationUuid,
@@ -310,11 +295,6 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
       <div className={styles.iconGutter}>
         {/* Loop through all of the paneTypes and draw them on the gutter */}
         {Object.keys(paneTypes).map((interfaceSection: InterfaceSection) => {
-          let itemModified = false;
-          if (interfaceSection === "preset") {
-            itemModified = isModified(presets, presetsFromDb);
-          }
-
           const pane: PaneType = paneTypes[interfaceSection as keyof PaneTypes];
           return (
             <div
@@ -388,11 +368,6 @@ export const NavGutter: FunctionComponent<{ selectedNavItem: InterfaceSection }>
                       />
                     );
                   })()}
-                {itemModified && (
-                  <svg height="6" width="6" style={{ position: "absolute", top: "31", left: "31" }}>
-                    <circle cx="3" cy="3" r="3" fill="#ff0000" />
-                  </svg>
-                )}
               </div>
             </div>
           );

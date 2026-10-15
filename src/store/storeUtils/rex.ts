@@ -54,7 +54,6 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
   const defaultNewRex: Rex = {
     uuid: uuidv4(),
     ownerId: 0,
-    missionId: 0,
     name: "",
     description: "",
     petStartStopTimestamp: null,
@@ -72,6 +71,8 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     maestroEventId: null,
     maestroEventUrl: null,
     maestroActivityProperties: null,
+    executeEditMode: "unrestricted",
+    executeEditState: null,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

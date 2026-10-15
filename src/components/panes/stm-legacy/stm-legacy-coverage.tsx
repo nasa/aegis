@@ -2,11 +2,12 @@ import type { FunctionComponent } from "react";
 import { useId } from "react";
 import stmStyles from "./stm-legacy-coverage.module.css";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
 import uniqBy from "lodash/uniqBy";
 import uniq from "lodash/uniq";
 import { Tooltip } from "react-tooltip";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { selectStmLevel1s, selectStmLevel2s, selectStmLevel3s } from "store/selectors";
 
 export const STM_Coverage: FunctionComponent<{
   stmUuidsByActionUuid: string[][]; //2d array of stm uuids by action uuid
@@ -21,9 +22,12 @@ export const STM_Coverage: FunctionComponent<{
   completedStmUuidsByAction,
   inProgressStmUuidsByAction,
 }) => {
-  const allSTMLevel1 = useAppSelector((state) => state.stm.level1s, deepEqual);
-  const allSTMLevel2 = useAppSelector((state) => state.stm.level2s, deepEqual);
-  const allSTMLevel3 = useAppSelector((state) => state.stm.level3s, deepEqual);
+  const allSTMLevel1 =
+    useMissionDocSelector((mission) => selectStmLevel1s(mission), deepEqual) ?? [];
+  const allSTMLevel2 =
+    useMissionDocSelector((mission) => selectStmLevel2s(mission), deepEqual) ?? [];
+  const allSTMLevel3 =
+    useMissionDocSelector((mission) => selectStmLevel3s(mission), deepEqual) ?? [];
   const partialMission = useMissionDocSelector(
     (mission) => ({
       stmLevel1Name: mission.stmLevel1Name,

@@ -107,6 +107,42 @@ function makePoi(uuid: string, lat: number, lng: number, icon = "1f534"): POI {
 
 type PartialPreloadedState = Parameters<typeof configureStore>[0]["preloadedState"];
 
+/**
+ * Presets and folders live in the mission doc, so move any seeded into the preloaded Redux
+ * state over to the mocked doc. Folder UI state is a map keyed by folder uuid.
+ */
+function moveDocEntitiesToMockDoc(preloadedState: PartialPreloadedState): PartialPreloadedState {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const state = { ...(preloadedState as any) };
+  if (state.preset?.presets) {
+    const { presets, ...presetState } = state.preset;
+    (mockMissionDoc as Partial<Mission>).presets = Object.fromEntries(
+      (presets as Preset[]).map((preset) => [preset.uuid, preset])
+    );
+    state.preset = presetState;
+  } else {
+    (mockMissionDoc as Partial<Mission>).presets = {};
+  }
+  if (state.interface?.folders || Array.isArray(state.interface?.foldersInterface)) {
+    const { folders = [], foldersInterface = [], ...interfaceState } = state.interface;
+    (mockMissionDoc as Partial<Mission>).folders = Object.fromEntries(
+      (folders as Folder[]).map((folder) => [folder.uuid, folder])
+    );
+    state.interface = {
+      ...interfaceState,
+      foldersInterface: Object.fromEntries(
+        (foldersInterface as FolderInterface[]).map((folderInterface) => [
+          folderInterface.uuid,
+          folderInterface,
+        ])
+      ),
+    };
+  } else {
+    (mockMissionDoc as Partial<Mission>).folders = {};
+  }
+  return state as PartialPreloadedState;
+}
+
 function makeStore(preloadedState: PartialPreloadedState = {}) {
   return configureStore({
     reducer: {
@@ -119,7 +155,7 @@ function makeStore(preloadedState: PartialPreloadedState = {}) {
       rex: rexSlice.reducer,
       measure: measureSlice.reducer,
     },
-    preloadedState,
+    preloadedState: moveDocEntitiesToMockDoc(preloadedState),
   });
 }
 
@@ -302,9 +338,10 @@ describe("PoiMarkers", () => {
             type: "poi",
             items: [POI_UUID_B],
             name: "Hidden Folder",
+            visible: false,
           },
         ],
-        foldersInterface: [{ uuid: FOLDER_UUID, visible: false }],
+        foldersInterface: [{ uuid: FOLDER_UUID, visible: true }],
       },
     } as PartialPreloadedState);
 
@@ -314,6 +351,35 @@ describe("PoiMarkers", () => {
     const features = poiSource!.getFeatures();
     expect(features).toHaveLength(1);
     expect(features[0].getId()).toBe(POI_UUID_A);
+  });
+
+  it("updates markers when shared folder visibility changes without local UI changes", () => {
+    store = makeStore();
+    mockMissionDoc.pois = { [POI_UUID_A]: makePoi(POI_UUID_A, 10, 20) };
+    mockMissionDoc.folders = {
+      [FOLDER_UUID]: {
+        uuid: FOLDER_UUID,
+        type: "poi",
+        items: [POI_UUID_A],
+        visible: true,
+      } as Folder,
+    };
+    const localState = store.getState();
+    renderPoiMarkers();
+    expect(poiSource!.getFeatures()).toHaveLength(1);
+
+    mockMissionDoc.folders = {
+      [FOLDER_UUID]: { ...mockMissionDoc.folders[FOLDER_UUID], visible: false },
+    };
+    renderPoiMarkers();
+    expect(poiSource!.getFeatures()).toHaveLength(0);
+
+    mockMissionDoc.folders = {
+      [FOLDER_UUID]: { ...mockMissionDoc.folders[FOLDER_UUID], visible: true },
+    };
+    renderPoiMarkers();
+    expect(poiSource!.getFeatures()).toHaveLength(1);
+    expect(store.getState()).toBe(localState);
   });
 
   it("skips POIs with missing location", () => {

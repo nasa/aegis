@@ -16,7 +16,6 @@ import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
-import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { setSelectedPosEntryUuid, setSelectedRexUuid } from "store/rex";
 import { setRightPanelIsOpen } from "store/interface";
 import { getMissionDocHandle } from "client/automergeDocHandles";
@@ -52,9 +51,27 @@ import {
   applyUpsertStation,
 } from "operations/apply/apply-station";
 import { applyDeleteActions } from "operations/apply/apply-action";
+import {
+  applyRegisterAddedStation,
+  applyRegisterAddedTraverse,
+  applyUnregisterAddedAction,
+  applyUnregisterAddedStation,
+  applyUnregisterAddedTraverse,
+} from "operations/apply/apply-rex";
+import { findRexUuidForEntity, resolveRexExecuteEditMode } from "utils/rexExecuteEditMode";
 import { setStationCircleUIStates } from "store/station";
 import { clientLogger } from "utils/logging/clientLogger";
 import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
+
+/**
+ * The uuid of the REX owning this EVA when that REX has been executed under a
+ * restricted execute edit mode, otherwise null.
+ */
+const getRestrictedRexUuidForEva = (mission: Mission, evaUuid: string): string | null => {
+  const rexUuid = findRexUuidForEntity(mission, { evaUuid });
+  if (!rexUuid) return null;
+  return resolveRexExecuteEditMode(mission, rexUuid) === "unrestricted" ? null : rexUuid;
+};
 
 export const thunkDocDeleteEva = appCreateAsyncThunk<{
   evaUuid: string;
@@ -76,15 +93,11 @@ export const thunkDocDeleteEva = appCreateAsyncThunk<{
   const stagedEvaData = stageDeleteEva(mission, { evaUuid, forRex });
   if (!stagedEvaData) return;
 
-  // Step 2: Delete everything in a single .change()
+  // Step 2: Delete everything (including folder entries) in a single .change()
   missionDocHandle.change((m: Mission) => applyDeleteEvaStage(m, stagedEvaData));
 
   // Step 3: UI side-effects
-  // Remove folder items for the deleted EVAs
   const allDeletedEvaUuids = [evaUuid, ...stagedEvaData.dependentRexEvaUuids];
-  for (const deletedEvaUuid of allDeletedEvaUuids) {
-    dispatch(thunkAddRemoveFolderItem({ itemUuid: deletedEvaUuid, folderUuid: null }));
-  }
   dispatch(deleteExpandedEvaUuids(allDeletedEvaUuids));
   dispatch(thunkSetRightPanelIsOpenIfAuto(false));
 });
@@ -105,7 +118,6 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
 
     const ownerId = getState().user?.appUser?.id ?? null;
     const blankEva: Eva = generateBlankEVA({
-      missionId: mission.id,
       name: randomName,
       traverseRate: mission.traverseRate,
       duration: mission.defaultEvaDuration,
@@ -113,19 +125,17 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     });
 
     // Create an empty traverse and pre-build its path (lander → lander)
-    const newTraverse: Traverse = generateBlankTraverse({ missionId: blankEva.missionId });
+    const newTraverse: Traverse = generateBlankTraverse();
 
     // Add new xgress stations at the lander
     const egressStation = generateLanderXgressStation({
       xgressType: "egress",
-      missionId: mission.id,
       location: mission.landerLocation,
       elevation: mission.landerElevationMeters ?? null,
       ownerId: ownerId ?? undefined,
     });
     const ingressStation = generateLanderXgressStation({
       xgressType: "ingress",
-      missionId: mission.id,
       location: mission.landerLocation,
       elevation: mission.landerElevationMeters ?? null,
       ownerId: ownerId ?? undefined,
@@ -227,12 +237,15 @@ export const thunkDocAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
     if (!eva) return;
 
     // Step 1: Build the blank traverse object to add after the new station
-    const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
+    const newTraverse = generateBlankTraverse();
 
     // Insert new station just before the ingress station at the end.
     // The traverse to the ingress station now points to the new station.
     const ingressIndex = getIngressIndex(eva.sequence);
     if (ingressIndex === -1) return;
+
+    // A traverse created inside a restricted REX is exempt from the restriction.
+    const restrictedRexUuid = getRestrictedRexUuidForEva(missionDocHandle.doc(), evaUuid);
 
     // Step 2: Upsert traverse and insert the station+traverse before ingress
     missionDocHandle.change((m: Mission) => {
@@ -245,6 +258,12 @@ export const thunkDocAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
           { type: "traverse", uuid: newTraverse.uuid },
         ],
       });
+      if (restrictedRexUuid) {
+        applyRegisterAddedTraverse(m, {
+          rexUuid: restrictedRexUuid,
+          traverseUuid: newTraverse.uuid,
+        });
+      }
     });
 
     // Step 3: UI side-effects
@@ -306,6 +325,8 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
     });
     return;
   }
+  const restrictedRexUuid = getRestrictedRexUuidForEva(mission, evaUuid);
+
   missionDocHandle.change((m: Mission) => {
     applyDeleteActions(m, [...traverseActionUuidsToDelete, ...stationActionUuidsToDelete]);
     applyDeleteTraverses(m, [traverseUuidToDelete]);
@@ -315,6 +336,21 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
     applySpliceEvaSequence(m, { evaUuid, start: spliceStart, deleteCount: 2 });
     if (adjacentTraverseUpdate) {
       applyTraverseUpdatesStage(m, [adjacentTraverseUpdate]);
+    }
+    if (restrictedRexUuid) {
+      applyUnregisterAddedTraverse(m, {
+        rexUuid: restrictedRexUuid,
+        traverseUuid: traverseUuidToDelete,
+      });
+      if (stationUuidToDelete) {
+        applyUnregisterAddedStation(m, {
+          rexUuid: restrictedRexUuid,
+          stationUuid: stationUuidToDelete,
+        });
+      }
+      for (const actionUuid of [...traverseActionUuidsToDelete, ...stationActionUuidsToDelete]) {
+        applyUnregisterAddedAction(m, { rexUuid: restrictedRexUuid, actionUuid });
+      }
     }
   });
 
@@ -402,6 +438,9 @@ export const thunkDocChangeStationInEva = appCreateAsyncThunk<{
       });
       return;
     }
+    // The exemption follows the slot: re-picking swaps which duplicate is registered.
+    const restrictedRexUuid = getRestrictedRexUuidForEva(mission, evaUuid);
+
     missionDocHandle.change((m: Mission) => {
       if (stagedStationData) {
         applyDuplicateStationStage(m, stagedStationData);
@@ -417,6 +456,18 @@ export const thunkDocChangeStationInEva = appCreateAsyncThunk<{
         value: { type: "station", uuid: stationUuidToUse },
       });
       applyTraverseUpdatesStage(m, validTraverseUpdates);
+      if (restrictedRexUuid) {
+        if (oldStationUuid) {
+          applyUnregisterAddedStation(m, {
+            rexUuid: restrictedRexUuid,
+            stationUuid: oldStationUuid,
+          });
+        }
+        applyRegisterAddedStation(m, {
+          rexUuid: restrictedRexUuid,
+          stationUuid: stationUuidToUse,
+        });
+      }
     });
 
     // Step 3: UI side-effects

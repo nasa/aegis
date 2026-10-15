@@ -114,6 +114,7 @@ export declare namespace MDAU {
      */
     maestroControlled: boolean;
     updatedAt: number;
+    executeEditMode: RexExecuteEditMode;
     /**
      * Just the non-REX info from activities
      */

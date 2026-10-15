@@ -225,6 +225,12 @@ non-interactive — the edited item is manipulated only by `InteractionManager`.
 `TileLayers.tsx` owns ALL raster/vector/PMTiles/COG data layers. It computes the desired set via
 `getLayersToShow()` and reconciles into `activeLayersRef` (keyed by sublayer uuid).
 
+- **Data source:** layers, sublayers, presets, and folders all live in the mission Automerge doc
+  (`mission.layers`, `.sublayers`, `.presets`, `.folders`) and are read with
+  `useMissionDocSelector`. Only `selectedPresetUuid`, `presetPreviewTime`, and folder UI state
+  (`interface.foldersInterface`, keyed by folder uuid) are in Redux. Preset edits write to the
+  doc directly, so they reach the map on the next doc change.
+
 - **Data layers use NEGATIVE z-indices** (`-(index+1)`, index 0 = top of the UI list) so they
   always sit below every feature layer (z ≥ 0). `getLayersToShow` returns UI order (index 0 = top
   of panel); the caller inverts for zIndex.

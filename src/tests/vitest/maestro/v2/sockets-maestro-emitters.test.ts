@@ -83,12 +83,11 @@ const buildMockCoreData = (overrides: {
 
 // ── Test data builders ───────────────────────────────────────────────────────
 
-const stationA = generateBlankStation({ name: "Vitest Station A", missionId: MISSION_ID });
-const traverseA = generateBlankTraverse({ name: "Vitest Traverse A", missionId: MISSION_ID });
+const stationA = generateBlankStation({ name: "Vitest Station A" });
+const traverseA = generateBlankTraverse({ name: "Vitest Traverse A" });
 
 const evaSubscribed = generateBlankEVA({
   name: "Vitest EVA Subscribed",
-  missionId: MISSION_ID,
   sequence: [
     { type: "station", uuid: stationA.uuid },
     { type: "traverse", uuid: traverseA.uuid },

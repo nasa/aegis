@@ -1,71 +1,26 @@
 import { generateBlankStmRule } from "store/storeUtils/stm";
 import appCreateAsyncThunk from "./thunkUtil";
-import {
-  deleteSTMRules,
-  deleteSTMRulesFromDb,
-  setRuleEditingUuid,
-  upsertSTMRules,
-  upsertSTMRulesFromDb,
-} from "store/stm";
-import * as httpClient_stm from "http-client/stm";
-import { getAccurateNow } from "utils/formatting";
+import { setStmRulesSelectedRuleUuid } from "store/stm";
+import { getMissionDocHandle, withMissionChange } from "client/automergeDocHandles";
+import { applyDeleteStmRule, applyUpsertStmRule } from "operations/apply/apply-mission-stm";
 
 export const thunkCreateStmRule = appCreateAsyncThunk<{ stmUuid: string }>(
   "stmRuleCreate",
   async ({ stmUuid }, { dispatch }) => {
-    const newRule = generateBlankStmRule({ stmUuid });
-    await dispatch(thunkSaveStmRule({ stmRule: newRule }));
-    // a freshly created rule is blank — put it straight into inline edit mode
-    dispatch(setRuleEditingUuid(newRule.uuid));
-  }
-);
-
-export const thunkSaveStmRule = appCreateAsyncThunk<{ stmRule: STMRule }>(
-  "saveStmRule",
-  async ({ stmRule }, { dispatch }) => {
-    //save poi to db
-    const stmRuleUpsertResponse = await httpClient_stm.upsertStmRules([
-      {
-        ...stmRule,
-        updatedAt: getAccurateNow().toISOString(),
-      },
-    ]);
-
-    // upsert rule to store
-    dispatch(upsertSTMRules([stmRuleUpsertResponse.data[0]], true));
-    // upsert rules to db copy in the store
-    dispatch(upsertSTMRulesFromDb([stmRuleUpsertResponse.data[0]]));
-
-    dispatch(setRuleEditingUuid(null));
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
+    const newRule: STMRule = generateBlankStmRule({ stmUuid });
+    withMissionChange((m) => applyUpsertStmRule(m, newRule));
+    dispatch(setStmRulesSelectedRuleUuid(newRule.uuid));
   }
 );
 
 export const thunkDeleteStmRuleByUuid = appCreateAsyncThunk<{ stmRuleUuid: string }>(
   "stmRuleDelete",
   async ({ stmRuleUuid }, { dispatch, getState }) => {
-    const rule = getState().stm.rules.find((rule) => rule.uuid === stmRuleUuid);
-    if (rule) {
-      // delete rule from store
-      dispatch(deleteSTMRules([stmRuleUuid]));
+    withMissionChange((m) => applyDeleteStmRule(m, stmRuleUuid));
+    if (getState().stm.stmRulesSelectedRuleUuid === stmRuleUuid) {
+      dispatch(setStmRulesSelectedRuleUuid(null));
     }
-    const ruleInDb = getState().stm.rulesFromDb.find((rule) => rule.uuid === stmRuleUuid);
-    if (ruleInDb) {
-      // delete rule from db
-      await httpClient_stm.deleteStmRules([stmRuleUuid]);
-      // delete rule from store db copy
-      dispatch(deleteSTMRulesFromDb([stmRuleUuid]));
-    }
-    dispatch(setRuleEditingUuid(null));
-  }
-);
-
-export const thunkCancelStmRuleByUuid = appCreateAsyncThunk<{ stmRuleUuid: string }>(
-  "stmRuleCancel",
-  async ({ stmRuleUuid }, { dispatch, getState }) => {
-    const rule = getState().stm.rulesFromDb.find((rule) => rule.uuid === stmRuleUuid);
-    if (rule) {
-      dispatch(upsertSTMRules([rule], true));
-    }
-    dispatch(setRuleEditingUuid(null));
   }
 );

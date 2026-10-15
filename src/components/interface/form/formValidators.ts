@@ -170,10 +170,65 @@ export const composeValidators = (...validators: FieldValidator<unknown>[]) => {
   };
 };
 
-// Regex validators to match characters NOT in the accepted pattern
+/**
+ * Filter functions to prevent invalid characters from appearing in input fields
+ * These should be used in the onChange handler of input components
+ * They work with the validators above
+ */
 
-const regExNumber = /[^\d\.]/;
+export const filterNumbersOnly = (value: Stringy): string => {
+  return String(value).replace(/[^0-9.-]/g, "");
+};
 
-export const regExValidators = {
-  regExNumber,
+export const filterIntegersOnly = (value: Stringy): string => {
+  return String(value).replace(/[^0-9-]/g, "");
+};
+
+export const filterHHMMSS = (value: Stringy): string => {
+  return String(value).replace(/[^0-9:+-]/g, "");
+};
+
+export const filterISOString = (value: Stringy): string => {
+  return String(value).replace(/[^0-9T:Z.-]/g, "");
+};
+
+const filterNumbersValidators = ["mustBeNumber", "mustBeNumberGTZero", "mustBeNumberGTEZero"];
+
+const validatorsWithFilters: Record<string, (value: Stringy) => string> = {
+  ...Object.fromEntries(filterNumbersValidators.map((validator) => [validator, filterNumbersOnly])),
+
+  mustBeInteger: filterIntegersOnly,
+  mustBeYYYYMMDD: filterIntegersOnly,
+  mustBeHHMMSS: filterHHMMSS,
+  mustBeISOString: filterISOString,
+};
+
+export const composeFilters = (...filterFunctions: Array<(value: Stringy) => string>) => {
+  return (value: Stringy): string => {
+    return filterFunctions.reduce((filtered, filter) => filter(filtered), String(value));
+  };
+};
+
+export const getFiltersForValidators = (
+  validatorFunctions: Array<
+    (value: Stringy, allValues?: Record<string, unknown>) => string | undefined
+  >
+): ((value: Stringy) => string) => {
+  if (!validatorFunctions) {
+    return (value: Stringy) => String(value);
+  }
+
+  const filters = validatorFunctions
+    .map((validatorFn) => validatorsWithFilters[validatorFn.name])
+    .filter((filterFn) => filterFn !== undefined);
+
+  if (filters.length === 0) {
+    return (value: Stringy) => String(value);
+  }
+
+  if (filters.length === 1) {
+    return filters[0];
+  }
+
+  return composeFilters(...filters);
 };

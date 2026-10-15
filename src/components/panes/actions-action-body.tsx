@@ -31,7 +31,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { longDateFromDateString, toDecimal } from "utils/formatting";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
 import STMSelector from "./stm-legacy/stm-legacy-selector";
-import { validators, regExValidators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import round from "lodash/round";
 import isNull from "lodash/isNull";
 import { EquipmentSelector, GeographicUnitSelector } from "./actions-action-body-multiselectors";
@@ -46,6 +46,7 @@ import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/t
 import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
+import { UNRESTRICTED_ACTION_EDIT_CAPABILITIES } from "utils/rexExecuteEditMode";
 import { MissionPriorityDropdown } from "./mission/mission-right-missionPriorities";
 
 const RightActionBody: FunctionComponent<{
@@ -56,7 +57,20 @@ const RightActionBody: FunctionComponent<{
   parentElevation: number;
   rexUuid: string;
   allowRexEdit: boolean;
-}> = ({ editMode, action, parentType, parentLocation, parentElevation, rexUuid, allowRexEdit }) => {
+  rexEditCapabilities?: ActionEditCapabilities;
+}> = ({
+  editMode: editModeProp,
+  action,
+  parentType,
+  parentLocation,
+  parentElevation,
+  rexUuid,
+  allowRexEdit,
+  rexEditCapabilities = UNRESTRICTED_ACTION_EDIT_CAPABILITIES,
+}) => {
+  // Under a restricted REX mode the general planning fields in this body are
+  // read-only; executed mass and the collection IDs are gated separately below.
+  const editMode = editModeProp && rexEditCapabilities.generalFields;
   const dispatch = useAppDispatch();
   const resolvedGrid = useResolvedMissionGrid();
   const partialMission = useMissionDocSelector(
@@ -315,9 +329,6 @@ const RightActionBody: FunctionComponent<{
                           validators.required,
                           // validators.mustBeNumberGTZero,
                         ],
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                        },
                       }}
                       onSubmit={(value: string) => {
                         withMissionChange((m) =>
@@ -359,12 +370,6 @@ const RightActionBody: FunctionComponent<{
                           name: "priority",
                           ariaLabel: "Priority",
                           validators: [validators.maxLength(2), validators.mustBeInteger],
-                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                            e.target.value = e.target.value.replace(
-                              regExValidators.regExNumber,
-                              ""
-                            );
-                          },
                         }}
                         onSubmit={(value: string) => {
                           withMissionChange((m) =>
@@ -412,9 +417,6 @@ const RightActionBody: FunctionComponent<{
                           validators.mustBeInteger,
                         ],
                       }}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                      }}
                       onSubmit={(value: string) => {
                         withMissionChange((m) =>
                           applyUpdateActionByField(m, {
@@ -440,7 +442,9 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.mass?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit}
+                      editMode={
+                        !isNull(rexUuid) && allowRexEdit && rexEditCapabilities.executedMass
+                      }
                       fieldProps={{
                         name: "mass",
                         ariaLabel: "Executed Sample Mass",
@@ -449,9 +453,6 @@ const RightActionBody: FunctionComponent<{
                           validators.mustBeInteger,
                           validators.mustBeNumberGTEZero,
                         ],
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          e.target.value = e.target.value.replace(regExValidators.regExNumber, "");
-                        },
                       }}
                       onSubmit={(value: string) => {
                         dispatch(
@@ -494,7 +495,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.markerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "markerId",
                         ariaLabel: "Sample Marker ID",
@@ -522,7 +528,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.containerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "containerId",
                         ariaLabel: "Container ID",
@@ -550,7 +561,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.secondaryContainerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && !actionRexMaestroControlled}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "secondaryContainerId",
                         ariaLabel: "Secondary Container ID",

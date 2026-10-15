@@ -108,7 +108,7 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
   - `thunk*` (`src/store/thunk/*`): async orchestrators that may pre-fetch elevation/REST, then run a single `.change()` per logical operation.
   - **`withMissionChange`** (`src/client/automergeDocHandles.ts`): the only sanctioned mutation entry-point for components. Wraps the null-guard and `.change()` call so callers never have to handle either: `withMissionChange((m) => applyFoo(m, args))`. Composing multiple `apply*` inside one call is atomic.
   - See `src/operations/README.md` for the full convention with examples.
-- **Socket.io** client syncs non-Automerge real-time events (connection status, live notifications, preset/STM/folder upserts).
+- **Socket.io** client syncs non-Automerge real-time events (connection status, heartbeats, version checks).
 - Vite path aliases map `"store"`, `"components"`, `"utils"`, etc. directly to `src/` subdirectories — use these aliases in imports.
 
 ### TypeScript Type Conventions
@@ -119,13 +119,13 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 
 ### Backend
 
-- **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, STM rules, folders, grids, layers, presets, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse is **not** handled via REST — those operations go through Automerge.
+- **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, grids, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse/folder/preset/STM is **not** handled via REST — those operations go through Automerge. The `layer` and `sublayer` routes are kept for the GIS pipeline (`register.py`) and the admin layers page; they read and write the mission Automerge doc on the server.
 - **Elevation sampling** runs natively in the API through `src/server/raster/` and
   `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
   there is no separate GDAL/Python runtime service.
-- **MikroORM 6** with PostgreSQL. Entity models live in `src/server/database/models/`. DB models still exist for legacy entities (action, eva, poi, rex, station, traverse) and are used by the Automerge migration script, but these entities are no longer read/written via ORM at runtime. Every request runs inside a `RequestContext` middleware for ORM isolation.
+- **MikroORM 6** with PostgreSQL. Entity models live in `src/server/database/models/`. Legacy ORM definitions for entities that moved into the mission doc live in `_legacyModels.ts` and are used only by Automerge migrations; the folder, layer, sublayer, preset, and STM tables are read with raw SQL by `Migration20261009000000` and then dropped. Every request runs inside a `RequestContext` middleware for ORM isolation.
 - **Socket.io** runs on a single Socket.IO server instance mounted at path `/api/socket`, hosting multiple namespaces:
-  - **Default namespace** (`/`) — handles AEGIS web-client connections: visitor presence, heartbeats (`statusFromServer` every 10s), and `storeUpsert`/`storeDelete` events for non-Automerge entities (Presets, STM Rules, Folders). Handlers are in `src/server/express/sockets.ts`.
+  - **Default namespace** (`/`) — handles AEGIS web-client connections: visitor presence, and heartbeats (`statusFromServer` every 10s). Handlers are in `src/server/express/sockets.ts`.
   - **`/maestro/v2` namespace** — Maestro v2. Auth is enforced via EMSS token middleware. Emits `dataAll` (full `AegisSlice.AegisSlice` payload) throttled at 500 ms per mission to the room `maestro{missionId}`. Handlers: `missionJoin`, `missionLeave`, `subscribeToEva`, `unsubscribeToEva`, `getEverything`, `sendMDAU` (receives `MDAU.MaestroDataAegisUses` and writes back station updates to the Automerge doc), `getDebugInfo`. Setup in `src/server/maestro/v2/sockets-maestro.ts`; emission logic in `src/server/maestro/v2/sockets-maestro-emitters.ts`.
   - **`/dust/v1` namespace** — DUST (another external app-to-app client). Auth is enforced via `DUST_TOKEN` middleware (`dustTokenIsValid` in `src/utils/permissions.ts`), checked against `process.env.DUST_TOKEN`, and also accepts the `EMSS_TOKEN` master key (`emssTokenIsValid`) — see the "EMSS Token Is a Master Key" note below. Visitors join a mission room named `dust{missionId}`. Handlers: `missionJoin`, `getEverything`, `getDebugInfo`. `missionJoin` only acknowledges success once the mission's automerge doc listener is installed; a setup failure rolls back the join (visitor removed, room left) and answers `{ status: "error" }` so the client can retry. `getEverything(missionId, callback)` is an on-demand full resync returning `DustPosEntriesUpdate[]` for **every** rex on the mission (running or not); it reads only the doc handle cached by `missionJoin`, so it fails with `{ status: "error" }` unless the socket has successfully joined that mission first. Emits `posEntriesUpdate` (full current `posEntries` list for a running rex, in human-readable form with pos type/source names resolved, plus mission/rex/eva name+uuid) whenever anything in a running rex's payload changes — crew position add/edit/delete, pos type/source rename, or mission/rex/eva rename. Change detection compares the whole canonical payload, not just the `posEntries` array reference. Emits only to the mission's room, skipped entirely if no DUST sockets are connected at all, and skipped per-mission if that mission's room is empty. Setup in `src/server/dust/v1/sockets-dust.ts`; automerge doc-change diffing/emit logic in `src/server/dust/v1/sockets-dust-emitters.ts`; message types in `src/server/dust/v1/types/socketioDust.d.ts`. Connection/visitor state lives in `globalValues.dustV1`.
 
@@ -167,18 +167,19 @@ REST responses are wrapped as `WrappedResponse<T>` with a `status` field (`"succ
 
 The app organizes around these core entities. Since the Automerge entity migration, the storage layer differs per entity — see the table below:
 
-| Entity                      | Automerge helpers (`src/operations/apply/`)          | Redux slice (UI state only) | DB model    | REST routes    |
-| --------------------------- | ---------------------------------------------------- | --------------------------- | ----------- | -------------- |
-| **Mission**                 | `apply-mission.ts` + sub-files                       | `mission.ts`                | ✅          | ✅             |
-| **EVA**                     | `apply-eva.ts`                                       | `eva.ts`                    | ✅ (legacy) | ❌ removed     |
-| **POI**                     | `apply-poi.ts`                                       | `poi.ts`                    | ✅ (legacy) | ❌ removed     |
-| **Station**                 | `apply-station.ts`                                   | `station.ts`                | ✅ (legacy) | ❌ removed     |
-| **Traverse**                | `apply-traverse.ts`                                  | `traverse.ts`               | ✅ (legacy) | ❌ removed     |
-| **Action / ActionTemplate** | `apply-action.ts`, `apply-mission-actionTemplate.ts` | `action.ts`                 | ✅ (legacy) | ❌ removed     |
-| **Rex**                     | `apply-rex.ts`                                       | `rex.ts`                    | ✅ (legacy) | ✅ (emss only) |
-| **STM**                     | —                                                    | `stm.ts`                    | ✅          | ✅             |
-| **Layers**                  | —                                                    | —                           | ✅          | ✅             |
-| **Preset**                  | —                                                    | `preset.ts`                 | ✅          | ✅             |
+| Entity                      | Automerge helpers (`src/operations/apply/`)          | Redux slice (UI state only) | DB model   | REST routes     |
+| --------------------------- | ---------------------------------------------------- | --------------------------- | ---------- | --------------- |
+| **Mission**                 | `apply-mission.ts` + sub-files                       | `mission.ts`                | ✅         | ✅              |
+| **EVA**                     | `apply-eva.ts`                                       | `eva.ts`                    | ❌ dropped | ❌ removed      |
+| **POI**                     | `apply-poi.ts`                                       | `poi.ts`                    | ❌ dropped | ❌ removed      |
+| **Station**                 | `apply-station.ts`                                   | `station.ts`                | ❌ dropped | ❌ removed      |
+| **Traverse**                | `apply-traverse.ts`                                  | `traverse.ts`               | ❌ dropped | ❌ removed      |
+| **Action / ActionTemplate** | `apply-action.ts`, `apply-mission-actionTemplate.ts` | `action.ts`                 | ❌ dropped | ❌ removed      |
+| **Rex**                     | `apply-rex.ts`                                       | `rex.ts`                    | ❌ dropped | ✅ (emss only)  |
+| **STM levels / rules**      | `apply-mission-stm.ts`                               | `stm.ts`                    | ❌ dropped | ❌ removed      |
+| **Layers / Sublayers**      | `apply-mission-layer.ts`                             | —                           | ❌ dropped | ✅ (doc-backed) |
+| **Preset**                  | `apply-mission-preset.ts`                            | `preset.ts`                 | ❌ dropped | ❌ removed      |
+| **Folder**                  | `apply-mission-folder.ts`                            | `interface.ts`              | ❌ dropped | ❌ removed      |
 
 - **Mission** — top-level planning container; Automerge document root. Per-mission doc holds all collaborative entity data.
 - **EVA** — Extra-Vehicular Activity; lives inside the mission Automerge doc.
@@ -187,9 +188,10 @@ The app organizes around these core entities. Since the Automerge entity migrati
 - **Traverse** — planned paths between stations; lives inside the mission Automerge doc.
 - **Action / ActionTemplate** — reusable task definitions; live inside the mission Automerge doc.
 - **Rex** — Resource/exploration data; lives inside the mission Automerge doc.
-- **STM** — Station Task Manifest (per-station task lists); REST/DB backed.
-- **Layers** — GIS map layers; REST/DB backed.
-- **Preset** — saved UI/map configurations; REST/DB backed.
+- **STM** — Science Traceability Matrix (`stmLevel1s` → `stmLevel2s` → `stmLevel3s`, plus `stmRules`); lives inside the mission Automerge doc. `action.stmPriorities` and `stmRule.stmUuid` reference level 3 uuids.
+- **Layers / Sublayers** — GIS map layers (`layers`, `sublayers`); live inside the mission Automerge doc. Adding, moving, or deleting a layer or sublayer updates every preset's `layerOrder` and `mapSublayerControls` in the same change.
+- **Preset** — saved map display configurations (`presets`); live inside the mission Automerge doc and are edited with the global edit toggle like stations.
+- **Folder** — left-panel folders for POIs, stations, EVAs, and presets (`folders`); live inside the mission Automerge doc. Deleting an entity removes it from every folder in the same change. Station and POI folder map visibility (`folder.visible`) is shared through the doc; folder open/closed state is UI-only (`interface.foldersInterface`, cookie-backed).
 
 > **Note**: "DB model (legacy)" means a MikroORM model still exists and is used by `src/server/automerge/migration.ts` to seed Automerge docs from existing PostgreSQL data, but is no longer written at runtime.
 

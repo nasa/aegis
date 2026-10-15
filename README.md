@@ -293,7 +293,21 @@ not modify its version, name, or behavior; add a new migration instead.
 
 **Create or reset to a fresh database (with prod data)**
 
-Refreshing your local database to match prod is a three step process:
+The quickest way is `npm run db:init`. It downloads the latest `z:db-export:prod` dump into
+`.local/db-init`, drops and recreates your local database, loads the dump, and runs
+`migration:up`. It authenticates to GitLab with `GITLAB_TOKEN` (`read_api` scope) or your stored git
+credentials, and uses Docker or, without Docker, your native Postgres (`NATIVE_DB_MANAGER` in the
+script). Your branch must include every migration prod has run, so rebase on `int` first.
+
+| Switch          | Effect                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------- |
+| `--no-download` | Skip the download and load the `.sql` files already in `.local/db-init` (e.g. offline/no VPN). |
+| `-h`, `--help`  | Show usage.                                                                                    |
+
+Pass switches after `--`, e.g. `npm run db:init -- --no-download`. If no token is available or the
+download fails, the script falls back to the existing dump(s) automatically.
+
+To do it manually instead: refreshing your local database to match prod is a three step process:
 
 1. Stop the aegis database container
 2. Perform **Step 1.8** from above

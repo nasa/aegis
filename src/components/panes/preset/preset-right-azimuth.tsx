@@ -1,11 +1,23 @@
-import throttle from "lodash/throttle";
+import debounce from "lodash/debounce";
 import paneStyles from "../global-pane-styles.module.css";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { faEarthAmerica, faSun, faMoon } from "@fortawesome/free-solid-svg-icons";
-import { upsertPresets } from "store/preset";
-import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdatePresetByField } from "operations/apply/apply-mission-preset";
+
+const AZIMUTH_WRITE_DEBOUNCE_MS = 250;
+
+/** Write one preset field to the mission doc. */
+const updatePresetField = <K extends keyof Preset>(
+  presetUuid: string,
+  fieldName: K,
+  value: Preset[K]
+): void => {
+  withMissionChange((m) => applyUpdatePresetByField(m, { presetUuid, fieldName, value }));
+};
 import { Checkbox, DegreesInputSlider } from "components/interface/form/globalFields";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import azimuthStyles from "./preset-right-azimuth.module.css";
@@ -13,33 +25,26 @@ import { ValidatedInputField } from "components/interface/form/globalFieldsAutom
 import { validators } from "components/interface/form/formValidators";
 
 const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const selectedPreset = useAppSelector(
-    (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
+  const selectedPreset = useMissionDocSelector(
+    (mission) => mission.presets?.[selectedPresetUuid],
     deepEqual
   );
 
   const [isDragging, setIsDragging] = useState(false);
-  const [displaySunAzimuth, setDisplaySunAzimuth] = useState(selectedPreset.sunAzimuth);
-  const [displayEarthAzimuth, setDisplayEarthAzimuth] = useState(selectedPreset.earthAzimuth);
+  const [displaySunAzimuth, setDisplaySunAzimuth] = useState(selectedPreset?.sunAzimuth ?? 0);
+  const [displayEarthAzimuth, setDisplayEarthAzimuth] = useState(selectedPreset?.earthAzimuth ?? 0);
 
   useEffect(() => {
-    setDisplaySunAzimuth(selectedPreset.sunAzimuth);
-    setDisplayEarthAzimuth(selectedPreset.earthAzimuth);
-  }, [selectedPreset]);
+    setDisplaySunAzimuth(selectedPreset?.sunAzimuth ?? 0);
+    setDisplayEarthAzimuth(selectedPreset?.earthAzimuth ?? 0);
+  }, [selectedPreset?.sunAzimuth, selectedPreset?.earthAzimuth]);
 
-  const sunThrottledFunc = useRef(
-    throttle((preset: Preset, value: number) => {
-      dispatch(
-        upsertPresets([
-          {
-            ...preset,
-            sunAzimuth: value,
-          },
-        ])
-      );
-    }, 50)
+  // Dragging fires on every step; wait for a pause before writing to the mission doc
+  const sunDebouncedFunc = useRef(
+    debounce((preset: Preset, value: number) => {
+      updatePresetField(preset.uuid, "sunAzimuth", value);
+    }, AZIMUTH_WRITE_DEBOUNCE_MS)
   );
 
   const handleOnChangeSunAzimuth = useCallback(
@@ -47,33 +52,36 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       //hook into isDragging to prevent this from triggering when values are reset via "Cancel" button
       if (isDragging) {
         setDisplaySunAzimuth(value);
-        sunThrottledFunc.current(preset, value);
+        sunDebouncedFunc.current(preset, value);
       }
     },
-    [sunThrottledFunc, isDragging]
+    [sunDebouncedFunc, isDragging]
   );
 
-  const earthThrottledFunc = useRef(
-    throttle((preset: Preset, value: number) => {
-      dispatch(
-        upsertPresets([
-          {
-            ...preset,
-            earthAzimuth: value,
-          },
-        ])
-      );
-    }, 50)
+  const earthDebouncedFunc = useRef(
+    debounce((preset: Preset, value: number) => {
+      updatePresetField(preset.uuid, "earthAzimuth", value);
+    }, AZIMUTH_WRITE_DEBOUNCE_MS)
   );
+
+  // Write any pending azimuth before switching presets or unmounting
+  useEffect(() => {
+    const sunDebounced = sunDebouncedFunc.current;
+    const earthDebounced = earthDebouncedFunc.current;
+    return () => {
+      sunDebounced.flush();
+      earthDebounced.flush();
+    };
+  }, [selectedPresetUuid]);
 
   const handleOnChangeEarthAzimuth = useCallback(
     (preset: Preset, value: number) => {
       if (isDragging) {
         setDisplayEarthAzimuth(value);
-        earthThrottledFunc.current(preset, value);
+        earthDebouncedFunc.current(preset, value);
       }
     },
-    [earthThrottledFunc, isDragging]
+    [earthDebouncedFunc, isDragging]
   );
 
   return (
@@ -120,14 +128,7 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                   onSubmit={(value: string) => {
                                     const numValue = Number(value);
                                     setDisplaySunAzimuth(numValue);
-                                    dispatch(
-                                      upsertPresets([
-                                        {
-                                          ...selectedPreset,
-                                          sunAzimuth: numValue,
-                                        },
-                                      ])
-                                    );
+                                    updatePresetField(selectedPreset.uuid, "sunAzimuth", numValue);
                                   }}
                                   displayStyle={{ fontSize: "1em", color: "var(--grey4)" }}
                                   displayValue={`${displaySunAzimuth}°`}
@@ -162,13 +163,10 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                       checked={selectedPreset.sunEnabled}
                                       editable={editMode}
                                       onChange={(e) => {
-                                        dispatch(
-                                          upsertPresets([
-                                            {
-                                              ...selectedPreset,
-                                              sunEnabled: e.target.checked,
-                                            },
-                                          ])
+                                        updatePresetField(
+                                          selectedPreset.uuid,
+                                          "sunEnabled",
+                                          e.target.checked
                                         );
                                       }}
                                       label="Enable:"
@@ -226,13 +224,10 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                   onSubmit={(value: string) => {
                                     const numValue = Number(value);
                                     setDisplayEarthAzimuth(numValue);
-                                    dispatch(
-                                      upsertPresets([
-                                        {
-                                          ...selectedPreset,
-                                          earthAzimuth: numValue,
-                                        },
-                                      ])
+                                    updatePresetField(
+                                      selectedPreset.uuid,
+                                      "earthAzimuth",
+                                      numValue
                                     );
                                   }}
                                   displayStyle={{ fontSize: "1em", color: "var(--grey4)" }}
@@ -272,10 +267,10 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                       }`}
                                       onClick={() => {
                                         if (selectedPreset.earthAsMoon)
-                                          dispatch(
-                                            upsertPresets([
-                                              { ...selectedPreset, earthAsMoon: false },
-                                            ])
+                                          updatePresetField(
+                                            selectedPreset.uuid,
+                                            "earthAsMoon",
+                                            false
                                           );
                                       }}
                                       aria-label="earthDirectionButton"
@@ -288,10 +283,10 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                       }`}
                                       onClick={() => {
                                         if (!selectedPreset.earthAsMoon)
-                                          dispatch(
-                                            upsertPresets([
-                                              { ...selectedPreset, earthAsMoon: true },
-                                            ])
+                                          updatePresetField(
+                                            selectedPreset.uuid,
+                                            "earthAsMoon",
+                                            true
                                           );
                                       }}
                                       aria-label="moonDirectionButton"
@@ -315,13 +310,10 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                       checked={selectedPreset.earthEnabled}
                                       editable={editMode}
                                       onChange={(e) => {
-                                        dispatch(
-                                          upsertPresets([
-                                            {
-                                              ...selectedPreset,
-                                              earthEnabled: e.target.checked,
-                                            },
-                                          ])
+                                        updatePresetField(
+                                          selectedPreset.uuid,
+                                          "earthEnabled",
+                                          e.target.checked
                                         );
                                       }}
                                       label="Enable:"

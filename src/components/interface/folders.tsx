@@ -25,30 +25,67 @@ import {
   pointerWithin,
 } from "@dnd-kit/core";
 import {
-  thunkDeleteFolder,
-  thunkSaveFolder,
+  thunkRenameFolder,
   thunkToggleFolderOpen,
   thunkToggleFolderVisible,
 } from "store/thunk/thunkFolder";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { InLineEditInput } from "components/interface/form/globalFields";
 import { validators } from "./form/formValidators";
-import { setFolderInterfaceEditing, setFolderInterfaceNameValue } from "store/interface";
+import {
+  getFolderInterface,
+  setFolderInterfaceEditing,
+  setFolderInterfaceNameValue,
+} from "store/interface";
+import Cookies from "js-cookie";
+import { withMissionOp } from "client/automergeDocHandles";
+import { opDeleteFolder } from "operations/op-folder";
+import { clientLogger } from "utils/logging/clientLogger";
+
+/** Delete a folder from the mission doc and remove its saved open state from the cookie. */
+const deleteFolder = (folderUuid: string) => {
+  let deleted = false;
+  const inUseMessage = withMissionOp(opDeleteFolder, folderUuid, () => {
+    deleted = window.confirm("Are you sure you want to delete this folder?");
+    return deleted;
+  });
+  if (inUseMessage) {
+    alert(inUseMessage);
+    return;
+  }
+  if (!deleted) return;
+
+  // Remove folder state from cookie
+  try {
+    const cookieKey = "AEGIS_Folders_Interface";
+    const existingStates = Cookies.get(cookieKey);
+    if (existingStates) {
+      const parsedStates = JSON.parse(existingStates);
+      delete parsedStates[folderUuid];
+      Cookies.set(cookieKey, JSON.stringify(parsedStates), { path: "/" });
+    }
+  } catch (error) {
+    clientLogger.error(
+      { logId: "folders", logValue: "Error removing folder state from cookie" },
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
+};
 
 // Generic draggable item component
 const DraggableItem = ({
   itemUuid,
   children,
-  editPerms = false,
+  canEdit = false,
 }: {
   itemUuid: string;
   children: ReactNode;
-  editPerms?: boolean;
+  canEdit?: boolean;
 }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: itemUuid,
-    disabled: !editPerms,
+    disabled: !canEdit,
   });
 
   // This is to prevent dnd-kit from initiating a drag when clicking on interactive elements within the draggable item.
@@ -68,8 +105,8 @@ const DraggableItem = ({
   return (
     <div
       ref={setNodeRef}
-      {...(editPerms ? listeners : {})}
-      {...(editPerms ? attributes : {})}
+      {...(canEdit ? listeners : {})}
+      {...(canEdit ? attributes : {})}
       className={`${styles.draggableItem} ${isDragging ? styles.isDragging : ""}`}
       onPointerDownCapture={handlePointerDown}
     >
@@ -80,18 +117,14 @@ const DraggableItem = ({
 
 // Add FolderMenu component before FolderComponent
 const FolderMenu: FunctionComponent<{
-  folderUuid: string;
+  folder: Folder;
   folderInterface: FolderInterface;
   handleCancel: (e: MouseEvent) => void;
-  editPerms: boolean;
-}> = ({ folderUuid, folderInterface, handleCancel, editPerms }) => {
+}> = ({ folder, folderInterface, handleCancel }) => {
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
-  const folder = useAppSelector(
-    (state) => state.interface.folders.find((f) => f.uuid === folderUuid),
-    refEqual
-  );
+  const folderUuid = folder.uuid;
 
   const handleMenuOpen = (e: MouseEvent) => {
     const x = e.clientX + 5;
@@ -122,59 +155,61 @@ const FolderMenu: FunctionComponent<{
               }}
             >
               <div className={styles.menuItemIcon}>
-                <FontAwesomeIcon icon={folderInterface.visible ? faEyeSlash : faEye} size="sm" />
+                <FontAwesomeIcon icon={folder.visible ? faEyeSlash : faEye} size="sm" />
               </div>
               <div className={styles.menuItemText}>
-                {folderInterface.visible ? "Hide" : "Show"} Folder Contents on Map
+                {folder.visible ? "Hide" : "Show"} Folder Contents on Map
               </div>
             </div>
           )}
-          {editPerms && (
-            <>
-              {!folderInterface.editing ? (
-                <div
-                  className={styles.menuItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dispatch(setFolderInterfaceEditing({ folderUuid, editing: true }));
-                    dialogRef.current?.close();
-                  }}
-                >
-                  <div className={styles.menuItemIcon}>
-                    <FontAwesomeIcon icon={faEdit} size="sm" />
-                  </div>
-                  <div className={styles.menuItemText}>Rename Folder</div>
-                </div>
-              ) : (
-                <div
-                  className={styles.menuItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dialogRef.current?.close();
-                    handleCancel(e);
-                  }}
-                >
-                  <div className={styles.menuItemIcon}>
-                    <FontAwesomeIcon icon={faBan} size="sm" />
-                  </div>
-                  <div className={styles.menuItemText}>Cancel</div>
-                </div>
-              )}
-              <div
-                className={styles.menuItem}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  dispatch(thunkDeleteFolder({ folderUuid }));
-                  dialogRef.current?.close();
-                }}
-              >
-                <div className={styles.menuItemIcon}>
-                  <FontAwesomeIcon icon={faTrashAlt} size="sm" />
-                </div>
-                <div className={styles.menuItemText}>Delete Folder</div>
+          {!folderInterface.editing ? (
+            <div
+              className={styles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch(
+                  setFolderInterfaceEditing({
+                    folderUuid,
+                    editing: true,
+                    folderName: folder.name,
+                  })
+                );
+                dialogRef.current?.close();
+              }}
+            >
+              <div className={styles.menuItemIcon}>
+                <FontAwesomeIcon icon={faEdit} size="sm" />
               </div>
-            </>
+              <div className={styles.menuItemText}>Rename Folder</div>
+            </div>
+          ) : (
+            <div
+              className={styles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                dialogRef.current?.close();
+                handleCancel(e);
+              }}
+            >
+              <div className={styles.menuItemIcon}>
+                <FontAwesomeIcon icon={faBan} size="sm" />
+              </div>
+              <div className={styles.menuItemText}>Cancel</div>
+            </div>
           )}
+          <div
+            className={styles.menuItem}
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteFolder(folderUuid);
+              dialogRef.current?.close();
+            }}
+          >
+            <div className={styles.menuItemIcon}>
+              <FontAwesomeIcon icon={faTrashAlt} size="sm" />
+            </div>
+            <div className={styles.menuItemText}>Delete Folder</div>
+          </div>
         </div>
       </dialog>
 
@@ -214,6 +249,13 @@ const FolderComponent = ({
 }): JSX.Element => {
   const dispatch = useAppDispatch();
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const showButtons = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
+
+  const showMenu = !hideMenu && showButtons;
+
   const { isOver, setNodeRef } = useDroppable({
     id: folder.uuid,
   });
@@ -244,17 +286,19 @@ const FolderComponent = ({
 
   const handleSaveEdit = (e: KeyboardEvent<HTMLDivElement> | MouseEvent) => {
     e.stopPropagation();
-    const newFolder = { ...folder, name: folderInterface.editingNameValue };
-    dispatch(thunkSaveFolder({ folder: newFolder }));
-    dispatch(setFolderInterfaceEditing({ folderUuid: folder.uuid, editing: false }));
-    dispatch(setFolderInterfaceNameValue({ folderUuid: folder.uuid, editingNameValue: null }));
+    dispatch(
+      thunkRenameFolder({
+        folderUuid: folder.uuid,
+        name: folderInterface.editingNameValue ?? folder.name,
+      })
+    );
   };
 
   return (
     <div
       ref={setNodeRef}
       className={`${styles.folderContainer} ${isOver ? styles.droppable : ""} ${
-        !folderInterface.visible ? styles.folderHidden : ""
+        !folder.visible ? styles.folderHidden : ""
       }`}
     >
       <div className={styles.folder} onClick={handleFolderClick}>
@@ -298,12 +342,11 @@ const FolderComponent = ({
               <FontAwesomeIcon icon={faFloppyDisk} size="lg" />
             </button>
           )}
-          {!hideMenu && (
+          {showMenu && (
             <FolderMenu
-              folderUuid={folder.uuid}
+              folder={folder}
               folderInterface={folderInterface}
               handleCancel={handleCancelEdit}
-              editPerms={editPerms}
             />
           )}
         </div>
@@ -312,7 +355,7 @@ const FolderComponent = ({
       {folderInterface.isOpen && folderContents.length > 0 && (
         <div className={styles.folderContents}>
           {folderContents.map((itemUuid) => (
-            <DraggableItem key={itemUuid} itemUuid={itemUuid} editPerms={editPerms}>
+            <DraggableItem key={itemUuid} itemUuid={itemUuid} canEdit={showButtons}>
               {renderItem({ itemUuid, isDragging: false, first: false })}
             </DraggableItem>
           ))}
@@ -323,13 +366,13 @@ const FolderComponent = ({
 };
 
 // Root droppable area component
-const RootDroppableArea: FunctionComponent<{ children: ReactNode; editPerms: boolean }> = ({
+const RootDroppableArea: FunctionComponent<{ children: ReactNode; canEdit: boolean }> = ({
   children,
-  editPerms,
+  canEdit,
 }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: "root-area",
-    disabled: !editPerms,
+    disabled: !canEdit,
   });
 
   // Check if children have been passed in, ignoring empty JSX elements and stuff
@@ -338,14 +381,14 @@ const RootDroppableArea: FunctionComponent<{ children: ReactNode; editPerms: boo
   });
 
   // Don't render if no edit permissions and no real children
-  if (!editPerms && !hasRealChildren) {
+  if (!canEdit && !hasRealChildren) {
     return null;
   }
 
   return (
     <div
       ref={setNodeRef}
-      className={`${styles.rootDroppableArea} ${isOver && editPerms ? styles.droppable : ""}`}
+      className={`${styles.rootDroppableArea} ${isOver && canEdit ? styles.droppable : ""}`}
     >
       {children}
     </div>
@@ -357,22 +400,24 @@ export const FolderOrganizer = ({
   itemUuids,
   renderItem,
   folders,
-  foldersInterface,
   itemsToFolders,
   setItemFolder,
   hideMenu = false,
 }: {
   itemUuids: string[];
   renderItem: (props: FolderItemProps) => ReactNode;
-  folders?: Folder[];
-  foldersInterface?: FolderInterface[];
+  folders: Folder[];
   itemsToFolders: Record<string, string>;
   setItemFolder: (params: { uuid: string; folderUuid: string | null }) => void;
   hideMenu?: boolean;
 }): JSX.Element => {
   const dispatch = useAppDispatch();
+  const foldersInterface = useAppSelector((state) => state.interface.foldersInterface, deepEqual);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const canEdit = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -400,8 +445,8 @@ export const FolderOrganizer = ({
       } else if (activeId !== overId) {
         // Associate item with folder
         setItemFolder({ uuid: activeId, folderUuid: overId });
-        const overFolder = foldersInterface.find((folder) => folder.uuid === overId);
-        if (overFolder && !overFolder.isOpen) {
+        const overFolder = folders.find((folder) => folder.uuid === overId);
+        if (overFolder && !getFolderInterface(foldersInterface, overId).isOpen) {
           dispatch(thunkToggleFolderOpen({ folderUuid: overId }));
         }
       }
@@ -431,10 +476,7 @@ export const FolderOrganizer = ({
       <div className={styles.rootArea}>
         {/* Render folders */}
         {sortedFolders.map((folder) => {
-          const folderInterface = foldersInterface.find(
-            (folderInterface) => folderInterface.uuid === folder.uuid
-          );
-          if (!folderInterface) return null;
+          const folderInterface = getFolderInterface(foldersInterface, folder.uuid);
 
           return (
             <FolderComponent
@@ -451,14 +493,12 @@ export const FolderOrganizer = ({
         })}
 
         {/* Render unassociated items in root area */}
-        <RootDroppableArea editPerms={editPerms}>
-          {unassociatedItems.length === 0 &&
-            editPerms &&
-            Object.keys(itemsToFolders).length > 0 && (
-              <div className={styles.dropHint}>Drag here to remove item from folder</div>
-            )}
+        <RootDroppableArea canEdit={canEdit}>
+          {unassociatedItems.length === 0 && canEdit && Object.keys(itemsToFolders).length > 0 && (
+            <div className={styles.dropHint}>Drag here to remove item from folder</div>
+          )}
           {unassociatedItems.map((itemUuid, index) => (
-            <DraggableItem key={itemUuid} itemUuid={itemUuid} editPerms={editPerms}>
+            <DraggableItem key={itemUuid} itemUuid={itemUuid} canEdit={canEdit}>
               {renderItem({ itemUuid, isDragging: false, first: index === 0 })}
             </DraggableItem>
           ))}

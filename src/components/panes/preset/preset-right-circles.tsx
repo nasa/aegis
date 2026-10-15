@@ -1,10 +1,12 @@
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
+import { setPresetCircleUIState } from "store/preset";
+import { withMissionChange } from "client/automergeDocHandles";
 import {
-  setPresetCircleStyle,
-  setPresetCircleUIState,
-  togglePresetCircleVisible,
-} from "store/preset";
+  applySetPresetCircleStyle,
+  applyTogglePresetCircleVisible,
+} from "operations/apply/apply-mission-preset";
 import Circles from "../../interface/circles";
 import { useAppDispatch } from "utils/useAppDispatch";
 import paneStyles from "../global-pane-styles.module.css";
@@ -19,15 +21,24 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
   );
 
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const mapCircleControls = useAppSelector(
-    (state) =>
-      state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid)?.mapCircleControls,
+  const mapCircleControls = useMissionDocSelector(
+    (mission) => mission.presets?.[selectedPresetUuid]?.mapCircleControls,
     deepEqual
   );
-  const presetCircleUIStates = useAppSelector(
+  const storedPresetCircleUIStates = useAppSelector(
     (state) => state.preset.presetCirclesUIStates[selectedPresetUuid],
     shallowEqual
   );
+  // A preset created by another user has no UI states in this store yet, so default each circle
+  const presetCircleUIStates = useMemo(() => {
+    const circleUIStatesWithDefaults: CircleUIStates = {};
+    for (const circleDefUuid of Object.keys(circleDefinitions ?? {})) {
+      circleUIStatesWithDefaults[circleDefUuid] = storedPresetCircleUIStates?.[circleDefUuid] ?? {
+        slidersSelected: false,
+      };
+    }
+    return circleUIStatesWithDefaults;
+  }, [circleDefinitions, storedPresetCircleUIStates]);
   const circleUIStateSetterFunction = ({
     circleDefUuid,
     slidersSelected,
@@ -48,11 +59,8 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
   };
 
   const togglePresetCircleVisibleHandler = ({ circleUuid }: { circleUuid: string }) => {
-    dispatch(
-      togglePresetCircleVisible({
-        presetUuid: selectedPresetUuid,
-        circleUuid,
-      })
+    withMissionChange((m) =>
+      applyTogglePresetCircleVisible(m, { presetUuid: selectedPresetUuid, circleUuid })
     );
   };
 
@@ -63,8 +71,8 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
     uuid: string;
     layerStyle: MapSublayerStyle;
   }) => {
-    dispatch(
-      setPresetCircleStyle({
+    withMissionChange((m) =>
+      applySetPresetCircleStyle(m, {
         presetUuid: selectedPresetUuid,
         circleDefUuid: uuid,
         style: layerStyle,
@@ -80,7 +88,7 @@ const Preset_Circles_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMo
           <div className={paneStyles.panelContainer}>
             <div className={styles.circlesContainer}>
               <div className={styles.circlesBody}>
-                {circleDefinitions && presetCircleUIStates && (
+                {circleDefinitions && (
                   <Circles
                     editMode={editMode}
                     mapCircleControls={mapCircleControls}

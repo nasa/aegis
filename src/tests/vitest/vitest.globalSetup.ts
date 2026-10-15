@@ -14,14 +14,7 @@ export async function teardown(): Promise<void> {
   const orm = await MikroORM.init(config);
   const em = orm.em.fork();
 
-  const sql = `delete from "folder_db" where name like '%Vitest%';
-  delete from "sublayer_db" where name like '%Vitest%';
-  delete from "layer_db" where name like '%Vitest%';
-  delete from "preset_db" where name like '%Vitest%';
-  delete from "stm_level3_db" where name like '%Vitest%';
-  delete from "stm_level2_db" where name like '%Vitest%';
-  delete from "stm_level1_db" where name like '%Vitest%';
-  delete from "doc_listing_db" where automerge_url like '%Vitest%';
+  const sql = `delete from "doc_listing_db" where automerge_url like '%Vitest%';
   delete from "app_user_db" where username like '%Vitest%';`;
   await em.getConnection().execute(sql);
 

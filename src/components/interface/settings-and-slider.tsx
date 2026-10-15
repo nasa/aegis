@@ -1,5 +1,6 @@
 import type { FunctionComponent } from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import debounce from "lodash/debounce";
 import styles from "./settings-and-slider.module.css";
 import { Checkbox, Dropdown } from "components/interface/form/globalFields";
 
@@ -7,6 +8,9 @@ import { getPercentOrDefault } from "utils/formatting";
 import CompactColor from "@uiw/react-color-compact";
 import { COLOR_PALATTE } from "utils/consts";
 import { defaultGridStyle, defaultSublayerStyle } from "store/storeUtils/sublayer";
+
+// Slider drags fire on every step; wait for a pause before writing the style to the mission doc
+const STYLE_WRITE_DEBOUNCE_MS = 250;
 
 const Settings_subpanel: FunctionComponent<{
   type: "vector" | "circle" | "vector-tile" | "tile" | "grid";
@@ -19,12 +23,41 @@ const Settings_subpanel: FunctionComponent<{
   mapCircleControls = mapCircleControls || {};
   mapSublayerControls = mapSublayerControls || {};
 
-  let layerStyle: MapSublayerStyle = mapSublayerControls[uuid]?.style;
+  let storedLayerStyle: MapSublayerStyle = mapSublayerControls[uuid]?.style;
   if (type === "grid") {
-    layerStyle = mapGridControl?.style;
+    storedLayerStyle = mapGridControl?.style;
   } else if (type === "circle") {
-    layerStyle = mapCircleControls[uuid]?.style;
+    storedLayerStyle = mapCircleControls[uuid]?.style;
   }
+
+  // The style being edited, shown until the debounced write reaches the mission doc
+  const [pendingLayerStyle, setPendingLayerStyle] = useState<{
+    uuid: string;
+    layerStyle: MapSublayerStyle;
+  } | null>(null);
+  const layerStyle =
+    pendingLayerStyle?.uuid === uuid ? pendingLayerStyle.layerStyle : storedLayerStyle;
+
+  // The setter and uuid are passed per call so a pending write goes to the item it was made for
+  const debouncedStyleWriteRef = useRef(
+    debounce(
+      (
+        styleSetterAtEdit: typeof styleSetter,
+        uuidAtEdit: string,
+        editedLayerStyle: MapSublayerStyle
+      ) => {
+        styleSetterAtEdit({ uuid: uuidAtEdit, layerStyle: editedLayerStyle });
+        setPendingLayerStyle(null);
+      },
+      STYLE_WRITE_DEBOUNCE_MS
+    )
+  );
+
+  // Write any pending style before switching items or unmounting
+  useEffect(() => {
+    const debouncedStyleWrite = debouncedStyleWriteRef.current;
+    return () => debouncedStyleWrite.flush();
+  }, [uuid]);
 
   // Display fallbacks for unset style fields — grid uses its own halo defaults.
   const styleDefaults = type === "grid" ? defaultGridStyle : defaultSublayerStyle;
@@ -119,10 +152,9 @@ const Settings_subpanel: FunctionComponent<{
 
   const setStyle = useCallback(
     (value: number | string | boolean, property: MapSublayerStyleKeys) => {
-      styleSetter({
-        uuid,
-        layerStyle: { ...layerStyle, [property]: value },
-      });
+      const editedLayerStyle = { ...layerStyle, [property]: value };
+      setPendingLayerStyle({ uuid, layerStyle: editedLayerStyle });
+      debouncedStyleWriteRef.current(styleSetter, uuid, editedLayerStyle);
     },
     [uuid, layerStyle, styleSetter]
   );

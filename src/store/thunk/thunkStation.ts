@@ -24,7 +24,6 @@ import { stageDuplicateStation } from "operations/stage/stage-station";
 import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
-import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { clientLogger } from "utils/logging/clientLogger";
@@ -443,14 +442,6 @@ export const thunkDocDeleteStations = appCreateAsyncThunk<
 
     const stationActionUuidsToDelete: string[] = [];
     for (const stationUuid of stationUuids) {
-      // Update folders
-      dispatch(
-        thunkAddRemoveFolderItem({
-          itemUuid: stationUuid,
-          folderUuid: null,
-        })
-      );
-
       // Gather all the actions to delete
       const stationActions = Object.values(mission?.actions ?? {}).filter(
         (action) => action.stationUuid === stationUuid
@@ -498,7 +489,6 @@ export const thunkDocCreateStation = appCreateAsyncThunk<void>(
     }
 
     const blankStation = generateBlankStation({
-      missionId: mission.id,
       name: randomName,
       mapCircleControls: blankMapCircleControls,
       ownerId: getState().user?.appUser?.id ?? null,

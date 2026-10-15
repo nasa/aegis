@@ -21,7 +21,7 @@ import { Collection } from "ol";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { selectAsPlannedStations } from "store/selectors";
+import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { thunkMarkerOnClick } from "store/thunk/thunkMap";
 import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -49,8 +49,8 @@ export function StationMarkers(): null {
   const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
   const selectedStationUuid = useAppSelector((s) => s.station.selectedStationUuid, refEqual);
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
-  const folders = useAppSelector((s) => s.interface.folders, deepEqual);
-  const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
+  const folders: Folder[] =
+    useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
 
   // While any map directive is active — a marker/path edit OR a crew-position
@@ -159,10 +159,7 @@ export function StationMarkers(): null {
         if (!folder) {
           uuidsToShow.add(station.uuid);
         } else {
-          const fi = foldersInterface.find(
-            (fi: { uuid: string; visible: boolean }) => fi.uuid === folder.uuid
-          );
-          if (!fi || fi.visible) {
+          if (folder.visible) {
             uuidsToShow.add(station.uuid);
           }
         }
@@ -197,7 +194,6 @@ export function StationMarkers(): null {
     allStationsFromDoc,
     asPlannedStationsFromDoc,
     folders,
-    foldersInterface,
   ]);
 
   // --- Reconcile features on shared source ---

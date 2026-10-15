@@ -1,4 +1,4 @@
-import { useState, type FunctionComponent } from "react";
+import { useEffect, useState, type FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import EvaItem from "./eva-item";
@@ -8,8 +8,12 @@ import { faEye, faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-i
 import { useAppDispatch } from "utils/useAppDispatch";
 import { LoadingOverlay } from "components/interface/_global-elements";
 import { thunkDocCreateEva, thunkUISetOnlyShowRunningRexEva } from "store/thunk/thunkEva";
+import { setOnlyShowRunningRex } from "store/eva";
 import { FolderOrganizer } from "components/interface/folders";
-import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
+import { selectFoldersByType } from "store/selectors";
+import { thunkCreateFolder } from "store/thunk/thunkFolder";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyMoveItemToFolder } from "operations/apply/apply-mission-folder";
 import sortBy from "lodash/sortBy";
 import EvaRunningRex from "./eva-running-rex";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -34,6 +38,15 @@ const EvaPlannerLeft: FunctionComponent = () => {
     refEqual
   );
 
+  // showRunningRexOnly only makes sense while a rex is actually running. A rex can stop
+  // running from outside this component's control (e.g. Maestro stopping it remotely via
+  // sendMDAU), so enforce the invariant here instead of only at the local stop-button click.
+  useEffect(() => {
+    if (showRunningRexOnly && !isRexRunning) {
+      dispatch(setOnlyShowRunningRex(false));
+    }
+  }, [showRunningRexOnly, isRexRunning, dispatch]);
+
   const runningRexExpanded = useAppSelector((state) => state.eva.runningRexExpanded, refEqual);
 
   // These are the as-planned evas that are passed into the sub component to create the list of evas
@@ -48,16 +61,8 @@ const EvaPlannerLeft: FunctionComponent = () => {
       ).map((eva) => eva.uuid);
     }, deepEqual) ?? [];
 
-  const folderRecords = useAppSelector((state) => {
-    return state.interface.folders.filter((f) => f.type === "eva");
-  }, deepEqual);
-
-  const foldersInterface = useAppSelector((state) => {
-    const allFoldersInterface = state.interface.foldersInterface;
-    return allFoldersInterface.filter((folderInterface) =>
-      folderRecords.some((folder) => folder.uuid === folderInterface.uuid)
-    );
-  }, deepEqual);
+  const folderRecords =
+    useMissionDocSelector((mission) => selectFoldersByType(mission, "eva"), deepEqual) ?? [];
 
   const itemsToFolders = folderRecords.reduce<Record<string, string>>((map, folder) => {
     folder.items?.forEach((itemUuid) => {
@@ -67,7 +72,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
   }, {});
 
   const setItemFolder = ({ folderUuid, uuid }: { folderUuid: string | null; uuid: string }) => {
-    dispatch(thunkAddRemoveFolderItem({ folderUuid, itemUuid: uuid }));
+    withMissionChange((m) => applyMoveItemToFolder(m, { folderUuid, itemUuid: uuid }));
   };
 
   const renderEvaItem = ({ itemUuid, first }: FolderItemProps) => {
@@ -130,7 +135,6 @@ const EvaPlannerLeft: FunctionComponent = () => {
                 itemUuids={asPlannedEvaUuids}
                 renderItem={renderEvaItem}
                 folders={folderRecords}
-                foldersInterface={foldersInterface}
                 itemsToFolders={itemsToFolders}
                 setItemFolder={setItemFolder}
                 hideMenu={!editPerms}
@@ -158,7 +162,7 @@ const EvaPlannerLeft: FunctionComponent = () => {
                     />
                   </>
                 )}
-                {editPerms && (
+                {showButtons && (
                   <Button
                     ariaLabel="addFolder"
                     onClick={() => dispatch(thunkCreateFolder({ type: "eva" }))}

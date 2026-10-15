@@ -17,7 +17,7 @@ import type VectorSource from "ol/source/Vector";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { selectAsPlannedStations } from "store/selectors";
+import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { createCircleLayer } from "../utils/layers/circleLayer";
 import { withAlpha } from "../utils/layers/layerFactory";
 
@@ -47,8 +47,8 @@ export function Circles(): null {
   ) as AEGISPoint | null;
 
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
-  const presetCircleControls = useAppSelector(
-    (s) => s.preset.presets.find((p) => p.uuid === selectedPresetUuid)?.mapCircleControls,
+  const presetCircleControls = useMissionDocSelector(
+    (m) => m.presets?.[selectedPresetUuid]?.mapCircleControls,
     deepEqual
   ) as MapCircleControls | undefined;
 
@@ -62,8 +62,8 @@ export function Circles(): null {
     deepEqual
   );
   const asPlannedStationsFromDoc = useMissionDocSelector(selectAsPlannedStations, deepEqual);
-  const folders = useAppSelector((s) => s.interface.folders, deepEqual);
-  const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
+  const folders: Folder[] =
+    useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
 
   // Compute the same set of visible stations as StationMarkers. Proximity
   // circles have no interactions, so they stay visible during an edit (they
@@ -90,10 +90,7 @@ export function Circles(): null {
         if (!folder) {
           uuidsToShow.add(station.uuid);
         } else {
-          const fi = foldersInterface.find(
-            (fi: { uuid: string; visible: boolean }) => fi.uuid === folder.uuid
-          );
-          if (!fi || fi.visible) {
+          if (folder.visible) {
             uuidsToShow.add(station.uuid);
           }
         }
@@ -108,14 +105,7 @@ export function Circles(): null {
         s.location?.lat != null &&
         s.location?.lng != null
     );
-  }, [
-    selectedEva,
-    mapDisplayStations.show,
-    allStationsFromDoc,
-    asPlannedStationsFromDoc,
-    folders,
-    foldersInterface,
-  ]);
+  }, [selectedEva, mapDisplayStations.show, allStationsFromDoc, asPlannedStationsFromDoc, folders]);
 
   // --- Refs for managed layers -----------------------------------------------
   const landerCircleLayersRef = useRef<Map<string, VectorLayer<VectorSource>>>(new Map());

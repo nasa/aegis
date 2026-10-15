@@ -16,10 +16,9 @@ import { v4 as uuidv4 } from "uuid";
 function makeLayer(name: string): Layer {
   return {
     uuid: uuidv4(),
-    missionId: 1,
     name,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   };
 }
 

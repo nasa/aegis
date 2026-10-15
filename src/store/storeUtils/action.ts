@@ -12,7 +12,6 @@ export const generateBlankAction = (partialAction?: Partial<Action>): Action => 
     uuid: uuidv4(),
     refUuid: uuidv4(),
     name: "",
-    missionId: null,
     poiUuid: null,
     stationUuid: null,
     traverseUuid: null,

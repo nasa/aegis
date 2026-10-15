@@ -17,14 +17,7 @@ import { initialState as userInitialState } from "store/user";
 import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as connectionInitialState } from "store/connection";
 import { initialState as measureInitialState } from "store/measure";
-import { generateBlankPreset } from "store/storeUtils/preset";
-import {
-  generateBlankStmLvl1,
-  generateBlankStmLvl2,
-  generateBlankStmLvl3,
-} from "store/storeUtils/stm";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
-import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import {
   generateFullMission,
@@ -38,34 +31,14 @@ export const createTestStoreWithAutomergeMission = (): StoreType => {
   const mission = generateFullMission();
   writeMissionDataToAutomergeDocHandle(mission, getMissionDocHandle());
 
-  // Create all the redux store values
-  const sublayer = generateBlankSublayer({ name: "Vitest Test Sublayer" });
-  const preset = generateBlankPreset({
-    name: "Vitest Test Preset",
-    missionDefault: true,
-    mapSublayerControls: {
-      [sublayer.uuid]: {
-        name: sublayer.name,
-        sublayerUuid: sublayer.uuid,
-        visible: true,
-        style: null,
-      },
-    },
-  });
-  const stmLevel1 = generateBlankStmLvl1({ name: "Vitest STM Level1-1", numbering: "1" });
-  const stmLevel2 = generateBlankStmLvl2({ name: "Vitest STM Level2-1", numbering: "1" });
-  stmLevel2.level1Uuid = stmLevel1.uuid;
-  const stmLevel3 = generateBlankStmLvl3({ name: "Vitest STM Level3-1", numbering: "1" });
-  stmLevel3.level2Uuid = stmLevel2.uuid;
-  const presetLayersUIStates = { [preset.uuid]: {} };
-  const presetCirclesUIStates = { [preset.uuid]: {} };
+  // Preset UI states for the fixture mission's presets
+  const presetUuid = Object.values(mission.presets).find((p) => p.missionDefault)?.uuid ?? null;
+  const presetLayersUIStates = presetUuid ? { [presetUuid]: {} } : {};
+  const presetCirclesUIStates = presetUuid ? { [presetUuid]: {} } : {};
 
   const testState: RootState = {
     hover: { ...hoverInitialState },
-    mission: {
-      ...missionInitialState,
-      sublayers: [sublayer],
-    },
+    mission: { ...missionInitialState },
     user: {
       ...userInitialState,
       appUser: generateBlankAppUser({
@@ -83,17 +56,11 @@ export const createTestStoreWithAutomergeMission = (): StoreType => {
     poi: { ...poiInitialState },
     interface: { ...interfaceInitialState },
     connection: { ...connectionInitialState },
-    stm: {
-      ...stmInitialState,
-      level1s: [stmLevel1],
-      level2s: [stmLevel2],
-      level3s: [stmLevel3],
-    },
+    stm: { ...stmInitialState },
     report: { ...reportInitialState },
     preset: {
       ...presetInitialState,
-      presets: [preset],
-      presetsFromDb: [preset],
+      selectedPresetUuid: presetUuid,
       presetLayersUIStates,
       presetCirclesUIStates,
     },

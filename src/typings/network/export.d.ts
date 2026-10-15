@@ -70,10 +70,15 @@ interface ExportStationCalculatedFields extends StationCalculatedFields {
 
 interface ExportTraverse extends Traverse {
   _itemType: string;
-  calculatedFields: TraverseCalculatedFields;
+  calculatedFields: ExportTraverseCalculatedFields;
   actionsReadable: ExportAction[];
   actionOrderRefUuids: string[];
   rexUuid: string | null; // the rex uuid if this traverse is in an EVA that is in a rex
+}
+
+interface ExportTraverseCalculatedFields extends TraverseCalculatedFields {
+  // Alias of movementDurationMinutes, exposed for Maestro consumers
+  durationMinutes: number;
 }
 
 interface EvaSequenceItemRefUuid extends EvaSequenceItem {
@@ -108,12 +113,4 @@ type MissionDump = {
 
 type MissionSourceData = {
   mission: Mission;
-  layers: Layer_db[];
-  sublayers: Sublayer_db[];
-  presets: Preset_db[];
-  stmLevel1s?: STM_Level1_db[];
-  stmLevel2s?: STM_Level2_db[];
-  stmLevel3s?: STM_Level3_db[];
-  stmRules?: STM_Rule_db[];
-  folders: Folder_db[];
 };

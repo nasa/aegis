@@ -24,6 +24,7 @@ import {
   getCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
 import { processEvaDataFromStore } from "./common-timeline";
+import { useMapMenuContext } from "../map/MapMenuProvider";
 
 /**
  * Renders the navigation timeline presented at the bottom of the window
@@ -76,6 +77,7 @@ const NavTimeline: FunctionComponent = () => {
     if (!mission?.rexes) return null;
     return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
   }, deepEqual);
+  const display = useMapMenuContext();
 
   const stationCalculatedFieldsInSelectedEva = useMemo(() => {
     const eva = selectedEva;
@@ -201,7 +203,14 @@ const NavTimeline: FunctionComponent = () => {
   const processPosEntriesFromStore = useCallback(() => {
     if (!partialMission || !selectedRex) return;
     const posForPaper: PosEntry_PaperJS[] = [];
-    for (const posEntry of selectedRex.posEntries || []) {
+
+    // check if there is a filter on positions by source
+    const mapDisplayPosUuids = display.submenuPos.sourceUuids;
+    const selectedPos = mapDisplayPosUuids.length
+      ? selectedRex.posEntries.filter((pos) => mapDisplayPosUuids.includes(pos.posSourceUuid))
+      : selectedRex.posEntries;
+
+    for (const posEntry of selectedPos || []) {
       const distFromLander = getDistanceBetweenTwoCoordinates(
         partialMission.landerLocation,
         posEntry.location,
@@ -210,7 +219,7 @@ const NavTimeline: FunctionComponent = () => {
       posForPaper.push({ ...posEntry, distanceFromLanderMeters: distFromLander });
     }
     posRef.current = posForPaper;
-  }, [partialMission, selectedRex]);
+  }, [display.submenuPos.sourceUuids, partialMission, selectedRex]);
 
   /**
    * Main function to draw the timeline. All the paper drawing happens here

@@ -8,7 +8,6 @@ import { thunkCancelMarkerMapDirective } from "./thunkMap";
 import cloneDeep from "lodash/cloneDeep";
 import { getAccurateNow } from "utils/formatting";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
-import { thunkAddRemoveFolderItem } from "./thunkFolder";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { applyDeleteActions, applyDuplicateActions } from "operations/apply/apply-action";
 import { applyDeletePois, applyUpsertPoi } from "operations/apply/apply-poi";
@@ -75,13 +74,6 @@ export const thunkDocDeletePoi = appCreateAsyncThunk<{
 
   // Step 3: UI side-effects
   dispatch(setSelectedPoiUuid(null));
-  dispatch(
-    // remove from folder
-    thunkAddRemoveFolderItem({
-      itemUuid: poiUuid,
-      folderUuid: null,
-    })
-  );
   dispatch(thunkCancelMarkerMapDirective()); // if we're in the middle of a map action, cancel it
   dispatch(thunkSetRightPanelIsOpenIfAuto(false)); // close right panel
 });
@@ -91,7 +83,6 @@ export const thunkDocCreatePoi = appCreateAsyncThunk<void>(
   async (_, { getState, dispatch }) => {
     const missionDocHandle = getMissionDocHandle();
     if (!missionDocHandle) return;
-    const mission = missionDocHandle.doc();
 
     // Step 1: Build the new POI object synchronously from the current doc
     const existingPois = Object.values(missionDocHandle.doc()?.pois ?? {});
@@ -100,7 +91,6 @@ export const thunkDocCreatePoi = appCreateAsyncThunk<void>(
       existingNames: existingPois.map((item: POI) => item.name),
     });
     const blankPoi = generateBlankPoi({
-      missionId: mission.id,
       name: randomName,
       ownerId: getState().user?.appUser?.id ?? null,
     });

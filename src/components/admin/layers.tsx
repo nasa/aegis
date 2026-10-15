@@ -63,7 +63,6 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   function addNewSublayer() {
     const newSublayer = generateBlankSublayer({
       layerUuid: editSublayerParentUUID,
-      missionId: missionId,
     });
     openEditModal(
       <SublayerEdit
@@ -79,9 +78,14 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   }
 
   function addNewLayer() {
-    const newLayer = generateBlankLayer({ missionId });
+    const newLayer = generateBlankLayer();
     openEditModal(
-      <LayerEdit ref={editRef} layer={newLayer} refreshLayerList={reloadLayers} />,
+      <LayerEdit
+        ref={editRef}
+        layer={newLayer}
+        missionId={missionId}
+        refreshLayerList={reloadLayers}
+      />,
       "Add Header Layer"
     );
   }
@@ -263,7 +267,7 @@ const LayerList = (props: {
 
   async function delSubLayer(sublayer: Sublayer) {
     if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
-      const res: WrappedResponse<null> = await deleteSublayers([sublayer.uuid]);
+      const res: WrappedResponse<null> = await deleteSublayers(props.missionId, [sublayer.uuid]);
       alert(`Delete sublayer ${res.status} - ${res.message}`);
       props.refreshLayerList(); //reload layer listing in parent component.
     }
@@ -276,7 +280,7 @@ const LayerList = (props: {
           `Error: Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first`
         );
       } else {
-        const res: WrappedResponse<null> = await deleteLayers([layer.uuid]);
+        const res: WrappedResponse<null> = await deleteLayers(props.missionId, [layer.uuid]);
         alert(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
         props.refreshLayerList(); //reload layer listing in parent component.
       }
@@ -287,7 +291,12 @@ const LayerList = (props: {
     if (type === "layer") {
       const layer = layerOrSublayer as Layer;
       props.openEditModal(
-        <LayerEdit ref={props.editRef} layer={layer} refreshLayerList={props.refreshLayerList} />,
+        <LayerEdit
+          ref={props.editRef}
+          layer={layer}
+          missionId={props.missionId}
+          refreshLayerList={props.refreshLayerList}
+        />,
         layer.name ? `Edit Header "${layer.name}"` : "Edit Header Layer"
       );
     } else if (type === "sublayer") {

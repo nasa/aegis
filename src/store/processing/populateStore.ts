@@ -5,8 +5,6 @@ import Cookies from "js-cookie";
 import {
   auditActionDefinitions,
   auditActions,
-  auditPresetsAgainstLayers,
-  auditFolders,
   auditMissionGrid,
   auditTraverseTerrainProfiles,
 } from "./audits";
@@ -16,6 +14,11 @@ import { isValidAutomergeUrl } from "@automerge/automerge-repo";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { validateMission } from "utils/validateSchemaClient";
 import { clientLogger } from "utils/logging/clientLogger";
+import {
+  buildPresetCircleUIStates,
+  buildPresetLayerUIStates,
+  getMissionDefaultPresetUuid,
+} from "store/thunk/thunkPreset";
 
 // Populate the entire store state except User and Interface
 // All api calls used in this function must past in the load test options
@@ -41,19 +44,6 @@ export const populateStore = async (params: {
   } // Gracefully handle an error if no data is returned?
 
   const wholeStoreState: WholeStoreState = cloneDeep(wholeStoreInitialState);
-  wholeStoreState.mission.layers = allDataRes.data.layers;
-  wholeStoreState.mission.sublayers = allDataRes.data.sublayers;
-  wholeStoreState.preset.presets = allDataRes.data.presets;
-  wholeStoreState.preset.presetsFromDb = allDataRes.data.presets;
-  wholeStoreState.stm.level1s = allDataRes.data.level1s;
-  wholeStoreState.stm.level2s = allDataRes.data.level2s;
-  wholeStoreState.stm.level3s = allDataRes.data.level3s;
-  wholeStoreState.stm.rules = allDataRes.data.stmRules;
-  wholeStoreState.stm.rulesFromDb = allDataRes.data.stmRules;
-  wholeStoreState.interface.folders = allDataRes.data.folders;
-
-  // Generate folders interface states for the store (using cookies if available)
-  generateFoldersInterfaceStates({ wholeStoreState });
 
   // Get automerge URL and mission doc handle
   const amDocListing = (await getAutomergeDocListing(missionId, loadTestOptions)).data[0];
@@ -74,30 +64,26 @@ export const populateStore = async (params: {
   const mission = missionDocHandle.doc();
   const missionCircleDefinitions = mission.circleDefinitions;
 
+  // Generate folders interface states for the store (using cookies if available)
+  generateFoldersInterfaceStates({ wholeStoreState, mission });
+
   // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes
   // Require the automerge doc handle is ready since these audits need access to and update mission
   if (runAudit) {
-    await auditPresetsAgainstLayers({ wholeStoreState });
     await auditActionDefinitions({ missionDocHandle });
-    await auditFolders({ wholeStoreState, missionDocHandle });
-    await auditActions({ wholeStoreState, missionDocHandle });
+    await auditActions({ missionDocHandle });
     await auditMissionGrid({ missionDocHandle });
     await auditTraverseTerrainProfiles({ missionDocHandle });
   }
 
   // Set the default preset
-  const defaultPreset = wholeStoreState.preset.presets.filter(
-    (preset) => preset.missionDefault === true
-  );
-  if (defaultPreset.length > 0) {
-    wholeStoreState.preset.selectedPresetUuid = defaultPreset[0].uuid;
+  wholeStoreState.preset.selectedPresetUuid = getMissionDefaultPresetUuid(mission);
+
+  // Generate preset layers and circles UI states for the store (not in the doc)
+  for (const presetUuid of Object.keys(mission.presets ?? {})) {
+    wholeStoreState.preset.presetLayersUIStates[presetUuid] = buildPresetLayerUIStates(mission);
+    wholeStoreState.preset.presetCirclesUIStates[presetUuid] = buildPresetCircleUIStates(mission);
   }
-
-  // Generate preset layers UI states for the store (not in the DB)
-  generatePresetsLayersUIStates({ wholeStoreState });
-
-  // Generate preset circles UI states for the store (not in the DB)
-  generatePresetsCirclesUIStates({ wholeStoreState, missionCircleDefinitions });
 
   // Generate station circles UI states for the store (not in the DB)
   // Lander stations are skipped: their circles come from the selected preset.
@@ -157,55 +143,6 @@ export const setRunningRexView = (params: {
   }
 };
 
-const generatePresetsLayersUIStates = async (params: {
-  wholeStoreState: WholeStoreState;
-}): Promise<void> => {
-  const { wholeStoreState } = params;
-  // Generate preset UI states
-  const presetUuids = wholeStoreState.preset.presets.map((p) => p.uuid);
-  presetUuids.forEach((presetUuid) => {
-    // Build preset ui states for the layer and sublayers
-    const presetLayerUIStates: LayerUIStates = {};
-    for (const layer of wholeStoreState.mission?.layers) {
-      if (!layer.uuid) continue;
-      presetLayerUIStates[layer.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: layer.name,
-        type: "layer",
-      };
-    }
-    for (const sublayer of wholeStoreState.mission?.sublayers) {
-      presetLayerUIStates[sublayer.uuid] = {
-        expanded: true,
-        tabSelected: null,
-        name: sublayer.name,
-        type: "sublayer",
-      };
-    }
-    wholeStoreState.preset.presetLayersUIStates[presetUuid] = presetLayerUIStates;
-  });
-};
-
-const generatePresetsCirclesUIStates = async (params: {
-  wholeStoreState: WholeStoreState;
-  missionCircleDefinitions: CircleDefinitions;
-}): Promise<void> => {
-  const { wholeStoreState, missionCircleDefinitions } = params;
-  // Generate preset UI states
-  const presetUuids = wholeStoreState.preset.presets.map((p) => p.uuid);
-  presetUuids.forEach((presetUuid) => {
-    // Build preset ui states for the layer and sublayers
-    const presetCircleUIStates: CircleUIStates = {};
-    if (missionCircleDefinitions) {
-      Object.entries(missionCircleDefinitions || {})?.forEach(([uuid]) => {
-        presetCircleUIStates[uuid] = { slidersSelected: false };
-      });
-    }
-    wholeStoreState.preset.presetCirclesUIStates[presetUuid] = presetCircleUIStates;
-  });
-};
-
 const generateStationsCirclesUIStates = async (params: {
   wholeStoreState: WholeStoreState;
   missionCircleDefinitions: CircleDefinitions;
@@ -225,38 +162,28 @@ const generateStationsCirclesUIStates = async (params: {
   });
 };
 
-const generateFoldersInterfaceStates = (params: { wholeStoreState: WholeStoreState }): void => {
-  const { wholeStoreState } = params;
+const generateFoldersInterfaceStates = (params: {
+  wholeStoreState: WholeStoreState;
+  mission: Mission;
+}): void => {
+  const { wholeStoreState, mission } = params;
+  let foldersInterfaceCookie: FoldersInterfaceState = {};
   try {
-    const foldersInterfaceCookie: FoldersInterfaceCookie = JSON.parse(
-      Cookies.get("AEGIS_Folders_Interface") || "{}"
-    );
-    wholeStoreState.interface.foldersInterface = wholeStoreState.interface.folders.map((folder) => {
-      const savedState = foldersInterfaceCookie[folder.uuid];
-      return {
-        uuid: folder.uuid,
-        isOpen: savedState?.isOpen ?? true,
-        visible: savedState?.visible ?? true,
-        editing: false,
-        editingNameValue: null,
-      } as FolderInterface;
-    });
+    foldersInterfaceCookie = JSON.parse(Cookies.get("AEGIS_Folders_Interface") || "{}");
   } catch (error) {
     clientLogger.error(
       { logId: "populateStore", logValue: "Error parsing folder interfaces from cookie" },
       error instanceof Error ? error : new Error(String(error))
     );
-    // Create default folder interfaces if there's an error with the cookie
-    wholeStoreState.interface.foldersInterface = wholeStoreState.interface.folders.map(
-      (folder) =>
-        ({
-          uuid: folder.uuid,
-          isOpen: true,
-          visible: true,
-          editing: false,
-          editingNameValue: null,
-        }) as FolderInterface
-    );
+  }
+  for (const folder of Object.values(mission?.folders ?? {})) {
+    const savedState = foldersInterfaceCookie[folder.uuid];
+    wholeStoreState.interface.foldersInterface[folder.uuid] = {
+      uuid: folder.uuid,
+      isOpen: savedState?.isOpen ?? true,
+      editing: false,
+      editingNameValue: null,
+    };
   }
 };
 

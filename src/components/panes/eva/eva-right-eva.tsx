@@ -42,6 +42,9 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { applyUpdateRexByField } from "operations/apply/apply-rex";
+import { useRexExecuteEditMode } from "utils/rexExecuteEditMode";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faLock } from "@fortawesome/free-solid-svg-icons";
 
 const EvaRightEva: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -82,6 +85,14 @@ const EvaRightEva: FunctionComponent = () => {
     if (!docMaps?.rexes || !selectedEvaUuid) return false;
     return Object.values(docMaps.rexes).some((rex) => rex.evaUuid === selectedEvaUuid);
   }, [docMaps, selectedEvaUuid]);
+
+  const evaRexUuid = useMemo(() => {
+    if (!docMaps?.rexes || !selectedEvaUuid) return null;
+    return (
+      Object.values(docMaps.rexes).find((rex) => rex.evaUuid === selectedEvaUuid)?.uuid ?? null
+    );
+  }, [docMaps, selectedEvaUuid]);
+  const { mode: rexExecuteEditMode } = useRexExecuteEditMode(evaRexUuid);
 
   const isAsPlannedEvaWithRexes = useMemo(() => {
     if (isRexEva || !selectedEva || !docMaps?.evas) return false;
@@ -237,7 +248,7 @@ const EvaRightEva: FunctionComponent = () => {
     info_panel: {
       title: "EVA Information",
       panel: Info_Panel,
-      panelProps: { editMode: isInEditMode },
+      panelProps: { editMode: isInEditMode && rexExecuteEditMode === "unrestricted" },
       selectedColor: "white",
       icon: faCircleInfo,
     },
@@ -317,6 +328,9 @@ const EvaRightEva: FunctionComponent = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ActiveComponent: FunctionComponent<any> = evaAndRexPanelTypes[rightNavItem]?.panel;
 
+  // A restricted execute edit mode locks the REX name and the delete button.
+  const rexEditIsRestricted = rexExecuteEditMode !== "unrestricted";
+
   if (!selectedEva) return null;
 
   return (
@@ -347,10 +361,19 @@ const EvaRightEva: FunctionComponent = () => {
               );
             }}
           />
+          {isInEditMode && rexEditIsRestricted && (
+            <div
+              className={paneStyles.rightTopTitleIcon}
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-content="Editing is restricted while this REX is executing"
+            >
+              <FontAwesomeIcon icon={faLock} />
+            </div>
+          )}
           {isRexEva && selectedRex && (
             <ValidatedInputField
               value={selectedRex.name}
-              editMode={isInEditMode}
+              editMode={isInEditMode && !rexEditIsRestricted}
               fieldProps={{
                 name: "name",
                 ariaLabel: "REX Title",
@@ -382,7 +405,7 @@ const EvaRightEva: FunctionComponent = () => {
           dispatchFunction={setSelectedEvaRightNavItem}
         />
         <div className={paneStyles.saveCancelContainer}>
-          {isInEditMode && (
+          {isInEditMode && !rexEditIsRestricted && (
             <Button
               ariaLabel="deleteEva"
               icon={faTrashAlt}

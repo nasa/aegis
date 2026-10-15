@@ -8,7 +8,11 @@ import type { FieldRenderProps } from "react-final-form";
 import formStyles from "./globalFields.module.css";
 import { Field, Form } from "react-final-form";
 import React from "react";
-import { composeValidators } from "components/interface/form/formValidators";
+import {
+  composeValidators,
+  getFiltersForValidators,
+  type Stringy,
+} from "components/interface/form/formValidators";
 import Select from "react-select";
 import type { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
@@ -704,6 +708,10 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
     if (toFocus) event.target.select();
   };
 
+  const composedFilter = validators.length
+    ? getFiltersForValidators(validators)
+    : (value: Stringy) => String(value);
+
   useEffect(() => {
     if (toFocus) {
       inputRef.current?.focus();
@@ -737,7 +745,7 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
               aria-label={ariaLabel}
               style={style}
               onChange={(event) => {
-                input.onChange(event); //call native on change
+                input.onChange(composedFilter(event.target.value));
                 if (onChange) onChange(event); //call custom on change
               }}
               onBlur={(event) => {
@@ -778,6 +786,10 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
   onChange,
   onBlur,
 }) => {
+  const composedFilter = validators.length
+    ? getFiltersForValidators(validators)
+    : (value: Stringy) => String(value);
+
   return (
     <Field
       name={name}
@@ -803,7 +815,7 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
             aria-label={ariaLabel}
             style={style}
             onChange={(event) => {
-              input.onChange(event); //call native on change
+              input.onChange(composedFilter(event.target.value));
               if (onChange) onChange(event); //call custom on change
             }}
             onBlur={(event) => {

@@ -8,8 +8,10 @@ import StationItem from "./station-item";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDocCreateStation, thunkDocDuplicateStation } from "store/thunk/thunkStation";
 import { FolderOrganizer } from "components/interface/folders";
-import { thunkAddRemoveFolderItem, thunkCreateFolder } from "store/thunk/thunkFolder";
-import { selectAsPlannedStations } from "store/selectors";
+import { thunkCreateFolder } from "store/thunk/thunkFolder";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyMoveItemToFolder } from "operations/apply/apply-mission-folder";
+import { selectAsPlannedStations, selectFoldersByType } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const StationEditorLeft: FunctionComponent = () => {
@@ -22,22 +24,13 @@ const StationEditorLeft: FunctionComponent = () => {
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
   const showButtons = useAppSelector(
     (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
     refEqual
   );
 
-  const folderRecords = useAppSelector(
-    (state) => state.interface.folders.filter((f) => f.type === "station"),
-    deepEqual
-  );
-  const foldersInterface = useAppSelector((state) => {
-    const allFoldersInterface = state.interface.foldersInterface;
-    return allFoldersInterface.filter((folderInterface) =>
-      folderRecords.some((folder) => folder.uuid === folderInterface.uuid)
-    );
-  }, deepEqual);
+  const folderRecords =
+    useMissionDocSelector((mission) => selectFoldersByType(mission, "station"), deepEqual) ?? [];
 
   // Create a mapping from station UUIDs to their folder UUIDs
   const itemsToFolders = folderRecords.reduce<Record<string, string>>((map, folder) => {
@@ -49,12 +42,7 @@ const StationEditorLeft: FunctionComponent = () => {
 
   // Handle folder assignment changes
   const setItemFolder = ({ folderUuid, uuid }: { folderUuid: string | null; uuid: string }) => {
-    dispatch(
-      thunkAddRemoveFolderItem({
-        folderUuid,
-        itemUuid: uuid,
-      })
-    );
+    withMissionChange((m) => applyMoveItemToFolder(m, { folderUuid, itemUuid: uuid }));
   };
 
   // Render a Station item
@@ -79,7 +67,6 @@ const StationEditorLeft: FunctionComponent = () => {
                 itemUuids={stationUuids}
                 renderItem={renderStationItem}
                 folders={folderRecords}
-                foldersInterface={foldersInterface}
                 itemsToFolders={itemsToFolders}
                 setItemFolder={setItemFolder}
               />
@@ -116,7 +103,7 @@ const StationEditorLeft: FunctionComponent = () => {
                 />
               </>
             )}
-            {editPerms && (
+            {showButtons && (
               <Button
                 ariaLabel="addFolder"
                 onClick={() => {

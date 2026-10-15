@@ -1,27 +1,32 @@
-import type { EntityData, Loaded } from "@mikro-orm/postgresql";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
 import fs from "node:fs";
 import path from "node:path";
 
-import { QueryOrder, ForeignKeyConstraintViolationException } from "@mikro-orm/postgresql";
 import express from "express";
-import cloneDeep from "lodash/cloneDeep";
 
-import { Sublayer_db } from "server/database/models/_allModels";
-import {
-  convertSublayersTypeDbToStore,
-  convertSublayersTypeStoreToDb,
-} from "store/storeUtils/sublayer";
 import { SCHEMA_DIR } from "utils/validateSchemaServer";
 import { hasPerms } from "utils/permissions";
-import { upsertDatabaseRetry } from "utils/database";
 import { globalValues } from "../global";
+import { getAutomergeMissionHandle } from "./missionAutomerge";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
+import {
+  applyDeleteSublayers,
+  applyUpsertSublayers,
+  normalizeSublayerInput,
+} from "operations/apply/apply-mission-layer";
 
 const router = express.Router();
+
+/** Thrown when the request body references data that does not exist; answered as a 400. */
+class SublayerInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SublayerInputError";
+  }
+}
 
 const parseQuery = (query: Query) => {
   const { missionId, uuid } = query;
@@ -147,6 +152,19 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
+  if (!missionId || isNaN(missionId)) {
+    serverLogger.apiRoute({
+      logLevel: "notice",
+      httpMethod: "POST",
+      responseStatus: 400,
+      routeName: "sublayer",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
+    return;
+  }
 
   try {
     // validate
@@ -164,7 +182,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ status: "failure", message: `No sublayers provided in request body` });
       return;
     }
-    const upsertResponse: Sublayer[] = await upsertDatabaseRetry(() => upsertSublayers(sublayers));
+    const upsertResponse: Sublayer[] = await upsertSublayers(missionId, sublayers);
 
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
@@ -176,14 +194,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         appUsername: req.session?.appUser?.username,
         missionId,
         uuids: sublayers?.map((s) => s.uuid),
-        message: "Failed to update sublayer after multiple tries due to optimistic locking",
-        error: new Error(
-          "Failed to update sublayer after multiple tries due to optimistic locking"
-        ),
+        message: "Failed to update sublayer",
+        error: new Error("Failed to update sublayer"),
       });
       res.status(500).json({
         status: "error",
-        message: "Failed to update sublayer after multiple tries due to optimistic locking",
+        message: "Failed to update sublayer",
         data: null,
       });
       return;
@@ -195,6 +211,20 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       data: upsertResponse,
     });
   } catch (e) {
+    if (e instanceof SublayerInputError) {
+      serverLogger.apiRoute({
+        logLevel: "notice",
+        httpMethod: "POST",
+        responseStatus: 400,
+        routeName: "sublayer",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        uuids: sublayers?.map((s) => s.uuid),
+        message: e.message,
+      });
+      res.status(400).json({ status: "failure", message: e.message });
+      return;
+    }
     serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",
@@ -235,9 +265,22 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
+  if (!missionId || isNaN(missionId)) {
+    serverLogger.apiRoute({
+      logLevel: "notice",
+      httpMethod: "DELETE",
+      responseStatus: 400,
+      routeName: "sublayer",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
+    return;
+  }
 
   try {
-    const deletedUUIDs = await deleteSublayers(sublayerUuids);
+    const deletedUUIDs = await deleteSublayers(missionId, sublayerUuids);
 
     if (deletedUUIDs.length > 0) {
       res.status(200).json({
@@ -261,122 +304,76 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
   } catch (e) {
-    if (e instanceof ForeignKeyConstraintViolationException) {
-      serverLogger.apiRoute({
-        logLevel: "error",
-        httpMethod: "DELETE",
-        responseStatus: 500,
-        routeName: "sublayer",
-        appUsername: req.session?.appUser?.username,
-        missionId,
-        uuids: sublayerUuids,
-        message: "Cannot delete sublayer. This sublayer is referenced elsewhere",
-        error: asError(e),
-      });
-      res.status(500).json({
-        status: "error",
-        message: "Cannot delete sublayer. This sublayer is referenced elsewhere",
-      });
-    } else {
-      serverLogger.apiRoute({
-        logLevel: "error",
-        httpMethod: "DELETE",
-        responseStatus: 500,
-        routeName: "sublayer",
-        appUsername: req.session?.appUser?.username,
-        missionId,
-        uuids: sublayerUuids,
-        message: "Error processing the DELETE request",
-        error: asError(e),
-      });
-      res.status(500).json({ status: "error", message: "Error processing the DELETE request" });
-    }
+    serverLogger.apiRoute({
+      logLevel: "error",
+      httpMethod: "DELETE",
+      responseStatus: 500,
+      routeName: "sublayer",
+      appUsername: req.session?.appUser?.username,
+      missionId,
+      uuids: sublayerUuids,
+      message: "Error processing the DELETE request",
+      error: asError(e),
+    });
+    res.status(500).json({ status: "error", message: "Error processing the DELETE request" });
   }
 });
 
 export default router;
 
 /**
- * get sublayer(s) from the database
+ * get sublayer(s) from the mission doc
  * @param missionId required. Mission ID for the sublayers.
- * @param sublayerUUID optional. UUID of the sublayer to retrieve
- * @returns array of sublayers
+ * @param sublayerUuid optional. UUID of the sublayer to retrieve
+ * @returns array of sublayers sorted by name
  */
-export async function getSublayers(missionId: number, sublayerUUID?: string): Promise<Sublayer[]> {
-  const em = globalValues.orm.em;
-
-  let sublayers_db: Loaded<Sublayer_db, never>[];
-  if (sublayerUUID) {
-    //find by sublayer uuid
-    sublayers_db = await em.find(
-      Sublayer_db,
-      { uuid: sublayerUUID },
-      { orderBy: [{ layer: { uuid: QueryOrder.ASC }, name: QueryOrder.ASC }] }
-    );
-  } else {
-    //find by mission id
-    sublayers_db = await em.find(
-      Sublayer_db,
-      { missionId },
-      { orderBy: [{ layer: { uuid: QueryOrder.ASC }, name: QueryOrder.ASC }] }
-    );
-  }
-
-  if (sublayers_db) {
-    return convertSublayersTypeDbToStore(sublayers_db);
-  } else {
-    return [];
-  }
+export async function getSublayers(missionId: number, sublayerUuid?: string): Promise<Sublayer[]> {
+  const handle = await getAutomergeMissionHandle(missionId);
+  const records = Object.values(handle?.doc()?.sublayers ?? {}).filter(
+    (record) => !sublayerUuid || record.uuid === sublayerUuid
+  );
+  return JSON.parse(JSON.stringify(records)).sort((a: Sublayer, b: Sublayer) =>
+    a.name.localeCompare(b.name)
+  );
 }
 
 /**
- * Inserts or Updates sublayers into the database
- * @param sublayers the sublayers to upsert
- * @returns a copy of the sublayers that was upserted
+ * Inserts or updates sublayers in the mission doc. Presets are kept in sync in the same change.
+ * @returns a copy of the sublayers as stored
  */
-async function upsertSublayers(sublayers: Sublayer[]): Promise<Sublayer[]> {
-  const em = globalValues.orm.em;
-  await em.begin(); // Start a transaction
-
-  const sublayersToUpsert: Sublayer[] = cloneDeep(sublayers);
-  const sublayersUpsertedToDb = [];
-
-  try {
-    for (const sublayerToUpsert of sublayersToUpsert) {
-      // Convert foreign keys and upsert
-      const convertedRecord: EntityData<Sublayer_db> = convertSublayersTypeStoreToDb([
-        sublayerToUpsert,
-      ])[0];
-      const upsertReference = await em.upsert(Sublayer_db, convertedRecord);
-      em.persist(upsertReference);
-      sublayersUpsertedToDb.push(upsertReference);
-    }
-
-    await em.commit(); // Flush and commit the transaction
-  } catch (e) {
-    await em.rollback(); // Rollback the transaction
-    throw e; // Re-throw the error to be handled by the caller
+async function upsertSublayers(missionId: number, sublayers: Sublayer[]): Promise<Sublayer[]> {
+  const handle = await getAutomergeMissionHandle(missionId);
+  if (!handle) throw new Error(`No mission document found for mission ${missionId}`);
+  const doc = handle.doc();
+  const layers = doc?.layers ?? {};
+  // An omitted layerUuid keeps the stored one, as normalizeSublayerInput does
+  const unknownLayerUuids = sublayers
+    .map((sublayer) => sublayer.layerUuid ?? doc?.sublayers?.[sublayer.uuid]?.layerUuid)
+    .filter((layerUuid) => !layerUuid || !(layerUuid in layers));
+  if (unknownLayerUuids.length > 0) {
+    throw new SublayerInputError(
+      `Unknown layerUuid(s): ${[...new Set(unknownLayerUuids.map(String))].join(", ")}`
+    );
   }
-
-  // Convert foreign keys back
-  return convertSublayersTypeDbToStore(sublayersUpsertedToDb);
+  let normalized: Sublayer[] = [];
+  handle.change((m: Mission) => {
+    normalized = sublayers.map((record) => normalizeSublayerInput(m, record));
+    applyUpsertSublayers(m, normalized);
+  });
+  await globalValues.automergeRepo.flush();
+  return normalized;
 }
 
 /**
- * Deletes sublayers
- * @param uuids sublayer uuids to delete
+ * Deletes sublayers from the mission doc. Presets and folders are cleaned up in the same change.
  * @returns the uuids of the deleted sublayers
  */
-async function deleteSublayers(uuids: string[]): Promise<string[]> {
-  const em = globalValues.orm.em;
-  const deletedUuids = [];
-  for (const uuid of uuids) {
-    const entity = await em.findOne(Sublayer_db, uuid);
-    if (entity) {
-      em.remove(entity);
-      deletedUuids.push(uuid);
-    }
-  }
-  await em.flush(); //perform deletes
+async function deleteSublayers(missionId: number, uuids: string[]): Promise<string[]> {
+  const handle = await getAutomergeMissionHandle(missionId);
+  const existing = handle?.doc()?.sublayers ?? {};
+  const deletedUuids = (uuids ?? []).filter((uuid) => uuid in existing);
+  if (!handle || deletedUuids.length === 0) return [];
+  handle.change((m: Mission) => applyDeleteSublayers(m, deletedUuids));
+  await globalValues.automergeRepo.flush();
   return deletedUuids;
 }

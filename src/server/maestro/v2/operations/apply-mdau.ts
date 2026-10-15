@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
+import { applyDeleteActionAndUpdateParent } from "operations/apply/apply-action";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
+import { applyFreezeExecuteEditMode } from "operations/apply/apply-rex";
 import type { MdauStageData } from "../types/mdauStageData";
 
 /**
@@ -63,6 +65,14 @@ export const applyMdauRexEventInfo = (m: Mission, stage: MdauStageData): void =>
 };
 
 export const applyMdauActions = (m: Mission, stage: MdauStageData): void => {
+  for (const uuid of stage.deletedActionUuids) {
+    applyDeleteActionAndUpdateParent(m, { uuid });
+  }
+  // The parent's actionOrderUuids already lists each new action (written by
+  // the station/traverse writers).
+  for (const newAction of stage.newActions) {
+    m.actions[newAction.uuid] = newAction;
+  }
   for (const a of stage.actions) {
     const action = m.actions[a.uuid];
     if (!action) continue;
@@ -94,9 +104,18 @@ export const applyMdauRexes = (m: Mission, stage: MdauStageData): void => {
     const rex = m.rexes[rexStage.uuid];
     if (!rex) continue;
 
+    // Only settable before the rex's first execution; stageRexes already
+    // withholds this once executeEditState exists. Applied before the
+    // startsRunning freeze below so a same-payload mode change takes effect
+    // prior to being locked in.
+    if (rexStage.executeEditMode !== undefined) rex.executeEditMode = rexStage.executeEditMode;
+
     // Generate initial crew position entries when transitioning to running.
     if (rexStage.startsRunning) {
       generateInitialPosEntries(m, rex);
+      // A Maestro-started REX must freeze its execute edit mode and capture the
+      // action-letter baseline just like a REX started from the AEGIS UI.
+      applyFreezeExecuteEditMode(m, { rexUuid: rex.uuid });
     }
 
     // Station activity entries (merged with any existing entry).

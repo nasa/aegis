@@ -1,16 +1,10 @@
-import { thunkDocDeleteActionDefItem } from "store/thunk/thunkActionDefinitions"; // Adjust this import path if necessary
+import { opDeleteActionDefinitionItem } from "operations/op-actionDefinition";
 import { createTestStoreWithAutomergeMission } from "tests/vitest/fixtures/store";
-import type { StoreType } from "store";
-import { generateBlankAction } from "../../../../store/storeUtils/action"; // Importing the method to generate actions
+import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankStmRule } from "store/storeUtils/stm";
 import { generateBlankActionTemplate } from "store/storeUtils/mission";
-import { upsertSTMRules } from "store/stm";
 import { v4 as uuidv4 } from "uuid";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
-
-const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
-
-let store: StoreType;
 
 beforeAll(() => {
   /**
@@ -23,11 +17,8 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  store = createTestStoreWithAutomergeMission();
-});
-
-afterAll(() => {
-  alertSpy.mockRestore();
+  // Populates the mocked mission doc handle with the full fixture mission
+  createTestStoreWithAutomergeMission();
 });
 
 /** Looks up a fixture entity uuid by its name within one of the mission doc's entity maps. */
@@ -41,8 +32,8 @@ const findFixtureUuidByName = (
   return match.uuid;
 };
 
-describe("Thunk Action Definition Item Tests", () => {
-  test("thunkDocDeleteActionDefItem - deletion blocked if in use by a Station action", async () => {
+describe("opDeleteActionDefinitionItem()", () => {
+  test("deletion blocked if in use by a Station action", () => {
     const missionDocHandle = getMissionDocHandle();
 
     const actionDefType: ActionDefinitionType = "verbs"; // or other types
@@ -61,15 +52,18 @@ describe("Thunk Action Definition Item Tests", () => {
       mission.actions[newAction.uuid] = newAction;
     });
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(alertSpy.mock.calls[0][0] as string).toContain("Action in Station: Vitest Station-1");
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeDefined();
+    expect(inUseMessage).toContain("Action in Station: Vitest Station-1");
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       actionDefinitionsCount
     ); // Deletion should be blocked
   });
 
-  test("thunkDocDeleteActionDefItem - deletion blocked if in use by a Traverse action", async () => {
+  test("deletion blocked if in use by a Traverse action", () => {
     const missionDocHandle = getMissionDocHandle();
 
     const actionDefType: ActionDefinitionType = "verbs";
@@ -85,15 +79,18 @@ describe("Thunk Action Definition Item Tests", () => {
       mission.actions[newAction.uuid] = newAction;
     });
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(alertSpy.mock.calls[0][0] as string).toContain("Action in Traverse: Vitest Traverse-1");
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeDefined();
+    expect(inUseMessage).toContain("Action in Traverse: Vitest Traverse-1");
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       countBefore
     );
   });
 
-  test("thunkDocDeleteActionDefItem - deletion blocked if in use by a POI action", async () => {
+  test("deletion blocked if in use by a POI action", () => {
     const missionDocHandle = getMissionDocHandle();
 
     const actionDefType: ActionDefinitionType = "verbs";
@@ -109,15 +106,18 @@ describe("Thunk Action Definition Item Tests", () => {
       mission.actions[newAction.uuid] = newAction;
     });
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    expect(alertSpy.mock.calls[0][0] as string).toContain("Action in POI: Vitest POI-1");
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeDefined();
+    expect(inUseMessage).toContain("Action in POI: Vitest POI-1");
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       countBefore
     );
   });
 
-  test("thunkDocDeleteActionDefItem - non-STM actions do not block deletion", async () => {
+  test("non-STM actions do not block deletion", () => {
     const missionDocHandle = getMissionDocHandle();
 
     const actionDefType: ActionDefinitionType = "verbs";
@@ -134,14 +134,17 @@ describe("Thunk Action Definition Item Tests", () => {
       mission.actions[newAction.uuid] = newAction;
     });
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).not.toHaveBeenCalled();
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeUndefined();
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       countBefore - 1
     );
   });
 
-  test("thunkDocDeleteActionDefItem - actions with a null actionDefinition do not throw", async () => {
+  test("actions with a null actionDefinition do not throw", () => {
     const missionDocHandle = getMissionDocHandle();
 
     const actionDefType: ActionDefinitionType = "verbs";
@@ -158,14 +161,17 @@ describe("Thunk Action Definition Item Tests", () => {
       mission.actions[newAction.uuid] = newAction;
     });
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).not.toHaveBeenCalled();
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeUndefined();
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       countBefore - 1
     );
   });
 
-  test("thunkDocDeleteActionDefItem - successfully deletes if not in use", async () => {
+  test("successfully deletes if not in use", () => {
     const missionDocHandle = getMissionDocHandle();
 
     const actionDefType: ActionDefinitionType = "verbs"; // or other types
@@ -174,33 +180,41 @@ describe("Thunk Action Definition Item Tests", () => {
       missionDocHandle.doc().actionDefinitions[actionDefType]
     ).length;
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).not.toHaveBeenCalled();
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeUndefined();
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       actionDefinitionsCount - 1
     );
   });
 
-  test("thunkDocDeleteActionDefItem - deletion blocked if in use by an STM rule", async () => {
+  test("deletion blocked if in use by an STM rule", () => {
     const missionDocHandle = getMissionDocHandle();
     const actionDefType: ActionDefinitionType = "verbs";
     const actionDefUuid = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType])[0];
     const countBefore = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length;
 
     // create an STM rule that uses the action def
-    const stmLvl3Uuid = store.getState().stm.level3s[0].uuid;
+    const stmLvl3Uuid = Object.keys(missionDocHandle.doc().stmLevel3s)[0];
     const rule = generateBlankStmRule({ stmUuid: stmLvl3Uuid });
     rule.verbUuids = [actionDefUuid];
-    store.dispatch(upsertSTMRules([rule]));
+    missionDocHandle.change((m) => {
+      m.stmRules[rule.uuid] = rule;
+    });
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeDefined();
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       countBefore
     );
   });
 
-  test("thunkDocDeleteActionDefItem - deletion blocked if in use by an Action Template", async () => {
+  test("deletion blocked if in use by an Action Template", () => {
     const missionDocHandle = getMissionDocHandle();
     const actionDefType: ActionDefinitionType = "nouns";
     const actionDefUuid = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType])[0];
@@ -216,14 +230,17 @@ describe("Thunk Action Definition Item Tests", () => {
       m.actionTemplates[templateUuid] = template;
     });
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeDefined();
     expect(Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType]).length).toBe(
       countBefore
     );
   });
 
-  test("thunkDocDeleteActionDefItem - blocked alert includes all blocker types", async () => {
+  test("blocked alert includes all blocker types", () => {
     const missionDocHandle = getMissionDocHandle();
     const actionDefType: ActionDefinitionType = "adjectives";
     const actionDefUuid = Object.keys(missionDocHandle.doc().actionDefinitions[actionDefType])[0];
@@ -238,10 +255,12 @@ describe("Thunk Action Definition Item Tests", () => {
       m.actions[newAction.uuid] = newAction;
     });
 
-    const stmLvl3Uuid = store.getState().stm.level3s[0].uuid;
+    const stmLvl3Uuid = Object.keys(missionDocHandle.doc().stmLevel3s)[0];
     const rule = generateBlankStmRule({ stmUuid: stmLvl3Uuid });
     rule.adjectiveUuids = [actionDefUuid];
-    store.dispatch(upsertSTMRules([rule]));
+    missionDocHandle.change((m) => {
+      m.stmRules[rule.uuid] = rule;
+    });
 
     const template = generateBlankActionTemplate({
       templateName: "Vitest Combo Template",
@@ -252,11 +271,13 @@ describe("Thunk Action Definition Item Tests", () => {
       m.actionTemplates[templateUuid] = template;
     });
 
-    await store.dispatch(thunkDocDeleteActionDefItem({ type: actionDefType, uuid: actionDefUuid }));
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    const alertMsg = alertSpy.mock.calls[0][0] as string;
-    expect(alertMsg).toContain("Action in Station");
-    expect(alertMsg).toContain("Rule in STM Item");
-    expect(alertMsg).toContain("Action Template");
+    const inUseMessage = opDeleteActionDefinitionItem(missionDocHandle, {
+      type: actionDefType,
+      uuid: actionDefUuid,
+    });
+    expect(inUseMessage).toBeDefined();
+    expect(inUseMessage).toContain("Action in Station");
+    expect(inUseMessage).toContain("Rule in STM Item");
+    expect(inUseMessage).toContain("Action Template");
   });
 });

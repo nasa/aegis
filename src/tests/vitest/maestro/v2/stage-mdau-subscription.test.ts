@@ -152,7 +152,6 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
       generateLanderXgressStation({
         xgressType,
         name,
-        missionId: 0,
         location: { lat: 0, lng: 0 },
         elevation: null,
       });
@@ -195,7 +194,6 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
   it("accepts a lander xgress station at the egress position of a subscribed EVA", () => {
     const egress = generateLanderXgressStation({
       xgressType: "egress",
-      missionId: 0,
       duration: 15,
       location: { lat: 0, lng: 0 },
       elevation: null,
@@ -203,7 +201,6 @@ describe("stageMdau() subscription check - stations in multiple as-planned EVAs"
     const middle = generateBlankStation({ name: "Vitest Middle" });
     const ingress = generateLanderXgressStation({
       xgressType: "ingress",
-      missionId: 0,
       duration: 15,
       location: { lat: 0, lng: 0 },
       elevation: null,
@@ -430,6 +427,7 @@ describe("stageMdau() subscription check — rex scopes", () => {
       petRunning: true,
       isRunning: true,
       maestroControlled: true,
+      executeEditMode: "unrestricted",
       updatedAt: 1_700_000_000_000,
       maestroActivityProperties: {},
       stationEntries: {},

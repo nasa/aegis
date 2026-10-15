@@ -1,140 +1,39 @@
-import { createCustomTestStore } from "../../fixtures/store";
-import { initialState as stmInitialState } from "store/stm"; // Assuming you have an initial state for stmRules
-import * as thunkStmRules from "store/thunk/thunkStmRules"; // Adjust based on actual paths
+import { createTestStoreWithAutomergeMission } from "../../fixtures/store";
+import * as thunkStmRules from "store/thunk/thunkStmRules";
+import { getMissionDocHandle } from "client/automergeDocHandles";
+import { setStmRulesSelectedRuleUuid } from "store/stm";
 
-// mock all calls to the db so no transactions are actually made but the responses from the db can be simulated
-vi.mock("http-client/stm", () => ({
-  upsertStmRules: vi.fn().mockImplementation(async (stmRules: STMRule[]) => {
-    const response: WrappedResponse<STMRule[]> = {
-      data: stmRules,
-      status: "success",
-      message: "test",
-    };
-    return Promise.resolve(response);
-  }),
-  deleteStmRules: vi.fn().mockImplementation(async (stmRuleUuids: string[]) => {
-    const response: WrappedResponse<string[]> = {
-      data: stmRuleUuids, // Return the list of deleted rule UUIDs
-      status: "success",
-      message: "Deleted successfully",
-    };
-    return Promise.resolve(response);
-  }),
-}));
-
-import * as httpClient_stm from "http-client/stm";
-import { generateBlankStmRule } from "store/storeUtils/stm";
-import cloneDeep from "lodash/cloneDeep";
-
-beforeEach(() => {
-  vi.clearAllMocks(); // clear call count
-});
+const getMission = (): Mission => getMissionDocHandle().doc();
 
 afterAll(() => {
   vi.restoreAllMocks();
 });
 
 describe("Thunk StmRules Tests", () => {
-  test("thunkCreateStmRule()", async () => {
-    const store = createCustomTestStore({
-      stm: stmInitialState,
+  test("thunkCreateStmRule() adds a rule to the mission doc and selects it", async () => {
+    const store = createTestStoreWithAutomergeMission();
+    const level3Uuid = Object.keys(getMission().stmLevel3s)[0];
+    const numRules = Object.keys(getMission().stmRules).length;
+
+    await store.dispatch(thunkStmRules.thunkCreateStmRule({ stmUuid: level3Uuid }));
+
+    const rules = Object.values(getMission().stmRules);
+    expect(rules).toHaveLength(numRules + 1);
+    const selectedRuleUuid = store.getState().stm.stmRulesSelectedRuleUuid;
+    expect(getMission().stmRules[selectedRuleUuid]).toMatchObject({
+      stmUuid: level3Uuid,
+      count: 1,
     });
-
-    // Dispatch the thunk to create a new rule
-    await store.dispatch(thunkStmRules.thunkCreateStmRule({ stmUuid: "test" }));
-
-    // Assertions to check the rule is added to the state
-    expect(store.getState().stm.rules).toHaveLength(1);
   });
 
-  test("thunkSaveStmRule()", async () => {
-    const newRule = generateBlankStmRule({ stmUuid: "test" });
-    const store = createCustomTestStore({
-      stm: { ...stmInitialState, rules: [newRule] },
-    });
+  test("thunkDeleteStmRuleByUuid() removes the rule and clears the selection", async () => {
+    const store = createTestStoreWithAutomergeMission();
+    const ruleUuid = Object.keys(getMission().stmRules)[0];
+    store.dispatch(setStmRulesSelectedRuleUuid(ruleUuid));
 
-    const updatedRule = { ...newRule, stmUuid: "test2" };
+    await store.dispatch(thunkStmRules.thunkDeleteStmRuleByUuid({ stmRuleUuid: ruleUuid }));
 
-    await store.dispatch(thunkStmRules.thunkSaveStmRule({ stmRule: updatedRule }));
-
-    // Assert that upsertStmRules is called once
-    expect(httpClient_stm.upsertStmRules).toHaveBeenCalledTimes(1);
-    // Assert that the store is updated with the new rule
-    expect(store.getState().stm.rules[0].stmUuid).toEqual("test2");
-  });
-
-  test("thunkDeleteStmRule()", async () => {
-    const existingRule = generateBlankStmRule({ stmUuid: "test" });
-    const store = createCustomTestStore({
-      stm: { ...stmInitialState, rules: [existingRule] },
-    });
-
-    // Dispatch the thunk to delete the rule
-    await store.dispatch(
-      thunkStmRules.thunkDeleteStmRuleByUuid({ stmRuleUuid: existingRule.uuid })
-    );
-
-    // since this is a new rule, it should not be in the db
-    expect(httpClient_stm.deleteStmRules).toHaveBeenCalledTimes(0);
-    // Assert that the rule is deleted from the store
-    expect(store.getState().stm.rules).toHaveLength(0);
-  });
-
-  test("thunkCancelStmRule()", async () => {
-    const existingRule = generateBlankStmRule({ stmUuid: "test" });
-    existingRule.count = 2;
-    const existingRuleFromDb = cloneDeep(existingRule);
-    existingRuleFromDb.count = 1;
-    const store = createCustomTestStore({
-      stm: { ...stmInitialState, rules: [existingRule], rulesFromDb: [existingRuleFromDb] },
-    });
-
-    // Dispatch the thunk to cancel the rule
-    await store.dispatch(
-      thunkStmRules.thunkCancelStmRuleByUuid({ stmRuleUuid: existingRule.uuid })
-    );
-
-    // Assert that the rule in the store is the same as the one in the db
-    expect(store.getState().stm.rules[0].count).toEqual(1);
-  });
-
-  test("deleting saved rules consecutively does not restore a deleted blank rule", async () => {
-    const blankRule = generateBlankStmRule({ stmUuid: "test" });
-    const secondRule = generateBlankStmRule({ stmUuid: "test" });
-    secondRule.count = 2;
-    const store = createCustomTestStore({
-      stm: {
-        ...stmInitialState,
-        rules: [blankRule, secondRule],
-        rulesFromDb: [blankRule, secondRule],
-      },
-    });
-
-    await store.dispatch(thunkStmRules.thunkDeleteStmRuleByUuid({ stmRuleUuid: blankRule.uuid }));
-    await store.dispatch(thunkStmRules.thunkDeleteStmRuleByUuid({ stmRuleUuid: secondRule.uuid }));
-
-    expect(store.getState().stm.rules).toEqual([]);
-    expect(store.getState().stm.rulesFromDb).toEqual([]);
-    expect(httpClient_stm.deleteStmRules).toHaveBeenCalledTimes(2);
-    expect(httpClient_stm.upsertStmRules).not.toHaveBeenCalled();
-  });
-
-  test("deleting a saved rule preserves unsaved changes to other rules", async () => {
-    const deletedRule = generateBlankStmRule({ stmUuid: "test" });
-    const savedRule = generateBlankStmRule({ stmUuid: "test" });
-    const editedRule = { ...savedRule, count: 3 };
-    const draftRule = generateBlankStmRule({ stmUuid: "test" });
-    const store = createCustomTestStore({
-      stm: {
-        ...stmInitialState,
-        rules: [deletedRule, editedRule, draftRule],
-        rulesFromDb: [deletedRule, savedRule],
-      },
-    });
-
-    await store.dispatch(thunkStmRules.thunkDeleteStmRuleByUuid({ stmRuleUuid: deletedRule.uuid }));
-
-    expect(store.getState().stm.rules).toEqual([editedRule, draftRule]);
-    expect(store.getState().stm.rulesFromDb).toEqual([savedRule]);
+    expect(getMission().stmRules[ruleUuid]).toBeUndefined();
+    expect(store.getState().stm.stmRulesSelectedRuleUuid).toBeNull();
   });
 });

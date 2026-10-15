@@ -2,17 +2,25 @@ import type { Request, Response } from "express";
 
 import express from "express";
 
-import { fetchMissionSourceData, createMissionCopy } from "utils/dup/core";
 import { upsertDatabaseRetry } from "utils/database";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
+import type { EntityManager } from "@mikro-orm/postgresql";
+import type { DocHandle, AutomergeUrl } from "@automerge/automerge-repo/slim";
+import { Doc_Listing_db } from "server/database/models/_allModels";
+import { getAccurateNow } from "utils/formatting";
+import { createAutomergeMission } from "server/express/routes/missionAutomerge";
+import cloneDeep from "lodash/cloneDeep";
+import { copyDirectoryContents } from "server/file/file";
+import { emssTokenIsValid } from "utils/permissions";
 
 const router = express.Router();
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId } = req.body;
+  const emssToken = req.headers["emss-token"] as string;
 
-  if (!req.session?.appUser?.isSuperAdmin) {
+  if (!req.session?.appUser?.isSuperAdmin && !emssTokenIsValid(emssToken)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
@@ -103,7 +111,7 @@ const duplicateMission = async (missionId: number): Promise<number> => {
     const sourceData = await fetchMissionSourceData(em, missionId);
 
     // 2. Create a copy of the mission with related entities
-    const newMissionId = await createMissionCopy(em, sourceData, {
+    const newMissionId = await createMissionCopy(sourceData, {
       nameSuffix: "Copy",
       copyAssets: true,
     });
@@ -113,5 +121,91 @@ const duplicateMission = async (missionId: number): Promise<number> => {
   } catch (error) {
     await em.rollback(); // Rollback the transaction
     throw new Error(`Failed to duplicate mission: ${error}`);
+  }
+};
+
+// Main function to create a mission copy
+export const createMissionCopy = async (
+  sourceData: MissionSourceData,
+  options: MissionCopyOptions
+): Promise<number> => {
+  try {
+    // 1. Create new mission. All mission entities ride along on the mission doc copy.
+
+    // We are unsure the state of the incoming original mission, so clone it in-case
+    // there are existing Automerge proxy references
+    const sourceMission = cloneDeep(sourceData.mission);
+    const newMission: Mission = {
+      ...sourceMission,
+      id: null, // Let the database assign a new ID
+      name: `${sourceMission.name} - ${options.nameSuffix}`,
+      createdAt: getAccurateNow().getTime(),
+      updatedAt: getAccurateNow().getTime(),
+    };
+
+    // create an mission automerge document; entities ride along and are scoped by the new doc
+    const docListing: AutomergeDocListing = await createAutomergeMission(newMission);
+    // retrieve the mission object
+    const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+      docListing.automergeUrl as AutomergeUrl
+    );
+    await missionDocHandle.whenReady();
+    const newMissionId = missionDocHandle.doc().id;
+
+    // Scramble the connection event maestro id/url on any REXes
+    missionDocHandle.change((m) => {
+      for (const rex of Object.values(m.rexes ?? {})) {
+        if (rex.maestroEventId || rex.maestroEventUrl) {
+          rex.maestroEventId = "DupRexDisconnectedFromMaestro";
+          rex.maestroEventUrl = "DupRexDisconnectedFromMaestro";
+        }
+      }
+    });
+
+    // 2. Copy mission assets (layer tiles, grid coordinate file, etc.) if requested
+    if (options.copyAssets && sourceData.mission.id) {
+      await copyMissionAssets(sourceData.mission.id, newMissionId);
+    }
+
+    return newMissionId;
+  } catch (error) {
+    throw new Error(`Failed to create mission copy: ${error}`);
+  }
+};
+
+// Fetch the source mission doc for duplication
+export const fetchMissionSourceData = async (
+  em: EntityManager,
+  missionId: number
+): Promise<MissionSourceData> => {
+  const automergeDocListing = await em.findOne(Doc_Listing_db, { missionId });
+  if (!automergeDocListing) {
+    throw new Error(`Automerge document listing for mission ID ${missionId} not found`);
+  }
+
+  const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+    automergeDocListing.automergeUrl as AutomergeUrl
+  );
+  await missionDocHandle.whenReady();
+  return { mission: missionDocHandle.doc() };
+};
+
+// Copy mission assets
+const copyMissionAssets = async (fromMissionId: number, toMissionId: number): Promise<void> => {
+  try {
+    serverLogger.info({
+      logId: "duplicate",
+      logValue: `Copying assets from mission ${fromMissionId} to mission ${toMissionId}`,
+    });
+
+    // Recursively copy directories and files
+    await copyDirectoryContents(fromMissionId, toMissionId);
+
+    serverLogger.info({
+      logId: "duplicate",
+      logValue: `Successfully copied mission assets from ${fromMissionId} to ${toMissionId}`,
+    });
+  } catch (error) {
+    throw new Error(`Failed to copy mission assets: ${error}`);
   }
 };

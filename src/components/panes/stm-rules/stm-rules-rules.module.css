@@ -8,7 +8,9 @@
 }
 
 .stmRuleContainer {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  /* Matches the "Satisfaction Rules" header width so "Action Matches" lines up. */
+  min-width: var(--stmRulesRegionWidth);
   display: flex;
   flex-direction: row;
   background-color: var(--grey2);
@@ -96,6 +98,11 @@
   cursor: pointer;
   user-select: none;
   padding: 0 5px 0 5px;
+  z-index: 10;
+}
+/* The open dropdown stays above the dropdowns in the rows below it. */
+.stmRuleSetMultiselectContainer:focus-within {
+  z-index: 11;
 }
 .stmRuleAnyCheckbox {
   display: flex;

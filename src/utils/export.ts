@@ -273,7 +273,11 @@ export const makeExportTraverses = (params: {
     return {
       ...traverse,
       _itemType: "Traverse",
-      calculatedFields: traverseCalculatedFields,
+      calculatedFields: {
+        ...traverseCalculatedFields,
+        // Alias of movementDurationMinutes, exposed for Maestro consumers
+        durationMinutes: traverseCalculatedFields.movementDurationMinutes,
+      },
       actionsReadable: actionsReadable,
       actionOrderRefUuids: traverse.actionOrderUuids?.map(
         (actionOrderUuid) => mission.actions[actionOrderUuid]?.refUuid

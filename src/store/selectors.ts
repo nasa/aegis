@@ -166,3 +166,71 @@ export const getActionDefinitionLabel = (
   const labels = mission.actionDefinitionLabels;
   return labels[key][form];
 };
+
+/**
+ * Stable empty array for `useMissionDocSelector(...) ?? EMPTY_DOC_LIST` fallbacks, so hook
+ * dependencies do not change on every render while the mission doc is loading.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const EMPTY_DOC_LIST: any[] = [];
+
+const compareNumbering = (a: { numbering: string }, b: { numbering: string }): number =>
+  a.numbering < b.numbering ? -1 : a.numbering > b.numbering ? 1 : 0;
+
+/** All STM level 1 items, sorted by numbering. */
+export const selectStmLevel1s = (mission: Mission): STMLevel1[] =>
+  Object.values(mission?.stmLevel1s ?? {}).sort(compareNumbering);
+
+/** All STM level 2 items, sorted by their level 1 numbering and then their own numbering. */
+export const selectStmLevel2s = (mission: Mission): STMLevel2[] => {
+  const level1s = mission?.stmLevel1s ?? {};
+  return Object.values(mission?.stmLevel2s ?? {}).sort(
+    (a, b) =>
+      compareNumbering(
+        level1s[a.level1Uuid] ?? { numbering: "" },
+        level1s[b.level1Uuid] ?? { numbering: "" }
+      ) || compareNumbering(a, b)
+  );
+};
+
+/** All STM level 3 items, sorted by their level 1, level 2, and own numbering. */
+export const selectStmLevel3s = (mission: Mission): STMLevel3[] => {
+  const level1s = mission?.stmLevel1s ?? {};
+  const level2s = mission?.stmLevel2s ?? {};
+  const numberingPath = (level3: STMLevel3): { numbering: string }[] => {
+    const level2 = level2s[level3.level2Uuid];
+    const level1 = level2 ? level1s[level2.level1Uuid] : undefined;
+    return [level1 ?? { numbering: "" }, level2 ?? { numbering: "" }, level3];
+  };
+  return Object.values(mission?.stmLevel3s ?? {}).sort((a, b) => {
+    const pathA = numberingPath(a);
+    const pathB = numberingPath(b);
+    for (let index = 0; index < pathA.length; index += 1) {
+      const result = compareNumbering(pathA[index], pathB[index]);
+      if (result !== 0) return result;
+    }
+    return 0;
+  });
+};
+
+/** All STM rules, oldest first. */
+export const selectStmRules = (mission: Mission): STMRule[] =>
+  Object.values(mission?.stmRules ?? {}).sort((a, b) => a.createdAt - b.createdAt);
+
+/** All presets, sorted by name. */
+export const selectPresets = (mission: Mission): Preset[] =>
+  Object.values(mission?.presets ?? {}).sort((a, b) => a.name.localeCompare(b.name));
+
+/** All layers, sorted by name. */
+export const selectLayers = (mission: Mission): Layer[] =>
+  Object.values(mission?.layers ?? {}).sort((a, b) => a.name.localeCompare(b.name));
+
+/** All sublayers, sorted by name. */
+export const selectSublayers = (mission: Mission): Sublayer[] =>
+  Object.values(mission?.sublayers ?? {}).sort((a, b) => a.name.localeCompare(b.name));
+
+/** Folders of one type, sorted by name. */
+export const selectFoldersByType = (mission: Mission, type: FolderType): Folder[] =>
+  Object.values(mission?.folders ?? {})
+    .filter((folder) => folder.type === type)
+    .sort((a, b) => a.name.localeCompare(b.name));

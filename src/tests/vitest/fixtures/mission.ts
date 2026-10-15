@@ -5,6 +5,16 @@ import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { generateBlankFolder } from "store/storeUtils/folder";
+import { generateBlankLayer } from "store/storeUtils/layer";
+import { defaultSublayerStyle, generateBlankSublayer } from "store/storeUtils/sublayer";
+import { generateBlankPreset } from "store/storeUtils/preset";
+import {
+  generateBlankStmLvl1,
+  generateBlankStmLvl2,
+  generateBlankStmLvl3,
+  generateBlankStmRule,
+} from "store/storeUtils/stm";
 import cloneDeep from "lodash/cloneDeep";
 import { v4 as uuidv4 } from "uuid";
 
@@ -18,6 +28,9 @@ import { v4 as uuidv4 } from "uuid";
  * - Actions: ~20 (4 named + 3 poi + 4 station + 6 traverse + rex duplicates)
  * - EVAs: 4 (testEva, eva1, eva2, eva1ForRex)
  * - REXes: 2 (testRex with entry maps, rex1 with posEntries)
+ * - Layers: 1 with 1 sublayer, and 1 mission-default preset wired to them
+ * - STM: 1 level1 → 1 level2 → 1 level3, with 1 rule on the level3
+ * - Folders: 3 (station, poi, eva), each holding one named entity
  *
  * EVA names that tests look up by name:
  *   - "Vitest Eva-1 Planned with Rex"
@@ -34,7 +47,6 @@ export const generateFullMission = (): Mission => {
   const makeLanderStation = (xgressType: "egress" | "ingress") =>
     generateLanderXgressStation({
       xgressType,
-      missionId: 0,
       location: { lat: 0, lng: 0 },
       elevation: null,
     });
@@ -253,6 +265,60 @@ export const generateFullMission = (): Mission => {
   for (const eva of allEvas) mission.evas[eva.uuid] = eva;
   for (const rex of allRexes) mission.rexes[rex.uuid] = rex;
 
+  // ====== LAYERS + SUBLAYERS + PRESET wired to them ======
+  const testLayer = generateBlankLayer({ name: "Vitest Layer-1" });
+  const testSublayer = generateBlankSublayer({
+    name: "Vitest Sublayer-1",
+    layerUuid: testLayer.uuid,
+  });
+  const testPreset = generateBlankPreset({
+    name: "Vitest Preset-1",
+    missionDefault: true,
+    mapSublayerControls: {
+      [testSublayer.uuid]: {
+        name: testSublayer.name,
+        sublayerUuid: testSublayer.uuid,
+        visible: true,
+        style: { ...defaultSublayerStyle },
+      },
+    },
+    layerOrder: [{ layerUuid: testLayer.uuid, sublayerUuids: [testSublayer.uuid] }],
+  });
+  mission.layers[testLayer.uuid] = testLayer;
+  mission.sublayers[testSublayer.uuid] = testSublayer;
+  mission.presets[testPreset.uuid] = testPreset;
+
+  // ====== STM HIERARCHY (L1 → L2 → L3) + RULE ======
+  const stmLevel1 = generateBlankStmLvl1({ name: "Vitest STM Level1-1", numbering: "1" });
+  const stmLevel2 = generateBlankStmLvl2({
+    name: "Vitest STM Level2-1",
+    numbering: "a",
+    level1Uuid: stmLevel1.uuid,
+  });
+  const stmLevel3 = generateBlankStmLvl3({
+    name: "Vitest STM Level3-1",
+    numbering: "1",
+    level2Uuid: stmLevel2.uuid,
+  });
+  const stmRule = generateBlankStmRule({ stmUuid: stmLevel3.uuid });
+  mission.stmLevel1s[stmLevel1.uuid] = stmLevel1;
+  mission.stmLevel2s[stmLevel2.uuid] = stmLevel2;
+  mission.stmLevel3s[stmLevel3.uuid] = stmLevel3;
+  mission.stmRules[stmRule.uuid] = stmRule;
+
+  // ====== FOLDERS (station, poi, eva types) ======
+  for (const folder of [
+    generateBlankFolder({
+      name: "Vitest Station Folder",
+      type: "station",
+      items: [testStation.uuid],
+    }),
+    generateBlankFolder({ name: "Vitest POI Folder", type: "poi", items: [testPoi.uuid] }),
+    generateBlankFolder({ name: "Vitest EVA Folder", type: "eva", items: [testEva.uuid] }),
+  ]) {
+    mission.folders[folder.uuid] = folder;
+  }
+
   return mission;
 };
 
@@ -274,5 +340,22 @@ export const writeMissionDataToAutomergeDocHandle = (
       doc.actions[action.uuid] = cloneDeep(action);
     for (const eva of Object.values(mission.evas)) doc.evas[eva.uuid] = cloneDeep(eva);
     for (const rex of Object.values(mission.rexes)) doc.rexes[rex.uuid] = cloneDeep(rex);
+    const collections = [
+      "folders",
+      "layers",
+      "sublayers",
+      "presets",
+      "stmLevel1s",
+      "stmLevel2s",
+      "stmLevel3s",
+      "stmRules",
+    ] as const;
+    for (const key of collections) {
+      // Mocked doc handles may start from a partial mission without these collections
+      if (!doc[key]) (doc as unknown as Record<string, unknown>)[key] = {};
+      for (const [uuid, entity] of Object.entries(mission[key])) {
+        (doc[key] as Record<string, unknown>)[uuid] = cloneDeep(entity);
+      }
+    }
   });
 };

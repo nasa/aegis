@@ -1,20 +1,8 @@
-import type { EntityManager } from "@mikro-orm/postgresql";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import {
-  Layer_db,
-  Preset_db,
-  STM_Level1_db,
-  STM_Level2_db,
-  STM_Level3_db,
-  Sublayer_db,
-  STM_Rule_db,
-  Folder_db,
-} from "server/database/models/_allModels";
-import { globalValues } from "../global";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "./missionAutomerge";
@@ -88,73 +76,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 /**
- * Exports all data for a mission
+ * Exports all data for a mission. Every mission entity lives in the mission document.
  * @param missionId The ID of the mission to export
- * @returns A structured object containing all mission data
+ * @returns The mission document with an export date
  */
 const dumpMissionData = async (missionId: number): Promise<MissionDump> => {
-  const em = globalValues.orm.em;
-
-  // Fetch mission
   const mission = (await getAutomergeMissions([missionId]))[0];
-
-  // Fetch all related entities
-  const baseEntities = {
-    layers: await em.find(Layer_db, { missionId }),
-    sublayers: await em.find(Sublayer_db, { missionId }),
-    presets: await em.find(Preset_db, { missionId }),
-    folders: await em.find(Folder_db, { missionId }),
-  };
-
-  // Fetch STM entities with proper population
-  const stmEntities = await fetchStmEntities(em, missionId);
-
-  // Return combined results
-  const data = {
-    ...baseEntities,
-    ...stmEntities,
-  };
-
-  // Structure the data for export
   return {
     exportDate: new Date().toISOString(),
-    missionData: {
-      mission: mission,
-      layers: data.layers,
-      sublayers: data.sublayers,
-      presets: data.presets,
-      stmLevel1s: data.stmLevel1s,
-      stmLevel2s: data.stmLevel2s,
-      stmLevel3s: data.stmLevel3s,
-      stmRules: data.stmRules,
-      folders: data.folders,
-    },
+    missionData: { mission },
   };
-};
-
-/**
- * Fetch STM entities with proper population
- */
-const fetchStmEntities = async (em: EntityManager, missionId: number) => {
-  // Fetch STM Level 1 with populated Level 2 collection
-  const stmLevel1s = await em.find(STM_Level1_db, { missionId }, { populate: ["level2s"] });
-
-  // Query Level 2 with populated Level 3 collection
-  const stmLevel2s = [];
-  for (const stmLevel1 of stmLevel1s) {
-    const level2s = await em.find(STM_Level2_db, { level1: stmLevel1 }, { populate: ["level3s"] });
-    stmLevel2s.push(...level2s);
-  }
-
-  // Query Level 3
-  const stmLevel3s = [];
-  for (const stmLevel2 of stmLevel2s) {
-    const level3s = await em.find(STM_Level3_db, { level2: stmLevel2 });
-    stmLevel3s.push(...level3s);
-  }
-
-  // Query STM Rules
-  const stmRules = await em.find(STM_Rule_db, { missionId });
-
-  return { stmLevel1s, stmLevel2s, stmLevel3s, stmRules };
 };

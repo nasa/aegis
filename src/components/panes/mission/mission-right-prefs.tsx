@@ -22,7 +22,7 @@ import {
   ValidatedLatLngField,
   ValidatedTextArea,
 } from "components/interface/form/globalFieldsAutomerge";
-import { regExValidators, validators } from "components/interface/form/formValidators";
+import { validators } from "components/interface/form/formValidators";
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
@@ -323,12 +323,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 validators.mustBeInteger,
                               ],
                             }}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            }}
                             onSubmit={(val: string) => {
                               changeAutomergeMission((m) => {
                                 m.defaultEvaDuration = toDecimal(val);
@@ -353,12 +347,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               ariaLabel: "Average traverse rate",
                               validators: [validators.mustBeNumber, validators.maxLength(8)],
                             }}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
-                            }}
                             onSubmit={(val: string) => {
                               changeAutomergeMission((m) => {
                                 m.traverseRate = toDecimal(val);
@@ -382,12 +370,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                               name: "defaultWalkbackRate",
                               ariaLabel: "Default walkback rate",
                               validators: [validators.mustBeNumber, validators.maxLength(8)],
-                            }}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                              e.target.value = e.target.value.replace(
-                                regExValidators.regExNumber,
-                                ""
-                              );
                             }}
                             onSubmit={(val: string) => {
                               changeAutomergeMission((m) => {

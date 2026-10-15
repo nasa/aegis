@@ -46,6 +46,9 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
 
 const mockMissionDoc: {
   id: number | null;
+  presets?: { [uuid: string]: Preset };
+  layers?: { [uuid: string]: Layer };
+  sublayers?: { [uuid: string]: Sublayer };
   projIsCustom: boolean;
   projResUnitsPerPixel: number | null;
   projResZoomLevel: number | null;
@@ -139,7 +142,6 @@ function makeTileSublayer(uuid: string, name = `Layer ${uuid.slice(-1)}`): Subla
     path: `tiles/${uuid}`,
     tilePattern: "{z}/{x}/{y}.png",
     tileFormat: "xyz",
-    missionId: 42,
   });
 }
 
@@ -152,7 +154,6 @@ function makeCogSublayer(uuid: string): Sublayer {
     layerUuid: LAYER_UUID,
     type: "tile",
     path: `${uuid}-elevation/${uuid}-elevation.tif`,
-    missionId: 42,
   });
 }
 
@@ -183,7 +184,6 @@ function makeTimeBasedSublayer(uuid: string): Sublayer {
       path: `tiles/${uuid}`,
       tilePattern: "{z}/{x}/{y}.png",
       tileFormat: "xyz",
-      missionId: 42,
     }),
     isTimeBased: true,
     timeLayerManifest: TIME_MANIFEST,
@@ -217,9 +217,8 @@ function preloaded({
     {
       uuid: LAYER_UUID,
       name: "Test Layer",
-      missionId: 42,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     } as unknown as Layer,
   ],
 }: {
@@ -228,18 +227,38 @@ function preloaded({
   sublayers?: Sublayer[];
   layers?: Layer[];
 } = {}): PartialPreloadedState {
+  // Presets, layers, and sublayers live in the mission doc; only the selection is in Redux
+  setMockDocEntities({ presets, layers, sublayers });
   return {
     preset: {
       ...presetSlice.getInitialState(),
-      presets,
       selectedPresetUuid,
     },
-    mission: {
-      ...missionSlice.getInitialState(),
-      layers,
-      sublayers,
-    },
   } as unknown as PartialPreloadedState;
+}
+
+const byUuid = <T extends { uuid: string }>(items: T[]): { [uuid: string]: T } =>
+  Object.fromEntries(items.map((item) => [item.uuid, item]));
+
+function setMockDocEntities({
+  presets,
+  layers,
+  sublayers,
+}: {
+  presets: Preset[];
+  layers: Layer[];
+  sublayers: Sublayer[];
+}): void {
+  mockMissionDoc.presets = byUuid(presets);
+  mockMissionDoc.layers = byUuid(layers);
+  mockMissionDoc.sublayers = byUuid(sublayers);
+}
+
+/** Replace one preset in the mocked mission doc and re-render so selectors see the change. */
+function updateMockPreset(update: (preset: Preset) => Preset): void {
+  const current = mockMissionDoc.presets[PRESET_UUID];
+  mockMissionDoc.presets = { ...mockMissionDoc.presets, [PRESET_UUID]: update(current) };
+  renderTileLayers();
 }
 
 // ---------------------------------------------------------------------------
@@ -358,12 +377,13 @@ describe("TileLayers", () => {
     expect(findTileLayers()).toHaveLength(1);
 
     flushSync(() => {
-      store.dispatch(
-        presetSlice.actions.togglePresetSublayerVisible({
-          presetUuid: PRESET_UUID,
-          layerUuid: SUBLAYER_A_UUID,
-        })
-      );
+      updateMockPreset((preset) => ({
+        ...preset,
+        mapSublayerControls: {
+          ...preset.mapSublayerControls,
+          [SUBLAYER_A_UUID]: { ...preset.mapSublayerControls[SUBLAYER_A_UUID], visible: false },
+        },
+      }));
     });
 
     expect(findTileLayers()).toHaveLength(0);
@@ -423,13 +443,16 @@ describe("TileLayers", () => {
     expect(layerBefore.getOpacity()).toBe(1);
 
     flushSync(() => {
-      store.dispatch(
-        presetSlice.actions.setPresetSublayerStyle({
-          presetUuid: PRESET_UUID,
-          layerUuid: SUBLAYER_A_UUID,
-          style: makeStyle({ opacity: 0.25 }),
-        })
-      );
+      updateMockPreset((preset) => ({
+        ...preset,
+        mapSublayerControls: {
+          ...preset.mapSublayerControls,
+          [SUBLAYER_A_UUID]: {
+            ...preset.mapSublayerControls[SUBLAYER_A_UUID],
+            style: makeStyle({ opacity: 0.25 }),
+          },
+        },
+      }));
     });
 
     const layerAfter = findTileLayers()[0];

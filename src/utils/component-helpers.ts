@@ -1,4 +1,3 @@
-import sortBy from "lodash/sortBy";
 import type { IconDefinition } from "@fortawesome/free-regular-svg-icons";
 import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 import rexStyles from "components/panes/rex/rex.module.css";
@@ -45,36 +44,6 @@ export const getAlertColor = (
   return alertIconColor;
 };
 
-/**
- * Compares two arrays of objects that must contain at least uuid and updated at.
- * Objects in array are sorted by uuid before compared
- * @param obj1
- * @param obj2
- * @returns
- */
-export const isModified = (
-  obj1: MustContainIsModified[],
-  obj2: MustContainIsModified[]
-): boolean => {
-  let isDiff = false;
-  //check length
-  if (obj1.length === obj2.length) {
-    //sort before comparing indexes
-    const sortedObjs1 = sortBy(obj1, ["uuid"]);
-    const sortedObjs2 = sortBy(obj2, ["uuid"]);
-    for (let i = 0; i < sortedObjs1.length; i++) {
-      //check updatedAt strings
-      isDiff = sortedObjs1[i]?.updatedAt !== sortedObjs2[i]?.updatedAt;
-      if (isDiff) {
-        break;
-      }
-    }
-  } else {
-    isDiff = true;
-  }
-  return isDiff;
-};
-
 export const makeTraverseRateString = (
   value: number,
   evaDefault?: number,
@@ -108,6 +77,7 @@ export const getRexStatusDisplayProperties = (
       bodyBackgroundColor: "var(--grey2)",
       customTextClassName: null,
     };
+
   switch (rexStatus) {
     case "pending":
       return {
@@ -158,39 +128,43 @@ export const getRexStatusDisplayProperties = (
  *   selected > rex state > hover > none
  */
 export const getSequenceItemRowStyles = ({
-  rexStatus,
+  rexActivityEntry,
   isSelected,
   isHovered,
   isRexEva,
 }: {
-  rexStatus: RexStatus | null;
+  rexActivityEntry: ActivityEntry | null;
   isSelected: boolean;
   isHovered: boolean;
   isRexEva: boolean;
 }): { rowClassName: string; nameClassName: string } => {
   let rowClassName = "";
   let nameClassName = "";
+  const rexStatusComplete =
+    rexActivityEntry?.rexStatus === "complete" ||
+    (rexActivityEntry?.maestroPercentCompleteEv1 === 100 &&
+      rexActivityEntry?.maestroPercentCompleteEv2 === 100);
 
   if (isSelected) {
     rowClassName = evaStyles.evaItemSelected;
     nameClassName = evaStyles.evaItemNameSelected;
     if (isRexEva) {
-      if (rexStatus === "in-progress") {
+      if (rexActivityEntry?.rexStatus === "in-progress") {
         rowClassName = evaStyles.evaItemRexInProgressSelected;
         nameClassName = evaStyles.evaItemNameRexInProgressSelected;
-      } else if (rexStatus === "skipped") {
+      } else if (rexActivityEntry?.rexStatus === "skipped") {
         rowClassName = evaStyles.evaItemRexSkippedSelected;
         nameClassName = evaStyles.evaItemNameRexSkippedSelected;
       }
       // "complete" + selected falls through to the normal selected styling
     }
-  } else if (isRexEva && rexStatus === "in-progress") {
+  } else if (isRexEva && rexActivityEntry?.rexStatus === "in-progress") {
     rowClassName = evaStyles.evaItemRexInProgress;
     nameClassName = evaStyles.evaItemNameRexInProgress;
-  } else if (isRexEva && rexStatus === "complete") {
+  } else if (isRexEva && rexStatusComplete) {
     rowClassName = evaStyles.evaItemRexComplete;
     // text color provided by customTextClassName (headingCompleted)
-  } else if (isRexEva && rexStatus === "skipped") {
+  } else if (isRexEva && rexActivityEntry?.rexStatus === "skipped") {
     rowClassName = evaStyles.evaItemRexSkipped;
     // text color provided by customTextClassName (headingSkipped)
   } else if (isHovered) {

@@ -11,7 +11,16 @@ import {
 import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
 import { serverLogger } from "utils/logging/serverLogger";
 
+// This migration predates the removal of `missionId` from the Automerge entity types, and it
+// must stay byte-for-byte as it originally ran. These local variants re-add the `missionId`
+// field it writes so the historical code still type-checks against the current entity types.
+type LegacyPoi = POI & { missionId: number };
+type LegacyAction = Action & { missionId: number | null };
+type LegacyStation = Station & { missionId: number };
+type LegacyTraverse = Traverse & { missionId: number };
+
 type LegacyEva = Eva & {
+  missionId: number;
   egressDuration?: number | null;
   ingressDuration?: number | null;
   egressLocationUuid?: string | null;
@@ -19,6 +28,7 @@ type LegacyEva = Eva & {
 };
 
 type LegacyRex = Rex & {
+  missionId: number;
   xgressEntries?: Record<string, { rexStatus: RexStatus }> | null;
   maestroActivityPropertiesByRefUuid?: MaestroActivityProperties | null;
 };
@@ -47,7 +57,7 @@ export const Migration20260416000000: AutomergeMigration = {
     }
 
     const em = orm.em.fork();
-    let poisRecord: Record<string, POI> | undefined;
+    let poisRecord: Record<string, LegacyPoi> | undefined;
     if (needsPois) {
       const dbPois = await em.find(
         Poi_db,
@@ -76,7 +86,7 @@ export const Migration20260416000000: AutomergeMigration = {
       }
     }
 
-    let actionsRecord: Record<string, Action> | undefined;
+    let actionsRecord: Record<string, LegacyAction> | undefined;
     if (needsActions) {
       const dbActions = await em.find(
         Action_db,
@@ -122,7 +132,7 @@ export const Migration20260416000000: AutomergeMigration = {
       }
     }
 
-    let stationsRecord: Record<string, Station> | undefined;
+    let stationsRecord: Record<string, LegacyStation> | undefined;
     if (needsStations) {
       const dbStations = await em.find(
         Station_db,
@@ -159,7 +169,7 @@ export const Migration20260416000000: AutomergeMigration = {
       }
     }
 
-    let traversesRecord: Record<string, Traverse> | undefined;
+    let traversesRecord: Record<string, LegacyTraverse> | undefined;
     if (needsTraverses) {
       const dbTraverses = await em.find(
         Traverse_db,
@@ -249,6 +259,9 @@ export const Migration20260416000000: AutomergeMigration = {
           maestroEventUrl: dbRex.maestroEventUrl,
           maestroActivityPropertiesByRefUuid: dbRex.maestroActivityPropertiesByRefUuid,
           maestroActivityProperties: dbRex.maestroActivityPropertiesByRefUuid,
+          // The legacy table has no columns for these; seed the defaults.
+          executeEditMode: "unrestricted",
+          executeEditState: null,
           createdAt: dbRex.createdAt.getTime(),
           updatedAt: dbRex.updatedAt.getTime(),
         };
