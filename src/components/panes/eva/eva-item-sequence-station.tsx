@@ -22,7 +22,7 @@ import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalcFieldsForStation } from "store/processing/calculatedFields";
 
-import { selectAsPlannedStations } from "store/selectors";
+import { selectAsPlannedStations, selectFoldersByType } from "store/selectors";
 import { createFolderOrganizedDropdownOptions } from "utils/dropdown-options";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { canMoveStation, isXgressIndex } from "operations/helpers/evaSequence";
@@ -95,10 +95,8 @@ const SequenceItemStation: FunctionComponent<{
   }, deepEqual);
 
   // Get folder data for stations
-  const folders = useAppSelector(
-    (state) => state.interface.folders.filter((f) => f.type === "station"),
-    deepEqual
-  );
+  const folders =
+    useMissionDocSelector((mission) => selectFoldersByType(mission, "station"), deepEqual) ?? [];
 
   // Create a mapping from station UUIDs to their folder UUIDs
   const itemsToFolders = folders.reduce<Record<string, string>>((map, folder) => {

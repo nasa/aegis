@@ -20,10 +20,10 @@ export async function getSublayers(
   return response;
 }
 
-export async function upsertSublayers(sublayers: Sublayer[]): Promise<WrappedResponse<Sublayer[]>> {
-  const missionIdStr =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
-  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+export async function upsertSublayers(
+  missionId: number,
+  sublayers: Sublayer[]
+): Promise<WrappedResponse<Sublayer[]>> {
   const requestBody: SublayerUpsertRequest = { missionId, sublayers };
   const res = await fetch(`/api/v1/sublayer`, {
     method: "POST",
@@ -49,10 +49,10 @@ export async function upsertSublayers(sublayers: Sublayer[]): Promise<WrappedRes
   return response;
 }
 
-export async function deleteSublayers(sublayerUuids: string[]): Promise<WrappedResponse<null>> {
-  const missionIdStr =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
-  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+export async function deleteSublayers(
+  missionId: number,
+  sublayerUuids: string[]
+): Promise<WrappedResponse<null>> {
   const requestBody: SublayerDeleteRequest = { missionId, sublayerUuids };
   const res = await fetch(`/api/v1/sublayer`, {
     method: "DELETE",

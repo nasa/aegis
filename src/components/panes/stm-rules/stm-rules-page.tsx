@@ -3,7 +3,6 @@ import styles from "./stm-rules-page.module.css";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setStmRulesActiveTab } from "store/stm";
-import { thunkCancelStmRuleByUuid } from "store/thunk/thunkStmRules";
 import StmRulesTabRules from "./stm-rules-tab-rules";
 import StmRulesTabMatches from "./stm-rules-tab-matches";
 
@@ -15,7 +14,6 @@ const TABS: { key: StmRulesTab; label: string }[] = [
 const StmRulesPage: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const activeTab = useAppSelector((state) => state.stm.stmRulesActiveTab, refEqual);
-  const ruleEditingUuid = useAppSelector((state) => state.stm.ruleEditingUuid, refEqual);
 
   return (
     <div className={styles.body}>
@@ -26,11 +24,6 @@ const StmRulesPage: FunctionComponent = () => {
               key={tab.key}
               className={tab.key === activeTab ? `${styles.tab} ${styles.tabActive}` : styles.tab}
               onClick={() => {
-                // revert any unsaved inline rule edit before navigating away, so the
-                // Rule Matches/Coverage tabs never compute from unpersisted edits
-                if (ruleEditingUuid) {
-                  dispatch(thunkCancelStmRuleByUuid({ stmRuleUuid: ruleEditingUuid }));
-                }
                 dispatch(setStmRulesActiveTab(tab.key));
               }}
             >

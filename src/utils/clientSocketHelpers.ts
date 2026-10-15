@@ -2,14 +2,11 @@ import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import type { AppDispatch } from "./useAppDispatch";
 import {
-  setLastEditEvent,
   setLastStatusFromServer,
   setServerVersion,
   setSocketConnectionStatus,
 } from "store/connection";
-import { clientFetchWithTimeout } from "./fetch-with-timeout";
 import isEqual from "lodash/isEqual";
-import { thunkSocketsHandleDelete, thunkSocketsHandleUpsert } from "store/thunk/thunkSockets";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
 
@@ -81,39 +78,6 @@ export const attachSocketListeners = (
   socket.io.on("reconnect_attempt", () => {
     dispatch(setSocketConnectionStatus("reconnecting"));
   });
-  socket.io.on("reconnect", () => {
-    // after this "reconnect" event, the "connect" event will fire
-    // hit the API to get the latest edit event and compare it to the one in the store
-    // if they are different, then alert the user and refresh the page
-    // this is for data not managed by auto-merge
-    const fetchLastEventAsync = async () => {
-      const wrappedLastEditResponse = await clientFetchWithTimeout(
-        `${window.location.origin}/api/v1/socket/lastEditEvent?missionId=${missionId}`,
-        null,
-        2000
-      );
-
-      if (wrappedLastEditResponse.status === 200) {
-        const lastEditResponse =
-          (await wrappedLastEditResponse.json()) as WrappedResponse<EditEvent>;
-        if (
-          connectionStoreRef.current.socketStatus.lastEditEvent &&
-          lastEditResponse &&
-          lastEditResponse.data &&
-          isEqual(lastEditResponse.data, connectionStoreRef.current.socketStatus.lastEditEvent) ===
-            false
-        ) {
-          alert(
-            `Mission data has been updated by another user while you were disconnected.\n
-              Please refresh your browser to get the latest data.`
-          );
-        }
-      } else {
-        alert("Unable to fetch last event from server. Please refresh your browser");
-      }
-    };
-    fetchLastEventAsync();
-  });
 
   // For non-production environments. In production we will attempt reconnects infinitely
   socket.io.on("reconnect_failed", () => {
@@ -160,63 +124,14 @@ export const attachSocketListeners = (
       window.sessionStorage.setItem("timeOffsetMs", timeOffsetMs.toString());
     }
   });
-
-  // Listen for incoming store updates
-  socket.on("storeUpsert", (storeUpsert: StoreUpsert) => {
-    // update the last edit event in the store
-    dispatch(setLastEditEvent(storeUpsert?.lastEditEvent));
-
-    const sessionSocketId =
-      typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-    if (sessionSocketId === storeUpsert.socketId) return;
-
-    const handleUpsertAsync = async () => {
-      const thunkResponse = await dispatch(thunkSocketsHandleUpsert({ storeUpsert: storeUpsert }));
-      if (thunkResponse.payload === false) {
-        //gracefully reject?
-      } else {
-        const alertStrings = thunkResponse.payload as string[];
-        if (alertStrings.length > 0) {
-          alert(alertStrings.join("\n"));
-        }
-      }
-    };
-    handleUpsertAsync();
-  });
-
-  // Incoming store deletes
-  socket.on("storeDelete", (storeDelete: StoreDelete) => {
-    // update the last edit event in the store
-    dispatch(setLastEditEvent(storeDelete?.lastEditEvent));
-
-    const sessionSocketId =
-      typeof window !== "undefined" ? window.sessionStorage.getItem("socketId") : null;
-    if (sessionSocketId === storeDelete.socketId) return;
-
-    const handleDeleteAsync = async () => {
-      const thunkResponse = await dispatch(thunkSocketsHandleDelete({ storeDelete }));
-      if (thunkResponse.payload === false) {
-        //gracefully reject?
-      } else {
-        const alertStrings = thunkResponse.payload as string[];
-        if (alertStrings.length > 0) {
-          alert(alertStrings.join("\n"));
-        }
-      }
-    };
-    handleDeleteAsync();
-  });
 };
 
 export const cleanupSocketListeners = (socket: Socket): void => {
   socket.off("connect");
   socket.off("disconnect");
   socket.io.off("reconnect_attempt");
-  socket.io.off("reconnect");
   socket.io.off("reconnect_failed");
   socket.off("version");
   socket.off("statusFromServer");
-  socket.off("storeUpsert");
-  socket.off("storeDelete");
   socket.disconnect();
 };

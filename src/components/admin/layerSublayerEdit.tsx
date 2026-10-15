@@ -80,8 +80,8 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
           );
           return false;
         }
-        const res: WrappedResponse<Sublayer[]> = await upsertSublayers([
-          { ...sublayer, updatedAt: getAccurateNow().toISOString() },
+        const res: WrappedResponse<Sublayer[]> = await upsertSublayers(props.missionId, [
+          { ...sublayer, updatedAt: getAccurateNow().getTime() },
         ]);
         props.refreshLayerList();
         alert(`${res.status} - ${res.message}`);

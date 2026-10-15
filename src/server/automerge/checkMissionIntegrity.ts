@@ -168,5 +168,78 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
     }
   }
 
+  // ── Map layers and presets ────────────────────────────────────────────────
+  const layerUuids = new Set(Object.keys(doc.layers ?? {}));
+  const sublayerUuids = new Set(Object.keys(doc.sublayers ?? {}));
+  for (const sublayer of Object.values(doc.sublayers ?? {})) {
+    if (!layerUuids.has(sublayer.layerUuid)) {
+      log("layerUuid", sublayer.layerUuid, "Sublayer", sublayer.uuid);
+    }
+  }
+  for (const preset of Object.values(doc.presets ?? {})) {
+    for (const sublayerUuid of Object.keys(preset.mapSublayerControls ?? {})) {
+      if (!sublayerUuids.has(sublayerUuid)) {
+        log("mapSublayerControls", sublayerUuid, "Preset", preset.uuid);
+      }
+    }
+    for (const entry of preset.layerOrder ?? []) {
+      if (!layerUuids.has(entry.layerUuid)) {
+        log("layerOrder[].layerUuid", entry.layerUuid, "Preset", preset.uuid);
+      }
+      for (const sublayerUuid of entry.sublayerUuids ?? []) {
+        if (!sublayerUuids.has(sublayerUuid)) {
+          log("layerOrder[].sublayerUuids", sublayerUuid, "Preset", preset.uuid);
+        }
+      }
+    }
+  }
+
+  // ── STM ───────────────────────────────────────────────────────────────────
+  const stmLevel1Uuids = new Set(Object.keys(doc.stmLevel1s ?? {}));
+  const stmLevel2Uuids = new Set(Object.keys(doc.stmLevel2s ?? {}));
+  const stmLevel3Uuids = new Set(Object.keys(doc.stmLevel3s ?? {}));
+  for (const level2 of Object.values(doc.stmLevel2s ?? {})) {
+    if (!stmLevel1Uuids.has(level2.level1Uuid)) {
+      log("level1Uuid", level2.level1Uuid, "STMLevel2", level2.uuid);
+    }
+  }
+  for (const level3 of Object.values(doc.stmLevel3s ?? {})) {
+    if (!stmLevel2Uuids.has(level3.level2Uuid)) {
+      log("level2Uuid", level3.level2Uuid, "STMLevel3", level3.uuid);
+    }
+  }
+  for (const rule of Object.values(doc.stmRules ?? {})) {
+    if (!stmLevel3Uuids.has(rule.stmUuid)) log("stmUuid", rule.stmUuid, "STMRule", rule.uuid);
+    for (const uuid of rule.verbUuids ?? []) {
+      if (!verbUuids.has(uuid)) log("verbUuids", uuid, "STMRule", rule.uuid);
+    }
+    for (const uuid of rule.nounUuids ?? []) {
+      if (!nounUuids.has(uuid)) log("nounUuids", uuid, "STMRule", rule.uuid);
+    }
+    for (const uuid of rule.adjectiveUuids ?? []) {
+      if (!adjectiveUuids.has(uuid)) log("adjectiveUuids", uuid, "STMRule", rule.uuid);
+    }
+  }
+  for (const action of Object.values(doc.actions ?? {})) {
+    for (const stmUuid of Object.keys(action.stmPriorities ?? {})) {
+      if (!stmLevel3Uuids.has(stmUuid)) log("stmPriorities", stmUuid, "Action", action.uuid);
+    }
+  }
+
+  // ── Folders ───────────────────────────────────────────────────────────────
+  const folderTargetUuids: Record<FolderType, Set<string>> = {
+    poi: poiUuids,
+    station: stationUuids,
+    eva: evaUuids,
+    preset: new Set(Object.keys(doc.presets ?? {})),
+    layer: layerUuids,
+  };
+  for (const folder of Object.values(doc.folders ?? {})) {
+    const targets = folderTargetUuids[folder.type];
+    for (const itemUuid of folder.items ?? []) {
+      if (!targets?.has(itemUuid)) log("items", itemUuid, "Folder", folder.uuid);
+    }
+  }
+
   return findings;
 }

@@ -220,6 +220,14 @@ export async function copyDirectoryContents(
   const fullSourcePath = path.join(staticDir, sourcePath);
   const fullTargetPath = path.join(staticDir, targetPath);
 
+  if (!fs.existsSync(fullSourcePath)) {
+    serverLogger.info({
+      logId: "file",
+      logValue: `No assets to copy: ${sourcePath} does not exist`,
+    });
+    return;
+  }
+
   // Create target directory if it doesn't exist
   if (!fs.existsSync(fullTargetPath)) {
     await mkdir(fullTargetPath, { recursive: true });
@@ -243,6 +251,10 @@ export async function copyDirectoryContents(
         });
         return;
       } catch (error) {
+        serverLogger.warning({
+          logId: "file",
+          logValue: `robocopy failed, falling back to xcopy: ${error instanceof Error ? error.message : String(error)}`,
+        });
         // Fallback to xcopy if robocopy fails or is not available
         // /E ensures recursive copying (includes empty subdirectories)
         await executeCommand("xcopy", [fullSourcePath, fullTargetPath, "/E", "/I", "/H", "/Y"]);

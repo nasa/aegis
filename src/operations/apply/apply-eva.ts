@@ -9,6 +9,7 @@ import {
 } from "./apply-station";
 import { applyDuplicateTraverseStage, applyDeleteTraverses } from "./apply-traverse";
 import { applyDeleteActions } from "./apply-action";
+import { applyRemoveItemsFromAllFolders } from "./apply-mission-folder";
 
 /** Insert/replace an EVA in the doc. */
 export function applyUpsertEva(m: Mission, eva: Eva): void {
@@ -147,11 +148,12 @@ export function applyEvaXgressChangeStage(m: Mission, stage: EvaXgressChangeStag
   }
 }
 
-/** Delete a list of EVAs from the doc. */
+/** Delete a list of EVAs from the doc and from every folder. */
 export function applyDeleteEvas(m: Mission, evaUuids: string[]): void {
   for (const uuid of evaUuids) {
     delete m.evas[uuid];
   }
+  applyRemoveItemsFromAllFolders(m, evaUuids);
 }
 
 /**
@@ -188,4 +190,5 @@ export function applyDeleteEvaStage(m: Mission, stage: EvaDeletionStageData): vo
   }
   // Delete the primary EVA
   delete m.evas[stage.evaUuid];
+  applyRemoveItemsFromAllFolders(m, [stage.evaUuid, ...stage.dependentRexEvaUuids]);
 }

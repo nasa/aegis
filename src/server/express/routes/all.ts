@@ -3,12 +3,6 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { getFolders } from "./folder";
-import { getLayers } from "./layer";
-import { getSublayers } from "./sublayer";
-import { getPresets } from "./preset";
-import { getLevel1s, getLevel2s, getLevel3s } from "./stm";
-import { getStmRules } from "./stmRules";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -86,7 +80,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 /**
- * get everything from the database
+ * get the mission document
  * @returns a mission
  * @param missionId
  */
@@ -94,28 +88,7 @@ export async function getAll(missionId: number): Promise<OneMissionToRuleThemAll
   if (!missionId || isNaN(missionId)) {
     throw new Error("Invalid mission ID");
   }
-  const [mission, layers, sublayers, presets, level1s, level2s, level3s, stmRules, folders] =
-    await Promise.all([
-      getAutomergeMissions([missionId]),
-      getLayers(missionId),
-      getSublayers(missionId),
-      getPresets(missionId),
-      getLevel1s(missionId),
-      getLevel2s(missionId),
-      getLevel3s(missionId),
-      getStmRules(missionId),
-      getFolders(missionId),
-    ]);
-  const allData: OneMissionToRuleThemAll = {
-    mission: mission[0],
-    layers,
-    sublayers,
-    presets,
-    level1s,
-    level2s,
-    level3s,
-    stmRules,
-    folders,
-  };
+  const [mission] = await getAutomergeMissions([missionId]);
+  const allData: OneMissionToRuleThemAll = { mission };
   return allData;
 }

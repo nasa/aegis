@@ -10,8 +10,6 @@ interface HoverState {
 }
 
 interface MissionState {
-  layers: Layer[] | null;
-  sublayers: Sublayer[] | null;
   selectedRightNavItem: string;
   /**
    * Single global edit-mode flag. When true, edit mode is on for mission, eva,
@@ -63,13 +61,10 @@ interface PoiState {
 }
 
 interface PresetState {
-  presets: Preset[];
-  presetsFromDb: Preset[];
   selectedPresetUuid: string;
   selectedRightNavItem: string;
   presetLayersUIStates: LayersUIStates;
   presetCirclesUIStates: CirclesUIStates;
-  presetsEditing: string[];
   presetPreviewTime: string;
 }
 
@@ -95,8 +90,7 @@ interface InterfaceState {
   timelineShowDistanceFromLander: boolean;
   timelineShowElevation: boolean;
   slopeColorMode: SlopeColorMode;
-  folders: Folder[];
-  foldersInterface: FolderInterface[];
+  foldersInterface: FoldersInterfaceState;
 }
 
 interface ConnectionState {
@@ -107,12 +101,6 @@ interface ConnectionState {
 }
 
 interface STMState {
-  level1s: STMLevel1[];
-  level2s: STMLevel2[];
-  level3s: STMLevel3[];
-  rules: STMRule[];
-  rulesFromDb: STMRule[];
-  ruleEditingUuid: string | null;
   stmViewExpandedItems: STMViewExpandedItem[];
   stmViewSelectedEvas: string[];
   stmViewSelectedActionTypes: ActionType[];

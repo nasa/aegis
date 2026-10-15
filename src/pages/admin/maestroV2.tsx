@@ -71,7 +71,6 @@ const MaestroV2: React.FunctionComponent = () => {
   const [inspectorConnectionStatus, setInspectorConnectionStatus] =
     useState<ConnectionStatus>("connecting");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
-  const [serverSocketStatus, setServerSocketStatus] = useState<ServerSocketStatus>(null);
   const [missionNames, setMissionNames] = useState<Map<number, string>>(new Map());
 
   // Maegistro v2 namespace socket
@@ -143,8 +142,7 @@ const MaestroV2: React.FunctionComponent = () => {
       setInspectorConnectionStatus("disconnected");
     });
 
-    socket.on("inspectorUpdate", (data: ServerSocketStatus) => {
-      setServerSocketStatus(data);
+    socket.on("inspectorUpdate", () => {
       setLastUpdatedAt(new Date().toISOString());
     });
 
@@ -421,23 +419,6 @@ const MaestroV2: React.FunctionComponent = () => {
                 )}
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* ── Last Edit Events ──────────────────────────────────────────── */}
-        <section className={adminCommon.section}>
-          <h2>Last Edit Events</h2>
-          <div className={adminCommon.details}>
-            {!serverSocketStatus?.lastEditEvents ||
-            Object.keys(serverSocketStatus.lastEditEvents).length === 0 ? (
-              <div className={adminCommon.emptyState}>No edit events recorded.</div>
-            ) : (
-              <PrintEditEvents
-                lastEditEvents={serverSocketStatus.lastEditEvents}
-                visitorsData={serverSocketStatus.visitorsData ?? []}
-                missionNames={missionNames}
-              />
-            )}
           </div>
         </section>
 
@@ -742,48 +723,6 @@ const PrintMaestroVisitors: FunctionComponent<{
             <td>{new Date(visitor.connectedAt).toUTCString()}</td>
           </tr>
         ))}
-      </tbody>
-    </table>
-  );
-};
-
-// ─── Last Edit Events table ────────────────────────────────────────────────────
-
-const PrintEditEvents: FunctionComponent<{
-  lastEditEvents: EditEvents;
-  visitorsData: VisitorData[];
-  missionNames: Map<number, string>;
-}> = ({ lastEditEvents, visitorsData, missionNames }) => {
-  const entries = Object.entries(lastEditEvents)
-    .map(([missionId, event]) => ({ missionId: Number(missionId), event }))
-    .sort((a, b) => a.missionId - b.missionId);
-
-  return (
-    <table className={adminCommon.table}>
-      <thead>
-        <tr>
-          <th>Mission</th>
-          <th>Type</th>
-          <th>Time</th>
-          <th>User</th>
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map(({ missionId, event }) => {
-          const visitor = visitorsData?.find((v) => v.socketId === event.socketId);
-          const user = visitor?.launchpadUser;
-          const displayName = user
-            ? user.display_name || `${user.surname}, ${user.givenname}`
-            : event.socketId;
-          return (
-            <tr key={missionId}>
-              <td>{missionNames.get(missionId) ?? missionId}</td>
-              <td>{event.type}</td>
-              <td>{new Date(event.datestamp).toUTCString()}</td>
-              <td>{displayName}</td>
-            </tr>
-          );
-        })}
       </tbody>
     </table>
   );

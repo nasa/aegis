@@ -1,11 +1,8 @@
 import type { FunctionComponent } from "react";
-import { useAppSelector, shallowEqual, refEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import {
-  faBan,
   faBullseye,
   faCircleInfo,
-  faEdit,
-  faFloppyDisk,
   faLayerGroup,
   faTrashAlt,
   faSun,
@@ -16,16 +13,15 @@ import Layers_Panel from "./preset-right-layers";
 import Preset_Circles_Panel from "./preset-right-circles";
 import Azimuth_Panel from "./preset-right-azimuth";
 import paneStyles from "../global-pane-styles.module.css";
-import {
-  setPresetEditMode,
-  setSelectedPresetRightNavItem,
-  upsertPresetByField,
-} from "store/preset";
-import { Button, InLineEditInput } from "components/interface/form/globalFields";
+import { setSelectedPresetRightNavItem } from "store/preset";
+import { Button } from "components/interface/form/globalFields";
+import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkDeletePreset, thunkPresetCancel, thunkSavePreset } from "store/thunk/thunkPreset";
+import { thunkDeletePreset } from "store/thunk/thunkPreset";
 import { validators } from "components/interface/form/formValidators";
-import { isModified } from "utils/component-helpers";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdatePresetByField } from "operations/apply/apply-mission-preset";
 import { RightTabs } from "components/interface/side-controls";
 import Grid_Panel from "./preset-right-grid";
 import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
@@ -36,19 +32,23 @@ const PresetEditorRight: FunctionComponent = () => {
     (state) => state.preset.selectedRightNavItem,
     refEqual
   );
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
+  const isInEditMode = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const selectedPreset = useAppSelector(
-    (state) => state.preset.presets.find((preset) => preset.uuid === selectedPresetUuid),
+  const selectedPreset = useMissionDocSelector(
+    (mission) => mission.presets?.[selectedPresetUuid],
     deepEqual
   );
-  const selectedPresetFromDb = useAppSelector(
-    (state) => state.preset.presetsFromDb.find((preset) => preset.uuid === selectedPresetUuid),
-    deepEqual
-  );
-  const presetsEditing = useAppSelector((state) => state.preset.presetsEditing, shallowEqual);
-
-  const modified = isModified([selectedPreset], [selectedPresetFromDb]);
+  const otherPresetNames =
+    useMissionDocSelector(
+      (mission) =>
+        Object.values(mission.presets ?? {})
+          .filter((preset) => preset.uuid !== selectedPresetUuid)
+          .map((preset) => preset.name),
+      deepEqual
+    ) ?? [];
 
   const panelTypes: PanelTypes = {
     info_panel: {
@@ -89,25 +89,30 @@ const PresetEditorRight: FunctionComponent = () => {
   return (
     selectedPreset && (
       <>
-        <div className={paneStyles.rightTopTitle} style={{ color: "var(--preset)" }}>
+        <div className={paneStyles.rightTopTitle}>
           <div className={paneStyles.rightTopTitleText}>
-            <InLineEditInput
+            <ValidatedInputField
               value={selectedPreset.name}
-              editing={presetsEditing.includes(selectedPresetUuid)}
+              editMode={isInEditMode}
               fieldProps={{
                 name: "name",
                 ariaLabel: "Preset Title",
-                style: {
-                  width: "100%",
-                  color: "var(--preset)",
-                  fontSize: "1em",
-                },
-                validators: [validators.required, validators.maxLength(255)],
+                validators: [
+                  validators.required,
+                  validators.maxLength(255),
+                  validators.mustBeUnique(otherPresetNames),
+                ],
               }}
-              styleContainer={{ paddingLeft: 0 }}
-              styleValue={{ padding: 0, height: "auto" }}
-              onSubmit={(val) => {
-                dispatch(upsertPresetByField(selectedPreset.uuid, "name", val || ""));
+              styleContainer={{ paddingRight: "10px" }}
+              displayStyle={{ fontSize: "1.1em", color: "var(--preset)" }}
+              onSubmit={(val: string) => {
+                withMissionChange((m) =>
+                  applyUpdatePresetByField(m, {
+                    presetUuid: selectedPreset.uuid,
+                    fieldName: "name",
+                    value: val || "",
+                  })
+                );
               }}
               key={`${selectedPreset.uuid}-name`}
             />
@@ -120,69 +125,23 @@ const PresetEditorRight: FunctionComponent = () => {
             dispatchFunction={setSelectedPresetRightNavItem}
           />
           <div className={paneStyles.saveCancelContainer}>
-            {presetsEditing.includes(selectedPresetUuid) && (
+            {isInEditMode && (
               <Button
                 icon={faTrashAlt}
                 onClick={() => {
-                  dispatch(thunkDeletePreset({ presetUuid: selectedPreset.uuid }));
+                  if (window.confirm("Are you sure you want to delete this Preset?")) {
+                    dispatch(thunkDeletePreset({ presetUuid: selectedPreset.uuid }));
+                  }
                 }}
                 toolTip="Delete Preset"
                 style={{ width: "30px", fontSize: "0.9em", paddingLeft: "9px" }}
                 ariaLabel="deleteButton"
               />
             )}
-            {!presetsEditing.includes(selectedPresetUuid) && editPerms && (
-              <Button
-                icon={faEdit}
-                onClick={() => {
-                  dispatch(setPresetEditMode({ presetUuid: selectedPresetUuid, editMode: true }));
-                }}
-                label="Edit"
-                toolTip="Edit Preset"
-                style={{ width: "60px", fontSize: "0.9em" }}
-                labelStyle={{ marginTop: "2px" }}
-                ariaLabel="Edit"
-              />
-            )}
-
-            {presetsEditing.includes(selectedPresetUuid) && (
-              <>
-                <Button
-                  onClick={() => {
-                    if (modified) {
-                      dispatch(thunkSavePreset({ presetUuid: selectedPreset.uuid }));
-                    }
-                  }}
-                  icon={faFloppyDisk}
-                  toolTip={`Save Preset${modified ? "" : " (nothing to save)"}`}
-                  enabled={modified}
-                  style={{
-                    width: "30px",
-                    backgroundColor: modified ? "var(--alert)" : "var(--alert-disabled)",
-                    color: modified ? "white" : "var(--grey4)",
-                    fontSize: "0.9em",
-                    paddingLeft: "9px",
-                  }}
-                  ariaLabel="saveButton"
-                />
-                <Button
-                  onClick={() => {
-                    dispatch(thunkPresetCancel({ presetUuid: selectedPreset.uuid }));
-                  }}
-                  icon={faBan}
-                  toolTip="Cancel Edit"
-                  style={{ width: "30px", fontSize: "0.9em", paddingLeft: "8px" }}
-                  ariaLabel="cancelButton"
-                />
-              </>
-            )}
           </div>
         </div>
 
-        <ActiveComponent
-          className={paneStyles.rightActiveWindow}
-          editMode={presetsEditing.includes(selectedPresetUuid)}
-        />
+        <ActiveComponent className={paneStyles.rightActiveWindow} editMode={isInEditMode} />
       </>
     )
   );

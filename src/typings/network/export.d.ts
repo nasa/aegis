@@ -108,12 +108,4 @@ type MissionDump = {
 
 type MissionSourceData = {
   mission: Mission;
-  layers: Layer_db[];
-  sublayers: Sublayer_db[];
-  presets: Preset_db[];
-  stmLevel1s?: STM_Level1_db[];
-  stmLevel2s?: STM_Level2_db[];
-  stmLevel3s?: STM_Level3_db[];
-  stmRules?: STM_Rule_db[];
-  folders: Folder_db[];
 };

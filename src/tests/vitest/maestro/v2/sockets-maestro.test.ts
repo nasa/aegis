@@ -18,12 +18,6 @@ const {
   mockGetAutomergeMissions: vi.fn(),
 }));
 
-// Mock socket emits
-vi.mock("server/express/sockets", async () => {
-  const actual = await vi.importActual("server/express/sockets");
-  return { ...actual, emitStoreUpsert: vi.fn(), emitStoreDelete: vi.fn() };
-});
-
 // Mock addMaestroDocListenerForMission to avoid DB calls from automerge doc listing
 vi.mock("server/maestro/v2/sockets-maestro-emitters", async () => {
   const actual = await vi.importActual("server/maestro/v2/sockets-maestro-emitters");

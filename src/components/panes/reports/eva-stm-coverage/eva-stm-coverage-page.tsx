@@ -25,6 +25,7 @@ import { ReportIdProvider } from "../reports-context";
 import EvaStmCoverageTable from "./eva-stm-coverage-table";
 import EvaStmCoverageDrilldown from "./eva-stm-coverage-drilldown";
 import EvaStmCoverageHelp from "./eva-stm-coverage-help";
+import { selectStmLevel3s, selectStmRules } from "store/selectors";
 
 const REPORT_ID: ColumnReportId = "stmCoverage";
 
@@ -52,8 +53,8 @@ const EvaStmCoveragePage: FunctionComponent = () => {
     }),
     shallowEqual
   );
-  const level3s = useAppSelector((state) => state.stm.level3s, shallowEqual);
-  const rules = useAppSelector((state) => state.stm.rules, deepEqual);
+  const level3s = useMissionDocSelector((mission) => selectStmLevel3s(mission), shallowEqual) ?? [];
+  const rules = useMissionDocSelector((mission) => selectStmRules(mission), deepEqual) ?? [];
   const hiddenColumns = useAppSelector(
     (state) => state.report[REPORT_ID].hiddenColumns,
     shallowEqual

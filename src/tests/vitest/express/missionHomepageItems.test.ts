@@ -8,16 +8,6 @@ import supertest from "supertest";
 import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
 
-// suppress socketio calls because they won't work during vitest testing
-vi.mock("server/express/sockets", async () => {
-  const actual = await vi.importActual("server/express/sockets");
-  return {
-    ...actual,
-    emitStoreUpsert: vi.fn(),
-    emitStoreDelete: vi.fn(),
-  };
-});
-
 let testAppUserNoPerms: App_User_db;
 let testAppUser: App_User_db;
 let testSuperAdmin: App_User_db;

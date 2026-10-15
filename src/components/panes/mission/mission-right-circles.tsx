@@ -8,15 +8,13 @@ import { Button } from "components/interface/form/globalFields";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { thunkSyncPresetsWithMission } from "store/thunk/thunkPreset";
-import { thunkDocSyncStationsWithMission } from "store/thunk/thunkStation";
+import {
+  thunkCreateCircleDefinition,
+  thunkDeleteCircleDefinition,
+} from "store/thunk/thunkCircleDefinition";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
-import {
-  applyCreateCircleDefinition,
-  applyDeleteCircleDefinition,
-  applyUpdateCircleDefinitionByField,
-} from "operations/apply/apply-mission-circleDefinition";
+import { applyUpdateCircleDefinitionByField } from "operations/apply/apply-mission-circleDefinition";
 import { withMissionChange } from "client/automergeDocHandles";
 import { LoadingOverlay } from "components/interface/_global-elements";
 
@@ -34,10 +32,15 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
 
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const syncPresetsAndStations = async () => {
+  const createCircleDefinition = async () => {
     setIsSyncing(true);
-    await dispatch(thunkSyncPresetsWithMission());
-    await dispatch(thunkDocSyncStationsWithMission());
+    await dispatch(thunkCreateCircleDefinition());
+    setIsSyncing(false);
+  };
+
+  const deleteCircleDefinition = async (circleDefUuid: string) => {
+    setIsSyncing(true);
+    await dispatch(thunkDeleteCircleDefinition({ circleDefUuid }));
     setIsSyncing(false);
   };
 
@@ -82,7 +85,7 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
                       circleDef={circleDef}
                       editMode={editMode}
                       evenRow={index % 2 === 0}
-                      syncPresetsAndStations={syncPresetsAndStations}
+                      deleteCircleDefinition={deleteCircleDefinition}
                     />
                   </li>
                 ))}
@@ -93,10 +96,7 @@ const CircleDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
                   icon={faPlusCircle}
                   label="Add New Circle Definition"
                   style={{ width: "185px", marginLeft: "18px", marginTop: "8px" }}
-                  onClick={async () => {
-                    withMissionChange((m) => applyCreateCircleDefinition(m));
-                    await syncPresetsAndStations();
-                  }}
+                  onClick={createCircleDefinition}
                   ariaLabel="addNewRadiusButton"
                 />
               )}
@@ -116,8 +116,8 @@ const RadiusItem: FunctionComponent<{
   circleDef: CircleDefinition;
   editMode: boolean;
   evenRow: boolean;
-  syncPresetsAndStations: () => Promise<void>;
-}> = ({ uuid, circleDef, editMode, evenRow, syncPresetsAndStations }) => {
+  deleteCircleDefinition: (circleDefUuid: string) => Promise<void>;
+}> = ({ uuid, circleDef, editMode, evenRow, deleteCircleDefinition }) => {
   let backgroundColor: string = "var(--grey2)";
   backgroundColor = evenRow ? "var(--grey2)" : "var(--grey1)";
 
@@ -177,8 +177,7 @@ const RadiusItem: FunctionComponent<{
           className={missionStyles.propertyRowTrashContainer}
           onClick={async () => {
             if (editMode) {
-              withMissionChange((m) => applyDeleteCircleDefinition(m, { circleDefUuid: uuid }));
-              syncPresetsAndStations();
+              await deleteCircleDefinition(uuid);
             }
           }}
         >

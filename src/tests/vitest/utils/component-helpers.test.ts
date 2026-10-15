@@ -1,7 +1,6 @@
 import {
   getActionDisplayName,
   getAlertColor,
-  isModified,
   makeTraverseRateString,
 } from "utils/component-helpers";
 import { sortActionDefinitionItems } from "components/interface/actionDefDropdown";
@@ -42,29 +41,6 @@ describe("getAlertColor", () => {
       { uuid: "", type: "station", name: null, reportItems: [{ message: null, type: "info" }] },
     ];
     expect(getAlertColor(reportItems, evaReportSequenceItems)).toBe("white");
-  });
-});
-
-describe("isModified", () => {
-  test("returns false when both arrays are identical", () => {
-    const obj1 = [{ uuid: "1", updatedAt: "2021-01-01" }];
-    const obj2 = [{ uuid: "1", updatedAt: "2021-01-01" }];
-    expect(isModified(obj1, obj2)).toBe(false);
-  });
-
-  test("returns true when the arrays have different lengths", () => {
-    const obj1 = [{ uuid: "1", updatedAt: "2021-01-01" }];
-    const obj2 = [
-      { uuid: "1", updatedAt: "2021-01-01" },
-      { uuid: "2", updatedAt: "2021-01-02" },
-    ];
-    expect(isModified(obj1, obj2)).toBe(true);
-  });
-
-  test("returns true when updatedAt differs", () => {
-    const obj1 = [{ uuid: "1", updatedAt: "2021-01-01" }];
-    const obj2 = [{ uuid: "1", updatedAt: "2021-02-01" }];
-    expect(isModified(obj1, obj2)).toBe(true);
   });
 });
 

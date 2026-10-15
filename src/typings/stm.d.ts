@@ -18,41 +18,24 @@ type STMLevel3 = {
   numbering: string; // e.g. "1"
   name: string; // e.g. "Inventory, relationships, and ages of nonmare rocks"
   level2Uuid: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: number;
+  updatedAt: number;
 };
 type STMLevel2 = {
   uuid: string;
   numbering: string; // e.g. "a"
   name: string; // e.g. "Differentiation: Magma Oceans, Crust, and Mantle"
   level1Uuid: string;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: number;
+  updatedAt: number;
 };
 type STMLevel1 = {
   uuid: string;
   numbering: string; // e.g. "1"
   name: string; // Understanding Planetary Processes
   missionId: number;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-type STMLevel1_db_type = Omit<STMLevel1, "createdAt" | "updatedAt"> & {
-  createdAt?: Date;
-  updatedAt?: Date;
-};
-
-type STMLevel2_db_type = Omit<STMLevel2, "level1Uuid" | "createdAt" | "updatedAt"> & {
-  level1: STMLevel1_db_type;
-  createdAt?: Date;
-  updatedAt?: Date;
-};
-
-type STMLevel3_db_type = Omit<STMLevel3, "level2Uuid" | "createdAt" | "updatedAt"> & {
-  level2: STMLevel2_db_type;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: number;
+  updatedAt: number;
 };
 
 type STMRule = {
@@ -66,13 +49,8 @@ type STMRule = {
   verbAny: boolean;
   nounAny: boolean;
   adjectiveAny: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-type STMRule_db_type = Omit<STMRule, "createdAt" | "updatedAt"> & {
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: number;
+  updatedAt: number;
 };
 
 /**

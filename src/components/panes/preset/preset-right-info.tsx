@@ -1,49 +1,25 @@
-import type { FunctionComponent, ChangeEvent } from "react";
+import type { FunctionComponent } from "react";
 import paneStyles from "../global-pane-styles.module.css";
 import presetStyles from "./preset.module.css";
-import { useAppDispatch } from "utils/useAppDispatch";
-import * as httpClient_Preset from "http-client/preset";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
-import {
-  setPresetEditMode,
-  upsertPresets,
-  upsertPresetByField,
-  upsertPresetsFromDb,
-} from "store/preset";
-import { Button, TextArea } from "components/interface/form/globalFields";
+import { Button } from "components/interface/form/globalFields";
+import { ValidatedTextArea } from "components/interface/form/globalFieldsAutomerge";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faMessage } from "@fortawesome/free-solid-svg-icons";
-import { getAccurateNow } from "utils/formatting";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { withMissionChange } from "client/automergeDocHandles";
+import {
+  applySetMissionDefaultPreset,
+  applyUpdatePresetByField,
+} from "operations/apply/apply-mission-preset";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const dispatch = useAppDispatch();
-
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const presets = useAppSelector((state) => state.preset.presets, deepEqual);
-  const selectedPreset = presets.find((preset) => preset.uuid === selectedPresetUuid);
-
-  const handleDefaultPresetChange = (evt: ChangeEvent<HTMLInputElement>) => {
-    // If the preset is being set as the default, then we need to unset the default flag on all other presets
-    if (evt.target.checked) {
-      dispatch(upsertPresetByField(selectedPresetUuid, "missionDefault", true));
-      //check the other presets
-      const otherPresets = presets.filter((preset) => preset.uuid !== selectedPresetUuid);
-      otherPresets.forEach((preset) => {
-        //there should only be one of these
-        if (preset.missionDefault) {
-          // save the preset to the store and db
-          const modifiedDate = getAccurateNow().toISOString();
-          const updatedPreset = { ...preset, missionDefault: false, updatedAt: modifiedDate };
-          dispatch(upsertPresets([updatedPreset], true));
-          dispatch(upsertPresetsFromDb([updatedPreset]));
-          httpClient_Preset.upsertPresets([updatedPreset]);
-          dispatch(setPresetEditMode({ presetUuid: preset.uuid, editMode: false }));
-        }
-      });
-    } else {
-      dispatch(upsertPresetByField(selectedPresetUuid, "missionDefault", false));
-    }
-  };
+  const selectedPreset = useMissionDocSelector(
+    (mission) => mission.presets?.[selectedPresetUuid],
+    deepEqual
+  );
+  if (!selectedPreset) return null;
 
   return (
     <div className={paneStyles.rightBody}>
@@ -56,10 +32,13 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                 {!selectedPreset.missionDefault && (
                   <Button
                     onClick={() => {
-                      if (!editMode) return;
-                      handleDefaultPresetChange({
-                        target: { checked: true },
-                      } as ChangeEvent<HTMLInputElement>);
+                      // Only one preset can be the default; the others are cleared in the same change
+                      withMissionChange((m) =>
+                        applySetMissionDefaultPreset(m, {
+                          presetUuid: selectedPresetUuid,
+                          missionDefault: true,
+                        })
+                      );
                     }}
                     label="Set to Default"
                     style={{ width: "110px" }}
@@ -80,18 +59,21 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
           <div className={paneStyles.panelSectionTitle}>
             <SubpanelHeading icon={faMessage}>Description</SubpanelHeading>
           </div>
-          <div className={paneStyles.descriptionContainer}>
-            <TextArea
-              key={selectedPreset?.uuid}
-              value={selectedPreset?.description || ""}
-              editing={editMode}
+          <div className={paneStyles.fieldContainerAutomerge}>
+            <ValidatedTextArea
+              key={selectedPreset.uuid}
+              value={selectedPreset.description || ""}
+              editMode={editMode}
               onSubmit={(value: string) => {
-                dispatch(upsertPresetByField(selectedPresetUuid, "description", value));
+                withMissionChange((m) =>
+                  applyUpdatePresetByField(m, {
+                    presetUuid: selectedPresetUuid,
+                    fieldName: "description",
+                    value: value || "",
+                  })
+                );
               }}
-              fieldProps={{
-                name: "presetDescription",
-                ariaLabel: "Preset Description",
-              }}
+              fieldProps={{ name: "presetDescription", ariaLabel: "Preset Description" }}
             />
           </div>
         </div>

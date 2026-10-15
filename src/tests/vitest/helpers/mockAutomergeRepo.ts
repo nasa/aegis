@@ -111,6 +111,7 @@ export const createMockAutomergeRepo = (missions: Partial<Mission>[] = []): any 
       return mockHandle;
     }),
     delete: vi.fn(),
+    flush: vi.fn().mockResolvedValue(undefined),
     handles: Object.fromEntries(mockHandles),
   };
 };

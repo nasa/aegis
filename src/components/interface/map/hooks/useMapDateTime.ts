@@ -13,6 +13,7 @@
 import { useMemo } from "react";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { selectSublayers } from "store/selectors";
 import { numericDatetimeToISO } from "utils/formatting";
 
 /**
@@ -22,7 +23,7 @@ import { numericDatetimeToISO } from "utils/formatting";
 export function useMapDateTime(): string | null {
   const presetPreviewTime = useAppSelector((s) => s.preset.presetPreviewTime, refEqual);
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
-  const missionSublayers = useAppSelector((s) => s.mission.sublayers, deepEqual);
+  const missionSublayers = useMissionDocSelector(selectSublayers, deepEqual);
 
   const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
   const selectedEvaDatetime = useMissionDocSelector((m) => {

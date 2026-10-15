@@ -12,17 +12,6 @@ import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
 
-import {
-  STM_Level1_db,
-  STM_Level2_db,
-  STM_Level3_db,
-  STM_Rule_db,
-  Layer_db,
-  Sublayer_db,
-  Preset_db,
-  Folder_db,
-} from "server/database/models/_allModels";
-
 /**
  * Endpoint for working with the mission document in automerge
  */
@@ -384,7 +373,9 @@ export async function getAutomergeMissions(missionIds?: number[]): Promise<Missi
 // Adds new mission to the backup mission db table and adds a listener
 // Returns the new listing for the mission
 export async function createAutomergeMission(
-  sourceMission?: Mission // optional mission definition to create from
+  sourceMission?: Mission, // optional mission definition to create from
+  // optional extra stamping of the assigned mission id, done in the same change as `m.id`
+  stampMissionId?: (m: Mission, missionId: number) => void
 ): Promise<AutomergeDocListing> {
   // create new mission automerge doc and add it to the doc listing table
   const newMission: Mission = sourceMission || generateBlankMission();
@@ -406,7 +397,10 @@ export async function createAutomergeMission(
 
   // This mission in automerge didn't have an ID yet.
   // Assign it the one from our newly inserted record
-  missionDocHandle.change((m: Mission) => (m.id = dbReference.missionId));
+  missionDocHandle.change((m: Mission) => {
+    m.id = dbReference.missionId;
+    stampMissionId?.(m, dbReference.missionId);
+  });
 
   return dbReference as AutomergeDocListing;
 }
@@ -439,80 +433,11 @@ export async function deleteAutomergeMissions(missionIds: number[]): Promise<num
     // delete the doc from the automerge repo storage system
     globalValues.automergeRepo.delete(automergeUrl as AutomergeUrl);
 
-    // delete all records in other tables associated with this mission
-    await deleteMissionRelatedEntities([missionId]);
-
     // delete from files
     await deleteFile(`missionFiles/${missionId.toString()}`);
 
     deletedMissionIds.push(missionId);
   }
 
-  return deletedMissionIds;
-}
-
-/**
- * Deletes all database entities related to the given missions.
- * @param missionIds mission IDs to delete
- * @returns the ids of the deleted missions
- */
-export async function deleteMissionRelatedEntities(missionIds: number[]): Promise<number[]> {
-  const em = globalValues.orm.em;
-  const deletedMissionIds = [];
-
-  for (const missionId of missionIds) {
-    try {
-      // Delete STM Rules first (they reference STM Level 3)
-      await em.nativeDelete(STM_Rule_db, { missionId });
-
-      // Find all Level 1s for this mission - they link to the mission directly
-      const stmLevel1s = await em.find(STM_Level1_db, { missionId });
-
-      // For each Level 1, we need to:
-      // 1. Find its Level 2s
-      // 2. For each Level 2, delete its Level 3s
-      // 3. Then delete the Level 2s
-      // 4. Then delete the Level 1s
-
-      for (const level1 of stmLevel1s) {
-        // Find Level 2s related to this Level 1
-        const level2s = await em.find(STM_Level2_db, { level1: level1 });
-
-        // For each Level 2, delete its Level 3s
-        for (const level2 of level2s) {
-          await em.nativeDelete(STM_Level3_db, { level2: level2 });
-        }
-
-        // Now delete all Level 2s for this Level 1
-        await em.nativeDelete(STM_Level2_db, { level1: level1 });
-      }
-
-      // Now delete all Level 1s for this mission
-      await em.nativeDelete(STM_Level1_db, { missionId });
-
-      // Delete sublayers (they reference layers)
-      await em.nativeDelete(Sublayer_db, { missionId });
-
-      // Delete layers
-      await em.nativeDelete(Layer_db, { missionId });
-
-      // Delete Presets
-      await em.nativeDelete(Preset_db, { missionId });
-
-      // Delete Folders
-      await em.nativeDelete(Folder_db, { missionId });
-
-      deletedMissionIds.push(missionId);
-    } catch (error) {
-      serverLogger.error(
-        { logId: "mission", logValue: `Error deleting mission ${missionId}` },
-        error instanceof Error ? error : new Error(String(error))
-      );
-      throw error;
-    }
-  }
-
-  // Flush to commit the changes
-  await em.flush();
   return deletedMissionIds;
 }

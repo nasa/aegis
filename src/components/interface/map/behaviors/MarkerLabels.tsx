@@ -33,7 +33,7 @@ import orderBy from "lodash/orderBy";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { selectAsPlannedStations } from "store/selectors";
+import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
@@ -123,7 +123,8 @@ export function MarkerLabels(): null {
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
   const selectedPoiUuid = useAppSelector((s) => s.poi.selectedPoiUuid, refEqual);
   const selectedSeqItemUuid = useAppSelector((s) => s.eva.selectedEvaSequenceItemUuid, refEqual);
-  const folders = useAppSelector((s) => s.interface.folders, deepEqual);
+  const folders: Folder[] =
+    useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
   const foldersInterface = useAppSelector((s) => s.interface.foldersInterface, deepEqual);
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
   // While any map directive is active — a marker/path edit OR a crew-position
@@ -339,9 +340,7 @@ export function MarkerLabels(): null {
         if (!folder) {
           uuidsToShow.add(station.uuid);
         } else {
-          const fi = foldersInterface.find(
-            (fi: { uuid: string; visible: boolean }) => fi.uuid === folder.uuid
-          );
+          const fi = foldersInterface[folder.uuid];
           if (!fi || fi.visible) uuidsToShow.add(station.uuid);
         }
       }
@@ -374,9 +373,7 @@ export function MarkerLabels(): null {
 
         const folder = poiFolders.find((f: Folder) => f.items.includes(poi.uuid));
         if (folder) {
-          const fi = foldersInterface.find(
-            (fi: { uuid: string; visible: boolean }) => fi.uuid === folder.uuid
-          );
+          const fi = foldersInterface[folder.uuid];
           if (fi && !fi.visible && poi.uuid !== selectedPoiUuid) continue;
         }
 

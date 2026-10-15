@@ -1,6 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { setBottomPanelIsOpen, setRightPanelIsOpen } from "store/interface";
 import { stmViewSetExpandedItems } from "store/stm";
+import { getMissionDocHandle } from "client/automergeDocHandles";
 
 export const thunkSetRightPanelIsOpenIfAuto = appCreateAsyncThunk<boolean>(
   "setRightPanelIsOpenIfAuto",
@@ -20,7 +21,7 @@ export const thunkExpandAllLevel3s = appCreateAsyncThunk<void>(
   "expandAllLevel3s",
   async (_, { getState, dispatch }) => {
     const newExpandedItems: STMViewExpandedItem[] = [...getState().stm.stmViewExpandedItems];
-    for (const level3 of getState().stm.level3s) {
+    for (const level3 of Object.values(getMissionDocHandle()?.doc()?.stmLevel3s ?? {})) {
       if (getState().stm.stmViewExpandedItems.includes({ type: "level3", uuid: level3.uuid })) {
         continue;
       } else {
