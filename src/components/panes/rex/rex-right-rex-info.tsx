@@ -25,7 +25,6 @@ import {
 import { withMissionChange } from "client/automergeDocHandles";
 import { thunkDocCreateInitialPosEntries } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { setOnlyShowRunningRex } from "store/eva";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { createQuickMapRexPositionLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
@@ -184,9 +183,6 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <Button
                         onClick={() => {
                           if (selectedRex.isRunning) {
-                            // If we are stopping a rex and "only show running rex" was enabled, turn it off so everything re-appears
-                            dispatch(setOnlyShowRunningRex(false));
-
                             // If pet was running, stop it. Pet can only be running if rex is running
                             if (selectedRex.petRunning) {
                               withMissionChange((m) =>
