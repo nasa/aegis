@@ -2,6 +2,8 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
 
+import { applyRemoveItemsFromAllFolders } from "./apply-mission-folder";
+
 /** Insert/replace a POI in the doc. */
 export function applyUpsertPoi(m: Mission, poi: POI): void {
   m.pois[poi.uuid] = cloneDeep(poi);
@@ -30,9 +32,10 @@ export function applyUpdatePoiByField<K extends keyof POI>(
   }
 }
 
-/** Delete a list of POIs from the doc. */
+/** Delete a list of POIs from the doc and from every folder. */
 export function applyDeletePois(m: Mission, poiUuids: string[]): void {
   for (const uuid of poiUuids) {
     delete m.pois[uuid];
   }
+  applyRemoveItemsFromAllFolders(m, poiUuids);
 }

@@ -18,18 +18,9 @@ import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { RequiredEntityData } from "@mikro-orm/core";
-import {
-  Doc_Listing_db,
-  Layer_db,
-  Preset_db,
-  STM_Level1_db,
-  STM_Level2_db,
-  STM_Level3_db,
-  Sublayer_db,
-} from "server/database/models/_allModels";
+import { Doc_Listing_db } from "server/database/models/_allModels";
 import {
   apollo14Layers,
-  apollo14Preset,
   apollo14StmLevel1s,
   apollo14StmLevel2s,
   apollo14StmLevel3s,
@@ -37,13 +28,6 @@ import {
   buildApollo14Mission,
   stampMissionId,
 } from "server/automerge/seeder/apollo14SeedData";
-import { convertLayersTypeStoreToDb } from "store/storeUtils/layer";
-import {
-  convertStms1TypeStoreToDb,
-  convertStms2TypeStoreToDb,
-  convertStms3TypeStoreToDb,
-} from "store/storeUtils/stm";
-import { convertSublayersTypeStoreToDb } from "store/storeUtils/sublayer";
 
 const SEED_MISSION_NAME = "Apollo 14";
 const LOG_ID = "automerge-seed";
@@ -127,69 +111,9 @@ const seed = async (): Promise<void> => {
   await em.persist(dbReference).flush();
   const missionId = dbReference.missionId;
 
-  // Stamp the assigned id onto the mission document and every entity so their
-  // missionIds match the id the database handed out.
+  // Stamp the assigned id onto the mission document and every entity (including the
+  // map layers, preset, and STM) so their missionIds match the id the database handed out.
   missionDocHandle.change((m) => stampMissionId(m, missionId));
-
-  // Seed the map layers and their sublayers for this mission (deterministic uuids
-  // from the seed data so the default preset can reference them). The seed arrays
-  // carry a placeholder missionId (1) and generator-defaulted timestamps; both are
-  // overridden here with the assigned mission id and a real seed-time timestamp.
-  const now = new Date();
-  for (const dbLayer of convertLayersTypeStoreToDb(apollo14Layers)) {
-    em.create(Layer_db, {
-      ...dbLayer,
-      missionId,
-      createdAt: now,
-      updatedAt: now,
-    } as RequiredEntityData<Layer_db_type>);
-  }
-  for (const dbSublayer of convertSublayersTypeStoreToDb(apollo14Sublayers)) {
-    em.create(Sublayer_db, {
-      ...dbSublayer,
-      missionId,
-      createdAt: now,
-      updatedAt: now,
-    } as RequiredEntityData<Sublayer_db_type>);
-  }
-
-  // Seed the mission-default map preset. Its static missionId is a placeholder, so
-  // override it with the assigned id.
-  em.create(Preset_db, {
-    ...apollo14Preset,
-    missionId,
-    createdAt: now,
-    updatedAt: now,
-  } as RequiredEntityData<Preset_db_type>);
-
-  // Seed the Science Traceability Matrix (STM) rows for this mission. Level1s are
-  // mission-scoped; level2/level3 hang off their parents via ManyToOne uuid refs.
-  // Level1's placeholder missionId and all generator-defaulted timestamps are
-  // overridden here with the assigned id and a real seed-time timestamp.
-  for (const dbLevel1 of convertStms1TypeStoreToDb(apollo14StmLevel1s)) {
-    em.create(STM_Level1_db, {
-      ...dbLevel1,
-      missionId,
-      createdAt: now,
-      updatedAt: now,
-    } as RequiredEntityData<STMLevel1_db_type>);
-  }
-  for (const dbLevel2 of convertStms2TypeStoreToDb(apollo14StmLevel2s)) {
-    em.create(STM_Level2_db, {
-      ...dbLevel2,
-      createdAt: now,
-      updatedAt: now,
-    } as RequiredEntityData<STMLevel2_db_type>);
-  }
-  for (const dbLevel3 of convertStms3TypeStoreToDb(apollo14StmLevel3s)) {
-    em.create(STM_Level3_db, {
-      ...dbLevel3,
-      createdAt: now,
-      updatedAt: now,
-    } as RequiredEntityData<STMLevel3_db_type>);
-  }
-
-  await em.flush();
 
   const mission = missionDocHandle.doc();
 

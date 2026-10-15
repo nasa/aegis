@@ -8,6 +8,7 @@ import {
   applyDeleteCircleDefinition,
   applyUpdateCircleDefinitionByField,
 } from "operations/apply/apply-mission-circleDefinition";
+import { generateBlankStation } from "store/storeUtils/station";
 import { v4 as uuidv4 } from "uuid";
 
 beforeAll(() => {
@@ -18,6 +19,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getMissionDocHandle().change((m) => {
     m.circleDefinitions = {};
+    m.stations = {};
   });
 });
 
@@ -57,6 +59,22 @@ describe("apply-mission-circleDefinition", () => {
       withMissionChange((m) => applyCreateCircleDefinition(m));
 
       expect(missionDocHandle.doc().updatedAt).toBeGreaterThan(before);
+    });
+
+    it("adds the new circle to an existing station's mapCircleControls in the same change", () => {
+      const station = generateBlankStation({ name: "Vitest Station" });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+      });
+
+      // Regression test: reassigning a station's mapCircleControls back onto
+      // its own draft object used to throw "Cannot create a reference to an
+      // existing document object".
+      const circleDefUuid = withMissionChange((m) => applyCreateCircleDefinition(m));
+
+      expect(
+        getMissionDocHandle().doc().stations[station.uuid].mapCircleControls[circleDefUuid]
+      ).toBeDefined();
     });
   });
 

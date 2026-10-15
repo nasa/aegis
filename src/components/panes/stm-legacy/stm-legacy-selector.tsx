@@ -2,7 +2,7 @@ import type { Node } from "react-checkbox-tree";
 import CheckboxTree from "react-checkbox-tree";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useState } from "react";
-import { useAppSelector, deepEqual } from "utils/useAppSelector";
+import { deepEqual } from "utils/useAppSelector";
 import stmStyles from "./stm-legacy-selector.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
@@ -11,6 +11,12 @@ import { STM_Coverage } from "./stm-legacy-coverage";
 import { applyUpdateActionByField } from "operations/apply/apply-action";
 import { withMissionChange } from "client/automergeDocHandles";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import {
+  selectStmLevel1s,
+  selectStmLevel2s,
+  selectStmLevel3s,
+  EMPTY_DOC_LIST,
+} from "store/selectors";
 
 const STMSelector: FunctionComponent<{
   editMode: boolean;
@@ -27,9 +33,12 @@ const STMSelector: FunctionComponent<{
     deepEqual
   );
 
-  const allSTMLevel1: STMLevel1[] = useAppSelector((state) => state.stm.level1s, deepEqual);
-  const allSTMLevel2: STMLevel2[] = useAppSelector((state) => state.stm.level2s, deepEqual);
-  const allSTMLevel3: STMLevel3[] = useAppSelector((state) => state.stm.level3s, deepEqual);
+  const allSTMLevel1: STMLevel1[] =
+    useMissionDocSelector((mission) => selectStmLevel1s(mission), deepEqual) ?? EMPTY_DOC_LIST;
+  const allSTMLevel2: STMLevel2[] =
+    useMissionDocSelector((mission) => selectStmLevel2s(mission), deepEqual) ?? EMPTY_DOC_LIST;
+  const allSTMLevel3: STMLevel3[] =
+    useMissionDocSelector((mission) => selectStmLevel3s(mission), deepEqual) ?? EMPTY_DOC_LIST;
 
   const [expanded, setExpanded] = useState<string[]>([]); //array of values at the parent levels that are expanded
   const [stmTreeNodes, setStmTreeNodes] = useState<Node[]>([]);

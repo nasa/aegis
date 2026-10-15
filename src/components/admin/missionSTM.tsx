@@ -2,14 +2,6 @@ import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback, useEffect, useState } from "react";
 import adminStyles from "./admin.module.css";
 import adminCommon from "pages/admin/adminCommon.module.css";
-import {
-  getSTMLevel1s,
-  getStmLevel2s,
-  getSTMLevel3s,
-  deleteSTMs,
-  getSTMRules,
-  upsertSTMs,
-} from "http-client/stm";
 import STMEdit from "components/admin/stmEdit";
 import stmStyles from "./stmEdit.module.css";
 import { faCaretDown, faCaretRight, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
@@ -18,78 +10,86 @@ import { type AutomergeUrl, isValidAutomergeUrl } from "@automerge/automerge-rep
 import { getAutomergeDocListing } from "http-client/docListing";
 import { useDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
+import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
+import { selectStmLevel1s, selectStmLevel2s, selectStmLevel3s } from "store/selectors";
+import {
+  applyDeleteStmLevel,
+  applyUpdateStmLevelByField,
+  getStmLevelDeleteBlocker,
+} from "operations/apply/apply-mission-stm";
+
+const STM_COLLECTION_BY_TYPE = {
+  Level1: "stmLevel1s",
+  Level2: "stmLevel2s",
+  Level3: "stmLevel3s",
+} as const;
 
 const MissionSTM: FunctionComponent<{
   missionId: number;
 }> = ({ missionId }) => {
-  const [allLevel1s, setAllLevel1s] = useState<STMLevel1[]>([]);
-  const [allLevel2s, setAllLevel2s] = useState<STMLevel2[]>([]);
-  const [allLevel3s, setAllLevel3s] = useState<STMLevel3[]>([]);
   const [automergeUrl, setAutomergeUrl] = useState<AutomergeUrl>();
+  const missionDocHandle = useDocHandle<Mission>(automergeUrl);
+  const stmTree = useDocSelector<
+    Mission,
+    { level1s: STMLevel1[]; level2s: STMLevel2[]; level3s: STMLevel3[] }
+  >(
+    automergeUrl,
+    (doc) => ({
+      level1s: selectStmLevel1s(doc),
+      level2s: selectStmLevel2s(doc),
+      level3s: selectStmLevel3s(doc),
+    }),
+    deepEqual
+  );
+  const allLevel1s = stmTree?.level1s ?? [];
+  const allLevel2s = stmTree?.level2s ?? [];
+  const allLevel3s = stmTree?.level3s ?? [];
 
-  const loadSTMFromDB = useCallback(async (missionId: number) => {
-    if (missionId) {
-      //load level1s
-      const level1s = await getSTMLevel1s({ missionId: missionId });
-      if (level1s.data) {
-        setAllLevel1s(level1s.data);
-      }
-
-      //load level2s
-      const level2s = await getStmLevel2s({ missionId: missionId });
-      if (level2s.data) {
-        setAllLevel2s(level2s.data);
-      }
-
-      //load level3s
-      const level3s = await getSTMLevel3s({ missionId: missionId });
-      if (level3s.data) {
-        setAllLevel3s(level3s.data);
-      }
-    }
-  }, []);
+  // This admin page loads its own mission doc handle, so it writes to it directly
+  const changeMission = useCallback(
+    (updateFn: (m: Mission) => void) => {
+      // eslint-disable-next-line no-restricted-syntax
+      missionDocHandle?.change((m: Mission) => {
+        updateFn(m);
+        m.updatedAt = new Date().getTime();
+      });
+    },
+    [missionDocHandle]
+  );
 
   //delete a level 1, 2, or 3
-  async function delSTM(
-    uuid: string,
-    stmType: "Level1" | "Level2" | "Level3",
-    actionSystemVersion: number
-  ) {
-    if (confirm("Are you sure you want to delete " + stmType)) {
-      // check if there are children for this STM item
-      let alertMsg = "";
-      if (stmType === "Level1") {
-        if (allLevel2s.findIndex((level2) => level2.level1Uuid === uuid) >= 0) {
-          alertMsg = "\nSTM has a level 2 child";
-        }
-      } else if (stmType === "Level2") {
-        if (allLevel3s.findIndex((level3) => level3.level2Uuid === uuid) >= 0) {
-          alertMsg = "\nSTM has a level 3 child";
-        }
-      }
-
-      // check if any rules assigned to it
-      if (actionSystemVersion === 2) {
-        const res = await getSTMRules(missionId);
-        if (res.data) {
-          const rules = res.data;
-          if (rules.findIndex((rule) => rule.stmUuid === uuid) >= 0) {
-            alertMsg = "\nSTM has a rule assigned";
-          }
-        }
-      }
-      if (alertMsg.length > 0) {
-        alert(`Cannot delete ${stmType}. ${alertMsg}`);
-        return;
-      }
-      try {
-        await deleteSTMs(missionId, stmType, [uuid]);
-        await loadSTMFromDB(missionId);
-      } catch {
-        alert(`Unknown error deleting ${stmType}: ${uuid}`);
-      }
+  function delSTM(uuid: string, stmType: "Level1" | "Level2" | "Level3") {
+    if (!confirm("Are you sure you want to delete " + stmType)) return;
+    const collection = STM_COLLECTION_BY_TYPE[stmType];
+    const blocker = getStmLevelDeleteBlocker(missionDocHandle.doc(), { collection, uuid });
+    if (blocker) {
+      alert(`Cannot delete ${stmType}. 
+${blocker}`);
+      return;
     }
+    changeMission((m) => applyDeleteStmLevel(m, { collection, uuid }));
   }
+
+  const saveSTM = (
+    stmType: "Level1" | "Level2" | "Level3",
+    stm: STMLevel1 | STMLevel2 | STMLevel3
+  ) => {
+    const collection = STM_COLLECTION_BY_TYPE[stmType];
+    changeMission((m) => {
+      applyUpdateStmLevelByField(m, {
+        collection,
+        uuid: stm.uuid,
+        fieldName: "name",
+        value: stm.name,
+      });
+      applyUpdateStmLevelByField(m, {
+        collection,
+        uuid: stm.uuid,
+        fieldName: "numbering",
+        value: stm.numbering,
+      });
+    });
+  };
 
   // get the automerge URL from the automerge records db
   const getAutomerge = useCallback(async () => {
@@ -103,8 +103,7 @@ const MissionSTM: FunctionComponent<{
   useEffect(() => {
     if (!missionId) return;
     getAutomerge();
-    loadSTMFromDB(missionId);
-  }, [missionId, getAutomerge, loadSTMFromDB]);
+  }, [missionId, getAutomerge]);
 
   return (
     <>
@@ -118,6 +117,7 @@ const MissionSTM: FunctionComponent<{
               level3s={allLevel3s}
               automergeUrl={automergeUrl}
               delSTM={delSTM}
+              saveSTM={saveSTM}
             />
           </div>
           <div id="editSTM_div">
@@ -127,7 +127,7 @@ const MissionSTM: FunctionComponent<{
               allLevel1s={allLevel1s}
               allLevel2s={allLevel2s}
               allLevel3s={allLevel3s}
-              reloadSTMfromDB={loadSTMFromDB}
+              changeMission={changeMission}
             />
           </div>
         </div>
@@ -145,9 +145,13 @@ const Level1List: FunctionComponent<{
   level1s: STMLevel1[];
   level2s: STMLevel2[];
   level3s: STMLevel3[];
-  delSTM: (uuid: string, stmType: string, actionSystemVersion: number) => void;
+  delSTM: (uuid: string, stmType: "Level1" | "Level2" | "Level3") => void;
+  saveSTM: (
+    stmType: "Level1" | "Level2" | "Level3",
+    stm: STMLevel1 | STMLevel2 | STMLevel3
+  ) => void;
   automergeUrl: AutomergeUrl;
-}> = ({ level1s, level2s, level3s, delSTM, automergeUrl }) => {
+}> = ({ level1s, level2s, level3s, delSTM, saveSTM, automergeUrl }) => {
   const [collapsedSTMLevel1s, setCollapsedSTMLevel1s] = useState<string[]>([]);
   const [collapsedSTMLevel2s, setCollapsedSTMLevel2s] = useState<string[]>([]);
 
@@ -202,14 +206,9 @@ const Level1List: FunctionComponent<{
                   stmLevelName={partialMission.stmLevel1Name}
                   disabled={!partialMission.stmLevel1Enabled}
                   deleteFunction={() => {
-                    delSTM(objv.uuid, "Level1", partialMission.actionSystemVersion);
+                    delSTM(objv.uuid, "Level1");
                   }}
-                  saveFunction={async (stm) => {
-                    const res = await upsertSTMs(partialMission.id, [stm] as STMLevel1[], "Level1");
-                    if (res.status !== "success") {
-                      alert(`${res.status} saving STM: ${res.message}`);
-                    }
-                  }}
+                  saveFunction={(stm) => saveSTM("Level1", stm)}
                 />
                 {!collapsedSTMLevel1s.includes(objv.uuid) && (
                   <Level2List
@@ -223,6 +222,7 @@ const Level1List: FunctionComponent<{
                     collapsedSTMLevel2s={collapsedSTMLevel2s}
                     setCollapsedSTMLevel2s={setCollapsedSTMLevel2s}
                     delSTM={delSTM}
+                    saveSTM={saveSTM}
                   />
                 )}
               </li>
@@ -247,7 +247,11 @@ const Level2List: FunctionComponent<{
   actionSystemVersion: number;
   collapsedSTMLevel2s: string[];
   setCollapsedSTMLevel2s: Dispatch<SetStateAction<string[]>>;
-  delSTM: (uuid: string, stmType: string, actionSystemVersion: number) => void;
+  delSTM: (uuid: string, stmType: "Level1" | "Level2" | "Level3") => void;
+  saveSTM: (
+    stmType: "Level1" | "Level2" | "Level3",
+    stm: STMLevel1 | STMLevel2 | STMLevel3
+  ) => void;
 }> = ({
   missionId,
   parentUuid,
@@ -259,6 +263,7 @@ const Level2List: FunctionComponent<{
   collapsedSTMLevel2s,
   setCollapsedSTMLevel2s,
   delSTM,
+  saveSTM,
 }) => {
   if (level2s) {
     return (
@@ -288,14 +293,9 @@ const Level2List: FunctionComponent<{
                   stm={level2}
                   stmLevelName={stmLevel2Name}
                   deleteFunction={() => {
-                    delSTM(level2.uuid, "Level2", actionSystemVersion);
+                    delSTM(level2.uuid, "Level2");
                   }}
-                  saveFunction={async (stm) => {
-                    const res = await upsertSTMs(missionId, [stm] as STMLevel2[], "Level2");
-                    if (res.status !== "success") {
-                      alert(`${res.status} saving STM: ${res.message}`);
-                    }
-                  }}
+                  saveFunction={(stm) => saveSTM("Level2", stm)}
                 />
                 {!collapsedSTMLevel2s.includes(level2.uuid) && (
                   <Level3List
@@ -305,6 +305,7 @@ const Level2List: FunctionComponent<{
                     actionSystemVersion={actionSystemVersion}
                     missionId={missionId}
                     delSTM={delSTM}
+                    saveSTM={saveSTM}
                   />
                 )}
               </li>
@@ -322,8 +323,12 @@ const Level3List: FunctionComponent<{
   stmLevel3Name: string;
   actionSystemVersion: number;
   missionId: number;
-  delSTM: (uuid: string, stmType: string, actionSystemVersion: number) => void;
-}> = ({ parentUuid, level3s, stmLevel3Name, actionSystemVersion, missionId, delSTM }) => {
+  delSTM: (uuid: string, stmType: "Level1" | "Level2" | "Level3") => void;
+  saveSTM: (
+    stmType: "Level1" | "Level2" | "Level3",
+    stm: STMLevel1 | STMLevel2 | STMLevel3
+  ) => void;
+}> = ({ parentUuid, level3s, stmLevel3Name, delSTM, saveSTM }) => {
   if (level3s) {
     return (
       <ul style={{ paddingLeft: "1.2rem", margin: "4px 0" }}>
@@ -336,14 +341,9 @@ const Level3List: FunctionComponent<{
                   stm={level3}
                   stmLevelName={stmLevel3Name}
                   deleteFunction={() => {
-                    delSTM(level3.uuid, "Level3", actionSystemVersion);
+                    delSTM(level3.uuid, "Level3");
                   }}
-                  saveFunction={async (stm) => {
-                    const res = await upsertSTMs(missionId, [stm] as STMLevel3[], "Level3");
-                    if (res.status !== "success") {
-                      alert(`${res.status} saving STM: ${res.message}`);
-                    }
-                  }}
+                  saveFunction={(stm) => saveSTM("Level3", stm)}
                 />
               </li>
             );

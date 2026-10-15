@@ -17,10 +17,10 @@ export async function getLayers(mission: number, uuid?: string): Promise<Wrapped
   return response;
 }
 
-export async function upsertLayers(layers: Layer[]): Promise<WrappedResponse<Layer[]>> {
-  const missionIdStr =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
-  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+export async function upsertLayers(
+  missionId: number,
+  layers: Layer[]
+): Promise<WrappedResponse<Layer[]>> {
   const requestBody: LayerUpsertRequest = { missionId, layers };
   const res = await fetch(`/api/v1/layer`, {
     method: "POST",
@@ -46,10 +46,10 @@ export async function upsertLayers(layers: Layer[]): Promise<WrappedResponse<Lay
   return response;
 }
 
-export async function deleteLayers(layerUuids: string[]): Promise<WrappedResponse<null>> {
-  const missionIdStr =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
-  const missionId = missionIdStr ? parseInt(missionIdStr) : undefined;
+export async function deleteLayers(
+  missionId: number,
+  layerUuids: string[]
+): Promise<WrappedResponse<null>> {
   const requestBody: LayerDeleteRequest = { missionId, layerUuids };
   const res = await fetch(`/api/v1/layer`, {
     method: "DELETE",

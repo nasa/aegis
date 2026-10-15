@@ -83,3 +83,16 @@ export function applyUpdateActionDefinitionConjunction(
   m.actionDefinitionConjunctions[key] = value;
   m.updatedAt = getAccurateNow().getTime();
 }
+
+/**
+ * Delete an ActionDefinitionItem from the Mission draft.
+ */
+export function applyDeleteActionDefinitionItem(
+  m: Mission,
+  { type, uuid }: { type: ActionDefinitionType; uuid: string }
+): void {
+  if (m.actionDefinitions?.[type]?.[uuid]) {
+    delete m.actionDefinitions[type][uuid];
+    m.updatedAt = getAccurateNow().getTime();
+  }
+}

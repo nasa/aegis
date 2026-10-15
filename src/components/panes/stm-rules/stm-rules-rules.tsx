@@ -1,26 +1,19 @@
 import type { FunctionComponent } from "react";
 import styles from "./stm-rules-rules.module.css";
-import { shallowEqual, deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { Button, Checkbox, MultiSelectDropdown } from "components/interface/form/globalFields";
 import {
-  setRuleEditingUuid,
   setStmRulesActiveTab,
   setStmRulesSelectedRuleUuid,
   setStmRulesSelectedStmUuid,
-  upsertSTMRuleByField,
 } from "store/stm";
-import {
-  thunkCancelStmRuleByUuid,
-  thunkDeleteStmRuleByUuid,
-  thunkSaveStmRule,
-} from "store/thunk/thunkStmRules";
+import { thunkDeleteStmRuleByUuid } from "store/thunk/thunkStmRules";
+import { withMissionChange } from "client/automergeDocHandles";
+import { applyUpdateStmRuleByField } from "operations/apply/apply-mission-stm";
 import RulesEngineSummary from "./stm-rule-count";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faBan,
-  faEdit,
-  faFloppyDisk,
   faMagnifyingGlass,
   faSquareMinus,
   faSquarePlus,
@@ -29,7 +22,16 @@ import {
 import cloneDeep from "lodash/cloneDeep";
 import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { getActionDefinitionLabel } from "store/selectors";
+import { getActionDefinitionLabel, selectStmRules } from "store/selectors";
+
+/** Write one STM rule field to the mission doc. */
+const updateRuleField = <K extends keyof STMRule>(
+  ruleUuid: string,
+  fieldName: K,
+  value: STMRule[K]
+): void => {
+  withMissionChange((m) => applyUpdateStmRuleByField(m, { ruleUuid, fieldName, value }));
+};
 
 /**
  * className for a rule word-column wrapper: the base container plus its
@@ -42,10 +44,11 @@ export const ruleSetContainerClass = (widthClass: string, isEditing: boolean): s
     : `${styles.stmRuleSetContainer} ${widthClass}`;
 
 const STMRules: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
-  const rules = useAppSelector(
-    (state) => state.stm.rules.filter((rule) => rule.stmUuid === stmUuid),
-    shallowEqual
-  );
+  const rules =
+    useMissionDocSelector(
+      (mission) => selectStmRules(mission).filter((rule) => rule.stmUuid === stmUuid),
+      deepEqual
+    ) ?? [];
   return (
     <div>
       {rules.map((rule) => (
@@ -58,7 +61,10 @@ const STMRules: FunctionComponent<{ stmUuid: string }> = ({ stmUuid }) => {
 export default STMRules;
 
 const STMRule: FunctionComponent<{ rule: STMRule }> = ({ rule }) => {
-  const isEditing = useAppSelector((state) => state.stm.ruleEditingUuid === rule.uuid, refEqual);
+  const isEditing = useAppSelector(
+    (state) => state.user.missionPerms.permissions.edit && state.mission.isInEditMode,
+    refEqual
+  );
   const conjunctions = useMissionDocSelector(
     (mission) => mission.actionDefinitionConjunctions,
     refEqual
@@ -94,7 +100,6 @@ export const STMRuleCount: FunctionComponent<{ isEditing: boolean; rule: STMRule
   isEditing,
   rule,
 }) => {
-  const dispatch = useAppDispatch();
   if (!isEditing) {
     return <div className={styles.stmRuleCount}>{rule.count}</div>;
   }
@@ -105,7 +110,7 @@ export const STMRuleCount: FunctionComponent<{ isEditing: boolean; rule: STMRule
         className={styles.stmRuleIcon}
         onClick={() => {
           if (rule.count <= 1) return;
-          dispatch(upsertSTMRuleByField(rule.uuid, "count", rule.count - 1));
+          updateRuleField(rule.uuid, "count", rule.count - 1);
         }}
       />
       <div className={styles.stmRuleCount}>{rule.count}</div>
@@ -113,7 +118,7 @@ export const STMRuleCount: FunctionComponent<{ isEditing: boolean; rule: STMRule
         icon={faSquarePlus}
         className={styles.stmRuleIcon}
         onClick={() => {
-          dispatch(upsertSTMRuleByField(rule.uuid, "count", rule.count + 1));
+          updateRuleField(rule.uuid, "count", rule.count + 1);
         }}
       />
     </div>
@@ -121,90 +126,41 @@ export const STMRuleCount: FunctionComponent<{ isEditing: boolean; rule: STMRule
 };
 
 /**
- * Per-rule action buttons. The Edit/Save/Cancel interaction is transitional:
- * once STM rules move to Automerge, editing will switch to the universal
- * header edit mode and these buttons will be removed.
+ * Per-rule action buttons. Rule fields save as they are edited; delete is only
+ * available in edit mode.
  */
 const STMRuleButtons: FunctionComponent<{ rule: STMRule; isEditing: boolean }> = ({
   rule,
   isEditing,
 }) => {
   const dispatch = useAppDispatch();
-  const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
   const buttonStyle = { width: "26px", fontSize: "0.9em", paddingLeft: "8px" };
   return (
     <div className={styles.stmRuleButtonsContainer}>
-      {!isEditing ? (
-        <>
-          <Button
-            ariaLabel="viewRuleMatches"
-            icon={faMagnifyingGlass}
-            onClick={() => {
-              dispatch(setStmRulesSelectedStmUuid(rule.stmUuid));
-              dispatch(setStmRulesSelectedRuleUuid(rule.uuid));
-              dispatch(setStmRulesActiveTab("matches"));
-            }}
-            toolTip="View Rule Matches"
-            style={buttonStyle}
-          />
-          {editPerms && (
-            <>
-              <Button
-                ariaLabel="editRule"
-                icon={faEdit}
-                onClick={() => {
-                  dispatch(setRuleEditingUuid(rule.uuid));
-                }}
-                toolTip="Edit Rule"
-                style={buttonStyle}
-              />
-              <Button
-                ariaLabel="deleteRule"
-                icon={faTrashAlt}
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to delete this rule?")) {
-                    dispatch(thunkDeleteStmRuleByUuid({ stmRuleUuid: rule.uuid }));
-                  }
-                }}
-                toolTip="Delete Rule"
-                style={buttonStyle}
-              />
-            </>
-          )}
-        </>
-      ) : (
-        <>
-          <Button
-            ariaLabel="deleteRule"
-            icon={faTrashAlt}
-            onClick={() => {
-              if (window.confirm("Are you sure you want to delete this rule?")) {
-                dispatch(thunkDeleteStmRuleByUuid({ stmRuleUuid: rule.uuid }));
-              }
-            }}
-            toolTip="Delete Rule"
-            style={buttonStyle}
-          />
-          <Button
-            ariaLabel="saveRule"
-            icon={faFloppyDisk}
-            onClick={() => {
-              dispatch(thunkSaveStmRule({ stmRule: rule }));
-            }}
-            toolTip="Save Rule"
-            style={{ ...buttonStyle, backgroundColor: "var(--alert)", color: "white" }}
-          />
-          <Button
-            ariaLabel="cancelRuleEdit"
-            icon={faBan}
-            onClick={() => {
-              dispatch(thunkCancelStmRuleByUuid({ stmRuleUuid: rule.uuid }));
-            }}
-            toolTip="Cancel Edit"
-            style={buttonStyle}
-          />
-        </>
+      <Button
+        ariaLabel="viewRuleMatches"
+        icon={faMagnifyingGlass}
+        onClick={() => {
+          dispatch(setStmRulesSelectedStmUuid(rule.stmUuid));
+          dispatch(setStmRulesSelectedRuleUuid(rule.uuid));
+          dispatch(setStmRulesActiveTab("matches"));
+        }}
+        toolTip="View Rule Matches"
+        style={buttonStyle}
+      />
+      {isEditing && (
+        <Button
+          ariaLabel="deleteRule"
+          icon={faTrashAlt}
+          onClick={() => {
+            if (window.confirm("Are you sure you want to delete this rule?")) {
+              dispatch(thunkDeleteStmRuleByUuid({ stmRuleUuid: rule.uuid }));
+            }
+          }}
+          toolTip="Delete Rule"
+          style={buttonStyle}
+        />
       )}
     </div>
   );
@@ -215,7 +171,6 @@ export const STMRuleSet: FunctionComponent<{
   stmRule: STMRule;
   type: ActionDefinitionType;
 }> = ({ isEditing, stmRule, type }) => {
-  const dispatch = useAppDispatch();
   const actionDefinitions = useMissionDocSelector(
     (mission) => mission.actionDefinitions,
     deepEqual
@@ -267,13 +222,13 @@ export const STMRuleSet: FunctionComponent<{
                   } else {
                     uuidArray.push(uuid);
                   }
-                  dispatch(upsertSTMRuleByField(stmRule.uuid, uuidKeyString, uuidArray));
+                  updateRuleField(stmRule.uuid, uuidKeyString, uuidArray);
                 }}
                 titleLabel={
                   actionDefinitionItemsToDisplay.map((item) => item.name).join(", ") ||
                   `${pluralLabel}...`
                 }
-                containerStyle={{ zIndex: 10, width: "170px" }}
+                containerStyle={{ width: "170px" }}
                 containerClassName={styles.stmRuleSetMultiselectContainer}
                 headerClassName={styles.multiselectDropdownHeader}
               />
@@ -286,14 +241,12 @@ export const STMRuleSet: FunctionComponent<{
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const anyKeyString = `${type.slice(0, -1)}Any` as
                   "verbAny" | "nounAny" | "adjectiveAny";
-                dispatch(upsertSTMRuleByField(stmRule.uuid, anyKeyString, e.target.checked));
+                updateRuleField(stmRule.uuid, anyKeyString, e.target.checked);
               }}
               onClick={() => {
                 const anyKeyString = `${type.slice(0, -1)}Any` as
                   "verbAny" | "nounAny" | "adjectiveAny";
-                dispatch(
-                  upsertSTMRuleByField(stmRule.uuid, anyKeyString, !stmRule[ruleAnyKeyString])
-                );
+                updateRuleField(stmRule.uuid, anyKeyString, !stmRule[ruleAnyKeyString]);
               }}
               toolTip={`Any ${singularLabel}`}
               label={`Any`}

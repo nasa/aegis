@@ -99,10 +99,6 @@ const DashboardHeader: FunctionComponent = () => {
                 new Date(socketStatus.lastStatusFromServer.timestamp).toISOString()
               ) || "None"}
             </div>
-            <div>
-              Last Edit Event:{" "}
-              {longDateFromDateString(socketStatus.lastEditEvent?.datestamp) || "None"}
-            </div>
             <div>Editors: {socketStatus.lastStatusFromServer.visitorCounts.editors}</div>
             <div>Viewers: {socketStatus.lastStatusFromServer.visitorCounts.viewers}</div>
           </Tooltip>

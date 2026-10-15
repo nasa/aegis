@@ -180,10 +180,10 @@ describe("useMapDateTime", () => {
     docState.evas = {
       "eva-1": { uuid: "eva-1", datetime: Date.parse(previewTime) } as Eva,
     };
+    docState.sublayers = { [sublayer.uuid]: sublayer };
     const store = makeStore({
       preset: { ...presetInit, presetPreviewTime: previewTime },
       interface: { ...interfaceInit, sectionSelectedLabel: "preset" },
-      mission: { ...missionInit, sublayers: [sublayer] },
       eva: { ...evaInit, selectedEvaUuid: "eva-1" },
     });
     const resolveLayers = () =>
@@ -203,28 +203,24 @@ describe("useMapDateTime", () => {
   });
 
   it("falls back to first time-based sublayer manifest entry", () => {
-    const store = makeStore({
-      mission: {
-        ...missionInit,
-        sublayers: [
-          {
-            uuid: "sub-1",
-            name: "non-time",
-            isTimeBased: false,
-            timeLayerManifest: null,
-          } as unknown as Sublayer,
-          {
-            uuid: "sub-2",
-            name: "time-based",
-            isTimeBased: true,
-            timeLayerManifest: [
-              { datetime: "2026-03-01T00:00:00Z" },
-              { datetime: "2026-03-02T00:00:00Z" },
-            ],
-          } as unknown as Sublayer,
+    docState.sublayers = {
+      "sub-1": {
+        uuid: "sub-1",
+        name: "non-time",
+        isTimeBased: false,
+        timeLayerManifest: null,
+      } as unknown as Sublayer,
+      "sub-2": {
+        uuid: "sub-2",
+        name: "time-based",
+        isTimeBased: true,
+        timeLayerManifest: [
+          { datetime: "2026-03-01T00:00:00Z" },
+          { datetime: "2026-03-02T00:00:00Z" },
         ],
-      },
-    });
+      } as unknown as Sublayer,
+    };
+    const store = makeStore({});
     render(store);
     expect(captured).toBe("2026-03-01T00:00:00Z");
   });
@@ -248,19 +244,16 @@ describe("useMapDateTime", () => {
     docState.evas = {
       [evaUuid]: { uuid: evaUuid, datetime: Date.parse("2026-04-15T08:30:00Z") } as Eva,
     };
+    docState.sublayers = {
+      "sub-2": {
+        uuid: "sub-2",
+        name: "time-based",
+        isTimeBased: true,
+        timeLayerManifest: [{ datetime: "2026-03-01T00:00:00Z" }],
+      } as unknown as Sublayer,
+    };
     const store = makeStore({
       eva: { ...evaInit, selectedEvaUuid: evaUuid },
-      mission: {
-        ...missionInit,
-        sublayers: [
-          {
-            uuid: "sub-2",
-            name: "time-based",
-            isTimeBased: true,
-            timeLayerManifest: [{ datetime: "2026-03-01T00:00:00Z" }],
-          } as unknown as Sublayer,
-        ],
-      },
     });
     render(store);
     expect(captured).toBe("2026-04-15T08:30:00.000Z");

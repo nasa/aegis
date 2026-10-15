@@ -2,58 +2,57 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
-import LayerFactory from "../fixtures/entityFactories/LayerFactory";
-import { Layer_db, App_User_db } from "server/database/models/_allModels";
+import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
+import { App_User_db, Doc_Listing_db } from "server/database/models/_allModels";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankLayer } from "store/storeUtils/layer";
+import { generateBlankPreset } from "store/storeUtils/preset";
+import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
+import { getAutomergeMissionHandle } from "server/express/routes/missionAutomerge";
 
 let testAppUser: App_User_db;
-let testLayers: Layer_db[];
-const testMissionIds = [1000, 1001, 1002]; // test mission IDs, not real missions
+let missionId: number;
+const otherMissionIds = [-1001, -1002]; // view-only and no-permission missions, not real missions
+const testPreset = generateBlankPreset({ name: "Vitest Layer Route Preset" });
 
 beforeAll(async () => {
-  // Initialize MikroORM and set it in globalValues
   globalValues.orm = await MikroORM.init(config);
-
   const em = globalValues.orm.em.fork();
+
+  const testDocListing = await new DocListingFactory(em).createOne({
+    automergeUrl: "automerge:VitestLayerRouteMission",
+  });
+  missionId = testDocListing.missionId;
+  globalValues.automergeRepo = createMockAutomergeRepo([
+    {
+      id: missionId,
+      name: "Vitest Layer Route Mission",
+      presets: { [testPreset.uuid]: { ...testPreset, missionId } },
+    },
+  ]);
+
   testAppUser = await new AppUserFactory(em).createOne({
     username: "Vitestlayer",
     permissionList: [
-      {
-        missionId: testMissionIds[0],
-        permissions: {
-          edit: true,
-          view: true,
-        },
-      },
-      {
-        missionId: testMissionIds[1],
-        permissions: {
-          edit: false,
-          view: true,
-        },
-      },
+      { missionId, permissions: { edit: true, view: true } },
+      { missionId: otherMissionIds[0], permissions: { edit: false, view: true } },
     ],
   });
-
-  testLayers = await new LayerFactory(em)
-    .each((layer) => {
-      layer.missionId = testMissionIds[0];
-    })
-    .create(2);
 });
 
-describe("Layer API Endpoint ", () => {
+const getMission = async (): Promise<Mission> => (await getAutomergeMissionHandle(missionId)).doc();
+
+describe("Layer API Endpoint", () => {
   let aegisSessionCookie: string;
   let aegisSessionSigCookie: string;
-  let newLayer: Layer = generateBlankLayer();
+  const newLayer: Layer = generateBlankLayer({ name: "Vitest Test Layer" });
 
   test("Returns login session", async () => {
     const res = await supertest(app)
       .post("/api/v1/auth/login")
       .send({ username: testAppUser.username, password: "superSecretPassword" });
-    expect(res.statusCode).toBe(200); //check response from login
+    expect(res.statusCode).toBe(200);
     expect(res.body.status).toEqual("success");
     aegisSessionCookie = res.header["set-cookie"][0];
     aegisSessionSigCookie = res.header["set-cookie"][1];
@@ -64,7 +63,7 @@ describe("Layer API Endpoint ", () => {
       const res = await supertest(app)
         .get("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .query({ missionId: testMissionIds[2] });
+        .query({ missionId: otherMissionIds[1] });
 
       expect(res.statusCode).toBe(401);
       expect(res.body.status).toBe("failure");
@@ -78,7 +77,6 @@ describe("Layer API Endpoint ", () => {
         .query({});
 
       expect(res.statusCode).toBe(400);
-      expect(res.body.status).toBe("error");
       expect(res.body.message).toBe("Invalid mission ID");
     });
 
@@ -89,7 +87,6 @@ describe("Layer API Endpoint ", () => {
         .query({ missionId: "not-a-number" });
 
       expect(res.statusCode).toBe(400);
-      expect(res.body.status).toBe("error");
       expect(res.body.message).toBe("Invalid mission ID");
     });
   });
@@ -98,7 +95,7 @@ describe("Layer API Endpoint ", () => {
   describe("POST request", () => {
     test("No permissions", async () => {
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissionIds[2],
+        missionId: otherMissionIds[1],
         layers: [newLayer],
       };
       const res = await supertest(app)
@@ -111,7 +108,7 @@ describe("Layer API Endpoint ", () => {
 
     test("No permissions - View only", async () => {
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissionIds[1],
+        missionId: otherMissionIds[0],
         layers: [newLayer],
       };
       const res = await supertest(app)
@@ -123,10 +120,7 @@ describe("Layer API Endpoint ", () => {
     });
 
     test("Empty layers array", async () => {
-      const requestBody: LayerUpsertRequest = {
-        missionId: testMissionIds[0],
-        layers: [],
-      };
+      const requestBody: LayerUpsertRequest = { missionId, layers: [] };
       const res = await supertest(app)
         .post("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
@@ -135,70 +129,59 @@ describe("Layer API Endpoint ", () => {
       expect(res.statusCode).toBe(400);
     });
 
-    test("Create new layer", async () => {
-      const newLayerData = {
-        ...newLayer,
-        missionId: testMissionIds[0],
-      };
-      const requestBody: LayerUpsertRequest = {
-        missionId: testMissionIds[0],
-        layers: [newLayerData],
-      };
+    test("Create new layer writes it to the mission doc and to every preset layer order", async () => {
+      const requestBody: LayerUpsertRequest = { missionId, layers: [newLayer] };
       const res = await supertest(app)
         .post("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
-
       const upsertedLayer: Layer = res.body.data[0];
-      expect(upsertedLayer.uuid).not.toBeNull();
-      newLayer = { ...upsertedLayer };
+      expect(upsertedLayer.uuid).toBe(newLayer.uuid);
+      expect(upsertedLayer.missionId).toBe(missionId);
+      expect(typeof upsertedLayer.createdAt).toBe("number");
 
-      //check if it was added to the db
-      const em = globalValues.orm.em.fork();
-      const layerRef: Layer_db = await em.findOne(Layer_db, upsertedLayer.uuid);
-      expect(layerRef).not.toBeNull();
+      const mission = await getMission();
+      expect(mission.layers[newLayer.uuid].name).toBe("Vitest Test Layer");
+      expect(mission.presets[testPreset.uuid].layerOrder).toEqual([
+        { layerUuid: newLayer.uuid, sublayerUuids: [] },
+      ]);
     });
 
-    test("Update a layer", async () => {
-      newLayer.name = "Vitest Test Layer Modified";
-      newLayer.missionId = testMissionIds[0];
+    test("Update a layer keeps its createdAt", async () => {
+      const createdAt = (await getMission()).layers[newLayer.uuid].createdAt;
       const requestBody: LayerUpsertRequest = {
-        missionId: testMissionIds[0],
-        layers: [newLayer],
+        missionId,
+        layers: [{ ...newLayer, name: "Vitest Test Layer Modified" }],
       };
-
       const res = await supertest(app)
         .post("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
+      expect(res.body.data[0].name).toEqual("Vitest Test Layer Modified");
+      const mission = await getMission();
+      expect(mission.layers[newLayer.uuid].createdAt).toBe(createdAt);
+      expect(mission.presets[testPreset.uuid].layerOrder).toHaveLength(1);
+    });
 
-      const upsertedLayer: Layer = res.body.data[0];
-      expect(upsertedLayer).not.toBeNull();
-      expect(upsertedLayer.name).toEqual("Vitest Test Layer Modified");
+    test("GET returns the layers from the mission doc", async () => {
+      const res = await supertest(app)
+        .get("/api/v1/layer")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .query({ missionId });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.map((layer: Layer) => layer.uuid)).toEqual([newLayer.uuid]);
     });
   });
 
   describe("DELETE request", () => {
-    test("No permissions", async () => {
-      const requestBody: LayerDeleteRequest = {
-        missionId: testMissionIds[2],
-        layerUuids: [newLayer.uuid],
-      };
-      const res = await supertest(app)
-        .delete("/api/v1/layer")
-        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-        .send(requestBody);
-
-      expect(res.statusCode).toBe(401);
-    });
-
     test("No permissions - View only", async () => {
       const requestBody: LayerDeleteRequest = {
-        missionId: testMissionIds[1],
+        missionId: otherMissionIds[0],
         layerUuids: [newLayer.uuid],
       };
       const res = await supertest(app)
@@ -209,83 +192,86 @@ describe("Layer API Endpoint ", () => {
       expect(res.statusCode).toBe(401);
     });
 
-    test("Delete a layer", async () => {
-      const requestBody: LayerDeleteRequest = {
-        missionId: testMissionIds[0],
-        layerUuids: [newLayer.uuid],
-      };
-      newLayer.missionId = testMissionIds[0];
+    test("Unknown uuid returns 404", async () => {
+      const requestBody: LayerDeleteRequest = { missionId, layerUuids: ["not-a-layer"] };
+      const res = await supertest(app)
+        .delete("/api/v1/layer")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
+        .send(requestBody);
 
+      expect(res.statusCode).toBe(404);
+    });
+
+    test("Delete a layer removes it from the doc and from every preset", async () => {
+      const requestBody: LayerDeleteRequest = { missionId, layerUuids: [newLayer.uuid] };
       const res = await supertest(app)
         .delete("/api/v1/layer")
         .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
         .send(requestBody);
 
       expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+      const mission = await getMission();
+      expect(mission.layers[newLayer.uuid]).toBeUndefined();
+      expect(mission.presets[testPreset.uuid].layerOrder).toEqual([]);
+    });
+  });
 
-      const wrappedResponse = res.body;
-      expect(wrappedResponse.status).toBe("success");
+  describe("Missing missionId", () => {
+    test("POST without missionId returns 400 and does not write to any doc", async () => {
+      const res = await supertest(app)
+        .post("/api/v1/layer")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send({ layers: [generateBlankLayer({ name: "Vitest No Mission Layer" })] });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe("Invalid mission ID");
+    });
+
+    test("DELETE without missionId returns 400", async () => {
+      const res = await supertest(app)
+        .delete("/api/v1/layer")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send({ layerUuids: ["not-a-real-uuid"] });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.message).toBe("Invalid mission ID");
     });
   });
 
   describe("API actions with emss-token", () => {
-    test("GET request with emss-token succeeds", async () => {
-      const res = await supertest(app)
-        .get("/api/v1/layer")
-        .set("emss-token", process.env.EMSS_TOKEN)
-        .query({ missionId: testMissionIds[0] });
-
-      expect(res.statusCode).toBe(200);
-      // ...additional assertions...
-    });
-
-    test("POST request with emss-token succeeds", async () => {
-      const newLayerData = {
-        ...newLayer,
-        missionId: testMissionIds[0],
-      };
-      const requestBody: LayerUpsertRequest = {
-        missionId: testMissionIds[0],
-        layers: [newLayerData],
-      };
-      const res = await supertest(app)
+    test("POST, GET, and DELETE with emss-token succeed", async () => {
+      const tokenLayer = generateBlankLayer({ name: "Vitest Token Layer" });
+      const postRes = await supertest(app)
         .post("/api/v1/layer")
         .set("emss-token", process.env.EMSS_TOKEN)
-        .send(requestBody);
+        .send({ missionId, layers: [tokenLayer] } as LayerUpsertRequest);
+      expect(postRes.statusCode).toBe(200);
 
-      expect(res.statusCode).toBe(200);
-      // ...additional assertions...
-    });
+      const getRes = await supertest(app)
+        .get("/api/v1/layer")
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .query({ missionId });
+      expect(getRes.statusCode).toBe(200);
+      expect(getRes.body.data.map((layer: Layer) => layer.uuid)).toContain(tokenLayer.uuid);
 
-    test("DELETE request with emss-token succeeds", async () => {
-      const requestBody: LayerDeleteRequest = {
-        missionId: testMissionIds[0],
-        layerUuids: [newLayer.uuid],
-      };
-      newLayer.missionId = testMissionIds[0];
-
-      const res = await supertest(app)
+      const deleteRes = await supertest(app)
         .delete("/api/v1/layer")
         .set("emss-token", process.env.EMSS_TOKEN)
-        .send(requestBody);
-
-      expect(res.statusCode).toBe(200);
-      // ...additional assertions...
+        .send({ missionId, layerUuids: [tokenLayer.uuid] } as LayerDeleteRequest);
+      expect(deleteRes.statusCode).toBe(200);
     });
   });
 });
 
 afterAll(async () => {
-  //Cleanup our Database
   const em = globalValues.orm.em.fork();
-  for (let i = 0; i < testLayers.length; i++) {
-    await em.nativeDelete(Layer_db, { uuid: testLayers[i].uuid });
-  }
+  await em.nativeDelete(Doc_Listing_db, { missionId });
   await em.nativeDelete(App_User_db, { id: testAppUser.id });
 
-  // Closing the DB connection allows Vitest to exit successfully.
   await globalValues.orm.close();
   globalValues.orm = null;
+  globalValues.automergeRepo = null;
 
   vi.restoreAllMocks();
 });

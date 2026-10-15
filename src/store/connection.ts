@@ -3,7 +3,6 @@ import { createSlice } from "@reduxjs/toolkit";
 export const initialState: ConnectionState = {
   socketStatus: {
     connectionStatus: "disconnected",
-    lastEditEvent: null,
     lastStatusFromServer: {
       visitorCounts: {
         editors: 0,
@@ -32,9 +31,6 @@ export const connectionSlice = createSlice({
     setSocketConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
       state.socketStatus.connectionStatus = action.payload;
     },
-    setLastEditEvent: (state, action: { payload: EditEvent }) => {
-      state.socketStatus.lastEditEvent = action.payload;
-    },
     setBrowserConnectionStatus: (state, action: { payload: ConnectionStatus }) => {
       state.browserConnectionStatus = action.payload;
     },
@@ -53,7 +49,6 @@ export const connectionSlice = createSlice({
 export const {
   setLastStatusFromServer,
   setSocketConnectionStatus,
-  setLastEditEvent,
   setBrowserConnectionStatus,
   setAutomergeConnectionStatus,
   setClientAppVersion,

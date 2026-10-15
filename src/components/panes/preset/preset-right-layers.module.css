@@ -29,6 +29,12 @@
   gap: 8px;
 }
 
+.layerExpandToggle {
+  display: flex;
+  gap: 8px;
+  cursor: pointer;
+}
+
 .layerHeader {
   margin: 0 0 5px 0;
 }

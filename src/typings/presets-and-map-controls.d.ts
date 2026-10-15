@@ -78,7 +78,7 @@ interface CircleUIState {
 
 type Preset = {
   uuid: string;
-  ownerId: number;
+  ownerId: number | null;
   missionId: number;
   name: string;
   description: string;
@@ -92,16 +92,11 @@ type Preset = {
   earthAzimuth: number;
   earthEnabled: boolean;
   earthAsMoon: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt: number;
+  updatedAt: number;
 };
 
 type PresetLayerOrder = {
   layerUuid: string;
   sublayerUuids: string[];
-};
-
-type Preset_db_type = Omit<Preset, "createdAt" | "updatedAt"> & {
-  createdAt?: Date;
-  updatedAt?: Date;
 };

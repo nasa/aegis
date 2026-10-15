@@ -2,8 +2,6 @@ import { createSlice } from "@reduxjs/toolkit";
 import { setAllSliceStores, clearAllEditing } from "store/crossActions";
 
 export const initialState: MissionState = {
-  layers: null,
-  sublayers: null,
   selectedRightNavItem: "prefs_panel",
   isInEditMode: false,
   automergeUrl: "",
@@ -13,14 +11,6 @@ export const missionSlice = createSlice({
   name: "mission",
   initialState,
   reducers: {
-    /* only called for populating store  */
-    setLayers: (state, action: { payload: Layer[] }) => {
-      state.layers = action.payload;
-    },
-    /* only called for populating store  */
-    setSublayers: (state, action: { payload: Sublayer[] }) => {
-      state.sublayers = action.payload;
-    },
     setSelectedMissionRightNavItem: (state, action: { payload: string }) => {
       state.selectedRightNavItem = action.payload;
     },
@@ -51,11 +41,5 @@ export const missionSlice = createSlice({
   },
 });
 
-export const {
-  setLayers,
-  setSublayers,
-  setSelectedMissionRightNavItem,
-  setIsInEditMode,
-  setAutomergeUrl,
-  obliterateState,
-} = missionSlice.actions;
+export const { setSelectedMissionRightNavItem, setIsInEditMode, setAutomergeUrl, obliterateState } =
+  missionSlice.actions;

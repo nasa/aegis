@@ -7,7 +7,7 @@ export type LayerEditHandle = { save: () => Promise<boolean> };
 
 /** Render a single Layer record from the DB */
 function LayerEditInner(
-  props: { layer: Layer; refreshLayerList: Function },
+  props: { layer: Layer; missionId: number; refreshLayerList: Function },
   ref: ForwardedRef<LayerEditHandle>
 ) {
   const [layer, setLayer] = useState<Layer>(props.layer);
@@ -20,8 +20,8 @@ function LayerEditInner(
     ref,
     () => ({
       save: async (): Promise<boolean> => {
-        const res: WrappedResponse<Layer[]> = await upsertLayers([
-          { ...layer, updatedAt: getAccurateNow().toISOString() },
+        const res: WrappedResponse<Layer[]> = await upsertLayers(props.missionId, [
+          { ...layer, updatedAt: getAccurateNow().getTime() },
         ]);
         props.refreshLayerList();
         alert(`${res.status} - ${res.message}`);
@@ -61,8 +61,9 @@ function LayerEditInner(
   );
 }
 
-const LayerEdit = forwardRef<LayerEditHandle, { layer: Layer; refreshLayerList: Function }>(
-  LayerEditInner
-);
+const LayerEdit = forwardRef<
+  LayerEditHandle,
+  { layer: Layer; missionId: number; refreshLayerList: Function }
+>(LayerEditInner);
 
 export default LayerEdit;

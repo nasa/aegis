@@ -85,8 +85,8 @@ export function Grid(): null {
   const planetRadius = projectionConfig?.planetRadius;
 
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
-  const mapGridControl = useAppSelector(
-    (s) => s.preset.presets.find((p) => p.uuid === selectedPresetUuid)?.mapGridControl,
+  const mapGridControl = useMissionDocSelector(
+    (m) => m.presets?.[selectedPresetUuid]?.mapGridControl,
     deepEqual
   ) as MapGridControl | undefined;
 
