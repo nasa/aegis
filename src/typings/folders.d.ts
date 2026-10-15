@@ -5,6 +5,7 @@ interface Folder {
   name: string;
   type: FolderType;
   items: string[]; // uuids of items in this folder
+  visible: boolean; // shared visibility of folder contents on the map
   createdAt: number;
   updatedAt: number;
 }
@@ -13,7 +14,6 @@ interface Folder {
 interface FolderInterface {
   uuid: string;
   isOpen: boolean;
-  visible: boolean;
   editing: boolean;
   editingNameValue: string | null;
 }

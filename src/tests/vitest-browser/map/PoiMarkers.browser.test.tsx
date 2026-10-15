@@ -338,9 +338,10 @@ describe("PoiMarkers", () => {
             type: "poi",
             items: [POI_UUID_B],
             name: "Hidden Folder",
+            visible: false,
           },
         ],
-        foldersInterface: [{ uuid: FOLDER_UUID, visible: false }],
+        foldersInterface: [{ uuid: FOLDER_UUID, visible: true }],
       },
     } as PartialPreloadedState);
 
@@ -350,6 +351,35 @@ describe("PoiMarkers", () => {
     const features = poiSource!.getFeatures();
     expect(features).toHaveLength(1);
     expect(features[0].getId()).toBe(POI_UUID_A);
+  });
+
+  it("updates markers when shared folder visibility changes without local UI changes", () => {
+    store = makeStore();
+    mockMissionDoc.pois = { [POI_UUID_A]: makePoi(POI_UUID_A, 10, 20) };
+    mockMissionDoc.folders = {
+      [FOLDER_UUID]: {
+        uuid: FOLDER_UUID,
+        type: "poi",
+        items: [POI_UUID_A],
+        visible: true,
+      } as Folder,
+    };
+    const localState = store.getState();
+    renderPoiMarkers();
+    expect(poiSource!.getFeatures()).toHaveLength(1);
+
+    mockMissionDoc.folders = {
+      [FOLDER_UUID]: { ...mockMissionDoc.folders[FOLDER_UUID], visible: false },
+    };
+    renderPoiMarkers();
+    expect(poiSource!.getFeatures()).toHaveLength(0);
+
+    mockMissionDoc.folders = {
+      [FOLDER_UUID]: { ...mockMissionDoc.folders[FOLDER_UUID], visible: true },
+    };
+    renderPoiMarkers();
+    expect(poiSource!.getFeatures()).toHaveLength(1);
+    expect(store.getState()).toBe(localState);
   });
 
   it("skips POIs with missing location", () => {

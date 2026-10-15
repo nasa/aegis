@@ -13,6 +13,7 @@ export const generateBlankFolder = (partialFolder?: Partial<Folder>): Folder => 
     name: "",
     type: "poi", // Default type
     items: [],
+    visible: true,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

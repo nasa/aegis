@@ -191,7 +191,7 @@ The app organizes around these core entities. Since the Automerge entity migrati
 - **STM** — Science Traceability Matrix (`stmLevel1s` → `stmLevel2s` → `stmLevel3s`, plus `stmRules`); lives inside the mission Automerge doc. `action.stmPriorities` and `stmRule.stmUuid` reference level 3 uuids.
 - **Layers / Sublayers** — GIS map layers (`layers`, `sublayers`); live inside the mission Automerge doc. Adding, moving, or deleting a layer or sublayer updates every preset's `layerOrder` and `mapSublayerControls` in the same change.
 - **Preset** — saved map display configurations (`presets`); live inside the mission Automerge doc and are edited with the global edit toggle like stations.
-- **Folder** — left-panel folders for POIs, stations, EVAs, and presets (`folders`); live inside the mission Automerge doc. Deleting an entity removes it from every folder in the same change. Folder open/visible state is UI-only (`interface.foldersInterface`, cookie-backed).
+- **Folder** — left-panel folders for POIs, stations, EVAs, and presets (`folders`); live inside the mission Automerge doc. Deleting an entity removes it from every folder in the same change. Station and POI folder map visibility (`folder.visible`) is shared through the doc; folder open/closed state is UI-only (`interface.foldersInterface`, cookie-backed).
 
 > **Note**: "DB model (legacy)" means a MikroORM model still exists and is used by `src/server/automerge/migration.ts` to seed Automerge docs from existing PostgreSQL data, but is no longer written at runtime.
 

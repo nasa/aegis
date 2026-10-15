@@ -5,12 +5,21 @@ import { defaultGridStyle } from "store/storeUtils/sublayer";
 import { migrateLegacyHaloStyle } from "store/storeUtils/preset";
 import { serverLogger } from "utils/logging/serverLogger";
 
-// Raw rows as selected below. Timestamps are converted to epoch ms in SQL. These describe the
-// legacy DB rows, which still have a `mission_id` column, even though the Automerge entity types
-// no longer carry `missionId`; this migration must stay as it originally ran.
-type LegacyFolderRow = Omit<Folder, "createdAt" | "updatedAt"> & {
+// Raw rows as selected below. Timestamps are converted to epoch ms in SQL. The legacy DB rows
+// still have a `mission_id` column, even though the Automerge entity types no longer carry
+// `missionId`; this migration must stay as it originally ran. `MigratedFolder` pins this
+// migration's folder output shape so that later migrations (which add fields to Folder, e.g.
+// `visible`) do not retroactively change what this migration produced.
+type MigratedFolder = {
+  uuid: string;
   missionId: number;
-} & LegacyTimestamps;
+  name: string;
+  type: FolderType;
+  items: string[];
+  createdAt: number;
+  updatedAt: number;
+};
+type LegacyFolderRow = Omit<MigratedFolder, "createdAt" | "updatedAt"> & LegacyTimestamps;
 type LegacyLayerRow = { uuid: string; missionId: number; name: string | null } & LegacyTimestamps;
 type LegacySublayerRow = {
   uuid: string;
@@ -70,15 +79,8 @@ export type LegacyMissionTableRows = {
 
 type MigratedCollections = Pick<
   Mission,
-  | "folders"
-  | "layers"
-  | "sublayers"
-  | "presets"
-  | "stmLevel1s"
-  | "stmLevel2s"
-  | "stmLevel3s"
-  | "stmRules"
->;
+  "layers" | "sublayers" | "presets" | "stmLevel1s" | "stmLevel2s" | "stmLevel3s" | "stmRules"
+> & { folders: Record<string, MigratedFolder> };
 
 const COLLECTION_KEYS: (keyof MigratedCollections)[] = [
   "folders",
@@ -361,7 +363,7 @@ export const convertLegacyMissionTableRows = (
     preset: presets,
     layer: layers,
   };
-  const folders = byUuid<Folder>(
+  const folders = byUuid<MigratedFolder>(
     rows.folders
       .filter((row) => row.type in itemsByFolderType)
       .map((row) => ({

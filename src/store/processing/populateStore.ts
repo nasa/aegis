@@ -181,7 +181,6 @@ const generateFoldersInterfaceStates = (params: {
     wholeStoreState.interface.foldersInterface[folder.uuid] = {
       uuid: folder.uuid,
       isOpen: savedState?.isOpen ?? true,
-      visible: savedState?.visible ?? true,
       editing: false,
       editingNameValue: null,
     };
