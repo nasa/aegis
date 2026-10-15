@@ -166,6 +166,16 @@ export const createMissionCopy = async (
     await missionDocHandle.whenReady();
     const newMissionId = missionDocHandle.doc().id;
 
+    // Scramble the connection event maestro id/url on any REXes
+    missionDocHandle.change((m) => {
+      for (const rex of Object.values(m.rexes ?? {})) {
+        if (rex.maestroEventId || rex.maestroEventUrl) {
+          rex.maestroEventId = "DupRexDisconnectedFromMaestro";
+          rex.maestroEventUrl = "DupRexDisconnectedFromMaestro";
+        }
+      }
+    });
+
     // 2. Copy mission assets (layer tiles, grid coordinate file, etc.) if requested
     if (options.copyAssets && sourceData.mission.id) {
       await copyMissionAssets(sourceData.mission.id, newMissionId);
