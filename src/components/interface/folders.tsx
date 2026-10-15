@@ -259,6 +259,8 @@ const FolderComponent = ({
     refEqual
   );
 
+  const showMenu = !hideMenu && (showButtons || folder.type === "poi" || folder.type === "station");
+
   const { isOver, setNodeRef } = useDroppable({
     id: folder.uuid,
   });
@@ -345,7 +347,7 @@ const FolderComponent = ({
               <FontAwesomeIcon icon={faFloppyDisk} size="lg" />
             </button>
           )}
-          {!hideMenu && (
+          {showMenu && (
             <FolderMenu
               folder={folder}
               folderInterface={folderInterface}
