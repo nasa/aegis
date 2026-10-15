@@ -100,7 +100,6 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
 
     const ownerId = getState().user?.appUser?.id ?? null;
     const blankEva: Eva = generateBlankEVA({
-      missionId: mission.id,
       name: randomName,
       traverseRate: mission.traverseRate,
       duration: mission.defaultEvaDuration,
@@ -108,19 +107,17 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     });
 
     // Create an empty traverse and pre-build its path (lander → lander)
-    const newTraverse: Traverse = generateBlankTraverse({ missionId: blankEva.missionId });
+    const newTraverse: Traverse = generateBlankTraverse();
 
     // Add new xgress stations at the lander
     const egressStation = generateLanderXgressStation({
       xgressType: "egress",
-      missionId: mission.id,
       location: mission.landerLocation,
       elevation: mission.landerElevationMeters ?? null,
       ownerId: ownerId ?? undefined,
     });
     const ingressStation = generateLanderXgressStation({
       xgressType: "ingress",
-      missionId: mission.id,
       location: mission.landerLocation,
       elevation: mission.landerElevationMeters ?? null,
       ownerId: ownerId ?? undefined,
@@ -222,7 +219,7 @@ export const thunkDocAddStationToEva = appCreateAsyncThunk<{ evaUuid: string }>(
     if (!eva) return;
 
     // Step 1: Build the blank traverse object to add after the new station
-    const newTraverse = generateBlankTraverse({ missionId: eva.missionId });
+    const newTraverse = generateBlankTraverse();
 
     // Insert new station just before the ingress station at the end.
     // The traverse to the ingress station now points to the new station.

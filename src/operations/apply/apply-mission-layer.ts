@@ -8,7 +8,7 @@ import { applyRemoveItemsFromAllFolders } from "./apply-mission-folder";
 
 /**
  * Build a doc-ready layer from untrusted input (REST body). Keeps the stored createdAt of an
- * existing layer, stamps updatedAt, and forces the mission id.
+ * existing layer and stamps updatedAt.
  */
 export function normalizeLayerInput(m: Mission, input: Partial<Layer>): Layer {
   const now = getAccurateNow().getTime();
@@ -16,7 +16,6 @@ export function normalizeLayerInput(m: Mission, input: Partial<Layer>): Layer {
   const blank = generateBlankLayer();
   return {
     uuid: input.uuid ?? blank.uuid,
-    missionId: m.id,
     name: input.name ?? existing?.name ?? "",
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
@@ -32,7 +31,6 @@ export function normalizeSublayerInput(m: Mission, input: Partial<Sublayer>): Su
     input[key] === undefined ? base[key] : (input[key] as Sublayer[K]);
   return {
     uuid: input.uuid ?? base.uuid,
-    missionId: m.id,
     layerUuid: pick("layerUuid"),
     type: pick("type"),
     name: pick("name") ?? "",

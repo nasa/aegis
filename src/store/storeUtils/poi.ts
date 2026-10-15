@@ -11,7 +11,6 @@ export const generateBlankPoi = (partialPoi?: Partial<POI>): POI => {
   const defaultNewPoi: POI = {
     uuid: uuidv4(),
     ownerId: 0,
-    missionId: 0,
     name: "",
     description: "",
     actionOrderUuids: [],

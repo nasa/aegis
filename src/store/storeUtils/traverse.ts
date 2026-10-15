@@ -11,7 +11,6 @@ export const generateBlankTraverse = (partialTraverse?: Partial<Traverse>): Trav
   const defaultNewTraverse: Traverse = {
     uuid: uuidv4(),
     refUuid: uuidv4(),
-    missionId: null,
     name: "",
     description: "",
     duration: null,

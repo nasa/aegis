@@ -217,7 +217,6 @@ describe("Thunk Traverse Tests", () => {
     // Station 3 is the egress; the ingress is a lander station.
     const landerIngress: Station = generateLanderXgressStation({
       xgressType: "ingress",
-      missionId: 0,
       location: { lat: 3, lng: 3 },
       elevation: null,
     });
@@ -293,7 +292,6 @@ describe("Thunk Traverse Tests", () => {
     const makeLander = (xgressType: "egress" | "ingress") =>
       generateLanderXgressStation({
         xgressType,
-        missionId: 0,
         location: { lat: 3, lng: 3 },
         elevation: null,
       });
@@ -379,7 +377,6 @@ describe("Thunk Traverse Tests", () => {
     const station = generateBlankStation({ name: "Vitest Station-1" });
     const landerEgress = generateLanderXgressStation({
       xgressType: "egress",
-      missionId: 0,
       location: { lat: 3, lng: 3 },
       elevation: null,
     });

@@ -7,9 +7,9 @@ import { applyDeleteStmRule, applyUpsertStmRule } from "operations/apply/apply-m
 export const thunkCreateStmRule = appCreateAsyncThunk<{ stmUuid: string }>(
   "stmRuleCreate",
   async ({ stmUuid }, { dispatch }) => {
-    const mission = getMissionDocHandle()?.doc();
-    if (!mission) return;
-    const newRule: STMRule = { ...generateBlankStmRule({ stmUuid }), missionId: mission.id };
+    const missionDocHandle = getMissionDocHandle();
+    if (!missionDocHandle) return;
+    const newRule: STMRule = generateBlankStmRule({ stmUuid });
     withMissionChange((m) => applyUpsertStmRule(m, newRule));
     dispatch(setStmRulesSelectedRuleUuid(newRule.uuid));
   }

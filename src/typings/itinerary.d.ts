@@ -1,7 +1,6 @@
 interface Eva {
   uuid: string;
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
-  missionId: number;
 
   name: string;
   status: EVAStatus;
@@ -19,6 +18,7 @@ interface Eva {
 }
 
 type Eva_db_type = Omit<Eva, "createdAt" | "updatedAt" | "datetime"> & {
+  missionId: number; // legacy Postgres column; removed from the Automerge Eva
   createdAt?: Date;
   updatedAt?: Date;
   datetime: string; // DB column stores as varchar; migration.ts converts to number | null for Automerge
@@ -31,7 +31,6 @@ type TraverseStatus = "Archived" | "Candidate" | "In Review" | "Approved";
 interface Traverse {
   uuid: string;
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
-  missionId: number;
   actionOrderUuids: string[] | null;
 
   name: string;
@@ -50,6 +49,7 @@ interface Traverse {
 }
 
 type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt" | "pathSegmentAbsoluteSlopes"> & {
+  missionId: number; // legacy Postgres column; removed from the Automerge Traverse
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -64,7 +64,6 @@ interface Station {
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
   ownerId: number;
-  missionId: number;
   poiUuids?: string[];
   actionOrderUuids: string[];
 
@@ -96,6 +95,7 @@ interface Station {
 }
 
 type Station_db_type = Omit<Station, "createdAt" | "updatedAt"> & {
+  missionId: number; // legacy Postgres column; removed from the Automerge Station
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -111,7 +111,6 @@ interface POI {
    */
   uuid: string;
   ownerId: number;
-  missionId: number;
   actionOrderUuids: string[];
 
   /**
@@ -161,6 +160,7 @@ interface POI {
 
 // TODO remove me when the POI postgres table is removed
 type Poi_db_type = Omit<POI, "createdAt" | "updatedAt"> & {
+  missionId: number; // legacy Postgres column; removed from the Automerge POI
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -182,7 +182,6 @@ type Action = {
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
   name: string;
 
-  missionId: number | null;
   poiUuid?: string | null;
   stationUuid?: string | null;
   traverseUuid?: string | null;
@@ -241,6 +240,7 @@ type Action_db_type = Omit<
   Action,
   "poiUuid" | "stationUuid" | "parentActionUuid" | "traverseUuid" | "missionPriorityUuid"
 > & {
+  missionId: number | null; // legacy Postgres column; removed from the Automerge Action
   poi: Poi_db_type;
   station: Station_db_type;
   traverse: Traverse_db_type;

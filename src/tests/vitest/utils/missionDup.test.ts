@@ -570,16 +570,6 @@ describe("Mission Duplication Tests", () => {
       expect(Object.keys(duplicated).sort()).toEqual(Object.keys(original).sort());
     });
 
-    test.each(["layers", "sublayers", "presets", "stmLevel1s", "stmRules", "folders"] as const)(
-      "%s carry the duplicated mission id",
-      async (collection) => {
-        const duplicated = (await getDuplicatedMission())[collection];
-        for (const entity of Object.values(duplicated)) {
-          expect(entity.missionId).toEqual(duplicatedMissionId);
-        }
-      }
-    );
-
     test("Preset sublayer controls and layer order still reference the copied layers", async () => {
       const duplicatedMission = await getDuplicatedMission();
       for (const preset of Object.values(duplicatedMission.presets)) {

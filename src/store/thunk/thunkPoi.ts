@@ -83,7 +83,6 @@ export const thunkDocCreatePoi = appCreateAsyncThunk<void>(
   async (_, { getState, dispatch }) => {
     const missionDocHandle = getMissionDocHandle();
     if (!missionDocHandle) return;
-    const mission = missionDocHandle.doc();
 
     // Step 1: Build the new POI object synchronously from the current doc
     const existingPois = Object.values(missionDocHandle.doc()?.pois ?? {});
@@ -92,7 +91,6 @@ export const thunkDocCreatePoi = appCreateAsyncThunk<void>(
       existingNames: existingPois.map((item: POI) => item.name),
     });
     const blankPoi = generateBlankPoi({
-      missionId: mission.id,
       name: randomName,
       ownerId: getState().user?.appUser?.id ?? null,
     });

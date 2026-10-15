@@ -28,7 +28,7 @@ beforeAll(async () => {
     {
       id: missionId,
       name: "Vitest Layer Route Mission",
-      presets: { [testPreset.uuid]: { ...testPreset, missionId } },
+      presets: { [testPreset.uuid]: testPreset },
     },
   ]);
 
@@ -139,7 +139,6 @@ describe("Layer API Endpoint", () => {
       expect(res.statusCode).toBe(200);
       const upsertedLayer: Layer = res.body.data[0];
       expect(upsertedLayer.uuid).toBe(newLayer.uuid);
-      expect(upsertedLayer.missionId).toBe(missionId);
       expect(typeof upsertedLayer.createdAt).toBe("number");
 
       const mission = await getMission();

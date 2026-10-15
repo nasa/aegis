@@ -2,6 +2,11 @@ import type { AutomergeMigration } from "server/automerge/migrations/types";
 import { v4 as uuidv4 } from "uuid";
 import { serverLogger } from "utils/logging/serverLogger";
 
+// This migration predates the removal of `missionId` from the Automerge entity types, and it
+// must stay as it originally ran. `LegacyStation` re-adds the `missionId` field it writes so the
+// historical code still type-checks against the current `Station` type.
+type LegacyStation = Station & { missionId: number };
+
 type LegacyEva = Eva & {
   egressDuration?: number | null;
   ingressDuration?: number | null;
@@ -32,7 +37,7 @@ export const Migration20260806000000: AutomergeMigration = {
         const buildLanderStation = (
           xgressType: "egress" | "ingress",
           duration: number | null
-        ): Station => {
+        ): LegacyStation => {
           const landerLocation: AEGISPoint = {
             lat: mission.landerLocation?.lat ?? null,
             lng: mission.landerLocation?.lng ?? null,

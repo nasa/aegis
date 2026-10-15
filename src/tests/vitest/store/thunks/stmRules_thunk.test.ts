@@ -22,7 +22,6 @@ describe("Thunk StmRules Tests", () => {
     const selectedRuleUuid = store.getState().stm.stmRulesSelectedRuleUuid;
     expect(getMission().stmRules[selectedRuleUuid]).toMatchObject({
       stmUuid: level3Uuid,
-      missionId: getMission().id,
       count: 1,
     });
   });

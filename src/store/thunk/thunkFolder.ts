@@ -21,7 +21,6 @@ export const thunkCreateFolder = appCreateAsyncThunk<{ type: FolderType }>(
     const mission = missionDocHandle.doc();
 
     const blankFolder = generateBlankFolder({
-      missionId: mission.id,
       type,
       name: makeUniqueStringCopy(
         "New Folder",
