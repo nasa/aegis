@@ -410,7 +410,6 @@ const stageActions = (
       newActions.push(
         generateBlankAction({
           uuid: aegisActionUuid,
-          missionId: mission.id,
           ...parent,
           name: mdau.name,
           descriptionTask: mdau.descriptionTask,
