@@ -55,17 +55,23 @@ const Activity: FunctionComponent<{
   let ev2PercentComplete = 0;
   if (sequenceItem.type === "station") {
     const entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
-    complete = entry?.rexStatus === "complete" || entry?.rexStatus === "skipped";
     inProgress = entry?.rexStatus === "in-progress";
     ev1PercentComplete = entry?.maestroPercentCompleteEv1 || 0;
     ev2PercentComplete = entry?.maestroPercentCompleteEv2 || 0;
+    complete =
+      entry?.rexStatus === "complete" ||
+      entry?.rexStatus === "skipped" ||
+      (ev1PercentComplete === 100 && ev2PercentComplete === 100);
   } else if (sequenceItem.type === "traverse") {
     // find the traverseEntry in the rex for this traverse
     const traverseEntry = rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : null;
-    complete = traverseEntry?.rexStatus === "complete" || traverseEntry?.rexStatus === "skipped";
     inProgress = traverseEntry?.rexStatus === "in-progress";
     ev1PercentComplete = traverseEntry?.maestroPercentCompleteEv1 || 0;
     ev2PercentComplete = traverseEntry?.maestroPercentCompleteEv2 || 0;
+    complete =
+      traverseEntry?.rexStatus === "complete" ||
+      traverseEntry?.rexStatus === "skipped" ||
+      (ev1PercentComplete === 100 && ev2PercentComplete === 100);
   }
 
   const boxColor = maestroActivityProperties[sequenceItem.uuid]?.color;
@@ -102,7 +108,7 @@ const Activity: FunctionComponent<{
           {sequenceItem.type === "station" && (
             <div className={styles.stationIcon}>{stationIcon}</div>
           )}
-          {inProgress && (
+          {!complete && (
             <div
               className={styles.progressIndicator}
               style={{ height: `${ev1PercentComplete}%` }}
@@ -118,7 +124,7 @@ const Activity: FunctionComponent<{
             <div className={styles.stationIcon}>{stationIcon}</div>
           )}
         </div>
-        {inProgress && (
+        {!complete && (
           <div
             className={styles.progressIndicator}
             style={{ height: `${ev2PercentComplete}%` }}
