@@ -20,7 +20,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const { missionId } = req.body;
   const emssToken = req.headers["emss-token"] as string;
 
-  if (!req.session?.appUser?.isSuperAdmin || !emssTokenIsValid(emssToken)) {
+  if (!req.session?.appUser?.isSuperAdmin && !emssTokenIsValid(emssToken)) {
     serverLogger.apiRoute({
       logLevel: "warning",
       httpMethod: "POST",
