@@ -120,8 +120,7 @@ const FolderMenu: FunctionComponent<{
   folder: Folder;
   folderInterface: FolderInterface;
   handleCancel: (e: MouseEvent) => void;
-  showButtons: boolean;
-}> = ({ folder, folderInterface, handleCancel, showButtons }) => {
+}> = ({ folder, folderInterface, handleCancel }) => {
   const dispatch = useAppDispatch();
   const dialogRef = useRef(null);
   const menuRef = useRef(null);
@@ -145,7 +144,7 @@ const FolderMenu: FunctionComponent<{
         }}
       >
         <div ref={menuRef} className={styles.menu}>
-          {showButtons && (folder.type === "poi" || folder.type === "station") && (
+          {(folder.type === "poi" || folder.type === "station") && (
             <div
               className={styles.menuItem}
               onClick={(e) => {
@@ -163,58 +162,54 @@ const FolderMenu: FunctionComponent<{
               </div>
             </div>
           )}
-          {showButtons && (
-            <>
-              {!folderInterface.editing ? (
-                <div
-                  className={styles.menuItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dispatch(
-                      setFolderInterfaceEditing({
-                        folderUuid,
-                        editing: true,
-                        folderName: folder.name,
-                      })
-                    );
-                    dialogRef.current?.close();
-                  }}
-                >
-                  <div className={styles.menuItemIcon}>
-                    <FontAwesomeIcon icon={faEdit} size="sm" />
-                  </div>
-                  <div className={styles.menuItemText}>Rename Folder</div>
-                </div>
-              ) : (
-                <div
-                  className={styles.menuItem}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    dialogRef.current?.close();
-                    handleCancel(e);
-                  }}
-                >
-                  <div className={styles.menuItemIcon}>
-                    <FontAwesomeIcon icon={faBan} size="sm" />
-                  </div>
-                  <div className={styles.menuItemText}>Cancel</div>
-                </div>
-              )}
-              <div
-                className={styles.menuItem}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteFolder(folderUuid);
-                  dialogRef.current?.close();
-                }}
-              >
-                <div className={styles.menuItemIcon}>
-                  <FontAwesomeIcon icon={faTrashAlt} size="sm" />
-                </div>
-                <div className={styles.menuItemText}>Delete Folder</div>
+          {!folderInterface.editing ? (
+            <div
+              className={styles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch(
+                  setFolderInterfaceEditing({
+                    folderUuid,
+                    editing: true,
+                    folderName: folder.name,
+                  })
+                );
+                dialogRef.current?.close();
+              }}
+            >
+              <div className={styles.menuItemIcon}>
+                <FontAwesomeIcon icon={faEdit} size="sm" />
               </div>
-            </>
+              <div className={styles.menuItemText}>Rename Folder</div>
+            </div>
+          ) : (
+            <div
+              className={styles.menuItem}
+              onClick={(e) => {
+                e.stopPropagation();
+                dialogRef.current?.close();
+                handleCancel(e);
+              }}
+            >
+              <div className={styles.menuItemIcon}>
+                <FontAwesomeIcon icon={faBan} size="sm" />
+              </div>
+              <div className={styles.menuItemText}>Cancel</div>
+            </div>
           )}
+          <div
+            className={styles.menuItem}
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteFolder(folderUuid);
+              dialogRef.current?.close();
+            }}
+          >
+            <div className={styles.menuItemIcon}>
+              <FontAwesomeIcon icon={faTrashAlt} size="sm" />
+            </div>
+            <div className={styles.menuItemText}>Delete Folder</div>
+          </div>
         </div>
       </dialog>
 
@@ -259,7 +254,7 @@ const FolderComponent = ({
     refEqual
   );
 
-  const showMenu = !hideMenu && (showButtons || folder.type === "poi" || folder.type === "station");
+  const showMenu = !hideMenu && showButtons;
 
   const { isOver, setNodeRef } = useDroppable({
     id: folder.uuid,
@@ -352,7 +347,6 @@ const FolderComponent = ({
               folder={folder}
               folderInterface={folderInterface}
               handleCancel={handleCancelEdit}
-              showButtons={showButtons}
             />
           )}
         </div>
