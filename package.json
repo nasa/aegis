@@ -15,7 +15,7 @@
     "lint:js:fix": "eslint . --fix --color",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
-    "postinstall": "rimraf node_modules/paper/dist/paperjs/docs && rimraf node_modules/paper/dist/docs",
+    "postinstall": "rimraf node_modules/paper/dist/paperjs/docs && rimraf node_modules/paper/dist/docs && node ./emss-fallback/check-installed.mjs",
     "tsc": "tsc --pretty",
     "test:vitest": "vitest run --config src/tests/vitest/vitest.config.mts",
     "test:vitest:browser": "vitest run --config src/tests/vitest-browser/vitest.config.mts",
