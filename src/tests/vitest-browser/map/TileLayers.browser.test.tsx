@@ -32,6 +32,7 @@ import { missionSlice } from "store/mission";
 import { mapSlice } from "store/map";
 import { interfaceSlice } from "store/interface";
 import { evaSlice } from "store/eva";
+import { hoverSlice } from "store/hover";
 import { generateBlankPreset } from "store/storeUtils/preset";
 import { generateBlankSublayer } from "store/storeUtils/sublayer";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
@@ -204,6 +205,7 @@ function makeStore(preloadedState: PartialPreloadedState = {}) {
       map: mapSlice.reducer,
       interface: interfaceSlice.reducer,
       eva: evaSlice.reducer,
+      hover: hoverSlice.reducer,
     },
     preloadedState,
   });

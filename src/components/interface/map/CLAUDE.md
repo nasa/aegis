@@ -392,6 +392,11 @@ eyeball menu (`map-menu.tsx`), preset selector (`map-menu-preset.tsx`), follow m
 `ScaleBar`, `MouseCoordinateDisplay`, sun/earth compass (`map-sunearth.tsx`), POS menu
 (`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`).
 
+The sun/earth compass azimuths come from `useSunEarthAzimuths(preset)`. With the preset's
+`sunEarthFromDate` on and a `useMapDateTime()` value, they are computed from the lander location
+(`utils/mapping/lunarSky.ts`, astronomy-engine) and rotated from true north to map-up; otherwise
+the preset's manual `sunAzimuth`/`earthAzimuth` are used.
+
 Distinct from these, `ol/Overlay` (a real DOM node anchored to a coordinate) is used for the
 **timeline astronaut** (`TimelineAstronaut`). POS markers are **not** overlays — they are vector
 features on `posSource` styled by `buildPosMarkerStyleFunction` (stacked posType icons + color

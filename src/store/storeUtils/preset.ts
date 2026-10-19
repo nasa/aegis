@@ -28,6 +28,7 @@ export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => 
     earthAzimuth: 0,
     earthEnabled: false,
     earthAsMoon: false,
+    sunEarthFromDate: false,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };
