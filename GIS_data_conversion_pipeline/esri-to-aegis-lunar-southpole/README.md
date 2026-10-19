@@ -51,6 +51,7 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **categorical-cogs** | palette-indexed rasters + JSON (`--in-categorical-raster`, `--categorical-class-definition`) | `Layers/<name>/<name>_cog.tif` each                       | validate palette/classes → exact RGBA → nearest-neighbor COG + complete legend |
 | **viewshed-cogs**    | classified viewsheds (`--in-viewshed-raster`, repeatable)                                    | `Layers/<name>/<name>_cog.tif` each                       | classes 0/1 transparent; class 2 opaque `#FFA77F`; optional nodata transparent |
 | **keepout-cogs**     | classified slope keep-out masks (`--in-keepout-raster`)                                      | `Layers/<name>/<name>_cog.tif` each                       | class 0 opaque `#FF0000`; nodata transparent                                   |
+| **lyrx-cogs**        | single-band raster + classified `.lyrx` (`--in-lyrx-raster`, `--lyrx-raster-style`)          | `Layers/<name>/<name>_cog.tif` each                       | apply `.lyrx` class breaks + per-class alpha → RGBA COG + visible-class legend |
 | **grid**             | `--grid` + lander `--lander-lat/--lander-lng`                                                | `Data/grid_source.geojson` (10 km dflt)                   | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered             |
 | **register**         | the built `<out>` + `--mission-id`                                                           | mission fields + sublayers + active grid                  | POST fields + layers/sublayers + grid                                          |
 | **box**              | the built `<out>` + `--mission-name`                                                         | zips uploaded to Box (parallel)                           | zip `Data/` + each layer → upload                                              |
@@ -90,6 +91,7 @@ esri-to-aegis-lunar-southpole/
 │   ├── tile_to_cap_grid.py   # tile any raster onto the south-pole cap grid
 │   ├── raster_to_8bit.py     # percentile-stretch float rasters to transparent uint8
 │   ├── geotiff_to_cog.py     # GeoTIFF → Cloud-Optimised GeoTIFF
+│   ├── colorize_lyrx_classified.py  # raster + .lyrx class breaks → RGBA (lyrx-cogs step)
 │   ├── inspect_geotiff.py    # quick raster summary (use first to understand inputs)
 │   └── raster_to_tiles.py    # gdal2tiles pyramid (general; alt to tile_to_cap_grid)
 ├── dem/               # see dem/README.md (DEM = clean COG re-emit)
@@ -243,6 +245,25 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
   --steps keepout-cogs --overwrite
 ```
 
+### Convert a raster with delivered `.lyrx` class breaks to an RGBA COG
+
+For continuous rasters (e.g. float ice depth) delivered with an ArcGIS classified
+(`CIMRasterClassifyColorizer`) `.lyrx`, pair each `--in-lyrx-raster` with its
+`--lyrx-raster-style`. `common/colorize_lyrx_classified.py` applies the manual breaks exactly
+(class `i` covers `(break[i-1], break[i]]`; first class open below, last open above; a break with
+no `upperBound` is `0`), honours each class colour's alpha (CIM `0`–`100`), and keeps nodata
+transparent. Overviews use nearest-neighbour so class colours never blend. The legend lists the
+visible classes only; per-class pixel counts and checksums go to `conversion_audit.json`.
+
+```bash
+pixi run python esri-to-aegis-lunar-southpole/main.py \
+  --mission-id 50 \
+  --in-lyrx-raster "F:/drop/00_GIS_Files/01_Raster/A03MP026_Ice_Depth_cog.tif" \
+  --lyrx-raster-style "F:/drop/01_Styles/A03MP026_Ice_Depth_cog.lyrx" \
+  --out-lyrx-raster ice_depth \
+  --steps lyrx-cogs --overwrite
+```
+
 ### Generate once, then run just `register` or just `box`
 
 A common flow is to build all the tiles/products **locally once** (no publishing), inspect
@@ -290,12 +311,12 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 
 Steps: `0 stage · 1 dem · 2 slope · 3 products · 4 vector · 5 rasters · 6 vectors ·
 7 horizons · 8 vectortiles · 9 contours · 10 cogs · 11 time-cogs · 12 categorical-cogs ·
-13 viewshed-cogs · 14 keepout-cogs · 15 grid · 16 register · 17 box`. By default the pipeline
+13 viewshed-cogs · 14 keepout-cogs · 15 lyrx-cogs · 16 grid · 17 register · 18 box`. By default the pipeline
 runs only the steps whose inputs are present — `vectortiles` runs when `--in-esri-vector-tiles` is
 given, `contours` when `--contours` is given (needs `--in-dem`), `cogs`
 when `--in-cog` is given, `categorical-cogs` when `--in-categorical-raster` is given,
 `viewshed-cogs` when `--in-viewshed-raster` is given,
-`keepout-cogs` when `--in-keepout-raster` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
+`keepout-cogs` when `--in-keepout-raster` is given, `lyrx-cogs` when `--in-lyrx-raster` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
 `register`/`box` when `--register`/`--box` are passed; `--steps` overrides this.
 Inputs default to the A03MP026 layout under `--in-root`; override any with `--in-dem`, `--in-slope`,
 `--in-lyrx`, `--in-ellipse`, `--in-raster`, `--in-vector`. Use `--out-dir` to override the
