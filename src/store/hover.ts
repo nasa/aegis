@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 export const initialState: HoverState = {
+  timelineTime: null,
   timelineSeqItemUuid: null,
   leftPanelHoverItemUuid: null,
   mapItemUuid: null,
@@ -31,12 +32,14 @@ export const hoverSlice = createSlice({
           sequenceUuid: string;
           sequenceItemPercentElapsed: number;
           mapItemType: MapItemType;
+          timelineTime?: HoverState["timelineTime"];
         };
       }
     ) => {
       state.mapItemUuid = action.payload.sequenceUuid;
       state.mapItemType = action.payload.mapItemType;
       state.sequenceItemPercentElapsed = action.payload.sequenceItemPercentElapsed;
+      state.timelineTime = action.payload.timelineTime ?? null;
     },
     setMeasurementHover: (
       state,
@@ -46,6 +49,7 @@ export const hoverSlice = createSlice({
       state.measurementPercentDistance = action.payload.measurementPercentDistance;
     },
     clearMapItemHover: (state) => {
+      state.timelineTime = null;
       state.sequenceItemPercentElapsed = null;
       state.mapItemUuid = null;
       state.mapItemType = null;

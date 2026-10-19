@@ -30,7 +30,44 @@
 }
 
 .azimuthIndicatorContainer {
-  flex: 1;
+  flex: 0 0 90px;
+}
+
+.sourceButton {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--grey5);
+  font-size: 1.25em;
+  cursor: help;
+}
+
+.sunEarthContainerDashboard .sourceButton {
+  font-size: 1.65em;
+}
+
+.sourceButton:focus-visible {
+  outline: 2px solid var(--base);
+  outline-offset: -2px;
+}
+
+.hasWarning .sourceButton {
+  color: var(--warning);
+}
+
+.sourceTooltip {
+  z-index: 900;
+  max-width: 320px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .azimuthIndicator {

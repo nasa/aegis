@@ -82,6 +82,7 @@
     "@mikro-orm/migrations": "7.2.1",
     "@mikro-orm/postgresql": "7.2.1",
     "@mikro-orm/seeder": "7.2.1",
+    "astronomy-engine": "2.1.19",
     "bcryptjs": "3.0.3",
     "deep-diff": "1.0.2",
     "dotenv": "17.4.2",

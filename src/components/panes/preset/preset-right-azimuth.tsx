@@ -23,6 +23,8 @@ import { SubpanelHeading } from "components/interface/_global-elements";
 import azimuthStyles from "./preset-right-azimuth.module.css";
 import { ValidatedInputField } from "components/interface/form/globalFieldsAutomerge";
 import { validators } from "components/interface/form/formValidators";
+import { useSunEarthAzimuths } from "components/interface/map/hooks/useSunEarthAzimuths";
+import { numericDatetimeToISO } from "utils/formatting";
 
 const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
@@ -40,27 +42,38 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
     setDisplayEarthAzimuth(selectedPreset?.earthAzimuth ?? 0);
   }, [selectedPreset?.sunAzimuth, selectedPreset?.earthAzimuth]);
 
+  const computedAzimuths = useSunEarthAzimuths(selectedPreset);
+  const fromDate = selectedPreset?.sunEarthFromDate ?? false;
+  const usingComputed = computedAzimuths.source === "date";
+  const manualEditable = editMode && !fromDate;
+  const shownSunAzimuth = usingComputed
+    ? Math.round(computedAzimuths.sunAzimuth) % 360
+    : displaySunAzimuth;
+  const shownEarthAzimuth = usingComputed
+    ? Math.round(computedAzimuths.earthAzimuth) % 360
+    : displayEarthAzimuth;
+
   // Dragging fires on every step; wait for a pause before writing to the mission doc
   const sunDebouncedFunc = useRef(
     debounce((preset: Preset, value: number) => {
-      updatePresetField(preset.uuid, "sunAzimuth", value);
+      updatePresetField(preset.uuid, "sunAzimuth", value % 360);
     }, AZIMUTH_WRITE_DEBOUNCE_MS)
   );
 
   const handleOnChangeSunAzimuth = useCallback(
     (preset: Preset, value: number) => {
       //hook into isDragging to prevent this from triggering when values are reset via "Cancel" button
-      if (isDragging) {
+      if (manualEditable && isDragging) {
         setDisplaySunAzimuth(value);
         sunDebouncedFunc.current(preset, value);
       }
     },
-    [sunDebouncedFunc, isDragging]
+    [sunDebouncedFunc, isDragging, manualEditable]
   );
 
   const earthDebouncedFunc = useRef(
     debounce((preset: Preset, value: number) => {
-      updatePresetField(preset.uuid, "earthAzimuth", value);
+      updatePresetField(preset.uuid, "earthAzimuth", value % 360);
     }, AZIMUTH_WRITE_DEBOUNCE_MS)
   );
 
@@ -72,16 +85,16 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
       sunDebounced.flush();
       earthDebounced.flush();
     };
-  }, [selectedPresetUuid]);
+  }, [selectedPresetUuid, manualEditable]);
 
   const handleOnChangeEarthAzimuth = useCallback(
     (preset: Preset, value: number) => {
-      if (isDragging) {
+      if (manualEditable && isDragging) {
         setDisplayEarthAzimuth(value);
         earthDebouncedFunc.current(preset, value);
       }
     },
-    [earthDebouncedFunc, isDragging]
+    [earthDebouncedFunc, isDragging, manualEditable]
   );
 
   return (
@@ -95,24 +108,68 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
             <div className={azimuthStyles.azimuthContainer}>
               <div className={azimuthStyles.azimuthBody}>
                 <div className={azimuthStyles.azimuthGroup}>
-                  <div className={azimuthStyles.azimuth}>
-                    <div>Azimuth</div>
+                  <div className={azimuthStyles.fromDateRow}>
+                    {editMode ? (
+                      <Checkbox
+                        checked={fromDate}
+                        editable={editMode}
+                        onChange={(e) => {
+                          updatePresetField(
+                            selectedPreset.uuid,
+                            "sunEarthFromDate",
+                            e.target.checked
+                          );
+                        }}
+                        label="Calculate using EVA date and lander location"
+                        labelClassName={paneStyles.displayFieldLabel}
+                        labelPlacement="right"
+                        uniqueId="sunEarthFromDateCheckbox"
+                      />
+                    ) : (
+                      <div className={azimuthStyles.settingRow}>
+                        <div className={paneStyles.displayFieldLabel}>
+                          Calculate using EVA date and lander location:
+                        </div>
+                        <div className={paneStyles.displayFieldValue}>
+                          {fromDate ? "On" : "Off"}
+                        </div>
+                      </div>
+                    )}
+                    {fromDate && (
+                      <div className={azimuthStyles.fromDateNote} aria-label="sunEarthFromDateNote">
+                        {usingComputed ? (
+                          <>
+                            <div>
+                              Lander location at {numericDatetimeToISO(computedAzimuths.datetime)}
+                            </div>
+                            <div aria-label="sunEarthDateSource">
+                              Source: {computedAzimuths.datetimeSourceLabel}
+                            </div>
+                          </>
+                        ) : (
+                          "Date or lander location unavailable; using manual azimuths"
+                        )}
+                      </div>
+                    )}
+                    {computedAzimuths.warning && (
+                      <div className={azimuthStyles.warning} aria-label="sunEarthWarning">
+                        {computedAzimuths.warning}
+                      </div>
+                    )}
                   </div>
-                  <div
-                    className={`${paneStyles.panelSectionInner2Column} ${azimuthStyles.panelSection}`}
-                  >
-                    <div className={paneStyles.panelSectionInner2ColumnLeft}>
+                  <div className={azimuthStyles.directions}>
+                    <div className={azimuthStyles.directionSection}>
                       <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
                         <SubpanelHeading icon={faSun}>Sun Direction</SubpanelHeading>
                       </div>
                       <div className={paneStyles.panelSectionRow}>
-                        <div className={paneStyles.degreesInputContainer}>
+                        <div className={azimuthStyles.directionControls}>
                           <div className={paneStyles.azimuthContainer}>
-                            {editMode ? (
+                            {manualEditable ? (
                               <div className={paneStyles.inputFieldContainerAzimuth}>
                                 <ValidatedInputField
                                   value={String(displaySunAzimuth)}
-                                  editMode={editMode}
+                                  editMode={manualEditable}
                                   fieldProps={{
                                     name: "SunDegrees",
                                     ariaLabel: "SunDegrees",
@@ -137,8 +194,8 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                             ) : null}
                             <div className={paneStyles.sliderWrapper}>
                               <DegreesInputSlider
-                                value={displaySunAzimuth}
-                                editable={editMode}
+                                value={shownSunAzimuth}
+                                editable={manualEditable}
                                 label="Azimuth"
                                 onChange={(value: number) => {
                                   handleOnChangeSunAzimuth(selectedPreset, value);
@@ -147,13 +204,12 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                   setIsDragging(value);
                                 }}
                                 icon={faSun}
-                                hideValue={editMode}
+                                hideValue={manualEditable}
                               />
                             </div>
                           </div>
                           <div
-                            className={paneStyles.displayFieldLabel}
-                            style={{ margin: "6px 0 0 18px" }}
+                            className={`${paneStyles.displayFieldLabel} ${azimuthStyles.enableRow}`}
                           >
                             <div style={{ display: "flex" }}>
                               {editMode ? (
@@ -186,10 +242,7 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                         </div>
                       </div>
                     </div>
-                    <div
-                      className={paneStyles.panelSectionInner2ColumnRight}
-                      style={{ marginLeft: "40px" }}
-                    >
+                    <div className={azimuthStyles.directionSection}>
                       <div
                         className={paneStyles.panelSectionTitle}
                         style={{ marginBottom: "8px" }}
@@ -202,13 +255,13 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                         </SubpanelHeading>
                       </div>
                       <div className={paneStyles.panelSectionRow}>
-                        <div className={paneStyles.degreesInputContainer}>
+                        <div className={azimuthStyles.directionControls}>
                           <div className={paneStyles.azimuthContainer}>
-                            {editMode ? (
+                            {manualEditable ? (
                               <div className={paneStyles.inputFieldContainerAzimuth}>
                                 <ValidatedInputField
                                   value={String(displayEarthAzimuth)}
-                                  editMode={editMode}
+                                  editMode={manualEditable}
                                   fieldProps={{
                                     name: "EarthDegrees",
                                     ariaLabel: "EarthDegrees",
@@ -237,8 +290,8 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                             ) : null}
                             <div className={paneStyles.sliderWrapper}>
                               <DegreesInputSlider
-                                value={displayEarthAzimuth}
-                                editable={editMode}
+                                value={shownEarthAzimuth}
+                                editable={manualEditable}
                                 label="Azimuth"
                                 onChange={(value: number) => {
                                   handleOnChangeEarthAzimuth(selectedPreset, value);
@@ -247,14 +300,11 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                                 isDragging={(value: boolean) => {
                                   setIsDragging(value);
                                 }}
-                                hideValue={editMode}
+                                hideValue={manualEditable}
                               />
                             </div>
                           </div>
-                          <div
-                            className={paneStyles.displayFieldLabel}
-                            style={{ margin: "6px 0 0 18px" }}
-                          >
+                          <div className={azimuthStyles.iconRow}>
                             <div style={{ display: "flex" }}>
                               {editMode && (
                                 <>
@@ -299,8 +349,7 @@ const Azimuth_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) =
                             </div>
                           </div>
                           <div
-                            className={paneStyles.displayFieldLabel}
-                            style={{ marginLeft: "18px" }}
+                            className={`${paneStyles.displayFieldLabel} ${azimuthStyles.enableRow}`}
                           >
                             <div style={{ display: "flex" }}>
                               {editMode ? (
