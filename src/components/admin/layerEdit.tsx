@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState, type ForwardedRef
 import styles from "./admin.module.css";
 import { upsertLayers } from "http-client/layer";
 import { getAccurateNow } from "utils/formatting";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 export type LayerEditHandle = { save: () => Promise<boolean> };
 
@@ -25,11 +25,9 @@ function LayerEditInner(
           { ...layer, updatedAt: getAccurateNow().getTime() },
         ]);
         props.refreshLayerList();
-        if (res.status !== "success") {
-          toast.error(`${res.status} - ${res.message}`);
-        } else {
-          toast.success(`${res.status} - ${res.message}`);
-        }
+        displayToast({
+          message: `${res.status} - ${res.message}`,
+        });
         return true;
       },
     }),

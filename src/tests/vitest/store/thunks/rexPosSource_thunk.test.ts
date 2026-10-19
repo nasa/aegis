@@ -80,7 +80,7 @@ describe("Thunk Rex PosSource Tests", () => {
       });
 
       await store.dispatch(thunkDocCreatePosSource());
-      expect(toastSpies.error).toHaveBeenCalled();
+      expect(toastSpies.custom).toHaveBeenCalled();
       expect(getMission().rexes[rex.uuid].posSources.length).toBe(4);
     });
 

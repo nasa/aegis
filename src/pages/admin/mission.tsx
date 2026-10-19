@@ -16,7 +16,7 @@ import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
 import { isCanonicalSouthLpsMission } from "utils/lgrs/dynamicGrid";
 import { getGridRenderMode } from "utils/mapping/grid";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 type RouteParams = {
   id: string;
@@ -59,9 +59,9 @@ const Mission: React.FunctionComponent = () => {
       !automergeMission.planetRadius ||
       !automergeMission.demFilePath
     ) {
-      toast.warning(
-        "Missing data. Must have lander location lat/lng, planet radius, and demFilePath"
-      );
+      displayToast({
+        message: "Missing data. Must have lander location lat/lng, planet radius, and demFilePath",
+      });
     }
 
     const elevation = (

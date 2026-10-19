@@ -3,7 +3,7 @@ import type { ChangeEventHandler, FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import adminCommon from "pages/admin/adminCommon.module.css";
 import prettyBytes from "pretty-bytes";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 interface GridGeoJson {
   crs: JSON;
@@ -98,7 +98,10 @@ const AdminMissionGrid: FunctionComponent<{
       setSelectedFile(null);
       setIsFilePicked(false);
       setIsSubmitValid(false);
-      toast.success("Grid uploaded successfully.");
+      displayToast({
+        message: "Grid uploaded successfully",
+        showCancel: false,
+      });
     } finally {
       setIsUploading(false);
     }

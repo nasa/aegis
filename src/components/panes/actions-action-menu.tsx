@@ -20,7 +20,7 @@ import {
 import { applyCreateTemplateFromAction } from "operations/apply/apply-mission-actionTemplate";
 import { applyRegisterAddedAction, applyUnregisterAddedAction } from "operations/apply/apply-rex";
 import { UNRESTRICTED_ACTION_EDIT_CAPABILITIES } from "utils/rexExecuteEditMode";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 export const ActionMenu: FunctionComponent<{
   action: Action;
@@ -90,7 +90,9 @@ export const ActionMenu: FunctionComponent<{
                 withMissionChange((m) =>
                   applyCreateTemplateFromAction(m, { actionUuid: action.uuid })
                 );
-                toast.success(`Action Template successfully created from action.`);
+                displayToast({
+                  message: `Action Template successfully created from action.`,
+                });
 
                 dialogRef.current?.close();
               }}

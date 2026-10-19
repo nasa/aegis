@@ -29,7 +29,7 @@ import {
 import { withMissionChange } from "client/automergeDocHandles";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useMemo } from "react";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -293,7 +293,9 @@ const PosType: FunctionComponent<{
                   thunkDocDeletePosType({ rexUuid, posTypeUuid: item.uuid })
                 );
                 if (thunkDocDeletePosType.rejected.match(result) && result.payload) {
-                  toast.error(result.payload);
+                  displayToast({
+                    message: result.payload,
+                  });
                 }
               }}
             />
@@ -437,7 +439,9 @@ const PosSource: FunctionComponent<{
                   thunkDocDeletePosSource({ rexUuid, posSourceUuid: item.uuid })
                 );
                 if (thunkDocDeletePosSource.rejected.match(result) && result.payload) {
-                  toast.error(result.payload);
+                  displayToast({
+                    message: result.payload,
+                  });
                 }
               }}
             />

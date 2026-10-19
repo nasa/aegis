@@ -9,7 +9,7 @@ import { useNavigate } from "react-router";
 import prettyBytes from "pretty-bytes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 const FileManager: FunctionComponent<{
   missionId: number;
@@ -103,7 +103,10 @@ const FileManager: FunctionComponent<{
     const res = await renameFile(path, dirListing[index].name, dirListing[index].newName);
     const message = await res.json();
     if (res.status !== 200) {
-      toast.error(`Rename Error. Status ${res.status}. ${message}`);
+      displayToast({
+        title: "Rename Error",
+        message: `Status ${res.status}. ${message}`,
+      });
     }
     await getDirListing();
   }
@@ -115,7 +118,10 @@ const FileManager: FunctionComponent<{
       const res = await deleteFile(`${path}/${filename}`);
       const message = await res.json();
       if (res.status !== 200) {
-        toast.error(`Delete Error. Status ${res.status}. ${message}`);
+        displayToast({
+          title: "Delete Error",
+          message: `Status ${res.status}. ${message}`,
+        });
       }
       await getDirListing();
     }
@@ -130,7 +136,9 @@ const FileManager: FunctionComponent<{
       return file.type === "dir" && !isUsed?.(file.name);
     });
     if (unusedFolders.length === 0) {
-      toast.info("No unused folders to delete");
+      displayToast({
+        message: "No unused folders to delete",
+      });
       return;
     }
     const confirmDelete = confirm(
@@ -148,7 +156,9 @@ const FileManager: FunctionComponent<{
       }
 
       if (errors.length > 0) {
-        toast.error(`Delete Errors:\n${errors.join("\n")}`);
+        displayToast({
+          message: `Delete Errors:\n${errors.join("\n")}`,
+        });
       }
 
       await getDirListing();

@@ -19,7 +19,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
@@ -270,9 +270,15 @@ const LayerList = (props: {
     if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
       const res: WrappedResponse<null> = await deleteSublayers(props.missionId, [sublayer.uuid]);
       if (res.status !== "success") {
-        toast.error(`Delete sublayer ${res.status} - ${res.message}`);
+        displayToast({
+          message: `Delete sublayer ${res.status} - ${res.message}`,
+          showCancel: false,
+        });
       } else {
-        toast.success(`Delete sublayer ${res.status} - ${res.message}`);
+        displayToast({
+          message: `Delete sublayer ${res.status} - ${res.message}`,
+          showCancel: false,
+        });
       }
       props.refreshLayerList(); //reload layer listing in parent component.
     }
@@ -281,15 +287,22 @@ const LayerList = (props: {
   async function delLayer(layer: Layer) {
     if (confirm("Are you sure you want to delete layer " + layer.name)) {
       if (props.sublayers.some((sublayer) => sublayer.layerUuid === layer.uuid)) {
-        toast.error(
-          `Error: Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first`
-        );
+        displayToast({
+          message: `Error: Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first`,
+          showCancel: false,
+        });
       } else {
         const res: WrappedResponse<null> = await deleteLayers(props.missionId, [layer.uuid]);
         if (res.status !== "success") {
-          toast.error(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
+          displayToast({
+            message: `Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`,
+            showCancel: false,
+          });
         } else {
-          toast.success(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
+          displayToast({
+            message: `Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`,
+            showCancel: false,
+          });
         }
         props.refreshLayerList(); //reload layer listing in parent component.
       }

@@ -10,7 +10,7 @@ import { validateImportableSublayer } from "utils/validateSchemaClient";
 import { getAccurateNow } from "utils/formatting";
 import { listFiles } from "http-client/file";
 import type { AnySchemaObject, ErrorObject } from "ajv";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 interface SublayerProps {
   sublayer: Sublayer;
@@ -76,20 +76,19 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
           sublayer.isTimeBased &&
           props.allSublayers.some((s) => s.isTimeBased && s.uuid !== sublayer.uuid)
         ) {
-          toast.error(
-            "Unable to save a second time-based sublayer. Please remove the first time-based sublayer before adding a new one."
-          );
+          displayToast({
+            message:
+              "Unable to save a second time-based sublayer. Please remove the first time-based sublayer before adding a new one.",
+          });
           return false;
         }
         const res: WrappedResponse<Sublayer[]> = await upsertSublayers(props.missionId, [
           { ...sublayer, updatedAt: getAccurateNow().getTime() },
         ]);
         props.refreshLayerList();
-        if (res.status !== "success") {
-          toast.error(`${res.status} - ${res.message}`);
-        } else {
-          toast.success(`${res.status} - ${res.message}`);
-        }
+        displayToast({
+          message: `${res.status} - ${res.message}`,
+        });
         return true;
       },
     }),
