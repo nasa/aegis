@@ -14,6 +14,7 @@ ENV GIT_COMMIT=$GIT_COMMIT
 # The * after npmrc ensure copy operation will not fail if the file does not exist
 COPY .npmrc* .
 COPY package*.json .
+COPY emss-fallback/check-installed.mjs ./emss-fallback/
 
 # # # # # # # #
 # BUILD image #

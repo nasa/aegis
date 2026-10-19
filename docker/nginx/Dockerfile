@@ -13,6 +13,7 @@ WORKDIR /clientsrc
 # Prepare for build
 RUN pwd
 COPY package*.json ./
+COPY emss-fallback/check-installed.mjs ./emss-fallback/
 
 RUN npm ci
 # Copy the rest of the files
