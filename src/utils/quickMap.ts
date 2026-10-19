@@ -1,4 +1,4 @@
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 export type QuickMapGeometry =
   | { type: "Point"; coordinates: [number, number]; properties?: Record<string, string> }
@@ -329,11 +329,11 @@ export function openQuickMap(state: QuickMapLinkState): QuickMapLinkResult {
   );
   quickMapWindow?.focus();
   if (result.omittedGeometryCount > 0) {
-    toast.warn(
-      `QuickMap could not include ${result.omittedGeometryCount} item${
+    displayToast({
+      message: `QuickMap could not include ${result.omittedGeometryCount} item${
         result.omittedGeometryCount === 1 ? "" : "s"
-      } because the link exceeds its URL limit.`
-    );
+      } because the link exceeds its URL limit.`,
+    });
   }
   return result;
 }

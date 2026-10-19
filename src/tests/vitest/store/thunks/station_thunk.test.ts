@@ -344,7 +344,7 @@ describe("Thunk Station Tests", () => {
         thunkStation.thunkDocDeleteStations({ stationUuids: [stationInEva.uuid] })
       );
       expect(getMission().stations[stationInEva.uuid]).toBeDefined();
-      expect(toastSpies.error).toHaveBeenCalled();
+      expect(toastSpies.custom).toHaveBeenCalled();
 
       resetToastSpies(toastSpies);
     });
@@ -375,8 +375,10 @@ describe("Thunk Station Tests", () => {
 
       // Station must NOT have been deleted
       expect(getMission().stations[station.uuid]).toBeDefined();
-      expect(toastSpies.error).toHaveBeenCalledTimes(1);
-      expect(toastSpies.error.mock.calls[0][0]).toContain("being used by an EVA");
+      expect(toastSpies.custom).toHaveBeenCalledTimes(1);
+      expect(toastSpies.custom.mock.calls[0][0]).toMatchObject({
+        message: expect.stringContaining("being used by an EVA"),
+      });
 
       resetToastSpies(toastSpies);
     });
@@ -400,8 +402,10 @@ describe("Thunk Station Tests", () => {
       );
 
       expect(getMission().stations[landerStation.uuid]).toBeDefined();
-      expect(toastSpies.error).toHaveBeenCalledTimes(1);
-      expect(toastSpies.error.mock.calls[0][0]).toContain("egress or ingress");
+      expect(toastSpies.custom).toHaveBeenCalledTimes(1);
+      expect(toastSpies.custom.mock.calls[0][0]).toMatchObject({
+        message: expect.stringContaining("egress or ingress"),
+      });
 
       resetToastSpies(toastSpies);
     });

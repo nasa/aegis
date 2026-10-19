@@ -21,6 +21,7 @@ import {
 import { withMissionChange, withMissionOp } from "client/automergeDocHandles";
 import { opDeleteActionDefinitionItem } from "operations/op-actionDefinition";
 import { getActionDefinitionLabel } from "store/selectors";
+import { displayToast } from "components/toastNotifications";
 
 const ActionDefinitions_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   return (
@@ -284,7 +285,7 @@ const ActionDefinitionItem: FunctionComponent<{
                     uuid: actionDefinitionKeyValue[0],
                   });
                   if (inUseMessage) {
-                    alert(inUseMessage);
+                    displayToast({ message: inUseMessage });
                   }
                 }}
                 aria-label="deleteButton"

@@ -11,7 +11,7 @@ import { useNavigate } from "react-router";
 import prettyBytes from "pretty-bytes";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight } from "@fortawesome/free-solid-svg-icons";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 const FileManager: FunctionComponent<{
   missionId: number;
@@ -121,7 +121,10 @@ const FileManager: FunctionComponent<{
 
   //delete a file
   async function deleteFileToAPI(e: React.MouseEvent, filename: string): Promise<void> {
-    const confirmDelete = confirm("Are you sure you want to delete " + filename);
+    const confirmDelete = await displayToast({
+      message: "Are you sure you want to delete " + filename,
+      showCancel: true,
+    });
     if (confirmDelete) {
       const res = await deleteFile(`${path}/${filename}`);
       const message = await res.json();
@@ -141,12 +144,15 @@ const FileManager: FunctionComponent<{
       return file.type === "dir" && !isUsed?.(file.name);
     });
     if (unusedFolders.length === 0) {
-      toast.info("No unused folders to delete");
+      displayToast({
+        message: "No unused folders to delete",
+      });
       return;
     }
-    const confirmDelete = confirm(
-      `Are you sure you want to delete ${unusedFolders.length} unused folders?`
-    );
+    const confirmDelete = await displayToast({
+      message: `Are you sure you want to delete ${unusedFolders.length} unused folders?`,
+      showCancel: true,
+    });
     if (confirmDelete) {
       const errors: string[] = [];
 
