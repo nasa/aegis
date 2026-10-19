@@ -45,6 +45,14 @@ def _keepout_layer_names(args: argparse.Namespace) -> list[str]:
     ]
 
 
+def _lyrx_layer_names(args: argparse.Namespace) -> list[str]:
+    names = getattr(args, "out_lyrx_raster", [])
+    return [
+        names[index] if index < len(names) else Path(raster).stem.removesuffix("_cog")
+        for index, raster in enumerate(getattr(args, "in_lyrx_raster", []))
+    ]
+
+
 def _first_built_tmr(p: config.PipelinePaths, args: argparse.Namespace) -> Path | None:
     product_layers = [
         p.layer_path(n)
@@ -146,6 +154,13 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
         out_cog = p.layers / layer_name / config.cog_layer_filename(layer_name)
         row(
             "Keep-out COG layer",
+            f"Layers/{layer_name}/{out_cog.name}  {mark(out_cog)}",
+        )
+    for name in _lyrx_layer_names(args):
+        layer_name = p.layer_name(name)
+        out_cog = p.layers / layer_name / config.cog_layer_filename(layer_name)
+        row(
+            ".lyrx-classified COG layer",
             f"Layers/{layer_name}/{out_cog.name}  {mark(out_cog)}",
         )
     row(
