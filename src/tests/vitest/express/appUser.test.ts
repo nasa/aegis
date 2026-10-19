@@ -189,8 +189,10 @@ describe("AppUser API Endpoint", () => {
         const result = await upsertAppUsers(users);
 
         expect(result.status).toBe("error");
-        expect(toastSpies.error).toHaveBeenCalledTimes(1);
-        expect(toastSpies.error.mock.calls[0][0]).toContain("Error saving users to database.");
+        expect(toastSpies.custom).toHaveBeenCalledTimes(1);
+        expect(toastSpies.custom.mock.calls[0][0]).toMatchObject({
+          message: expect.stringContaining("Error saving users to database."),
+        });
       });
     });
 
@@ -218,8 +220,10 @@ describe("AppUser API Endpoint", () => {
         const result = await deleteAppUsers(userIds);
 
         expect(result.status).toBe("error");
-        expect(toastSpies.error).toHaveBeenCalledTimes(1);
-        expect(toastSpies.error.mock.calls[0][0]).toContain("Error deleting users from database.");
+        expect(toastSpies.custom).toHaveBeenCalledTimes(1);
+        expect(toastSpies.custom.mock.calls[0][0]).toMatchObject({
+          message: expect.stringContaining("Error deleting users from database."),
+        });
       });
     });
   });

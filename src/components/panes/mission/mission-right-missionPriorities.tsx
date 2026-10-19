@@ -27,6 +27,7 @@ import {
   getSortedMissionPrioritiesByCategory,
 } from "utils/missionPriorityReport";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
+import { displayToast } from "components/toastNotifications";
 
 const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const missionPriorities = useMissionDocSelector(
@@ -136,7 +137,7 @@ const MissionPriorityCategory: FunctionComponent<{
                     e.stopPropagation();
                     const inUseMessage = withMissionOp(opDeleteMissionPriorityCategory, category);
                     if (inUseMessage) {
-                      alert(inUseMessage);
+                      displayToast({ message: inUseMessage });
                     }
                   }}
                   aria-label="deleteCategoryButton"
@@ -237,7 +238,7 @@ const MissionPriorityItem: FunctionComponent<{
                   e.stopPropagation();
                   const inUseMessage = withMissionOp(opDeleteMissionPriority, uuid);
                   if (inUseMessage) {
-                    alert(inUseMessage);
+                    displayToast({ message: inUseMessage });
                   }
                 }}
                 aria-label="deleteButton"

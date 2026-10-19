@@ -42,6 +42,7 @@ import Cookies from "js-cookie";
 import { withMissionOp } from "client/automergeDocHandles";
 import { opDeleteFolder } from "operations/op-folder";
 import { clientLogger } from "utils/logging/clientLogger";
+import { displayToast } from "components/toastNotifications";
 
 /** Delete a folder from the mission doc and remove its saved open state from the cookie. */
 const deleteFolder = (folderUuid: string) => {
@@ -51,7 +52,7 @@ const deleteFolder = (folderUuid: string) => {
     return deleted;
   });
   if (inUseMessage) {
-    alert(inUseMessage);
+    displayToast({ message: inUseMessage });
     return;
   }
   if (!deleted) return;

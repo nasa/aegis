@@ -5,6 +5,7 @@ import type { ChangeEventHandler, FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import adminCommon from "pages/admin/adminCommon.module.css";
 import prettyBytes from "pretty-bytes";
+import { displayToast } from "components/toastNotifications";
 
 interface GridGeoJson {
   crs: JSON;
@@ -99,7 +100,7 @@ const AdminMissionGrid: FunctionComponent<{
     setSelectedFile(null);
     setIsFilePicked(false);
     setIsSubmitValid(false);
-    alert("Grid uploaded successfully.");
+    displayToast({ message: "Grid uploaded successfully." });
   };
 
   const fileChangeHandler: ChangeEventHandler<HTMLInputElement> = (event) => {

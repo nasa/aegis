@@ -136,7 +136,7 @@ root.render(
             <BrowserRouter>
               <App launchpadUser={user} />
             </BrowserRouter>
-            <ToastContainer position="bottom-right" theme="dark" />
+            <ToastContainer autoClose={false} position="top-center" />
           </CookiesProvider>
         </Provider>
       </RepoContext.Provider>

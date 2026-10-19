@@ -17,6 +17,7 @@ import {
   applyUpdateStmLevelByField,
   getStmLevelDeleteBlocker,
 } from "operations/apply/apply-mission-stm";
+import { displayToast } from "components/toastNotifications";
 
 const STM_COLLECTION_BY_TYPE = {
   Level1: "stmLevel1s",
@@ -63,8 +64,7 @@ const MissionSTM: FunctionComponent<{
     const collection = STM_COLLECTION_BY_TYPE[stmType];
     const blocker = getStmLevelDeleteBlocker(missionDocHandle.doc(), { collection, uuid });
     if (blocker) {
-      alert(`Cannot delete ${stmType}.
-${blocker}`);
+      displayToast({ message: `Cannot delete ${stmType}. ${blocker}` });
       return;
     }
     changeMission((m) => applyDeleteStmLevel(m, { collection, uuid }));

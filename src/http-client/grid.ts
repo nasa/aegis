@@ -1,4 +1,4 @@
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 export async function getGrid(
   missionId: number,
@@ -40,9 +40,9 @@ export async function upsertGrid(
     } catch {
       /* response body is not JSON */
     }
-    toast.error(
-      `Error saving grid to database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
+    displayToast({
+      message: `Error saving grid to database. Please let the AEGIS developers know. Status ${errorMessage}`,
+    });
     return { status: "error", message: errorMessage };
   }
   const response: WrappedResponse<MissionGrid> = await res.json();
@@ -66,9 +66,9 @@ export async function deleteGrid(missionId: number): Promise<WrappedResponse<nul
     } catch {
       /* response body is not JSON */
     }
-    toast.error(
-      `Error deleting grid from database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
+    displayToast({
+      message: `Error deleting grid from database. Please let the AEGIS developers know. Status ${errorMessage}`,
+    });
     return { status: "error", message: errorMessage };
   }
   const response: WrappedResponse<null> = await res.json();
