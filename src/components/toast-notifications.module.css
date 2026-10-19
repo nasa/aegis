@@ -1,0 +1,89 @@
+:global(.Toastify__toast) {
+  background-color: #424653 !important;
+  color: var(--grey5) !important;
+  border: 1px solid var(--grey3) !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  min-height: auto !important;
+  flex-direction: column;
+}
+
+:global(.Toastify__toast-body) {
+  padding: 0 !important;
+  margin: 0 !important;
+  align-items: flex-start !important;
+}
+
+.toastContainer {
+  width: 100%;
+}
+
+.toastTitle {
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
+.toastContent {
+  margin-top: 0.5rem;
+  align-items: center;
+}
+
+.toastMessage {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.25rem;
+  color: var(--grey5);
+  text-align: center;
+}
+
+.toastActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 8px;
+  justify-content: flex-end;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.confirmBtn {
+  padding: 4px 2px;
+  border-radius: 4px;
+  border: 1px solid var(--admin-border, #3b8ccf);
+  background: var(--admin-panel, #3b8ccf);
+  color: var(--grey5);
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 80px;
+  flex: 1;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.confirmBtn:hover {
+  background: #357bb4;
+}
+
+.cancelButton {
+  padding: 4px 2px;
+  border-radius: 4px;
+  border: 1px solid var(--grey3);
+  background: #616574;
+  color: var(--grey5);
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 80px;
+  flex: 1;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.cancelButton:hover {
+  background: #555966;
+}

@@ -10,7 +10,7 @@ import {
 import isEqual from "lodash/isEqual";
 import { clearAllEditing } from "store/crossActions";
 import { clientLogger } from "utils/logging/clientLogger";
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 type ClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -206,9 +206,9 @@ export const attachSocketListeners = (
           serverAppVersion.serverEpochUuid)
     ) {
       if (connectionStoreRef.current.clientAppVersion?.version) {
-        toast.info(
-          `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}/${connectionStoreRef.current.clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid} `
-        );
+        displayToast({
+          message: `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}/${connectionStoreRef.current.clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid} `,
+        });
 
         // Redirect to version check page with version info and return URL
         const currentUrl = window.location.pathname + window.location.search;

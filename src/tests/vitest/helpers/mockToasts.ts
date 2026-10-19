@@ -1,16 +1,20 @@
 import type { Id } from "react-toastify";
 import { toast } from "react-toastify";
 import type { MockInstance } from "vitest";
+import * as toastNotifications from "components/toastNotifications";
 
 type ToastMethod = "success" | "info" | "warn" | "error" | "promise" | "update";
 
 export type ToastSpies = Record<
-  ToastMethod,
+  ToastMethod | "custom",
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   MockInstance<(...args: any[]) => any>
 >;
 
 export const setupToastSpies = (): ToastSpies => {
+  const custom = vi.spyOn(toastNotifications, "displayToast").mockImplementation((): Id => {
+    return "";
+  });
   const success = vi.spyOn(toast, "success").mockImplementation((): Id => {
     return "";
   });
@@ -30,11 +34,12 @@ export const setupToastSpies = (): ToastSpies => {
     return;
   });
 
-  return { success, info, warn, error, promise, update };
+  return { custom, success, info, warn, error, promise, update };
 };
 
 export const resetToastSpies = (spies: ToastSpies): void => {
-  for (const spy of Object.values(spies)) {
+  const spyList = Object.values(spies) as ToastSpies[keyof ToastSpies][];
+  for (const spy of spyList) {
     spy.mockRestore();
   }
 };

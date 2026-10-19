@@ -48,9 +48,9 @@ export async function createMission(
     } catch {
       /* response body is not JSON */
     }
-    toast.error(
-      `Error creating mission. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
+    displayToast({
+      message: `Error creating mission. Please let the AEGIS developers know. Status ${errorMessage}`,
+    });
     return { status: "error", message: errorMessage };
   }
   const response: WrappedResponse<AutomergeDocListing> = await res.json();
@@ -133,9 +133,9 @@ export async function deleteMissions(missionIds: number[]): Promise<WrappedRespo
     } catch {
       /* response body is not JSON */
     }
-    toast.error(
-      `Error deleting mission. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
+    displayToast({
+      message: `Error deleting mission. Please let the AEGIS developers know. Status ${errorMessage}`,
+    });
     return { status: "error", message: errorMessage };
   }
   const response: WrappedResponse<number[]> = await res.json();
@@ -154,9 +154,9 @@ export async function dumpMission(missionId: number): Promise<WrappedResponse<Mi
     } catch {
       /* response body is not JSON */
     }
-    toast.error(
-      `Error dumping mission. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
+    displayToast({
+      message: `Error dumping mission. Please let the AEGIS developers know. Status ${errorMessage}`,
+    });
     return { status: "error", message: errorMessage };
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

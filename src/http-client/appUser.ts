@@ -1,4 +1,4 @@
-import { toast } from "react-toastify";
+import { displayToast } from "components/toastNotifications";
 
 export async function getAppUsers(userId: number = null): Promise<WrappedResponse<AppUser[]>> {
   let res: Response;
@@ -38,9 +38,9 @@ export async function upsertAppUsers(users: AppUser[]): Promise<WrappedResponse<
     } catch {
       /* response body is not JSON */
     }
-    toast.error(
-      `Error saving users to database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
+    displayToast({
+      message: `Error saving users to database. Please let the AEGIS developers know. Status ${errorMessage}`,
+    });
     return { status: "error", message: errorMessage };
   }
   const response: WrappedResponse<AppUser[]> = await res.json();
@@ -64,9 +64,9 @@ export async function deleteAppUsers(userIds: number[]): Promise<WrappedResponse
     } catch {
       /* response body is not JSON */
     }
-    toast.error(
-      `Error deleting users from database. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
+    displayToast({
+      message: `Error deleting users from database. Please let the AEGIS developers know. Status ${errorMessage}`,
+    });
     return { status: "error", message: errorMessage };
   }
   const response: WrappedResponse<null> = await res.json();
