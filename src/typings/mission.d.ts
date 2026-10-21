@@ -197,7 +197,19 @@ interface ReportCampaign {
 type MissionHomepageItem = {
   id: number;
   name: string;
-  runningRex: Rex;
+  runningRex: RunningRexSummary | null;
+};
+
+type RunningRexSummary = Pick<
+  Rex,
+  "uuid" | "name" | "petRunning" | "petStartStopTimestamp" | "petValueAtStartStop"
+>;
+
+type MissionSummary = Pick<
+  Mission,
+  "id" | "name" | "archivedAt" | "actionSystemVersion" | "createdAt" | "updatedAt"
+> & {
+  runningRex: RunningRexSummary | null;
 };
 
 type OneMissionToRuleThemAll = {

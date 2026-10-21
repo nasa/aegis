@@ -11,6 +11,8 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
+import { projectMission } from "server/automerge/missionCatalog";
+import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
 
 /**
  * Endpoint for working with the mission document in automerge
@@ -18,11 +20,48 @@ import { missionFieldsValidator } from "utils/validateSchemaServer";
 
 const router = express.Router();
 
+// Await persistence and projection so an immediate admin-list refresh sees the archive change.
+router.post("/archive", async (req: Request, res: Response) => {
+  const { missionId, archive } = req.body ?? {};
+  if (!Number.isInteger(missionId) || missionId <= 0 || typeof archive !== "boolean") {
+    res.status(400).json({ status: "failure", message: "Invalid mission ID or archive flag" });
+    return;
+  }
+  if (
+    !hasPerms({
+      missionId,
+      permission: "edit",
+      appUser: req.session?.appUser,
+      emssToken: req.headers["emss-token"] as string,
+    })
+  ) {
+    res.status(401).json({ status: "failure", message: "Unauthorized" });
+    return;
+  }
+  try {
+    const handle = await getAutomergeMissionHandle(missionId);
+    if (!handle) {
+      res.status(404).json({ status: "failure", message: "Mission not found" });
+      return;
+    }
+    handle.change((mission) => {
+      mission.archivedAt = archive ? Date.now() : null;
+    });
+    await refreshMissionCatalog(globalValues.automergeRepo, handle);
+    res.json({ status: "success", message: "Mission archive status updated" });
+  } catch (error) {
+    serverLogger.error(
+      { logId: "mission-archive", logValue: "Could not archive mission" },
+      asError(error)
+    );
+    res.status(500).json({ status: "error", message: "Could not archive mission" });
+  }
+});
+
 /**
  * Get all mission automerge documents the caller has permission to view.
- * Uses the server-side automerge repo (already loaded all docs in memory),
- * so the client doesn't have to replay the document over the WebSocket connection,
- * which is very slow for large/many missions.
+ * Explicit full-document export. Lists should use missionCatalog instead so they do not
+ * materialize every historical document. Kept for existing consumers of this API.
  */
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = req.headers["emss-token"] as string;
@@ -352,7 +391,7 @@ export async function getAutomergeMissionHandle(
 /**
  * Get automerge document for mission ids.
  * This will query the automerge doc listing to find the URLs for the docs and
- * then load the docs from the automerge repo in parallel
+ * then request the documents from the repo (the server bounds cold-load concurrency).
  * @param missionIds Ids for the missions. If no id is provided it will return all missions
  */
 export async function getAutomergeMissions(missionIds?: number[]): Promise<Mission[]> {
@@ -369,9 +408,7 @@ export async function getAutomergeMissions(missionIds?: number[]): Promise<Missi
   return missionsToReturn;
 }
 
-// Creates a new mission automerge document, add it to the doc listing
-// Adds new mission to the backup mission db table and adds a listener
-// Returns the new listing for the mission
+// Create the document, register its stable mission ID and initialize its catalog entries.
 export async function createAutomergeMission(
   sourceMission?: Mission // optional mission definition to create from
 ): Promise<AutomergeDocListing> {
@@ -399,7 +436,14 @@ export async function createAutomergeMission(
     m.id = dbReference.missionId;
   });
 
-  return dbReference as AutomergeDocListing;
+  // Use the caller's entity manager: duplication can create the listing inside a transaction.
+  // Flush the document BEFORE inserting a listing-backed summary, and retry if its durable
+  // storage generation changed during that flush.
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    if (await projectMission(globalValues.automergeRepo, missionDocHandle, em))
+      return dbReference as AutomergeDocListing;
+  }
+  throw new Error("Could not initialize mission catalog");
 }
 
 /**
@@ -415,6 +459,7 @@ export async function deleteAutomergeMissions(missionIds: number[]): Promise<num
   for (const missionId of missionIds) {
     // delete from automerge table
     const entity = await em.findOne(Doc_Listing_db, { missionId });
+    if (!entity) continue;
     const automergeUrl = entity.automergeUrl as AutomergeUrl;
     if (entity) em.remove(entity);
     await em.flush();

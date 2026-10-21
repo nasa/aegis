@@ -6,6 +6,7 @@ import DocListingFactory from "../../../fixtures/entityFactories/DocListingFacto
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../../../helpers/mockAutomergeRepo";
+import { seedMissionCatalog } from "../../../helpers/seedMissionCatalog";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import type { MissionsWithEvas } from "server/maestro/v2/routes/getMissions";
@@ -101,6 +102,7 @@ beforeAll(async () => {
   // Hook the mock automerge repo up so `getAutomergeMissions` reads our test
   // mission docs.
   globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
+  await seedMissionCatalog(testAutomergeDocListings);
 });
 
 describe("GET MISSIONS Endpoint (Maegistro V2)", () => {

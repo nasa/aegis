@@ -1,12 +1,11 @@
 import type { Request, Response } from "express";
 
 import express from "express";
-import sortBy from "lodash/sortBy";
 
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
-import { getAutomergeMissions } from "./missionAutomerge";
+import { getMissionSummaries } from "server/automerge/missionCatalog";
 
 const router = express.Router();
 
@@ -33,13 +32,13 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     let records: MissionHomepageItem[];
 
     //super admin can see all missions
-    if (req.session.appUser.isSuperAdmin) {
+    if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) {
       records = await getHomepageMissionItems();
     } else {
       //return all missions that they have permission for
-      const viewableMissions: number[] = req.session.appUser.permissionList.map((p) => {
-        if (p.permissions.view) return p.missionId;
-      });
+      const viewableMissions = req.session.appUser.permissionList
+        .filter((p) => p.permissions.view)
+        .map((p) => p.missionId);
       records = await getHomepageMissionItems(viewableMissions);
     }
 
@@ -64,25 +63,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-async function getHomepageMissionItems(
-  missionIdList: number[] = null
-): Promise<MissionHomepageItem[]> {
-  // Get missions from automerge documents in parallel
-  const allMissions = await getAutomergeMissions(missionIdList);
-  // Only include active/non-archived missions
-  const missions = allMissions.filter((mission) => !mission.archivedAt);
-
-  const missionHomepageItems: MissionHomepageItem[] = [];
-
-  for (const mission of missions) {
-    const runningRex = Object.values(mission.rexes ?? {}).find((rex) => rex.isRunning) ?? null;
-
-    const missionHomepageItem: MissionHomepageItem = {
-      id: mission.id,
-      name: mission.name,
-      runningRex: runningRex,
-    };
-    missionHomepageItems.push(missionHomepageItem);
-  }
-  return sortBy(missionHomepageItems, [(item) => item.name.toLowerCase()]);
+async function getHomepageMissionItems(missionIdList?: number[]): Promise<MissionHomepageItem[]> {
+  const missions = await getMissionSummaries(missionIdList);
+  return missions.map(({ id, name, runningRex }) => ({ id, name, runningRex }));
 }

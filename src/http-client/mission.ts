@@ -14,6 +14,21 @@ export async function getMissions(): Promise<WrappedResponse<Mission[]>> {
   return response;
 }
 
+export async function getMissionSummaries(): Promise<WrappedResponse<MissionSummary[]>> {
+  const res = await fetch("/api/v1/missionCatalog");
+  if (!res.ok) throw new Error("Could not load mission summaries");
+  return res.json();
+}
+
+export async function setMissionArchived(missionId: number, archive: boolean): Promise<void> {
+  const res = await fetch("/api/v1/missionAutomerge/archive", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ missionId, archive }),
+  });
+  if (!res.ok) throw new Error("Could not update mission archive status");
+}
+
 export async function getMissionHomepageItems(): Promise<WrappedResponse<MissionHomepageItem[]>> {
   const res = await fetch(`/api/v1/missionHomepageItems`);
   if (res.status !== 200) {

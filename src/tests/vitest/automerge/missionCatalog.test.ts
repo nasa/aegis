@@ -1,0 +1,303 @@
+// @vitest-environment node
+import { MikroORM } from "@mikro-orm/postgresql";
+import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo/slim";
+import pg from "pg";
+import supertest from "supertest";
+import config from "server/database/mikro-orm.config";
+import { globalValues } from "server/express/global";
+import app from "server/express/restApi";
+import { LazyMissionRepo } from "server/automerge/lazyMissionRepo";
+import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
+import {
+  getMissionSummaries,
+  getMissionIdsForEva,
+  getPendingMissionListings,
+  projectMission,
+} from "server/automerge/missionCatalog";
+import {
+  refreshMissionCatalog,
+  repairMissionCatalog,
+  retainMissionDocuments,
+  startMissionCatalogRuntime,
+} from "server/automerge/missionCatalogRuntime";
+import { createAutomergeMission } from "server/express/routes/missionAutomerge";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankRex } from "store/storeUtils/rex";
+import { getRexesByEva } from "server/maestro/v2/routes/getRexesByEva";
+import * as Automerge from "@automerge/automerge";
+
+let repo: LazyMissionRepo;
+let pool: pg.Pool;
+let storage: PostgresStorageAdapter;
+let handles: DocHandle<Mission>[];
+let ids: number[];
+
+beforeAll(async () => {
+  globalValues.orm = await MikroORM.init({ ...config, allowGlobalContext: true });
+  pool = new pg.Pool({
+    host: config.host,
+    port: config.port,
+    database: config.dbName,
+    user: "postgres",
+    password: config.password as string,
+  });
+  storage = new PostgresStorageAdapter("automerge_native_db", pool);
+});
+
+beforeEach(() => {
+  repo = new LazyMissionRepo({ storage });
+  globalValues.automergeRepo = repo;
+  handles = [];
+  ids = [];
+});
+
+async function createMission(fields: Partial<Mission> = {}) {
+  const listing = await createAutomergeMission(
+    generateBlankMission({
+      name: "Vitest Catalog Mission",
+      ...fields,
+    })
+  );
+  const handle = await repo.find<Mission>(listing.automergeUrl as AutomergeUrl);
+  handles.push(handle);
+  ids.push(listing.missionId);
+  return handle;
+}
+
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await repo.shutdown();
+  const em = globalValues.orm.em.fork();
+  for (const id of ids) await em.execute("delete from doc_listing_db where mission_id = ?", [id]);
+  for (const handle of handles) {
+    await storage.removeRange([handle.documentId]);
+    await em.execute("delete from mission_catalog_pending_db where document_id = ?", [
+      handle.documentId,
+    ]);
+  }
+  globalValues.orm.em.clear();
+});
+
+afterAll(async () => {
+  await pool.end();
+  await globalValues.orm.close(true);
+});
+
+test("cold restart and homepage/admin/Maestro discovery load zero documents", async () => {
+  const eva = generateBlankEVA({ name: "Planned EVA" });
+  await createMission({ evas: { [eva.uuid]: eva } });
+  await createMission({ archivedAt: 123, name: "Archived" });
+  await repo.shutdown();
+  repo = new LazyMissionRepo({ storage });
+  globalValues.automergeRepo = repo;
+  const find = vi.spyOn(repo, "find");
+  await repairMissionCatalog(repo, ids);
+  expect(await getMissionSummaries([])).toEqual([]);
+  expect((await getMissionSummaries(ids)).map((m) => m.id)).toEqual([ids[0]]);
+  expect(await getMissionSummaries(ids, true)).toHaveLength(2);
+  for (const route of ["missionHomepageItems", "missionCatalog", "maestro/v2/getMissions"]) {
+    const res = await supertest(app)
+      .get(`/api/v1/${route}`)
+      .set("emss-token", process.env.EMSS_TOKEN);
+    expect(res.statusCode).toBe(200);
+  }
+  expect(find).not.toHaveBeenCalled();
+  expect(Object.keys(repo.handles)).toHaveLength(0);
+});
+
+test("EVA lookup preserves duplicates and archives, loading only matching missions", async () => {
+  const eva = generateBlankEVA({ name: "As planned" });
+  const copy = generateBlankEVA({ refUuid: eva.refUuid });
+  const rex = generateBlankRex({ evaUuid: copy.uuid });
+  const excluded = generateBlankRex({ evaUuid: copy.uuid, maestroEventId: "connected" });
+  const fields = {
+    evas: { [eva.uuid]: eva, [copy.uuid]: copy },
+    rexes: { [rex.uuid]: rex, [excluded.uuid]: excluded },
+  };
+  const first = await createMission(fields);
+  const second = await createMission({ ...fields, archivedAt: 123 });
+  await createMission({ name: "Unrelated history" });
+  const find = vi.spyOn(repo, "find");
+  expect(await getMissionIdsForEva(eva.uuid)).toEqual(ids.slice(0, 2));
+  expect((await getRexesByEva(eva.uuid)).map((r) => r.uuid)).toEqual([rex.uuid, rex.uuid]);
+  expect(find.mock.calls.map(([url]) => url)).toEqual([first.url, second.url]);
+  find.mockClear();
+  expect(await getRexesByEva("missing")).toEqual([]);
+  expect(find).not.toHaveBeenCalled();
+});
+
+test("persisted edits update names, archives, EVA membership and the small REX clock summary", async () => {
+  const eva = generateBlankEVA();
+  const handle = await createMission({ evas: { [eva.uuid]: eva } });
+  const rex = generateBlankRex({ evaUuid: eva.uuid, isRunning: true, petRunning: true });
+  handle.change((m) => {
+    m.name = "Renamed";
+    m.rexes[rex.uuid] = rex;
+  });
+  await repo.flush();
+  const runtime = startMissionCatalogRuntime(repo);
+  try {
+    await runtime.refresh();
+    const [summary] = await getMissionSummaries(ids);
+    expect(summary.name).toBe("Renamed");
+    expect(summary.runningRex).toMatchObject({ uuid: rex.uuid, petRunning: true });
+    expect(summary.runningRex).not.toHaveProperty("posEntries");
+    const response = await supertest(app)
+      .get("/api/v1/maestro/v2/getMissions")
+      .set("emss-token", process.env.EMSS_TOKEN);
+    expect(response.body.data[ids[0]].evas).toEqual([]);
+    handle.change((m) => {
+      m.archivedAt = 123;
+      m.rexes[rex.uuid].isRunning = false;
+      delete m.evas[eva.uuid];
+    });
+    await repo.flush();
+    await runtime.refresh();
+    expect(await getMissionSummaries(ids)).toEqual([]);
+    expect((await getMissionSummaries(ids, true))[0].runningRex).toBeNull();
+    expect(await getMissionIdsForEva(eva.uuid)).toEqual([]);
+  } finally {
+    await runtime.stop();
+  }
+});
+
+test("a newer save cannot be acknowledged by an older projection", async () => {
+  const handle = await createMission();
+  handle.change((m) => {
+    m.name = "First edit";
+  });
+  await repo.flush();
+  const originalFlush = repo.flush.bind(repo);
+  vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
+    handle.change((m) => {
+      m.name = "Second edit";
+    });
+    await originalFlush(documents);
+  });
+  expect(await projectMission(repo, handle)).toBe(false);
+  expect((await getPendingMissionListings()).some((l) => l.missionId === ids[0])).toBe(true);
+  await refreshMissionCatalog(repo, handle);
+  expect((await getMissionSummaries(ids))[0].name).toBe("Second edit");
+});
+
+test("merged remote edits are indexed through storage, without an HTTP mutation", async () => {
+  const handle = await createMission();
+  const remote = Automerge.change(Automerge.clone(handle.doc()), (m) => {
+    m.name = "Remote rename";
+  });
+  repo.import(Automerge.save(remote), { docId: handle.documentId });
+  await repo.flush();
+  const runtime = startMissionCatalogRuntime(repo);
+  try {
+    await runtime.refresh();
+    expect((await getMissionSummaries(ids))[0].name).toBe("Remote rename");
+  } finally {
+    await runtime.stop();
+  }
+});
+
+test("unrelated changes and sync-state saves do not rewrite catalog rows", async () => {
+  const eva = generateBlankEVA();
+  const handle = await createMission({ evas: { [eva.uuid]: eva } });
+  const em = globalValues.orm.em.fork();
+  const versions = () =>
+    em.execute(
+      `select c.xmin::text as mission, e.xmin::text as eva from mission_catalog_db c
+     join mission_eva_catalog_db e using (mission_id) where mission_id = ?`,
+      [ids[0]]
+    );
+  const before = await versions();
+  handle.change((m) => {
+    m.description = "An edit outside the summary";
+  });
+  await refreshMissionCatalog(repo, handle);
+  expect(await versions()).toEqual(before);
+  await storage.save([handle.documentId, "sync-state", "test-peer"], new Uint8Array([1]));
+  expect((await getPendingMissionListings()).some((l) => l.missionId === ids[0])).toBe(false);
+});
+
+test("archive endpoint enforces permissions and publishes its summary before responding", async () => {
+  await createMission();
+  const request = () => supertest(app).post("/api/v1/missionAutomerge/archive");
+  expect((await request().send({ missionId: ids[0], archive: true })).statusCode).toBe(401);
+  expect(
+    (
+      await request()
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send({ missionId: ids[0], archive: "true" })
+    ).statusCode
+  ).toBe(400);
+  expect(
+    (
+      await request()
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send({ missionId: ids[0], archive: true })
+    ).statusCode
+  ).toBe(200);
+  expect(await getMissionSummaries(ids)).toEqual([]);
+  expect(
+    (
+      await request()
+        .set("emss-token", process.env.EMSS_TOKEN)
+        .send({ missionId: ids[0], archive: false })
+    ).statusCode
+  ).toBe(200);
+  expect(await getMissionSummaries(ids)).toHaveLength(1);
+});
+
+test("restart repairs only dirty or missing summaries and releases backfilled handles", async () => {
+  const first = await createMission();
+  const second = await createMission();
+  await createMission();
+  first.change((m) => {
+    m.name = "Persisted before crash";
+  });
+  await repo.flush(); // Simulate dying before the projector ran.
+  await globalValues.orm.em
+    .fork()
+    .execute("delete from mission_catalog_db where mission_id = ?", [ids[1]]);
+  await repo.shutdown();
+  repo = new LazyMissionRepo({ storage });
+  globalValues.automergeRepo = repo;
+  const find = vi.spyOn(repo, "find");
+  await repairMissionCatalog(repo, ids);
+  expect(find.mock.calls.map(([url]) => url)).toEqual([first.url, second.url]);
+  expect(Object.keys(repo.handles)).toHaveLength(0);
+  expect((await getMissionSummaries([ids[0]]))[0].name).toBe("Persisted before crash");
+  find.mockClear();
+  await repairMissionCatalog(repo, ids);
+  expect(find).not.toHaveBeenCalled();
+});
+
+test("deleting a listing removes both indexes and a late projector cannot recreate them", async () => {
+  const eva = generateBlankEVA();
+  const handle = await createMission({ evas: { [eva.uuid]: eva } });
+  await globalValues.orm.em
+    .fork()
+    .execute("delete from doc_listing_db where mission_id = ?", [ids[0]]);
+  await refreshMissionCatalog(repo, handle);
+  expect(await getMissionSummaries(ids, true)).toEqual([]);
+  expect(await getMissionIdsForEva(eva.uuid)).toEqual([]);
+});
+
+test("idle eviction preserves HTTP consumers and persists before releasing a document", async () => {
+  const handle = await createMission();
+  const runtime = startMissionCatalogRuntime(repo, 0);
+  const release = retainMissionDocuments();
+  try {
+    await runtime.refresh();
+    expect(repo.handles[handle.documentId]).toBeDefined();
+    handle.change((m) => {
+      m.name = "Saved before eviction";
+    });
+    release();
+    await runtime.refresh();
+    expect(repo.handles[handle.documentId]).toBeUndefined();
+    const reloaded = await repo.find<Mission>(handle.url);
+    expect(reloaded.doc().name).toBe("Saved before eviction");
+  } finally {
+    release();
+    await runtime.stop();
+  }
+});

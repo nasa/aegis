@@ -1,15 +1,17 @@
-/* eslint-disable no-restricted-syntax -- TODO (Phase 2): Migrate automergeRepo.find().change() pattern to withMissionChange */
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { createMission, deleteMissions, getMissions } from "http-client/mission";
+import {
+  createMission,
+  deleteMissions,
+  getMissionSummaries,
+  setMissionArchived,
+} from "http-client/mission";
 import { isLoggedIn } from "http-client/login";
 import { Tooltip } from "react-tooltip";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { initialState as wholeStoreInitialState } from "store/index";
 import { setAllSliceStores } from "store/crossActions";
 import { getAutomergeDocListing } from "http-client/docListing";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faRocket } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -18,18 +20,15 @@ import styles from "./missions.module.css";
 const Missions: React.FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [missions, setMissions] = useState<Mission[]>([]);
+  const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [automergeDocListings, setAutomergeDocListings] = useState<AutomergeDocListing[]>([]);
   const [user, setUser] = useState<AppUser | null>(null);
 
   const loadMissions = useCallback(async () => {
-    // Load doc listings and missions in parallel
-    // Grab the missions from the server because it already has the documents loaded into
-    // memory, so we don't have to load/replay the document on the client side.
-    // This replay is the major slow down, and we only need a few fields from the doc.
+    // Both requests read SQL metadata; listing historical missions never loads their CRDTs.
     const [docListingsRes, missionsRes] = await Promise.all([
       getAutomergeDocListing(),
-      getMissions(),
+      getMissionSummaries(),
     ]);
 
     if (!docListingsRes.data) {
@@ -185,12 +184,11 @@ const MissionList = ({
   user,
   loadMissions,
 }: {
-  missions: Mission[];
+  missions: MissionSummary[];
   automergeDocListings: AutomergeDocListing[];
   user: AppUser | null;
   loadMissions: Function;
 }) => {
-  const automergeRepo = useRepo();
   const navigate = useNavigate();
   const permissionList = user?.permissionList;
 
@@ -212,28 +210,16 @@ const MissionList = ({
   }
 
   async function archiveMission({ id, archive }: { id: number; archive: boolean }) {
-    const mission = missions.find((m) => m.id === id);
-    if (mission) {
-      // get automerge URL
-      const automergeUrl = automergeDocListings.find(
-        (listing) => listing.missionId === id
-      )?.automergeUrl;
-      if (!automergeUrl) {
-        alert("No automerge URL found for mission " + id);
-        return;
-      }
-      const missionDocHandle = await automergeRepo.find<Mission>(automergeUrl as AutomergeUrl);
-      if (missionDocHandle) {
-        missionDocHandle.change((mission: Mission) => {
-          mission.archivedAt = archive ? new Date().getTime() : null;
-        });
-      }
-      loadMissions();
+    try {
+      await setMissionArchived(id, archive);
+      await loadMissions();
+    } catch (error) {
+      alert("Error updating mission archive status: " + error);
     }
   }
 
-  const listedMissionRows = (missionType: Mission[], archivedAtTable = false) => {
-    return missionType.map((mission: Mission) => {
+  const listedMissionRows = (missionType: MissionSummary[], archivedAtTable = false) => {
+    return missionType.map((mission) => {
       if (
         user?.isSuperAdmin ||
         permissionList?.some((p) => p.missionId === mission.id && p.permissions.edit === true)
@@ -366,10 +352,8 @@ const MissionList = ({
     });
   };
 
-  const visibleMissions = missions?.filter(
-    (mission: Mission) => mission.archivedAt == undefined || mission.archivedAt == null
-  );
-  const archivedMissions = missions?.filter((missions: Mission) => missions.archivedAt !== null);
+  const visibleMissions = missions?.filter((mission) => mission.archivedAt == null);
+  const archivedMissions = missions?.filter((mission) => mission.archivedAt != null);
 
   if (missions.length > 0) {
     return (

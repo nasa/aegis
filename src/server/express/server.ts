@@ -5,7 +5,11 @@ import { v4 as uuidv4 } from "uuid";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
-import { Repo } from "@automerge/automerge-repo/slim";
+import { LazyMissionRepo } from "server/automerge/lazyMissionRepo";
+import {
+  repairMissionCatalog,
+  startMissionCatalogRuntime,
+} from "server/automerge/missionCatalogRuntime";
 import type { StorageAdapterInterface } from "@automerge/automerge-repo/slim";
 import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket";
 import app from "./restApi";
@@ -95,10 +99,6 @@ initializeBase64Wasm(automergeWasmBase64);
   // express request handler
   server.on("request", app);
 
-  server.listen(4001, () => {
-    serverLogger.info({ logId: "server", logValue: "Server listening on port 4001" });
-  });
-
   // ==========================================================================
   // Automerge
   // ==========================================================================
@@ -160,12 +160,21 @@ initializeBase64Wasm(automergeWasmBase64);
     dbConfig
   );
   // store the automerge repo in global so we can access it later on the server
-  globalValues.automergeRepo = new Repo({
+  const missionRepo = new LazyMissionRepo({
     network: [networkAdapter],
     storage: storageAdapter,
     /** @ts-expect-error @type {(import("@automerge/automerge-repo").PeerId)}  */
     peerId: `storage-server`,
     sharePolicy: async () => false,
+  });
+  globalValues.automergeRepo = missionRepo;
+
+  // Existing installations pay for backfill once. A clean restart reads SQL metadata only.
+  // Finish recovery before accepting clients so summaries and documents cannot race it.
+  await repairMissionCatalog(missionRepo);
+  const missionCatalog = startMissionCatalogRuntime(missionRepo);
+  server.listen(4001, () => {
+    serverLogger.info({ logId: "server", logValue: "Server listening on port 4001" });
   });
 
   // clg peers as they come and go
@@ -204,6 +213,7 @@ initializeBase64Wasm(automergeWasmBase64);
     if (globalValues.automergeRepo) {
       try {
         await globalValues.automergeRepo.shutdown();
+        await missionCatalog.stop();
         serverLogger.debug({ logId: "server", logValue: "Automerge repo shut down" });
       } catch (err) {
         serverLogger.error(
@@ -282,6 +292,7 @@ initializeBase64Wasm(automergeWasmBase64);
     try {
       if (globalValues.orm) {
         await globalValues.orm.close();
+        await dbConfig.end();
         serverLogger.debug({ logId: "server", logValue: "Database connections closed" });
       }
     } catch (err) {
