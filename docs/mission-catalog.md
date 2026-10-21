@@ -36,44 +36,51 @@ Creation and admin archive/unarchive wait for projection before responding. Othe
 edits become visible after the storage save and its queued update. The homepage polls
 the summary endpoint every five seconds; its PET clock continues ticking locally.
 
-On startup, the API backfills missing or outdated summaries **before listening**. It loads
-and releases one document at a time. Clean restarts query metadata only and load zero mission
-documents. Increment `MISSION_CATALOG_VERSION` when the projection format or semantics change
-to request a rebuild on the next start. An abrupt crash between document save and index update
+For this rollout, the temporary `populateMissionCatalogOnce` startup function builds missing
+catalog entries before the API listens. It loads, projects, flushes and releases one document
+at a time. The persisted catalog rows record progress: subsequent starts load no documents
+for population, and an interrupted run resumes the missing entries. Remove the function and
+its startup import/call in the next MR after rollout. Normal startup then preloads only
+missions with an active REX. An abrupt crash between document save and index update
 can leave a stale entry until the mission is next loaded or saved. Failed index updates are
 logged and retried on the next save/load. This deliberately accepts that small consistency gap
 instead of maintaining a separate crash-recovery protocol.
 
 This follows the current single API repository deployment. Run standalone document migrations,
 restores and seeders with the API stopped, then restart it. Their changes refresh the index
-when each mission is next loaded; bump the catalog version if an immediate rebuild is needed.
+when each mission is next loaded.
 Sharing storage does not keep two independent live Automerge repositories synchronized;
 multi-process writers would need a
 separate ownership/synchronization design.
 
 ## Deployment and memory
 
-Run the normal database migration pipeline. `Migration20261021000000` creates the read models
-and URL/EVA lookup indexes. **The first deployment still reads every
-existing mission once** to build the catalog; allow time for that backfill. Progress and timings
-are logged under `mission-catalog`. Completed entries survive an interrupted backfill.
+Run the existing `npm run migration:up` pipeline. The PostgreSQL `Migration20261021000000`
+creates the read models and URL/EVA lookup indexes. The temporary API startup function then
+populates them; no catalog Automerge migration or migration ordering changes are needed.
+**The first deployment still reads every existing mission once** to build the catalog;
+allow time for that backfill. Progress and timings use the `mission-catalog` logs.
 
 Cold `Repo.find()` calls are serialized, while already loading/resident handles bypass the
 queue. Pending Automerge migrations also process, validate, flush and release one mission at a
 time, rather than retaining the entire historical collection.
 
-Idle documents are eligible for release after fifteen minutes. A separate once-per-minute
+Idle documents are eligible for release after four hours. A separate once-per-minute
 memory housekeeping timer checks resident handles; it does not query the catalog for changes.
 Eviction is deliberately conservative: it waits until there are no Automerge peers, Aegis
 visitors, Maestro/DUST handle
 consumers or in-flight HTTP requests, and flushes/projects before releasing. It does not impose
 a hard memory cap while clients remain connected. Opening a large individual mission can still
-be expensive. Cache release uses the installed Repo's experimental `removeFromCache` API;
-retest persistence and reloading when upgrading Automerge.
+be expensive. Cache release uses the installed Repo's experimental `removeFromCache` API through
+`releaseMissionDocument`, after flushing the real document. The helper skips the unload
+transition while Repo clears its caches and synchronizer: Repo 2.5.6 otherwise broadcasts and
+schedules persistence of the empty unloaded placeholder, which can replace stored mission
+data. The orphaned handle and document are collected after pending callbacks finish. Retest
+delayed saves and reloading from a fresh repository when upgrading Automerge.
 
 ## Logging
 
-The existing `serverLogger` reports startup/backfill results and one timing entry per cold
+The existing `serverLogger` reports initial population progress and one timing entry per cold
 document load (`mission-load`, including queue wait). Loads of five seconds or more use
 warning level; failures retain their Error and document ID where available. The server-ready
 log includes startup time and process memory. No counters or cumulative metrics are maintained

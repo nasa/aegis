@@ -16,6 +16,7 @@ import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
+import { releaseMissionDocument } from "server/automerge/releaseMissionDocument";
 
 const AUTOMERGE_MIGRATION_LOCK_ID = 1_753_746_473;
 
@@ -111,7 +112,7 @@ const runMigration = async () => {
         );
       }
       await automergeRepo.flush([handle.documentId]);
-      await automergeRepo.removeFromCache(handle.documentId);
+      await releaseMissionDocument(automergeRepo, handle.documentId);
       serverLogger.info({
         logId: "automerge-migration",
         logValue: `Migrated mission ${docListing.missionId} (${index + 1}/${allDocListings.length}) in ${Date.now() - started} ms`,

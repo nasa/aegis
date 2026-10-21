@@ -13,7 +13,6 @@ import { getMissionSummaries, getMissionIdsForEva } from "server/automerge/missi
 import * as missionCatalog from "server/automerge/missionCatalog";
 import {
   refreshMissionCatalog,
-  repairMissionCatalog,
   retainMissionDocuments,
   startMissionCatalogRuntime,
   loadRunningMissionDocuments,
@@ -25,6 +24,7 @@ import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex, generateBlankPosEntry } from "store/storeUtils/rex";
 import { getRexesByEva } from "server/maestro/v2/routes/getRexesByEva";
 import * as Automerge from "@automerge/automerge";
+import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
 
 let repo: LazyMissionRepo;
 let pool: pg.Pool;
@@ -88,7 +88,7 @@ test("cold restart and homepage/admin/Maestro discovery load zero documents", as
   repo = new LazyMissionRepo({ storage });
   globalValues.automergeRepo = repo;
   const find = vi.spyOn(repo, "find");
-  await repairMissionCatalog(repo, ids);
+  await populateMissionCatalogOnce(repo, ids);
   expect(await getMissionSummaries([])).toEqual([]);
   expect((await getMissionSummaries(ids)).map((m) => m.id)).toEqual([ids[0]]);
   expect(await getMissionSummaries(ids, true)).toHaveLength(2);
@@ -386,7 +386,7 @@ test("archive endpoint enforces permissions and publishes its summary before res
   expect(await getMissionSummaries(ids)).toHaveLength(1);
 });
 
-test("startup backfills missing summaries and opening a cold mission refreshes its index", async () => {
+test("one-time population resumes missing summaries and repeated startup loads no documents", async () => {
   const first = await createMission();
   const second = await createMission();
   await createMission();
@@ -401,12 +401,17 @@ test("startup backfills missing summaries and opening a cold mission refreshes i
   repo = new LazyMissionRepo({ storage });
   globalValues.automergeRepo = repo;
   const find = vi.spyOn(repo, "find");
-  await repairMissionCatalog(repo, ids);
+  await populateMissionCatalogOnce(repo, ids);
   expect(find.mock.calls.map(([url]) => url)).toEqual([second.url]);
   expect(Object.keys(repo.handles)).toHaveLength(0);
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  expect((await getMissionSummaries([ids[1]]))[0].name).toBe("Vitest Catalog Mission");
   find.mockClear();
-  await repairMissionCatalog(repo, ids);
+  await populateMissionCatalogOnce(repo, ids);
   expect(find).not.toHaveBeenCalled();
+  const reloaded = await repo.find<Mission>(second.url);
+  expect(reloaded.doc().name).toBe("Vitest Catalog Mission");
+  find.mockClear();
   const runtime = startMissionCatalogRuntime(repo, storage);
   try {
     await repo.find(first.url);
@@ -461,6 +466,7 @@ test.each(["name", "description"] as const)(
       release();
       await runtime.refresh();
       expect(repo.handles[handle.documentId]).toBeUndefined();
+      await new Promise((resolve) => setTimeout(resolve, 200));
       const reloaded = await repo.find<Mission>(handle.url);
       expect(reloaded.doc()[field]).toBe("Saved before eviction");
     } finally {
