@@ -94,97 +94,29 @@ const runMigration = async () => {
       }
     }
 
-    // Load every Automerge doc handle in parallel up front.
-    //
-    // (Note: the `(node:NNNN) TimeoutNegativeWarning: -NNN is a negative number.` warning
-    // sometimes printed around this point comes from `@automerge/automerge-repo`'s
-    // `DocSynchronizer` (and `Repo`) `throttle` helper. The throttle records
-    // `lastCall = Date.now()` at *construction* time but only updates it after the timer
-    // fires; if the gap between construction and the first invocation exceeds the throttle
-    // delay (100 ms for the save throttle, 30 ms for the sync throttle), `wait` becomes
-    // negative on the first call. Node clamps the delay to 1 ms and the save/sync still
-    // happens — it is harmless and is NOT the cause of any perceived hang. The magnitude
-    // of the negative number simply reflects how long it took to get from "Repo registered
-    // the handle" to "the first change event fired on it" (≈ doc load time).)
-    serverLogger.debug({
-      logId: "automerge-migration",
-      logValue: `Loading ${allDocListings.length} automerge document(s) in parallel...`,
-    });
-    const loadStartMs = Date.now();
-    let loadedCount = 0;
-    const allDocHandles: DocHandle<Mission>[] = await Promise.all(
-      allDocListings.map(async (docListing) => {
-        // Type guard inline so TS narrows automergeUrl to AnyDocumentId for find().
-        // The up-front validation loop above guarantees this never throws in practice.
-        if (!isValidAutomergeUrl(docListing.automergeUrl)) {
-          throw new Error(
-            `Invalid automerge URL slipped past pre-validation. MissionId: ${docListing.missionId}`
-          );
-        }
-        const handle: DocHandle<Mission> = await automergeRepo.find(docListing.automergeUrl);
-        await handle.whenReady();
-        loadedCount += 1;
-        // Log progress every 10 docs so the user can see forward progress on large DBs.
-        if (loadedCount % 10 === 0 || loadedCount === allDocListings.length) {
-          serverLogger.debug({
-            logId: "automerge-migration",
-            logValue: `  loaded ${loadedCount}/${allDocListings.length} doc(s)`,
-          });
-        }
-        return handle;
-      })
-    );
-    serverLogger.debug({
-      logId: "automerge-migration",
-      logValue: `Loaded ${allDocHandles.length} doc handle(s) in ${Date.now() - loadStartMs} ms`,
-    });
-
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
-    for (const migration of pendingMigrations) {
-      serverLogger.debug({
-        logId: "automerge-migration",
-        logValue: `Running automerge migration ${migration.version}-${migration.name}`,
-      });
-      for (let index = 0; index < allDocHandles.length; index += 1) {
-        await migration.migrate(allDocHandles[index], {
-          docListing: allDocListings[index],
-          orm: globalValues.orm,
-        });
+    // Each registered migration operates on one mission. Apply pending versions in order,
+    // persist and release that mission before opening the next. Historical datasets must
+    // not require enough RAM to hold every document during deployment.
+    for (const [index, docListing] of allDocListings.entries()) {
+      if (!isValidAutomergeUrl(docListing.automergeUrl)) throw new Error("Invalid Automerge URL");
+      const started = Date.now();
+      const handle: DocHandle<Mission> = await automergeRepo.find(docListing.automergeUrl);
+      for (const migration of pendingMigrations) {
+        await migration.migrate(handle, { docListing, orm: globalValues.orm });
       }
-    }
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Migrations complete." });
-
-    // Migrations are done.
-    // Validate schema against all automerge docs
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Running validator" });
-    for (const docHandle of allDocHandles) {
-      const mission = docHandle.doc();
-      // Use structuredClone instead of cloneDeep so we don't need an extra dependency
-      // when this file is built
-      const isValid = missionValidator(structuredClone(mission));
-      if (!isValid && missionValidator.errors?.length > 0) {
-        serverLogger.error(
-          { logId: "automerge-migration", logValue: JSON.stringify(missionValidator.errors) },
-          new Error(`${mission.id} - ${mission.name} is invalid`)
+      const mission = handle.doc();
+      if (!missionValidator(structuredClone(mission))) {
+        throw new Error(
+          `${mission.id} - ${mission.name} is invalid: ${JSON.stringify(missionValidator.errors)}`
         );
-        throw new Error(`${mission.id} - ${mission.name} is invalid`);
-      } else {
-        serverLogger.debug({
-          logId: "automerge-migration",
-          logValue: `${mission.id} - ${mission.name} is valid`,
-        });
       }
+      await automergeRepo.flush([handle.documentId]);
+      await automergeRepo.removeFromCache(handle.documentId);
+      serverLogger.info({
+        logId: "automerge-migration",
+        logValue: `Migrated mission ${docListing.missionId} (${index + 1}/${allDocListings.length}) in ${Date.now() - started} ms`,
+      });
     }
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Validation complete." });
-    // Flush all Automerge documents to the storage adapter before proceeding.
-    // After docHandle.change(), the Repo schedules saves via a debounced/throttled timer
-    // (saveDebounceRate) rather than writing synchronously. Calling process.exit() before
-    // that timer fires would lose the changes. automergeRepo.flush() bypasses the debounce
-    // and directly awaits storageSubsystem.saveDoc() for every cached document handle,
-    // guaranteeing all changes are persisted to Postgres before we continue.
-    // Note: flush() is marked @experimental in automerge-repo but is the correct mechanism
-    // and is also used internally by Repo.shutdown().
-    await automergeRepo.flush();
 
     await lockClient.query(
       `insert into "automerge_migration_db" ("version", "name")

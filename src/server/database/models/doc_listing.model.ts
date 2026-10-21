@@ -4,7 +4,7 @@ export const Doc_Listing_dbSchema = defineEntity({
   name: "Doc_Listing_db",
   properties: {
     missionId: p.integer().autoincrement().primary(),
-    automergeUrl: p.text().nullable(),
+    automergeUrl: p.text().nullable().index("doc_listing_url_idx"),
     version: p.integer().version(),
   },
 });
