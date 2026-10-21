@@ -437,13 +437,8 @@ export async function createAutomergeMission(
   });
 
   // Use the caller's entity manager: duplication can create the listing inside a transaction.
-  // Flush the document BEFORE inserting a listing-backed summary, and retry if its durable
-  // storage generation changed during that flush.
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    if (await projectMission(globalValues.automergeRepo, missionDocHandle, em))
-      return dbReference as AutomergeDocListing;
-  }
-  throw new Error("Could not initialize mission catalog");
+  await projectMission(globalValues.automergeRepo, missionDocHandle, em);
+  return dbReference as AutomergeDocListing;
 }
 
 /**

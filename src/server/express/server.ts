@@ -10,7 +10,6 @@ import {
   repairMissionCatalog,
   startMissionCatalogRuntime,
 } from "server/automerge/missionCatalogRuntime";
-import type { StorageAdapterInterface } from "@automerge/automerge-repo/slim";
 import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket";
 import app from "./restApi";
 
@@ -155,10 +154,7 @@ initializeBase64Wasm(automergeWasmBase64);
 
   // hook up the network (socket server) and storage to a new automerge repo
   const networkAdapter = new NodeWSServerAdapter(wss);
-  const storageAdapter: StorageAdapterInterface = new PostgresStorageAdapter(
-    "automerge_native_db",
-    dbConfig
-  );
+  const storageAdapter = new PostgresStorageAdapter("automerge_native_db", dbConfig);
   // store the automerge repo in global so we can access it later on the server
   const missionRepo = new LazyMissionRepo({
     network: [networkAdapter],
@@ -170,9 +166,9 @@ initializeBase64Wasm(automergeWasmBase64);
   globalValues.automergeRepo = missionRepo;
 
   // Existing installations pay for backfill once. A clean restart reads SQL metadata only.
-  // Finish recovery before accepting clients so summaries and documents cannot race it.
+  // Finish backfill before accepting clients so summaries and documents cannot race it.
   await repairMissionCatalog(missionRepo);
-  const missionCatalog = startMissionCatalogRuntime(missionRepo);
+  const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
   server.listen(4001, () => {
     serverLogger.info({ logId: "server", logValue: "Server listening on port 4001" });
   });

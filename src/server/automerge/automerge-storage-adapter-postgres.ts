@@ -1,4 +1,9 @@
-import type { Chunk, StorageAdapterInterface, StorageKey } from "@automerge/automerge-repo";
+import type {
+  Chunk,
+  DocumentId,
+  StorageAdapterInterface,
+  StorageKey,
+} from "@automerge/automerge-repo";
 import pg from "pg";
 
 function keyToArray(key: StorageKey): Buffer[] {
@@ -26,6 +31,8 @@ function keyPrefixRange(keyPrefix: StorageKey): [Buffer[], Buffer[]] {
 }
 
 export class PostgresStorageAdapter implements StorageAdapterInterface {
+  // Synchronous notification only: listeners must not await a repo flush inside save().
+  onDocumentSaved?: (documentId: DocumentId) => void;
   private pool: pg.Pool;
   private tableName: string;
 
@@ -56,6 +63,9 @@ export class PostgresStorageAdapter implements StorageAdapterInterface {
         "on conflict (key) do update set value = $2",
       [keyArray, Buffer.from(data)]
     );
+    if (key[1] === "snapshot" || key[1] === "incremental") {
+      this.onDocumentSaved?.(key[0] as DocumentId);
+    }
   }
 
   async remove(key: StorageKey): Promise<void> {
