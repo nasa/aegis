@@ -123,7 +123,6 @@ export async function projectMission(
   // A caller-owned transaction (mission duplication) can still roll back after we return.
   // Only remember values once this function owns and completes the outer transaction.
   const rememberValues = !em.isInTransaction();
-  await repo.flush([handle.documentId]);
 
   const writtenKey = await em.transactional(async (tx) => {
     const listings = await tx.execute<{ missionId: number }[]>(
@@ -137,6 +136,12 @@ export async function projectMission(
     const projected = summarizeMission(handle.doc());
     const key = catalogKey(projected);
     if (!force && indexedValues.get(handle) === key) return;
+
+    // Capture the summary under the listing lock, then persist that document before
+    // publishing it. Reading the handle after an await could include a later, unsaved edit
+    // and incorrectly remember that edit as indexed. Its save notification will instead
+    // queue a separate projection.
+    await repo.flush([handle.documentId]);
 
     for (const { missionId } of listings) {
       const summary = { ...projected.summary, id: missionId };

@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { MikroORM } from "@mikro-orm/postgresql";
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo/slim";
+import { Repo } from "@automerge/automerge-repo/slim";
 import pg from "pg";
 import supertest from "supertest";
 import config from "server/database/mikro-orm.config";
@@ -196,6 +197,37 @@ test("an edit saved during projection queues another update", async () => {
     );
   } finally {
     await runtime.stop();
+  }
+});
+
+test("projection never publishes an edit made after its document flush", async () => {
+  // Prevent the repo's background save timer from hiding an unsaved concurrent edit.
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const reader = new Repo({ storage });
+  try {
+    const handle = await createMission();
+    const originalFlush = repo.flush.bind(repo);
+    vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
+      await originalFlush(documents);
+      handle.change((m) => {
+        m.name = "Not persisted yet";
+      });
+    });
+    handle.change((m) => {
+      m.name = "Persisted edit";
+    });
+
+    await refreshMissionCatalog(repo, handle);
+    const persisted = await reader.find<Mission>(handle.url);
+    expect(persisted.doc().name).toBe("Persisted edit");
+    expect((await getMissionSummaries(ids))[0].name).toBe(persisted.doc().name);
+
+    // A later save must still recognize the concurrent edit as needing projection.
+    await refreshMissionCatalog(repo, handle);
+    expect((await getMissionSummaries(ids))[0].name).toBe("Not persisted yet");
+  } finally {
+    await reader.shutdown();
+    vi.useRealTimers();
   }
 });
 
