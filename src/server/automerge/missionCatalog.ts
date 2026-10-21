@@ -105,6 +105,16 @@ export async function getUnindexedMissionListings(
   );
 }
 
+/** Startup preloads only missions whose persisted catalog reports an active REX. */
+export async function getRunningMissionListings(): Promise<AutomergeDocListing[]> {
+  return globalValues.orm.em.fork().execute<AutomergeDocListing[]>(
+    `select d.mission_id as "missionId", d.automerge_url as "automergeUrl"
+     from doc_listing_db d join mission_catalog_db c using (mission_id)
+     where c.summary->>'runningRex' is not null
+     order by d.mission_id`
+  );
+}
+
 /**
  * Compare only the indexed fields in memory before doing any database work. The save
  * notification queues another check if more changes arrive during projection.

@@ -20,7 +20,10 @@ vi.mock("server/express/routes/docListing", () => ({
   getAutomergeDocListing: mockGetAutomergeDocListing,
 }));
 
-import { cleanupMaestro } from "server/maestro/v2/sockets-maestro-emitters";
+import {
+  addMaestroDocListenerForMission,
+  cleanupMaestro,
+} from "server/maestro/v2/sockets-maestro-emitters";
 import { getMaestroSocketRoomName } from "server/maestro/v2/sockets-maestro";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -120,6 +123,34 @@ beforeEach(() => {
 });
 
 // ─── cleanupSocketRoom ────────────────────────────────────────────────────────
+
+test("leaving during a cold load does not retain an orphaned Maestro subscription", async () => {
+  let resolveFind: (handle: unknown) => void;
+  vi.mocked(globalValues.automergeRepo.find).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        resolveFind = resolve;
+      }) as never
+  );
+  const joining = addMaestroDocListenerForMission(MISSION_ID);
+  await vi.waitFor(() => expect(resolveFind).toBeDefined());
+  cleanupMaestro(MISSION_ID);
+  const handle = { on: vi.fn(), doc: vi.fn() };
+  resolveFind(handle);
+  await joining;
+  expect(handle.on).not.toHaveBeenCalled();
+  expect(globalValues.maestroV2.docHandles.has(MISSION_ID)).toBe(false);
+  expect(globalValues.maestroV2.docListeners.has(MISSION_ID)).toBe(false);
+});
+
+test("failed Maestro loads release their reservation so a later join can retry", async () => {
+  vi.mocked(globalValues.automergeRepo.find).mockRejectedValueOnce(new Error("load failed"));
+  await addMaestroDocListenerForMission(MISSION_ID);
+  expect(globalValues.maestroV2.docListeners.has(MISSION_ID)).toBe(false);
+  await addMaestroDocListenerForMission(MISSION_ID);
+  expect(globalValues.maestroV2.docHandles.has(MISSION_ID)).toBe(true);
+  cleanupMaestro(MISSION_ID);
+});
 
 describe("cleanupSocketRoom", () => {
   it("does not throw when no listener is registered for the mission, and still cleans up remaining state", () => {
