@@ -33,7 +33,7 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const [editModalTitle, setEditModalTitle] = useState<string>("");
   const [fileList, setFileList] = useState<GISfile[]>(null);
   const [layersSectionCollapsed, setLayersSectionCollapsed] = useState(false);
-  const editRef = useRef<{ save: () => Promise<boolean> }>(null);
+  const editRef = useRef<{ save: () => Promise<void> }>(null);
 
   const reloadLayers = useCallback(
     () =>
@@ -56,12 +56,14 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   );
 
   const openEditModal = (component: JSX.Element, title: string) => {
+    saving.clearError();
     setEditComponent(component);
     setEditModalTitle(title);
   };
 
   const closeEditModal = () => {
     if (saving.pending) return;
+    saving.clearError();
     setEditComponent(null);
     setEditModalTitle("");
   };
@@ -268,11 +270,9 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
                 disabled={!!saving.pending}
                 onClick={() =>
                   saving.run("Saving layer...", async () => {
-                    const saved = await editRef.current?.save();
-                    if (saved) {
-                      setEditComponent(null);
-                      setEditModalTitle("");
-                    }
+                    await editRef.current?.save();
+                    setEditComponent(null);
+                    setEditModalTitle("");
                   })
                 }
               >
@@ -296,7 +296,7 @@ const LayerList = (props: {
   missionId: number;
   refreshLayerList: Function;
   openEditModal: (component: JSX.Element, title: string) => void;
-  editRef: React.RefObject<{ save: () => Promise<boolean> }>;
+  editRef: React.RefObject<{ save: () => Promise<void> }>;
   fileList: GISfile[];
   isLoading: boolean;
   loadError: boolean;
@@ -307,21 +307,24 @@ const LayerList = (props: {
   async function delSubLayer(sublayer: Sublayer) {
     if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
       const res: WrappedResponse<null> = await deleteSublayers(props.missionId, [sublayer.uuid]);
-      alert(`Delete sublayer ${res.status} - ${res.message}`);
       await props.refreshLayerList(); //reload layer listing in parent component.
+      if (res.status !== "success") {
+        throw new Error(res.message || "Failed to delete sublayer");
+      }
     }
   }
 
   async function delLayer(layer: Layer) {
     if (confirm("Are you sure you want to delete layer " + layer.name)) {
       if (props.sublayers.some((sublayer) => sublayer.layerUuid === layer.uuid)) {
-        alert(
-          `Error: Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first`
+        throw new Error(
+          `Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first.`
         );
-      } else {
-        const res: WrappedResponse<null> = await deleteLayers(props.missionId, [layer.uuid]);
-        alert(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
-        await props.refreshLayerList(); //reload layer listing in parent component.
+      }
+      const res: WrappedResponse<null> = await deleteLayers(props.missionId, [layer.uuid]);
+      await props.refreshLayerList(); //reload layer listing in parent component.
+      if (res.status !== "success") {
+        throw new Error(res.message || "Failed to delete layer");
       }
     }
   }

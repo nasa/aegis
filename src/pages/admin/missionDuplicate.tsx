@@ -24,11 +24,10 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
 
   const onDuplicateMission = async (missionId: number) => {
     const response = await duplicateMission(missionId);
-    if (response.status === "success") {
-      setStatus(response.message);
-    } else {
-      setStatus("Error duplicating mission");
+    if (response.status !== "success") {
+      throw new Error(response.message || "Error duplicating mission");
     }
+    setStatus(response.message);
   };
 
   return (

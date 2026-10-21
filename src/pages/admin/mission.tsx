@@ -57,12 +57,14 @@ const Mission: React.FunctionComponent = () => {
   const calcLanderElevation = useCallback(async () => {
     if (!automergeMission) return;
     if (
-      !automergeMission.landerLocation.lat ||
-      !automergeMission.landerLocation.lat ||
+      automergeMission.landerLocation.lat == null ||
+      automergeMission.landerLocation.lng == null ||
       !automergeMission.planetRadius ||
       !automergeMission.demFilePath
     ) {
-      alert("Missing data. Must have lander location lat/lng, planet radius, and demFilePath");
+      throw new Error(
+        "Missing data. Must have lander location lat/lng, planet radius, and demFilePath"
+      );
     }
 
     const elevation = (
@@ -104,22 +106,24 @@ const Mission: React.FunctionComponent = () => {
     });
 
     if (response.status === "error") {
-      setMaestroError(response.message);
-    } else {
-      setMaestroResponseMeta(response.data.alteredInitialState ?? null);
-      if (response.data.error) {
-        const errStr =
-          typeof response.data.error === "string"
-            ? response.data.error
-            : JSON.stringify(response.data.error);
-        if (errStr && errStr !== "{}" && errStr !== "null") {
-          setMaestroError(errStr);
-        }
-      }
-      changeAutomergeMission((m: Mission) => {
-        m.maestroDocId = response.data.documentId;
-      });
+      throw new Error(response.message || "Failed to create Maestro project");
     }
+
+    setMaestroResponseMeta(response.data.alteredInitialState ?? null);
+    // The project was created; a payload-level error is a warning about the created
+    // document rather than a failure of this request.
+    if (response.data.error) {
+      const errStr =
+        typeof response.data.error === "string"
+          ? response.data.error
+          : JSON.stringify(response.data.error);
+      if (errStr && errStr !== "{}" && errStr !== "null") {
+        setMaestroError(errStr);
+      }
+    }
+    changeAutomergeMission((m: Mission) => {
+      m.maestroDocId = response.data.documentId;
+    });
   }, [automergeMission, changeAutomergeMission, maestroAccessControl]);
 
   const handleClearMaestroDocId = useCallback(() => {
@@ -300,7 +304,7 @@ const Mission: React.FunctionComponent = () => {
                           }}
                           onSubmit={(value) => {
                             changeAutomergeMission((m: Mission) => {
-                              m.landerLocation.lat = +value || null;
+                              m.landerLocation.lat = value ? +value : null;
                             });
                           }}
                           key={`${automergeMission.id}-landerLocation.lat`}
@@ -325,7 +329,7 @@ const Mission: React.FunctionComponent = () => {
                           }}
                           onSubmit={(value) => {
                             changeAutomergeMission((m: Mission) => {
-                              m.landerLocation.lng = +value || null;
+                              m.landerLocation.lng = value ? +value : null;
                             });
                           }}
                           key={`${automergeMission.id}-landerLocation.lng`}

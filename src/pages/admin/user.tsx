@@ -24,7 +24,6 @@ const User: React.FunctionComponent = () => {
   const [user, setUser] = useState<AppUser>();
   const [editMode, setEditMode] = useState<boolean>(false);
   const [infoMessage, setInfoMessage] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>("");
   const [createMode, setCreateMode] = useState<boolean>(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
   const [automergeDocList, setAutomergeDocList] = useState<AutomergeDocListing[]>([]);
@@ -64,6 +63,7 @@ const User: React.FunctionComponent = () => {
   }, [automergeRepo, navigate, runLoad]);
 
   const handleEdit = (user: AppUser) => {
+    action.clearError();
     let permissionList: Permission[];
 
     // if superadmin, give all permissions
@@ -93,20 +93,17 @@ const User: React.FunctionComponent = () => {
 
   const handleDelete = async (user: AppUser) => {
     const deleteRes = await deleteAppUsers([user.id]);
-    if (deleteRes.status === "success") {
-      setUserList(userList.filter((u) => u.id !== user.id));
-      setDeleteTarget(null);
-    } else {
-      alert("There was an error deleting user");
-      setDeleteTarget(null);
+    if (deleteRes.status !== "success") {
+      throw new Error(deleteRes.message || "There was an error deleting user");
     }
+    setUserList(userList.filter((u) => u.id !== user.id));
+    setDeleteTarget(null);
   };
 
   const handleSubmit = async () => {
     //validate
     if (user.username.length < 3 || user.password.length < 3) {
-      setErrorMessage("Username and password must be at least 3 characters long");
-      return;
+      throw new Error("Username and password must be at least 3 characters long");
     }
 
     //only save missions a users has perms to
@@ -124,21 +121,20 @@ const User: React.FunctionComponent = () => {
         updatedAt: getAccurateNow().toISOString(),
       },
     ]);
-    if (updatedUser.status === "success") {
-      setErrorMessage("");
-      if (createMode) {
-        setCreateMode(!createMode);
-        handleEdit(updatedUser.data[0]);
-        setInfoMessage("User created successfully");
-      } else {
-        setInfoMessage("User updated successfully");
-      }
+    if (updatedUser.status !== "success") {
+      throw new Error(updatedUser.message || "Error updating user");
+    }
+    if (createMode) {
+      setCreateMode(!createMode);
+      handleEdit(updatedUser.data[0]);
+      setInfoMessage("User created successfully");
     } else {
-      setErrorMessage("Error updating user");
+      setInfoMessage("User updated successfully");
     }
   };
 
   const handleCreate = () => {
+    action.clearError();
     setCreateMode(!createMode);
 
     const permissionList = automergeDocList.map((amRecord) => {
@@ -158,11 +154,11 @@ const User: React.FunctionComponent = () => {
 
   const closeModal = () => {
     if (action.pending) return;
+    action.clearError();
     setEditMode(false);
     setCreateMode(false);
     setUser(undefined);
     setInfoMessage("");
-    setErrorMessage("");
     runLoad("Refreshing users...", async () => {
       const users = await getAppUsers();
       if (!users.data) throw new Error(users.message || "Unable to load users");
@@ -347,7 +343,6 @@ const User: React.FunctionComponent = () => {
               </div>
             </div>
 
-            {errorMessage && <p className={adminCommon.statusDisconnected}>{errorMessage}</p>}
             {infoMessage && <p className={adminCommon.statusConnected}>{infoMessage}</p>}
           </div>
           <div className={adminCommon.modalFooter}>
@@ -430,7 +425,10 @@ const User: React.FunctionComponent = () => {
                               {u.id !== 1 && u.id !== 2 && (
                                 <button
                                   className={adminCommon.buttonDanger}
-                                  onClick={() => setDeleteTarget(u)}
+                                  onClick={() => {
+                                    action.clearError();
+                                    setDeleteTarget(u);
+                                  }}
                                 >
                                   Delete
                                 </button>
@@ -461,7 +459,10 @@ const User: React.FunctionComponent = () => {
                   <button
                     className={adminCommon.buttonCancel}
                     disabled={!!action.pending}
-                    onClick={() => setDeleteTarget(null)}
+                    onClick={() => {
+                      action.clearError();
+                      setDeleteTarget(null);
+                    }}
                   >
                     Cancel
                   </button>

@@ -112,10 +112,10 @@ const FileManager: FunctionComponent<{
     }); //find this item
     const res = await renameFile(path, dirListing[index].name, dirListing[index].newName);
     const message = await res.json();
-    if (res.status !== 200) {
-      alert(`Rename Error. Status ${res.status}. ${message}`);
-    }
     await getDirListing();
+    if (res.status !== 200) {
+      throw new Error(`Rename Error. Status ${res.status}. ${message}`);
+    }
   }
 
   //delete a file
@@ -124,10 +124,10 @@ const FileManager: FunctionComponent<{
     if (confirmDelete) {
       const res = await deleteFile(`${path}/${filename}`);
       const message = await res.json();
-      if (res.status !== 200) {
-        alert(`Delete Error. Status ${res.status}. ${message}`);
-      }
       await getDirListing();
+      if (res.status !== 200) {
+        throw new Error(`Delete Error. Status ${res.status}. ${message}`);
+      }
     }
     e.preventDefault();
     return;
@@ -157,11 +157,11 @@ const FileManager: FunctionComponent<{
         }
       }
 
-      if (errors.length > 0) {
-        alert(`Delete Errors:\n${errors.join("\n")}`);
-      }
-
       await getDirListing();
+
+      if (errors.length > 0) {
+        throw new Error(`Delete Errors:\n${errors.join("\n")}`);
+      }
     }
     return;
   }

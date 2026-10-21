@@ -76,7 +76,6 @@ const EnvironmentConfigEntry: FunctionComponent<{
   const [input, setInput] = useState<string>(entry.config?.value ?? "");
   const action = useAsyncStatus();
   const saving = !!action.pending;
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Keep the input in sync when the parent hands us a fresh entry.
@@ -90,15 +89,13 @@ const EnvironmentConfigEntry: FunctionComponent<{
   };
 
   const save = async (newValue: string | null) => {
-    setSaveError(null);
     setSaveSuccess(false);
     const res = await setEnvironmentConfigValue(entry.key, newValue);
-    if (res.status === "success") {
-      onUpdated(res.data);
-      flashSuccess();
-    } else {
-      setSaveError(res.message ?? "Failed to save.");
+    if (res.status !== "success") {
+      throw new Error(res.message ?? "Failed to save.");
     }
+    onUpdated(res.data);
+    flashSuccess();
   };
 
   const handleSave = () => action.run("Saving configuration...", () => save(input.trim() || null));
@@ -182,9 +179,6 @@ const EnvironmentConfigEntry: FunctionComponent<{
             Leave blank to use the environment default
             {entry.defaultValue ? ` (${entry.defaultValue}).` : "."}
           </p>
-          {saveError && (
-            <p style={{ color: "#f87171", marginTop: "8px", fontSize: "0.9rem" }}>{saveError}</p>
-          )}
           {saveSuccess && (
             <p style={{ color: "#4ade80", marginTop: "8px", fontSize: "0.9rem" }}>Saved.</p>
           )}

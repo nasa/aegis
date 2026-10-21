@@ -21,7 +21,7 @@ interface SublayerProps {
   missionId: number;
 }
 
-export type SublayerEditHandle = { save: () => Promise<boolean> };
+export type SublayerEditHandle = { save: () => Promise<void> };
 
 /** A COG sublayer is a self-describing GeoTIFF, identified by a `.tif`/`.tiff` path. */
 function isCogPath(path: string): boolean {
@@ -75,26 +75,25 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
   useImperativeHandle(
     ref,
     () => ({
-      save: async (): Promise<boolean> => {
+      save: async (): Promise<void> => {
         if (metadata.pending || loading.pending) {
-          alert("Please wait for the layer files and metadata to finish loading.");
-          return false;
+          throw new Error("Please wait for the layer files and metadata to finish loading.");
         }
         if (
           sublayer.isTimeBased &&
           props.allSublayers.some((s) => s.isTimeBased && s.uuid !== sublayer.uuid)
         ) {
-          alert(
+          throw new Error(
             "Unable to save a second time-based sublayer. Please remove the first time-based sublayer before adding a new one."
           );
-          return false;
         }
         const res: WrappedResponse<Sublayer[]> = await upsertSublayers(props.missionId, [
           { ...sublayer, updatedAt: getAccurateNow().getTime() },
         ]);
         await props.refreshLayerList();
-        alert(`${res.status} - ${res.message}`);
-        return res.status === "success";
+        if (res.status !== "success") {
+          throw new Error(res.message || "Error saving sublayer");
+        }
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

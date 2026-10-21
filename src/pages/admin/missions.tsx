@@ -123,8 +123,7 @@ const Missions: React.FunctionComponent = () => {
               action.run("Creating mission...", async () => {
                 const res = await createMission();
                 if (res.status != "success") {
-                  alert(`Error creating automerge record: ${res.message}`);
-                  return;
+                  throw new Error(res.message || "Error creating automerge record");
                 } else if (res.data) {
                   navigate(`/admin/mission/${res.data.missionId}/${res.data.automergeUrl}`);
                 }
@@ -217,13 +216,11 @@ const MissionList = ({
         `Are you sure you want to delete mission ${missionId} and all of its GIS data? This will also delete the automerge doc listing.\nThis cannot be undone!`
       )
     ) {
-      try {
-        const res: WrappedResponse<number[]> = await deleteMissions([missionId]);
-        alert(`Delete ${res.status} - ${res.message} for missionID ${missionId}.`);
-        await loadMissions();
-      } catch (e) {
-        alert("Error in deleting mission: " + e);
+      const res: WrappedResponse<number[]> = await deleteMissions([missionId]);
+      if (res.status !== "success") {
+        throw new Error(res.message || "Failed to delete mission");
       }
+      await loadMissions();
     }
   }
 
@@ -235,8 +232,7 @@ const MissionList = ({
         (listing) => listing.missionId === id
       )?.automergeUrl;
       if (!automergeUrl) {
-        alert("No automerge URL found for mission " + id);
-        return;
+        throw new Error("No automerge URL found for mission " + id);
       }
       const missionDocHandle = await automergeRepo.find<Mission>(automergeUrl as AutomergeUrl);
       if (missionDocHandle) {

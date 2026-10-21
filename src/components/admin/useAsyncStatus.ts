@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export interface AsyncTaskStatus {
   pending: string | null;
   error: string | null;
+  clearError: () => void;
   run: <T>(message: string, task: () => Promise<T>) => Promise<T | undefined>;
 }
 
@@ -42,5 +43,7 @@ export function useAsyncStatus(initialMessage: string | null = null): AsyncTaskS
     }
   }, []);
 
-  return { pending, error, run };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { pending, error, run, clearError };
 }

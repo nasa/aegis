@@ -19,12 +19,17 @@ export function useAdminMission(missionId: number): {
   useEffect(() => {
     let cancelled = false;
     run("Loading mission…", async () => {
-      const response = await getAutomergeDocListing(missionId);
-      const url = response.data?.[0]?.automergeUrl;
-      if (!url || !isValidAutomergeUrl(url)) {
-        throw new Error(response.message || "Mission record not found");
+      try {
+        const response = await getAutomergeDocListing(missionId);
+        const url = response.data?.[0]?.automergeUrl;
+        if (!url || !isValidAutomergeUrl(url)) {
+          throw new Error(response.message || "Mission record not found");
+        }
+        if (!cancelled) setRecord({ missionId, url });
+      } catch (cause) {
+        if (cancelled) return;
+        throw cause;
       }
-      if (!cancelled) setRecord({ missionId, url });
     });
     return () => {
       cancelled = true;

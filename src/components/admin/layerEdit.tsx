@@ -3,7 +3,7 @@ import styles from "./admin.module.css";
 import { upsertLayers } from "http-client/layer";
 import { getAccurateNow } from "utils/formatting";
 
-export type LayerEditHandle = { save: () => Promise<boolean> };
+export type LayerEditHandle = { save: () => Promise<void> };
 
 /** Render a single Layer record from the DB */
 function LayerEditInner(
@@ -19,13 +19,14 @@ function LayerEditInner(
   useImperativeHandle(
     ref,
     () => ({
-      save: async (): Promise<boolean> => {
+      save: async (): Promise<void> => {
         const res: WrappedResponse<Layer[]> = await upsertLayers(props.missionId, [
           { ...layer, updatedAt: getAccurateNow().getTime() },
         ]);
         await props.refreshLayerList();
-        alert(`${res.status} - ${res.message}`);
-        return res.status === "success";
+        if (res.status !== "success") {
+          throw new Error(res.message || "Error saving layer");
+        }
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

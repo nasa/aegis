@@ -238,27 +238,21 @@ const ExportPage: React.FunctionComponent = () => {
                 type="button"
                 onClick={() =>
                   action.run("Preparing mission database dump...", async () => {
-                    try {
-                      const response = await dumpMission(intMissionId);
-                      if (response.status === "success" && response.data) {
-                        const jsonString = JSON.stringify(response.data, null, 2);
-                        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-                        const filename = `mission_${intMissionId}_dump_${timestamp}.json`;
-
-                        const element = document.createElement("a");
-                        const file = new Blob([jsonString], { type: "application/json" });
-                        element.href = URL.createObjectURL(file);
-                        element.download = filename;
-                        document.body.appendChild(element);
-                        element.click();
-                        document.body.removeChild(element);
-                      } else {
-                        alert(`Error: ${response.message || "Unknown error occurred"}`);
-                      }
-                    } catch (error) {
-                      console.error("Dump failed:", error);
-                      alert("Error dumping mission. Please try again.");
+                    const response = await dumpMission(intMissionId);
+                    if (response.status !== "success" || !response.data) {
+                      throw new Error(response.message || "Unknown error occurred");
                     }
+                    const jsonString = JSON.stringify(response.data, null, 2);
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                    const filename = `mission_${intMissionId}_dump_${timestamp}.json`;
+
+                    const element = document.createElement("a");
+                    const file = new Blob([jsonString], { type: "application/json" });
+                    element.href = URL.createObjectURL(file);
+                    element.download = filename;
+                    document.body.appendChild(element);
+                    element.click();
+                    document.body.removeChild(element);
                   })
                 }
               >

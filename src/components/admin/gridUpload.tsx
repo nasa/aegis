@@ -87,25 +87,19 @@ const AdminMissionGrid: FunctionComponent<{
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isFilePicked, setIsFilePicked] = useState(false);
   const [isSubmitValid, setIsSubmitValid] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const intMissionId = missionId ?? NaN;
 
   const readAndUploadGrid = async (fileToUpload: File) => {
-    setIsUploading(true);
-    try {
-      const parsedGrid: MissionGrid = await parseFullGrid(fileToUpload);
-      // Sanity check that the coordinate file we just read matches what the
-      // server will report before writing.
-      await upsertGrid(parsedGrid, intMissionId, true);
-      // Confirm the server persisted the metadata to the mission doc.
-      await getGrid(intMissionId);
-      setSelectedFile(null);
-      setIsFilePicked(false);
-      setIsSubmitValid(false);
-      alert("Grid uploaded successfully.");
-    } finally {
-      setIsUploading(false);
-    }
+    const parsedGrid: MissionGrid = await parseFullGrid(fileToUpload);
+    // Sanity check that the coordinate file we just read matches what the
+    // server will report before writing.
+    await upsertGrid(parsedGrid, intMissionId, true);
+    // Confirm the server persisted the metadata to the mission doc.
+    await getGrid(intMissionId);
+    setSelectedFile(null);
+    setIsFilePicked(false);
+    setIsSubmitValid(false);
+    alert("Grid uploaded successfully.");
   };
 
   const fileChangeHandler: ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -224,9 +218,11 @@ const AdminMissionGrid: FunctionComponent<{
                       readAndUploadGrid(selectedFile)
                     )
                   }
-                  disabled={!isSubmitValid || isUploading || !!action.pending}
+                  disabled={!isSubmitValid || !!action.pending}
                 >
-                  {isUploading ? "Uploading..." : "Upload Grid"}
+                  {action.pending === "Reading and uploading grid..."
+                    ? "Uploading..."
+                    : "Upload Grid"}
                 </button>
               </div>
             </div>
