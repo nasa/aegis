@@ -207,7 +207,7 @@ type RunningRexSummary = Pick<
 
 type MissionSummary = Pick<
   Mission,
-  "id" | "name" | "archivedAt" | "actionSystemVersion" | "createdAt" | "updatedAt"
+  "id" | "name" | "archivedAt" | "actionSystemVersion" | "createdAt"
 > & {
   runningRex: RunningRexSummary | null;
 };
