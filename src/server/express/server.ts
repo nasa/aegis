@@ -6,8 +6,8 @@ import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
 import { LazyMissionRepo } from "server/automerge/lazyMissionRepo";
+import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
 import {
-  repairMissionCatalog,
   loadRunningMissionDocuments,
   startMissionCatalogRuntime,
 } from "server/automerge/missionCatalogRuntime";
@@ -167,9 +167,7 @@ initializeBase64Wasm(automergeWasmBase64);
   });
   globalValues.automergeRepo = missionRepo;
 
-  // Existing installations pay for backfill once. Only active REX missions preload on restart.
-  // Finish backfill before accepting clients so summaries and documents cannot race it.
-  await repairMissionCatalog(missionRepo);
+  await populateMissionCatalogOnce(missionRepo);
   await loadRunningMissionDocuments(missionRepo);
   const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
   server.listen(4001, () => {

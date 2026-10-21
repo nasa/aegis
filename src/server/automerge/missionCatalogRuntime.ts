@@ -1,9 +1,6 @@
 import type { AutomergeUrl, DocHandle, DocumentId, Repo } from "@automerge/automerge-repo/slim";
-import {
-  getRunningMissionListings,
-  getUnindexedMissionListings,
-  projectMission,
-} from "./missionCatalog";
+import { getRunningMissionListings, projectMission } from "./missionCatalog";
+import { releaseMissionDocument } from "./releaseMissionDocument";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { LazyMissionRepo } from "./lazyMissionRepo";
@@ -16,37 +13,6 @@ export async function loadRunningMissionDocuments(repo: Repo): Promise<void> {
   for (const listing of await getRunningMissionListings()) {
     await repo.find<Mission>(listing.automergeUrl as AutomergeUrl);
   }
-}
-
-/** One-time backfill. An up-to-date catalog needs only the SQL listing query. */
-export async function repairMissionCatalog(repo: Repo, missionIds?: number[]): Promise<void> {
-  const started = Date.now();
-  const pending = (await getUnindexedMissionListings()).filter(
-    (listing) => !missionIds || missionIds.includes(listing.missionId)
-  );
-  if (!pending.length) {
-    serverLogger.info({
-      logId: "mission-catalog",
-      logValue: "Catalog ready; no backfill needed",
-      durationMs: Date.now() - started,
-    });
-    return;
-  }
-  serverLogger.info({
-    logId: "mission-catalog",
-    logValue: `Repairing ${pending.length} mission summaries sequentially`,
-  });
-  for (const listing of pending) {
-    const handle = await repo.find<Mission>(listing.automergeUrl as AutomergeUrl);
-    await refreshMissionCatalog(repo, handle, undefined, true);
-    await repo.removeFromCache(handle.documentId);
-  }
-  serverLogger.info({
-    logId: "mission-catalog",
-    logValue: "Catalog backfill complete",
-    missions: pending.length,
-    durationMs: Date.now() - started,
-  });
 }
 
 // HTTP requests can retain a doc across awaits. Don't evict while any request is in flight.
@@ -173,7 +139,7 @@ export function startMissionCatalogRuntime(
         Math.max(lastSeen.get(id), repo.lastAccess.get(id) ?? 0) > lastUsed
       )
         continue;
-      await repo.removeFromCache(id);
+      await releaseMissionDocument(repo, id);
       lastSeen.delete(id);
       repo.lastAccess.delete(id);
       pinned.delete(id);
