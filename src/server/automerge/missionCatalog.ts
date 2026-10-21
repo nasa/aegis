@@ -4,6 +4,18 @@ import { globalValues } from "server/express/global";
 
 export const MISSION_CATALOG_VERSION = 1;
 
+// Retain only the small indexed values, never an Automerge document. New/cold handles have
+// no entry and are refreshed once; released handles can be garbage collected normally.
+const indexedValues = new WeakMap<DocHandle<Mission>, string>();
+
+function catalogKey(projected: ReturnType<typeof summarizeMission>): string {
+  return JSON.stringify({
+    // updatedAt is captured when indexing, but timestamp-only edits must not trigger it.
+    summary: { ...projected.summary, updatedAt: undefined },
+    evas: [...projected.evas].sort((a, b) => a.evaUuid.localeCompare(b.evaUuid)),
+  });
+}
+
 export type EvaSummary = {
   evaUuid: string;
   name: string;
@@ -96,17 +108,26 @@ export async function getUnindexedMissionListings(
 }
 
 /**
- * Update the mission summary and EVA rows together. Updates use the current resident document;
- * the save notification queues another pass if more changes arrive during projection.
+ * Compare only the indexed fields in memory before doing any database work. The save
+ * notification queues another check if more changes arrive during projection.
+ * Returns true when a projection was written, false when no index work was needed.
  */
 export async function projectMission(
   repo: Repo,
   handle: DocHandle<Mission>,
-  em: EntityManager = globalValues.orm.em.fork()
-): Promise<void> {
+  em?: EntityManager,
+  force = false
+): Promise<boolean> {
+  if (!force && indexedValues.get(handle) === catalogKey(summarizeMission(handle.doc()))) {
+    return false;
+  }
+  em ??= globalValues.orm.em.fork();
+  // A caller-owned transaction (mission duplication) can still roll back after we return.
+  // Only remember values once this function owns and completes the outer transaction.
+  const rememberValues = !em.isInTransaction();
   await repo.flush([handle.documentId]);
 
-  await em.transactional(async (tx) => {
+  const writtenKey = await em.transactional(async (tx) => {
     const listings = await tx.execute<{ missionId: number }[]>(
       `select mission_id as "missionId" from doc_listing_db
        where automerge_url = ? for update`,
@@ -116,6 +137,8 @@ export async function projectMission(
     // Read after taking the listing lock so concurrent explicit and queued projections
     // cannot overwrite a newer summary with a previously captured document.
     const projected = summarizeMission(handle.doc());
+    const key = catalogKey(projected);
+    if (!force && indexedValues.get(handle) === key) return;
 
     for (const { missionId } of listings) {
       const summary = { ...projected.summary, id: missionId };
@@ -147,5 +170,8 @@ export async function projectMission(
         );
       }
     }
+    return key;
   });
+  if (writtenKey !== undefined && rememberValues) indexedValues.set(handle, writtenKey);
+  return writtenKey !== undefined;
 }

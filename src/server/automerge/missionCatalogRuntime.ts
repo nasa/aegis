@@ -27,7 +27,7 @@ export async function repairMissionCatalog(repo: Repo, missionIds?: number[]): P
   });
   for (const listing of pending) {
     const handle = await repo.find<Mission>(listing.automergeUrl as AutomergeUrl);
-    await refreshMissionCatalog(repo, handle);
+    await refreshMissionCatalog(repo, handle, undefined, true);
     await repo.removeFromCache(handle.documentId);
   }
   serverLogger.info({
@@ -50,7 +50,8 @@ export function retainMissionDocuments(): () => void {
 }
 
 /**
- * Save/open notifications queue only the affected document. No database polling or durable queue.
+ * Save/open notifications check only the affected document's indexed fields. Unrelated edits
+ * never reach the database. No database polling or durable queue.
  * Queue work outside storage.save(): projection flushes the repo and must not block its own save.
  */
 export function startMissionCatalogRuntime(
@@ -114,11 +115,12 @@ export function startMissionCatalogRuntime(
           if (handle?.isReady()) {
             const started = Date.now();
             try {
-              await refreshMissionCatalog(repo, handle);
-              const durationMs = Date.now() - started;
-              updates += 1;
-              updateMs += durationMs;
-              maxUpdateMs = Math.max(maxUpdateMs, durationMs);
+              if (await refreshMissionCatalog(repo, handle)) {
+                const durationMs = Date.now() - started;
+                updates += 1;
+                updateMs += durationMs;
+                maxUpdateMs = Math.max(maxUpdateMs, durationMs);
+              }
             } catch (error) {
               failedUpdates += 1;
               reportError(error, id);
@@ -150,6 +152,8 @@ export function startMissionCatalogRuntime(
       // Conservatively retain documents while any Automerge peer is connected. A peer can
       // still hold old handles after navigation. Also retain integration and HTTP consumers.
       if (inUse()) continue;
+      // Unrelated edits skip projection, but their source document still needs saving.
+      await repo.flush([handle.documentId]);
       await refreshMissionCatalog(repo, handle);
       if (inUse() || (repo.lastAccess.get(id) ?? 0) > lastUsed) continue;
       await repo.removeFromCache(id);

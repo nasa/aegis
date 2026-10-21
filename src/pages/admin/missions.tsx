@@ -406,7 +406,9 @@ const MissionList = ({
                   <th>ID</th>
                   <th>Mission</th>
                   <th style={{ textAlign: "center" }}>Version</th>
-                  <th>Updated At</th>
+                  <th title="Captured when the mission was loaded on the server or its list details changed. Other edits may be newer.">
+                    Updated At (snapshot)
+                  </th>
                   <th>Created At</th>
                   <th>Actions</th>
                 </tr>
@@ -461,7 +463,9 @@ const MissionList = ({
                     <th>ID</th>
                     <th>Mission</th>
                     <th style={{ textAlign: "center" }}>Version</th>
-                    <th>Updated At</th>
+                    <th title="Captured when the mission was loaded on the server or its list details changed. Other edits may be newer.">
+                      Updated At (snapshot)
+                    </th>
                     <th>Created At</th>
                     <th>Archived At</th>
                     <th>Actions</th>
