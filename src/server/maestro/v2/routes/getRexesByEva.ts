@@ -88,13 +88,36 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
  * Filter out rexes that have a maestroEventId.
  */
 export async function getRexesByEva(asPlannedEvaUuid: string): Promise<RefRex[]> {
+  const started = Date.now();
   const missionIds = await getMissionIdsForEva(asPlannedEvaUuid);
-  if (!missionIds.length) return [];
+  if (!missionIds.length) {
+    serverLogger.debug({
+      logId: "mission-catalog",
+      logValue: "getRexesByEva found no indexed mission; no documents requested",
+      evaUuid: asPlannedEvaUuid,
+      durationMs: Date.now() - started,
+    });
+    return [];
+  }
+  serverLogger.debug({
+    logId: "mission-catalog",
+    logValue: "getRexesByEva requesting indexed missions",
+    evaUuid: asPlannedEvaUuid,
+    missionIds,
+  });
   const allMissions = await getAutomergeMissions(missionIds);
 
   const matchingRexes = allMissions.flatMap((mission) => {
     const asPlannedEva = mission.evas?.[asPlannedEvaUuid];
-    if (!asPlannedEva) return [];
+    if (!asPlannedEva) {
+      serverLogger.warning({
+        logId: "mission-catalog",
+        logValue: "Indexed EVA is absent from loaded mission",
+        missionId: mission.id,
+        evaUuid: asPlannedEvaUuid,
+      });
+      return [];
+    }
     const relatedEvaUuids = Object.values(mission.evas || {})
       .filter((e) => e.refUuid === asPlannedEva.refUuid)
       .map((e) => e.uuid);
@@ -103,6 +126,14 @@ export async function getRexesByEva(asPlannedEvaUuid: string): Promise<RefRex[]>
     );
   });
 
+  serverLogger.debug({
+    logId: "mission-catalog",
+    logValue: "getRexesByEva completed",
+    evaUuid: asPlannedEvaUuid,
+    missionIds,
+    matchingRexes: matchingRexes.length,
+    durationMs: Date.now() - started,
+  });
   return matchingRexes.map((rex) => ({
     uuid: rex.uuid,
     name: rex.name,

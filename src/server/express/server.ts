@@ -32,6 +32,7 @@ initializeBase64Wasm(automergeWasmBase64);
 
 // Wrap in async IIFE to handle top-level await
 (async () => {
+  const bootStarted = Date.now();
   // ==========================================================================
   // Database connections
   // ==========================================================================
@@ -170,7 +171,13 @@ initializeBase64Wasm(automergeWasmBase64);
   await repairMissionCatalog(missionRepo);
   const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
   server.listen(4001, () => {
-    serverLogger.info({ logId: "server", logValue: "Server listening on port 4001" });
+    serverLogger.info({
+      logId: "server",
+      logValue: "Server listening on port 4001",
+      startupMs: Date.now() - bootStarted,
+      residentDocuments: Object.keys(missionRepo.handles).length,
+      rssBytes: process.memoryUsage.rss(),
+    });
   });
 
   // clg peers as they come and go
