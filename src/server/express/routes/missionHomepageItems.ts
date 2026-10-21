@@ -64,6 +64,14 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 export default router;
 
 async function getHomepageMissionItems(missionIdList?: number[]): Promise<MissionHomepageItem[]> {
+  const started = Date.now();
   const missions = await getMissionSummaries(missionIdList);
+  serverLogger.debug({
+    logId: "mission-catalog",
+    logValue: "Homepage mission list served from SQL catalog",
+    missions: missions.length,
+    runningRexes: missions.filter((mission) => mission.runningRex).length,
+    durationMs: Date.now() - started,
+  });
   return missions.map(({ id, name, runningRex }) => ({ id, name, runningRex }));
 }

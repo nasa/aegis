@@ -62,6 +62,49 @@ a hard memory cap while clients remain connected. Opening a large individual mis
 be expensive. Cache release uses the installed Repo's experimental `removeFromCache` API;
 retest persistence and reloading when upgrading Automerge.
 
+## Logging and diagnosis
+
+All diagnostics use the existing `serverLogger` and its console/remote level controls.
+Set `VITE_PUBLIC_CONSOLE_LOG_LEVEL=debug` for local tracing or
+`VITE_PUBLIC_REMOTE_LOG_LEVEL=debug` for remote tracing (with `LOG_ENABLE_APP_LOGGING=true`
+and the existing logging endpoint configured). Restart the API after changing these settings.
+Normal production `info` logging includes startup, backfill progress, cold loads, eviction,
+creation/archive/deletion, and shutdown. Routine saves, queue activity, catalog reads and
+successful projections are `debug` so they can be enabled while diagnosing a problem.
+
+Filter by `logId`:
+
+- `mission-catalog`: backfill start/progress/completion, save/load queue source, coalescing,
+  projection version, flush/transaction timings, changed mission/EVA row counts, missing
+  listings, SQL-only list reads, EVA lookup matches, and shutdown drain. Failures include
+  the document ID, available mission IDs, phase and Error stack. Multiple missions matching
+  one EVA UUID are `notice`; an indexed EVA absent from its loaded mission is `warning`.
+- `mission-load`: cached versus queued cold loads, queue wait versus load duration,
+  resident document count and process RSS bytes, full-document read requests, and idle
+  eviction. Housekeeping logs the active HTTP request, peer, visitor and integration-handle
+  counts that prevent eviction. Unscoped bulk reads and the Maestro full-scan endpoints
+  produce `notice` logs. Cold loads taking at least five seconds produce `warning` logs.
+- `mission-storage`: saved document chunk type, bytes and database-write duration, whether
+  a catalog listener is attached, loaded storage range sizes, and save errors. Sync-state
+  saves do not emit routine success logs. Storage operations and projections taking at
+  least one second produce `warning` logs.
+- `automerge-migration`: the mission being loaded, progress, elapsed time and memory after
+  release. The `server` readiness log includes API startup duration and resident documents.
+
+For a stale entry, follow its `documentId` from chunk saved to update queued to projection
+completed. Check `summaryRowsChanged`, `evaRowsChanged` and `evaRowsDeleted`: zero means the
+projected values were unchanged, not that the update was skipped. For slow startup, compare
+backfill progress, cold-load `queueWaitMs`/`durationMs` and storage-range timings. A cold-load
+start without completion identifies the document currently loading. Mission-handle and
+projection logs connect database mission IDs to Automerge document IDs.
+
+Routine diagnostic fields contain identifiers, counts, timings and state flags rather than
+document contents, mission titles or authentication tokens; failures retain the existing
+Error/stack logging behavior. Memory values describe the whole process;
+evicting a handle does not guarantee an immediate RSS decrease. Logging introduces no extra
+catalog polling or document loads; SQL `RETURNING` supplies changed-row counts without
+additional queries.
+
 ## Verification
 
 The catalog integration tests use real Automerge documents and PostgreSQL storage. Apply the

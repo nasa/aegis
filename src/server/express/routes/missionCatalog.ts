@@ -16,7 +16,14 @@ router.get("/", async (req: Request, res: Response) => {
     return;
   }
   try {
+    const started = Date.now();
     const data = await getMissionSummaries(allMissions ? undefined : missionIds, true);
+    serverLogger.debug({
+      logId: "mission-catalog",
+      logValue: "Admin mission list served from SQL catalog",
+      missions: data.length,
+      durationMs: Date.now() - started,
+    });
     res.json({ status: "success", message: "Mission summaries retrieved", data });
   } catch (error) {
     serverLogger.error(

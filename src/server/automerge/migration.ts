@@ -100,6 +100,14 @@ const runMigration = async () => {
     for (const [index, docListing] of allDocListings.entries()) {
       if (!isValidAutomergeUrl(docListing.automergeUrl)) throw new Error("Invalid Automerge URL");
       const started = Date.now();
+      serverLogger.info({
+        logId: "automerge-migration",
+        logValue: "Loading mission for pending migrations",
+        missionId: docListing.missionId,
+        automergeUrl: docListing.automergeUrl,
+        progress: index + 1,
+        total: allDocListings.length,
+      });
       const handle: DocHandle<Mission> = await automergeRepo.find(docListing.automergeUrl);
       for (const migration of pendingMigrations) {
         await migration.migrate(handle, { docListing, orm: globalValues.orm });
@@ -114,7 +122,13 @@ const runMigration = async () => {
       await automergeRepo.removeFromCache(handle.documentId);
       serverLogger.info({
         logId: "automerge-migration",
-        logValue: `Migrated mission ${docListing.missionId} (${index + 1}/${allDocListings.length}) in ${Date.now() - started} ms`,
+        logValue: "Mission migrated and released",
+        missionId: docListing.missionId,
+        documentId: handle.documentId,
+        progress: index + 1,
+        total: allDocListings.length,
+        durationMs: Date.now() - started,
+        rssBytes: process.memoryUsage.rss(),
       });
     }
 

@@ -63,6 +63,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export async function getMissionsData(): Promise<MissionsWithEvas> {
+  const started = Date.now();
   const [activeMissions, evas] = await Promise.all([
     getMissionSummaries(),
     getAsPlannedEvaSummaries(),
@@ -82,6 +83,13 @@ export async function getMissionsData(): Promise<MissionsWithEvas> {
     missions[eva.missionId]?.evas.push({ uuid: eva.evaUuid, evaName: eva.name });
   }
 
+  serverLogger.debug({
+    logId: "mission-catalog",
+    logValue: "Maestro getMissions served from SQL catalog",
+    missions: activeMissions.length,
+    evas: evas.length,
+    durationMs: Date.now() - started,
+  });
   return missions;
 }
 
