@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { listFiles, deleteFile, renameFile } from "http-client/file";
@@ -17,13 +19,18 @@ const FileManager: FunctionComponent<{
   isUsed?: (folderName: string) => boolean; //optional check to display message if this folder is in use by the config
   /** only allow uploading zip files. if false, any file type upload is allowed */
   zipOnly: boolean;
+  usageLoading?: boolean;
 }> = (props: {
   missionId: number;
   path: string;
   setFileList: Dispatch<SetStateAction<GISfile[]>>;
   isUsed?: (folderName: string) => boolean;
   zipOnly: boolean;
+  usageLoading?: boolean;
 }) => {
+  const loading = useAsyncStatus("Loading directory listing...");
+  const { run: runLoad } = loading;
+  const action = useAsyncStatus();
   const { path, setFileList, isUsed } = { ...props };
   const [dirListing, setDirListing] = useState<fileState[]>([]);
   const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(false);
@@ -43,29 +50,33 @@ const FileManager: FunctionComponent<{
   };
 
   //call api to get the directory listing
-  const getDirListing = useCallback(async () => {
-    const fileList: GISfile[] | void = await listFiles(path).catch(console.error); //get files
-    //convert to type fileState and store in state
-    if (fileList) {
-      const fileStates: fileState[] = fileList.map((file) => {
-        const filetype: string = file.isDir ? "dir" : "file";
-        return {
-          key: `${filetype}_${file.name}`,
-          type: filetype,
-          count: file.fileCount,
-          name: file.name,
-          showRename: false,
-          newName: file.name,
-          size: file.size,
-        };
-      });
-      setDirListing(fileStates);
-      if (setFileList) setFileList(fileList);
-    } else {
-      setDirListing([]);
-      if (setFileList) setFileList([]);
-    }
-  }, [path, setFileList]);
+  const getDirListing = useCallback(
+    () =>
+      runLoad("Loading directory listing...", async () => {
+        const fileList: GISfile[] | void = await listFiles(path); //get files
+        //convert to type fileState and store in state
+        if (fileList) {
+          const fileStates: fileState[] = fileList.map((file) => {
+            const filetype: string = file.isDir ? "dir" : "file";
+            return {
+              key: `${filetype}_${file.name}`,
+              type: filetype,
+              count: file.fileCount,
+              name: file.name,
+              showRename: false,
+              newName: file.name,
+              size: file.size,
+            };
+          });
+          setDirListing(fileStates);
+          if (setFileList) setFileList(fileList);
+        } else {
+          setDirListing([]);
+          if (setFileList) setFileList([]);
+        }
+      }),
+    [path, setFileList, runLoad]
+  );
 
   useEffect(() => {
     if (refreshDirectoryListing) {
@@ -165,8 +176,8 @@ const FileManager: FunctionComponent<{
         navigate("/");
       }
     };
-    isLoggedInAsync();
-  }, [navigate, getDirListing]);
+    runLoad("Loading directory listing...", isLoggedInAsync);
+  }, [navigate, getDirListing, runLoad]);
 
   return (
     <div>
@@ -206,17 +217,22 @@ const FileManager: FunctionComponent<{
         />
         Directory Listing
         <button
+          disabled={
+            !!loading.pending || !!loading.error || !!action.pending || !!props.usageLoading
+          }
           className={adminStyles.deleteButton}
           style={{ marginLeft: "auto" }}
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            deleteUnusedFolders();
+            action.run("Deleting unused folders...", deleteUnusedFolders);
           }}
         >
           Delete Unused Folders
         </button>
       </div>
+      <AsyncStatus {...loading} />
+      <AsyncStatus {...action} />
       {!hideDirectoryListing && (
         <div>
           {dirListing.length > 0 ? (
@@ -259,9 +275,10 @@ const FileManager: FunctionComponent<{
                                 }}
                               />
                               <button
+                                disabled={!!loading.pending || !!loading.error || !!action.pending}
                                 className={adminStyles.button}
                                 onClick={() => {
-                                  saveRename(file.key);
+                                  action.run("Renaming file...", () => saveRename(file.key));
                                 }}
                               >
                                 Save
@@ -271,6 +288,7 @@ const FileManager: FunctionComponent<{
                             <></>
                           )}
                           <button
+                            disabled={!!loading.pending || !!loading.error || !!action.pending}
                             className={adminStyles.button}
                             onClick={() => {
                               showHideRename(file.key);
@@ -279,8 +297,9 @@ const FileManager: FunctionComponent<{
                             {file.showRename ? "Cancel" : "Rename"}
                           </button>
                           <button
+                            disabled={!!loading.pending || !!loading.error || !!action.pending}
                             onClick={(e) => {
-                              deleteFileToAPI(e, file.name);
+                              action.run("Deleting file...", () => deleteFileToAPI(e, file.name));
                             }}
                             className={adminStyles.deleteButton}
                           >
@@ -295,10 +314,14 @@ const FileManager: FunctionComponent<{
               </tbody>
             </table>
           ) : (
-            <div>No files</div>
+            !loading.pending && !loading.error && <div>No files</div>
           )}
           <br />
-          <button className={adminStyles.button} onClick={getDirListing}>
+          <button
+            className={adminStyles.button}
+            disabled={!!loading.pending || !!action.pending}
+            onClick={getDirListing}
+          >
             Refresh
           </button>
         </div>

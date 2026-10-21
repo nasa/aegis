@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { Link, useNavigate, useParams } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { isLoggedIn } from "http-client/login";
@@ -14,6 +16,9 @@ type RouteParams = {
 };
 
 const ManageAutomergeDoc: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Checking admin access...");
+  const { run: runLoad } = loading;
+  const action = useAsyncStatus();
   const navigate = useNavigate();
   const params = useParams<RouteParams>();
   // Access the automerge mission document via the useDocument hook instead of the
@@ -53,8 +58,8 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
         navigate("/");
       }
     };
-    isLoggedInAsync();
-  }, [navigate]);
+    runLoad("Checking admin access...", isLoggedInAsync);
+  }, [navigate, runLoad]);
 
   // grab the schema from the server via an api endpoint and use it to validate
   const validateMission = async (missionToValidate: unknown): Promise<ErrorObject[]> => {
@@ -92,6 +97,15 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
           to the console.
         </p>
 
+        <AsyncStatus
+          {...loading}
+          pending={
+            loading.pending ||
+            (!automergeMission && !loading.error ? "Loading mission document..." : null)
+          }
+        />
+        <AsyncStatus {...action} />
+
         <section className={adminCommon.section}>
           <h2>Document Info</h2>
           <div className={adminCommon.details}>
@@ -116,6 +130,9 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
             </p>
             <div className={adminCommon.formActions}>
               <button
+                disabled={
+                  !automergeMission || !!loading.pending || !!loading.error || !!action.pending
+                }
                 className={adminCommon.button}
                 type="button"
                 onClick={() => {
@@ -138,11 +155,16 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
             </p>
             <div className={adminCommon.formActions}>
               <button
+                disabled={
+                  !automergeMission || !!loading.pending || !!loading.error || !!action.pending
+                }
                 className={adminCommon.button}
-                onClick={async () => {
-                  const results = await validateMission(automergeMission);
-                  console.log(results);
-                }}
+                onClick={() =>
+                  action.run("Validating mission...", async () => {
+                    const results = await validateMission(automergeMission);
+                    console.log(results);
+                  })
+                }
               >
                 Compare Now
               </button>
@@ -155,6 +177,9 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
           <div className={adminCommon.details}>
             <div className={adminCommon.formActions}>
               <button
+                disabled={
+                  !automergeMission || !!loading.pending || !!loading.error || !!action.pending
+                }
                 className={adminCommon.button}
                 onClick={() => {
                   setJsonField(JSON.stringify(automergeMission, null, 2));
@@ -164,35 +189,39 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
                 Export Automerge Document as JSON
               </button>
               <button
+                disabled={
+                  !automergeMission || !!loading.pending || !!loading.error || !!action.pending
+                }
                 className={adminCommon.buttonDanger}
-                disabled={false}
-                onClick={async () => {
-                  const newVersion: unknown = JSON.parse(jsonField);
-                  if (typeof newVersion !== "object" || newVersion === null) {
-                    setImportExportStatus("Invalid JSON object");
-                    return;
-                  }
+                onClick={() =>
+                  action.run("Validating and importing mission...", async () => {
+                    const newVersion: unknown = JSON.parse(jsonField);
+                    if (typeof newVersion !== "object" || newVersion === null) {
+                      setImportExportStatus("Invalid JSON object");
+                      return;
+                    }
 
-                  const results = await validateMission(automergeMission);
-                  if (results.length > 0) {
-                    setImportExportStatus("Invalid mission. See console log for schema errors");
-                    console.log(results);
-                    return;
-                  }
+                    const results = await validateMission(automergeMission);
+                    if (results.length > 0) {
+                      setImportExportStatus("Invalid mission. See console log for schema errors");
+                      console.log(results);
+                      return;
+                    }
 
-                  // everything looks ok. Set new values in automerge doc with the new version
-                  const differences = diff(automergeMission, newVersion);
-                  if (differences) {
-                    const changeFn: ChangeFn<Mission> = (m: Mission) => {
-                      differences.forEach((difference) => {
-                        applyChange(m, newVersion, difference);
-                      });
-                    };
-                    changeMissionDoc(changeFn);
-                  }
-                  setImportExportStatus("Imported new version successfully");
-                  setJsonField("");
-                }}
+                    // everything looks ok. Set new values in automerge doc with the new version
+                    const differences = diff(automergeMission, newVersion);
+                    if (differences) {
+                      const changeFn: ChangeFn<Mission> = (m: Mission) => {
+                        differences.forEach((difference) => {
+                          applyChange(m, newVersion, difference);
+                        });
+                      };
+                      changeMissionDoc(changeFn);
+                    }
+                    setImportExportStatus("Imported new version successfully");
+                    setJsonField("");
+                  })
+                }
               >
                 Import JSON as New Version
               </button>

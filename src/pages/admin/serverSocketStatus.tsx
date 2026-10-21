@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -20,6 +22,8 @@ import {
 import adminCommon from "./adminCommon.module.css";
 
 const ServerSocketStatus: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Loading missions...");
+  const { run: runLoad } = loading;
   const navigate = useNavigate();
   const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
   const [serverSocketStatus, setServerSocketStatus] = useState<ServerSocketStatus>(null);
@@ -30,18 +34,22 @@ const ServerSocketStatus: React.FunctionComponent = () => {
 
   //on load check login
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+    runLoad("Loading missions...", async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         const user = response.data;
         if (!user.isSuperAdmin) {
           navigate("/"); // Redirect to homepage
+          return;
         }
       } else {
         navigate("/");
+        return;
       }
 
       const missionsRes = await getMissionHomepageItems();
+      if (cancelled) return;
       if (missionsRes.status === "success" && missionsRes.data) {
         const nameMap = new Map<number, string>();
         missionsRes.data.forEach((m) => nameMap.set(m.id, m.name));
@@ -62,6 +70,10 @@ const ServerSocketStatus: React.FunctionComponent = () => {
         setConnectionStatus("disconnected");
       });
 
+      socket.current.on("connect_error", () => {
+        setConnectionStatus("failed");
+      });
+
       socket.current.on("inspectorUpdate", (data: ServerSocketStatus) => {
         setServerSocketStatus(data);
         setLastUpdatedAt(new Date().toISOString());
@@ -70,14 +82,14 @@ const ServerSocketStatus: React.FunctionComponent = () => {
       socket.current.on("version", (serverAppVersion: AppVersion) => {
         setAppVersion(serverAppVersion);
       });
-
-      return () => {
-        socket.current.off("connect");
-        socket.current.off("inspectorUpdate");
-        socket.current.disconnect();
-      };
-    })();
-  }, [navigate]);
+    });
+    return () => {
+      cancelled = true;
+      socket.current?.removeAllListeners();
+      socket.current?.disconnect();
+      socket.current = null;
+    };
+  }, [navigate, runLoad]);
 
   return (
     <main className={adminCommon.page}>
@@ -86,6 +98,19 @@ const ServerSocketStatus: React.FunctionComponent = () => {
           ← Admin
         </Link>
         <h1 className={adminCommon.pageTitle}>Visitor Connections</h1>
+        <AsyncStatus {...loading} />
+        {!loading.pending && !loading.error && (
+          <AsyncStatus
+            pending={
+              connectionStatus === "connecting"
+                ? "Connecting to server..."
+                : connectionStatus === "connected" && !serverSocketStatus
+                  ? "Loading visitor connections..."
+                  : null
+            }
+            error={connectionStatus === "failed" ? "Unable to connect to server." : null}
+          />
+        )}
 
         <section className={adminCommon.section}>
           <div className={adminCommon.infoItem}>

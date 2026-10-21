@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { deleteGrid, getGrid, upsertGrid } from "http-client/grid";
 import type { ChangeEventHandler, FunctionComponent } from "react";
 import { useEffect, useState } from "react";
@@ -34,8 +36,10 @@ const readJsonFile = (file: Blob): Promise<unknown> =>
   new Promise((resolve, reject) => {
     const fileReader = new FileReader();
     fileReader.onload = (event) => {
-      if (event.target) {
+      try {
         resolve(JSON.parse(event.target.result as string));
+      } catch (error) {
+        reject(error);
       }
     };
     fileReader.onerror = (error) => reject(error);
@@ -79,6 +83,7 @@ const AdminMissionGrid: FunctionComponent<{
   grid: Mission["serverFileGrid"] | null;
   gridRenderMode: GridRenderMode;
 }> = ({ missionId, grid, gridRenderMode }) => {
+  const action = useAsyncStatus();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isFilePicked, setIsFilePicked] = useState(false);
   const [isSubmitValid, setIsSubmitValid] = useState(false);
@@ -134,6 +139,7 @@ const AdminMissionGrid: FunctionComponent<{
   return (
     <section className={adminCommon.section}>
       <h2 className={adminCommon.sectionHeading}>Server File Grid (Legacy / Custom)</h2>
+      <AsyncStatus {...action} />
       {missionId ? (
         <div>
           <div className={adminCommon.details} style={{ marginBottom: 16 }}>
@@ -160,7 +166,11 @@ const AdminMissionGrid: FunctionComponent<{
             )}
             {grid && (
               <div style={{ marginTop: 12 }}>
-                <button className={adminCommon.button} onClick={handleDelete}>
+                <button
+                  className={adminCommon.button}
+                  disabled={!!action.pending}
+                  onClick={() => action.run("Deleting grid...", handleDelete)}
+                >
                   Delete Grid
                 </button>
               </div>
@@ -209,8 +219,12 @@ const AdminMissionGrid: FunctionComponent<{
                 <button
                   className={adminCommon.buttonPrimary}
                   type="submit"
-                  onClick={() => readAndUploadGrid(selectedFile)}
-                  disabled={!isSubmitValid || isUploading}
+                  onClick={() =>
+                    action.run("Reading and uploading grid...", () =>
+                      readAndUploadGrid(selectedFile)
+                    )
+                  }
+                  disabled={!isSubmitValid || isUploading || !!action.pending}
                 >
                   {isUploading ? "Uploading..." : "Upload Grid"}
                 </button>

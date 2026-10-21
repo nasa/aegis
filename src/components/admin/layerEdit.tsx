@@ -23,9 +23,9 @@ function LayerEditInner(
         const res: WrappedResponse<Layer[]> = await upsertLayers(props.missionId, [
           { ...layer, updatedAt: getAccurateNow().getTime() },
         ]);
-        props.refreshLayerList();
+        await props.refreshLayerList();
         alert(`${res.status} - ${res.message}`);
-        return true;
+        return res.status === "success";
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

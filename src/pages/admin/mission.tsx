@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useCallback, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Link, useParams } from "react-router";
@@ -23,6 +25,8 @@ type RouteParams = {
 };
 
 const Mission: React.FunctionComponent = () => {
+  const elevationStatus = useAsyncStatus();
+  const maestroStatus = useAsyncStatus();
   const params = useParams<RouteParams>();
   // Access the automerge mission document via the useDocument hook instead of the
   // useMissionDocSelector (to read) and useDocHandle (to write). This is because for this
@@ -76,7 +80,7 @@ const Mission: React.FunctionComponent = () => {
 
   // Maestro section state
   const [maestroAccessControl, setMaestroAccessControl] = useState<MaestroAccessControl>("public");
-  const [maestroLoading, setMaestroLoading] = useState(false);
+  const maestroLoading = !!maestroStatus.pending;
   const [maestroError, setMaestroError] = useState<string | null>(null);
   const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
@@ -86,7 +90,6 @@ const Mission: React.FunctionComponent = () => {
 
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
-    setMaestroLoading(true);
     setMaestroError(null);
     setMaestroResponseMeta(null);
 
@@ -99,8 +102,6 @@ const Mission: React.FunctionComponent = () => {
       owners,
       accessControl: maestroAccessControl,
     });
-
-    setMaestroLoading(false);
 
     if (response.status === "error") {
       setMaestroError(response.message);
@@ -135,6 +136,7 @@ const Mission: React.FunctionComponent = () => {
         <Link to="/admin/missions" className={adminCommon.backLink}>
           ← Missions
         </Link>
+        {!automergeMission && <AsyncStatus pending="Loading mission..." />}
         {automergeMission && (
           <>
             <h1 className={adminCommon.pageTitle}>
@@ -357,12 +359,17 @@ const Mission: React.FunctionComponent = () => {
                         <button
                           className={adminCommon.button}
                           type="button"
-                          onClick={() => {
-                            calcLanderElevation();
-                          }}
+                          disabled={!!elevationStatus.pending}
+                          onClick={() =>
+                            elevationStatus.run(
+                              "Calculating lander elevation...",
+                              calcLanderElevation
+                            )
+                          }
                         >
                           Calculate
                         </button>
+                        <AsyncStatus {...elevationStatus} />
                         <span className={adminCommon.formHint}>
                           {" "}
                           Lander Location must have value for elevation graph to show
@@ -704,10 +711,16 @@ const Mission: React.FunctionComponent = () => {
                             className={adminCommon.buttonPrimary}
                             type="button"
                             disabled={maestroLoading || !automergeMission.id}
-                            onClick={handleCreateMaestroProject}
+                            onClick={() =>
+                              maestroStatus.run(
+                                "Creating Maestro project...",
+                                handleCreateMaestroProject
+                              )
+                            }
                           >
                             {maestroLoading ? "Creating…" : "Create Project"}
                           </button>
+                          <AsyncStatus {...maestroStatus} />
                         </div>
                         {!automergeMission.id && (
                           <p className={adminCommon.formHint} style={{ marginTop: 8 }}>

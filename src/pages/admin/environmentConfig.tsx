@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -6,13 +8,15 @@ import { getAllEnvironmentConfigs, setEnvironmentConfigValue } from "http-client
 import adminCommon from "./adminCommon.module.css";
 
 const EnvironmentConfig: FunctionComponent = () => {
+  const loading = useAsyncStatus("Loading environment configuration...");
+  const { run: runLoad } = loading;
   const navigate = useNavigate();
 
   const [configs, setConfigs] = useState<EnvironmentConfigData[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
+    runLoad("Loading environment configuration...", async () => {
       const loginRes = await isLoggedIn();
       if (loginRes.status !== "success" || !loginRes.data.isSuperAdmin) {
         navigate("/");
@@ -25,8 +29,8 @@ const EnvironmentConfig: FunctionComponent = () => {
       } else {
         setLoadError(configRes.message ?? "Failed to load environment configs.");
       }
-    })();
-  }, [navigate]);
+    });
+  }, [navigate, runLoad]);
 
   const handleEntryUpdated = (updated: EnvironmentConfigData) => {
     setConfigs((prev) => (prev ? prev.map((c) => (c.key === updated.key ? updated : c)) : prev));
@@ -39,6 +43,7 @@ const EnvironmentConfig: FunctionComponent = () => {
           ← Admin
         </Link>
         <h1 className={adminCommon.pageTitle}>Environment Configuration</h1>
+        <AsyncStatus {...loading} />
 
         <p style={{ color: "#94a3b8", margin: 0 }}>
           These values apply to every mission on this AEGIS instance. Each entry has a default
@@ -69,7 +74,8 @@ const EnvironmentConfigEntry: FunctionComponent<{
   onUpdated: (updated: EnvironmentConfigData) => void;
 }> = ({ entry, onUpdated }) => {
   const [input, setInput] = useState<string>(entry.config?.value ?? "");
-  const [saving, setSaving] = useState(false);
+  const action = useAsyncStatus();
+  const saving = !!action.pending;
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -84,11 +90,9 @@ const EnvironmentConfigEntry: FunctionComponent<{
   };
 
   const save = async (newValue: string | null) => {
-    setSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
     const res = await setEnvironmentConfigValue(entry.key, newValue);
-    setSaving(false);
     if (res.status === "success") {
       onUpdated(res.data);
       flashSuccess();
@@ -97,8 +101,8 @@ const EnvironmentConfigEntry: FunctionComponent<{
     }
   };
 
-  const handleSave = () => save(input.trim() || null);
-  const handleClear = () => save(null);
+  const handleSave = () => action.run("Saving configuration...", () => save(input.trim() || null));
+  const handleClear = () => action.run("Clearing configuration override...", () => save(null));
 
   return (
     <section className={adminCommon.section}>
@@ -106,6 +110,7 @@ const EnvironmentConfigEntry: FunctionComponent<{
         <code>{entry.key}</code>
       </h2>
       <div className={adminCommon.details}>
+        <AsyncStatus {...action} />
         {entry.config?.description && (
           <p style={{ margin: 0, color: "#94a3b8", fontSize: "0.9rem" }}>
             {entry.config.description}

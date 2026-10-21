@@ -1,13 +1,13 @@
+import AsyncStatus from "components/admin/asyncStatus";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import adminStyles from "./admin.module.css";
 import adminCommon from "pages/admin/adminCommon.module.css";
 import STMEdit from "components/admin/stmEdit";
 import stmStyles from "./stmEdit.module.css";
 import { faCaretDown, faCaretRight, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { type AutomergeUrl, isValidAutomergeUrl } from "@automerge/automerge-repo";
-import { getAutomergeDocListing } from "http-client/docListing";
+import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
 import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
@@ -26,8 +26,8 @@ const STM_COLLECTION_BY_TYPE = {
 
 const MissionSTM: FunctionComponent<{
   missionId: number;
-}> = ({ missionId }) => {
-  const [automergeUrl, setAutomergeUrl] = useState<AutomergeUrl>();
+  automergeUrl: AutomergeUrl;
+}> = ({ missionId, automergeUrl }) => {
   const missionDocHandle = useDocHandle<Mission>(automergeUrl);
   const stmTree = useDocSelector<
     Mission,
@@ -91,23 +91,10 @@ ${blocker}`);
     });
   };
 
-  // get the automerge URL from the automerge records db
-  const getAutomerge = useCallback(async () => {
-    if (!missionId) return;
-    const res = await getAutomergeDocListing(missionId);
-    if (isValidAutomergeUrl(res.data[0].automergeUrl)) {
-      setAutomergeUrl(res.data[0].automergeUrl);
-    }
-  }, [missionId]);
-
-  useEffect(() => {
-    if (!missionId) return;
-    getAutomerge();
-  }, [missionId, getAutomerge]);
-
   return (
     <>
-      {missionId && automergeUrl && (
+      {!stmTree && <AsyncStatus pending="Loading science traceability matrix..." />}
+      {missionId && automergeUrl && stmTree && (
         <div>
           <div className={adminStyles.sectionDiv}>
             <div className={adminStyles.sectionDivHeading}>Science Traceability Matrix</div>

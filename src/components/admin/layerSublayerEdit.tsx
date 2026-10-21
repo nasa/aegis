@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import get from "lodash/get";
 import isNull from "lodash/isNull";
 import { forwardRef, useState, useEffect, useImperativeHandle, type ForwardedRef } from "react";
@@ -56,6 +58,9 @@ async function fetchURL(url: string): Promise<Response | null> {
 
 /** Render a single sublayer record from the DB */
 function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditHandle>) {
+  const loading = useAsyncStatus("Loading data files...");
+  const { run: runLoad } = loading;
+  const metadata = useAsyncStatus();
   const [sublayer, setSublayer] = useState<Sublayer>(props.sublayer);
   const [boundingBox, setBoundingBox] = useState<string>(props.sublayer.boundingBox?.toString());
   const [legend, setLegend] = useState<string>(
@@ -71,6 +76,10 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
     ref,
     () => ({
       save: async (): Promise<boolean> => {
+        if (metadata.pending || loading.pending) {
+          alert("Please wait for the layer files and metadata to finish loading.");
+          return false;
+        }
         if (
           sublayer.isTimeBased &&
           props.allSublayers.some((s) => s.isTimeBased && s.uuid !== sublayer.uuid)
@@ -83,13 +92,13 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
         const res: WrappedResponse<Sublayer[]> = await upsertSublayers(props.missionId, [
           { ...sublayer, updatedAt: getAccurateNow().getTime() },
         ]);
-        props.refreshLayerList();
+        await props.refreshLayerList();
         alert(`${res.status} - ${res.message}`);
-        return true;
+        return res.status === "success";
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sublayer, props.allSublayers]
+    [sublayer, props.allSublayers, metadata.pending, loading.pending]
   );
 
   // update fields when swapping between sublayers
@@ -106,9 +115,9 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
       return;
     }
 
-    (async function () {
+    runLoad("Loading data files...", async () => {
       const path = `missionFiles/${props.missionId}/Data`;
-      const fileList: GISfile[] | void = await listFiles(path).catch(console.error);
+      const fileList: GISfile[] | void = await listFiles(path);
 
       if (!fileList) {
         setDataDirGeoJSONs([]);
@@ -121,10 +130,10 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
           .filter((file) => file.name.toLowerCase().endsWith(".geojson"))
           .map((file) => file.name)
       );
-    })();
+    });
 
     setRefreshDirectoryListing(false);
-  }, [props.missionId, refreshDirectoryListing]);
+  }, [props.missionId, refreshDirectoryListing, runLoad]);
 
   //save the current editing sublayer to db
 
@@ -475,8 +484,14 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
   const selectedFolder = sublayer.path ? sublayer.path.split("/")[0] : "";
 
   return (
-    <div className={styles.sublayerEditBoxes}>
+    <fieldset
+      className={styles.sublayerEditBoxes}
+      disabled={!!metadata.pending}
+      style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
+    >
       <div className={styles.sectionDiv}>
+        <AsyncStatus {...loading} />
+        <AsyncStatus {...metadata} />
         <div id="readOnlyDiv">UUID: {sublayer.uuid}</div>
         <div id="internalExternalDiv">
           <label>
@@ -550,7 +565,10 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                       id="folderNames"
                       title="folder names"
                       onChange={(e) => {
-                        selectInternalFolder(e.target.value);
+                        const folder = e.target.value;
+                        metadata.run("Loading layer source and metadata...", () =>
+                          selectInternalFolder(folder)
+                        );
                       }}
                       value={selectedFolder}
                     >
@@ -575,7 +593,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
                 )}
 
                 {/* Only a raster tile pyramid uses a {z}/{x}/{y} tile pattern; COG and
-                    vector-tile (PMTiles) layers are self-describing. */}
+                vector-tile (PMTiles) layers are self-describing. */}
                 {sublayer.type === "tile" && !isCogLayer && (
                   <div className={styles.editDiv}>
                     <label htmlFor="aegisUrl">Tile Pattern {`(eg. {z}/{x}/{y}.png)`}</label>
@@ -747,7 +765,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
               </div>
             )}
             {/* A COG is self-describing (extent/resolutions read from the GeoTIFF), so the
-                tile-pyramid fields below don't apply. */}
+            tile-pyramid fields below don't apply. */}
             {!isCogLayer && (
               <>
                 <div id="boundingDiv">
@@ -901,7 +919,9 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
             <button
               type="button"
               onClick={() => {
-                preloadDataFromFiles(sublayer.path);
+                metadata.run("Loading layer metadata...", () =>
+                  preloadDataFromFiles(sublayer.path)
+                );
               }}
             >
               Import From External Source
@@ -924,7 +944,7 @@ function SublayerEditInner(props: SublayerProps, ref: ForwardedRef<SublayerEditH
           })}
         </div>
       )}
-    </div>
+    </fieldset>
   );
 }
 
