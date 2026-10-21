@@ -66,26 +66,6 @@ export function startMissionCatalogRuntime(
   let maintenance: Promise<void> | undefined;
   let stopped = false;
   const queued = new Set<DocumentId>();
-  let updates = 0;
-  let failedUpdates = 0;
-  let updateMs = 0;
-  let maxUpdateMs = 0;
-  let evicted = 0;
-  // Report activity on the existing housekeeping interval, without querying the database.
-  const reportActivity = () => {
-    if (!updates && !failedUpdates && !evicted) return;
-    serverLogger[maxUpdateMs >= 1000 ? "warning" : "info"]({
-      logId: "mission-catalog",
-      logValue: "Catalog activity since last report",
-      updates,
-      failedUpdates,
-      averageUpdateMs: updates ? Math.round(updateMs / updates) : 0,
-      maxUpdateMs,
-      evicted,
-      residentDocuments: Object.keys(repo.handles).length,
-    });
-    updates = failedUpdates = updateMs = maxUpdateMs = evicted = 0;
-  };
   const lastSeen = new Map<DocumentId, number>();
   const inUse = () =>
     activeRequests > 0 ||
@@ -113,16 +93,9 @@ export function startMissionCatalogRuntime(
           queued.delete(id);
           const handle = repo.handles[id] as DocHandle<Mission> | undefined;
           if (handle?.isReady()) {
-            const started = Date.now();
             try {
-              if (await refreshMissionCatalog(repo, handle)) {
-                const durationMs = Date.now() - started;
-                updates += 1;
-                updateMs += durationMs;
-                maxUpdateMs = Math.max(maxUpdateMs, durationMs);
-              }
+              await refreshMissionCatalog(repo, handle);
             } catch (error) {
-              failedUpdates += 1;
               reportError(error, id);
             }
           }
@@ -157,7 +130,6 @@ export function startMissionCatalogRuntime(
       await refreshMissionCatalog(repo, handle);
       if (inUse() || (repo.lastAccess.get(id) ?? 0) > lastUsed) continue;
       await repo.removeFromCache(id);
-      evicted += 1;
       lastSeen.delete(id);
       repo.lastAccess.delete(id);
     }
@@ -179,14 +151,12 @@ export function startMissionCatalogRuntime(
   };
   // Memory housekeeping only. No index queries or projection unless a handle is being evicted.
   const timer = setInterval(() => {
-    refresh()
-      .catch((error) => {
-        serverLogger.error(
-          { logId: "mission-catalog", logValue: "Idle document housekeeping failed" },
-          error instanceof Error ? error : new Error(String(error))
-        );
-      })
-      .finally(reportActivity);
+    refresh().catch((error) => {
+      serverLogger.error(
+        { logId: "mission-catalog", logValue: "Idle document housekeeping failed" },
+        error instanceof Error ? error : new Error(String(error))
+      );
+    });
   }, 60_000);
   timer.unref();
   return {
@@ -200,7 +170,6 @@ export function startMissionCatalogRuntime(
       await running;
       // The caller stops network writers and flushes the repo before draining the queue.
       await drain();
-      reportActivity();
     },
   };
 }

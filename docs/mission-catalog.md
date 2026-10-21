@@ -74,14 +74,10 @@ retest persistence and reloading when upgrading Automerge.
 ## Logging
 
 The existing `serverLogger` reports startup/backfill results and one timing entry per cold
-document load (`mission-load`, including queue wait). During activity, `mission-catalog`
-reports successful/failed queued updates, average/maximum update time, evictions and resident
-document count at most once per minute, plus a final summary at shutdown. Idle periods are
-silent. Counts describe performed index refreshes; unchanged in-memory checks are not counted.
-The summary uses the existing memory housekeeping timer and adds no database polling.
-Loads of five seconds or more and update summaries with a maximum of one second or more use
+document load (`mission-load`, including queue wait). Loads of five seconds or more use
 warning level; failures retain their Error and document ID where available. The server-ready
-log includes startup time and process memory. There are no routine per-save, cache-hit or SQL-read logs.
+log includes startup time and process memory. No counters or cumulative metrics are maintained
+for logging, and there are no periodic activity reports or routine per-save, cache-hit or SQL-read logs.
 
 ## Verification
 
