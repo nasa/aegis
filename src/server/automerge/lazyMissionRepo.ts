@@ -7,6 +7,25 @@ export class LazyMissionRepo extends Repo {
   readonly lastAccess = new Map<DocumentId, number>();
   onDocumentLoaded?: (documentId: DocumentId) => void;
   private coldLoads: Promise<unknown> = Promise.resolve();
+  private readonly watched = new WeakSet<DocHandle<unknown>>();
+
+  private watch<T>(handle: DocHandle<T>): DocHandle<T> {
+    if (!this.watched.has(handle)) {
+      this.watched.add(handle);
+      handle.on("change", () => {
+        // Count edits immediately, including remote sync, before the background save runs.
+        if (this.handles[handle.documentId] === handle) {
+          this.lastAccess.set(handle.documentId, Date.now());
+        }
+      });
+    }
+    this.lastAccess.set(handle.documentId, Date.now());
+    return handle;
+  }
+
+  override create<T>(initialValue?: T): DocHandle<T> {
+    return this.watch(super.create(initialValue));
+  }
 
   override find<T>(
     id: AnyDocumentId,
@@ -19,8 +38,9 @@ export class LazyMissionRepo extends Repo {
     const existing = this.handles[documentId];
     if (existing) {
       const found = super.find<T>(id, options);
-      if (existing.isReady()) return found;
+      if (existing.isReady()) return found.then((handle) => this.watch(handle));
       return found.then((handle) => {
+        this.watch(handle);
         this.onDocumentLoaded?.(documentId);
         return handle;
       });
@@ -32,6 +52,7 @@ export class LazyMissionRepo extends Repo {
       const started = Date.now();
       try {
         const handle = await super.find<T>(id, options);
+        this.watch(handle);
         this.onDocumentLoaded?.(documentId);
         const durationMs = Date.now() - started;
         serverLogger[durationMs >= 5000 ? "warning" : "info"]({

@@ -10,11 +10,14 @@ import app from "server/express/restApi";
 import { LazyMissionRepo } from "server/automerge/lazyMissionRepo";
 import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
 import { getMissionSummaries, getMissionIdsForEva } from "server/automerge/missionCatalog";
+import * as missionCatalog from "server/automerge/missionCatalog";
 import {
   refreshMissionCatalog,
   repairMissionCatalog,
   retainMissionDocuments,
   startMissionCatalogRuntime,
+  loadRunningMissionDocuments,
+  MISSION_IDLE_MS,
 } from "server/automerge/missionCatalogRuntime";
 import { createAutomergeMission } from "server/express/routes/missionAutomerge";
 import { generateBlankMission } from "store/storeUtils/mission";
@@ -466,3 +469,163 @@ test.each(["name", "description"] as const)(
     }
   }
 );
+
+test("missions expire four hours after their own last read or edit", async () => {
+  const first = await createMission();
+  const second = await createMission();
+  let now = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  await repo.find(first.url);
+  await repo.find(second.url);
+  const runtime = startMissionCatalogRuntime(repo, storage);
+  try {
+    now += MISSION_IDLE_MS - 1;
+    await runtime.refresh();
+    expect(Object.keys(repo.handles)).toHaveLength(2);
+    await repo.find(first.url); // A one-off mission request extends only this mission's lifetime.
+    now += 2;
+    await runtime.refresh();
+    expect(repo.handles[first.documentId]).toBe(first);
+    expect(repo.handles[second.documentId]).toBeUndefined();
+
+    now += MISSION_IDLE_MS - 2;
+    first.change((m) => {
+      m.description = "Recent edit";
+    });
+    await runtime.refresh();
+    expect(repo.handles[first.documentId]).toBe(first);
+    now += MISSION_IDLE_MS;
+    await runtime.refresh();
+    expect(repo.handles[first.documentId]).toBeUndefined();
+    expect((await repo.find<Mission>(first.url)).doc().description).toBe("Recent edit");
+  } finally {
+    await runtime.stop();
+  }
+});
+
+test.each(["user", "maestro", "dust", "rex"] as const)(
+  "%s pins only its mission and release starts a new four-hour grace period",
+  async (consumer) => {
+    const rex = generateBlankRex({
+      evaUuid: "retention-eva",
+      isRunning: consumer === "rex",
+      petRunning: false,
+    });
+    const active = await createMission({ rexes: { [rex.uuid]: rex } });
+    const idle = await createMission();
+    if (consumer === "user") {
+      globalValues.serverSocketStatus.visitorsData = [
+        { missionId: active.doc().id, socketId: "first" } as VisitorData,
+        { missionId: active.doc().id, socketId: "second" } as VisitorData,
+      ];
+    } else if (consumer === "maestro" || consumer === "dust") {
+      const integration = consumer === "maestro" ? globalValues.maestroV2 : globalValues.dustV1;
+      integration.docHandles.set(active.doc().id, active);
+    }
+    let now = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    // An unrelated connected Automerge peer must not pin the entire cache.
+    vi.spyOn(repo, "peers", "get").mockReturnValue(["unrelated-peer" as never]);
+    const runtime = startMissionCatalogRuntime(repo, storage);
+    try {
+      now += MISSION_IDLE_MS + 1;
+      await runtime.refresh();
+      expect(repo.handles[active.documentId]).toBe(active);
+      expect(repo.handles[idle.documentId]).toBeUndefined();
+      if (consumer === "user") {
+        globalValues.serverSocketStatus.visitorsData.pop();
+        now += MISSION_IDLE_MS;
+        await runtime.refresh();
+        expect(repo.handles[active.documentId]).toBe(active);
+      }
+      globalValues.serverSocketStatus.visitorsData = [];
+      globalValues.maestroV2.docHandles.clear();
+      globalValues.dustV1.docHandles.clear();
+      if (consumer === "rex")
+        active.change((m) => {
+          m.rexes[rex.uuid].isRunning = false;
+        });
+      await runtime.refresh();
+      now += MISSION_IDLE_MS - 1;
+      await runtime.refresh();
+      expect(repo.handles[active.documentId]).toBe(active);
+      now += 1;
+      await runtime.refresh();
+      expect(repo.handles[active.documentId]).toBeUndefined();
+    } finally {
+      globalValues.serverSocketStatus.visitorsData = [];
+      globalValues.maestroV2.docHandles.clear();
+      globalValues.dustV1.docHandles.clear();
+      await runtime.stop();
+    }
+  }
+);
+
+test("a mission joined while eviction is flushing stays resident", async () => {
+  const handle = await createMission();
+  let now = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const runtime = startMissionCatalogRuntime(repo, storage);
+  const flush = repo.flush.bind(repo);
+  vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
+    await flush(documents);
+    globalValues.maestroV2.visitorData[handle.doc().id] = [
+      { socketId: "joining" } as MaestroVisitorV2,
+    ];
+  });
+  try {
+    now += MISSION_IDLE_MS + 1;
+    await runtime.refresh();
+    expect(repo.handles[handle.documentId]).toBe(handle);
+  } finally {
+    globalValues.maestroV2.visitorData = {};
+    await runtime.stop();
+  }
+});
+
+test("startup preloads running REX missions, including paused PET clocks, from the catalog", async () => {
+  const rex = generateBlankRex({ evaUuid: "retention-eva", isRunning: true, petRunning: false });
+  const active = await createMission({ rexes: { [rex.uuid]: rex } });
+  const idle = await createMission();
+  const runningListings = (await missionCatalog.getRunningMissionListings()).filter((m) =>
+    ids.includes(m.missionId)
+  );
+  expect(runningListings.map((m) => m.missionId)).toEqual([active.doc().id]);
+  // Restrict the preload to this test's fixtures when running against a populated local DB.
+  vi.spyOn(missionCatalog, "getRunningMissionListings").mockResolvedValue(runningListings);
+  await repo.shutdown();
+  repo = new LazyMissionRepo({ storage });
+  globalValues.automergeRepo = repo;
+  await loadRunningMissionDocuments(repo);
+  expect(repo.handles[active.documentId]?.isReady()).toBe(true);
+  expect(repo.handles[idle.documentId]).toBeUndefined();
+});
+
+test.each(["read", "edit"] as const)("a concurrent %s cancels idle eviction", async (activity) => {
+  const handle = await createMission();
+  let now = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const runtime = startMissionCatalogRuntime(repo, storage);
+  const flush = repo.flush.bind(repo);
+  vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
+    await flush(documents);
+    if (activity === "read") await repo.find(handle.url);
+    else
+      handle.change((m) => {
+        m.description = "Edited during eviction";
+      });
+  });
+  try {
+    now += MISSION_IDLE_MS + 1;
+    await runtime.refresh();
+    expect(repo.handles[handle.documentId]).toBe(handle);
+    now += MISSION_IDLE_MS - 1;
+    await runtime.refresh();
+    expect(repo.handles[handle.documentId]).toBe(handle);
+    now += 1;
+    await runtime.refresh();
+    expect(repo.handles[handle.documentId]).toBeUndefined();
+  } finally {
+    await runtime.stop();
+  }
+});
