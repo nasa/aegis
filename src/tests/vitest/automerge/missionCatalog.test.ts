@@ -281,7 +281,7 @@ test("unrelated local and remote edits, including timestamp changes, perform no 
     await runtime.refresh();
     expect(fork).not.toHaveBeenCalled();
     expect(flush).not.toHaveBeenCalled();
-    expect((await getMissionSummaries(ids))[0].updatedAt).toBe(originalUpdatedAt);
+    expect((await getMissionSummaries(ids))[0]).not.toHaveProperty("updatedAt");
 
     handle.change((m) => {
       m.name = "Relevant name change";
@@ -290,8 +290,9 @@ test("unrelated local and remote edits, including timestamp changes, perform no 
     await runtime.refresh();
     expect((await getMissionSummaries(ids))[0]).toMatchObject({
       name: "Relevant name change",
-      updatedAt: originalUpdatedAt + 2,
     });
+    expect((await getMissionSummaries(ids))[0]).not.toHaveProperty("updatedAt");
+    expect(handle.doc().updatedAt).toBe(originalUpdatedAt + 2);
   } finally {
     await runtime.stop();
   }

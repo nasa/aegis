@@ -2,7 +2,7 @@
 
 Automerge remains the authoritative mission data. PostgreSQL holds two derived read models:
 
-- `mission_catalog_db`: mission name, archive status, action-system version, timestamps, and
+- `mission_catalog_db`: mission name, archive status, action-system version, creation time, and
   the running REX identifier/name and PET clock parameters. The summary is small JSONB.
 - `mission_eva_catalog_db`: mission ID, EVA UUID/name, and whether it is as-planned. Its key is
   `(mission_id, eva_uuid)` because mission duplication can preserve EVA UUIDs.
@@ -27,9 +27,9 @@ cascades through both indexes. Loading a cold mission also refreshes its entry.
 
 Index updates are triggered by mission ID/name/archive status/action-system version/creation
 time, EVA UUID/name/as-planned membership, and the running REX's UUID/name/PET clock fields.
-Position entries, descriptions, actions and other content are excluded. A mission `updatedAt`
-change alone also does not trigger indexing: its timestamp is captured at the next relevant
-update or cold load. The admin list labels that timestamp as a snapshot. No full Automerge
+Position entries, descriptions, actions and other content are excluded. Mission `updatedAt`
+remains in the full document but is not stored in the catalog or shown in the admin mission
+list, so timestamp-only changes do not trigger indexing. No full Automerge
 document is copied or retained for comparison; the small cached values expire with the handle.
 
 Creation and admin archive/unarchive wait for projection before responding. Other synchronized

@@ -10,8 +10,7 @@ const indexedValues = new WeakMap<DocHandle<Mission>, string>();
 
 function catalogKey(projected: ReturnType<typeof summarizeMission>): string {
   return JSON.stringify({
-    // updatedAt is captured when indexing, but timestamp-only edits must not trigger it.
-    summary: { ...projected.summary, updatedAt: undefined },
+    summary: projected.summary,
     evas: [...projected.evas].sort((a, b) => a.evaUuid.localeCompare(b.evaUuid)),
   });
 }
@@ -39,7 +38,6 @@ export function summarizeMission(
     archivedAt: mission.archivedAt ?? null,
     actionSystemVersion: mission.actionSystemVersion,
     createdAt: mission.createdAt,
-    updatedAt: mission.updatedAt,
     runningRex: running
       ? {
           uuid: running.uuid,

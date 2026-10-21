@@ -236,9 +236,6 @@ const MissionList = ({
             </td>
             <td style={{ textAlign: "center" }}>{mission.actionSystemVersion ?? "—"}</td>
             <td style={{ whiteSpace: "nowrap" }}>
-              {mission.updatedAt ? new Date(mission.updatedAt).toLocaleString() : "—"}
-            </td>
-            <td style={{ whiteSpace: "nowrap" }}>
               {mission.createdAt ? new Date(mission.createdAt).toLocaleString() : "—"}
             </td>
             {archivedAtTable ? (
@@ -341,7 +338,7 @@ const MissionList = ({
       } else {
         return (
           <tr key={mission.id}>
-            <td colSpan={archivedAtTable ? 7 : 6}>
+            <td colSpan={archivedAtTable ? 7 : 5}>
               <span style={{ color: "#64748b", fontStyle: "italic", fontSize: "0.9rem" }}>
                 {mission.name} [No Edit Permissions]
               </span>
@@ -373,7 +370,6 @@ const MissionList = ({
                 <col />
                 <col className={styles.colVersion} />
                 <col className={styles.colDate} />
-                <col className={styles.colDate} />
                 <col className={styles.colActions} />
               </colgroup>
               <thead>
@@ -381,9 +377,6 @@ const MissionList = ({
                   <th>ID</th>
                   <th>Mission</th>
                   <th style={{ textAlign: "center" }}>Version</th>
-                  <th title="Captured when the mission was loaded on the server or its list details changed. Other edits may be newer.">
-                    Updated At (snapshot)
-                  </th>
                   <th>Created At</th>
                   <th>Actions</th>
                 </tr>
@@ -397,7 +390,6 @@ const MissionList = ({
                   <col className={styles.colId} />
                   <col />
                   <col className={styles.colVersion} />
-                  <col className={styles.colDate} />
                   <col className={styles.colDate} />
                   <col className={styles.colActions} />
                 </colgroup>
@@ -429,7 +421,6 @@ const MissionList = ({
                   <col className={styles.colVersion} />
                   <col className={styles.colDate} />
                   <col className={styles.colDate} />
-                  <col className={styles.colDate} />
                   <col className={styles.colActions} />
                   <col className={styles.colDelete} />
                 </colgroup>
@@ -438,9 +429,6 @@ const MissionList = ({
                     <th>ID</th>
                     <th>Mission</th>
                     <th style={{ textAlign: "center" }}>Version</th>
-                    <th title="Captured when the mission was loaded on the server or its list details changed. Other edits may be newer.">
-                      Updated At (snapshot)
-                    </th>
                     <th>Created At</th>
                     <th>Archived At</th>
                     <th>Actions</th>
@@ -456,7 +444,6 @@ const MissionList = ({
                     <col className={styles.colId} />
                     <col />
                     <col className={styles.colVersion} />
-                    <col className={styles.colDate} />
                     <col className={styles.colDate} />
                     <col className={styles.colDate} />
                     <col className={styles.colActions} />
