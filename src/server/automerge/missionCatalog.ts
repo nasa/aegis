@@ -15,12 +15,6 @@ function catalogKey(projected: ReturnType<typeof summarizeMission>): string {
   });
 }
 
-export type EvaSummary = {
-  evaUuid: string;
-  name: string;
-  isAsPlanned: boolean;
-};
-
 /** Read only the fields used by discovery; never clone/serialize the whole mission. */
 export function summarizeMission(
   mission: Mission,

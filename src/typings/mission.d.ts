@@ -212,6 +212,12 @@ type MissionSummary = Pick<
   runningRex: RunningRexSummary | null;
 };
 
+type EvaSummary = {
+  evaUuid: string;
+  name: string;
+  isAsPlanned: boolean;
+};
+
 type OneMissionToRuleThemAll = {
   mission: Mission;
 };
