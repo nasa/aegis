@@ -7,7 +7,6 @@ export class LazyMissionRepo extends Repo {
   readonly lastAccess = new Map<DocumentId, number>();
   onDocumentLoaded?: (documentId: DocumentId) => void;
   private coldLoads: Promise<unknown> = Promise.resolve();
-  private pendingColdLoads = 0;
 
   override find<T>(
     id: AnyDocumentId,
@@ -19,13 +18,6 @@ export class LazyMissionRepo extends Repo {
     // makes a pending find ready. Queuing that message behind the find would deadlock it.
     const existing = this.handles[documentId];
     if (existing) {
-      serverLogger.debug({
-        logId: "mission-load",
-        logValue: "Using existing document handle",
-        documentId,
-        ready: existing.isReady(),
-        pendingColdLoads: this.pendingColdLoads,
-      });
       const found = super.find<T>(id, options);
       if (existing.isReady()) return found;
       return found.then((handle) => {
@@ -36,51 +28,32 @@ export class LazyMissionRepo extends Repo {
     // Repo itself coalesces requests for the same document. Serialize cold calls (including
     // network requests) without delaying reads of already resident documents.
     const queuedAt = Date.now();
-    this.pendingColdLoads += 1;
-    serverLogger.debug({
-      logId: "mission-load",
-      logValue: "Cold document load queued",
-      documentId,
-      pendingColdLoads: this.pendingColdLoads,
-    });
     const load = this.coldLoads.then(async () => {
       const started = Date.now();
-      const queueWaitMs = started - queuedAt;
-      serverLogger.info({
-        logId: "mission-load",
-        logValue: "Cold document load started",
-        documentId,
-        queueWaitMs,
-        pendingColdLoads: this.pendingColdLoads,
-      });
       try {
         const handle = await super.find<T>(id, options);
         this.onDocumentLoaded?.(documentId);
         const durationMs = Date.now() - started;
         serverLogger[durationMs >= 5000 ? "warning" : "info"]({
           logId: "mission-load",
-          logValue: "Cold document load completed",
+          logValue: "Mission document loaded",
           documentId,
           durationMs,
-          queueWaitMs,
-          residentDocuments: Object.keys(this.handles).length,
-          rssBytes: process.memoryUsage.rss(),
+          queueWaitMs: started - queuedAt,
         });
         return handle;
       } catch (error) {
         serverLogger.error(
           {
             logId: "mission-load",
-            logValue: "Cold document load failed",
+            logValue: "Mission document load failed",
             documentId,
             durationMs: Date.now() - started,
-            queueWaitMs,
+            queueWaitMs: started - queuedAt,
           },
           error instanceof Error ? error : new Error(String(error))
         );
         throw error;
-      } finally {
-        this.pendingColdLoads -= 1;
       }
     });
     this.coldLoads = load.catch(() => {});

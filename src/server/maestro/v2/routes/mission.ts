@@ -65,11 +65,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     } else {
       //super admin and emss token can see all missions
       if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) {
-        serverLogger.notice({
-          logId: "mission-load",
-          logValue: "Maestro mission export requested all mission documents",
-          appUsername: req.session?.appUser?.username,
-        });
         records = await getAutomergeMissions();
       } else {
         //return all missions that they have permission for

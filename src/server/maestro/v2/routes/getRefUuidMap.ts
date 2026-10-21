@@ -75,10 +75,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
  * that belong to no EVA at all) is as-planned.
  */
 export async function getRefUuidMapData(): Promise<MissionRefUuidMaps> {
-  serverLogger.notice({
-    logId: "mission-load",
-    logValue: "Maestro getRefUuidMap requested a full mission scan",
-  });
   const allMissions = await getAutomergeMissions();
   const activeMissions = allMissions.filter((mission) => !mission.archivedAt);
 

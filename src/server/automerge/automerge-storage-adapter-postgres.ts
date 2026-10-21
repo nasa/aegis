@@ -5,7 +5,6 @@ import type {
   StorageKey,
 } from "@automerge/automerge-repo";
 import pg from "pg";
-import { serverLogger } from "utils/logging/serverLogger";
 
 function keyToArray(key: StorageKey): Buffer[] {
   return key.map((k) => Buffer.from(k, "utf8"));
@@ -58,39 +57,13 @@ export class PostgresStorageAdapter implements StorageAdapterInterface {
   }
 
   async save(key: StorageKey, data: Uint8Array): Promise<void> {
-    const started = Date.now();
     const keyArray = keyToArray(key);
-    try {
-      await this.pool.query(
-        `insert into ${this.tableName} (key, value) values ($1, $2)` +
-          "on conflict (key) do update set value = $2",
-        [keyArray, Buffer.from(data)]
-      );
-    } catch (error) {
-      serverLogger.error(
-        {
-          logId: "mission-storage",
-          logValue: "Automerge storage save failed",
-          documentId: key[0],
-          chunkType: key[1],
-          bytes: data.byteLength,
-          durationMs: Date.now() - started,
-        },
-        error instanceof Error ? error : new Error(String(error))
-      );
-      throw error;
-    }
+    await this.pool.query(
+      `insert into ${this.tableName} (key, value) values ($1, $2)` +
+        "on conflict (key) do update set value = $2",
+      [keyArray, Buffer.from(data)]
+    );
     if (key[1] === "snapshot" || key[1] === "incremental") {
-      const durationMs = Date.now() - started;
-      serverLogger[durationMs >= 1000 ? "warning" : "debug"]({
-        logId: "mission-storage",
-        logValue: "Automerge document chunk saved",
-        documentId: key[0],
-        chunkType: key[1],
-        bytes: data.byteLength,
-        durationMs,
-        catalogListenerAttached: !!this.onDocumentSaved,
-      });
       this.onDocumentSaved?.(key[0] as DocumentId);
     }
   }
@@ -101,7 +74,6 @@ export class PostgresStorageAdapter implements StorageAdapterInterface {
   }
 
   async loadRange(keyPrefix: StorageKey): Promise<Chunk[]> {
-    const started = Date.now();
     let result;
     if (keyPrefix.length == 0) {
       result = await this.pool.query(`select key, value from ${this.tableName}`);
@@ -112,17 +84,6 @@ export class PostgresStorageAdapter implements StorageAdapterInterface {
         [lowerBound, upperBound]
       );
     }
-    const durationMs = Date.now() - started;
-    serverLogger[durationMs >= 1000 ? "warning" : "debug"]({
-      logId: "mission-storage",
-      logValue: "Automerge storage range loaded",
-      documentId: keyPrefix[0],
-      chunkType: keyPrefix[1],
-      allDocuments: keyPrefix.length === 0,
-      chunks: result.rows.length,
-      durationMs,
-      bytes: result.rows.reduce((sum, row) => sum + row.value.byteLength, 0),
-    });
     return result.rows.map((row) => ({
       key: arrayToKey(row.key),
       data: Uint8Array.from(row.value),

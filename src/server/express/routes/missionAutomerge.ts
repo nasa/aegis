@@ -22,7 +22,6 @@ const router = express.Router();
 
 // Await persistence and projection so an immediate admin-list refresh sees the archive change.
 router.post("/archive", async (req: Request, res: Response) => {
-  const started = Date.now();
   const { missionId, archive } = req.body ?? {};
   if (!Number.isInteger(missionId) || missionId <= 0 || typeof archive !== "boolean") {
     res.status(400).json({ status: "failure", message: "Invalid mission ID or archive flag" });
@@ -49,25 +48,10 @@ router.post("/archive", async (req: Request, res: Response) => {
       mission.archivedAt = archive ? Date.now() : null;
     });
     await refreshMissionCatalog(globalValues.automergeRepo, handle);
-    serverLogger.info({
-      logId: "mission-catalog",
-      logValue: "Archive status and mission index updated",
-      missionId,
-      documentId: handle.documentId,
-      archived: archive,
-      durationMs: Date.now() - started,
-      appUsername: req.session?.appUser?.username,
-    });
     res.json({ status: "success", message: "Mission archive status updated" });
   } catch (error) {
     serverLogger.error(
-      {
-        logId: "mission-archive",
-        logValue: "Could not archive mission",
-        missionId,
-        archived: archive,
-        durationMs: Date.now() - started,
-      },
+      { logId: "mission-archive", logValue: "Could not archive mission" },
       asError(error)
     );
     res.status(500).json({ status: "error", message: "Could not archive mission" });
@@ -395,33 +379,12 @@ export function missionHasLanderDependentEntities(mission: Mission): boolean {
 export async function getAutomergeMissionHandle(
   missionId: number
 ): Promise<DocHandle<Mission> | null> {
-  const started = Date.now();
   const listings = await getAutomergeDocListing([missionId]);
-  if (!listings.length) {
-    serverLogger.debug({
-      logId: "mission-load",
-      logValue: "Mission handle lookup found no listing",
-      missionId,
-    });
-    return null;
-  }
-  serverLogger.debug({
-    logId: "mission-load",
-    logValue: "Requesting mission document handle",
-    missionId,
-    automergeUrl: listings[0].automergeUrl,
-  });
+  if (!listings.length) return null;
   const handle = await globalValues.automergeRepo.find<Mission>(
     listings[0].automergeUrl as AutomergeUrl
   );
   await handle.whenReady();
-  serverLogger.debug({
-    logId: "mission-load",
-    logValue: "Mission document handle ready",
-    missionId,
-    documentId: handle.documentId,
-    durationMs: Date.now() - started,
-  });
   return handle;
 }
 
@@ -432,22 +395,8 @@ export async function getAutomergeMissionHandle(
  * @param missionIds Ids for the missions. If no id is provided it will return all missions
  */
 export async function getAutomergeMissions(missionIds?: number[]): Promise<Mission[]> {
-  const started = Date.now();
   const automergeListings = await getAutomergeDocListing(missionIds);
-  serverLogger[missionIds === undefined ? "notice" : "debug"]({
-    logId: "mission-load",
-    logValue: "Full mission document read requested",
-    allMissions: missionIds === undefined,
-    documents: automergeListings.length,
-    missionIdSample: automergeListings.slice(0, 20).map((listing) => listing.missionId),
-  });
   const missionPromises = automergeListings.map(async (listing) => {
-    serverLogger.debug({
-      logId: "mission-load",
-      logValue: "Requesting full mission document",
-      missionId: listing.missionId,
-      automergeUrl: listing.automergeUrl,
-    });
     const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
       listing.automergeUrl as AutomergeUrl
     );
@@ -456,13 +405,6 @@ export async function getAutomergeMissions(missionIds?: number[]): Promise<Missi
   });
 
   const missionsToReturn = await Promise.all(missionPromises);
-  serverLogger.debug({
-    logId: "mission-load",
-    logValue: "Full mission document read completed",
-    documents: missionsToReturn.length,
-    allMissions: missionIds === undefined,
-    durationMs: Date.now() - started,
-  });
   return missionsToReturn;
 }
 
@@ -496,12 +438,6 @@ export async function createAutomergeMission(
 
   // Use the caller's entity manager: duplication can create the listing inside a transaction.
   await projectMission(globalValues.automergeRepo, missionDocHandle, em);
-  serverLogger.info({
-    logId: "mission-catalog",
-    logValue: "New mission catalog initialized",
-    missionId: dbReference.missionId,
-    documentId: missionDocHandle.documentId,
-  });
   return dbReference as AutomergeDocListing;
 }
 
@@ -522,12 +458,6 @@ export async function deleteAutomergeMissions(missionIds: number[]): Promise<num
     const automergeUrl = entity.automergeUrl as AutomergeUrl;
     if (entity) em.remove(entity);
     await em.flush();
-    serverLogger.info({
-      logId: "mission-catalog",
-      logValue: "Mission listing deleted; catalog rows cascade deleted",
-      missionId,
-      automergeUrl,
-    });
 
     // delete the doc handler the server is holding
     const allHandles: Record<DocumentId, DocHandle<unknown>> = globalValues.automergeRepo.handles;
