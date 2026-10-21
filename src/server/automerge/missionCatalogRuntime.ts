@@ -1,19 +1,15 @@
 import type { AutomergeUrl, DocHandle, DocumentId, Repo } from "@automerge/automerge-repo/slim";
-import { getPendingMissionListings, projectMission } from "./missionCatalog";
+import { getUnindexedMissionListings, projectMission } from "./missionCatalog";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { LazyMissionRepo } from "./lazyMissionRepo";
+import type { PostgresStorageAdapter } from "./automerge-storage-adapter-postgres";
 
-export async function refreshMissionCatalog(repo: Repo, handle: DocHandle<Mission>): Promise<void> {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    if (await projectMission(repo, handle)) return;
-  }
-  throw new Error(`Mission catalog kept changing during projection: ${handle.url}`);
-}
+export const refreshMissionCatalog = projectMission;
 
-/** One-time backfill / crash recovery. Clean startup performs only the SQL listing query. */
+/** One-time backfill. Clean startup performs only the SQL listing query. */
 export async function repairMissionCatalog(repo: Repo, missionIds?: number[]): Promise<void> {
-  const pending = (await getPendingMissionListings()).filter(
+  const pending = (await getUnindexedMissionListings()).filter(
     (listing) => !missionIds || missionIds.includes(listing.missionId)
   );
   if (!pending.length) return;
@@ -45,18 +41,21 @@ export function retainMissionDocuments(): () => void {
 }
 
 /**
- * Project durable changes, including remote sync, imports and direct server edits. The storage
- * trigger is the durable queue: no reliance on Repo's currently non-emitted `document` event,
- * or on its save metrics (which fire BEFORE the database write completes).
+ * Save/open notifications queue only the affected document. No database polling or durable queue.
+ * Queue work outside storage.save(): projection flushes the repo and must not block its own save.
  */
 export function startMissionCatalogRuntime(
   repo: LazyMissionRepo,
+  storage: PostgresStorageAdapter,
   idleMs = 15 * 60 * 1000
 ): {
   refresh: () => Promise<void>;
   stop: () => Promise<void>;
 } {
   let running: Promise<void> | undefined;
+  let maintenance: Promise<void> | undefined;
+  let stopped = false;
+  const queued = new Set<DocumentId>();
   const lastSeen = new Map<DocumentId, number>();
   const inUse = () =>
     activeRequests > 0 ||
@@ -65,25 +64,45 @@ export function startMissionCatalogRuntime(
     globalValues.maestroV2.docHandles.size > 0 ||
     globalValues.dustV1.docHandles.size > 0;
 
-  const tick = async () => {
-    const pending = await getPendingMissionListings();
-    const failures: unknown[] = [];
-    for (const listing of pending) {
-      const id = listing.automergeUrl.slice("automerge:".length) as DocumentId;
-      const handle = repo.handles[id] as DocHandle<Mission> | undefined;
-      // Unloaded historical documents stay cold. Startup repaired all pre-existing markers;
-      // normal writes come through this repo and therefore have a resident handle.
-      if (handle?.isReady()) {
-        lastSeen.set(id, Date.now());
-        try {
-          await refreshMissionCatalog(repo, handle);
-        } catch (error) {
-          // One busy/failing mission must not prevent other summaries from advancing.
-          failures.push(error);
+  const reportError = (error: unknown) => {
+    serverLogger.error(
+      { logId: "mission-catalog", logValue: "Catalog update failed; next save/open will retry" },
+      error instanceof Error ? error : new Error(String(error))
+    );
+  };
+  const drain = (): Promise<void> => {
+    if (running) return running;
+    running = Promise.resolve()
+      .then(async () => {
+        while (queued.size) {
+          const id = queued.values().next().value;
+          queued.delete(id);
+          const handle = repo.handles[id] as DocHandle<Mission> | undefined;
+          if (handle?.isReady()) {
+            try {
+              await refreshMissionCatalog(repo, handle);
+            } catch (error) {
+              reportError(error);
+            }
+          }
         }
-      }
-    }
+      })
+      .finally(() => {
+        running = undefined;
+        if (queued.size && !stopped && !maintenance) drain();
+      });
+    return running;
+  };
+  const enqueue = (id: DocumentId) => {
+    if (stopped) return;
+    lastSeen.set(id, Date.now());
+    queued.add(id);
+    if (!maintenance) drain();
+  };
+  storage.onDocumentSaved = enqueue;
+  repo.onDocumentLoaded = enqueue;
 
+  const evictIdle = async () => {
     for (const [idString, handle] of Object.entries(repo.handles)) {
       const id = idString as DocumentId;
       if (!lastSeen.has(id)) lastSeen.set(id, Date.now());
@@ -104,33 +123,32 @@ export function startMissionCatalogRuntime(
         repo.lastAccess.delete(id);
       }
     }
-    if (failures.length) throw new AggregateError(failures, "Mission catalog refresh failures");
   };
   const refresh = () => {
-    if (running) return running;
-    running = tick()
-      .catch((error) => {
-        serverLogger.error(
-          { logId: "mission-catalog", logValue: "Catalog refresh failed; will retry" },
-          error
-        );
-      })
+    maintenance ??= drain()
+      .then(evictIdle)
       .finally(() => {
-        running = undefined;
+        maintenance = undefined;
+        if (queued.size && !stopped) drain();
       });
-    return running;
+    return maintenance;
   };
+  // Memory housekeeping only. No index queries or projection unless a handle is being evicted.
   const timer = setInterval(() => {
-    refresh();
-  }, 1000);
+    refresh().catch(reportError);
+  }, 60_000);
   timer.unref();
   return {
     refresh,
     stop: async () => {
       clearInterval(timer);
+      stopped = true;
+      storage.onDocumentSaved = undefined;
+      repo.onDocumentLoaded = undefined;
+      await maintenance;
       await running;
-      // The caller stops network writers and flushes the repo before this final pass.
-      await tick();
+      // The caller stops network writers and flushes the repo before draining the queue.
+      await drain();
     },
   };
 }

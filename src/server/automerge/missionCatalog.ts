@@ -82,55 +82,40 @@ export async function getMissionIdsForEva(evaUuid: string): Promise<number[]> {
   return rows.map(({ missionId }) => missionId);
 }
 
-export async function getPendingMissionListings(
+export async function getUnindexedMissionListings(
   em = globalValues.orm.em.fork()
 ): Promise<AutomergeDocListing[]> {
   return em.execute<AutomergeDocListing[]>(
     `select d.mission_id as "missionId", d.automerge_url as "automergeUrl"
      from doc_listing_db d
      left join mission_catalog_db c using (mission_id)
-     left join mission_catalog_pending_db p on d.automerge_url = 'automerge:' || p.document_id
-     where c.mission_id is null or c.projection_version <> ? or p.document_id is not null
+     where c.mission_id is null or c.projection_version <> ?
      order by d.mission_id`,
     [MISSION_CATALOG_VERSION]
   );
 }
 
 /**
- * Persist a summary and its EVA index together, then acknowledge exactly the storage generation
- * read before projection. A newer write leaves its durable marker in place for retry/restart.
- * Used by the single API repo; document migrations must run with the API stopped.
+ * Update the mission summary and EVA rows together. Updates use the current resident document;
+ * the save notification queues another pass if more changes arrive during projection.
  */
 export async function projectMission(
   repo: Repo,
   handle: DocHandle<Mission>,
   em: EntityManager = globalValues.orm.em.fork()
-): Promise<boolean> {
-  const pending = await em.execute<{ generation: string }[]>(
-    "select generation::text from mission_catalog_pending_db where document_id = ?",
-    [handle.documentId]
-  );
-  const generation = pending[0]?.generation;
-  const doc = handle.doc();
-  if (!doc) return false;
-  const projected = summarizeMission(doc);
-
-  // A catalog must never describe an edit which only exists in RAM. If this flush changes
-  // the generation, the compare below rejects the projection and the caller retries.
+): Promise<void> {
   await repo.flush([handle.documentId]);
 
-  return em.transactional(async (tx) => {
+  await em.transactional(async (tx) => {
     const listings = await tx.execute<{ missionId: number }[]>(
       `select mission_id as "missionId" from doc_listing_db
        where automerge_url = ? for update`,
       [handle.url]
     );
-    if (!listings.length) return true; // Deleted, or a newly created doc not yet registered.
-    const current = await tx.execute<{ generation: string }[]>(
-      "select generation::text from mission_catalog_pending_db where document_id = ? for update",
-      [handle.documentId]
-    );
-    if (current[0]?.generation !== generation) return false;
+    if (!listings.length) return; // Deleted, or a newly created doc not yet registered.
+    // Read after taking the listing lock so concurrent explicit and queued projections
+    // cannot overwrite a newer summary with a previously captured document.
+    const projected = summarizeMission(handle.doc());
 
     for (const { missionId } of listings) {
       const summary = { ...projected.summary, id: missionId };
@@ -162,12 +147,5 @@ export async function projectMission(
         );
       }
     }
-    if (generation !== undefined) {
-      await tx.execute(
-        "delete from mission_catalog_pending_db where document_id = ? and generation = ?",
-        [handle.documentId, generation]
-      );
-    }
-    return true;
   });
 }

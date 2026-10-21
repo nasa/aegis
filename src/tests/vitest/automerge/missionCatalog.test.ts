@@ -8,12 +8,7 @@ import { globalValues } from "server/express/global";
 import app from "server/express/restApi";
 import { LazyMissionRepo } from "server/automerge/lazyMissionRepo";
 import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
-import {
-  getMissionSummaries,
-  getMissionIdsForEva,
-  getPendingMissionListings,
-  projectMission,
-} from "server/automerge/missionCatalog";
+import { getMissionSummaries, getMissionIdsForEva } from "server/automerge/missionCatalog";
 import {
   refreshMissionCatalog,
   repairMissionCatalog,
@@ -72,9 +67,6 @@ afterEach(async () => {
   for (const id of ids) await em.execute("delete from doc_listing_db where mission_id = ?", [id]);
   for (const handle of handles) {
     await storage.removeRange([handle.documentId]);
-    await em.execute("delete from mission_catalog_pending_db where document_id = ?", [
-      handle.documentId,
-    ]);
   }
   globalValues.orm.em.clear();
 });
@@ -131,14 +123,14 @@ test("persisted edits update names, archives, EVA membership and the small REX c
   const eva = generateBlankEVA();
   const handle = await createMission({ evas: { [eva.uuid]: eva } });
   const rex = generateBlankRex({ evaUuid: eva.uuid, isRunning: true, petRunning: true });
-  handle.change((m) => {
-    m.name = "Renamed";
-    m.rexes[rex.uuid] = rex;
-  });
-  await repo.flush();
-  const runtime = startMissionCatalogRuntime(repo);
+  const runtime = startMissionCatalogRuntime(repo, storage);
   try {
-    await runtime.refresh();
+    handle.change((m) => {
+      m.name = "Renamed";
+      m.rexes[rex.uuid] = rex;
+    });
+    await repo.flush();
+    await vi.waitFor(async () => expect((await getMissionSummaries(ids))[0].name).toBe("Renamed"));
     const [summary] = await getMissionSummaries(ids);
     expect(summary.name).toBe("Renamed");
     expect(summary.runningRex).toMatchObject({ uuid: rex.uuid, petRunning: true });
@@ -153,8 +145,7 @@ test("persisted edits update names, archives, EVA membership and the small REX c
       delete m.evas[eva.uuid];
     });
     await repo.flush();
-    await runtime.refresh();
-    expect(await getMissionSummaries(ids)).toEqual([]);
+    await vi.waitFor(async () => expect(await getMissionSummaries(ids)).toEqual([]));
     expect((await getMissionSummaries(ids, true))[0].runningRex).toBeNull();
     expect(await getMissionIdsForEva(eva.uuid)).toEqual([]);
   } finally {
@@ -162,36 +153,41 @@ test("persisted edits update names, archives, EVA membership and the small REX c
   }
 });
 
-test("a newer save cannot be acknowledged by an older projection", async () => {
+test("an edit saved during projection queues another update", async () => {
   const handle = await createMission();
-  handle.change((m) => {
-    m.name = "First edit";
-  });
-  await repo.flush();
   const originalFlush = repo.flush.bind(repo);
-  vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
-    handle.change((m) => {
-      m.name = "Second edit";
+  const runtime = startMissionCatalogRuntime(repo, storage);
+  try {
+    vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
+      handle.change((m) => {
+        m.name = "Second edit";
+      });
+      await originalFlush(documents);
     });
-    await originalFlush(documents);
-  });
-  expect(await projectMission(repo, handle)).toBe(false);
-  expect((await getPendingMissionListings()).some((l) => l.missionId === ids[0])).toBe(true);
-  await refreshMissionCatalog(repo, handle);
-  expect((await getMissionSummaries(ids))[0].name).toBe("Second edit");
+    handle.change((m) => {
+      m.name = "First edit";
+    });
+    await originalFlush();
+    await vi.waitFor(async () =>
+      expect((await getMissionSummaries(ids))[0].name).toBe("Second edit")
+    );
+  } finally {
+    await runtime.stop();
+  }
 });
 
 test("merged remote edits are indexed through storage, without an HTTP mutation", async () => {
   const handle = await createMission();
-  const remote = Automerge.change(Automerge.clone(handle.doc()), (m) => {
-    m.name = "Remote rename";
-  });
-  repo.import(Automerge.save(remote), { docId: handle.documentId });
-  await repo.flush();
-  const runtime = startMissionCatalogRuntime(repo);
+  const runtime = startMissionCatalogRuntime(repo, storage);
   try {
-    await runtime.refresh();
-    expect((await getMissionSummaries(ids))[0].name).toBe("Remote rename");
+    const remote = Automerge.change(Automerge.clone(handle.doc()), (m) => {
+      m.name = "Remote rename";
+    });
+    repo.import(Automerge.save(remote), { docId: handle.documentId });
+    await repo.flush();
+    await vi.waitFor(async () =>
+      expect((await getMissionSummaries(ids))[0].name).toBe("Remote rename")
+    );
   } finally {
     await runtime.stop();
   }
@@ -213,8 +209,14 @@ test("unrelated changes and sync-state saves do not rewrite catalog rows", async
   });
   await refreshMissionCatalog(repo, handle);
   expect(await versions()).toEqual(before);
-  await storage.save([handle.documentId, "sync-state", "test-peer"], new Uint8Array([1]));
-  expect((await getPendingMissionListings()).some((l) => l.missionId === ids[0])).toBe(false);
+  const onSave = vi.fn();
+  storage.onDocumentSaved = onSave;
+  try {
+    await storage.save([handle.documentId, "sync-state", "test-peer"], new Uint8Array([1]));
+    expect(onSave).not.toHaveBeenCalled();
+  } finally {
+    storage.onDocumentSaved = undefined;
+  }
 });
 
 test("archive endpoint enforces permissions and publishes its summary before responding", async () => {
@@ -246,7 +248,7 @@ test("archive endpoint enforces permissions and publishes its summary before res
   expect(await getMissionSummaries(ids)).toHaveLength(1);
 });
 
-test("restart repairs only dirty or missing summaries and releases backfilled handles", async () => {
+test("startup backfills missing summaries and opening a cold mission refreshes its index", async () => {
   const first = await createMission();
   const second = await createMission();
   await createMission();
@@ -262,12 +264,21 @@ test("restart repairs only dirty or missing summaries and releases backfilled ha
   globalValues.automergeRepo = repo;
   const find = vi.spyOn(repo, "find");
   await repairMissionCatalog(repo, ids);
-  expect(find.mock.calls.map(([url]) => url)).toEqual([first.url, second.url]);
+  expect(find.mock.calls.map(([url]) => url)).toEqual([second.url]);
   expect(Object.keys(repo.handles)).toHaveLength(0);
-  expect((await getMissionSummaries([ids[0]]))[0].name).toBe("Persisted before crash");
   find.mockClear();
   await repairMissionCatalog(repo, ids);
   expect(find).not.toHaveBeenCalled();
+  const runtime = startMissionCatalogRuntime(repo, storage);
+  try {
+    await repo.find(first.url);
+    await vi.waitFor(async () =>
+      expect((await getMissionSummaries([ids[0]]))[0].name).toBe("Persisted before crash")
+    );
+    expect(find.mock.calls.map(([url]) => url)).toEqual([first.url]);
+  } finally {
+    await runtime.stop();
+  }
 });
 
 test("deleting a listing removes both indexes and a late projector cannot recreate them", async () => {
@@ -281,9 +292,25 @@ test("deleting a listing removes both indexes and a late projector cannot recrea
   expect(await getMissionIdsForEva(eva.uuid)).toEqual([]);
 });
 
+test("idle runtime does not query the catalog or flush documents on a timer", async () => {
+  await createMission();
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+  const fork = vi.spyOn(globalValues.orm.em, "fork");
+  const flush = vi.spyOn(repo, "flush");
+  const runtime = startMissionCatalogRuntime(repo, storage);
+  try {
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(fork).not.toHaveBeenCalled();
+    expect(flush).not.toHaveBeenCalled();
+  } finally {
+    await runtime.stop();
+    vi.useRealTimers();
+  }
+});
+
 test("idle eviction preserves HTTP consumers and persists before releasing a document", async () => {
   const handle = await createMission();
-  const runtime = startMissionCatalogRuntime(repo, 0);
+  const runtime = startMissionCatalogRuntime(repo, storage, 0);
   const release = retainMissionDocuments();
   try {
     await runtime.refresh();

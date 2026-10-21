@@ -33,11 +33,3 @@ export const Mission_Eva_Catalog_dbSchema = defineEntity({
     isAsPlanned: p.boolean(),
   },
 });
-
-export const Mission_Catalog_Pending_dbSchema = defineEntity({
-  name: "Mission_Catalog_Pending_db",
-  properties: {
-    documentId: p.text().primary(),
-    generation: p.uuid().defaultRaw("gen_random_uuid()"),
-  },
-});
