@@ -67,10 +67,11 @@ time, rather than retaining the entire historical collection.
 
 Idle documents are eligible for release after four hours. A separate once-per-minute
 memory housekeeping timer checks resident handles; it does not query the catalog for changes.
-Eviction is deliberately conservative: it waits until there are no Automerge peers, Aegis
-visitors, Maestro/DUST handle
-consumers or in-flight HTTP requests, and flushes/projects before releasing. It does not impose
-a hard memory cap while clients remain connected. Opening a large individual mission can still
+Eviction retains missions with a running REX, Aegis visitors, or Maestro/DUST visitors or
+retained handles. When the last such consumer disappears, a new four-hour grace period starts.
+Any in-flight HTTP request pauses eviction. Connected Automerge peers alone do not prevent
+eviction. Eligible documents are flushed and projected before release; activity during that
+work cancels eviction. There is no hard memory cap for retained missions. Opening a large individual mission can still
 be expensive. Cache release uses the installed Repo's experimental `removeFromCache` API through
 `releaseMissionDocument`, after flushing the real document. The helper skips the unload
 transition while Repo clears its caches and synchronizer: Repo 2.5.6 otherwise broadcasts and
