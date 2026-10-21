@@ -18,7 +18,7 @@ import {
 import { createAutomergeMission } from "server/express/routes/missionAutomerge";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankRex } from "store/storeUtils/rex";
+import { generateBlankRex, generateBlankPosEntry } from "store/storeUtils/rex";
 import { getRexesByEva } from "server/maestro/v2/routes/getRexesByEva";
 import * as Automerge from "@automerge/automerge";
 
@@ -140,6 +140,29 @@ test("persisted edits update names, archives, EVA membership and the small REX c
       .set("emss-token", process.env.EMSS_TOKEN);
     expect(response.body.data[ids[0]].evas).toEqual([]);
     handle.change((m) => {
+      m.evas[eva.uuid].name = "Renamed EVA";
+      m.rexes[rex.uuid].name = "Renamed running REX";
+      m.rexes[rex.uuid].petRunning = false;
+      m.rexes[rex.uuid].petValueAtStartStop = "+01:00:00";
+      m.rexes[rex.uuid].petStartStopTimestamp = "2026-10-21T12:00:00.000Z";
+    });
+    await repo.flush();
+    await runtime.refresh();
+    expect((await getMissionSummaries(ids))[0].runningRex).toMatchObject({
+      name: "Renamed running REX",
+      petRunning: false,
+      petValueAtStartStop: "+01:00:00",
+      petStartStopTimestamp: "2026-10-21T12:00:00.000Z",
+    });
+    expect(
+      await globalValues.orm.em
+        .fork()
+        .execute("select name from mission_eva_catalog_db where mission_id = ? and eva_uuid = ?", [
+          ids[0],
+          eva.uuid,
+        ])
+    ).toEqual([{ name: "Renamed EVA" }]);
+    handle.change((m) => {
       m.archivedAt = 123;
       m.rexes[rex.uuid].isRunning = false;
       delete m.evas[eva.uuid];
@@ -216,6 +239,85 @@ test("unrelated changes and sync-state saves do not rewrite catalog rows", async
     expect(onSave).not.toHaveBeenCalled();
   } finally {
     storage.onDocumentSaved = undefined;
+  }
+});
+
+test("unrelated local and remote edits, including timestamp changes, perform no catalog queries", async () => {
+  const eva = generateBlankEVA();
+  const running = generateBlankRex({ evaUuid: eva.uuid, isRunning: true });
+  const inactive = generateBlankRex({ evaUuid: eva.uuid });
+  const handle = await createMission({
+    evas: { [eva.uuid]: eva },
+    rexes: { [running.uuid]: running, [inactive.uuid]: inactive },
+  });
+  const originalUpdatedAt = handle.doc().updatedAt;
+  const runtime = startMissionCatalogRuntime(repo, storage);
+  const fork = vi.spyOn(globalValues.orm.em, "fork");
+  const flush = vi.spyOn(repo, "flush");
+  try {
+    handle.change((m) => {
+      m.description = "Unrelated mission content";
+      m.updatedAt = originalUpdatedAt + 1;
+      m.evas[eva.uuid].description = "EVA notes";
+      m.evas[eva.uuid].updatedAt += 1;
+      m.rexes[running.uuid].posEntries = [generateBlankPosEntry()];
+      m.rexes[running.uuid].updatedAt += 1;
+      m.rexes[inactive.uuid].name = "Inactive REX name";
+      m.rexes[inactive.uuid].petRunning = true;
+    });
+    await repo.flush();
+    flush.mockClear();
+    await runtime.refresh();
+    expect(fork).not.toHaveBeenCalled();
+    expect(flush).not.toHaveBeenCalled();
+
+    const remote = Automerge.change(Automerge.clone(handle.doc()), (m) => {
+      m.description = "Remote unrelated edit";
+      m.updatedAt += 1;
+    });
+    repo.import(Automerge.save(remote), { docId: handle.documentId });
+    await repo.flush();
+    flush.mockClear();
+    await runtime.refresh();
+    expect(fork).not.toHaveBeenCalled();
+    expect(flush).not.toHaveBeenCalled();
+    expect((await getMissionSummaries(ids))[0].updatedAt).toBe(originalUpdatedAt);
+
+    handle.change((m) => {
+      m.name = "Relevant name change";
+    });
+    await repo.flush();
+    await runtime.refresh();
+    expect((await getMissionSummaries(ids))[0]).toMatchObject({
+      name: "Relevant name change",
+      updatedAt: originalUpdatedAt + 2,
+    });
+  } finally {
+    await runtime.stop();
+  }
+});
+
+test("a failed projection is not remembered as indexed and retries on the next save", async () => {
+  const handle = await createMission();
+  const runtime = startMissionCatalogRuntime(repo, storage);
+  try {
+    vi.spyOn(globalValues.orm.em, "fork").mockImplementationOnce(() => {
+      throw new Error("Test catalog write failure");
+    });
+    handle.change((m) => {
+      m.name = "Name awaiting index";
+    });
+    await repo.flush();
+    await runtime.refresh();
+    expect((await getMissionSummaries(ids))[0].name).not.toBe("Name awaiting index");
+    handle.change((m) => {
+      m.description = "Next save retries the pending name change";
+    });
+    await repo.flush();
+    await runtime.refresh();
+    expect((await getMissionSummaries(ids))[0].name).toBe("Name awaiting index");
+  } finally {
+    await runtime.stop();
   }
 });
 
@@ -308,23 +410,26 @@ test("idle runtime does not query the catalog or flush documents on a timer", as
   }
 });
 
-test("idle eviction preserves HTTP consumers and persists before releasing a document", async () => {
-  const handle = await createMission();
-  const runtime = startMissionCatalogRuntime(repo, storage, 0);
-  const release = retainMissionDocuments();
-  try {
-    await runtime.refresh();
-    expect(repo.handles[handle.documentId]).toBeDefined();
-    handle.change((m) => {
-      m.name = "Saved before eviction";
-    });
-    release();
-    await runtime.refresh();
-    expect(repo.handles[handle.documentId]).toBeUndefined();
-    const reloaded = await repo.find<Mission>(handle.url);
-    expect(reloaded.doc().name).toBe("Saved before eviction");
-  } finally {
-    release();
-    await runtime.stop();
+test.each(["name", "description"] as const)(
+  "idle eviction preserves HTTP consumers and persists %s edits before releasing",
+  async (field) => {
+    const handle = await createMission();
+    const runtime = startMissionCatalogRuntime(repo, storage, 0);
+    const release = retainMissionDocuments();
+    try {
+      await runtime.refresh();
+      expect(repo.handles[handle.documentId]).toBeDefined();
+      handle.change((m) => {
+        m[field] = "Saved before eviction";
+      });
+      release();
+      await runtime.refresh();
+      expect(repo.handles[handle.documentId]).toBeUndefined();
+      const reloaded = await repo.find<Mission>(handle.url);
+      expect(reloaded.doc()[field]).toBe("Saved before eviction");
+    } finally {
+      release();
+      await runtime.stop();
+    }
   }
-});
+);

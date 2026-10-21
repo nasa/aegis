@@ -16,12 +16,21 @@ endpoint still deliberately read full documents.
 ## Updates
 
 After successfully saving an Automerge snapshot/incremental chunk, the PostgreSQL storage
-adapter queues an index update for that document. This shared path covers user edits, admin
-edits, remote sync and imports. Sync-state writes do not queue updates. An in-memory set
+adapter queues a check of that document's indexed fields. The check compares a small in-memory
+summary against the last successfully indexed values. Unrelated edits perform no catalog
+queries or writes, and do not cause an extra document flush. This covers user edits, admin
+edits, remote sync and imports. Sync-state writes do not queue checks. An in-memory set
 coalesces repeated notifications and processes documents sequentially, outside the save call.
 There is no index polling, database trigger or persistent pending queue. The summary and EVA
 rows update in one transaction; unchanged rows are not rewritten. Deleting a document listing
 cascades through both indexes. Loading a cold mission also refreshes its entry.
+
+Index updates are triggered by mission ID/name/archive status/action-system version/creation
+time, EVA UUID/name/as-planned membership, and the running REX's UUID/name/PET clock fields.
+Position entries, descriptions, actions and other content are excluded. A mission `updatedAt`
+change alone also does not trigger indexing: its timestamp is captured at the next relevant
+update or cold load. The admin list labels that timestamp as a snapshot. No full Automerge
+document is copied or retained for comparison; the small cached values expire with the handle.
 
 Creation and admin archive/unarchive wait for projection before responding. Other synchronized
 edits become visible after the storage save and its queued update. The homepage polls
@@ -68,7 +77,7 @@ The existing `serverLogger` reports startup/backfill results and one timing entr
 document load (`mission-load`, including queue wait). During activity, `mission-catalog`
 reports successful/failed queued updates, average/maximum update time, evictions and resident
 document count at most once per minute, plus a final summary at shutdown. Idle periods are
-silent. Counts describe index refreshes, including refreshes whose values are unchanged.
+silent. Counts describe performed index refreshes; unchanged in-memory checks are not counted.
 The summary uses the existing memory housekeeping timer and adds no database polling.
 Loads of five seconds or more and update summaries with a maximum of one second or more use
 warning level; failures retain their Error and document ID where available. The server-ready
