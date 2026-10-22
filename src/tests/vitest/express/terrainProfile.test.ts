@@ -276,3 +276,51 @@ it("returns an owned entity's disk-cached profile without sampling the DEM", asy
   );
   expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
 });
+
+it("samples drag previews without the disk cache under a separate coalescing key", async () => {
+  const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
+  mocks.hasPerms.mockReturnValue(true);
+  vi.mocked(cachedTerrainProfile).mockClear();
+  mocks.getAutomergeMissionHandle.mockResolvedValue({
+    isDeleted: () => false,
+    doc: () => ({
+      demFilePath: "Data/trusted.tif",
+      demResolution: 5,
+      traverses: { [validBody.entityKey]: {} },
+    }),
+  });
+  mocks.readTerrainProfileInWorker.mockResolvedValue({
+    elevationsMeters: [[1, 2, 3, 4, 5]],
+    terrainSlopesDegrees: [[1, 2, 3, 4, 5]],
+  });
+  const response = await supertest(app)
+    .post("/api/v1/terrain-profile?missionId=42")
+    .send({ ...validBody, preview: true });
+  expect(response.status).toBe(200);
+  expect(cachedTerrainProfile).not.toHaveBeenCalled();
+  expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(
+    expect.any(Object),
+    validBody.path,
+    [5],
+    "42:traverse_abc-123:preview",
+    false
+  );
+});
+
+it("maps validation errors to 400 regardless of message case", async () => {
+  const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
+  mocks.hasPerms.mockReturnValue(true);
+  mocks.getAutomergeMissionHandle.mockResolvedValue({
+    isDeleted: () => false,
+    doc: () => ({
+      demFilePath: "Data/trusted.tif",
+      demResolution: 5,
+      traverses: { [validBody.entityKey]: {} },
+    }),
+  });
+  vi.mocked(cachedTerrainProfile).mockRejectedValue(new Error("Invalid cache entity"));
+  const response = await supertest(app)
+    .post("/api/v1/terrain-profile?missionId=42")
+    .send(validBody);
+  expect(response.status).toBe(400);
+});

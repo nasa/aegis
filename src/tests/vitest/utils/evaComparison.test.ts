@@ -371,6 +371,23 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
     },
   });
 
+  test("campaign terrain rows are unknown while any member's profile is unavailable", () => {
+    const { mission: base } = buildFixture();
+    const mission = withCampaign(base, { memberEvaUuids: ["eva1", "eva2"] });
+    const withoutT2 = { ...terrainProfiles };
+    delete withoutT2.t2;
+
+    const planned = computeComparisonColumnValues({
+      terrainProfiles: withoutT2,
+      mission,
+      column: campaignPlannedColumn,
+    });
+
+    expect(planned.totalAscent).toBeNull();
+    expect(planned.totalDescent).toBeNull();
+    expect(planned.totalTraverseDistance).toBe(800);
+  });
+
   test("campaignPlanned sums members (sum rows) and takes the max (max rows)", () => {
     const { mission: base } = buildFixture();
     const mission = withCampaign(base, { memberEvaUuids: ["eva1", "eva2"] });

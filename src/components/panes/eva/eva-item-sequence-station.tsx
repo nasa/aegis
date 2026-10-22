@@ -137,6 +137,7 @@ const SequenceItemStation: FunctionComponent<{
       (a) => a.stationUuid === stationUuid && a.enabled
     );
     return getCalcFieldsForStation({
+      terrainProfiles: {},
       station: mission.stations ? mission.stations[stationUuid] : null,
       missionWalkbackRate,
       stationActions,

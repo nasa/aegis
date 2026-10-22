@@ -6,6 +6,8 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 
 const destRoot = process.env.STATIC_DIR;
+/** Per-mission derived terrain cache; never copied or exposed in file listings. */
+export const TERRAIN_CACHE_DIRECTORY_NAME = ".terrain-profiles";
 /**
  * File structure for the STATIC_DIR is as follows
  * [missionId]/
@@ -119,23 +121,25 @@ export async function listFiles(path: string): Promise<GISfile[]> {
     if (fs.existsSync(`${destRoot}/${path}`)) {
       const filesAndFolders = await readdir(`${destRoot}/${path}`, { withFileTypes: true });
       return await Promise.all(
-        filesAndFolders.map(async (fileOrFolder) => {
-          let fileCount = 1;
-          let size = null;
-          if (fileOrFolder.isDirectory()) {
-            fileCount = await countFiles(`${destRoot}/${path}/${fileOrFolder.name}`);
-            size = await getDirectorySize(`${destRoot}/${path}/${fileOrFolder.name}`);
-          } else {
-            size = (await stat(`${destRoot}/${path}/${fileOrFolder.name}`)).size;
-          }
-          const f: GISfile = {
-            name: fileOrFolder.name,
-            isDir: fileOrFolder.isDirectory(),
-            fileCount: fileCount,
-            size,
-          };
-          return f;
-        })
+        filesAndFolders
+          .filter((entry) => entry.name !== TERRAIN_CACHE_DIRECTORY_NAME)
+          .map(async (fileOrFolder) => {
+            let fileCount = 1;
+            let size = null;
+            if (fileOrFolder.isDirectory()) {
+              fileCount = await countFiles(`${destRoot}/${path}/${fileOrFolder.name}`);
+              size = await getDirectorySize(`${destRoot}/${path}/${fileOrFolder.name}`);
+            } else {
+              size = (await stat(`${destRoot}/${path}/${fileOrFolder.name}`)).size;
+            }
+            const f: GISfile = {
+              name: fileOrFolder.name,
+              isDir: fileOrFolder.isDirectory(),
+              fileCount: fileCount,
+              size,
+            };
+            return f;
+          })
       );
     } else {
       throw new Error(`Path does not exist: ${destRoot}/${path}`);
@@ -209,11 +213,27 @@ export async function renameFile(path: string, oldName: string, newName: string)
   }
 }
 
-// Helper function to recursively copy directory contents
+/** Recursively copy a mission's files, excluding its terrain cache. */
 export async function copyDirectoryContents(
   fromMissionId: number,
   toMissionId: number
 ): Promise<void> {
+  await copyDirectoryTree(fromMissionId, toMissionId);
+  await rm(
+    path.join(
+      process.env.STATIC_DIR,
+      "missionFiles",
+      String(toMissionId),
+      TERRAIN_CACHE_DIRECTORY_NAME
+    ),
+    {
+      recursive: true,
+      force: true,
+    }
+  );
+}
+
+async function copyDirectoryTree(fromMissionId: number, toMissionId: number): Promise<void> {
   const staticDir = process.env.STATIC_DIR;
   const sourcePath = `missionFiles/${fromMissionId}`;
   const targetPath = `missionFiles/${toMissionId}`;

@@ -42,18 +42,21 @@ export async function getTerrainProfile({
   pathSegmentDistances,
   entityKey,
   getElevationOnly = false,
+  preview = false,
 }: {
   missionId: number;
   path: AEGISPoint[];
   pathSegmentDistances: number[];
   entityKey?: string;
   getElevationOnly?: boolean;
-}): Promise<WrappedResponse<TerrainProfile>> {
+  preview?: boolean;
+}): Promise<WrappedResponse<TerrainProfile> & { httpStatus?: number }> {
   const postData: TerrainProfilePostData = {
     path,
     pathSegmentDistances,
     entityKey,
     getElevationOnly,
+    preview,
   };
   const res = await clientFetchWithTimeout(`/api/v1/terrain-profile?missionId=${missionId}`, {
     method: "POST",
@@ -69,7 +72,7 @@ export async function getTerrainProfile({
     } catch {
       /* response body is not JSON */
     }
-    return { status: "error", message: errorMessage };
+    return { status: "error", message: errorMessage, httpStatus: res.status };
   }
 
   return (await res.json()) as WrappedResponse<TerrainProfile>;

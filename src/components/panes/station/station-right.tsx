@@ -61,6 +61,7 @@ const StationEditorRight: FunctionComponent = () => {
       (a) => a.stationUuid === selectedStationUuid && a.enabled
     );
     return getCalcFieldsForStation({
+      terrainProfiles: {},
       station: mission.stations[selectedStationUuid],
       missionWalkbackRate: mission.walkbackRate,
       stationActions,

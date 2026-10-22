@@ -1,5 +1,6 @@
 import { cachedTerrainProfile, watchTerrainCache } from "server/terrain/terrainProfileCache";
 import path from "node:path";
+import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { performance } from "node:perf_hooks";
 import type { Request, Response } from "express";
 import { asError } from "@emss/utils";
@@ -14,6 +15,7 @@ import {
   RasterSamplingWorkerPoolSupersededError,
   RasterSamplingWorkerPoolUnavailableError,
 } from "server/raster/rasterSamplingWorkerPool";
+import { terrainFingerprint } from "store/terrainProfiles";
 import { serverLogger } from "utils/logging/serverLogger";
 import { hasPerms } from "utils/permissions";
 
@@ -39,6 +41,7 @@ export const validateTerrainProfileRequest = (
   samplesPerSegment: number[];
   entityKey?: string;
   getElevationOnly: boolean;
+  preview: boolean;
 } => {
   if (!Array.isArray(postData?.path) || postData.path.length < 2) {
     throw new Error("Terrain profile path must contain at least two points");
@@ -76,6 +79,9 @@ export const validateTerrainProfileRequest = (
   if (postData.getElevationOnly !== undefined && typeof postData.getElevationOnly !== "boolean") {
     throw new Error("Terrain profile elevation-only flag must be a boolean");
   }
+  if (postData.preview !== undefined && typeof postData.preview !== "boolean") {
+    throw new Error("Terrain profile preview flag must be a boolean");
+  }
 
   const samplesPerSegment = postData.pathSegmentDistances.map((distance) =>
     samplesForDistance(distance, resolutionMeters)
@@ -89,8 +95,104 @@ export const validateTerrainProfileRequest = (
     samplesPerSegment,
     entityKey: postData.entityKey,
     getElevationOnly: postData.getElevationOnly ?? false,
+    preview: postData.preview ?? false,
   };
 };
+
+/** Sample a validated request; committed entity profiles go through the disk cache. */
+export async function sampleMissionTerrainProfile(
+  missionId: number,
+  missionHandle: DocHandle<Mission>,
+  request: ReturnType<typeof validateTerrainProfileRequest>
+): Promise<TerrainProfile> {
+  const mission = missionHandle.doc();
+  if (!mission.demFilePath) throw new Error("Mission does not have a DEM configured");
+  const { path: profilePath, samplesPerSegment, entityKey, getElevationOnly, preview } = request;
+  const rasterPath = path.resolve(
+    process.env.STATIC_DIR ?? "",
+    "missionFiles",
+    missionId.toString(),
+    mission.demFilePath
+  );
+  watchTerrainCache(missionHandle);
+  // Previews coalesce separately so a drag never supersedes a committed profile request.
+  const coalescingKey = entityKey
+    ? `${missionId}:${entityKey}${preview ? ":preview" : ""}`
+    : undefined;
+  const compute = () =>
+    readTerrainProfileInWorker(
+      { absolutePath: rasterPath, expectedResolutionMeters: mission.demResolution ?? 10 },
+      profilePath,
+      samplesPerSegment,
+      coalescingKey,
+      getElevationOnly
+    );
+  const cacheEntity = entityKey?.replace(/_walkback$/, "");
+  const isCurrent = () =>
+    !missionHandle.isDeleted() &&
+    !!(
+      missionHandle.doc()?.traverses?.[cacheEntity] || missionHandle.doc()?.stations?.[cacheEntity]
+    );
+  const result =
+    cacheEntity && !getElevationOnly && !preview && isCurrent()
+      ? await cachedTerrainProfile({
+          missionId,
+          entity: cacheEntity,
+          rasterPath,
+          inputs: [profilePath, samplesPerSegment, mission.demResolution ?? 10],
+          isCurrent,
+          compute,
+        })
+      : await compute();
+  return {
+    elevationsMeters: result.elevationsMeters,
+    terrainSlopesDegrees: result.terrainSlopesDegrees,
+  };
+}
+
+/** Committed profiles for the given traverses and station walkbacks, read through the disk cache. */
+export async function getMissionTerrainProfiles(
+  missionId: number,
+  missionHandle: DocHandle<Mission>,
+  uuids: Iterable<string>
+): Promise<TerrainProfiles> {
+  const mission = missionHandle.doc();
+  const profiles: TerrainProfiles = {};
+  if (!mission?.demFilePath) return profiles;
+  await Promise.all(
+    [...new Set(uuids)].map(async (uuid) => {
+      const traverse = mission.traverses?.[uuid];
+      const station = traverse ? undefined : mission.stations?.[uuid];
+      const entityPath = traverse?.path ?? station?.walkbackPath;
+      const distances = traverse?.pathSegmentDistances ?? station?.walkbackPathSegmentDistances;
+      if (!entityPath || entityPath.length < 2 || distances?.length !== entityPath.length - 1)
+        return;
+      const entry: TerrainProfileEntry = {
+        fingerprint: terrainFingerprint(mission, entityPath, distances),
+        path: entityPath,
+        distances,
+        status: "ready",
+        profile: null,
+        error: null,
+      };
+      try {
+        entry.profile = await sampleMissionTerrainProfile(
+          missionId,
+          missionHandle,
+          validateTerrainProfileRequest(
+            { path: entityPath, pathSegmentDistances: distances, entityKey: uuid },
+            mission.demResolution ?? 10
+          )
+        );
+      } catch (error) {
+        entry.status = "error";
+        entry.error = asError(error).message;
+      }
+      profiles[uuid] = entry;
+    })
+  );
+  return profiles;
+}
 
 const respondWithRasterRouteError = (
   res: Response,
@@ -112,12 +214,7 @@ const respondWithRasterRouteError = (
   }
 
   const workerUnavailable = error instanceof RasterSamplingWorkerPoolUnavailableError;
-  const clientError =
-    message.includes("must") ||
-    message.includes("invalid") ||
-    message.includes("limit") ||
-    message.includes("configured") ||
-    message.includes("contain");
+  const clientError = /must|invalid|limit|configured|contain/i.test(message);
   const responseStatus = workerUnavailable ? 503 : clientError ? 400 : 500;
   serverLogger.apiRoute({
     logLevel: responseStatus === 400 ? "notice" : responseStatus === 503 ? "warning" : "error",
@@ -183,47 +280,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ status: "failure", message: `Mission ${missionId} not found` });
       return;
     }
-    const mission = missionHandle.doc();
-    const {
-      path: profilePath,
-      samplesPerSegment,
-      entityKey,
-      getElevationOnly,
-    } = validateTerrainProfileRequest(req.body, mission.demResolution ?? 10);
-    if (!mission.demFilePath) throw new Error("Mission does not have a DEM configured");
-    const rasterPath = path.resolve(
-      process.env.STATIC_DIR ?? "",
-      "missionFiles",
-      missionId.toString(),
-      mission.demFilePath
+    const profile = await sampleMissionTerrainProfile(
+      missionId,
+      missionHandle,
+      validateTerrainProfileRequest(req.body, missionHandle.doc().demResolution ?? 10)
     );
-    watchTerrainCache(missionHandle);
-    const compute = () =>
-      readTerrainProfileInWorker(
-        { absolutePath: rasterPath, expectedResolutionMeters: mission.demResolution ?? 10 },
-        profilePath,
-        samplesPerSegment,
-        entityKey ? `${missionId}:${entityKey}` : undefined,
-        getElevationOnly
-      );
-    const cacheEntity = entityKey?.replace(/_walkback$/, "");
-    const isCurrent = () =>
-      !missionHandle.isDeleted() &&
-      !!(
-        missionHandle.doc()?.traverses?.[cacheEntity] ||
-        missionHandle.doc()?.stations?.[cacheEntity]
-      );
-    const result =
-      cacheEntity && !getElevationOnly && isCurrent()
-        ? await cachedTerrainProfile({
-            missionId,
-            entity: cacheEntity,
-            rasterPath,
-            inputs: [profilePath, samplesPerSegment, mission.demResolution ?? 10],
-            isCurrent,
-            compute,
-          })
-        : await compute();
     serverLogger.debug({
       logId: "terrain-profile",
       missionId,
@@ -231,10 +292,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
     res.status(200).json({
       status: "success",
-      data: {
-        elevationsMeters: result.elevationsMeters,
-        terrainSlopesDegrees: result.terrainSlopesDegrees,
-      },
+      data: profile,
       message: "Terrain profile sampled",
     });
   } catch (error) {

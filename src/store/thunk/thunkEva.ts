@@ -12,7 +12,6 @@ import cloneDeep from "lodash/cloneDeep";
 import appCreateAsyncThunk from "./thunkUtil";
 import { generateUniqueName } from "utils/names/unique-name";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
-import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
@@ -152,14 +151,6 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     const traversePath: AEGISPoint[] = [cloneDeep(landerLocation), cloneDeep(landerLocation)];
     const traversePathSegmentDistances: number[] = [0];
 
-    await dispatch(
-      thunkFetchTerrainProfile({
-        path: traversePath,
-        pathSegmentDistances: traversePathSegmentDistances,
-        uuid: newTraverse.uuid,
-      })
-    );
-
     // Build the fully-populated traverse
     const populatedTraverse: Traverse = {
       ...newTraverse,
@@ -276,7 +267,7 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
   sequenceIndex: number;
   evaUuid: string;
   isRexEva: boolean;
-}>("evaDeleteStation", async ({ evaSequence, sequenceIndex, evaUuid, isRexEva }, { dispatch }) => {
+}>("evaDeleteStation", async ({ evaSequence, sequenceIndex, evaUuid, isRexEva }) => {
   const missionDocHandle = getMissionDocHandle();
   if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
@@ -302,9 +293,9 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
     .filter((a) => a.traverseUuid === traverseUuidToDelete)
     .map((a) => a.uuid);
 
-  // Fetch elevation for the adjacent traverse (if any)
+  // Rebuild the adjacent traverse (if any)
   const adjacentTraverseUpdate: TraverseUpdateStageData | null = traverseUuidToUpdate
-    ? await stageTraverseUpdate(mission, dispatch, {
+    ? stageTraverseUpdate(mission, {
         traverseUuid: traverseUuidToUpdate,
         renameTraverse: true,
         overrides: { evaSequence: newEvaSequence },
@@ -401,13 +392,13 @@ export const thunkDocChangeStationInEva = appCreateAsyncThunk<{
       traverseUuidsToUpdate.push(traverseAfterUuid);
     }
 
-    // Fetch elevations for adjacent traverses in parallel
+    // Rebuild adjacent traverses
     const newStationLocation = mission.stations?.[newStationUuid]?.location;
     const newStationName = mission.stations?.[newStationUuid]?.name ?? "";
 
-    const traverseUpdates: (TraverseUpdateStageData | null)[] = await Promise.all(
-      traverseUuidsToUpdate.map((traverseUuid) =>
-        stageTraverseUpdate(mission, dispatch, {
+    const traverseUpdates: (TraverseUpdateStageData | null)[] = traverseUuidsToUpdate.map(
+      (traverseUuid) =>
+        stageTraverseUpdate(mission, {
           traverseUuid,
           renameTraverse: true,
           overrides: {
@@ -419,7 +410,6 @@ export const thunkDocChangeStationInEva = appCreateAsyncThunk<{
             },
           },
         })
-      )
     );
 
     const validTraverseUpdates = traverseUpdates.filter(Boolean) as TraverseUpdateStageData[];
@@ -484,7 +474,7 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
   evaSequence: EvaSequenceItem[];
   stationIndex: number;
   evaUuid: string;
-}>("evaReorderStation", async ({ direction, evaSequence, stationIndex, evaUuid }, { dispatch }) => {
+}>("evaReorderStation", async ({ direction, evaSequence, stationIndex, evaUuid }) => {
   const missionDocHandle = getMissionDocHandle();
   if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
@@ -520,15 +510,14 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
   newEvaSequence[stationIndexToSwap] = newEvaSequence[stationIndex];
   newEvaSequence[stationIndex] = temp;
 
-  // Build paths and fetch elevations for all affected traverses in parallel
-  const traverseStagedData: (TraverseUpdateStageData | null)[] = await Promise.all(
-    traverseUuidsToUpdate.map((traverseUuid) =>
-      stageTraverseUpdate(mission, dispatch, {
+  // Build paths for all affected traverses
+  const traverseStagedData: (TraverseUpdateStageData | null)[] = traverseUuidsToUpdate.map(
+    (traverseUuid) =>
+      stageTraverseUpdate(mission, {
         traverseUuid,
         renameTraverse: true,
         overrides: { evaSequence: newEvaSequence },
       })
-    )
   );
 
   const validTraverseUpdates = traverseStagedData.filter(Boolean) as TraverseUpdateStageData[];
@@ -590,7 +579,7 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
       mission.stations?.[stageData.newStationUuid]; // Existing station (as-planned eva)
 
     const stagedTraverseData: TraverseUpdateStageData | null = boundaryTraverseUuid
-      ? await stageTraverseUpdate(mission, dispatch, {
+      ? stageTraverseUpdate(mission, {
           traverseUuid: boundaryTraverseUuid,
           renameTraverse: true,
           overrides: {

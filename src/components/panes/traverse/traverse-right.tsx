@@ -1,4 +1,4 @@
-import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
+import { useTerrainProfilesFor } from "utils/useTerrainProfiles";
 import {
   faCheck,
   faCircleInfo,
@@ -24,8 +24,6 @@ import {
 } from "utils/rexExecuteEditMode";
 
 const TraverseEditorRight: FunctionComponent = () => {
-  const terrainProfiles = useMissionTerrainProfiles();
-
   const selectedRightNavItem = useAppSelector(
     (state) => state.traverse.selectedTraverseRightNavItem,
     refEqual
@@ -34,6 +32,7 @@ const TraverseEditorRight: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
+  const terrainProfiles = useTerrainProfilesFor([selectedEvaSequenceItemUuid]);
   const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
   const selectedTraverseName = useMissionDocSelector(
     (mission) => mission.traverses[selectedEvaSequenceItemUuid]?.name,

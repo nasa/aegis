@@ -74,12 +74,15 @@ describe("Thunk Traverse Tests", () => {
       store.getState().terrainProfiles.missions[handle.doc().id].previews[traverse.uuid].path
     ).toEqual(path);
     await store.dispatch(thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path }));
+    expect(
+      store.getState().terrainProfiles.missions[handle.doc().id].previews[traverse.uuid]
+    ).toBeUndefined();
     expect(handle.doc().traverses[traverse.uuid].path).toEqual(path);
     expect(getObjectId(handle.doc().traverses[traverse.uuid])).toEqual(objectId);
     expect(handle.doc().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
   });
 
-  it("keeps the newer path when direct traverse profile requests overlap", async () => {
+  it("drops a slow preview once a newer commit has landed", async () => {
     const traverse = generateBlankTraverse({
       path: [
         { lat: 0, lng: 0 },
@@ -100,12 +103,7 @@ describe("Thunk Traverse Tests", () => {
     }>((resolve) => {
       resolveOlderProfile = resolve;
     });
-    mockThunkFetchTerrainProfile
-      .mockReturnValueOnce(() => olderProfile)
-      .mockReturnValueOnce({
-        meta: { requestStatus: "fulfilled" },
-        payload: { elevationsMeters: [[20]], terrainSlopesDegrees: [[2]] },
-      });
+    mockThunkFetchTerrainProfile.mockReturnValueOnce(() => olderProfile);
 
     const store = createCustomTestStore({});
     const olderPath = [
@@ -117,7 +115,7 @@ describe("Thunk Traverse Tests", () => {
       { lat: 5, lng: 5 },
     ];
     const olderOperation = store.dispatch(
-      thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path: olderPath })
+      thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path: olderPath, preview: true })
     );
     await Promise.resolve();
     await store.dispatch(thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path: newerPath }));
@@ -129,6 +127,9 @@ describe("Thunk Traverse Tests", () => {
     await olderOperation;
 
     expect(getMission().traverses[traverse.uuid].path).toEqual(newerPath);
+    expect(
+      store.getState().terrainProfiles.missions[getMission().id]?.previews[traverse.uuid]
+    ).toBeUndefined();
     expect(getMission().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
   });
 
@@ -173,21 +174,6 @@ describe("Thunk Traverse Tests", () => {
       { lat: 1.6, lng: 2.6 },
       station2.location,
     ];
-    mockThunkFetchTerrainProfile.mockReturnValueOnce({
-      meta: { requestStatus: "fulfilled" },
-      payload: {
-        elevationsMeters: [
-          [1, 2],
-          [2, 3],
-          [3, 4],
-        ],
-        terrainSlopesDegrees: [
-          [null, 2],
-          [2, 3],
-          [3, null],
-        ],
-      },
-    });
     await store.dispatch(
       thunkDocUpdateTraverse({
         path: newPath,
@@ -208,7 +194,7 @@ describe("Thunk Traverse Tests", () => {
     expect(resultTraverse).not.toHaveProperty("pathSegmentElevations");
     expect(resultTraverse).not.toHaveProperty("pathSegmentAbsoluteSlopes");
     expect(resultTraverse.updatedAt).not.toBeNull();
-    expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+    expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
 
     //update with no path -> falls back to a traverse not in any EVA, gets lander/lander
     await store.dispatch(thunkDocUpdateTraverse({ path: null, traverseUuid: traverseNoEva.uuid }));
@@ -219,7 +205,7 @@ describe("Thunk Traverse Tests", () => {
       { lat: 3, lng: 3 },
       { lat: 3, lng: 3 },
     ]);
-    expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(2);
+    expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
   });
 
   it("thunkDocResetTraverse() resets traverse path to its surrounding station locations", async () => {

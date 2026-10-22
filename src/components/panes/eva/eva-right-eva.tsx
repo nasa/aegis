@@ -205,6 +205,7 @@ const EvaRightEva: FunctionComponent = () => {
       );
       stationCalculatedFields.push(
         getCalcFieldsForStation({
+          terrainProfiles: {},
           station,
           missionWalkbackRate: partialMission.walkbackRate,
           stationActions,

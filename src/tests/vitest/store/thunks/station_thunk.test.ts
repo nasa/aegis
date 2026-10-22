@@ -78,7 +78,7 @@ describe("Thunk Station Tests", () => {
       );
       expect(getMission().stations[newStation.uuid].location).toEqual(newLocation);
       expect(mockThunkFetchPointElevation).toHaveBeenCalled();
-      expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
+      expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
     });
 
     test("also writes elevation when elevation is fulfilled", async () => {
@@ -142,7 +142,7 @@ describe("Thunk Station Tests", () => {
       expect(stationAfter1.walkbackPathSegmentDistances.length).toEqual(2);
       expect(stationAfter1).not.toHaveProperty("walkbackPathSegmentElevations");
       expect(response.payload).toEqual(expectedPath);
-      expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
+      expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
 
       //empty path -> just station + lander
       expectedPath = [
@@ -157,14 +157,14 @@ describe("Thunk Station Tests", () => {
       expect(stationAfter2.walkbackPathSegmentDistances.length).toEqual(1);
       expect(stationAfter2).not.toHaveProperty("walkbackPathSegmentElevations");
       expect(response.payload).toEqual(expectedPath);
-      expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
+      expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
     });
 
-    test("does not persist the fetched elevation profile", async () => {
-      const fakeElevationProfile = [[0, 100, 200]];
+    test("previews fetch a profile into Redux without touching the doc", async () => {
+      const profile = { elevationsMeters: [[0, 100, 200]], terrainSlopesDegrees: [[1, 2, 3]] };
       mockThunkFetchTerrainProfile.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
-        payload: { elevationsMeters: fakeElevationProfile, terrainSlopesDegrees: [[1, 2, 3]] },
+        payload: profile,
       });
 
       const station: Station = generateBlankStation({
@@ -183,12 +183,16 @@ describe("Thunk Station Tests", () => {
             { lat: 2, lng: 3 },
           ],
           stationUuid: station.uuid,
+          preview: true,
         })
       );
 
-      expect(getMission().stations[station.uuid]).not.toHaveProperty(
-        "walkbackPathSegmentElevations"
-      );
+      expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+      expect(getMission().stations[station.uuid].walkbackPath).toBeNull();
+      const preview =
+        store.getState().terrainProfiles.missions[getMission().id].previews[station.uuid];
+      expect(preview.status).toBe("ready");
+      expect(preview.profile).toEqual(profile);
     });
   });
 
@@ -218,16 +222,10 @@ describe("Thunk Station Tests", () => {
       expect(stationAfter.walkbackPath).toEqual(expectedPath);
       expect(stationAfter.walkbackPathSegmentDistances.length).toEqual(1);
       expect(stationAfter).not.toHaveProperty("walkbackPathSegmentElevations");
-      expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
+      expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
     });
 
-    test("does not persist the fetched elevation profile", async () => {
-      const fakeElevationProfile = [[0, 50, 100]];
-      mockThunkFetchTerrainProfile.mockReturnValueOnce({
-        meta: { requestStatus: "fulfilled" },
-        payload: { elevationsMeters: fakeElevationProfile, terrainSlopesDegrees: [[1, 2, 3]] },
-      });
-
+    test("does not persist an elevation profile", async () => {
       const station: Station = generateBlankStation({
         name: "Vitest Station-ResetElev",
         location: { lat: 2, lng: 3 },

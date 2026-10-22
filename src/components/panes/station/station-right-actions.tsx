@@ -42,6 +42,7 @@ const Actions_Panel: FunctionComponent<{
       (a) => a.stationUuid === selectedStation?.uuid && a.enabled
     );
     const calculatedFields = getCalcFieldsForStation({
+      terrainProfiles: {},
       station: selectedStation,
       missionWalkbackRate,
       stationActions,

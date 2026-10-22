@@ -278,6 +278,8 @@ type StationCalculatedFields = CalculatedFields &
     walkbackMovementDurationMinutes: number;
     walkbackDistanceMeters: number;
     walkbackAscentDescent: TotalAscentDescentObj;
+    /** False while the walkback terrain profile is loading or failed. */
+    walkbackAscentDescentAvailable: boolean;
   };
 
 type TraverseCalculatedFields = CalculatedFields &
@@ -285,6 +287,8 @@ type TraverseCalculatedFields = CalculatedFields &
     movementDurationMinutes: number;
     distanceMeters: number;
     ascentDescent: TotalAscentDescentObj;
+    /** False while the traverse terrain profile is loading or failed. */
+    ascentDescentAvailable: boolean;
     bearings: number[];
   };
 
@@ -309,6 +313,8 @@ type EvaCalculatedFields = CalculatedFields &
     totalTraverseMovementTime: number;
     totalTraverseDistanceMeters: number;
     totalTraverseAscentDescent: TotalAscentDescentObj;
+    /** False while any traverse terrain profile is loading or failed. */
+    totalTraverseAscentDescentAvailable: boolean;
 
     /** The total resolved durations, either calculated or manually overridden */
     totalResolvedEvaTime: number; // minutes. totalResolvedStationTime + totalResolvedTraverseTime
