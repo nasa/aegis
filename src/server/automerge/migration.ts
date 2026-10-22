@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });
 import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
-import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo/slim";
+import type { StorageAdapterInterface } from "@automerge/automerge-repo/slim";
 import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
 import { AUTOMERGE_MIGRATIONS, getPendingAutomergeMigrations } from "server/automerge/migrations";
 import pg from "pg";
@@ -11,12 +11,11 @@ import { legacyAutomergeSchemas } from "server/database/models/_legacyModels";
 import { allSchemas } from "server/database/models/_allModels";
 
 import { getAutomergeDocListing } from "server/express/routes/docListing";
-import { missionValidator } from "utils/validateSchemaServer";
+import { migrateDocuments } from "./migrateDocuments";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
-import { releaseMissionDocument } from "server/automerge/releaseMissionDocument";
 
 const AUTOMERGE_MIGRATION_LOCK_ID = 1_753_746_473;
 
@@ -95,29 +94,7 @@ const runMigration = async () => {
       }
     }
 
-    // Each registered migration operates on one mission. Apply pending versions in order,
-    // persist and release that mission before opening the next. Historical datasets must
-    // not require enough RAM to hold every document during deployment.
-    for (const [index, docListing] of allDocListings.entries()) {
-      if (!isValidAutomergeUrl(docListing.automergeUrl)) throw new Error("Invalid Automerge URL");
-      const started = Date.now();
-      const handle: DocHandle<Mission> = await automergeRepo.find(docListing.automergeUrl);
-      for (const migration of pendingMigrations) {
-        await migration.migrate(handle, { docListing, orm: globalValues.orm });
-      }
-      const mission = handle.doc();
-      if (!missionValidator(structuredClone(mission))) {
-        throw new Error(
-          `${mission.id} - ${mission.name} is invalid: ${JSON.stringify(missionValidator.errors)}`
-        );
-      }
-      await automergeRepo.flush([handle.documentId]);
-      await releaseMissionDocument(automergeRepo, handle.documentId);
-      serverLogger.info({
-        logId: "automerge-migration",
-        logValue: `Migrated mission ${docListing.missionId} (${index + 1}/${allDocListings.length}) in ${Date.now() - started} ms`,
-      });
-    }
+    await migrateDocuments(automergeRepo, allDocListings, pendingMigrations, globalValues.orm);
 
     await lockClient.query(
       `insert into "automerge_migration_db" ("version", "name")
