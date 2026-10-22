@@ -68,6 +68,17 @@
   border-left: 1px solid var(--grey1);
 }
 
+.mapMenuPanel {
+  position: absolute;
+  top: 10px;
+  left: 45px;
+  z-index: 100;
+  width: 285px;
+  max-height: calc(100% - 20px);
+  overflow: auto;
+  background-color: var(--grey2);
+}
+
 /* stylelint-disable selector-class-pattern */
 .container :global(.dv-dockview) {
   --dv-group-view-background-color: transparent;
