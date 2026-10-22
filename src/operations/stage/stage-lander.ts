@@ -7,10 +7,7 @@ import {
   getIngressStationUuid,
   getXgressTraverseUuid,
 } from "operations/helpers/evaSequence";
-import {
-  thunkFetchPointElevation,
-  thunkFetchTerrainProfile,
-} from "store/thunk/thunkTerrainProfile";
+import { thunkFetchPointElevation } from "store/thunk/thunkTerrainProfile";
 import { getNextTraverseProfileRevisions } from "operations/helpers/traverseProfileRevision";
 import type { AppDispatch } from "utils/useAppDispatch";
 
@@ -18,9 +15,9 @@ import type { AppDispatch } from "utils/useAppDispatch";
  * Build a `LanderLocationUpdateStageData` after the lander moves to a new
  * location.
  *
- * Fetches all required elevations in parallel (lander, per-station walkbacks,
- * egress/ingress boundary traverses) then assembles the stage so the caller
- * can apply everything atomically in a single `.change()`.
+ * Fetches the lander point elevation, then assembles the per-station walkbacks
+ * and egress/ingress boundary traverses so the caller can apply everything
+ * atomically in a single `.change()`.
  *
  * Lander stations don't have walkbacks so they are just moved
  *
@@ -147,69 +144,26 @@ export async function stageLanderLocationUpdate(
     traversePlans.map(({ traverseUuid }) => traverseUuid)
   );
 
-  // ── Fetch all elevations in parallel ─────────────────────────────────────
-  // Three typed groups so TypeScript can narrow each result correctly.
-  const [landerElevResult, walkbackElevResults, traverseElevResults] = await Promise.all([
-    // Lander point elevation
-    dispatch(thunkFetchPointElevation({ point: newLocation, uuid: "lander" })),
-    // Walkback profiles — one per station; slopes are discarded until they can be rendered.
-    Promise.all(
-      walkbackPlans.map(({ stationUuid, newWalkbackPath, distances }) =>
-        dispatch(
-          thunkFetchTerrainProfile({
-            path: newWalkbackPath,
-            pathSegmentDistances: distances,
-            uuid: `${stationUuid}_walkback`,
-          })
-        )
-      )
-    ),
-    // Traverse profiles — paths already have the correct new lander endpoint
-    Promise.all(
-      traversePlans.map(({ traverseUuid, newPath, distances }) =>
-        dispatch(
-          thunkFetchTerrainProfile({
-            path: newPath,
-            pathSegmentDistances: distances,
-            uuid: traverseUuid,
-          })
-        )
-      )
-    ),
-  ]);
+  const landerElevResult = await dispatch(
+    thunkFetchPointElevation({ point: newLocation, uuid: "lander" })
+  );
 
   // ── Assemble walkback stage data ─────────────────────────────────────────
-  const walkbackUpdates: WalkbackUpdateStageData[] = walkbackPlans.map((plan, i) => {
-    const elevResult = walkbackElevResults[i];
-    return {
-      stationUuid: plan.stationUuid,
-      newWalkbackPath: plan.newWalkbackPath,
-      newWalkbackPathSegmentDistances: plan.distances,
-      newWalkbackPathSegmentElevations:
-        elevResult.meta.requestStatus === "fulfilled"
-          ? (elevResult.payload as TerrainProfile).elevationsMeters
-          : null,
-    } satisfies WalkbackUpdateStageData;
-  });
+  const walkbackUpdates: WalkbackUpdateStageData[] = walkbackPlans.map((plan) => ({
+    stationUuid: plan.stationUuid,
+    newWalkbackPath: plan.newWalkbackPath,
+    newWalkbackPathSegmentDistances: plan.distances,
+  }));
 
   // ── Assemble traverse stage data ─────────────────────────────────────────
   const now = getAccurateNow().getTime();
-  const traverseUpdates: TraverseUpdateStageData[] = traversePlans.map((plan, i) => {
-    const profileResult = traverseElevResults[i];
-    const profile =
-      profileResult.meta.requestStatus === "fulfilled"
-        ? (profileResult.payload as TerrainProfile)
-        : null;
-    return {
-      traverseUuid: plan.traverseUuid,
-      profileRevision: traverseProfileRevisions.get(plan.traverseUuid)!,
-      newPath: plan.newPath,
-      newPathSegmentDistances: plan.distances,
-      newPathSegmentElevations: profile?.elevationsMeters ?? null,
-      newPathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
-      updatedAt: now,
-    } satisfies TraverseUpdateStageData;
-  });
+  const traverseUpdates: TraverseUpdateStageData[] = traversePlans.map((plan) => ({
+    traverseUuid: plan.traverseUuid,
+    profileRevision: traverseProfileRevisions.get(plan.traverseUuid)!,
+    newPath: plan.newPath,
+    newPathSegmentDistances: plan.distances,
+    updatedAt: now,
+  }));
 
   return {
     newLocation,

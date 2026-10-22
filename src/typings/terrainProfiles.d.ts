@@ -3,7 +3,8 @@ type TerrainProfileEntry = {
   fingerprint: string;
   path: AEGISPoint[];
   distances: number[];
-  status: "idle" | "loading" | "ready" | "error";
+  /** "idle" is pending: queued or in flight. */
+  status: "idle" | "ready" | "error";
   profile: TerrainProfile | null;
   error: string | null;
 };

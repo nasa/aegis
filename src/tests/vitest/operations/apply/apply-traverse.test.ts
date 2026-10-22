@@ -50,8 +50,6 @@ describe("apply-traverse", () => {
             { lat: 3, lng: 4 },
           ],
           newPathSegmentDistances: [25],
-          newPathSegmentElevations: [[10, 11]],
-          newPathSegmentAbsoluteSlopes: [[null, 2.5]],
           updatedAt: 123,
         },
       ])

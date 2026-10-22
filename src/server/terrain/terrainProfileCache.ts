@@ -4,6 +4,7 @@ import path from "node:path";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { RasterSamplingWorkerPoolSupersededError } from "server/raster/rasterSamplingWorkerPool";
 import { serverLogger } from "utils/logging/serverLogger";
+import { TERRAIN_CACHE_DIRECTORY_NAME } from "server/file/file";
 
 // Only pending work is held in memory. Completed profiles live exclusively on disk.
 const pending = new Map<string, Promise<unknown>>();
@@ -25,7 +26,7 @@ export const terrainCacheDirectory = (missionId: number): string => {
     process.env.STATIC_DIR ?? "",
     "missionFiles",
     String(missionId),
-    ".terrain-profiles"
+    TERRAIN_CACHE_DIRECTORY_NAME
   );
 };
 const cacheFile = (missionId: number, entity: string): string => {

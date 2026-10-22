@@ -56,6 +56,8 @@ interface ExportStation extends Station {
   _itemType: string;
   actionsReadable: ExportAction[];
   calculatedFields: ExportStationCalculatedFields;
+  /** Null until the walkback terrain profile is available. */
+  walkbackPathSegmentElevations: number[][] | null; //meters
   elevationRelative: number;
   iconEmojiDecoded: string;
   poisAssociatedReadable: PoiSummaryReadable[];
@@ -64,19 +66,28 @@ interface ExportStation extends Station {
   rexUuid: string | null; // the rex uuid if this station is in an EVA that is in a rex
 }
 
-interface ExportStationCalculatedFields extends StationCalculatedFields {
+interface ExportStationCalculatedFields extends Omit<
+  StationCalculatedFields,
+  "walkbackAscentDescentAvailable"
+> {
   equipmentItemsReadable: EquipmentItemUsageReadable[];
 }
 
 interface ExportTraverse extends Traverse {
   _itemType: string;
+  /** Null until the traverse terrain profile is available. */
+  pathSegmentElevations: number[][] | null; //meters
+  pathSegmentAbsoluteSlopes: (number | null)[][] | null; //degrees
   calculatedFields: ExportTraverseCalculatedFields;
   actionsReadable: ExportAction[];
   actionOrderRefUuids: string[];
   rexUuid: string | null; // the rex uuid if this traverse is in an EVA that is in a rex
 }
 
-interface ExportTraverseCalculatedFields extends TraverseCalculatedFields {
+interface ExportTraverseCalculatedFields extends Omit<
+  TraverseCalculatedFields,
+  "ascentDescentAvailable"
+> {
   // Alias of movementDurationMinutes, exposed for Maestro consumers
   durationMinutes: number;
 }
@@ -92,7 +103,10 @@ interface ExportEva extends Eva {
   rexUuid: string | null; // the rex uuid if this eva is in a rex
 }
 
-interface ExportEvaCalculatedFields extends EvaCalculatedFields {
+interface ExportEvaCalculatedFields extends Omit<
+  EvaCalculatedFields,
+  "totalTraverseAscentDescentAvailable"
+> {
   equipmentItemsReadable: EquipmentItemUsageReadable[];
 }
 

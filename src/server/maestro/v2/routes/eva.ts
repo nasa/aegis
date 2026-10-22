@@ -9,7 +9,11 @@ import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 import { getGrid } from "../../../express/routes/grid";
-import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
+import {
+  getAutomergeMissionHandle,
+  getAutomergeMissions,
+} from "../../../express/routes/missionAutomerge";
+import { getMissionTerrainProfiles } from "../../../express/routes/terrainProfile";
 
 /**
  * Used by Maegistro v2
@@ -56,7 +60,17 @@ export async function getReadableEvaData(params: ReadableEvaParams): Promise<Exp
     }
   }
 
+  const missionHandle = await getAutomergeMissionHandle(missionId);
+  const terrainProfiles = missionHandle
+    ? await getMissionTerrainProfiles(
+        missionId,
+        missionHandle,
+        evas.flatMap((eva) => eva.sequence.map((item) => item.uuid))
+      )
+    : {};
+
   return makeExportEvas({
+    terrainProfiles,
     evas: evas,
     mission,
     missionGrid: gridCoordinates,

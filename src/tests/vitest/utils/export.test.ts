@@ -4,8 +4,12 @@ import {
   DEFAULT_ACTION_DEFINITION_LABELS,
   generateBlankMission,
 } from "store/storeUtils/mission";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { seedTerrainProfile, terrainProfiles } from "tests/vitest/fixtures/terrainProfiles";
 import {
   makeEquipmentReadable,
+  makeExportEvas,
   makeExportString,
   makeReadableActionDefinition,
   makeReadableMissionPriority,
@@ -194,6 +198,7 @@ describe("Export tests", () => {
     mission.landerLocation = { lat: -89, lng: -133 };
 
     const output = makeExportString({
+      terrainProfiles: {},
       mission,
       selectEvas: false,
       selectMission: true,
@@ -205,5 +210,38 @@ describe("Export tests", () => {
     });
 
     expect(JSON.parse(output).exportMission.gridCoordinates).toBe("AZM B95 D44");
+  });
+
+  test("keeps the Maestro EVA shape: terrain arrays present, UI-only flags absent", () => {
+    const traverse = generateBlankTraverse({
+      path: [
+        { lat: 0, lng: 0 },
+        { lat: 0, lng: 0.01 },
+      ],
+      pathSegmentDistances: [300],
+    });
+    seedTerrainProfile(traverse, [[0, 10, 5]]);
+    const eva = generateBlankEVA({ sequence: [{ type: "traverse", uuid: traverse.uuid }] });
+    const mission = generateBlankMission({
+      traverses: { [traverse.uuid]: traverse },
+      evas: { [eva.uuid]: eva },
+    });
+
+    const [exportEva] = makeExportEvas({
+      terrainProfiles,
+      evas: [eva],
+      mission,
+      missionGrid: undefined,
+    });
+    const exportTraverse = exportEva.sequenceReadable[0] as ExportTraverse;
+
+    expect(exportTraverse.pathSegmentElevations).toEqual([[0, 10, 5]]);
+    expect(exportTraverse.pathSegmentAbsoluteSlopes).toEqual([[null, null, null]]);
+    expect(exportTraverse.calculatedFields.ascentDescent).toEqual({
+      totalMetersClimbed: 10,
+      totalMetersDescended: 5,
+    });
+    expect(exportTraverse.calculatedFields).not.toHaveProperty("ascentDescentAvailable");
+    expect(exportEva.calculatedFields).not.toHaveProperty("totalTraverseAscentDescentAvailable");
   });
 });

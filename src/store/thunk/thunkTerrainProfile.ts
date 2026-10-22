@@ -28,6 +28,7 @@ export const thunkFetchPointElevation = appCreateAsyncThunk<
   }
 });
 
+/** Fetch a drag-preview profile; committed profiles are loaded by the terrain coordinator. */
 export const thunkFetchTerrainProfile = appCreateAsyncThunk<
   { path: AEGISPoint[]; pathSegmentDistances: number[]; uuid: string },
   TerrainProfile,
@@ -45,6 +46,7 @@ export const thunkFetchTerrainProfile = appCreateAsyncThunk<
         path,
         pathSegmentDistances,
         entityKey: uuid,
+        preview: true,
       });
       if (response.status !== "success") throw new Error("API terrain profile returned failure");
       const profile = normalizeTerrainProfile(response.data, path, pathSegmentDistances);

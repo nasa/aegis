@@ -147,15 +147,23 @@ export const makeExportPois = (params: {
   return exportPois;
 };
 
+/** Exported shapes are an external contract (Maestro); UI-only fields stay out of them. */
+const omitKey = <T extends object, K extends keyof T>(value: T, key: K): Omit<T, K> => {
+  const { [key]: _omitted, ...rest } = value;
+  return rest;
+};
+
+const readyProfile = (entry: TerrainProfileEntry | undefined): TerrainProfile | null =>
+  entry?.status === "ready" ? entry.profile : null;
+
 export const makeExportStations = (params: {
-  terrainProfiles?: TerrainProfiles;
+  terrainProfiles: TerrainProfiles;
   stations: Station[];
   missionGrid: MissionGridPoint[][];
   mission: Mission;
   exportActions?: boolean;
 }): ExportStation[] => {
-  const { terrainProfiles = {} } = params;
-  const { stations, mission, missionGrid, exportActions = true } = params;
+  const { terrainProfiles, stations, mission, missionGrid, exportActions = true } = params;
   if (!stations || stations.length === 0) return [];
   const evaUuidToRexUuid = Object.fromEntries(
     Object.values(mission.rexes).map((r) => [r.evaUuid, r.uuid])
@@ -196,12 +204,14 @@ export const makeExportStations = (params: {
       _itemType: "Station",
       actionsReadable,
       calculatedFields: {
-        ...stationCalculatedFields,
+        ...omitKey(stationCalculatedFields, "walkbackAscentDescentAvailable"),
         equipmentItemsReadable: makeEquipmentReadable({
           equipmentItems: stationCalculatedFields.totalEquipmentItems,
           mission,
         }),
       } as ExportStationCalculatedFields,
+      walkbackPathSegmentElevations:
+        readyProfile(terrainProfiles[station.uuid])?.elevationsMeters ?? null,
       elevationRelative: station.elevation - mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(station.icon),
       poisAssociatedReadable: station.poiUuids?.map((poiUuid) => {
@@ -231,14 +241,13 @@ export const makeExportStations = (params: {
 };
 
 export const makeExportTraverses = (params: {
-  terrainProfiles?: TerrainProfiles;
+  terrainProfiles: TerrainProfiles;
   traverses: Traverse[];
   missionGrid: MissionGridPoint[][];
   mission: Mission;
   exportActions?: boolean;
 }): ExportTraverse[] => {
-  const { terrainProfiles = {} } = params;
-  const { traverses, mission, missionGrid, exportActions = true } = params;
+  const { terrainProfiles, traverses, mission, missionGrid, exportActions = true } = params;
   if (!traverses || traverses.length === 0) return [];
   const evaUuidToRexUuid = Object.fromEntries(
     Object.values(mission.rexes).map((r) => [r.evaUuid, r.uuid])
@@ -276,11 +285,14 @@ export const makeExportTraverses = (params: {
       rexUuid = evaUuidToRexUuid[evaThisTraverseIsIn.uuid] ?? null;
     }
 
+    const profile = readyProfile(terrainProfiles[traverse.uuid]);
     return {
       ...traverse,
       _itemType: "Traverse",
+      pathSegmentElevations: profile?.elevationsMeters ?? null,
+      pathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
       calculatedFields: {
-        ...traverseCalculatedFields,
+        ...omitKey(traverseCalculatedFields, "ascentDescentAvailable"),
         // Alias of movementDurationMinutes, exposed for Maestro consumers
         durationMinutes: traverseCalculatedFields.movementDurationMinutes,
       },
@@ -295,15 +307,21 @@ export const makeExportTraverses = (params: {
 };
 
 export const makeExportEvas = (params: {
-  terrainProfiles?: TerrainProfiles;
+  terrainProfiles: TerrainProfiles;
   evas: Eva[];
   missionGrid: MissionGridPoint[][];
   mission: Mission;
   exportStations?: boolean;
   exportTraverses?: boolean;
 }): ExportEva[] => {
-  const { terrainProfiles = {} } = params;
-  const { evas, mission, missionGrid, exportStations = true, exportTraverses = true } = params;
+  const {
+    terrainProfiles,
+    evas,
+    mission,
+    missionGrid,
+    exportStations = true,
+    exportTraverses = true,
+  } = params;
   if (!evas || evas.length === 0) return [];
   const evaUuidToRexUuid = Object.fromEntries(
     Object.values(mission.rexes).map((r) => [r.evaUuid, r.uuid])
@@ -365,7 +383,7 @@ export const makeExportEvas = (params: {
         return sequenceRefUuid;
       }),
       calculatedFields: {
-        ...evaCalculatedFields,
+        ...omitKey(evaCalculatedFields, "totalTraverseAscentDescentAvailable"),
         equipmentItemsReadable: makeEquipmentReadable({
           equipmentItems: evaCalculatedFields.totalEquipmentItems,
           mission,
@@ -482,7 +500,7 @@ export const makeReadableMissionPriority = (params: {
 };
 
 export const makeExportString = ({
-  terrainProfiles = {},
+  terrainProfiles,
   mission,
   selectEvas,
   selectMission,
@@ -492,7 +510,7 @@ export const makeExportString = ({
   selectTraverses,
   selectRexes,
 }: {
-  terrainProfiles?: TerrainProfiles;
+  terrainProfiles: TerrainProfiles;
   mission: Mission;
   selectEvas: boolean;
   selectMission: boolean;

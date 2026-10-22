@@ -1,4 +1,4 @@
-import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
+import { useTerrainProfilesFor } from "utils/useTerrainProfiles";
 import {
   faCalculator,
   faFloppyDisk,
@@ -41,8 +41,6 @@ const Info_Panel: FunctionComponent<{
   /** Narrower than `editMode`: a running REX may permit path editing without the rest. */
   pathEditMode?: boolean;
 }> = ({ editMode, durationEditMode: durationEditModeProp, pathEditMode: pathEditModeProp }) => {
-  const terrainProfiles = useMissionTerrainProfiles();
-
   const durationEditMode = durationEditModeProp ?? editMode;
   const pathEditMode = pathEditModeProp ?? editMode;
   const dispatch = useAppDispatch();
@@ -56,6 +54,7 @@ const Info_Panel: FunctionComponent<{
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
+  const terrainProfiles = useTerrainProfilesFor([selectedEvaSequenceItemUuid]);
   const docMaps = useMissionDocSelector(
     (mission) => ({ traverses: mission.traverses, actions: mission.actions }),
     shallowEqual
@@ -466,7 +465,9 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.ascentDescent.totalMetersClimbed.toFixed(0)}
+                        {calculatedFields.ascentDescentAvailable
+                          ? calculatedFields.ascentDescent.totalMetersClimbed.toFixed(0)
+                          : "—"}
                       </div>
                     </div>
                   </div>
@@ -482,7 +483,9 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.ascentDescent.totalMetersDescended.toFixed(0)}
+                        {calculatedFields.ascentDescentAvailable
+                          ? calculatedFields.ascentDescent.totalMetersDescended.toFixed(0)
+                          : "—"}
                       </div>
                     </div>
                   </div>

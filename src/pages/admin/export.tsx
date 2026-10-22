@@ -1,5 +1,5 @@
 import { getTerrainProfiles } from "store/terrainProfileSelectors";
-import { useMissionTerrainSync } from "utils/useTerrainProfiles";
+import { useMissionTerrainSettled, useMissionTerrainSync } from "utils/useTerrainProfiles";
 import { populateStore } from "store/processing/populateStore";
 import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
@@ -30,6 +30,7 @@ const ExportPage: React.FunctionComponent = () => {
 
   const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
   const mission = useMissionDocSelector((mission) => mission, refEqual);
+  const terrainSettled = useMissionTerrainSettled();
 
   const [selectedOutput, setSelectedOutput] = useState("");
   const [selectEvas, setSelectEvas] = useState(true);
@@ -156,6 +157,8 @@ const ExportPage: React.FunctionComponent = () => {
             <div className={adminCommon.formActions}>
               <button
                 className={adminCommon.button}
+                disabled={!terrainSettled}
+                title={terrainSettled ? undefined : "Loading terrain profiles"}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
@@ -178,6 +181,8 @@ const ExportPage: React.FunctionComponent = () => {
               </button>
               <button
                 className={adminCommon.button}
+                disabled={!terrainSettled}
+                title={terrainSettled ? undefined : "Loading terrain profiles"}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({

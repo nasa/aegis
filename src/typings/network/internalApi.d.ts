@@ -9,6 +9,8 @@ type TerrainProfilePostData = {
   pathSegmentDistances: number[];
   entityKey?: string;
   getElevationOnly?: boolean;
+  /** Drag previews skip the disk cache. */
+  preview?: boolean;
 };
 
 type TerrainProfile = {

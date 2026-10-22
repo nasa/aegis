@@ -214,6 +214,7 @@ describe("Terrain profile client", () => {
           ],
           pathSegmentDistances: [20],
           getElevationOnly: false,
+          preview: false,
         }),
       })
     );
@@ -243,6 +244,7 @@ describe("Terrain profile client", () => {
           path: [point, point],
           pathSegmentDistances: [0],
           getElevationOnly: true,
+          preview: false,
         }),
       })
     );
