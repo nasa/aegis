@@ -49,6 +49,12 @@ npm run migration:fresh   # drop + recreate + seed
 npm run seed
 ```
 
+## Migration Immutability
+
+Never modify the runtime logic, version, name, or data transformations of an existing migration. This applies to both Automerge and database migrations. Put every schema or data change in a new migration.
+
+When shared types change, use migration-local historical types to preserve the old migration's original input and output shapes. Only type declarations and type annotations may be adjusted for compatibility; do not add new fields, defaults, or transformations to an old migration to satisfy current types. Keep these type-only edits minimal and avoid reformatting the migration body.
+
 ## Comments
 
 Keep comments short. Write comments that explain what the code does or why — never comments that narrate what wasn't done, what a previous approach was, or what you chose not to do. Delete such notes rather than adding them.

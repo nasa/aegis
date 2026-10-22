@@ -17,9 +17,10 @@ type LunarSunEarthPositions = {
 
 /**
  * Sun/Earth azimuths to show on the map compass, in map-up degrees.
- * `source` is "date" when computed from the active map datetime, otherwise "manual".
+ * `source` is "date" when computed from the EVA start date, otherwise "manual".
  */
 type SunEarthAzimuths = {
+  available: boolean;
   sunAzimuth: number;
   earthAzimuth: number;
   source: "date" | "manual";
