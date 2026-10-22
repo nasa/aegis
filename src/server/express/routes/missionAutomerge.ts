@@ -11,6 +11,7 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
+import { loadMissionForList } from "server/automerge/loadMissionForList";
 
 /**
  * Endpoint for working with the mission document in automerge
@@ -20,7 +21,7 @@ const router = express.Router();
 
 /**
  * Get all mission automerge documents the caller has permission to view.
- * Uses the server-side automerge repo (already loaded all docs in memory),
+ * Uses the server-side automerge repo,
  * so the client doesn't have to replay the document over the WebSocket connection,
  * which is very slow for large/many missions.
  */
@@ -352,20 +353,18 @@ export async function getAutomergeMissionHandle(
 /**
  * Get automerge document for mission ids.
  * This will query the automerge doc listing to find the URLs for the docs and
- * then load the docs from the automerge repo in parallel
+ * then load documents sequentially through the shared list-loading queue.
  * @param missionIds Ids for the missions. If no id is provided it will return all missions
  */
 export async function getAutomergeMissions(missionIds?: number[]): Promise<Mission[]> {
   const automergeListings = await getAutomergeDocListing(missionIds);
-  const missionPromises = automergeListings.map(async (listing) => {
-    const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-      listing.automergeUrl as AutomergeUrl
+  const missionsToReturn: Mission[] = [];
+  for (const listing of automergeListings) {
+    missionsToReturn.push(
+      await loadMissionForList(globalValues.automergeRepo, listing.automergeUrl as AutomergeUrl)
     );
-    await missionDocHandle.whenReady();
-    return missionDocHandle.doc();
-  });
+  }
 
-  const missionsToReturn = await Promise.all(missionPromises);
   return missionsToReturn;
 }
 
