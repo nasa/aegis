@@ -36,8 +36,7 @@
 .leftPanel,
 .mapPanel,
 .bottomPanel,
-.rightPanel,
-.mapMenuPanel {
+.rightPanel {
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -70,6 +69,12 @@
 }
 
 .mapMenuPanel {
+  position: absolute;
+  top: 10px;
+  left: 45px;
+  z-index: 100;
+  width: 285px;
+  max-height: calc(100% - 20px);
   overflow: auto;
   background-color: var(--grey2);
 }
@@ -82,10 +87,6 @@
   --dv-separator-border: 0;
   --dv-sash-color: transparent;
   --dv-active-sash-color: transparent;
-  --dv-floating-border: 1px solid var(--grey3);
-  --dv-floating-titlebar-height: 14px;
-  --dv-floating-titlebar-background-color: var(--grey2);
-  --dv-floating-titlebar-border-bottom: 1px solid var(--grey3);
 }
 
 .container :global(.dv-groupview:not(.dv-groupview-floating) > .dv-tabs-and-actions-container) {
@@ -97,28 +98,4 @@
   overflow: hidden;
 }
 
-.container :global(.dv-resize-container-with-titlebar > .dv-floating-titlebar) {
-  position: absolute;
-  z-index: 1;
-  top: 0;
-  right: 30px;
-  left: 30px;
-  height: 30px;
-  background: transparent;
-  border: 0;
-  cursor: move;
-}
-
-.container :global(.dv-resize-container-with-titlebar > .dv-grid-view) {
-  height: 100%;
-  flex: none;
-}
-
-.container :global(.dv-resize-container .dv-tabs-and-actions-container) {
-  border-bottom: 1px solid var(--grey3);
-}
-
-.container :global(.dv-resize-container .dv-tab) {
-  pointer-events: none;
-}
 /* stylelint-enable selector-class-pattern */
