@@ -4,7 +4,7 @@ import styles from "./map-sunearth.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEarthAmerica, faMoon, faSun, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from "react-tooltip";
-import { numericDatetimeToISO } from "utils/formatting";
+import { longDateFromDateNumeric } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useSunEarthAzimuths } from "../hooks/useSunEarthAzimuths";
@@ -20,7 +20,7 @@ export const SunEarth: FunctionComponent<{
   const info =
     azimuths.warning ||
     (azimuths.source === "date"
-      ? `Calculated at EVA start: ${numericDatetimeToISO(evaStartTime)} (UTC)`
+      ? `Calculated at EVA start: ${longDateFromDateNumeric(evaStartTime)} (UTC)`
       : "Manual EVA directions");
   return (
     <div

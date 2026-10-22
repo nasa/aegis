@@ -230,7 +230,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable} onSubmit={handleDatetimeSubmit}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}></div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldLabel}>YYYY-MM-DD:</div>
+                    </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <ValidatedInputField
@@ -248,7 +250,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>YYYY-MM-DD</div>
+                      <div className={paneStyles.inputFieldLabel}>HH:MM:SS (UTC):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
@@ -265,9 +267,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           key={`${selectedEva.uuid}-time`}
                         />
                       </div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>HH:MM:SS (UTC)</div>
                     </div>
                   </div>
                 </div>
