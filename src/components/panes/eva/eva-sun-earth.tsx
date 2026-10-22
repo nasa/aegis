@@ -27,7 +27,7 @@ export default function EvaSunEarth({
   return (
     <div className={paneStyles.panelSection}>
       <div className={paneStyles.panelSectionTitle}>
-        <SubpanelHeading icon={faSun}>Sun/{secondaryBodyLabel}</SubpanelHeading>
+        <SubpanelHeading icon={faSun}>Sun/{secondaryBodyLabel} Directions</SubpanelHeading>
       </div>
       {editMode ? (
         <div
@@ -55,7 +55,9 @@ export default function EvaSunEarth({
           </label>
         </div>
       ) : (
-        <div className={styles.mode}>{fromDate ? "Calculated from EVA date" : "Manually set"}</div>
+        <div className={styles.mode}>
+          {fromDate ? "Calculated from EVA Date/Time" : "Manually set"}
+        </div>
       )}
       {planetRadius !== 1737400 ? (
         <div className={styles.note}>

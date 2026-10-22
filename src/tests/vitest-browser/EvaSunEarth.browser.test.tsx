@@ -98,7 +98,7 @@ describe("EVA Sun/Earth", () => {
     expect(harness.container.querySelector<HTMLInputElement>('input[type="radio"]')?.checked).toBe(
       true
     );
-    expect(info()).toContain("2026-04-15T12:00:00");
+    expect(info()).toContain("2026-04-15 12:00:00 (UTC)");
     expect(harness.container.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
     expect(harness.container.querySelectorAll('[data-icon="sun"]')).toHaveLength(3);
     expect(harness.container.querySelectorAll('[data-icon="earth-americas"]')).toHaveLength(2);
@@ -108,7 +108,7 @@ describe("EVA Sun/Earth", () => {
     render();
     const startInfo = info();
     expect(startInfo).toContain("Calculated at EVA start:");
-    expect(startInfo).toContain("2026-04-15T12:00:00");
+    expect(startInfo).toContain("2026-04-15 12:00:00 (UTC)");
     const sunIcon = harness.container.querySelectorAll('[data-icon="sun"]')[2]
       .parentElement as HTMLElement;
     const startPosition = sunIcon.style.cssText;

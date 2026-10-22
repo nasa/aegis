@@ -6,6 +6,10 @@
   padding: 4px 0 4px 18px;
 }
 
+.mode[role="radiogroup"] {
+  margin-bottom: 5px;
+}
+
 .mode label {
   display: flex;
   align-items: center;
