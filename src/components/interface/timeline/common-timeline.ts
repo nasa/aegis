@@ -8,6 +8,7 @@ import { addPointsAtMeters, getDistanceBetweenTwoCoordinates } from "utils/mappi
  * Perform additional calculations required for drawing, such as subdividing any paths
  */
 export const processEvaDataFromStore = ({
+  terrainProfiles = {},
   storeRef,
   partialMission,
   selectedEva,
@@ -17,6 +18,7 @@ export const processEvaDataFromStore = ({
   traverseCalculatedFieldsInSelectedEva,
   selectedRex,
 }: {
+  terrainProfiles?: TerrainProfiles;
   storeRef: MutableRefObject<EvaCalculated_PaperJS>;
   partialMission: Pick<
     Mission,
@@ -106,19 +108,21 @@ export const processEvaDataFromStore = ({
         EVASequenceItemForTimeline.stationDistFromLanderMeters = landerDistance;
 
         // Calculate walkback path if this station has a walkback
-        if (station.walkbackPath) {
+        if (terrainProfiles[station.uuid]?.path ?? station.walkbackPath) {
           const walkback: Path_PaperJS = {
             subdividedPath: null,
             subdividedDistMeters: [],
             subdividedDurationsMins: [],
             subdividedDistFromLanderMeters: [],
-            segmentedElevationMeters: station.walkbackPathSegmentElevations,
-            segmentedDistancesMeters: station.walkbackPathSegmentDistances,
+            segmentedElevationMeters: terrainProfiles[station.uuid]?.profile?.elevationsMeters,
+            segmentedDistancesMeters:
+              terrainProfiles[station.uuid]?.distances ?? station.walkbackPathSegmentDistances,
           };
 
           // Find max/min of elevation
-          if (station.walkbackPathSegmentElevations) {
-            for (const elevationSegment of station.walkbackPathSegmentElevations) {
+          if (terrainProfiles[station.uuid]?.profile?.elevationsMeters) {
+            for (const elevationSegment of terrainProfiles[station.uuid]?.profile
+              ?.elevationsMeters) {
               for (const elevation of elevationSegment) {
                 if (
                   !storeRef.current.maxElevationMeters ||
@@ -139,7 +143,7 @@ export const processEvaDataFromStore = ({
           // Subdivide each segment by for greater accuracy
           const divisor = stationCalculatedFields.walkbackDistanceMeters * 0.01; //meters
           const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
-            station.walkbackPath,
+            terrainProfiles[station.uuid]?.path ?? station.walkbackPath,
             divisor,
             partialMission.planetRadius
           );
@@ -190,9 +194,11 @@ export const processEvaDataFromStore = ({
         subdividedPath: null,
         subdividedDistMeters: [],
         subdividedDistFromLanderMeters: [],
-        segmentedDistancesMeters: traverse.pathSegmentDistances,
-        segmentedElevationMeters: traverse.pathSegmentElevations,
-        segmentedAbsoluteSlopeDegrees: traverse.pathSegmentAbsoluteSlopes ?? null,
+        segmentedDistancesMeters:
+          terrainProfiles[traverse.uuid]?.distances ?? traverse.pathSegmentDistances,
+        segmentedElevationMeters: terrainProfiles[traverse.uuid]?.profile?.elevationsMeters,
+        segmentedAbsoluteSlopeDegrees:
+          terrainProfiles[traverse.uuid]?.profile?.terrainSlopesDegrees ?? null,
       };
 
       // Set the traverse rate for the sequence item in meters per second
@@ -202,8 +208,8 @@ export const processEvaDataFromStore = ({
       EVASequenceItemForTimeline.traverseRateMSec = traverseRate * (1000 / 3600);
 
       // Find max/min of elevation
-      if (traverse.pathSegmentElevations) {
-        for (const elevationSegment of traverse.pathSegmentElevations) {
+      if (terrainProfiles[traverse.uuid]?.profile?.elevationsMeters) {
+        for (const elevationSegment of terrainProfiles[traverse.uuid]?.profile?.elevationsMeters) {
           for (const elevation of elevationSegment) {
             if (
               !storeRef.current.maxElevationMeters ||
@@ -228,7 +234,7 @@ export const processEvaDataFromStore = ({
       // Subdivide each traverse segment for greater accuracy
       const divisor = calculatedFields.distanceMeters * 0.01; //meters
       const newTraverse: AEGISPoint[] = addPointsAtMeters(
-        traverse.path,
+        terrainProfiles[traverse.uuid]?.path ?? traverse.path,
         divisor,
         partialMission.planetRadius
       );

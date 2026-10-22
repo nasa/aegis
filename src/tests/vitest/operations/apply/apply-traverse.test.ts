@@ -34,7 +34,7 @@ afterAll(() => {
 });
 
 describe("apply-traverse", () => {
-  it("applies aligned elevation and terrain-slope profiles atomically", () => {
+  it("applies geometry without persisting derived profiles", () => {
     const traverse = generateBlankTraverse();
     getMissionDocHandle().change((m) => {
       m.traverses[traverse.uuid] = traverse;
@@ -58,8 +58,8 @@ describe("apply-traverse", () => {
     );
 
     const updated = getMission().traverses[traverse.uuid];
-    expect(updated.pathSegmentElevations).toEqual([[10, 11]]);
-    expect(updated.pathSegmentAbsoluteSlopes).toEqual([[null, 2.5]]);
+    expect(updated).not.toHaveProperty("pathSegmentElevations");
+    expect(updated).not.toHaveProperty("pathSegmentAbsoluteSlopes");
   });
 
   describe("applyUpdateTraverseByField()", () => {
@@ -296,8 +296,6 @@ describe("apply-traverse", () => {
         status: null,
         path: [{ lat: 1, lng: 2 }],
         pathSegmentDistances: [100],
-        pathSegmentElevations: [[10, 20]],
-        pathSegmentAbsoluteSlopes: [[1, 2]],
       });
       getMissionDocHandle().change((m) => {
         m.traverses[traverse.uuid] = traverse;

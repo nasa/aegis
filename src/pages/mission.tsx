@@ -1,3 +1,4 @@
+import { useMissionTerrainSync } from "utils/useTerrainProfiles";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams, useSearchParams } from "react-router";
@@ -30,6 +31,7 @@ type RouteParams = {
 };
 
 const Main: React.FunctionComponent = () => {
+  useMissionTerrainSync();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const automergeRepo = useRepo();

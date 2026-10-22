@@ -1,3 +1,4 @@
+import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import {
   faCheck,
   faCircleInfo,
@@ -23,6 +24,8 @@ import {
 } from "utils/rexExecuteEditMode";
 
 const TraverseEditorRight: FunctionComponent = () => {
+  const terrainProfiles = useMissionTerrainProfiles();
+
   const selectedRightNavItem = useAppSelector(
     (state) => state.traverse.selectedTraverseRightNavItem,
     refEqual
@@ -53,6 +56,7 @@ const TraverseEditorRight: FunctionComponent = () => {
       (a) => a.traverseUuid === traverse?.uuid && a.enabled
     );
     return getCalcFieldsForTraverse({
+      terrainProfiles,
       traverse,
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,

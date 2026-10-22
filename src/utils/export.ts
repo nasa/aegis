@@ -148,11 +148,13 @@ export const makeExportPois = (params: {
 };
 
 export const makeExportStations = (params: {
+  terrainProfiles?: TerrainProfiles;
   stations: Station[];
   missionGrid: MissionGridPoint[][];
   mission: Mission;
   exportActions?: boolean;
 }): ExportStation[] => {
+  const { terrainProfiles = {} } = params;
   const { stations, mission, missionGrid, exportActions = true } = params;
   if (!stations || stations.length === 0) return [];
   const evaUuidToRexUuid = Object.fromEntries(
@@ -163,6 +165,7 @@ export const makeExportStations = (params: {
       (a) => a.stationUuid === station.uuid && a.enabled
     );
     const stationCalculatedFields = getCalcFieldsForStation({
+      terrainProfiles,
       station,
       missionWalkbackRate: mission.walkbackRate,
       stationActions,
@@ -228,11 +231,13 @@ export const makeExportStations = (params: {
 };
 
 export const makeExportTraverses = (params: {
+  terrainProfiles?: TerrainProfiles;
   traverses: Traverse[];
   missionGrid: MissionGridPoint[][];
   mission: Mission;
   exportActions?: boolean;
 }): ExportTraverse[] => {
+  const { terrainProfiles = {} } = params;
   const { traverses, mission, missionGrid, exportActions = true } = params;
   if (!traverses || traverses.length === 0) return [];
   const evaUuidToRexUuid = Object.fromEntries(
@@ -246,6 +251,7 @@ export const makeExportTraverses = (params: {
       (a) => a.traverseUuid === traverse.uuid && a.enabled
     );
     const traverseCalculatedFields = getCalcFieldsForTraverse({
+      terrainProfiles,
       traverse: traverse,
       missionTraverseRate: mission.traverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
@@ -289,12 +295,14 @@ export const makeExportTraverses = (params: {
 };
 
 export const makeExportEvas = (params: {
+  terrainProfiles?: TerrainProfiles;
   evas: Eva[];
   missionGrid: MissionGridPoint[][];
   mission: Mission;
   exportStations?: boolean;
   exportTraverses?: boolean;
 }): ExportEva[] => {
+  const { terrainProfiles = {} } = params;
   const { evas, mission, missionGrid, exportStations = true, exportTraverses = true } = params;
   if (!evas || evas.length === 0) return [];
   const evaUuidToRexUuid = Object.fromEntries(
@@ -308,6 +316,7 @@ export const makeExportEvas = (params: {
       eva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
     );
     const evaCalculatedFields = getCalcFieldsForEva({
+      terrainProfiles,
       eva,
       evaStations: Object.values(mission.stations).filter((s) => seqStationUuids.has(s.uuid)),
       missionTraverseRate: mission.traverseRate,
@@ -325,6 +334,7 @@ export const makeExportEvas = (params: {
       sequenceReadable: eva.sequence.map((sequenceItem) => {
         if (sequenceItem.type === "station" && exportStations) {
           return makeExportStations({
+            terrainProfiles,
             // Use filter(Boolean) to filter out nulls in case the station is missing (shouldn't happen but just in case)
             stations: [mission.stations[sequenceItem.uuid]].filter(Boolean) as Station[],
             mission,
@@ -332,6 +342,7 @@ export const makeExportEvas = (params: {
           })[0];
         } else if (sequenceItem.type === "traverse" && exportTraverses) {
           return makeExportTraverses({
+            terrainProfiles,
             traverses: [mission.traverses[sequenceItem.uuid]].filter(Boolean) as Traverse[],
             mission,
             missionGrid,
@@ -471,6 +482,7 @@ export const makeReadableMissionPriority = (params: {
 };
 
 export const makeExportString = ({
+  terrainProfiles = {},
   mission,
   selectEvas,
   selectMission,
@@ -480,6 +492,7 @@ export const makeExportString = ({
   selectTraverses,
   selectRexes,
 }: {
+  terrainProfiles?: TerrainProfiles;
   mission: Mission;
   selectEvas: boolean;
   selectMission: boolean;
@@ -533,6 +546,7 @@ export const makeExportString = ({
    */
   if (selectStations) {
     const stations: ExportStation[] = makeExportStations({
+      terrainProfiles,
       stations: Object.values(mission?.stations ?? {}),
       missionGrid,
       mission,
@@ -544,6 +558,7 @@ export const makeExportString = ({
    */
   if (selectTraverses) {
     const traverses: ExportTraverse[] = makeExportTraverses({
+      terrainProfiles,
       traverses: Object.values(mission?.traverses ?? {}),
       missionGrid,
       mission,
@@ -555,6 +570,7 @@ export const makeExportString = ({
    */
   if (selectEvas) {
     const evas: ExportEva[] = makeExportEvas({
+      terrainProfiles,
       evas: Object.values(mission?.evas ?? {}),
       missionGrid,
       mission,

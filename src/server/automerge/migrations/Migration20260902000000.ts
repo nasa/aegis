@@ -6,7 +6,9 @@ export const Migration20260902000000: AutomergeMigration = {
   name: "add-traverse-absolute-slopes",
   migrate: async (docHandle) => {
     docHandle.change((mission: Mission) => {
-      for (const traverse of Object.values(mission.traverses ?? {})) {
+      for (const traverse of Object.values(mission.traverses ?? {}) as (Traverse & {
+        pathSegmentAbsoluteSlopes?: null;
+      })[]) {
         if (!Object.prototype.hasOwnProperty.call(traverse, "pathSegmentAbsoluteSlopes")) {
           traverse.pathSegmentAbsoluteSlopes = null;
         }

@@ -1,3 +1,4 @@
+import { useMissionTerrainSync } from "utils/useTerrainProfiles";
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useParams } from "react-router";
@@ -34,6 +35,7 @@ type RouteParams = {
 };
 
 const Main = (): JSX.Element => {
+  useMissionTerrainSync();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 

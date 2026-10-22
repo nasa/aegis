@@ -1,3 +1,4 @@
+import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import type { FunctionComponent, MutableRefObject } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -15,6 +16,8 @@ import Activities from "./activities";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const DashTimeline: FunctionComponent = () => {
+  const terrainProfiles = useMissionTerrainProfiles();
+
   const runningRex = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return null;
     return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;
@@ -58,6 +61,7 @@ const DashTimeline: FunctionComponent = () => {
       );
       allStationCalculatedFields.push(
         getCalcFieldsForStation({
+          terrainProfiles,
           station,
           missionWalkbackRate: partialMission.walkbackRate,
           stationActions,
@@ -65,7 +69,7 @@ const DashTimeline: FunctionComponent = () => {
       );
     }
     return allStationCalculatedFields;
-  }, [runningEva, evaStations, allActionRecords, partialMission.walkbackRate]);
+  }, [terrainProfiles, runningEva, evaStations, allActionRecords, partialMission.walkbackRate]);
   const traverseCalculatedFieldsInRunningEva = useMemo(() => {
     const traversesInEvaSequence = runningEva?.sequence
       ? runningEva.sequence.filter((s) => s.type === "traverse")
@@ -79,6 +83,7 @@ const DashTimeline: FunctionComponent = () => {
       );
       allTraverseCalculatedFields.push(
         getCalcFieldsForTraverse({
+          terrainProfiles,
           traverse,
           missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: traverseEva?.traverseRate,
@@ -87,7 +92,7 @@ const DashTimeline: FunctionComponent = () => {
       );
     }
     return allTraverseCalculatedFields;
-  }, [runningEva, evaTraverses, allActionRecords, partialMission.traverseRate]);
+  }, [terrainProfiles, runningEva, evaTraverses, allActionRecords, partialMission.traverseRate]);
 
   const storeRef: MutableRefObject<EvaCalculated_PaperJS> = useRef({
     sequenceItems: [],
@@ -137,6 +142,7 @@ const DashTimeline: FunctionComponent = () => {
   // update the storeRef object with the calculated data when anything changes
   useLayoutEffect(() => {
     processEvaDataFromStore({
+      terrainProfiles,
       storeRef,
       partialMission,
       selectedEva: runningEva,
@@ -148,6 +154,7 @@ const DashTimeline: FunctionComponent = () => {
     });
     setSequenceItems(storeRef.current.sequenceItems);
   }, [
+    terrainProfiles,
     storeRef,
     partialMission,
     runningEva,

@@ -225,6 +225,7 @@ interface MeasureState {
 }
 
 interface WholeStoreState {
+  terrainProfiles: TerrainProfilesState;
   hover: HoverState;
   mission: MissionState;
   user: UserState;

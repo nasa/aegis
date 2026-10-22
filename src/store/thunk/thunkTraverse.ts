@@ -1,3 +1,4 @@
+import { setTerrainPreview, clearTerrainPreview, terrainFingerprint } from "store/terrainProfiles";
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -7,7 +8,6 @@ import { applyDeleteActions } from "operations/apply/apply-action";
 import {
   applyDeleteTraverses,
   applyUpdateTraverseByField,
-  applyUpsertTraverse,
   applyTraverseUpdatesStage,
 } from "operations/apply/apply-traverse";
 import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
@@ -31,15 +31,20 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
     traverseUuid: string;
     path?: AEGISPoint[];
     renameTraverse?: boolean;
+    preview?: boolean;
     evaSequence?: EvaSequenceItem[];
   },
   AEGISPoint[],
   false
 >(
   "fullUpdateTraverse",
-  async ({ traverseUuid, path, renameTraverse = false, evaSequence }, { dispatch }) => {
+  async (
+    { traverseUuid, path, renameTraverse = false, evaSequence, preview = false },
+    { dispatch }
+  ) => {
     // Step 1: Build the updated traverse path, distances, and elevation
-    const mission = getMissionDocHandle()?.doc();
+    const handle = getMissionDocHandle();
+    const mission = handle?.doc();
     if (!mission) return;
     const stageData = await stageTraverseUpdate(mission, dispatch, {
       traverseUuid,
@@ -48,20 +53,6 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
     });
     if (!stageData) return;
 
-    // Step 2: Upsert the fully-built traverse in a single atomic .change()
-    // We need the full Traverse shape, so spread the existing traverse and
-    // overlay the stage data fields
-    const traverse = getMissionDocHandle()?.doc()?.traverses?.[traverseUuid];
-    if (!traverse) return;
-    const newTraverse: Traverse = {
-      ...traverse,
-      name: stageData.newName ?? traverse.name,
-      path: stageData.newPath,
-      pathSegmentDistances: stageData.newPathSegmentDistances,
-      pathSegmentElevations: stageData.newPathSegmentElevations,
-      pathSegmentAbsoluteSlopes: stageData.newPathSegmentAbsoluteSlopes,
-      updatedAt: stageData.updatedAt,
-    };
     if (!areTraverseProfileUpdatesCurrent([stageData])) {
       clientLogger.debug({
         logId: "thunk-traverse",
@@ -69,7 +60,36 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
       });
       return;
     }
-    getMissionDocHandle()?.change((m: Mission) => applyUpsertTraverse(m, newTraverse));
+    if (getMissionDocHandle() !== handle || !handle.doc()?.traverses?.[traverseUuid]) return;
+
+    if (preview) {
+      dispatch(
+        setTerrainPreview({
+          missionId: mission.id,
+          uuid: traverseUuid,
+          entry: {
+            fingerprint: terrainFingerprint(
+              mission,
+              stageData.newPath,
+              stageData.newPathSegmentDistances
+            ),
+            status: stageData.newPathSegmentElevations ? "ready" : "error",
+            error: stageData.newPathSegmentElevations ? null : "Terrain profile unavailable",
+            path: JSON.parse(JSON.stringify(stageData.newPath)),
+            distances: stageData.newPathSegmentDistances,
+            profile: stageData.newPathSegmentElevations
+              ? {
+                  elevationsMeters: stageData.newPathSegmentElevations,
+                  terrainSlopesDegrees: stageData.newPathSegmentAbsoluteSlopes,
+                }
+              : null,
+          },
+        })
+      );
+    } else {
+      handle.change((m: Mission) => applyTraverseUpdatesStage(m, [stageData]));
+      dispatch(clearTerrainPreview({ missionId: mission.id, uuid: traverseUuid }));
+    }
 
     // No Step 3: this thunk has no UI side-effects of its own.
     return stageData.newPath;

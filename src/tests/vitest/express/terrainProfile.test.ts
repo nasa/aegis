@@ -1,3 +1,7 @@
+vi.mock("server/terrain/terrainProfileCache", () => ({
+  watchTerrainCache: vi.fn(),
+  cachedTerrainProfile: vi.fn(),
+}));
 const mocks = vi.hoisted(() => ({
   getAutomergeMissionHandle: vi.fn(),
   hasPerms: vi.fn(),
@@ -58,6 +62,7 @@ describe("terrain profile route", () => {
     vi.clearAllMocks();
     mocks.hasPerms.mockReturnValue(true);
     mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
       doc: () => ({ demFilePath: "Data/trusted.tif", demResolution: 5 }),
     });
     mocks.readTerrainProfileInWorker.mockResolvedValue({
@@ -142,6 +147,7 @@ describe("terrain profile route", () => {
 
   it("rejects a mission without a configured DEM", async () => {
     mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
       doc: () => ({ demFilePath: "", demResolution: 5 }),
     });
 
@@ -243,4 +249,30 @@ describe("terrain profile route", () => {
       message: "Mission 42 not found",
     });
   });
+});
+
+it("returns an owned entity's disk-cached profile without sampling the DEM", async () => {
+  const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
+  mocks.hasPerms.mockReturnValue(true);
+  mocks.readTerrainProfileInWorker.mockClear();
+  mocks.getAutomergeMissionHandle.mockResolvedValue({
+    isDeleted: () => false,
+    doc: () => ({
+      demFilePath: "Data/trusted.tif",
+      demResolution: 5,
+      traverses: { [validBody.entityKey]: {} },
+    }),
+  });
+  vi.mocked(cachedTerrainProfile).mockResolvedValue({
+    elevationsMeters: [[10, 20]],
+    terrainSlopesDegrees: [[1, 2]],
+  });
+  const response = await supertest(app)
+    .post("/api/v1/terrain-profile?missionId=42")
+    .send(validBody);
+  expect(response.status).toBe(200);
+  expect(cachedTerrainProfile).toHaveBeenCalledWith(
+    expect.objectContaining({ missionId: 42, entity: validBody.entityKey })
+  );
+  expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
 });

@@ -1,3 +1,4 @@
+import { getHeads, getObjectId } from "@automerge/automerge";
 import { createCustomTestStore } from "../../fixtures/store";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as mapInitialState } from "store/map";
@@ -47,6 +48,37 @@ afterAll(() => {
 });
 
 describe("Thunk Traverse Tests", () => {
+  it("previews without changes and commits geometry without replacing the traverse object", async () => {
+    const traverse = generateBlankTraverse({
+      path: [
+        { lat: 1, lng: 2 },
+        { lat: 3, lng: 4 },
+      ],
+    });
+    const handle = getMissionDocHandle();
+    handle.change((m) => {
+      m.traverses[traverse.uuid] = traverse;
+    });
+    const heads = getHeads(handle.doc());
+    const objectId = getObjectId(handle.doc().traverses[traverse.uuid]);
+    const path = [
+      { lat: 5, lng: 6 },
+      { lat: 7, lng: 8 },
+    ];
+    const store = createCustomTestStore({});
+    await store.dispatch(
+      thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path, preview: true })
+    );
+    expect(getHeads(handle.doc())).toEqual(heads);
+    expect(
+      store.getState().terrainProfiles.missions[handle.doc().id].previews[traverse.uuid].path
+    ).toEqual(path);
+    await store.dispatch(thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path }));
+    expect(handle.doc().traverses[traverse.uuid].path).toEqual(path);
+    expect(getObjectId(handle.doc().traverses[traverse.uuid])).toEqual(objectId);
+    expect(handle.doc().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
+  });
+
   it("keeps the newer path when direct traverse profile requests overlap", async () => {
     const traverse = generateBlankTraverse({
       path: [
@@ -97,7 +129,7 @@ describe("Thunk Traverse Tests", () => {
     await olderOperation;
 
     expect(getMission().traverses[traverse.uuid].path).toEqual(newerPath);
-    expect(getMission().traverses[traverse.uuid].pathSegmentElevations).toEqual([[20]]);
+    expect(getMission().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
   });
 
   it("thunkDocUpdateTraverse() updates path/distances/name and persists to automerge", async () => {
@@ -173,16 +205,8 @@ describe("Thunk Traverse Tests", () => {
       station2.location,
     ]);
     expect(resultTraverse.pathSegmentDistances.length).toEqual(3);
-    expect(resultTraverse.pathSegmentElevations).toEqual([
-      [1, 2],
-      [2, 3],
-      [3, 4],
-    ]);
-    expect(resultTraverse.pathSegmentAbsoluteSlopes).toEqual([
-      [null, 2],
-      [2, 3],
-      [3, null],
-    ]);
+    expect(resultTraverse).not.toHaveProperty("pathSegmentElevations");
+    expect(resultTraverse).not.toHaveProperty("pathSegmentAbsoluteSlopes");
     expect(resultTraverse.updatedAt).not.toBeNull();
     expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
 

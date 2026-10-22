@@ -1,4 +1,5 @@
 import EvaSunEarth from "./eva-sun-earth";
+import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import {
   ValidatedTextArea,
@@ -41,6 +42,8 @@ import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+  const terrainProfiles = useMissionTerrainProfiles();
+
   const partialMission = useMissionDocSelector(
     (mission) => ({
       walkbackRate: mission.walkbackRate,
@@ -100,6 +103,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       selectedEva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
     );
     return getCalcFieldsForEva({
+      terrainProfiles,
       eva: selectedEva,
       evaStations: Object.values(docMaps.stations ?? {}).filter((s) => seqStationUuids.has(s.uuid)),
       missionWalkbackRate: partialMission.walkbackRate,
@@ -111,7 +115,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         seqTraverseUuids.has(t.uuid)
       ),
     });
-  }, [selectedEva, docMaps, partialMission.walkbackRate, partialMission.traverseRate]);
+  }, [
+    terrainProfiles,
+    selectedEva,
+    docMaps,
+    partialMission.walkbackRate,
+    partialMission.traverseRate,
+  ]);
 
   const [evaDate, setEvaDate] = useState(() => {
     const iso = numericDatetimeToISO(selectedEva?.datetime);

@@ -1,3 +1,4 @@
+import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import type { FunctionComponent } from "react";
@@ -47,6 +48,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 
 const EvaRightEva: FunctionComponent = () => {
+  const terrainProfiles = useMissionTerrainProfiles();
+
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
     (mission) => ({ walkbackRate: mission.walkbackRate, traverseRate: mission.traverseRate }),
@@ -139,6 +142,7 @@ const EvaRightEva: FunctionComponent = () => {
       selectedEva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
     );
     return getCalcFieldsForEva({
+      terrainProfiles,
       eva: selectedEva,
       evaStations: Object.values(docMaps.stations ?? {}).filter((s) => seqStationUuids.has(s.uuid)),
       missionWalkbackRate: partialMission.walkbackRate,
@@ -150,7 +154,13 @@ const EvaRightEva: FunctionComponent = () => {
         seqTraverseUuids.has(t.uuid)
       ),
     });
-  }, [selectedEva, docMaps, partialMission.walkbackRate, partialMission.traverseRate]);
+  }, [
+    terrainProfiles,
+    selectedEva,
+    docMaps,
+    partialMission.walkbackRate,
+    partialMission.traverseRate,
+  ]);
 
   const traverseCalculatedFieldsInSequence = useMemo(() => {
     if (!selectedEva || !docMaps) return [];
@@ -168,6 +178,7 @@ const EvaRightEva: FunctionComponent = () => {
       );
       traverseCalculatedFields.push(
         getCalcFieldsForTraverse({
+          terrainProfiles,
           traverse,
           missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: selectedEva?.traverseRate,
@@ -176,7 +187,7 @@ const EvaRightEva: FunctionComponent = () => {
       );
     }
     return traverseCalculatedFields;
-  }, [selectedEva, docMaps, partialMission.traverseRate]);
+  }, [terrainProfiles, selectedEva, docMaps, partialMission.traverseRate]);
 
   const stationCalculatedFieldsInSequence = useMemo(() => {
     if (!selectedEva || !docMaps) return [];

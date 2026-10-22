@@ -16,8 +16,15 @@ import { serverLogger } from "utils/logging/serverLogger";
 // field it writes so the historical code still type-checks against the current entity types.
 type LegacyPoi = POI & { missionId: number };
 type LegacyAction = Action & { missionId: number | null };
-type LegacyStation = Station & { missionId: number };
-type LegacyTraverse = Traverse & { missionId: number };
+type LegacyStation = Station & {
+  missionId: number;
+  walkbackPathSegmentElevations: number[][] | null;
+};
+type LegacyTraverse = Traverse & {
+  missionId: number;
+  pathSegmentElevations: number[][] | null;
+  pathSegmentAbsoluteSlopes: (number | null)[][] | null;
+};
 
 // Sun/Earth settings were added by Migration20261022000000.
 type EvaBeforeSunEarth = Omit<Eva, "sunEarthFromDate" | "sunAzimuth" | "earthAzimuth">;

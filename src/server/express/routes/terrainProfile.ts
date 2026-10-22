@@ -1,3 +1,4 @@
+import { cachedTerrainProfile, watchTerrainCache } from "server/terrain/terrainProfileCache";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import type { Request, Response } from "express";
@@ -196,18 +197,37 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       missionId.toString(),
       mission.demFilePath
     );
-    const result = await readTerrainProfileInWorker(
-      { absolutePath: rasterPath, expectedResolutionMeters: mission.demResolution ?? 10 },
-      profilePath,
-      samplesPerSegment,
-      entityKey ? `${missionId}:${entityKey}` : undefined,
-      getElevationOnly
-    );
-    const totalRouteDurationMs = performance.now() - routeStartedAt;
+    watchTerrainCache(missionHandle);
+    const compute = () =>
+      readTerrainProfileInWorker(
+        { absolutePath: rasterPath, expectedResolutionMeters: mission.demResolution ?? 10 },
+        profilePath,
+        samplesPerSegment,
+        entityKey ? `${missionId}:${entityKey}` : undefined,
+        getElevationOnly
+      );
+    const cacheEntity = entityKey?.replace(/_walkback$/, "");
+    const isCurrent = () =>
+      !missionHandle.isDeleted() &&
+      !!(
+        missionHandle.doc()?.traverses?.[cacheEntity] ||
+        missionHandle.doc()?.stations?.[cacheEntity]
+      );
+    const result =
+      cacheEntity && !getElevationOnly && isCurrent()
+        ? await cachedTerrainProfile({
+            missionId,
+            entity: cacheEntity,
+            rasterPath,
+            inputs: [profilePath, samplesPerSegment, mission.demResolution ?? 10],
+            isCurrent,
+            compute,
+          })
+        : await compute();
     serverLogger.debug({
       logId: "terrain-profile",
-      logValue: `Worker ${result.workerId} sampled ${result.centerSamples} centers (${result.uniqueDemPixels} unique DEM pixels) from ${result.blocksRead} blocks in ${result.executionDurationMs.toFixed(1)} ms after ${result.queueDurationMs.toFixed(1)} ms queued (${totalRouteDurationMs.toFixed(1)} ms total)`,
       missionId,
+      logValue: `Profile returned in ${(performance.now() - routeStartedAt).toFixed(1)} ms`,
     });
     res.status(200).json({
       status: "success",

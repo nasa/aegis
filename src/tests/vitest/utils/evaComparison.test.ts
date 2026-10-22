@@ -1,3 +1,4 @@
+import { seedTerrainProfile, terrainProfiles } from "tests/vitest/fixtures/terrainProfiles";
 import {
   EVA_COMPARISON_METRIC_ROWS,
   computeComparisonColumnValues,
@@ -36,12 +37,13 @@ const buildFixture = () => {
     uuid: "t1",
     name: "Traverse 1",
     pathSegmentDistances: [100, 200], // 300 m total -> 9 min at 2 km/h
-    pathSegmentElevations: [[0, 10, 5]], // ascent 10, descent 5
+    // ascent 10, descent 5
     path: [
       { lat: 0, lng: 0.01 },
       { lat: 0, lng: 0.02 },
     ],
   });
+  seedTerrainProfile(t1, [[0, 10, 5]]);
   const s1 = generateBlankStation({
     uuid: "s1",
     name: "Station 1",
@@ -83,12 +85,13 @@ const buildFixture = () => {
     uuid: "t2",
     name: "Traverse 2",
     pathSegmentDistances: [500], // 15 min at 2 km/h
-    pathSegmentElevations: [[0, 20, 15]], // ascent 20, descent 5
+    // ascent 20, descent 5
     path: [
       { lat: 0, lng: 0.2 },
       { lat: 0, lng: 0.3 }, // farthest point in the whole mission
     ],
   });
+  seedTerrainProfile(t2, [[0, 20, 15]]);
   const s3 = generateBlankStation({
     uuid: "s3",
     name: "Station 3",
@@ -228,7 +231,11 @@ describe("EVA_COMPARISON_METRIC_ROWS", () => {
 describe("computeComparisonColumnValues() — single EVA column", () => {
   test("computes hand-checkable plan metrics and nulls the REX-only rows", () => {
     const { mission } = buildFixture();
-    const values = computeComparisonColumnValues({ mission, column: evaColumn });
+    const values = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: evaColumn,
+    });
 
     // Time (minutes)
     expect(values.totalEvaTimeCalculated).toBe(54); // dwell 45 + traverse 9
@@ -265,7 +272,11 @@ describe("computeComparisonColumnValues() — single EVA column", () => {
 
   test("null allotted duration yields null allotted + null margin", () => {
     const { mission } = buildFixture();
-    const values = computeComparisonColumnValues({ mission, column: bravoColumn });
+    const values = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: bravoColumn,
+    });
     expect(values.allottedEvaTime).toBeNull();
     expect(values.evaTimeMargin).toBeNull();
     expect(values.totalTraverseDistance).toBe(500);
@@ -274,6 +285,7 @@ describe("computeComparisonColumnValues() — single EVA column", () => {
   test("missing EVA yields all-null values", () => {
     const { mission } = buildFixture();
     const values = computeComparisonColumnValues({
+      terrainProfiles,
       mission,
       column: { ...evaColumn, key: "ghost", evaUuid: "ghost" },
     });
@@ -284,7 +296,11 @@ describe("computeComparisonColumnValues() — single EVA column", () => {
 describe("computeComparisonColumnValues() — REX column", () => {
   test("plan metrics from the REX EVA copy plus populated REX-only rows", () => {
     const { mission } = buildFixture();
-    const values = computeComparisonColumnValues({ mission, column: rexColumn });
+    const values = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: rexColumn,
+    });
 
     // Plan metrics identical to Alpha (same sequence)
     expect(values.totalTraverseDistance).toBe(300);
@@ -309,6 +325,7 @@ describe("computeComparisonColumnValues() — REX column", () => {
   test("missing REX yields null REX-only rows but keeps plan metrics", () => {
     const { mission } = buildFixture();
     const values = computeComparisonColumnValues({
+      terrainProfiles,
       mission,
       column: { ...rexColumn, rexUuid: "ghost" },
     });
@@ -358,9 +375,21 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
     const { mission: base } = buildFixture();
     const mission = withCampaign(base, { memberEvaUuids: ["eva1", "eva2"] });
 
-    const alpha = computeComparisonColumnValues({ mission, column: evaColumn });
-    const bravo = computeComparisonColumnValues({ mission, column: bravoColumn });
-    const planned = computeComparisonColumnValues({ mission, column: campaignPlannedColumn });
+    const alpha = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: evaColumn,
+    });
+    const bravo = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: bravoColumn,
+    });
+    const planned = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: campaignPlannedColumn,
+    });
 
     // Sum rows: hand-summed members
     expect(planned.totalTraverseDistance).toBe(800); // 300 + 500
@@ -384,7 +413,11 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
     const { mission: base } = buildFixture();
     // eva2 has null duration -> null margin; campaign margin should equal eva1's only
     const mission = withCampaign(base, { memberEvaUuids: ["eva1", "eva2"] });
-    const planned = computeComparisonColumnValues({ mission, column: campaignPlannedColumn });
+    const planned = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: campaignPlannedColumn,
+    });
     expect(planned.evaTimeMargin).toBe(66); // only Alpha contributes
     expect(planned.allottedEvaTime).toBe(120); // only Alpha contributes
   });
@@ -394,8 +427,16 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
     const withGhost = withCampaign(base, { memberEvaUuids: ["eva1", "ghost"] });
     const onlyAlpha = withCampaign(base, { memberEvaUuids: ["eva1"] });
 
-    const a = computeComparisonColumnValues({ mission: withGhost, column: campaignPlannedColumn });
-    const b = computeComparisonColumnValues({ mission: onlyAlpha, column: campaignPlannedColumn });
+    const a = computeComparisonColumnValues({
+      terrainProfiles,
+      mission: withGhost,
+      column: campaignPlannedColumn,
+    });
+    const b = computeComparisonColumnValues({
+      terrainProfiles,
+      mission: onlyAlpha,
+      column: campaignPlannedColumn,
+    });
     for (const row of EVA_COMPARISON_METRIC_ROWS) expect(a[row.id]).toBe(b[row.id]);
   });
 
@@ -405,7 +446,11 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
       memberEvaUuids: ["eva1"],
       executionRexUuidByEvaUuid: { eva1: "rex1" },
     });
-    const executed = computeComparisonColumnValues({ mission, column: campaignExecutedColumn });
+    const executed = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: campaignExecutedColumn,
+    });
 
     // Plan metrics from the resolved rex's EVA copy
     expect(executed.totalTraverseDistance).toBe(300);
@@ -420,6 +465,7 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
 
     const emptyMembers = withCampaign(base, { memberEvaUuids: [] });
     const planned = computeComparisonColumnValues({
+      terrainProfiles,
       mission: emptyMembers,
       column: campaignPlannedColumn,
     });
@@ -427,6 +473,7 @@ describe("computeComparisonColumnValues() — campaign columns", () => {
 
     // base has no reportCampaigns at all -> campaign not found
     const missingCampaign = computeComparisonColumnValues({
+      terrainProfiles,
       mission: base,
       column: campaignExecutedColumn,
     });
@@ -450,6 +497,7 @@ describe("computeSequenceItemMetrics() — per-station/traverse sub-columns", ()
     const { mission } = buildFixture();
     // s1: a1 (EV1, 20 min, 100 g), a2 (EV2, 30 min, 50 g); walkback 600 m -> 18 min.
     const s1 = computeSequenceItemMetrics({
+      terrainProfiles,
       mission,
       column: evaColumn,
       item: stationItem("s1", "Station 1"),
@@ -483,6 +531,7 @@ describe("computeSequenceItemMetrics() — per-station/traverse sub-columns", ()
     const { mission } = buildFixture();
     // t1: 300 m -> 9 min at 2 km/h; ascent 10, descent 5; no actions.
     const t1 = computeSequenceItemMetrics({
+      terrainProfiles,
       mission,
       column: evaColumn,
       item: traverseItem("t1", "Traverse 1"),
@@ -504,12 +553,23 @@ describe("computeSequenceItemMetrics() — per-station/traverse sub-columns", ()
 
   test("summable rows sum to the column Total; max rows equal the item max", () => {
     const { mission } = buildFixture();
-    const total = computeComparisonColumnValues({ mission, column: evaColumn });
+    const total = computeComparisonColumnValues({
+      terrainProfiles,
+      mission,
+      column: evaColumn,
+    });
     const items = [
       traverseItem("t1", "Traverse 1"),
       stationItem("s1", "Station 1"),
       stationItem("s2", "Station 2"),
-    ].map((item) => computeSequenceItemMetrics({ mission, column: evaColumn, item }));
+    ].map((item) =>
+      computeSequenceItemMetrics({
+        terrainProfiles,
+        mission,
+        column: evaColumn,
+        item,
+      })
+    );
 
     const sumOf = (id: string) =>
       items.reduce((acc, values) => acc + ((values[id] as number | null) ?? 0), 0);
@@ -538,6 +598,7 @@ describe("computeSequenceItemMetrics() — per-station/traverse sub-columns", ()
     const { mission } = buildFixture();
     // s1 holds a1 (complete, 90 g) + a2 (skipped, 40 g); s2 holds a3 (complete, 210 g).
     const s1 = computeSequenceItemMetrics({
+      terrainProfiles,
       mission,
       column: rexColumn,
       item: stationItem("s1", "Station 1"),
@@ -549,6 +610,7 @@ describe("computeSequenceItemMetrics() — per-station/traverse sub-columns", ()
     expect(s1.actualDistanceWalked).toBeNull();
 
     const s2 = computeSequenceItemMetrics({
+      terrainProfiles,
       mission,
       column: rexColumn,
       item: stationItem("s2", "Station 2"),
@@ -561,6 +623,7 @@ describe("computeSequenceItemMetrics() — per-station/traverse sub-columns", ()
   test("missing EVA or missing station yields all-null values", () => {
     const { mission } = buildFixture();
     const ghostEva = computeSequenceItemMetrics({
+      terrainProfiles,
       mission,
       column: { ...evaColumn, evaUuid: "ghost" },
       item: stationItem("s1", "Station 1"),
@@ -568,6 +631,7 @@ describe("computeSequenceItemMetrics() — per-station/traverse sub-columns", ()
     for (const row of EVA_COMPARISON_METRIC_ROWS) expect(ghostEva[row.id]).toBeNull();
 
     const ghostStation = computeSequenceItemMetrics({
+      terrainProfiles,
       mission,
       column: evaColumn,
       item: stationItem("ghost", "Ghost"),

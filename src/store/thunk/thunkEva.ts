@@ -152,17 +152,13 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
     const traversePath: AEGISPoint[] = [cloneDeep(landerLocation), cloneDeep(landerLocation)];
     const traversePathSegmentDistances: number[] = [0];
 
-    const profileResponse = await dispatch(
+    await dispatch(
       thunkFetchTerrainProfile({
         path: traversePath,
         pathSegmentDistances: traversePathSegmentDistances,
         uuid: newTraverse.uuid,
       })
     );
-    const profile =
-      profileResponse.meta.requestStatus === "fulfilled"
-        ? (profileResponse.payload as TerrainProfile)
-        : null;
 
     // Build the fully-populated traverse
     const populatedTraverse: Traverse = {
@@ -170,8 +166,6 @@ export const thunkDocCreateEva = appCreateAsyncThunk<void>(
       name: `${egressStation.name} to ${ingressStation.name}`,
       path: traversePath,
       pathSegmentDistances: traversePathSegmentDistances,
-      pathSegmentElevations: profile?.elevationsMeters ?? null,
-      pathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
     };
 
     // Step 2: Upsert the EVA, its two lander stations, and the fully-populated

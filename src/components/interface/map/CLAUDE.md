@@ -190,12 +190,12 @@ Key behaviors:
   within `ENDPOINT_PIXEL_TOLERANCE` (10px, matches OL default); the vertex style hides the
   drag-anchor on pinned endpoints; a `restoreEndpoints` "change" listener re-pins as a safety net
   (guarded against re-entrancy). Measurements are free-form (endpoints movable).
-- **Throttled live save** (100ms) on geometry "change" during a drag. Measurements compute
-  distances/bearings **synchronously** into `upsertMeasurement` for a real-time timeline, plus an
-  async elevation fetch. `modifyend` flushes the throttle then does the full save (traverse awaits
-  for endpoint snapping + elevation).
-- **Cancel restores the pre-edit path, it does not reset it.** Because drags are saved through
-  live, `cancelEditPolyline` must write the path back. The pre-edit snapshot lives in
+- **Throttled local preview** (100ms) on geometry "change" during a drag. Traverse and
+  walkback thunks use `preview: true` to update client-only geometry and terrain profiles.
+  Measurements compute distances/bearings synchronously into `upsertMeasurement`.
+  `modifyend` cancels the trailing throttle tick and commits the final geometry to Automerge.
+  Elevation/slope arrays stay outside Automerge and are fetched from the server disk cache.
+- **Cancel restores the pre-edit path, it does not reset it.** Because completed drags are committed on release, `cancelEditPolyline` must write the path back. The pre-edit snapshot lives in
   `state.map.originalPoints`, captured by the panel that starts the edit (traverse `path` /
   station `walkbackPath`) immediately **after** dispatching `thunkUpdateMapDirective`, since that
   thunk synchronously nulls any previous directive and a null directive clears the snapshot.

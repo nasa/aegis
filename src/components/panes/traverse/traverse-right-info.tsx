@@ -1,3 +1,4 @@
+import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import {
   faCalculator,
   faFloppyDisk,
@@ -40,6 +41,8 @@ const Info_Panel: FunctionComponent<{
   /** Narrower than `editMode`: a running REX may permit path editing without the rest. */
   pathEditMode?: boolean;
 }> = ({ editMode, durationEditMode: durationEditModeProp, pathEditMode: pathEditModeProp }) => {
+  const terrainProfiles = useMissionTerrainProfiles();
+
   const durationEditMode = durationEditModeProp ?? editMode;
   const pathEditMode = pathEditModeProp ?? editMode;
   const dispatch = useAppDispatch();
@@ -110,6 +113,7 @@ const Info_Panel: FunctionComponent<{
       (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
     return getCalcFieldsForTraverse({
+      terrainProfiles,
       traverse: selectedTraverse,
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,
@@ -117,6 +121,7 @@ const Info_Panel: FunctionComponent<{
       usingLGRSCoordinates,
     });
   }, [
+    terrainProfiles,
     docMaps,
     selectedTraverse,
     missionTraverseRate,
