@@ -44,8 +44,6 @@ interface Traverse {
   status: TraverseStatus | null;
   path: AEGISPoint[] | null;
   pathSegmentDistances: number[] | null; //meters
-  pathSegmentElevations: number[][] | null; //meters
-  pathSegmentAbsoluteSlopes: (number | null)[][] | null; //degrees
   duration: number | null; //minutes
   description: string;
   traverseRate?: number | null; // km/h
@@ -55,7 +53,8 @@ interface Traverse {
   updatedAt?: number;
 }
 
-type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt" | "pathSegmentAbsoluteSlopes"> & {
+type Traverse_db_type = Omit<Traverse, "createdAt" | "updatedAt"> & {
+  pathSegmentElevations: number[][] | null;
   missionId: number; // legacy Postgres column; removed from the Automerge Traverse
   createdAt?: Date;
   updatedAt?: Date;
@@ -82,7 +81,6 @@ interface Station {
   elevation: number | null;
   walkbackPath: AEGISPoint[] | null;
   walkbackPathSegmentDistances: number[] | null; //meters
-  walkbackPathSegmentElevations: number[][] | null; //meters
   walkbackTraverseRate: number | null; // km/h
   icon: string | null;
   mapCircleControls: MapCircleControls;
@@ -102,6 +100,7 @@ interface Station {
 }
 
 type Station_db_type = Omit<Station, "createdAt" | "updatedAt"> & {
+  walkbackPathSegmentElevations: number[][] | null;
   missionId: number; // legacy Postgres column; removed from the Automerge Station
   createdAt?: Date;
   updatedAt?: Date;

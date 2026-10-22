@@ -1,3 +1,4 @@
+import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
@@ -52,6 +53,8 @@ const Info_Panel: FunctionComponent<{
   locationEditMode: locationEditModeProp,
   durationEditMode: durationEditModeProp,
 }) => {
+  const terrainProfiles = useMissionTerrainProfiles();
+
   const dispatch = useAppDispatch();
   /** Lander copies are pinned to the lander so some fields won't be editable. */
   const locationEditMode = (locationEditModeProp ?? editMode) && !isLanderXgress;
@@ -152,11 +155,12 @@ const Info_Panel: FunctionComponent<{
       (a) => a.stationUuid === selectedStation?.uuid && a.enabled
     );
     return getCalcFieldsForStation({
+      terrainProfiles,
       station: selectedStation,
       missionWalkbackRate: partialMission.walkbackRate,
       stationActions,
     });
-  }, [docMaps, selectedStation, partialMission.walkbackRate]);
+  }, [terrainProfiles, docMaps, selectedStation, partialMission.walkbackRate]);
 
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const stationGridCoordinates = useMemo(() => {

@@ -1,3 +1,4 @@
+import { setTerrainPreview, clearTerrainPreview, terrainFingerprint } from "store/terrainProfiles";
 import appCreateAsyncThunk from "./thunkUtil";
 import {
   setSelectedStationUuid,
@@ -256,10 +257,11 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
   {
     path: AEGISPoint[];
     stationUuid: string;
+    preview?: boolean;
   },
   AEGISPoint[],
   false
->("fullUpdateWalkback", async ({ path, stationUuid }, { dispatch }) => {
+>("fullUpdateWalkback", async ({ path, stationUuid, preview = false }, { dispatch }) => {
   const missionDocHandle = getMissionDocHandle();
   if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
@@ -292,8 +294,7 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
   }
 
-  // Get the terrain profile; only elevations are stored until walkback slope rendering is supported.
-  let newElevationProfile = null;
+  // Fetch the derived profile for preview/cache; it is not stored in Automerge.
   const profileResponse = await dispatch(
     thunkFetchTerrainProfile({
       path: newPath,
@@ -301,9 +302,6 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
       uuid: stationUuid,
     })
   );
-  if (profileResponse.meta.requestStatus === "fulfilled") {
-    newElevationProfile = (profileResponse.payload as TerrainProfile).elevationsMeters;
-  }
 
   if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {
     clientLogger.debug({
@@ -312,6 +310,35 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     });
     return;
   }
+  if (
+    getMissionDocHandle() !== missionDocHandle ||
+    !missionDocHandle.doc()?.stations?.[stationUuid]
+  )
+    return;
+
+  if (preview) {
+    dispatch(
+      setTerrainPreview({
+        missionId: mission.id,
+        uuid: stationUuid,
+        entry: {
+          fingerprint: terrainFingerprint(mission, newPath, pathSegmentDistances),
+          status: profileResponse.meta.requestStatus === "fulfilled" ? "ready" : "error",
+          error:
+            profileResponse.meta.requestStatus === "fulfilled"
+              ? null
+              : "Terrain profile unavailable",
+          path: JSON.parse(JSON.stringify(newPath)),
+          distances: pathSegmentDistances,
+          profile:
+            profileResponse.meta.requestStatus === "fulfilled"
+              ? (profileResponse.payload as TerrainProfile)
+              : null,
+        },
+      })
+    );
+    return newPath;
+  }
   // Step 2: Apply single change to automerge
   // Save walkback to automerge
   missionDocHandle.change((m: Mission) => {
@@ -319,8 +346,9 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     if (!s) return;
     s.walkbackPath = cloneDeep(newPath);
     s.walkbackPathSegmentDistances = pathSegmentDistances;
-    s.walkbackPathSegmentElevations = newElevationProfile;
   });
+
+  dispatch(clearTerrainPreview({ missionId: mission.id, uuid: stationUuid }));
 
   // No Step 3: this thunk has no UI side-effects of its own.
   return newPath;
@@ -353,18 +381,14 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
   const profileRevision = (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) ?? 0) + 1;
   latestIssuedWalkbackProfileRevisionByStation.set(stationUuid, profileRevision);
 
-  // Get the terrain profile; only elevations are stored until walkback slope rendering is supported.
-  let newElevationProfile = null;
-  const profileResponse = await dispatch(
+  // Fetch the derived profile for preview/cache; it is not stored in Automerge.
+  await dispatch(
     thunkFetchTerrainProfile({
       path: newPath,
       pathSegmentDistances: newPathSegmentDistances,
       uuid: stationUuid,
     })
   );
-  if (profileResponse.meta.requestStatus === "fulfilled") {
-    newElevationProfile = (profileResponse.payload as TerrainProfile).elevationsMeters;
-  }
 
   if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {
     clientLogger.debug({
@@ -379,7 +403,6 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
     if (!s) return;
     s.walkbackPath = newPath;
     s.walkbackPathSegmentDistances = newPathSegmentDistances;
-    s.walkbackPathSegmentElevations = newElevationProfile;
   });
 
   // No Step 3: this thunk has no UI side-effects of its own.

@@ -713,6 +713,9 @@ describe("InteractionManager", () => {
         [10, 10],
       ]);
       expect(saveThunk).toHaveBeenCalledOnce();
+      if (mapItemType !== "measurement") {
+        expect(saveThunk).toHaveBeenLastCalledWith(expect.objectContaining({ preview: true }));
+      }
 
       // Queue a trailing update inside the throttle window. modifyend must
       // cancel it rather than flushing it before the final update.
@@ -727,6 +730,7 @@ describe("InteractionManager", () => {
       await Promise.resolve();
 
       expect(saveThunk).toHaveBeenCalledTimes(2);
+      expect(saveThunk.mock.calls.at(-1)?.[0]).not.toHaveProperty("preview");
       expect(saveThunk).toHaveBeenLastCalledWith(
         mapItemType === "traverse"
           ? expect.objectContaining({ traverseUuid: featureId })

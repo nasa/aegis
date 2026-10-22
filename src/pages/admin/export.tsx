@@ -1,5 +1,7 @@
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
+import { getTerrainProfiles } from "store/terrainProfileSelectors";
+import { useMissionTerrainSync } from "utils/useTerrainProfiles";
 import { populateStore } from "store/processing/populateStore";
 import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
@@ -22,6 +24,7 @@ const ExportPage: React.FunctionComponent = () => {
   const loading = useAsyncStatus("Loading mission for export...");
   const { run: runLoad } = loading;
   const action = useAsyncStatus();
+  useMissionTerrainSync();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const automergeRepo = useRepo();
@@ -154,6 +157,7 @@ const ExportPage: React.FunctionComponent = () => {
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
+                      terrainProfiles: getTerrainProfiles(),
                       mission,
                       selectEvas,
                       selectMission,
@@ -181,6 +185,7 @@ const ExportPage: React.FunctionComponent = () => {
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
+                      terrainProfiles: getTerrainProfiles(),
                       mission,
                       selectEvas,
                       selectMission,

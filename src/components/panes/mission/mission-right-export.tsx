@@ -1,3 +1,4 @@
+import { getTerrainProfiles } from "store/terrainProfileSelectors";
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
@@ -23,6 +24,7 @@ const Export_panel: FunctionComponent = () => {
 
   const exportFile = async () => {
     const output = makeExportString({
+      terrainProfiles: getTerrainProfiles(),
       mission,
       selectEvas,
       selectMission,

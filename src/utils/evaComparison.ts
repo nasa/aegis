@@ -303,11 +303,16 @@ const countSingleUseConsumables = (
  * row id. Returns {} when the EVA no longer exists. Sample mass is converted
  * from the app's native grams to kilograms for a compact cell display.
  */
-const computePlanMetrics = (mission: Mission, evaUuid: string): EvaComparisonColumnValues => {
+const computePlanMetrics = (
+  mission: Mission,
+  evaUuid: string,
+  terrainProfiles: TerrainProfiles
+): EvaComparisonColumnValues => {
   const eva = mission?.evas?.[evaUuid];
   if (!eva) return {};
 
   const calc = getCalcFieldsForEva({
+    terrainProfiles,
     eva,
     evaStations: selectEvaStations(mission, evaUuid),
     missionWalkbackRate: mission.walkbackRate,
@@ -379,9 +384,11 @@ const aggregate = (values: (number | null)[], mode: "sum" | "max"): number | nul
  * Missing EVAs/REXes are skipped. Aggregation (sum/max) is per metric row.
  */
 export const computeComparisonColumnValues = ({
+  terrainProfiles = {},
   mission,
   column,
 }: {
+  terrainProfiles?: TerrainProfiles;
   mission: Mission;
   column: EvaReportColumn;
 }): EvaComparisonColumnValues => {
@@ -389,7 +396,7 @@ export const computeComparisonColumnValues = ({
   const values: EvaComparisonColumnValues = {};
 
   if (column.kind === "eva") {
-    const plan = column.evaUuid ? computePlanMetrics(mission, column.evaUuid) : {};
+    const plan = column.evaUuid ? computePlanMetrics(mission, column.evaUuid, terrainProfiles) : {};
     for (const row of EVA_COMPARISON_METRIC_ROWS) {
       values[row.id] = row.rexOnly ? null : (plan[row.id] ?? null);
     }
@@ -397,7 +404,7 @@ export const computeComparisonColumnValues = ({
   }
 
   if (column.kind === "rex") {
-    const plan = column.evaUuid ? computePlanMetrics(mission, column.evaUuid) : {};
+    const plan = column.evaUuid ? computePlanMetrics(mission, column.evaUuid, terrainProfiles) : {};
     const rex = column.rexUuid ? mission.rexes?.[column.rexUuid] : undefined;
     const rexMetrics = rex ? computeRexMetrics(rex, planetRadius) : {};
     for (const row of EVA_COMPARISON_METRIC_ROWS) {
@@ -411,7 +418,7 @@ export const computeComparisonColumnValues = ({
   if (column.kind === "campaignPlanned") {
     const memberMetrics = (campaign?.memberEvaUuids ?? [])
       .filter((evaUuid) => !!mission.evas?.[evaUuid])
-      .map((evaUuid) => computePlanMetrics(mission, evaUuid));
+      .map((evaUuid) => computePlanMetrics(mission, evaUuid, terrainProfiles));
     for (const row of EVA_COMPARISON_METRIC_ROWS) {
       values[row.id] = row.rexOnly
         ? null
@@ -426,7 +433,7 @@ export const computeComparisonColumnValues = ({
   if (column.kind === "campaignExecuted") {
     const executionRexes = campaign ? resolveCampaignExecutionRexes(mission, campaign) : [];
     const perRexMetrics = executionRexes.map((rex) => ({
-      ...computePlanMetrics(mission, rex.evaUuid),
+      ...computePlanMetrics(mission, rex.evaUuid, terrainProfiles),
       ...computeRexMetrics(rex, planetRadius),
     }));
     for (const row of EVA_COMPARISON_METRIC_ROWS) {
@@ -459,10 +466,12 @@ export const computeComparisonColumnValues = ({
  * skipped) are attributed from the REX action entries of the item's actions.
  */
 export const computeSequenceItemMetrics = ({
+  terrainProfiles = {},
   mission,
   column,
   item,
 }: {
+  terrainProfiles?: TerrainProfiles;
   mission: Mission;
   column: EvaReportColumn;
   item: StmCoverageSequenceItem;
@@ -488,6 +497,7 @@ export const computeSequenceItemMetrics = ({
     const station = mission.stations?.[item.uuid];
     if (!station) return values;
     const calc = getCalcFieldsForStation({
+      terrainProfiles,
       station,
       missionWalkbackRate: mission.walkbackRate,
       stationActions: itemActions,
@@ -513,6 +523,7 @@ export const computeSequenceItemMetrics = ({
     const traverse = mission.traverses?.[item.uuid];
     if (!traverse) return values;
     const calc = getCalcFieldsForTraverse({
+      terrainProfiles,
       traverse,
       missionTraverseRate: mission.traverseRate,
       evaTraverseRate: eva.traverseRate,

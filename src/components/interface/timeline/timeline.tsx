@@ -1,3 +1,4 @@
+import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import paper from "paper";
 import type { FunctionComponent, MutableRefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -30,6 +31,8 @@ import { useMapMenuContext } from "../map/MapMenuProvider";
  * Renders the navigation timeline presented at the bottom of the window
  */
 const NavTimeline: FunctionComponent = () => {
+  const terrainProfiles = useMissionTerrainProfiles();
+
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
     (mission) => ({
@@ -92,6 +95,7 @@ const NavTimeline: FunctionComponent = () => {
       );
       allStationCalculatedFields.push(
         getCalcFieldsForStation({
+          terrainProfiles,
           station,
           missionWalkbackRate: partialMission.walkbackRate,
           stationActions,
@@ -99,7 +103,7 @@ const NavTimeline: FunctionComponent = () => {
       );
     }
     return allStationCalculatedFields;
-  }, [selectedEva, evaStations, allActionRecords, partialMission.walkbackRate]);
+  }, [terrainProfiles, selectedEva, evaStations, allActionRecords, partialMission.walkbackRate]);
   const traverseCalculatedFieldsInSelectedEva = useMemo(() => {
     const eva = selectedEva;
     const traversesInEvaSequence = eva?.sequence
@@ -114,6 +118,7 @@ const NavTimeline: FunctionComponent = () => {
       );
       allTraverseCalculatedFields.push(
         getCalcFieldsForTraverse({
+          terrainProfiles,
           traverse,
           missionTraverseRate: partialMission.traverseRate,
           evaTraverseRate: traverseEva?.traverseRate,
@@ -122,7 +127,7 @@ const NavTimeline: FunctionComponent = () => {
       );
     }
     return allTraverseCalculatedFields;
-  }, [selectedEva, evaTraverses, allActionRecords, partialMission.traverseRate]);
+  }, [terrainProfiles, selectedEva, evaTraverses, allActionRecords, partialMission.traverseRate]);
 
   const showDistanceFromLander = useAppSelector(
     (state) => state.interface.timelineShowDistanceFromLander,
@@ -177,6 +182,7 @@ const NavTimeline: FunctionComponent = () => {
    */
   const processEvaDataFromStoreCallback = useCallback(() => {
     processEvaDataFromStore({
+      terrainProfiles,
       storeRef,
       partialMission,
       selectedEva,
@@ -187,6 +193,7 @@ const NavTimeline: FunctionComponent = () => {
       selectedRex,
     });
   }, [
+    terrainProfiles,
     storeRef,
     partialMission,
     selectedEva,

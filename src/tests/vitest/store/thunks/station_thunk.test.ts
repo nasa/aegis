@@ -140,7 +140,7 @@ describe("Thunk Station Tests", () => {
       const stationAfter1 = getMission().stations[newStation.uuid];
       expect(stationAfter1.walkbackPath).toEqual(expectedPath);
       expect(stationAfter1.walkbackPathSegmentDistances.length).toEqual(2);
-      expect(stationAfter1.walkbackPathSegmentElevations).toBeNull();
+      expect(stationAfter1).not.toHaveProperty("walkbackPathSegmentElevations");
       expect(response.payload).toEqual(expectedPath);
       expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
 
@@ -155,12 +155,12 @@ describe("Thunk Station Tests", () => {
       const stationAfter2 = getMission().stations[newStation.uuid];
       expect(stationAfter2.walkbackPath).toEqual(expectedPath);
       expect(stationAfter2.walkbackPathSegmentDistances.length).toEqual(1);
-      expect(stationAfter2.walkbackPathSegmentElevations).toBeNull();
+      expect(stationAfter2).not.toHaveProperty("walkbackPathSegmentElevations");
       expect(response.payload).toEqual(expectedPath);
       expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
     });
 
-    test("stores elevation profile when elevation is fulfilled", async () => {
+    test("does not persist the fetched elevation profile", async () => {
       const fakeElevationProfile = [[0, 100, 200]];
       mockThunkFetchTerrainProfile.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
@@ -186,8 +186,8 @@ describe("Thunk Station Tests", () => {
         })
       );
 
-      expect(getMission().stations[station.uuid].walkbackPathSegmentElevations).toEqual(
-        fakeElevationProfile
+      expect(getMission().stations[station.uuid]).not.toHaveProperty(
+        "walkbackPathSegmentElevations"
       );
     });
   });
@@ -217,11 +217,11 @@ describe("Thunk Station Tests", () => {
       const stationAfter = getMission().stations[newStation.uuid];
       expect(stationAfter.walkbackPath).toEqual(expectedPath);
       expect(stationAfter.walkbackPathSegmentDistances.length).toEqual(1);
-      expect(stationAfter.walkbackPathSegmentElevations).toBeNull();
+      expect(stationAfter).not.toHaveProperty("walkbackPathSegmentElevations");
       expect(mockThunkFetchTerrainProfile).toHaveBeenCalled();
     });
 
-    test("stores elevation profile when elevation is fulfilled", async () => {
+    test("does not persist the fetched elevation profile", async () => {
       const fakeElevationProfile = [[0, 50, 100]];
       mockThunkFetchTerrainProfile.mockReturnValueOnce({
         meta: { requestStatus: "fulfilled" },
@@ -243,8 +243,8 @@ describe("Thunk Station Tests", () => {
 
       await store.dispatch(thunkStation.thunkDocResetWalkback({ stationUuid: station.uuid }));
 
-      expect(getMission().stations[station.uuid].walkbackPathSegmentElevations).toEqual(
-        fakeElevationProfile
+      expect(getMission().stations[station.uuid]).not.toHaveProperty(
+        "walkbackPathSegmentElevations"
       );
     });
   });
