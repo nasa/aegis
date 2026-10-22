@@ -177,7 +177,9 @@ describe("EVA Sun/Earth", () => {
   it("shows the direction source instead of radio controls in read-only mode", async () => {
     render(false);
     expect(harness.container.querySelectorAll('input[type="radio"]')).toHaveLength(0);
-    await expect.element(page.getByText("Calculated from EVA date", { exact: true })).toBeVisible();
+    await expect
+      .element(page.getByText("Calculated from EVA Date/Time", { exact: true }))
+      .toBeVisible();
     updateMission((doc) => {
       doc.evas["eva-1"].sunEarthFromDate = false;
     });
