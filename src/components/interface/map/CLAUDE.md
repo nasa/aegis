@@ -392,10 +392,16 @@ eyeball menu (`map-menu.tsx`), preset selector (`map-menu-preset.tsx`), follow m
 `ScaleBar`, `MouseCoordinateDisplay`, sun/earth compass (`map-sunearth.tsx`), POS menu
 (`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`).
 
-The sun/earth compass azimuths come from `useSunEarthAzimuths(preset)`. With the preset's
-`sunEarthFromDate` on and a `useMapDateTime()` value, they are computed from the lander location
-(`utils/mapping/lunarSky.ts`, astronomy-engine) and rotated from true north to map-up; otherwise
-the preset's manual `sunAzimuth`/`earthAzimuth` are used.
+The sun/earth compass azimuths come from `useSunEarthAzimuths()`. Settings belong to
+the selected EVA and are edited below EVA Start Time in its info panel. Calculation is
+the default and requires the lunar radius (1737400 m), a valid EVA start date, and a lander
+location. Directions are rotated from true north to map-up. The map compass follows timeline
+hover for the selected EVA and returns to its start time on leave; the EVA info panel stays
+at the EVA start time. The compass tooltip always shows the EVA start time, including during
+timeline hover. Layer dates and preset preview times do not change these directions.
+Manual mode uses the EVA's
+`sunAzimuth`/`earthAzimuth`. Both bodies are always present; unavailable values are greyed
+out and the info button explains why.
 
 Distinct from these, `ol/Overlay` (a real DOM node anchored to a coordinate) is used for the
 **timeline astronaut** (`TimelineAstronaut`). POS markers are **not** overlays — they are vector

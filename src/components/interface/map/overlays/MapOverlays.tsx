@@ -143,10 +143,7 @@ export function MapOverlays(): JSX.Element {
 
       {/* Sun/Earth azimuth indicator */}
       {display.showSunEarth && (
-        <SunEarth
-          type={config.mode === "dashboard" ? "dashboard" : "editor"}
-          selectedPreset={selectedPreset}
-        />
+        <SunEarth type={config.mode === "dashboard" ? "dashboard" : "editor"} />
       )}
 
       {/* POS menu — top right (editor only, when EVAs section active and a REX is selected) */}

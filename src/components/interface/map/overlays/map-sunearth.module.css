@@ -57,8 +57,12 @@
   outline-offset: -2px;
 }
 
-.hasWarning .sourceButton {
-  color: var(--warning);
+.unavailable {
+  filter: grayscale(1);
+}
+
+.unavailable .azimuthIndicatorContainer {
+  opacity: 0.4;
 }
 
 .sourceTooltip {
@@ -104,18 +108,21 @@
 }
 
 .azimuthTextContainer {
-  position: relative;
-  top: 20px;
+  position: absolute;
+  top: 0;
   left: 0;
-  width: 0;
-  height: 0;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .azimuthText {
   width: 60px;
-  margin: 0 0 0 2px;
+  margin: 0;
   text-align: center;
-  font-size: 1.1rem;
+  font-size: var(--azimuth-value-font-size, 1.1rem);
   color: var(--grey5);
 }
 
