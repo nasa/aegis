@@ -91,7 +91,6 @@ export function applyLanderLocationUpdateStage(
     if (!station) continue;
     station.walkbackPath = cloneDeep(wb.newWalkbackPath);
     station.walkbackPathSegmentDistances = wb.newWalkbackPathSegmentDistances;
-    station.walkbackPathSegmentElevations = wb.newWalkbackPathSegmentElevations;
   }
 
   // 3. Update xgress stations at lander

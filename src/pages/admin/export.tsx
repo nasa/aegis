@@ -1,3 +1,5 @@
+import { getTerrainProfiles } from "store/terrainProfileSelectors";
+import { useMissionTerrainSync } from "utils/useTerrainProfiles";
 import { populateStore } from "store/processing/populateStore";
 import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
@@ -17,6 +19,7 @@ type RouteParams = {
 };
 
 const ExportPage: React.FunctionComponent = () => {
+  useMissionTerrainSync();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const automergeRepo = useRepo();
@@ -156,6 +159,7 @@ const ExportPage: React.FunctionComponent = () => {
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
+                      terrainProfiles: getTerrainProfiles(),
                       mission,
                       selectEvas,
                       selectMission,
@@ -177,6 +181,7 @@ const ExportPage: React.FunctionComponent = () => {
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
+                      terrainProfiles: getTerrainProfiles(),
                       mission,
                       selectEvas,
                       selectMission,

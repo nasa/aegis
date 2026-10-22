@@ -1,4 +1,5 @@
 import "utils/loadEnv";
+import { watchTerrainCache } from "server/terrain/terrainProfileCache";
 import type { Server as NetServer } from "http";
 import { createServer } from "http";
 import { v4 as uuidv4 } from "uuid";
@@ -6,7 +7,7 @@ import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
 import { Repo } from "@automerge/automerge-repo/slim";
-import type { StorageAdapterInterface } from "@automerge/automerge-repo/slim";
+import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo/slim";
 import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket";
 import app from "./restApi";
 
@@ -166,6 +167,10 @@ initializeBase64Wasm(automergeWasmBase64);
     /** @ts-expect-error @type {(import("@automerge/automerge-repo").PeerId)}  */
     peerId: `storage-server`,
     sharePolicy: async () => false,
+  });
+
+  globalValues.automergeRepo.on("document", ({ handle }) => {
+    watchTerrainCache(handle as DocHandle<Mission>);
   });
 
   // clg peers as they come and go
