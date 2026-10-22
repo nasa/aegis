@@ -61,14 +61,15 @@ Keep comments short. Write comments that explain what the code does or why — n
 
 ## After Code Changes
 
-After every batch of code changes, run:
+During development, format changed files with the root `.prettierrc.json` and run targeted lint checks and tests appropriate to the changes:
 
 ```bash
 ./node_modules/.bin/prettier --config .prettierrc.json --write <changed-files>
-npm run test:all
 ```
 
-Format every changed file with the root `.prettierrc.json` before the full check; use the direct Prettier command above and replace `<changed-files>` with the files changed in the batch. This runs lint (JS/TS + CSS) → tsc → build → vitest → vitest:browser in sequence. Fix any failures before reporting the task complete. Do not skip lint — this project has non-standard CSS and JS/TS lint rules that will fail on patterns that look valid (e.g. specific import ordering, CSS property conventions). If lint fails, read the error output carefully and fix exactly what it reports rather than guessing at the rule.
+Run `npm run test:all` before committing, opening or updating a merge request, or preparing changes for merge or release, and whenever explicitly requested. It is not required after every edit or batch of changes. The full check runs lint (JS/TS + CSS), tsc, build, vitest, and vitest:browser in sequence. Its API build recreates the output directory watched by the dev server, which restarts the API and forces open tabs to reload, interrupting HMR.
+
+Fix failures in the required checks before committing or handing changes off for review. Include lint checks for changed code during development; this project has non-standard CSS and JS/TS lint rules. If lint fails, read the error output carefully and fix exactly what it reports rather than guessing at the rule.
 
 ## Map / OpenLayers
 
