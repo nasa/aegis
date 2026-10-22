@@ -11,6 +11,7 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
+import { loadMissionForList } from "server/automerge/loadMissionForList";
 import { createMissionSummary } from "server/automerge/missionCatalog";
 import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
 
@@ -396,15 +397,13 @@ export async function getAutomergeMissionHandle(
  */
 export async function getAutomergeMissions(missionIds?: number[]): Promise<Mission[]> {
   const automergeListings = await getAutomergeDocListing(missionIds);
-  const missionPromises = automergeListings.map(async (listing) => {
-    const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-      listing.automergeUrl as AutomergeUrl
+  const missionsToReturn: Mission[] = [];
+  for (const listing of automergeListings) {
+    missionsToReturn.push(
+      await loadMissionForList(globalValues.automergeRepo, listing.automergeUrl as AutomergeUrl)
     );
-    await missionDocHandle.whenReady();
-    return missionDocHandle.doc();
-  });
+  }
 
-  const missionsToReturn = await Promise.all(missionPromises);
   return missionsToReturn;
 }
 
