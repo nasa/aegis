@@ -334,8 +334,12 @@ const computePlanMetrics = (
     dwellUnassigned: calc.totalUnassignedTime,
     totalDwellTime: calc.totalDwellTime,
     totalTraverseDistance: calc.totalTraverseDistanceMeters,
-    totalAscent: calc.totalTraverseAscentDescent.totalMetersClimbed,
-    totalDescent: calc.totalTraverseAscentDescent.totalMetersDescended,
+    totalAscent: calc.totalTraverseAscentDescentAvailable
+      ? calc.totalTraverseAscentDescent.totalMetersClimbed
+      : null,
+    totalDescent: calc.totalTraverseAscentDescentAvailable
+      ? calc.totalTraverseAscentDescent.totalMetersDescended
+      : null,
     maxDistanceFromLander: getMaxDistanceFromLander(mission, evaUuid),
     worstCaseWalkbackDuration: getWorstCaseWalkbackDuration(mission, evaUuid),
     stationCount: selectEvaStations(mission, evaUuid).length,
@@ -365,9 +369,16 @@ const computeRexMetrics = (rex: Rex, planetRadius: number): EvaComparisonColumnV
 };
 
 /** Sum or max over the non-null values; null when there are no values. */
-const aggregate = (values: (number | null)[], mode: "sum" | "max"): number | null => {
+/** Terrain rows are unknown, not partial, while any member's profile is unavailable. */
+const ALL_MEMBERS_REQUIRED = new Set<string>(["totalAscent", "totalDescent"]);
+
+const aggregate = (
+  values: (number | null)[],
+  mode: "sum" | "max",
+  requireAll = false
+): number | null => {
   const nums = values.filter((value): value is number => value != null);
-  if (nums.length === 0) return null;
+  if (nums.length === 0 || (requireAll && nums.length !== values.length)) return null;
   return mode === "max"
     ? Math.max(...nums)
     : nums.reduce((accumulator, value) => accumulator + value, 0);
@@ -384,11 +395,11 @@ const aggregate = (values: (number | null)[], mode: "sum" | "max"): number | nul
  * Missing EVAs/REXes are skipped. Aggregation (sum/max) is per metric row.
  */
 export const computeComparisonColumnValues = ({
-  terrainProfiles = {},
+  terrainProfiles,
   mission,
   column,
 }: {
-  terrainProfiles?: TerrainProfiles;
+  terrainProfiles: TerrainProfiles;
   mission: Mission;
   column: EvaReportColumn;
 }): EvaComparisonColumnValues => {
@@ -424,7 +435,8 @@ export const computeComparisonColumnValues = ({
         ? null
         : aggregate(
             memberMetrics.map((metrics) => metrics[row.id] ?? null),
-            row.aggregation
+            row.aggregation,
+            ALL_MEMBERS_REQUIRED.has(row.id)
           );
     }
     return values;
@@ -439,7 +451,8 @@ export const computeComparisonColumnValues = ({
     for (const row of EVA_COMPARISON_METRIC_ROWS) {
       values[row.id] = aggregate(
         perRexMetrics.map((metrics) => metrics[row.id] ?? null),
-        row.aggregation
+        row.aggregation,
+        ALL_MEMBERS_REQUIRED.has(row.id)
       );
     }
     return values;
@@ -466,12 +479,12 @@ export const computeComparisonColumnValues = ({
  * skipped) are attributed from the REX action entries of the item's actions.
  */
 export const computeSequenceItemMetrics = ({
-  terrainProfiles = {},
+  terrainProfiles,
   mission,
   column,
   item,
 }: {
-  terrainProfiles?: TerrainProfiles;
+  terrainProfiles: TerrainProfiles;
   mission: Mission;
   column: EvaReportColumn;
   item: StmCoverageSequenceItem;
@@ -538,8 +551,10 @@ export const computeSequenceItemMetrics = ({
     values.dwellUnassigned = calc.totalUnassignedTime;
     values.totalDwellTime = calc.totalDwellTime;
     values.totalTraverseDistance = calc.distanceMeters;
-    values.totalAscent = calc.ascentDescent.totalMetersClimbed;
-    values.totalDescent = calc.ascentDescent.totalMetersDescended;
+    values.totalAscent = calc.ascentDescentAvailable ? calc.ascentDescent.totalMetersClimbed : null;
+    values.totalDescent = calc.ascentDescentAvailable
+      ? calc.ascentDescent.totalMetersDescended
+      : null;
     values.maxDistanceFromLander = hasLander
       ? (traverse.path ?? []).reduce((max, point) => {
           const distance = point

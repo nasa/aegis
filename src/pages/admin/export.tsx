@@ -1,7 +1,7 @@
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { getTerrainProfiles } from "store/terrainProfileSelectors";
-import { useMissionTerrainSync } from "utils/useTerrainProfiles";
+import { useMissionTerrainSettled, useMissionTerrainSync } from "utils/useTerrainProfiles";
 import { populateStore } from "store/processing/populateStore";
 import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
@@ -35,6 +35,7 @@ const ExportPage: React.FunctionComponent = () => {
 
   const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
   const mission = useMissionDocSelector((mission) => mission, refEqual);
+  const terrainSettled = useMissionTerrainSettled();
 
   const [selectedOutput, setSelectedOutput] = useState("");
   const [selectEvas, setSelectEvas] = useState(true);
@@ -152,8 +153,11 @@ const ExportPage: React.FunctionComponent = () => {
             </div>
             <div className={adminCommon.formActions}>
               <button
-                disabled={!!loading.pending || !!loading.error || !!action.pending}
+                disabled={
+                  !!loading.pending || !!loading.error || !!action.pending || !terrainSettled
+                }
                 className={adminCommon.button}
+                title={terrainSettled ? undefined : "Loading terrain profiles"}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
@@ -180,8 +184,11 @@ const ExportPage: React.FunctionComponent = () => {
                 Export JSON to Text Field
               </button>
               <button
-                disabled={!!loading.pending || !!loading.error || !!action.pending}
+                disabled={
+                  !!loading.pending || !!loading.error || !!action.pending || !terrainSettled
+                }
                 className={adminCommon.button}
+                title={terrainSettled ? undefined : "Loading terrain profiles"}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({

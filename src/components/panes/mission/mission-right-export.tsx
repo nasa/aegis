@@ -9,10 +9,12 @@ import { Button, Checkbox } from "components/interface/form/globalFields";
 import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { makeExportString } from "utils/export";
+import { useMissionTerrainSettled } from "utils/useTerrainProfiles";
 
 const Export_panel: FunctionComponent = () => {
   const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
   const mission = useMissionDocSelector((mission) => mission, refEqual);
+  const terrainSettled = useMissionTerrainSettled();
 
   const [selectEvas, setSelectEvas] = useState(true);
   const [selectMission, setSelectMission] = useState(false);
@@ -125,6 +127,8 @@ const Export_panel: FunctionComponent = () => {
               <Button
                 icon={faFileExport}
                 label="Export JSON File"
+                enabled={terrainSettled}
+                toolTip={terrainSettled ? undefined : "Loading terrain profiles"}
                 style={{ width: "135px", marginLeft: "18px", marginTop: "8px" }}
                 onClick={() => {
                   exportFile();

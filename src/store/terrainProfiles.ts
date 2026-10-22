@@ -6,7 +6,13 @@ export const terrainFingerprint = (
   path: AEGISPoint[],
   distances: number[]
 ): string =>
-  JSON.stringify([mission.id, mission.demFilePath, mission.demResolution, path, distances]);
+  JSON.stringify([
+    mission.id,
+    mission.demFilePath,
+    mission.demResolution,
+    path.map((point) => [point.lat, point.lng]),
+    distances,
+  ]);
 
 export const terrainProfilesSlice = createSlice({
   name: "terrainProfiles",
@@ -18,27 +24,27 @@ export const terrainProfilesSlice = createSlice({
     ) {
       state.activeMissionId = payload.missionId;
       const mission = (state.missions[payload.missionId] ??= { profiles: {}, previews: {} });
-      for (const uuid of Object.keys(mission.profiles)) {
-        if (!payload.entries[uuid]) {
-          delete mission.profiles[uuid];
+      const changed = new Set<string>();
+      for (const uuid of Object.keys(mission.profiles))
+        if (!payload.entries[uuid]) delete mission.profiles[uuid];
+      for (const [uuid, entry] of Object.entries(payload.entries)) {
+        if (mission.profiles[uuid]?.fingerprint === entry.fingerprint) continue;
+        mission.profiles[uuid] = entry;
+        changed.add(uuid);
+      }
+      // A preview ends once the committed geometry catches up with it or moves past it.
+      for (const [uuid, preview] of Object.entries(mission.previews)) {
+        const committed = mission.profiles[uuid];
+        if (committed?.fingerprint === preview.fingerprint) {
+          if (committed.status !== "ready" && preview.status === "ready") {
+            committed.profile = preview.profile;
+            committed.status = "ready";
+            committed.error = null;
+          }
+          delete mission.previews[uuid];
+        } else if (!committed || changed.has(uuid)) {
           delete mission.previews[uuid];
         }
-      }
-      for (const uuid of Object.keys(mission.previews))
-        if (!payload.entries[uuid]) delete mission.previews[uuid];
-      for (const [uuid, entry] of Object.entries(payload.entries)) {
-        if (mission.profiles[uuid]?.fingerprint !== entry.fingerprint)
-          mission.profiles[uuid] = entry;
-      }
-    },
-    terrainProfileLoading(
-      state,
-      { payload }: PayloadAction<{ missionId: number; uuid: string; fingerprint: string }>
-    ) {
-      const entry = state.missions[payload.missionId]?.profiles[payload.uuid];
-      if (entry?.fingerprint === payload.fingerprint) {
-        entry.status = "loading";
-        entry.error = null;
       }
     },
     terrainProfileReceived(
@@ -78,7 +84,6 @@ export const terrainProfilesSlice = createSlice({
 });
 export const {
   reconcileTerrainProfiles,
-  terrainProfileLoading,
   terrainProfileReceived,
   setTerrainPreview,
   clearTerrainPreview,

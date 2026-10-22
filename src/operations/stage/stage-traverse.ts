@@ -6,8 +6,6 @@ import { getAccurateNow } from "utils/formatting";
 import { getTotalDistance } from "utils/mapping/geoMath";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
 import { getNextTraverseProfileRevision } from "operations/helpers/traverseProfileRevision";
-import { thunkFetchTerrainProfile } from "store/thunk/thunkTerrainProfile";
-import type { AppDispatch } from "utils/useAppDispatch";
 
 import { stageDuplicateActions } from "./stage-actions";
 
@@ -63,16 +61,14 @@ export function stageDuplicateTraverse(
 
 /**
  * Build a `TraverseUpdateStageData` for a single traverse: snaps its endpoints
- * to their neighboring stations/lander, recalculates per-segment distances,
- * and fetches the combined elevation and terrain-slope profile.
+ * to their neighboring stations/lander and recalculates per-segment distances.
  *
  * Returns `null` when the traverse or its parent EVA cannot be found.
  */
-export async function stageTraverseUpdate(
+export function stageTraverseUpdate(
   mission: Mission,
-  dispatch: AppDispatch,
   args: TraverseUpdateArgs
-): Promise<TraverseUpdateStageData | null> {
+): TraverseUpdateStageData | null {
   const {
     traverseUuid,
     renameTraverse = false,
@@ -119,21 +115,11 @@ export async function stageTraverseUpdate(
     pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
   }
 
-  const profileResponse = await dispatch(
-    thunkFetchTerrainProfile({ path: newPath, pathSegmentDistances, uuid: traverseUuid })
-  );
-  const profile =
-    profileResponse.meta.requestStatus === "fulfilled"
-      ? (profileResponse.payload as TerrainProfile)
-      : null;
-
   return {
     traverseUuid,
     profileRevision,
     newPath,
     newPathSegmentDistances: pathSegmentDistances,
-    newPathSegmentElevations: profile?.elevationsMeters ?? null,
-    newPathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
     newName: renameTraverse ? `${nameBefore} to ${nameAfter}` : undefined,
     updatedAt: getAccurateNow().getTime(),
   } satisfies TraverseUpdateStageData;

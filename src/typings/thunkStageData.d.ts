@@ -182,8 +182,8 @@ type TraverseUpdateArgs = {
 
 /**
  * Describes a single traverse path update to be applied inside a single
- * `.change()` block. Produced by thunk-layer helpers after all async elevation
- * fetches are complete; consumed by `applyTraverseUpdatesStage`.
+ * `.change()` block. Produced by thunk-layer helpers; consumed by
+ * `applyTraverseUpdatesStage`. Terrain profiles are derived after the commit.
  */
 type TraverseUpdateStageData = {
   traverseUuid: string;
@@ -191,8 +191,6 @@ type TraverseUpdateStageData = {
   profileRevision: number;
   newPath: AEGISPoint[];
   newPathSegmentDistances: number[];
-  newPathSegmentElevations: number[][] | null;
-  newPathSegmentAbsoluteSlopes: (number | null)[][] | null;
   /** When present, the traverse name is also updated. */
   newName?: string;
   updatedAt: number;
@@ -213,7 +211,6 @@ type StationLocationUpdateStageData = {
   newElevation: number | null;
   newWalkbackPath: AEGISPoint[];
   newWalkbackPathSegmentDistances: number[];
-  newWalkbackPathSegmentElevations: number[][] | null;
   /** All adjacent EVA sequence traverses to update. */
   traverseUpdates: TraverseUpdateStageData[];
 };
@@ -229,7 +226,6 @@ type WalkbackUpdateStageData = {
   stationUuid: string;
   newWalkbackPath: AEGISPoint[];
   newWalkbackPathSegmentDistances: number[];
-  newWalkbackPathSegmentElevations: number[][] | null;
 };
 
 /**
@@ -238,8 +234,8 @@ type WalkbackUpdateStageData = {
  * every station that has one, the boundary traverses for EVAs that egress or
  * ingress at the lander, and the location of every lander xgress station.
  *
- * Built asynchronously by `stageLanderLocationUpdate` after all elevation
- * fetches complete; consumed by `applyLanderLocationUpdateStage` inside a
+ * Built asynchronously by `stageLanderLocationUpdate` after the lander
+ * elevation fetch completes; consumed by `applyLanderLocationUpdateStage` inside a
  * single `.change()`.
  */
 type LanderLocationUpdateStageData = {
