@@ -34,7 +34,7 @@ export const migrateDocuments = async (
         throw new Error(`Invalid automerge URL: ${docListing.automergeUrl}`);
       }
       logProgress(`${label}: load started`);
-      const handle = await repo.find<Mission>(docListing.automergeUrl);
+      let handle = await repo.find<Mission>(docListing.automergeUrl);
       await handle.whenReady();
       logProgress(`${label}: load completed in ${Math.round(performance.now() - missionStart)} ms`);
 
@@ -43,6 +43,14 @@ export const migrateDocuments = async (
         const start = performance.now();
         logProgress(`${label}: ${phase} started`);
         await migration.migrate(handle, { docListing, orm });
+        // A migration may replace the document and update its listing.
+        if (handle.url !== docListing.automergeUrl) {
+          if (!isValidAutomergeUrl(docListing.automergeUrl)) {
+            throw new Error(`Invalid migrated automerge URL for mission ${docListing.missionId}`);
+          }
+          handle = await repo.find<Mission>(docListing.automergeUrl);
+          await handle.whenReady();
+        }
         logProgress(`${label}: ${phase} completed in ${Math.round(performance.now() - start)} ms`);
       }
 
