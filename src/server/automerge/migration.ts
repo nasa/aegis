@@ -74,6 +74,7 @@ const runMigration = async () => {
       dbPool
     );
     automergeRepo = new Repo({ storage: storageAdapter });
+    globalValues.automergeRepo = automergeRepo;
 
     serverLogger.info({
       logId: "automerge-migration",
@@ -146,10 +147,18 @@ const runMigration = async () => {
         logValue: `Running automerge migration ${migration.version}-${migration.name}`,
       });
       for (let index = 0; index < allDocHandles.length; index += 1) {
+        const docListing = allDocListings[index];
         await migration.migrate(allDocHandles[index], {
-          docListing: allDocListings[index],
+          docListing,
           orm: globalValues.orm,
         });
+        // A migration may update the listing to point at a different document.
+        if (allDocHandles[index].url !== docListing.automergeUrl) {
+          if (!isValidAutomergeUrl(docListing.automergeUrl)) {
+            throw new Error(`Invalid migrated automerge URL for mission ${docListing.missionId}`);
+          }
+          allDocHandles[index] = await automergeRepo.find<Mission>(docListing.automergeUrl);
+        }
       }
     }
     serverLogger.debug({ logId: "automerge-migration", logValue: "Migrations complete." });
