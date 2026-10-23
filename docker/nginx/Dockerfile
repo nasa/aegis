@@ -1,4 +1,4 @@
-# When building via kaniko in CI, the dependency proxy will cache image from Docker Hub.
+# When building via Buildah in CI, the dependency proxy caches images from Docker Hub.
 # For local builds, Docker pulls directly from Docker Hub
 
 # # # # # # # #
@@ -19,8 +19,8 @@ RUN npm ci
 # Copy the rest of the files
 COPY . /clientsrc
 
-# Make GIT_COMMIT available inside docker/kaniko so it can be baked into the code at build time
-# The GIT_COMMIT value is passed in using MAP_ENV_VARS_TO_BUILD_ARGS from the job pipeline.
+# Make GIT_COMMIT available in the image so it can be baked into the code at build time
+# The GIT_COMMIT value is passed as a build argument from the job pipeline.
 # When building this container locally, this is not available so "localDev" will be used as default value
 ARG GIT_COMMIT=localDev
 ENV GIT_COMMIT=$GIT_COMMIT

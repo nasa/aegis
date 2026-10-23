@@ -73,7 +73,7 @@ install_dependencies:
     - source .env
     - echo "DOCKER_IMAGE_DATABASE=${DOCKER_IMAGE_DATABASE//\"/}" >> pipelineVariables.env
 
-    # Also export the client log-level vars so downstream kaniko build jobs can map them to
+    # Also export the client log-level vars so downstream Buildah jobs can pass them as
     # build args (the nginx image builds the Vite client, and .env isn't in the build context).
     - echo "VITE_PUBLIC_CONSOLE_LOG_LEVEL=${VITE_PUBLIC_CONSOLE_LOG_LEVEL//\"/}" >> pipelineVariables.env
     - echo "VITE_PUBLIC_REMOTE_LOG_LEVEL=${VITE_PUBLIC_REMOTE_LOG_LEVEL//\"/}" >> pipelineVariables.env
