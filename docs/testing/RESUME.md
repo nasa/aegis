@@ -8,28 +8,35 @@ coverage batch. Scenario IDs and acceptance details live in the
 
 Branch at handoff: `codex/playwright-behavioral-baseline`.
 
-| Commit     | Completed work                                                                         |
-| ---------- | -------------------------------------------------------------------------------------- |
-| `55c3d7e4` | Initial full-stack behavioral regression baseline                                      |
-| `2f20b96c` | Expanded behavior contracts and added the tracked scenario inventory/report            |
-| `30893093` | Five more tests for mission defaults, lander cascades, POI links and folder visibility |
+| Commit                      | Completed work                                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `55c3d7e4`                  | Initial full-stack behavioral regression baseline                                               |
+| `2f20b96c`                  | Expanded behavior contracts and added the tracked scenario inventory/report                     |
+| `30893093`                  | Five more tests for mission defaults, lander cascades, POI links and folder visibility          |
+| This batch after `29363b92` | Five position tests for captured PET, map/metadata commit boundaries, cancellation and deletion |
 
-At `30893093`, **85/253 eligible scenarios (33.6%)** are fully mapped, including
-**50/146 P0 scenarios (34.2%)**. There are **159 gaps, nine partial mappings and
+At this checkpoint, **88/253 eligible scenarios (34.8%)** are fully mapped, including
+**52/146 P0 scenarios (35.6%)**. There are **156 gaps, nine partial mappings and
 seven external scenarios**. The denominator was preserved. These are reviewed
 scenario mappings, not JavaScript line coverage.
 
-The last confirmation run passed **106 cases with no failures, skips or retries**:
-97 Chromium behavior cases, four Firefox smoke cases, four WebKit smoke cases
-and authentication. TypeScript, scoped ESLint, formatting and report freshness
-also passed. The complete legacy imported-mission/map suites were not run.
-See the [validation record](runs/2026-10-24-behavior.md) for commands and evidence.
+The latest confirmation passed **111 cases in 4.1 minutes with no failures,
+skips or retries**: 102 Chromium behavior cases, four Firefox smoke cases, four
+WebKit smoke cases and authentication. TypeScript, scoped ESLint, formatting
+and report freshness also passed. See the
+[position validation record](runs/2026-10-24-positions.md) for commands and evidence.
+The complete legacy imported-mission/map suites were not run.
 
-Latest closed IDs: `CFG-003`, `CFG-004`, `FOLDER-003`, `POI-007`. Their tests are
+Latest closed IDs: `POSITION-001`, `POSITION-002`, `POSITION-003`, in
+[positions.spec.ts](../../src/tests/playwright/behavior/positions.spec.ts).
+The tests detect deliberate placement-time PET drift and metadata commits during
+map placement; both temporary source mutations were restored byte-for-byte.
+There is no partially implemented test from this batch to finish.
+
+The preceding batch closed `CFG-003`, `CFG-004`, `FOLDER-003`, `POI-007`; its tests are
 in [missionDefaults.spec.ts](../../src/tests/playwright/behavior/missionDefaults.spec.ts),
 [folders.spec.ts](../../src/tests/playwright/behavior/folders.spec.ts) and
 [poiLinks.spec.ts](../../src/tests/playwright/behavior/poiLinks.spec.ts).
-There is no partially implemented test from this batch to finish.
 
 ## Start here next time
 
@@ -38,8 +45,8 @@ There is no partially implemented test from this batch to finish.
    for checking the current catalog.
 2. Run `npm run test:playwright:scenarios`. This validates discovery and generated
    documentation without starting the application or database.
-3. Take the folder lifecycle/membership batch below, or choose the critical
-   position batch if prioritizing P0 coverage. Read each catalog row's complete
+3. Take the folder lifecycle/membership batch below, or choose critical
+   position filtering/concurrency work if prioritizing P0 coverage. Read each catalog row's complete
    action/expected outcome before implementing it.
 4. Use isolated behavioral fixtures and UI actions; run the focused cases, review
    their complete scenario mappings, then regenerate and validate the report.
@@ -68,11 +75,11 @@ by the new visibility tests.
 
 After that batch, prioritize these uncovered families:
 
-| Priority | Scenarios                      | Fixture/work needed                                                                                                                                                                                                                                             |
-| -------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0       | `POSITION-001`, `POSITION-002` | Use the execution seed and fixed Date pattern to prove PET captured at New Pos, placement coordinates, source/type drafts and the distinct map-finish/Save/Cancel boundaries. Start with `map-menu-pos.tsx`, `map-menu-pos-menu.tsx` and `thunkRexPosEntry.ts`. |
-| P0       | `AUTH-002`, `AUTH-003`         | Add distinct viewer/editor sessions with explicit mission grants. The current global authentication account is a super-admin, so it cannot prove permission or cross-mission enforcement. Cover both UI and direct transports required by each row.             |
-| P0       | `MEASURE-003`, `MEASURE-004`   | Reuse the real DEM installation pattern, add independently known profile expectations and delayed stale responses/mission switching. The lander test's elevation assertion does not close profile rendering or ordering scenarios.                              |
+| Priority | Scenarios                      | Fixture/work needed                                                                                                                                                                                                                                               |
+| -------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | `POSITION-006`, `POSITION-007` | Extend the new position spec to cover source/type filtering across planned/historical/active scopes, equal-PET ordering and concurrent edits/deletes through disconnect/reconnect. Position creation/edit/delete are covered; these broader matrices remain gaps. |
+| P0       | `AUTH-002`, `AUTH-003`         | Add distinct viewer/editor sessions with explicit mission grants. The current global authentication account is a super-admin, so it cannot prove permission or cross-mission enforcement. Cover both UI and direct transports required by each row.               |
+| P0       | `MEASURE-003`, `MEASURE-004`   | Reuse the real DEM installation pattern, add independently known profile expectations and delayed stale responses/mission switching. The lander test's elevation assertion does not close profile rendering or ordering scenarios.                                |
 
 The full backlog remains in the catalog. Do not promote broad rows based on a
 subset of their outcomes, or remove gaps to raise the percentage.
@@ -133,6 +140,18 @@ gaps/partial rows remain. It is not the normal green validation gate.
   a second location; inserting an existing document proxy raises a RangeError.
 - Mission traverse/walkback rates can be inherited. Default EVA duration is
   copied on creation; changing it does not rewrite existing EVA durations.
+- Position controls work with execution edit permission even when the global
+  planning edit toggle is off. The map defaults to Task/Crew source filters;
+  explicitly enable All sources when checking Rover markers. The position menu
+  overlaps the visibility launcher at the default viewport; the new helper
+  moves it with real pointer dragging and restores it afterward. Wait for map
+  animation before converting a known coordinate to a click; keep the click
+  clear of menus and the scale bar. Browser pointer round trips need a
+  submillimeter tolerance in projected map coordinates.
+- New Pos captures PET before placement. Moving an existing position commits
+  location/updatedAt and clears the draft; it retains the saved PET/type/source.
+  Full Save commits drafted metadata. Cancel Edit and Cancel Pos preserve the
+  last committed entry. Position duplication has no current UI control.
 - Folder visibility is shared, while selection/expansion are local. A selected
   EVA keeps its sequence stations visible even when their folder is hidden.
 
@@ -155,12 +174,14 @@ node node_modules/@playwright/test/cli.js test --config=src/tests/playwright/pla
 
 Local, Git-ignored evidence retained on this checkout:
 
-| Directory/log                                                                   | Evidence                                                                                                                                              |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.local/playwright/reports/confirmed/`, `.local/playwright-confirmed.log`       | Final 106 passes                                                                                                                                      |
-| `.local/playwright/reports/final/`, `.local/playwright-final.log`               | Initial 105 passes plus the reload timeout                                                                                                            |
-| `.local/playwright/reports/reload-check/`, `.local/playwright-reload-check.log` | 18 planning cases plus authentication passed; this was not a three-repeat run because npm misparsed the forwarded flags                               |
-| `.local/playwright/reports/mutations/`, `.local/playwright-mutations.log`       | Both intended failures when folder filtering and lander-copy relocation were temporarily broken; production sources were restored before confirmation |
+| Directory/log                                                                                 | Evidence                                                                                                                                              |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.local/playwright/reports/positions-confirmed/`, `.local/playwright-positions-confirmed.log` | Current position-batch full behavior confirmation                                                                                                     |
+| `.local/playwright/reports/positions-mutations/`, `.local/playwright-positions-mutations.log` | Both intended failures for placement-time PET drift and source commits during map placement; production source restored byte-for-byte                 |
+| `.local/playwright/reports/confirmed/`, `.local/playwright-confirmed.log`                     | Final 106 passes                                                                                                                                      |
+| `.local/playwright/reports/final/`, `.local/playwright-final.log`                             | Initial 105 passes plus the reload timeout                                                                                                            |
+| `.local/playwright/reports/reload-check/`, `.local/playwright-reload-check.log`               | 18 planning cases plus authentication passed; this was not a three-repeat run because npm misparsed the forwarded flags                               |
+| `.local/playwright/reports/mutations/`, `.local/playwright-mutations.log`                     | Both intended failures when folder filtering and lander-copy relocation were temporarily broken; production sources were restored before confirmation |
 
 These local reports may not exist on a fresh checkout; the committed validation
 record preserves the findings. At the end of the next batch, update this handoff's

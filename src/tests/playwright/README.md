@@ -39,6 +39,7 @@ npm run test:playwright -- behavior/poiLifecycle.spec.ts --project=chromium
 npm run test:playwright -- behavior/poiLinks.spec.ts --project=chromium
 npm run test:playwright -- behavior/folders.spec.ts --project=chromium
 npm run test:playwright -- behavior/missionDefaults.spec.ts --project=chromium
+npm run test:playwright -- behavior/positions.spec.ts --project=chromium
 ```
 
 The existing `test:playwright` and CI sharding commands also discover these tests.
@@ -65,6 +66,7 @@ separate acceptance requirement.
 | Execution time ownership           | Selected stopped execution, another active execution, A/B/A switching, planned scope, frozen paused clock, ticking clock, zero and hour boundaries                         | `behavior/execution.spec.ts`       |
 | Execution controls                 | Start/pause/resume/stop, interlock against simultaneous execution, manual PET validation/cancel, reset confirmation and persistence, dashboard synchronization             | `behavior/execution.spec.ts`       |
 | Execution edit policy and values   | First-start policy/baseline freeze, restart/reload, limited original-action protection, status lifecycle in sequence/station/EVA views, peer merges and Maestro sample IDs | `behavior/executionPolicy.spec.ts` |
+| Execution positions                | Captured ticking/paused PET, source/type drafts, map placement versus Save, both Cancel paths, deletion confirmation, exact history/markers/paths, peer and reload         | `behavior/positions.spec.ts`       |
 | Planning and entity lifecycle      | Name and numeric validation, save/cancel, create/duplicate/delete, shared station protection, independent execution copies, deletion cascades, actual export content       | `behavior/planning.spec.ts`        |
 | POI creation and deletion          | UI-created defaults/identity, blank/duplicate/overlong names, boundary-length save, deletion Cancel, adopted-copy cleanup and unrelated-action preservation                | `behavior/poiLifecycle.spec.ts`    |
 | POI station links                  | Multiple station links, usage counters, navigation, unlink, peer updates, reload and source-action ownership                                                               | `behavior/poiLinks.spec.ts`        |

@@ -6,20 +6,20 @@
   "overall": {
     "total": 260,
     "eligible": 253,
-    "mapped": 85,
+    "mapped": 88,
     "partial": 9,
-    "gap": 159,
+    "gap": 156,
     "external": 7,
-    "percent": 33.6
+    "percent": 34.8
   },
   "critical": {
     "total": 151,
     "eligible": 146,
-    "mapped": 50,
+    "mapped": 52,
     "partial": 2,
-    "gap": 94,
+    "gap": 92,
     "external": 5,
-    "percent": 34.2
+    "percent": 35.6
   },
   "areas": [
     {
@@ -192,11 +192,11 @@
       "name": "Execution position entry, types and sources",
       "total": 7,
       "eligible": 7,
-      "mapped": 0,
+      "mapped": 3,
       "partial": 0,
-      "gap": 7,
+      "gap": 4,
       "external": 0,
-      "percent": 0
+      "percent": 42.9
     },
     {
       "id": "dash",
@@ -305,7 +305,7 @@
   },
   "discoveredProjects": {
     "auth": 1,
-    "chromium": 165,
+    "chromium": 170,
     "firefox": 4,
     "webkit": 4
   }
