@@ -296,9 +296,20 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     });
     return;
   }
+  const currentMission = missionDocHandle.doc();
+  const currentStation = currentMission?.stations?.[stationUuid];
+  if (getMissionDocHandle() !== missionDocHandle || !currentStation) return;
   if (
-    getMissionDocHandle() !== missionDocHandle ||
-    !missionDocHandle.doc()?.stations?.[stationUuid]
+    terrainFingerprint(
+      currentMission,
+      currentStation.walkbackPath ?? [],
+      currentStation.walkbackPathSegmentDistances ?? []
+    ) !==
+    terrainFingerprint(
+      mission,
+      station?.walkbackPath ?? [],
+      station?.walkbackPathSegmentDistances ?? []
+    )
   )
     return;
 
