@@ -96,7 +96,9 @@ const Header: FunctionComponent = () => {
               <div className={headerStyles.rexLabel}>
                 {runningAsPlannedEvaName} - {runningRex?.name}
               </div>
-              <div className={headerStyles.rexPetTime}>{rexPetTime}</div>
+              <div className={headerStyles.rexPetTime} data-testid="header-pet-clock">
+                {rexPetTime}
+              </div>
               <div className={headerStyles.rexLabel}>PET</div>
             </div>
           </div>
