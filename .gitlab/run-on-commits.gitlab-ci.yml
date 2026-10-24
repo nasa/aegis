@@ -216,6 +216,9 @@ merge-vitest-coverage:
     expire_in: 1 day
 
 test-playwright:
+  # Pipeline success requires manually running all eight regression shards.
+  when: manual
+  allow_failure: false
   parallel:
     matrix:
       - SHARD_INDEX: 1
