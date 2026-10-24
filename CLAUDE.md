@@ -34,10 +34,10 @@ npm run test:vitest
 # Component/DOM tests (Vitest browser mode)
 npm run test:vitest:browser
 
-# Full CI check (lint + tsc + build + unit tests)
+# Standard checks (lint + tsc + build + Vitest suites)
 npm run test:all
 
-# E2E tests (Playwright)
+# Full E2E regression suite (all configured Playwright projects)
 npm run test:playwright
 
 # Database migrations
@@ -89,6 +89,17 @@ Log through `clientLogger` (`utils/logging/clientLogger`) in browser code and `s
 - **Format:** `<category>:<function or handler>:<verbose camelCase description of the event>`, e.g. `socket-maestro-v2:sendMDAU:rejectedPayloadFailedSchemaValidation`. The first segment is the area of code (`server`, `automerge-migration`, `thunk-eva`, `socket-dust-v1`, ...), so you can still filter by area with a prefix query.
 - **`serverLogger.apiRoute()`** requires a `logId` in the form `api-route:<routeName>:<HTTP METHOD>:<description>`, e.g. `api-route:appUsers:GET:unauthorizedRequest`.
 - **Maestro v2 socket connection logs:** the `/maestro/v2` namespace logs every connection (`socket-maestro-v2:connection:maestroClientConnectedOrReconnected`, with `connectionStateRecovered` = Socket.IO's `socket.recovered`) and every disconnect, as `info` for client- or server-requested reasons and `warning` for lost connections (ping timeout, transport close/error). The disconnect log includes the Socket.IO `reason`, `description`, Maestro name, and joined mission ids. Connection state recovery is not enabled on the Socket.IO server, so `socket.recovered` is currently always `false`, and a reconnecting client arrives as a new socket id.
+
+## Before Finishing a Merge Request
+
+Keep the MR in Draft until the full Playwright regression suite passes locally and all eight CI shards pass for the latest MR commit. Before marking an MR Ready, requesting final review, or merging:
+
+1. Run the standard checks above.
+2. With the local development database available and migrations current, run `npm run test:playwright` without file filters, project filters, grep filters, or a shard argument. This runs the entire configured suite: Chromium regression tests, Firefox/WebKit smoke tests, and authentication setup. Install the configured browser binaries with `npx playwright install` if needed.
+3. Push the final changes, then manually start all eight `test-playwright` shards in that commit's GitLab pipeline. Wait for every shard and the rest of the required pipeline to pass before marking the MR Ready.
+4. Record the local result, any retries or skipped tests, and the successful CI pipeline link in the MR description. Investigate failures and retries; do not present a partial or filtered run as full regression validation.
+
+Any new commit requires a fresh full local run and all eight CI shards for that commit before the MR is Ready again. If local prerequisites prevent the full run, report the blocker and leave the MR in Draft. `npm run test:all` does not run Playwright. The CI shards are manual blocking jobs (`allow_failure: false`); an unstarted or failing shard prevents pipeline success and, with the project's required-pipeline setting, prevents merging. The GitLab Ready status is a manual workflow step, so a green pipeline alone does not replace these local checks.
 
 ## Map / OpenLayers
 

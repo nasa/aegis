@@ -226,6 +226,9 @@ test-node-next:
     - npm run test:vitest
 
 test-playwright:
+  # Pipeline success requires manually running all eight regression shards.
+  when: manual
+  allow_failure: false
   parallel:
     matrix:
       - SHARD_INDEX: 1
