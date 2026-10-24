@@ -2,6 +2,7 @@ import { cachedTerrainProfile, watchTerrainCache } from "server/terrain/terrainP
 import path from "node:path";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { performance } from "node:perf_hooks";
+import { setTimeout as delay } from "node:timers/promises";
 import type { Request, Response } from "express";
 import { asError } from "@emss/utils";
 
@@ -103,9 +104,9 @@ export const validateTerrainProfileRequest = (
 export async function sampleMissionTerrainProfile(
   missionId: number,
   missionHandle: DocHandle<Mission>,
-  request: ReturnType<typeof validateTerrainProfileRequest>
+  request: ReturnType<typeof validateTerrainProfileRequest>,
+  mission: Mission = missionHandle.doc()
 ): Promise<TerrainProfile> {
-  const mission = missionHandle.doc();
   if (!mission.demFilePath) throw new Error("Mission does not have a DEM configured");
   const { path: profilePath, samplesPerSegment, entityKey, getElevationOnly, preview } = request;
   const rasterPath = path.resolve(
@@ -154,19 +155,21 @@ export async function sampleMissionTerrainProfile(
 export async function getMissionTerrainProfiles(
   missionId: number,
   missionHandle: DocHandle<Mission>,
+  mission: Mission,
   uuids: Iterable<string>
 ): Promise<TerrainProfiles> {
-  const mission = missionHandle.doc();
   const profiles: TerrainProfiles = {};
   if (!mission?.demFilePath) return profiles;
-  await Promise.all(
-    [...new Set(uuids)].map(async (uuid) => {
+  const entities = [...new Set(uuids)].values();
+  // Leave queue capacity for interactive requests, even for large exports.
+  const loadProfiles = async () => {
+    for (const uuid of entities) {
       const traverse = mission.traverses?.[uuid];
       const station = traverse ? undefined : mission.stations?.[uuid];
       const entityPath = traverse?.path ?? station?.walkbackPath;
       const distances = traverse?.pathSegmentDistances ?? station?.walkbackPathSegmentDistances;
       if (!entityPath || entityPath.length < 2 || distances?.length !== entityPath.length - 1)
-        return;
+        continue;
       const entry: TerrainProfileEntry = {
         fingerprint: terrainFingerprint(mission, entityPath, distances),
         path: entityPath,
@@ -176,21 +179,37 @@ export async function getMissionTerrainProfiles(
         error: null,
       };
       try {
-        entry.profile = await sampleMissionTerrainProfile(
-          missionId,
-          missionHandle,
-          validateTerrainProfileRequest(
-            { path: entityPath, pathSegmentDistances: distances, entityKey: uuid },
-            mission.demResolution ?? 10
-          )
+        const request = validateTerrainProfileRequest(
+          { path: entityPath, pathSegmentDistances: distances, entityKey: uuid },
+          mission.demResolution ?? 10
         );
+        for (let attempt = 0; ; attempt++) {
+          try {
+            entry.profile = await sampleMissionTerrainProfile(
+              missionId,
+              missionHandle,
+              request,
+              mission
+            );
+            break;
+          } catch (error) {
+            if (
+              attempt >= 2 ||
+              !(error instanceof RasterSamplingWorkerPoolUnavailableError) ||
+              error instanceof RasterSamplingWorkerPoolSupersededError
+            )
+              throw error;
+            await delay(100 * (attempt + 1));
+          }
+        }
       } catch (error) {
         entry.status = "error";
         entry.error = asError(error).message;
       }
       profiles[uuid] = entry;
-    })
-  );
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, loadProfiles));
   return profiles;
 }
 

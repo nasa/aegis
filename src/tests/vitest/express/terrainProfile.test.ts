@@ -21,17 +21,28 @@ vi.mock("server/terrain/readTerrainProfile", () => ({
 vi.mock("utils/logging/serverLogger", () => ({
   serverLogger: { apiRoute: mocks.apiRoute, debug: mocks.debug },
 }));
-vi.mock("server/raster/rasterSamplingWorkerPool", () => ({
-  RasterSamplingWorkerPoolUnavailableError: class extends Error {},
-  RasterSamplingWorkerPoolSupersededError: class extends Error {},
-}));
+vi.mock("server/raster/rasterSamplingWorkerPool", () => {
+  class RasterSamplingWorkerPoolUnavailableError extends Error {}
+  class RasterSamplingWorkerPoolSupersededError extends RasterSamplingWorkerPoolUnavailableError {}
+  return { RasterSamplingWorkerPoolUnavailableError, RasterSamplingWorkerPoolSupersededError };
+});
 
 import path from "node:path";
 import express from "express";
 import supertest from "supertest";
 
-import terrainProfileRouter from "server/express/routes/terrainProfile";
+import terrainProfileRouter, {
+  getMissionTerrainProfiles,
+} from "server/express/routes/terrainProfile";
 import { MAX_RASTER_PROFILE_SAMPLES } from "server/terrain/readTerrainProfile";
+import { cachedTerrainProfile } from "server/terrain/terrainProfileCache";
+import {
+  RasterSamplingWorkerPoolSupersededError,
+  RasterSamplingWorkerPoolUnavailableError,
+} from "server/raster/rasterSamplingWorkerPool";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
+import type { DocHandle } from "@automerge/automerge-repo/slim";
 
 const app = express();
 app.use(express.json());
@@ -323,4 +334,119 @@ it("maps validation errors to 400 regardless of message case", async () => {
     .post("/api/v1/terrain-profile?missionId=42")
     .send(validBody);
   expect(response.status).toBe(400);
+});
+
+describe("mission terrain profile batches", () => {
+  const profile = { elevationsMeters: [[10, 20]], terrainSlopesDegrees: [[1, 2]] };
+  let mission: Mission;
+  let handle: DocHandle<Mission>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const traverse = generateBlankTraverse({
+      uuid: "traverse",
+      path: validBody.path,
+      pathSegmentDistances: [20],
+    });
+    mission = generateBlankMission({
+      id: 42,
+      demFilePath: "Data/original.tif",
+      demResolution: 5,
+      traverses: { traverse },
+    });
+    handle = { doc: () => mission, isDeleted: () => false } as unknown as DocHandle<Mission>;
+    vi.mocked(cachedTerrainProfile).mockImplementation(({ compute }) => compute());
+    mocks.readTerrainProfileInWorker.mockReset().mockResolvedValue(profile);
+  });
+
+  it("loads 40 cold profiles with bounded concurrency and deduplicates entities", async () => {
+    mission.traverses = Object.fromEntries(
+      Array.from({ length: 40 }, (_, i) => {
+        const uuid = `traverse${i}`;
+        return [uuid, { ...mission.traverses.traverse, uuid }];
+      })
+    );
+    let active = 0;
+    let peak = 0;
+    mocks.readTerrainProfileInWorker.mockImplementation(async () => {
+      active++;
+      peak = Math.max(peak, active);
+      try {
+        if (active > 33) throw new RasterSamplingWorkerPoolUnavailableError("queue is full");
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        return profile;
+      } finally {
+        active--;
+      }
+    });
+    const uuids = Object.keys(mission.traverses);
+    const profiles = await getMissionTerrainProfiles(42, handle, mission, [...uuids, uuids[0]]);
+    expect(Object.keys(profiles)).toHaveLength(40);
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(4);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(40);
+    for (const entry of Object.values(profiles)) {
+      expect(entry.status).toBe("ready");
+      expect(entry.profile).toEqual(profile);
+    }
+  });
+
+  it("samples geometry and DEM metadata from the export snapshot", async () => {
+    const snapshot = mission;
+    mission = {
+      ...mission,
+      demFilePath: "Data/new.tif",
+      demResolution: 10,
+      traverses: {
+        traverse: {
+          ...mission.traverses.traverse,
+          path: [
+            { lat: 0, lng: 0 },
+            { lat: 1, lng: 1 },
+          ],
+          pathSegmentDistances: [100],
+        },
+      },
+    };
+    const profiles = await getMissionTerrainProfiles(42, handle, snapshot, ["traverse"]);
+    expect(profiles.traverse.path).toEqual(snapshot.traverses.traverse.path);
+    expect(profiles.traverse.distances).toEqual([20]);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(
+      {
+        absolutePath: path.resolve(
+          process.env.STATIC_DIR ?? "",
+          "missionFiles",
+          "42",
+          "Data/original.tif"
+        ),
+        expectedResolutionMeters: 5,
+      },
+      snapshot.traverses.traverse.path,
+      [5],
+      "42:traverse",
+      false
+    );
+  });
+
+  it("retries transient worker capacity failures", async () => {
+    mocks.readTerrainProfileInWorker.mockRejectedValueOnce(
+      new RasterSamplingWorkerPoolUnavailableError("Raster sampling worker queue is full")
+    );
+    const profiles = await getMissionTerrainProfiles(42, handle, mission, ["traverse"]);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(2);
+    expect(profiles.traverse.status).toBe("ready");
+    expect(profiles.traverse.profile).toEqual(profile);
+  });
+
+  it.each([
+    [new RasterSamplingWorkerPoolUnavailableError("queue is full"), 3],
+    [new RasterSamplingWorkerPoolSupersededError(), 1],
+    [new Error("invalid raster"), 1],
+  ])("bounds retries for %s", async (error, attempts) => {
+    mocks.readTerrainProfileInWorker.mockRejectedValue(error);
+    const profiles = await getMissionTerrainProfiles(42, handle, mission, ["traverse"]);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(attempts);
+    expect(profiles.traverse.status).toBe("error");
+    expect(profiles.traverse.profile).toBeNull();
+  });
 });

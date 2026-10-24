@@ -111,6 +111,62 @@ describe("Thunk Station Tests", () => {
   });
 
   describe("thunkDocUpdateWalkback", () => {
+    test.each(["path", "distances", "DEM", "name"])(
+      "checks source %s changes before accepting a late walkback preview",
+      async (change) => {
+        const station = generateBlankStation({
+          location: { lat: 1, lng: 2 },
+          walkbackPath: [
+            { lat: 1, lng: 2 },
+            { lat: 3, lng: 3 },
+          ],
+          walkbackPathSegmentDistances: [10],
+        });
+        const handle = getMissionDocHandle();
+        handle.change((m) => {
+          m.demFilePath = "original.tif";
+          m.stations[station.uuid] = station;
+        });
+        let release!: () => void;
+        const pending = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        mockThunkFetchTerrainProfile.mockReturnValueOnce(
+          pending.then(() => ({
+            meta: { requestStatus: "fulfilled" },
+            payload: { elevationsMeters: [[10, 20]], terrainSlopesDegrees: [[1, 2]] },
+          }))
+        );
+        const store = createCustomTestStore({});
+        const operation = store.dispatch(
+          thunkStation.thunkDocUpdateWalkback({
+            stationUuid: station.uuid,
+            path: [
+              { lat: 1, lng: 2 },
+              { lat: 4, lng: 4 },
+              { lat: 3, lng: 3 },
+            ],
+            preview: true,
+          })
+        );
+        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+        handle.change((m) => {
+          if (change === "path") m.stations[station.uuid].walkbackPath[0].lat = 4;
+          if (change === "distances") m.stations[station.uuid].walkbackPathSegmentDistances = [20];
+          if (change === "DEM") m.demFilePath = "replacement.tif";
+          if (change === "name") m.stations[station.uuid].name = "Renamed remotely";
+        });
+        const committed = handle.doc();
+        release();
+        await operation;
+        expect(handle.doc()).toBe(committed);
+        const preview =
+          store.getState().terrainProfiles.missions[committed.id]?.previews[station.uuid];
+        if (change === "name") expect(preview?.status).toBe("ready");
+        else expect(preview).toBeUndefined();
+      }
+    );
+
     test("snaps endpoints and writes to automerge", async () => {
       const newStation: Station = generateBlankStation({
         name: "Vitest Station-1",
