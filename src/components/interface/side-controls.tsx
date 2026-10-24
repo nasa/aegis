@@ -78,10 +78,10 @@ export const BottomControlPanel: FunctionComponent = () => {
     refEqual
   );
 
-  (async () => {
-    const font = new FontFaceObserver("Inter");
-    await font.load();
-  })();
+  useEffect(() => {
+    // Preload the canvas font; navigation may cancel its request.
+    new FontFaceObserver("Inter").load().catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!autoBottomPanelOpen) return;

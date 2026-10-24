@@ -1,13 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 import { fileURLToPath } from "url";
+import { randomUUID } from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const storageStatePath = path.resolve(__dirname, "../../../.local/playwright/auth.json");
+const storageStatePath = (process.env.PLAYWRIGHT_AUTH_FILE ??= path.resolve(
+  __dirname,
+  `../../../.local/playwright/auth-${randomUUID()}.json`
+));
+const reportDirectory = path.resolve(
+  __dirname,
+  "../../..",
+  process.env.PLAYWRIGHT_REPORT_DIR ?? "playwright-report"
+);
 
-// Smoke tests are read-only and parallelize cleanly.
-const SMOKE_TESTS = /(mapOl|dashboardOl)\.spec\.ts/;
+const SMOKE_TESTS = /behavior[\\/]smoke\.spec\.ts/;
 
 export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
@@ -27,11 +35,17 @@ export default defineConfig({
   // Retry on CI only.
   retries: process.env.CI ? 2 : 0,
 
-  // Let Playwright pick worker count based on CPU.
-  workers: undefined,
+  // Bound simultaneous full-stack clients on developer machines and CI shards.
+  workers: process.env.CI ? 4 : 3,
+
+  expect: { timeout: 10000 },
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [["list"], ["html"]],
+  reporter: [
+    ["list"],
+    ["html", { open: "never", outputFolder: reportDirectory }],
+    ["junit", { outputFile: path.join(reportDirectory, "junit.xml") }],
+  ],
 
   use: {
     // Base URL to use in actions like `await page.goto('/')`.
@@ -42,6 +56,9 @@ export default defineConfig({
 
     // Collect trace when retrying the failed test.
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    actionTimeout: 10000,
+    navigationTimeout: 30000,
   },
 
   // Configure projects for major browsers.

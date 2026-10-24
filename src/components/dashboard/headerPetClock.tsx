@@ -17,7 +17,9 @@ const DashboardPETClock: FunctionComponent = () => {
       <div className={styles.petClock}>
         <div className={styles.petClockTextContainer}>
           <span className={styles.petClockLabel}>PET</span>
-          <span className={styles.petClockValue}>{rexPetTime}</span>
+          <span className={styles.petClockValue} data-testid="dashboard-pet-clock">
+            {rexPetTime}
+          </span>
         </div>
       </div>
     </>
