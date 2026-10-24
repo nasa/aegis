@@ -318,9 +318,18 @@
           "title": "Default override propagation",
           "priority": "P0",
           "action": "Change mission traverse/walkback rates and EVA duration with inherited and explicit entity overrides.",
-          "expected": "Inherited consumers update; explicit overrides survive; clearing an override restores inheritance.",
-          "automation": "gap",
-          "tests": []
+          "expected": "Inherited traverse/walkback rates update; explicit overrides survive; clearing a rate override restores inheritance. The EVA duration default initializes newly created EVAs while existing EVA durations stay unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculations.spec.ts",
+              "title": "500 meter travel uses traverse then EVA then mission rate and zero restores inherited calculations"
+            },
+            {
+              "file": "behavior/missionDefaults.spec.ts",
+              "title": "mission walkback defaults update inherited times while station overrides and existing EVA durations stay independent"
+            }
+          ]
         },
         {
           "id": "CFG-004",
@@ -328,8 +337,14 @@
           "priority": "P0",
           "action": "Move the lander with stations, walkbacks and multiple EVA egress/ingress copies; reload and observe a peer.",
           "expected": "Location/elevation, walkback endpoints and affected paths update coherently without moving unrelated stations.",
-          "automation": "gap",
-          "tests": []
+          "fixture": "Isolated two-EVA mission using the checked-in Apollo 14 DEM extract copied into its own mission directory; GDAL golden elevation at the destination.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/missionDefaults.spec.ts",
+              "title": "lander relocation updates every EVA boundary and walkback with real DEM elevation on a peer and after reload"
+            }
+          ]
         },
         {
           "id": "CFG-005",
@@ -515,8 +530,17 @@
           "priority": "P1",
           "action": "Hide a folder then select a contained station/POI or an EVA using hidden stations.",
           "expected": "Folder visibility, selected-object exceptions and EVA scope remain distinct and produce the intended map features.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "hidden poi folders preserve selection exceptions, shared visibility and saved membership"
+            },
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "hidden station folders preserve selection exceptions, shared visibility and saved membership"
+            }
+          ]
         },
         {
           "id": "FOLDER-004",
@@ -616,8 +640,13 @@
           "priority": "P1",
           "action": "Link/unlink one POI from multiple stations and follow backlinks.",
           "expected": "Association lists and counters agree without implicitly adopting actions; changes persist to peers.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/poiLinks.spec.ts",
+              "title": "linking a POI across stations updates peers and counters without adopting source actions"
+            }
+          ]
         },
         {
           "id": "POI-008",

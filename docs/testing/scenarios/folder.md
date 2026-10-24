@@ -6,7 +6,7 @@ Fixture: Planning entities and presets assigned to multiple folders, including a
 
 Source: [src/operations/apply/apply-mission-folder.ts](../../../src/operations/apply/apply-mission-folder.ts), [src/store/thunk/thunkFolder.ts](../../../src/store/thunk/thunkFolder.ts).
 
-Scenario mapping: **0/4 (0%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **1/4 (25%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/folder_thunk.test.ts](../../../src/tests/vitest/store/thunks/folder_thunk.test.ts), [src/tests/vitest/operations/apply/apply-mission-folder.test.ts](../../../src/tests/vitest/operations/apply/apply-mission-folder.test.ts).
 
@@ -28,11 +28,15 @@ Expected: Each UUID occurs in the intended place once, with the documented order
 
 ## FOLDER-003: Folder visibility exceptions
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Hide a folder then select a contained station/POI or an EVA using hidden stations.
 
 Expected: Folder visibility, selected-object exceptions and EVA scope remain distinct and produce the intended map features.
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:23](../../../src/tests/playwright/behavior/folders.spec.ts#L23) — hidden poi folders preserve selection exceptions, shared visibility and saved membership (chromium).
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:23](../../../src/tests/playwright/behavior/folders.spec.ts#L23) — hidden station folders preserve selection exceptions, shared visibility and saved membership (chromium).
 
 ## FOLDER-004: Concurrent folder membership edits
 

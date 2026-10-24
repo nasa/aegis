@@ -6,7 +6,7 @@ Fixture: Blank mission with known lander, rates, banner, projection and action-s
 
 Source: [src/components/panes/mission/mission-right-prefs.tsx](../../../src/components/panes/mission/mission-right-prefs.tsx), [src/operations/apply/apply-mission.ts](../../../src/operations/apply/apply-mission.ts).
 
-Scenario mapping: **2/6 (33.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **4/6 (66.7%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/mission_thunk.test.ts](../../../src/tests/vitest/store/thunks/mission_thunk.test.ts).
 
@@ -32,19 +32,27 @@ Playwright: [src/tests/playwright/behavior/configuration.spec.ts:80](../../../sr
 
 ## CFG-003: Default override propagation
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Change mission traverse/walkback rates and EVA duration with inherited and explicit entity overrides.
 
-Expected: Inherited consumers update; explicit overrides survive; clearing an override restores inheritance.
+Expected: Inherited traverse/walkback rates update; explicit overrides survive; clearing a rate override restores inheritance. The EVA duration default initializes newly created EVAs while existing EVA durations stay unchanged.
+
+Playwright: [src/tests/playwright/behavior/calculations.spec.ts:111](../../../src/tests/playwright/behavior/calculations.spec.ts#L111) — 500 meter travel uses traverse then EVA then mission rate and zero restores inherited calculations (chromium).
+
+Playwright: [src/tests/playwright/behavior/missionDefaults.spec.ts:28](../../../src/tests/playwright/behavior/missionDefaults.spec.ts#L28) — mission walkback defaults update inherited times while station overrides and existing EVA durations stay independent (chromium).
 
 ## CFG-004: Lander relocation cascades
 
-**P0 · Gap**
+**P0 · Mapped**
+
+Fixture: Isolated two-EVA mission using the checked-in Apollo 14 DEM extract copied into its own mission directory; GDAL golden elevation at the destination.
 
 Action: Move the lander with stations, walkbacks and multiple EVA egress/ingress copies; reload and observe a peer.
 
 Expected: Location/elevation, walkback endpoints and affected paths update coherently without moving unrelated stations.
+
+Playwright: [src/tests/playwright/behavior/missionDefaults.spec.ts:99](../../../src/tests/playwright/behavior/missionDefaults.spec.ts#L99) — lander relocation updates every EVA boundary and walkback with real DEM elevation on a peer and after reload (chromium).
 
 ## CFG-005: Lander absent and restored
 

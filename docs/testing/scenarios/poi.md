@@ -6,7 +6,7 @@ Fixture: Planning mission with a located POI, source actions and stations refere
 
 Source: [src/components/panes/poi/poi-right.tsx](../../../src/components/panes/poi/poi-right.tsx), [src/operations/apply/apply-poi.ts](../../../src/operations/apply/apply-poi.ts).
 
-Scenario mapping: **4/8 (50%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **5/8 (62.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/poi_thunk.test.ts](../../../src/tests/vitest/store/thunks/poi_thunk.test.ts).
 
@@ -68,11 +68,13 @@ Expected: List, detail and map agree with persisted metadata and icon without mu
 
 ## POI-007: POI station links and navigation
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Link/unlink one POI from multiple stations and follow backlinks.
 
 Expected: Association lists and counters agree without implicitly adopting actions; changes persist to peers.
+
+Playwright: [src/tests/playwright/behavior/poiLinks.spec.ts:28](../../../src/tests/playwright/behavior/poiLinks.spec.ts#L28) — linking a POI across stations updates peers and counters without adopting source actions (chromium).
 
 ## POI-008: POI report severity and mass
 

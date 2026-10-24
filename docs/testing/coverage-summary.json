@@ -6,20 +6,20 @@
   "overall": {
     "total": 260,
     "eligible": 253,
-    "mapped": 81,
+    "mapped": 85,
     "partial": 9,
-    "gap": 163,
+    "gap": 159,
     "external": 7,
-    "percent": 32
+    "percent": 33.6
   },
   "critical": {
     "total": 151,
     "eligible": 146,
-    "mapped": 48,
+    "mapped": 50,
     "partial": 2,
-    "gap": 96,
+    "gap": 94,
     "external": 5,
-    "percent": 32.9
+    "percent": 34.2
   },
   "areas": [
     {
@@ -49,11 +49,11 @@
       "name": "Mission preferences and defaults",
       "total": 6,
       "eligible": 6,
-      "mapped": 2,
+      "mapped": 4,
       "partial": 0,
-      "gap": 4,
+      "gap": 2,
       "external": 0,
-      "percent": 33.3
+      "percent": 66.7
     },
     {
       "id": "ref",
@@ -71,22 +71,22 @@
       "name": "Folders, ordering and shared lists",
       "total": 4,
       "eligible": 4,
-      "mapped": 0,
+      "mapped": 1,
       "partial": 0,
-      "gap": 4,
+      "gap": 3,
       "external": 0,
-      "percent": 0
+      "percent": 25
     },
     {
       "id": "poi",
       "name": "POI lifecycle and association",
       "total": 8,
       "eligible": 8,
-      "mapped": 4,
+      "mapped": 5,
       "partial": 0,
-      "gap": 4,
+      "gap": 3,
       "external": 0,
-      "percent": 50
+      "percent": 62.5
     },
     {
       "id": "station",
@@ -305,7 +305,7 @@
   },
   "discoveredProjects": {
     "auth": 1,
-    "chromium": 160,
+    "chromium": 165,
     "firefox": 4,
     "webkit": 4
   }
