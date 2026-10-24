@@ -232,8 +232,12 @@ test-playwright:
       - SHARD_INDEX: 2
       - SHARD_INDEX: 3
       - SHARD_INDEX: 4
+      - SHARD_INDEX: 5
+      - SHARD_INDEX: 6
+      - SHARD_INDEX: 7
+      - SHARD_INDEX: 8
   variables:
-    NUM_SHARDS: 4
+    NUM_SHARDS: 8
   extends: .test_template
   stage: stageless
   # Keep this tag in sync with the @playwright/test version in package.json.
