@@ -225,9 +225,17 @@ test-node-next:
     - npm run build
     - npm run test:vitest
 
-test-playwright:
-  # Pipeline success requires manually running all eight regression shards.
+test-playwright:start:
+  stage: stageless
+  tags: ["openshift"]
+  needs: []
   when: manual
+  allow_failure: false
+  script:
+    - echo "Starting all eight Playwright regression shards"
+
+test-playwright:
+  when: on_success
   allow_failure: false
   parallel:
     matrix:
@@ -246,6 +254,8 @@ test-playwright:
   # Keep this tag in sync with the @playwright/test version in package.json.
   image: mcr.microsoft.com/playwright:v1.63.0-jammy
   needs:
+    - job: test-playwright:start
+      artifacts: false
     - install_dependencies
     - make-dotenv:test
     - z:db-export:prod

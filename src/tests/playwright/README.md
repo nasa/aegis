@@ -47,10 +47,11 @@ Legacy mission/configuration and map smoke tests remain available. Playwright
 does not become a dependency of container image builds or production deployment.
 
 Before finishing an MR, run `npm run test:playwright` locally without filters or
-sharding, then manually start all eight `test-playwright` shards in the latest
-commit's GitLab pipeline. Every shard must pass for the pipeline to succeed and
-the MR to be mergeable. Keep the MR in Draft until both the local run and the
-required pipeline pass; new commits require fresh validation. See
+sharding, then click Play once on `test-playwright:start` in the latest commit's
+GitLab pipeline to release all eight shards automatically. Every shard must pass
+for the pipeline to succeed and the MR to be mergeable. Keep the MR in Draft
+until both the local run and the required pipeline pass; new commits require
+fresh validation. See
 [Before Finishing a Merge Request](../../../CLAUDE.md#before-finishing-a-merge-request).
 
 ## Coverage by capability
