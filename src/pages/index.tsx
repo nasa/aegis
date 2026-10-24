@@ -460,10 +460,12 @@ const Home: React.FunctionComponent = () => {
   // check the app version
   const clientAppVersion = useAppSelector((state) => state.connection.clientAppVersion, deepEqual);
   useEffect(() => {
+    const controller = new AbortController();
     const checkVersion = async () => {
       const res = await fetch(`/api/v1/version?_=${Date.now()}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache" },
+        signal: controller.signal,
       });
       if (res.status !== 200) {
         console.warn(`Unable to check app version: ${res.status} ${res.statusText}`);
@@ -480,7 +482,14 @@ const Home: React.FunctionComponent = () => {
         }
       }
     };
-    checkVersion();
+    checkVersion().catch((error) => {
+      if (controller.signal.aborted) return;
+      clientLogger.error(
+        { logId: "versionCheck", logValue: "Failed to check app version" },
+        error instanceof Error ? error : new Error(String(error))
+      );
+    });
+    return () => controller.abort();
   }, [clientAppVersion]);
 
   useEffect(() => {
