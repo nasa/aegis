@@ -34,10 +34,10 @@ npm run test:vitest
 # Component/DOM tests (Vitest browser mode)
 npm run test:vitest:browser
 
-# Full CI check (lint + tsc + build + unit tests)
+# Standard checks (lint + tsc + build + Vitest suites)
 npm run test:all
 
-# E2E tests (Playwright)
+# Full E2E regression suite (all configured Playwright projects)
 npm run test:playwright
 
 # Database migrations
@@ -63,6 +63,17 @@ npm run test:all
 ```
 
 Format every changed file with the root `.prettierrc.json` before the full check; use the direct Prettier command above and replace `<changed-files>` with the files changed in the batch. This runs lint (JS/TS + CSS) → tsc → build → vitest → vitest:browser in sequence. Fix any failures before reporting the task complete. Do not skip lint — this project has non-standard CSS and JS/TS lint rules that will fail on patterns that look valid (e.g. specific import ordering, CSS property conventions). If lint fails, read the error output carefully and fix exactly what it reports rather than guessing at the rule.
+
+## Before Finishing a Merge Request
+
+Keep the MR in Draft until the full Playwright regression suite passes locally and all eight CI shards pass for the latest MR commit. Before marking an MR Ready, requesting final review, or merging:
+
+1. Run the standard checks above.
+2. With the local development database available and migrations current, run `npm run test:playwright` without file filters, project filters, grep filters, or a shard argument. This runs the entire configured suite: Chromium regression tests, Firefox/WebKit smoke tests, and authentication setup. Install the configured browser binaries with `npx playwright install` if needed.
+3. Push the final changes, then manually start all eight `test-playwright` shards in that commit's GitLab pipeline. Wait for every shard and the rest of the required pipeline to pass before marking the MR Ready.
+4. Record the local result, any retries or skipped tests, and the successful CI pipeline link in the MR description. Investigate failures and retries; do not present a partial or filtered run as full regression validation.
+
+Any new commit requires a fresh full local run and all eight CI shards for that commit before the MR is Ready again. If local prerequisites prevent the full run, report the blocker and leave the MR in Draft. `npm run test:all` does not run Playwright. The CI shards are manual blocking jobs (`allow_failure: false`); an unstarted or failing shard prevents pipeline success and, with the project's required-pipeline setting, prevents merging. The GitLab Ready status is a manual workflow step, so a green pipeline alone does not replace these local checks.
 
 ## Map / OpenLayers
 
