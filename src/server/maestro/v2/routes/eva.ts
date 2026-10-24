@@ -65,6 +65,7 @@ export async function getReadableEvaData(params: ReadableEvaParams): Promise<Exp
     ? await getMissionTerrainProfiles(
         missionId,
         missionHandle,
+        mission,
         evas.flatMap((eva) => eva.sequence.map((item) => item.uuid))
       )
     : {};

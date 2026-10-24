@@ -73,7 +73,24 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
         });
         return;
       }
-      if (getMissionDocHandle() !== handle || !handle.doc()?.traverses?.[traverseUuid]) return;
+      const currentMission = handle.doc();
+      const currentTraverse = currentMission?.traverses?.[traverseUuid];
+      if (getMissionDocHandle() !== handle || !currentTraverse) return;
+      const sourceTraverse = mission.traverses[traverseUuid];
+      if (
+        preview &&
+        terrainFingerprint(
+          currentMission,
+          currentTraverse.path ?? [],
+          currentTraverse.pathSegmentDistances ?? []
+        ) !==
+          terrainFingerprint(
+            mission,
+            sourceTraverse.path ?? [],
+            sourceTraverse.pathSegmentDistances ?? []
+          )
+      )
+        return;
 
       if (preview) {
         const profile =

@@ -103,7 +103,7 @@ describe("Thunk Traverse Tests", () => {
     }>((resolve) => {
       resolveOlderProfile = resolve;
     });
-    mockThunkFetchTerrainProfile.mockReturnValueOnce(() => olderProfile);
+    mockThunkFetchTerrainProfile.mockReturnValueOnce(olderProfile);
 
     const store = createCustomTestStore({});
     const olderPath = [
@@ -132,6 +132,61 @@ describe("Thunk Traverse Tests", () => {
     ).toBeUndefined();
     expect(getMission().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
   });
+
+  it.each(["path", "distances", "DEM", "name"])(
+    "checks source %s changes before accepting a late preview",
+    async (change) => {
+      const traverse = generateBlankTraverse({
+        path: [
+          { lat: 0, lng: 0 },
+          { lat: 1, lng: 1 },
+        ],
+        pathSegmentDistances: [10],
+      });
+      const handle = getMissionDocHandle();
+      handle.change((m) => {
+        m.demFilePath = "original.tif";
+        m.traverses[traverse.uuid] = traverse;
+      });
+      let release!: () => void;
+      const pending = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      mockThunkFetchTerrainProfile.mockReturnValueOnce(
+        pending.then(() => ({
+          meta: { requestStatus: "fulfilled" },
+          payload: { elevationsMeters: [[10, 20]], terrainSlopesDegrees: [[1, 2]] },
+        }))
+      );
+      const store = createCustomTestStore({});
+      const operation = store.dispatch(
+        thunkDocUpdateTraverse({
+          traverseUuid: traverse.uuid,
+          path: [
+            { lat: 2, lng: 2 },
+            { lat: 3, lng: 3 },
+          ],
+          preview: true,
+        })
+      );
+      expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+      // A remote edit bypasses the local thunk revision counter.
+      handle.change((m) => {
+        if (change === "path") m.traverses[traverse.uuid].path[0].lat = 4;
+        if (change === "distances") m.traverses[traverse.uuid].pathSegmentDistances = [20];
+        if (change === "DEM") m.demFilePath = "replacement.tif";
+        if (change === "name") m.traverses[traverse.uuid].name = "Renamed remotely";
+      });
+      const committed = handle.doc();
+      release();
+      await operation;
+      expect(handle.doc()).toBe(committed);
+      const preview =
+        store.getState().terrainProfiles.missions[committed.id]?.previews[traverse.uuid];
+      if (change === "name") expect(preview?.status).toBe("ready");
+      else expect(preview).toBeUndefined();
+    }
+  );
 
   it("thunkDocUpdateTraverse() updates path/distances/name and persists to automerge", async () => {
     const traverseEgress: Traverse = generateBlankTraverse({ name: "Vitest Traverse-1" });
