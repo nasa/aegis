@@ -6,7 +6,7 @@ Fixture: Two planned EVAs sharing a station, located lander, actions, traverses 
 
 Source: [src/components/panes/eva/eva-right.tsx](../../../src/components/panes/eva/eva-right.tsx), [src/operations/helpers/evaSequence.ts](../../../src/operations/helpers/evaSequence.ts), [src/operations/stage/stage-eva.ts](../../../src/operations/stage/stage-eva.ts).
 
-Scenario mapping: **5/13 (38.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **8/13 (61.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/operations/helpers/evaSequence.test.ts](../../../src/tests/vitest/operations/helpers/evaSequence.test.ts), [src/tests/vitest/store/thunks/eva_thunk.test.ts](../../../src/tests/vitest/store/thunks/eva_thunk.test.ts).
 
@@ -62,11 +62,15 @@ Playwright: [src/tests/playwright/behavior/planning.spec.ts:551](../../../src/te
 
 ## EVA-006: EVA metadata and validation
 
-**P1 · Gap**
+**P1 · Partial**
 
 Action: Rename EVA, change description/color/start UTC/duration/rate; test blank, duplicate and numeric boundaries; reload.
 
 Expected: Saved values and generated labels persist, invalid/canceled edits do not, and planned versus REX name scopes remain distinct.
+
+Playwright: [src/tests/playwright/behavior/evaMetadataLifecycle.spec.ts:38](../../../src/tests/playwright/behavior/evaMetadataLifecycle.spec.ts#L38) — validates plan metadata with a read-only peer while REX names stay family-scoped (chromium).
+
+Evidence boundary: Single-editor title/description/color/numeric/UTC validation, persistence, planned-versus-REX name scopes and read-only-peer/fresh-client observation are exercised. A full combined run exposed actual two-editor UTC rollback: the already-open editing peer republishes its stale local datetime over the saved author value. Original failure trace is retained; multi-editor persistence remains unproved and this row receives no complete credit.
 
 ## EVA-007: Add and replace itinerary stations
 
@@ -86,27 +90,43 @@ Expected: Adjacent traverse endpoints and names reconcile; unused owned data is 
 
 ## EVA-009: Change egress and ingress
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Switch each endpoint between lander copy and regular station and back.
 
 Expected: Managed copies/actions are owned correctly, endpoint traverses update, and unrelated stations remain intact.
 
+Playwright: [src/tests/playwright/behavior/evaBoundaryLifecycle.spec.ts:9](../../../src/tests/playwright/behavior/evaBoundaryLifecycle.spec.ts#L9) — switches egress from managed lander copy to a regular station and back (chromium).
+
+Playwright: [src/tests/playwright/behavior/evaBoundaryLifecycle.spec.ts:9](../../../src/tests/playwright/behavior/evaBoundaryLifecycle.spec.ts#L9) — switches ingress from managed lander copy to a regular station and back (chromium).
+
+Evidence boundary: Both endpoints switch from a managed lander copy to a regular station and back. A real managed-owned child action is deleted, regular-station actions survive exactly, boundary geometry follows the selected location, unrelated graph data and peer/reload remain correct.
+
 ## EVA-010: Empty and unresolved sequence slots
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Create supported empty station slots and load a fixture with an unresolved reference.
 
 Expected: UI explains missing selection; reports and map do not crash or silently substitute another entity.
 
+Playwright: [src/tests/playwright/behavior/evaBoundaryLifecycle.spec.ts:142](../../../src/tests/playwright/behavior/evaBoundaryLifecycle.spec.ts#L142) — Add Station creates an explicit empty selector without substituting a station (chromium).
+
+Evidence boundary: UI-created empty slot and a separately arranged unresolved station UUID both show missing selection without substituted data; sequence identity, report rendering, map absence and peer/reload are checked.
+
 ## EVA-011: EVA folder duplicate and delete confirmations
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Cancel duplicate-with-stations and delete dialogs; confirm deletion with several REX families.
 
 Expected: Cancel preserves the graph; confirmed deletion enumerates and cleans only the intended ownership tree.
+
+Playwright: [src/tests/playwright/behavior/evaDeleteOwnership.spec.ts:19](../../../src/tests/playwright/behavior/evaDeleteOwnership.spec.ts#L19) — canceling duplicate and delete preserves the graph; confirmation deletes only one plan and its REX family (chromium).
+
+Playwright: [src/tests/playwright/behavior/planning.spec.ts:551](../../../src/tests/playwright/behavior/planning.spec.ts#L551) — two executions of the same plan have distinct entities and deleting the plan cascades only through its executions (chromium).
+
+Evidence boundary: Duplicate-with-stations and EVA-delete confirmations can be canceled without any graph change. Confirmed deletion removes only the intended plan/REX ownership tree while shared planned stations and the other family survive.
 
 ## EVA-012: EVA aggregate actions and resource totals
 

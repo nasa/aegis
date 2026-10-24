@@ -6,7 +6,7 @@ Fixture: Planning mission with a located POI, source actions and stations refere
 
 Source: [src/components/panes/poi/poi-right.tsx](../../../src/components/panes/poi/poi-right.tsx), [src/operations/apply/apply-poi.ts](../../../src/operations/apply/apply-poi.ts).
 
-Scenario mapping: **5/8 (62.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **6/8 (75%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/poi_thunk.test.ts](../../../src/tests/vitest/store/thunks/poi_thunk.test.ts).
 
@@ -60,11 +60,25 @@ Expected: Committed coordinates and elevation match the intended point; Cancel p
 
 ## POI-006: POI metadata and icon
 
-**P2 · Gap**
+**P2 · Mapped**
 
 Action: Change description and each supported icon shape; cancel and reload.
 
 Expected: List, detail and map agree with persisted metadata and icon without mutating associations.
+
+Playwright: [src/tests/playwright/behavior/poiMetadata.spec.ts:37](../../../src/tests/playwright/behavior/poiMetadata.spec.ts#L37) — POI multiline descriptions persist exactly while canceled drafts preserve associations (chromium).
+
+Playwright: [src/tests/playwright/behavior/poiMetadata.spec.ts:37](../../../src/tests/playwright/behavior/poiMetadata.spec.ts#L37) — POI empty descriptions persist exactly while canceled drafts preserve associations (chromium).
+
+Playwright: [src/tests/playwright/behavior/poiMetadata.spec.ts:91](../../../src/tests/playwright/behavior/poiMetadata.spec.ts#L91) — every supported POI circles icon updates the list, detail and rendered map on a peer and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/poiMetadata.spec.ts:91](../../../src/tests/playwright/behavior/poiMetadata.spec.ts#L91) — every supported POI squares icon updates the list, detail and rendered map on a peer and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/poiMetadata.spec.ts:91](../../../src/tests/playwright/behavior/poiMetadata.spec.ts#L91) — every supported POI triangles icon updates the list, detail and rendered map on a peer and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/poiMetadata.spec.ts:91](../../../src/tests/playwright/behavior/poiMetadata.spec.ts#L91) — every supported POI diamonds icon updates the list, detail and rendered map on a peer and reload (chromium).
+
+Evidence boundary: Multiline and empty descriptions, canceled drafts and all 22 supported icon choices are checked against persisted state, list/detail, distinct rendered map icon canvases, a peer and reload without changing associations.
 
 ## POI-007: POI station links and navigation
 

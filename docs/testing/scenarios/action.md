@@ -6,7 +6,7 @@ Fixture: Planning mission with a station action, empty second station, linked PO
 
 Source: [src/components/panes/actions-action-menu.tsx](../../../src/components/panes/actions-action-menu.tsx), [src/operations/apply/apply-action.ts](../../../src/operations/apply/apply-action.ts).
 
-Scenario mapping: **5/14 (35.7%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **7/14 (50%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/operations/apply/apply-action.test.ts](../../../src/tests/vitest/operations/apply/apply-action.test.ts), [src/tests/vitest/store/thunks/action_thunk.test.ts](../../../src/tests/vitest/store/thunks/action_thunk.test.ts).
 
@@ -78,11 +78,15 @@ Expected: Order is identical in UI and document, with no duplicates or missing a
 
 ## ACTION-008: Adopt POI action into station
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Link a POI, copy one source action into its station, then edit source and copy independently.
 
 Expected: New UUID/lineage, source reference and copy metadata are correct; linking alone does not copy actions and later edits remain independent.
+
+Playwright: [src/tests/playwright/behavior/actionAdoption.spec.ts:59](../../../src/tests/playwright/behavior/actionAdoption.spec.ts#L59) — copying a linked POI action creates an independent station action with source lineage (chromium).
+
+Evidence boundary: UI linking alone creates no station action. Explicit adoption creates independent UUID/refUuid and source lineage, copies all supported payload fields and remains independent through edits to both source and copy, peer display and reload.
 
 ## ACTION-009: Action v1 and v2 field matrix
 
@@ -94,19 +98,27 @@ Expected: Only version-appropriate fields appear and generated wording, saved va
 
 ## ACTION-010: Action description task text and icon
 
-**P1 · Gap**
+**P1 · Partial**
 
 Action: Edit rich/free text fields and icon; cancel another edit; reload and inspect aggregate cards.
 
 Expected: Exact supported content persists, task text stays parent-appropriate, and cancellation leaves saved fields unchanged.
 
+Playwright: [src/tests/playwright/behavior/actionAdoption.spec.ts:174](../../../src/tests/playwright/behavior/actionAdoption.spec.ts#L174) — action and task descriptions save independently, Cancel preserves text, and saved text survives reload (chromium).
+
+Evidence boundary: Station action description/task text Save, Cancel, persisted values and reload are covered. Icon editing, the parent-appropriate field matrix and aggregate cards remain unproved.
+
 ## ACTION-011: Action duration mass and numeric boundaries
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Try zero, unset, fractional, negative, maximum and overlong duration/planned-mass values.
 
 Expected: Field constraints and calculated totals agree; absent and zero remain distinct where the domain requires it.
+
+Playwright: [src/tests/playwright/behavior/actionAdoption.spec.ts:212](../../../src/tests/playwright/behavior/actionAdoption.spec.ts#L212) — duration and planned mass boundaries preserve unset versus zero and match parent totals (chromium).
+
+Evidence boundary: Duration is required; mass can be null or zero. Decimal punctuation is filtered to integer digits, four-character limits reject overlong saves, and signed/zero values are accepted. Independently known parent totals and reload match the actual saved values.
 
 ## ACTION-012: Equipment and geographic assignments
 
