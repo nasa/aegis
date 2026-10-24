@@ -34,6 +34,58 @@ async function withPlanningPeer(
 }
 
 test.describe("Collaboration contracts", () => {
+  test("a disconnected client catches up without reloading and can publish edits after reconnecting", async ({
+    page,
+    browser,
+    context,
+    baseURL,
+    mission,
+  }) => {
+    await mission.open(page);
+    await enablePlanningEditMode(page);
+    await selectPlanningStation(page, "Alpha station");
+
+    await withPlanningPeer(browser, context, mission, baseURL, async (peer) => {
+      await selectPlanningStation(peer, "Alpha station");
+      try {
+        await peer.context().setOffline(true);
+        await expect(peer.getByLabel("globalEditToggle", { exact: true })).toHaveAttribute(
+          "data-tooltip-content",
+          "Offline: Editing Disabled"
+        );
+        await peer.getByLabel("globalEditToggle", { exact: true }).click();
+        await planningField(peer, "Station").click();
+        await expect(peer.locator("dialog[open]")).toHaveCount(0);
+        await savePlanningField(page, "Station", "Changed during disconnection");
+        await expect
+          .poll(async () => (await mission.read()).stations[mission.ids.stationA].name)
+          .toBe("Changed during disconnection");
+        // Establish that this client really missed the edit before restoring its network.
+        await expect(planningField(peer, "Station")).toHaveText("Alpha station");
+      } finally {
+        await peer.context().setOffline(false);
+      }
+
+      await expect(peer.getByLabel("globalEditToggle", { exact: true })).toHaveAttribute(
+        "data-tooltip-content",
+        "Turn On Edit Mode"
+      );
+      await expect(planningField(peer, "Station")).toHaveText("Changed during disconnection");
+      await expect(
+        peer.getByLabel("stationList-item").filter({ hasText: "Changed during disconnection" })
+      ).toHaveCount(1);
+      await enablePlanningEditMode(peer);
+      await savePlanningField(peer, "Station", "Saved after reconnecting");
+      await expect(planningField(page, "Station")).toHaveText("Saved after reconnecting");
+      await expect
+        .poll(async () => (await mission.read()).stations[mission.ids.stationA].name)
+        .toBe("Saved after reconnecting");
+      expect((await mission.read()).stations[mission.ids.stationB].name).toBe("Bravo station");
+      await mission.open(peer);
+      await selectPlanningStation(peer, "Saved after reconnecting");
+    });
+  });
+
   test("a saved edit reaches another client without changing that client's selected station", async ({
     page,
     browser,

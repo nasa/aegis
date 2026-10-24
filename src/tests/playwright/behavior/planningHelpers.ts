@@ -30,7 +30,8 @@ export function planningField(page: Page, label: string): Locator {
 }
 
 export async function openPlanningField(page: Page, label: string): Promise<Locator> {
-  await planningField(page, label).click();
+  // The surrounding label also contains the pencil and stays clickable for empty values.
+  await planningField(page, label).locator("..").click();
   const dialog = page.locator("dialog[open]");
   await expect(dialog.getByLabel(label, { exact: true })).toBeVisible();
   return dialog;
@@ -73,6 +74,12 @@ export async function selectPlanningPoi(page: Page, name: string): Promise<void>
   await expect(planningField(page, "POI")).toHaveText(name);
 }
 
+export async function selectPlanningStationActions(page: Page, name: string): Promise<void> {
+  await selectPlanningStation(page, name);
+  await page.getByLabel("actions_panel", { exact: true }).click();
+  await expect(page.getByText("Station Actions", { exact: true })).toBeVisible();
+}
+
 export function planningEvaRow(page: Page, name: string): Locator {
   return page
     .getByLabel("evaList-item", { exact: true })
@@ -81,7 +88,11 @@ export function planningEvaRow(page: Page, name: string): Locator {
 
 export async function selectPlanningEva(page: Page, name: string): Promise<void> {
   await openPlanningSection(page, "evas");
-  await planningEvaRow(page, name).getByText(name, { exact: true }).click();
+  // Clicking the selected EVA again deselects it.
+  const title = planningField(page, "EVA Title");
+  if (!(await title.isVisible()) || (await title.textContent()) !== name) {
+    await planningEvaRow(page, name).getByText(name, { exact: true }).click();
+  }
   await expect(planningField(page, "EVA Title")).toHaveText(name);
 }
 
