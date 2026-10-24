@@ -276,7 +276,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                       <div style={{ fontSize: "0.8em" }}>Clock controlled by Maestro</div>
                     ) : (
                       <>
-                        <div className={paneStyles.inputFieldValue}>
+                        <div className={paneStyles.inputFieldValue} data-testid="rex-pet-clock">
                           {selectedRex.petRunning ? (
                             <div className={rexStyles.petClockValue}>{rexPetTime}</div>
                           ) : (
@@ -309,56 +309,59 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                         </div>
                         {editMode && selectedRex.isRunning && (
                           <div className={rexStyles.clockButtons}>
-                            <div
+                            <button
+                              type="button"
+                              aria-label={
+                                selectedRex.petRunning ? "Pause PET timer" : "Start PET timer"
+                              }
                               className={rexStyles.clockButtonsIcon}
                               style={{ marginLeft: "4px" }}
+                              onClick={() => {
+                                if (selectedRex.petRunning) {
+                                  withMissionChange((m) =>
+                                    applyRexPetStartStop(m, {
+                                      rexUuid: selectedRex.uuid,
+                                      directive: "stop",
+                                      petValue: rexPetTime,
+                                    })
+                                  );
+                                } else {
+                                  withMissionChange((m) =>
+                                    applyRexPetStartStop(m, {
+                                      rexUuid: selectedRex.uuid,
+                                      directive: "start",
+                                      petValue: rexPetTime,
+                                    })
+                                  );
+                                }
+                              }}
                             >
                               <FontAwesomeIcon
                                 icon={selectedRex.petRunning ? faPause : faPlay}
                                 size="sm"
+                              />
+                            </button>
+                            {!selectedRex.petRunning && (
+                              <button
+                                type="button"
+                                aria-label="Reset PET timer"
+                                className={rexStyles.clockButtonsIcon}
+                                style={{ marginLeft: "4px" }}
                                 onClick={() => {
-                                  if (selectedRex.petRunning) {
+                                  if (confirm("Are you sure you want to reset the PET timer?")) {
                                     withMissionChange((m) =>
-                                      applyRexPetStartStop(m, {
+                                      applyUpdateRexByField(m, {
                                         rexUuid: selectedRex.uuid,
-                                        directive: "stop",
-                                        petValue: rexPetTime,
-                                      })
-                                    );
-                                  } else {
-                                    withMissionChange((m) =>
-                                      applyRexPetStartStop(m, {
-                                        rexUuid: selectedRex.uuid,
-                                        directive: "start",
-                                        petValue: rexPetTime,
+                                        fieldName: "petValueAtStartStop",
+                                        value: "+00:00:00",
+                                        preserveUpdatedAt: true,
                                       })
                                     );
                                   }
                                 }}
-                              />
-                            </div>
-                            {!selectedRex.petRunning && (
-                              <div
-                                className={rexStyles.clockButtonsIcon}
-                                style={{ marginLeft: "4px" }}
                               >
-                                <FontAwesomeIcon
-                                  icon={faBackwardFast}
-                                  size="sm"
-                                  onClick={() => {
-                                    if (confirm("Are you sure you want to reset the PET timer?")) {
-                                      withMissionChange((m) =>
-                                        applyUpdateRexByField(m, {
-                                          rexUuid: selectedRex.uuid,
-                                          fieldName: "petValueAtStartStop",
-                                          value: "+00:00:00",
-                                          preserveUpdatedAt: true,
-                                        })
-                                      );
-                                    }
-                                  }}
-                                />
-                              </div>
+                                <FontAwesomeIcon icon={faBackwardFast} size="sm" />
+                              </button>
                             )}
                           </div>
                         )}

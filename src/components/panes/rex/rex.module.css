@@ -129,6 +129,11 @@
   display: flex;
   flex-direction: column;
   justify-content: space-around;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
 }
 
 .evaExecutionStatus {

@@ -41,6 +41,7 @@ export function AegisMap({ mode, children, className, style }: AegisMapProps): J
   return (
     <div
       ref={containerRef}
+      data-map-mode={mode}
       className={className}
       style={{ width: "100%", height: "100%", position: "relative", ...style }}
     >

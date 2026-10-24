@@ -180,6 +180,12 @@ export function MapProvider({
     mapRef.current = map;
     setMapInstance(map);
 
+    if (import.meta.env.DEV) {
+      el.dispatchEvent(
+        new CustomEvent("aegis:map-ready", { detail: { map, mode }, bubbles: true })
+      );
+    }
+
     const ro = new ResizeObserver(() => map.updateSize());
     ro.observe(el);
     roRef.current = ro;
