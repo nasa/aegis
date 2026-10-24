@@ -1,5 +1,8 @@
 # AEGIS tracked scenarios and Playwright coverage
 
+**Continuing the test work? Read the [resume handoff](RESUME.md) first** for the
+last validated commit, next scenario batch, commands and unresolved reload issue.
+
 Start with the [coverage report](coverage.md). It links every scenario family,
 shows the percentage with a complete reviewed Playwright mapping, and lists every
 discovered browser test and registered UI/HTTP surface. The machine-readable
