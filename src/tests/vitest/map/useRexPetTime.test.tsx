@@ -10,8 +10,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { flushSync } from "react-dom";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { useRexPetTime } from "components/interface/map/hooks/useRexPetTime";
@@ -63,6 +63,7 @@ beforeEach(() => {
   }
   captured = "<unset>";
   probeRexUuid = undefined;
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.useFakeTimers();
   vi.setSystemTime(new Date(FAKE_NOW));
   container = document.createElement("div");
@@ -71,24 +72,22 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  flushSync(() => root.unmount());
+  act(() => root.unmount());
   container.remove();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 const store = makeStore();
 
 function render() {
-  flushSync(() =>
+  act(() =>
     root.render(
       <Provider store={store}>
         <Probe />
       </Provider>
     )
   );
-  // useEffect runs in a microtask after commit. Drain microtasks + flush any
-  // pending state updates the effect scheduled (e.g. setPetTime for paused PET).
-  flushSync(() => {});
 }
 
 describe("useRexPetTime", () => {
@@ -112,7 +111,7 @@ describe("useRexPetTime", () => {
     expect(captured).toBe("");
   });
 
-  it("shows the static petValueAtStartStop when PET is paused", async () => {
+  it("shows the static petValueAtStartStop when PET is paused", () => {
     setDocRexes([
       {
         uuid: "r1",
@@ -123,9 +122,6 @@ describe("useRexPetTime", () => {
       } as Rex,
     ]);
     render();
-    // Effect that calls setPetTime runs in a microtask after commit.
-    await vi.runAllTimersAsync();
-    flushSync(() => {});
     expect(captured).toBe("+00:42:15");
   });
 
@@ -146,7 +142,7 @@ describe("useRexPetTime", () => {
     // Initial mount: useState defaults to "" until the first 100ms tick.
     expect(captured).toBe("");
 
-    flushSync(() => {
+    act(() => {
       vi.advanceTimersByTime(100);
     });
 
@@ -166,19 +162,19 @@ describe("useRexPetTime", () => {
     render();
 
     // Tick #1: advance 5_000 ms — Date.now becomes FAKE_NOW + 5_000 when timer fires
-    flushSync(() => {
+    act(() => {
       vi.advanceTimersByTime(5_000);
     });
     expect(captured).toBe("+00:00:05");
 
     // Tick #2: advance another 60_000 ms — total elapsed is 65 s
-    flushSync(() => {
+    act(() => {
       vi.advanceTimersByTime(60_000);
     });
     expect(captured).toBe("+00:01:05");
   });
 
-  it("returns the stopped PET of a selected REX that is not running", async () => {
+  it("returns the stopped PET of a selected REX that is not running", () => {
     setDocRexes([
       {
         uuid: "r1",
@@ -190,12 +186,10 @@ describe("useRexPetTime", () => {
     ]);
     probeRexUuid = "r1";
     render();
-    await vi.runAllTimersAsync();
-    flushSync(() => {});
     expect(captured).toBe("+02:10:05");
   });
 
-  it("uses the selected REX rather than a different running REX", async () => {
+  it("uses the selected REX rather than a different running REX", () => {
     setDocRexes([
       {
         uuid: "running",
@@ -214,8 +208,6 @@ describe("useRexPetTime", () => {
     ]);
     probeRexUuid = "stopped";
     render();
-    await vi.runAllTimersAsync();
-    flushSync(() => {});
     expect(captured).toBe("+01:30:00");
   });
 
@@ -242,7 +234,8 @@ describe("useRexPetTime", () => {
     // Reset the spy so we only count calls made by the unmount cleanup.
     clearSpy.mockClear();
 
-    flushSync(() => root.unmount());
+    act(() => root.unmount());
+    container.remove();
     // Re-create root so afterEach unmount remains safe
     container = document.createElement("div");
     document.body.appendChild(container);
