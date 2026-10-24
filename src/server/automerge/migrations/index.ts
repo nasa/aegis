@@ -43,8 +43,8 @@ export const AUTOMERGE_MIGRATIONS: readonly AutomergeMigration[] = [
   Migration20261014000000,
   Migration20261015000000,
   Migration20261022000000,
-  Migration20261022010000,
   Migration20261026000000,
+  Migration20261022010000,
 ];
 
 export const getPendingAutomergeMigrations = (
