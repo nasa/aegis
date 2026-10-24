@@ -6,25 +6,45 @@ Fixture: Planning entities and presets assigned to multiple folders, including a
 
 Source: [src/operations/apply/apply-mission-folder.ts](../../../src/operations/apply/apply-mission-folder.ts), [src/store/thunk/thunkFolder.ts](../../../src/store/thunk/thunkFolder.ts).
 
-Scenario mapping: **1/4 (25%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **3/4 (75%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/folder_thunk.test.ts](../../../src/tests/vitest/store/thunks/folder_thunk.test.ts), [src/tests/vitest/operations/apply/apply-mission-folder.test.ts](../../../src/tests/vitest/operations/apply/apply-mission-folder.test.ts).
 
 ## FOLDER-001: Folder create rename delete
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Create and rename folders for POIs, stations, EVAs and presets; delete empty and populated folders; reload.
 
 Expected: Each list retains its entities and correct folder membership; canceled confirmation and invalid names preserve saved state.
 
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:158](../../../src/tests/playwright/behavior/folders.spec.ts#L158) — poi folder creation, rename validation, cancellation and guarded deletion persist (chromium).
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:158](../../../src/tests/playwright/behavior/folders.spec.ts#L158) — station folder creation, rename validation, cancellation and guarded deletion persist (chromium).
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:158](../../../src/tests/playwright/behavior/folders.spec.ts#L158) — eva folder creation, rename validation, cancellation and guarded deletion persist (chromium).
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:158](../../../src/tests/playwright/behavior/folders.spec.ts#L158) — preset folder creation, rename validation, cancellation and guarded deletion persist (chromium).
+
+Evidence boundary: All four planning folder types cover UI creation/rename, invalid-name Save attempts, canceled rename, populated-folder deletion rejection, empty-folder confirmation Cancel/accept and reload with exact entity preservation. Populated folders are protected rather than deleted while retaining members. The known 50 ms inline draft debounce is advanced by the controlled browser clock before valid Save.
+
 ## FOLDER-002: Move and reorder folder content
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Drag entities into/out of folders, reorder supported rows and move between folders.
 
 Expected: Each UUID occurs in the intended place once, with the documented ordering after reload and on a peer.
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:315](../../../src/tests/playwright/behavior/folders.spec.ts#L315) — poi items move between folders and root exactly once across peer and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:315](../../../src/tests/playwright/behavior/folders.spec.ts#L315) — station items move between folders and root exactly once across peer and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:315](../../../src/tests/playwright/behavior/folders.spec.ts#L315) — eva items move between folders and root exactly once across peer and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/folders.spec.ts:315](../../../src/tests/playwright/behavior/folders.spec.ts#L315) — preset items move between folders and root exactly once across peer and reload (chromium).
+
+Evidence boundary: Real pointer activation and target-hover assertions precede every drop for all four list types. Direct folder-to-folder and folder-to-root moves, exact membership arrays, UUID uniqueness and intended peer/reload placement are covered. FolderOrganizer exposes only folder/root drop targets; item-row reordering is unsupported and receives no claim.
 
 ## FOLDER-003: Folder visibility exceptions
 
