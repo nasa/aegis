@@ -15,17 +15,13 @@ export default class DB {
     port: parseInt(process.env.DB_PORT),
   };
 
-  async executeQuery(query: string): Promise<void> {
+  async executeQuery(query: string, values: unknown[] = []): Promise<void> {
     const client = new Client(this.DBConfig);
     try {
       await client.connect();
-      await client.query(query);
-    } catch (error) {
-      console.error("Error in connection/executing query:", error);
+      await client.query(query, values);
     } finally {
-      await client.end().catch((error) => {
-        console.error("Error ending client connection:", error);
-      });
+      await client.end();
     }
   }
 }

@@ -140,12 +140,22 @@ export function applyUpdateActionDefinitionSelection(
 /**
  * Delete a list of actions from the doc.
  *
- * Also cleans up any matching entries from every REX's `actionEntries` map so
- * we don't leave orphaned rex entries pointing at deleted actions.
+ * Cleans up parent ordering and REX entries in the same document change.
  */
 export function applyDeleteActions(m: Mission, actionUuids: string[]): void {
   if (actionUuids.length === 0) return;
   for (const uuid of actionUuids) {
+    const action = m.actions[uuid];
+    const parents = [
+      m.stations[action?.stationUuid],
+      m.pois[action?.poiUuid],
+      m.traverses[action?.traverseUuid],
+    ];
+    for (const parent of parents) {
+      if (parent?.actionOrderUuids?.includes(uuid)) {
+        parent.actionOrderUuids = parent.actionOrderUuids.filter((id) => id !== uuid);
+      }
+    }
     delete m.actions[uuid];
   }
   for (const rex of Object.values(m.rexes ?? {})) {
@@ -163,30 +173,6 @@ export function applyDeleteActions(m: Mission, actionUuids: string[]): void {
  * actionOrderUuids array in the same atomic step.
  */
 export function applyDeleteActionAndUpdateParent(m: Mission, { uuid }: { uuid: string }): void {
-  const action = m.actions?.[uuid];
-  if (!action) return;
-
-  // Whole-array reassignment (not `.splice()`) — same Automerge workaround
-  // as applyCreateAction above; see the comment there.
-  if (action.stationUuid) {
-    const station = m.stations[action.stationUuid];
-    if (station?.actionOrderUuids) {
-      station.actionOrderUuids = station.actionOrderUuids.filter((u) => u !== uuid);
-    }
-  } else if (action.poiUuid) {
-    const poi = m.pois[action.poiUuid];
-    if (poi?.actionOrderUuids) {
-      poi.actionOrderUuids = poi.actionOrderUuids.filter((u) => u !== uuid);
-    }
-  } else if (action.traverseUuid) {
-    const traverse = m.traverses[action.traverseUuid];
-    if (traverse?.actionOrderUuids) {
-      traverse.actionOrderUuids = traverse.actionOrderUuids.filter((u) => u !== uuid);
-    }
-  }
-
-  // Delegate the actual action delete + REX actionEntries cleanup to
-  // applyDeleteActions so all deletion paths share the same cleanup logic.
   applyDeleteActions(m, [uuid]);
 }
 
