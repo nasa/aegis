@@ -33,6 +33,9 @@ npm run test:playwright -- behavior/executionPolicy.spec.ts --project=chromium
 npm run test:playwright -- behavior/exports.spec.ts --project=chromium
 npm run test:playwright -- behavior/navigation.spec.ts --project=chromium
 npm run test:playwright -- behavior/poiLifecycle.spec.ts --project=chromium
+npm run test:playwright -- behavior/poiLinks.spec.ts --project=chromium
+npm run test:playwright -- behavior/folders.spec.ts --project=chromium
+npm run test:playwright -- behavior/missionDefaults.spec.ts --project=chromium
 ```
 
 The existing `test:playwright` and CI sharding commands also discover these tests.
@@ -54,12 +57,15 @@ separate acceptance requirement.
 | Application entry and navigation   | Known mission identity, complete seeded domain relationships, no-execution dashboard, active dashboard and minimap                                                         | `behavior/smoke.spec.ts`           |
 | Navigation and version recovery    | Direct editor/dashboard links, home/back/forward, deployment mismatch, refreshed mission and current-version redirect                                                      | `behavior/navigation.spec.ts`      |
 | Mission preferences                | Save/Cancel, peer/header updates, reload, new EVA defaults, text limits, numeric filtering and optional signed/zero/cleared values                                         | `behavior/configuration.spec.ts`   |
+| Mission defaults and lander        | Inherited rates, independent overrides, new versus existing EVA durations, DEM elevation, lander copies, boundary traverses, walkbacks, peer and reload                    | `behavior/missionDefaults.spec.ts` |
 | Numeric calculations               | Independent crew/work/dwell totals, incomplete crew warning, 500 m rate precedence, zero/unset fallback, sequence/EVA totals and exported movement minutes                 | `behavior/calculations.spec.ts`    |
 | Execution time ownership           | Selected stopped execution, another active execution, A/B/A switching, planned scope, frozen paused clock, ticking clock, zero and hour boundaries                         | `behavior/execution.spec.ts`       |
 | Execution controls                 | Start/pause/resume/stop, interlock against simultaneous execution, manual PET validation/cancel, reset confirmation and persistence, dashboard synchronization             | `behavior/execution.spec.ts`       |
 | Execution edit policy and values   | First-start policy/baseline freeze, restart/reload, limited original-action protection, status lifecycle in sequence/station/EVA views, peer merges and Maestro sample IDs | `behavior/executionPolicy.spec.ts` |
 | Planning and entity lifecycle      | Name and numeric validation, save/cancel, create/duplicate/delete, shared station protection, independent execution copies, deletion cascades, actual export content       | `behavior/planning.spec.ts`        |
 | POI creation and deletion          | UI-created defaults/identity, blank/duplicate/overlong names, boundary-length save, deletion Cancel, adopted-copy cleanup and unrelated-action preservation                | `behavior/poiLifecycle.spec.ts`    |
+| POI station links                  | Multiple station links, usage counters, navigation, unlink, peer updates, reload and source-action ownership                                                               | `behavior/poiLinks.spec.ts`        |
+| Folder visibility                  | Shared hide/show, local selection exceptions, EVA scope, collapse/expand, reload and unchanged folder membership                                                           | `behavior/folders.spec.ts`         |
 | Downloaded export contents         | Every category alone, all/empty selections, filenames, nested relationships, plan/REX lineage and sample values, position GeoJSON, Unicode and null/zero distinctions      | `behavior/exports.spec.ts`         |
 | Action planning                    | View/edit protection, required fields and Cancel, duration/crew totals, deactivate/reactivate, independent duplicates, delete confirmation, parent ownership and reload    | `behavior/actions.spec.ts`         |
 | EVA comparison reports             | Exact plan counts and minutes, signed baseline differences, station breakdowns, live updates from another page, reload, read-only mission data                             | `behavior/reports.spec.ts`         |
@@ -149,3 +155,12 @@ Comparison report tests explicitly enable action system v2 with empty definition
 dictionaries so startup audits do not insert default definitions during the test.
 Expected report values come from the fixture's known station sequence and action
 duration, rather than the application's report calculators.
+
+Mission-default tests distinguish inherited traverse/walkback rates from the EVA
+duration default copied when an EVA is created. The lander relocation contract
+copies the checked-in Apollo 14 DEM extract into the isolated mission's static
+directory and uses its independently recorded GDAL elevation. It exercises the
+real terrain API and raster worker; fixture cleanup deletes that mission's copy.
+Folder tests observe real marker sources on two clients, including selection and
+EVA exceptions to hidden folders. POI link tests check counters, navigation and
+unchanged action ownership across link/unlink, peer updates and reload.

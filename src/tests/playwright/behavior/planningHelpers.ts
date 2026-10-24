@@ -56,21 +56,27 @@ export async function cancelPlanningField(page: Page, label: string, value: stri
 
 export async function selectPlanningStation(page: Page, name: string): Promise<void> {
   await openPlanningSection(page, "station");
-  await page
-    .getByLabel("stationList-item", { exact: true })
-    .filter({ hasText: name })
-    .getByText(name, { exact: true })
-    .click();
+  const title = planningField(page, "Station");
+  if (!(await title.isVisible()) || (await title.textContent()) !== name) {
+    await page
+      .getByLabel("stationList-item", { exact: true })
+      .filter({ hasText: name })
+      .getByText(name, { exact: true })
+      .click();
+  }
   await expect(planningField(page, "Station")).toHaveText(name);
 }
 
 export async function selectPlanningPoi(page: Page, name: string): Promise<void> {
   await openPlanningSection(page, "poi");
-  await page
-    .getByLabel("poiList-item", { exact: true })
-    .filter({ hasText: name })
-    .getByText(name, { exact: true })
-    .click();
+  const title = planningField(page, "POI");
+  if (!(await title.isVisible()) || (await title.textContent()) !== name) {
+    await page
+      .getByLabel("poiList-item", { exact: true })
+      .filter({ hasText: name })
+      .getByText(name, { exact: true })
+      .click();
+  }
   await expect(planningField(page, "POI")).toHaveText(name);
 }
 
