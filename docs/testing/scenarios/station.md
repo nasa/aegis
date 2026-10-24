@@ -6,7 +6,7 @@ Fixture: Planning fixture with a shared station, an unassigned station, child ac
 
 Source: [src/components/panes/station/station-right.tsx](../../../src/components/panes/station/station-right.tsx), [src/operations/apply/apply-station.ts](../../../src/operations/apply/apply-station.ts).
 
-Scenario mapping: **9/16 (56.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **14/16 (87.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/station_thunk.test.ts](../../../src/tests/vitest/store/thunks/station_thunk.test.ts).
 
@@ -102,19 +102,33 @@ Playwright: [src/tests/playwright/behavior/planning.spec.ts:350](../../../src/te
 
 ## STATION-010: Station rename updates connected traverse names
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Rename both endpoints of a traverse, singly and from two clients; reload.
 
 Expected: Connected traverse labels use both final endpoint names regardless of edit order.
 
+Playwright: [src/tests/playwright/behavior/stationGraph.spec.ts:18](../../../src/tests/playwright/behavior/stationGraph.spec.ts#L18) — renaming traverse endpoints Alpha then Bravo from two clients updates every connected label (chromium).
+
+Playwright: [src/tests/playwright/behavior/stationGraph.spec.ts:18](../../../src/tests/playwright/behavior/stationGraph.spec.ts#L18) — renaming traverse endpoints Bravo then Alpha from two clients updates every connected label (chromium).
+
+Evidence boundary: Both endpoint save orders from two synchronized clients update all adjacent traverse labels; exact geometry, ownership and unrelated entities remain unchanged after reload. This does not establish simultaneous stale-snapshot rename resolution.
+
 ## STATION-011: Station delete Cancel and lander protection
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Cancel deletion of an unassigned station; try direct deletion of egress/ingress copies.
 
 Expected: Cancel preserves children and membership; managed lander copies cannot be deleted independently.
+
+Playwright: [src/tests/playwright/behavior/stationGraph.spec.ts:97](../../../src/tests/playwright/behavior/stationGraph.spec.ts#L97) — canceling deletion of an unassigned station preserves its actions and folder membership (chromium).
+
+Playwright: [src/tests/playwright/behavior/stationGraph.spec.ts:146](../../../src/tests/playwright/behavior/stationGraph.spec.ts#L146) — direct deletion of a managed lander egress is rejected without altering the graph (chromium).
+
+Playwright: [src/tests/playwright/behavior/stationGraph.spec.ts:146](../../../src/tests/playwright/behavior/stationGraph.spec.ts#L146) — direct deletion of a managed lander ingress is rejected without altering the graph (chromium).
+
+Evidence boundary: Cancel preserves the complete unassigned station/action/folder graph. Confirmed direct deletion of either managed lander endpoint is rejected before graph mutation.
 
 ## STATION-012: Station location, elevation and lander shortcut
 
@@ -134,24 +148,38 @@ Expected: Walkback endpoints stay pinned to station/lander and distance, time an
 
 ## STATION-014: Station manual versus calculated dwell
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Clear manual dwell with known EV1/EV2 and unassigned actions; restore an override.
 
 Expected: Displayed duration follows the intended override precedence and crew warnings without losing action data.
 
+Playwright: [src/tests/playwright/behavior/stationGraph.spec.ts:184](../../../src/tests/playwright/behavior/stationGraph.spec.ts#L184) — manual station dwell overrides calculated crew time without unassigned actions (chromium).
+
+Playwright: [src/tests/playwright/behavior/stationGraph.spec.ts:184](../../../src/tests/playwright/behavior/stationGraph.spec.ts#L184) — manual station dwell overrides calculated crew time with unassigned actions (chromium).
+
+Evidence boundary: Manual-to-calculated-to-manual UI lifecycle uses independent 10/7/3 minute tasks plus a disabled 90 minute task, with and without unassigned work. Peer sequence duration, warning state, saved action data and reload agree.
+
 ## STATION-015: Station proximity circles
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Toggle/style circles at one station, then inspect another station and a peer.
 
 Expected: Styles and visibility persist for that station only and map radii match definition metres.
 
+Playwright: [src/tests/playwright/behavior/stationCircles.spec.ts:69](../../../src/tests/playwright/behavior/stationCircles.spec.ts#L69) — station circle visibility and style stay local and render the defined metre radius (chromium).
+
+Evidence boundary: One station circle visibility/style is changed with a controlled debounce; the other station remains independent. Peer/reload and independently measured 350m radius/tight center association are checked.
+
 ## STATION-016: Station icon description and usage
 
-**P2 · Gap**
+**P2 · Mapped**
 
 Action: Edit icon/description and inspect EVA usage and linked POI totals.
 
 Expected: Lists, map and info agree; shared station usage remains accurate across plans and execution copies.
+
+Playwright: [src/tests/playwright/behavior/stationMetadataUsage.spec.ts:51](../../../src/tests/playwright/behavior/stationMetadataUsage.spec.ts#L51) — station description and icon agree in list, map, linked POIs and shared EVA usage (chromium).
+
+Evidence boundary: Shared station description Cancel/Save and icon agree with list/map/info, peer and reload. Two planned EVAs share the station while exact execution-owned copies remain unchanged. Linked POI action count/time/mass/use totals are independently known and associations stay intact.

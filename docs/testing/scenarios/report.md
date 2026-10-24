@@ -6,7 +6,7 @@ Fixture: v2 planning mission with fixed action durations/counts and lineage; add
 
 Source: [src/components/panes/reports/reports-page.tsx](../../../src/components/panes/reports/reports-page.tsx), [src/components/panes/reports/shared/report-campaigns-dialog.tsx](../../../src/components/panes/reports/shared/report-campaigns-dialog.tsx), [src/components/panes/reports/eva-stm-coverage/eva-stm-coverage-page.tsx](../../../src/components/panes/reports/eva-stm-coverage/eva-stm-coverage-page.tsx), [src/components/panes/reports/poi-traceability/poi-traceability-page.tsx](../../../src/components/panes/reports/poi-traceability/poi-traceability-page.tsx).
 
-Scenario mapping: **2/13 (15.4%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **6/13 (46.2%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/Reports.browser.test.tsx](../../../src/tests/vitest-browser/Reports.browser.test.tsx), [src/tests/vitest-browser/PoiTraceability.browser.test.tsx](../../../src/tests/vitest-browser/PoiTraceability.browser.test.tsx), [src/tests/vitest/utils/evaReportColumns.campaign.test.ts](../../../src/tests/vitest/utils/evaReportColumns.campaign.test.ts).
 
@@ -32,35 +32,63 @@ Playwright: [src/tests/playwright/behavior/reports.spec.ts:74](../../../src/test
 
 ## REPORT-003: Comparison metric and baseline matrix
 
-**P0 · Gap**
+**P0 · Partial**
 
 Action: Compare known durations, rates, distances, ascent/descent, crew times, mass and equipment across several plans/REXes; change baseline.
 
 Expected: Every absolute/difference cell uses the independent known quantity and signed/null semantics for its metric.
 
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:215](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L215) — all comparison metrics use independent quantities and signed/null differences against Alpha plan (chromium).
+
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:215](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L215) — all comparison metrics use independent quantities and signed/null differences against Alpha execution (chromium).
+
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:215](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L215) — all comparison metrics use independent quantities and signed/null differences against Bravo plan (chromium).
+
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:215](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L215) — all comparison metrics use independent quantities and signed/null differences against Bravo execution (chromium).
+
+Evidence boundary: All 22 metric rows use independent hand-computed values across two plans/two REXes and all four baselines, including masses, consumables, rates, distance/ascent/descent, crew totals and null semantics. A separate development case found mathematically equal travel totals can render negative zero from floating-point roundoff; that signed-equality boundary remains unresolved, so this broad row gets no full credit.
+
 ## REPORT-004: Report column selection order and persistence
 
-**P1 · Gap**
+**P1 · Mapped**
 
-Action: Add/remove/reorder/expand plan and REX columns, change filters, navigate and reload.
+Action: Show/hide and expand plan and REX columns; inspect automatic family ordering; change supported filters, navigate, open a peer and reload.
 
-Expected: Requested columns and local preferences remain consistent; no stale or duplicate column identities appear.
+Expected: Visible column identities and expansions follow stable family ordering without duplicates; local preferences survive section navigation, stay client-local and reset on reload.
+
+Playwright: [src/tests/playwright/behavior/reportColumns.spec.ts:24](../../../src/tests/playwright/behavior/reportColumns.spec.ts#L24) — EVA Comparison column visibility, stable family order, expansion and filters follow their local lifetime (chromium).
+
+Playwright: [src/tests/playwright/behavior/reportColumns.spec.ts:24](../../../src/tests/playwright/behavior/reportColumns.spec.ts#L24) — EVA STM Coverage column visibility, stable family order, expansion and filters follow their local lifetime (chromium).
+
+Evidence boundary: Both comparison and STM coverage check family/child visibility, exact Show matches results, hide/show all, automatic family order, plan/REX expansion, navigation, peer isolation and reload reset. A known completed/pending REX fixture changes coverage from two contributing actions to one under completeOnly. Preferences are client-local Redux state; manual column reordering is unsupported and unclaimed.
 
 ## REPORT-005: Campaign lifecycle and membership
 
-**P0 · Gap**
+**P0 · Mapped**
 
-Action: Create/rename/duplicate/delete campaigns; add/remove/reorder planned EVA members; cancel and reload.
+Action: Create, rename and delete campaigns through supported controls; add/remove/reinsert planned EVA members, cancel deletion, observe a peer and reload.
 
-Expected: Membership and ownership persist without mutating the plans; invalid/duplicate members are handled explicitly.
+Expected: Unique planned membership and insertion order persist without mutating plans/REXes; new campaigns are independent and canceled deletion preserves the graph. Unsupported duplicate/manual-drag controls remain explicitly unclaimed.
+
+Playwright: [src/tests/playwright/behavior/campaignLifecycle.spec.ts:12](../../../src/tests/playwright/behavior/campaignLifecycle.spec.ts#L12) — campaign lifecycle through EVA Comparison preserves unique ordered plan membership, confirmation and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/campaignLifecycle.spec.ts:12](../../../src/tests/playwright/behavior/campaignLifecycle.spec.ts#L12) — campaign lifecycle through EVA STM Coverage preserves unique ordered plan membership, confirmation and reload (chromium).
+
+Evidence boundary: Supported campaign create/rename/delete and ordered membership are tested through both report entries, including checkbox uniqueness, planned-only choices, removal/reinsertion ordering, independent new campaign identity, canceled deletion, peer member order and reload. The current dialog has no duplicate or manual member-drag control; neither is claimed.
 
 ## REPORT-006: Campaign execution selection and fallback
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Select an explicit REX or latest fallback per member; delete the designated REX or plan.
 
 Expected: Resolution follows the documented explicit/latest/absent rules and reports never compare an unrelated execution.
+
+Playwright: [src/tests/playwright/behavior/campaignFallback.spec.ts:40](../../../src/tests/playwright/behavior/campaignFallback.spec.ts#L40) — campaign explicit/latest resolution falls back safely after deleting its designated REX (chromium).
+
+Playwright: [src/tests/playwright/behavior/campaignFallback.spec.ts:40](../../../src/tests/playwright/behavior/campaignFallback.spec.ts#L40) — campaign explicit/latest resolution falls back safely after deleting its planned EVA (chromium).
+
+Evidence boundary: Explicit versus latest selection uses independently known 250g/900g executions and a distinct unrelated 10000g execution. UI deletion of the designated REX falls back to the newest survivor; deleting the last REX/plan yields absent values. Selected execution EVAs and REXes are confirmed absent, planned EVA absence/preservation matches the delete mode, and peer/reload preserve unrelated ownership.
 
 ## REPORT-007: Campaign versus EVA aggregate deduplication
 
@@ -104,11 +132,17 @@ Expected: Trace badges, counts and drilldown reflect the correct execution entry
 
 ## REPORT-012: Report empty missing and deleted data
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Open reports with no EVAs/rules/campaign members, then remove a selected entity from a peer.
 
 Expected: Empty and unresolved states are explicit; no crash, stale detail or accidental mutation occurs.
+
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:254](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L254) — empty reports and remote deletion recover to an explicit empty state without incidental mutations (chromium).
+
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:254](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L254) — empty reports and remote deletion recover to another POI without incidental mutations (chromium).
+
+Evidence boundary: No-EVA/no-rule, no-column, empty-campaign-member and POI empty states are explicit. Deleting a selected POI from a peer removes stale detail and falls back to another POI or named empty state without incidental document mutations.
 
 ## REPORT-013: Report permission and collaboration matrix
 

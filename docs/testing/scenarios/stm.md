@@ -6,7 +6,7 @@ Fixture: Explicit v1 hierarchy and v2 definitions/rules using small known action
 
 Source: [src/components/panes/stm-legacy/stm-legacy-viewer-page.tsx](../../../src/components/panes/stm-legacy/stm-legacy-viewer-page.tsx), [src/components/panes/stm-rules/stm-rules-page.tsx](../../../src/components/panes/stm-rules/stm-rules-page.tsx).
 
-Scenario mapping: **0/6 (0%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **2/6 (33.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/stmRules_thunk.test.ts](../../../src/tests/vitest/store/thunks/stmRules_thunk.test.ts), [src/tests/vitest/utils/stmEvaCoverage.test.ts](../../../src/tests/vitest/utils/stmEvaCoverage.test.ts).
 
@@ -28,19 +28,29 @@ Expected: Coverage counts, highlights and status colors use the correct plan/REX
 
 ## STM-003: Satisfaction rule CRUD and validation
 
-**P0 · Gap**
+**P0 · Mapped**
 
-Action: In v2 create/edit/duplicate/delete rules with definition references; cancel and reload.
+Action: In v2 create independent rules, edit definition references and count, test the minimum count and empty exact selection, cancel deletion and reload.
 
-Expected: Required and invalid combinations are handled, saved rule identities are independent and referencing definitions remain protected.
+Expected: Saved rule identities remain independent, count cannot fall below one, empty exact categories match nothing and referencing definitions remain protected. Current controls save edits immediately and expose no duplicate-rule operation.
+
+Playwright: [src/tests/playwright/behavior/stmRules.spec.ts:30](../../../src/tests/playwright/behavior/stmRules.spec.ts#L30) — satisfaction rules create and edit independently, protect referenced definitions, honor delete cancellation, and persist after reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/stmRules.spec.ts:167](../../../src/tests/playwright/behavior/stmRules.spec.ts#L167) — STM matching uses exact tuples and wildcards, excludes missing categories, and crosses the rule threshold at the boundary (chromium).
+
+Evidence boundary: Supported create/edit/delete, independent identities, count-minimum guard, empty exact selection producing zero matches, protected-definition deletion, canceled rule deletion and reload are covered. Rule edits commit immediately; there is no duplicate-rule control or separate draft Save/Cancel, and neither is claimed.
 
 ## STM-004: Rule tuple matching and thresholds
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Use exact verb/noun/adjective tuples, wildcard/missing categories and threshold boundaries.
 
 Expected: Known satisfied/unsatisfied counts agree with the rule semantics; duplicate and disabled actions are handled explicitly.
+
+Playwright: [src/tests/playwright/behavior/stmRules.spec.ts:167](../../../src/tests/playwright/behavior/stmRules.spec.ts#L167) — STM matching uses exact tuples and wildcards, excludes missing categories, and crosses the rule threshold at the boundary (chromium).
+
+Evidence boundary: Independent exact/wildcard/missing-adjective fixtures include separate identical tuples and a disabled tuple. The rules-page tally includes disabled actions while EVA coverage excludes them; threshold 2/3 changes explicit all/partial satisfaction counts.
 
 ## STM-005: Rule ordering layout and persistence
 
