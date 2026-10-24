@@ -2261,7 +2261,13 @@
       "id": "position",
       "name": "Execution position entry, types and sources",
       "fixture": "Running/stopped REX with multiple timestamped positions, types and sources and known station/traverse coordinates.",
-      "sources": ["src/store/thunk/thunkRexPosEntry.ts", "src/store/thunk/thunkRexPosSource.ts"],
+      "sources": [
+        "src/components/interface/map/overlays/map-menu-pos.tsx",
+        "src/components/interface/map/overlays/map-menu-pos-menu.tsx",
+        "src/components/interface/map/behaviors/PosEntries.tsx",
+        "src/store/thunk/thunkRexPosEntry.ts",
+        "src/store/thunk/thunkRexPosSource.ts"
+      ],
       "supporting": [
         "src/tests/vitest/store/thunks/rexPosEntry_thunk.test.ts",
         "src/tests/vitest/store/thunks/rexPosSource_thunk.test.ts"
@@ -2273,8 +2279,22 @@
           "priority": "P0",
           "action": "Start New Pos, advance PET, change types/source, place the point and reload.",
           "expected": "Position uses the intended captured PET, selected metadata and committed coordinates rather than placement-time drift.",
-          "automation": "gap",
-          "tests": []
+          "fixture": "Isolated execution mission with EV1/EV2 and Crew/Rover, fixed browser Date with native timers, paused and ticking PET variants; all position sources visible.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "New Pos captures ticking PET before placement and saves the selected types and source"
+            },
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "New Pos captures paused PET before placement and saves the selected types and source"
+            },
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "Cancel Pos abandons a new entry and removes the pending map placement"
+            }
+          ]
         },
         {
           "id": "POSITION-002",
@@ -2282,8 +2302,15 @@
           "priority": "P0",
           "action": "Draft type/source changes while moving an existing position; compare map finish, full Save and Cancel.",
           "expected": "Coordinate/time updates and drafted metadata follow their distinct commit boundaries; Cancel preserves the previous entry.",
-          "automation": "gap",
-          "tests": []
+          "fixture": "Active paused execution with EV1/EV2 and Crew/Rover, fixed browser Date, peer page and known saved position.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "moving an existing position commits coordinates only while Save and Cancel control metadata drafts"
+            }
+          ],
+          "note": "Map finish updates location/updatedAt while retaining captured PET and saved metadata; full Save commits drafted metadata. Cancel Edit and Cancel Pos preserve the last committed entry."
         },
         {
           "id": "POSITION-003",
@@ -2291,8 +2318,18 @@
           "priority": "P1",
           "action": "Edit supported position fields, cancel/confirm deletion and inspect map/history.",
           "expected": "Exact persisted entries, map markers and path connections agree without changing other source/type histories.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "moving an existing position commits coordinates only while Save and Cancel control metadata drafts"
+            },
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "position deletion honors Cancel and removes only its entry, marker and obsolete path after confirmation"
+            }
+          ],
+          "note": "The current list supports Edit and Delete Entry; no duplicate control exists. Tests cover those supported actions, exact history, marker/path removal and preservation of unrelated source/type entries."
         },
         {
           "id": "POSITION-004",

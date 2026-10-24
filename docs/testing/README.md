@@ -9,7 +9,8 @@ discovered browser test and registered UI/HTTP surface. The machine-readable
 [summary](coverage-summary.json) contains the same counts for dashboards or CI.
 
 Executed results and defect-detection evidence for the latest coverage additions
-are recorded in the [2026-10-24 validation note](runs/2026-10-24-behavior.md).
+are recorded in the [position validation note](runs/2026-10-24-positions.md) and
+the [earlier behavior validation note](runs/2026-10-24-behavior.md).
 
 The [scenario catalog](scenario-catalog.json) is the editable source of truth.
 Generated scenario chapters live in [scenarios/](scenarios). The existing
