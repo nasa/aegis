@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-10-24",
+  "measurement": "Reviewed scenario-to-test mapping in Chromium; not executed pass rate or code coverage",
+  "executionEvidence": "No browser tests executed by this report",
+  "overall": {
+    "total": 260,
+    "eligible": 253,
+    "mapped": 81,
+    "partial": 9,
+    "gap": 163,
+    "external": 7,
+    "percent": 32
+  },
+  "critical": {
+    "total": 151,
+    "eligible": 146,
+    "mapped": 48,
+    "partial": 2,
+    "gap": 96,
+    "external": 5,
+    "percent": 32.9
+  },
+  "areas": [
+    {
+      "id": "app",
+      "name": "Application entry and navigation",
+      "total": 9,
+      "eligible": 9,
+      "mapped": 4,
+      "partial": 0,
+      "gap": 5,
+      "external": 0,
+      "percent": 44.4
+    },
+    {
+      "id": "auth",
+      "name": "Authentication, permissions and connection gates",
+      "total": 8,
+      "eligible": 8,
+      "mapped": 0,
+      "partial": 0,
+      "gap": 8,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "cfg",
+      "name": "Mission preferences and defaults",
+      "total": 6,
+      "eligible": 6,
+      "mapped": 2,
+      "partial": 0,
+      "gap": 4,
+      "external": 0,
+      "percent": 33.3
+    },
+    {
+      "id": "ref",
+      "name": "Mission reference data and templates",
+      "total": 9,
+      "eligible": 9,
+      "mapped": 0,
+      "partial": 5,
+      "gap": 4,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "folder",
+      "name": "Folders, ordering and shared lists",
+      "total": 4,
+      "eligible": 4,
+      "mapped": 0,
+      "partial": 0,
+      "gap": 4,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "poi",
+      "name": "POI lifecycle and association",
+      "total": 8,
+      "eligible": 8,
+      "mapped": 4,
+      "partial": 0,
+      "gap": 4,
+      "external": 0,
+      "percent": 50
+    },
+    {
+      "id": "station",
+      "name": "Station lifecycle and properties",
+      "total": 16,
+      "eligible": 16,
+      "mapped": 9,
+      "partial": 0,
+      "gap": 7,
+      "external": 0,
+      "percent": 56.3
+    },
+    {
+      "id": "eva",
+      "name": "EVA sequence editing and plan identity",
+      "total": 13,
+      "eligible": 13,
+      "mapped": 5,
+      "partial": 0,
+      "gap": 8,
+      "external": 0,
+      "percent": 38.5
+    },
+    {
+      "id": "action",
+      "name": "Action editing, reuse and ownership",
+      "total": 14,
+      "eligible": 14,
+      "mapped": 5,
+      "partial": 0,
+      "gap": 9,
+      "external": 0,
+      "percent": 35.7
+    },
+    {
+      "id": "map",
+      "name": "Map display, selection and geometry interactions",
+      "total": 19,
+      "eligible": 19,
+      "mapped": 10,
+      "partial": 1,
+      "gap": 8,
+      "external": 0,
+      "percent": 52.6
+    },
+    {
+      "id": "measure",
+      "name": "Measurements and terrain profiles",
+      "total": 8,
+      "eligible": 8,
+      "mapped": 0,
+      "partial": 0,
+      "gap": 8,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "preset",
+      "name": "Presets, layers and GIS display",
+      "total": 13,
+      "eligible": 13,
+      "mapped": 0,
+      "partial": 1,
+      "gap": 12,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "calc",
+      "name": "Time, distance, crew and resource calculations",
+      "total": 9,
+      "eligible": 9,
+      "mapped": 2,
+      "partial": 0,
+      "gap": 7,
+      "external": 0,
+      "percent": 22.2
+    },
+    {
+      "id": "rex",
+      "name": "Execution lifecycle and PET ownership",
+      "total": 27,
+      "eligible": 27,
+      "mapped": 20,
+      "partial": 0,
+      "gap": 7,
+      "external": 0,
+      "percent": 74.1
+    },
+    {
+      "id": "policy",
+      "name": "Execution edit policies, status and collected values",
+      "total": 9,
+      "eligible": 9,
+      "mapped": 3,
+      "partial": 1,
+      "gap": 5,
+      "external": 0,
+      "percent": 33.3
+    },
+    {
+      "id": "position",
+      "name": "Execution position entry, types and sources",
+      "total": 7,
+      "eligible": 7,
+      "mapped": 0,
+      "partial": 0,
+      "gap": 7,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "dash",
+      "name": "Execution dashboard, follow and minimap",
+      "total": 9,
+      "eligible": 9,
+      "mapped": 4,
+      "partial": 0,
+      "gap": 5,
+      "external": 0,
+      "percent": 44.4
+    },
+    {
+      "id": "stm",
+      "name": "Legacy STM and v2 satisfaction rules",
+      "total": 6,
+      "eligible": 6,
+      "mapped": 0,
+      "partial": 0,
+      "gap": 6,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "report",
+      "name": "Comparison, STM coverage, campaigns and POI traceability",
+      "total": 13,
+      "eligible": 13,
+      "mapped": 2,
+      "partial": 0,
+      "gap": 11,
+      "external": 0,
+      "percent": 15.4
+    },
+    {
+      "id": "export",
+      "name": "JSON, GeoJSON and external handoff exports",
+      "total": 7,
+      "eligible": 7,
+      "mapped": 5,
+      "partial": 0,
+      "gap": 2,
+      "external": 0,
+      "percent": 71.4
+    },
+    {
+      "id": "collab",
+      "name": "Collaboration, persistence and recovery",
+      "total": 14,
+      "eligible": 14,
+      "mapped": 6,
+      "partial": 0,
+      "gap": 8,
+      "external": 0,
+      "percent": 42.9
+    },
+    {
+      "id": "admin",
+      "name": "Administrative mission, user, file and diagnostic flows",
+      "total": 10,
+      "eligible": 10,
+      "mapped": 0,
+      "partial": 0,
+      "gap": 10,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "integration",
+      "name": "Maestro, DUST and service contracts",
+      "total": 10,
+      "eligible": 10,
+      "mapped": 0,
+      "partial": 0,
+      "gap": 10,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "access",
+      "name": "Accessibility, browser compatibility and resilience",
+      "total": 5,
+      "eligible": 5,
+      "mapped": 0,
+      "partial": 1,
+      "gap": 4,
+      "external": 0,
+      "percent": 0
+    },
+    {
+      "id": "ops",
+      "name": "Operational acceptance outside browser scenario coverage",
+      "total": 7,
+      "eligible": 0,
+      "mapped": 0,
+      "partial": 0,
+      "gap": 0,
+      "external": 7,
+      "percent": null
+    }
+  ],
+  "registeredSurfaces": {
+    "UI route": 19,
+    "Mission pane": 8,
+    "HTTP": 54
+  },
+  "discoveredProjects": {
+    "auth": 1,
+    "chromium": 160,
+    "firefox": 4,
+    "webkit": 4
+  }
+}

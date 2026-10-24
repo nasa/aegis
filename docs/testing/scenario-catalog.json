@@ -1,0 +1,3297 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-10-24",
+  "scope": "Current AEGIS application families and known state/failure boundaries; finite reviewed inventory, not every possible input/interleaving.",
+  "surfaceAssignments": {
+    "uiRoutes": {
+      "/": "app",
+      "/versionCheck": "app",
+      "/mission/:id": "app",
+      "/dashboard/:id": "dash",
+      "/testMapPerformant": "ops",
+      "/admin": "admin",
+      "/admin/export/:id": "export",
+      "/admin/automerge/:automergeUrl?": "admin",
+      "/admin/missions": "admin",
+      "/admin/mission/:id/:automergeUrl?": "admin",
+      "/admin/mission_layers/:id": "admin",
+      "/admin/mission_stm/:id": "admin",
+      "/admin/mission_duplicate/:id": "admin",
+      "/admin/user": "admin",
+      "/admin/serverSocketStatus": "admin",
+      "/admin/maestroV2": "integration",
+      "/admin/dustV1": "integration",
+      "/admin/environmentConfig": "admin",
+      "/admin/emss": "admin"
+    },
+    "panes": {
+      "mission": "cfg",
+      "preset": "preset",
+      "poi": "poi",
+      "station": "station",
+      "evas": "eva",
+      "stmViewer": "stm",
+      "stmRules": "stm",
+      "reports": "report"
+    },
+    "httpSources": {
+      "src/server/express/restApi.ts": "integration",
+      "src/server/express/routes/auth.ts": "auth",
+      "src/server/express/routes/all.ts": "app",
+      "src/server/express/routes/terrainProfile.ts": "measure",
+      "src/server/express/routes/layer.ts": "admin",
+      "src/server/express/routes/mission.ts": "admin",
+      "src/server/express/routes/missionHomepageItems.ts": "app",
+      "src/server/express/routes/missionDup.ts": "admin",
+      "src/server/express/routes/missionDump.ts": "export",
+      "src/server/express/routes/metrics.ts": "integration",
+      "src/server/express/routes/grid.ts": "preset",
+      "src/server/express/routes/sublayer.ts": "admin",
+      "src/server/express/routes/appUsers.ts": "admin",
+      "src/server/express/routes/time.ts": "integration",
+      "src/server/express/routes/emss/enableEmssApi.ts": "admin",
+      "src/server/express/routes/socket/serverSocketStatus.ts": "admin",
+      "src/server/express/routes/file/boxDownloadFile.ts": "admin",
+      "src/server/express/routes/file/boxGetFolderItems.ts": "admin",
+      "src/server/express/routes/file/upload.ts": "admin",
+      "src/server/express/routes/file/list.ts": "admin",
+      "src/server/express/routes/file/rename.ts": "admin",
+      "src/server/express/routes/file/delete.ts": "admin",
+      "src/server/express/routes/logFromClient.ts": "integration",
+      "src/server/express/routes/docListing.ts": "admin",
+      "src/server/express/routes/environmentConfig.ts": "admin",
+      "src/server/express/routes/missionAutomerge.ts": "admin",
+      "src/server/express/routes/external/dust.ts": "integration",
+      "src/server/maestro/v2/routes/getRexesByEva.ts": "integration",
+      "src/server/maestro/v2/routes/getMissions.ts": "integration",
+      "src/server/maestro/v2/routes/getRefUuidMap.ts": "integration",
+      "src/server/maestro/v2/routes/eva.ts": "integration",
+      "src/server/maestro/v2/routes/mission.ts": "integration",
+      "src/server/maestro/v2/routes/docCreate.ts": "integration"
+    }
+  },
+  "areas": [
+    {
+      "id": "app",
+      "name": "Application entry and navigation",
+      "fixture": "Disposable planning mission with two EVAs, shared and unshared stations, a POI, and known relationships.",
+      "sources": [
+        "src/App.tsx",
+        "src/pages/index.tsx",
+        "src/pages/mission.tsx",
+        "src/components/interface/_paneTypes.ts"
+      ],
+      "supporting": [],
+      "scenarios": [
+        {
+          "id": "APP-001",
+          "title": "an isolated mission exposes its planned EVAs, stations, POIs and map",
+          "priority": "P1",
+          "action": "an isolated mission exposes its planned EVAs, stations, POIs and map",
+          "expected": "Two named planned EVAs, named stations and the POI are visible in their sections; the editor canvas is visible.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/smoke.spec.ts",
+              "title": "an isolated mission exposes its planned EVAs, stations, POIs and map"
+            }
+          ]
+        },
+        {
+          "id": "APP-002",
+          "title": "mission identity and fixture relationships survive a fresh browser load",
+          "priority": "P1",
+          "action": "mission identity and fixture relationships survive a fresh browser load",
+          "expected": "Reload preserves the exact mission header and EVA sequence; the action still belongs to its seeded station.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/smoke.spec.ts",
+              "title": "mission identity and fixture relationships survive a fresh browser load"
+            }
+          ]
+        },
+        {
+          "id": "APP-003",
+          "title": "Mission selector and mission isolation",
+          "priority": "P0",
+          "action": "Open home with two accessible and one inaccessible mission; select each permitted mission.",
+          "expected": "Only authorized missions appear; each opens its own identity and entities without stale prior-mission content.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "APP-004",
+          "title": "Direct links, back and forward",
+          "priority": "P1",
+          "action": "Open editor and dashboard directly; navigate home and use browser back/forward.",
+          "expected": "The requested mission and page restore without blank views, duplicate maps, or stale selections.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/navigation.spec.ts",
+              "title": "editor and dashboard direct links restore through home, back and forward without stale maps"
+            }
+          ]
+        },
+        {
+          "id": "APP-005",
+          "title": "Unavailable mission handling",
+          "priority": "P0",
+          "action": "Open nonexistent, deleted and inaccessible mission IDs, including a stale link.",
+          "expected": "Show the supported failure or redirect; do not expose another mission or leave an editable stale document.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "APP-006",
+          "title": "Pane and tab availability by action version",
+          "priority": "P0",
+          "action": "Open explicit v1 and v2 missions; visit every registered pane and right-hand tab.",
+          "expected": "v1 STM Viewer and v2 STM Rules/Reports appear only for their version; navigation selects the intended content.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "APP-007",
+          "title": "Layout and local selection persistence",
+          "priority": "P2",
+          "action": "Resize panes; expand/collapse lists; switch section, mission, and reload.",
+          "expected": "Layout and selection follow their documented local persistence boundaries without changing mission data.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "APP-008",
+          "title": "Loading and failed hydration",
+          "priority": "P0",
+          "action": "Delay and fail initial mission/doc requests, then retry.",
+          "expected": "Loading does not enable editing before authoritative state is ready; failure is visible and retry recovers.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "APP-009",
+          "title": "Version check page recovery",
+          "priority": "P0",
+          "action": "Open /versionCheck after a deployed-version or server-epoch change and reload.",
+          "expected": "The page explains the required refresh and obtains the current version before editing resumes.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/navigation.spec.ts",
+              "title": "version check explains a deployment mismatch and refreshes the requested mission with the current version"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "name": "Authentication, permissions and connection gates",
+      "fixture": "Distinct guest, viewer, editor, admin and super-admin sessions; two missions with different grants.",
+      "sources": [
+        "src/utils/permissions.ts",
+        "src/pages/mission.tsx",
+        "src/pages/admin/index.tsx",
+        "src/server/express/routes/auth.ts"
+      ],
+      "supporting": [
+        "src/tests/vitest/express/login.test.ts",
+        "src/tests/vitest/express/appUser.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "AUTH-001",
+          "title": "Signed-out and expired-session entry",
+          "priority": "P0",
+          "action": "Open home, editor, dashboard and admin without a session and with an expired session.",
+          "expected": "Authentication recovery follows the configured proxy contract and never exposes protected data or edit controls.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "AUTH-002",
+          "title": "Viewer cannot mutate",
+          "priority": "P0",
+          "action": "As a view-only user open fields, menus, geometry editing and execution controls; issue equivalent direct writes.",
+          "expected": "Read access works; UI and server reject mutations with the mission unchanged.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "AUTH-003",
+          "title": "Editor access stays mission-scoped",
+          "priority": "P0",
+          "action": "As an editor for mission A attempt reads and writes for mission B by URL, API and Automerge socket.",
+          "expected": "Mission A remains editable and mission B stays protected across all transports.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "AUTH-004",
+          "title": "Admin and super-admin boundaries",
+          "priority": "P0",
+          "action": "Visit every admin route as viewer, editor, admin and super-admin and call its mutation endpoint.",
+          "expected": "Visibility and server enforcement agree with each route's declared policy, including super-admin-only controls.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "AUTH-005",
+          "title": "Permission revocation in an open session",
+          "priority": "P0",
+          "action": "Revoke edit/view permission while the user's editor and socket are open; attempt another mutation.",
+          "expected": "The next protected action follows revocation policy; no unauthorized persisted mutation occurs.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "AUTH-006",
+          "title": "Edit mode field and menu matrix",
+          "priority": "P0",
+          "action": "Toggle Edit off/on for mission, entity, preset, report, position and execution controls.",
+          "expected": "Each control observes its permission and mode requirements; canceling drafts does not enable a write.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "AUTH-007",
+          "title": "Transport-specific disconnect gate",
+          "priority": "P0",
+          "action": "Drop only Automerge while keeping HTTP and Socket.IO alive, and then restore it.",
+          "expected": "Edit and Save are disabled while the document transport is unavailable and recover only after synchronization.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "AUTH-008",
+          "title": "Session and request error recovery",
+          "priority": "P1",
+          "action": "Fail a protected request with 401/403/500 while a dialog is open; restore the session and retry.",
+          "expected": "Failure is visible, saved values remain intact, and retry does not apply a duplicate mutation.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "cfg",
+      "name": "Mission preferences and defaults",
+      "fixture": "Blank mission with known lander, rates, banner, projection and action-system version.",
+      "sources": [
+        "src/components/panes/mission/mission-right-prefs.tsx",
+        "src/operations/apply/apply-mission.ts"
+      ],
+      "supporting": ["src/tests/vitest/store/thunks/mission_thunk.test.ts"],
+      "scenarios": [
+        {
+          "id": "CFG-001",
+          "title": "Mission preferences save and cancel",
+          "priority": "P1",
+          "action": "Rename mission, edit banner and defaults; cancel a second edit; reload and open a peer.",
+          "expected": "Exact saved values reach header, consumers, persistence and peer; canceled values never do.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/configuration.spec.ts",
+              "title": "saved mission preferences reach the header and a peer while canceled edits stay local"
+            }
+          ]
+        },
+        {
+          "id": "CFG-002",
+          "title": "Mission preference validation boundaries",
+          "priority": "P1",
+          "action": "Try blank required text, maximum/overlong text, fractional/negative/zero/unset rates and durations.",
+          "expected": "Each field enforces its actual constraints; invalid Save leaves the previous document and consumers unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/configuration.spec.ts",
+              "title": "mission text and numeric validation preserves saved values at rejected boundaries"
+            }
+          ]
+        },
+        {
+          "id": "CFG-003",
+          "title": "Default override propagation",
+          "priority": "P0",
+          "action": "Change mission traverse/walkback rates and EVA duration with inherited and explicit entity overrides.",
+          "expected": "Inherited consumers update; explicit overrides survive; clearing an override restores inheritance.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CFG-004",
+          "title": "Lander relocation cascades",
+          "priority": "P0",
+          "action": "Move the lander with stations, walkbacks and multiple EVA egress/ingress copies; reload and observe a peer.",
+          "expected": "Location/elevation, walkback endpoints and affected paths update coherently without moving unrelated stations.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CFG-005",
+          "title": "Lander absent and restored",
+          "priority": "P1",
+          "action": "Clear/set lander location and open location-dependent controls and reports.",
+          "expected": "Unavailable calculations show their documented empty state; restoring location recomputes them without NaN or stale endpoints.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CFG-006",
+          "title": "Projection and action version administration",
+          "priority": "P0",
+          "action": "Use authorized admin controls to change projection/action version; open fresh and existing clients.",
+          "expected": "Allowed fields persist, rendering and pane availability follow configuration, and normal editors cannot change admin-only fields.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "ref",
+      "name": "Mission reference data and templates",
+      "fixture": "Separate v1/v2 missions with definitions used and unused by actions, templates, rules, presets and stations.",
+      "sources": [
+        "src/components/panes/mission/mission-right-actionDefinitions.tsx",
+        "src/components/panes/mission/mission-right-actionTemplates.tsx",
+        "src/components/panes/mission/mission-right-equipment.tsx",
+        "src/components/panes/mission/mission-right-geographicUnits.tsx",
+        "src/components/panes/mission/mission-right-circles.tsx",
+        "src/components/panes/mission/mission-right-missionPriorities.tsx"
+      ],
+      "supporting": [
+        "src/tests/vitest/operations/op-actionDefinition.test.ts",
+        "src/tests/vitest/operations/op-missionPriority.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "REF-001",
+          "title": "Definition CRUD and wording",
+          "priority": "P1",
+          "action": "Add/rename/delete unused verbs, nouns and adjectives; change singular/plural labels and conjunctions; reload.",
+          "expected": "Lists, generated action wording and persisted definitions agree; cancel and field validation preserve prior values.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "mission/mission.spec.ts",
+              "title": "Action definitions"
+            }
+          ],
+          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+        },
+        {
+          "id": "REF-002",
+          "title": "Definition usage guards",
+          "priority": "P0",
+          "action": "Attempt to delete definitions used by POI/station/traverse actions, templates and STM rules.",
+          "expected": "Every live reference blocks deletion with useful usage information; removing references permits deletion.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REF-003",
+          "title": "Template CRUD and independence",
+          "priority": "P1",
+          "action": "Create, edit, duplicate and delete a template; cancel deletion and reload.",
+          "expected": "Copies have independent identities/values, confirmation is respected, and unrelated templates remain unchanged.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "mission/mission.spec.ts",
+              "title": "Action templates"
+            }
+          ],
+          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+        },
+        {
+          "id": "REF-004",
+          "title": "Apply template and save action as template",
+          "priority": "P0",
+          "action": "Apply a known template to each action parent; save an action as a template under allowed and forbidden roles.",
+          "expected": "All supported fields copy correctly with new action identity; later template changes do not retroactively mutate actions.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REF-005",
+          "title": "Equipment CRUD and consumer totals",
+          "priority": "P1",
+          "action": "Add/edit/delete consumable and nonconsumable equipment used by actions/templates; reload.",
+          "expected": "Usage handling and quantity/consumable totals remain consistent; canceled or invalid edits do not persist.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "mission/mission.spec.ts",
+              "title": "Equipment"
+            }
+          ],
+          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+        },
+        {
+          "id": "REF-006",
+          "title": "Geographic unit CRUD and references",
+          "priority": "P1",
+          "action": "In v1 create/edit/delete geographic units used by actions and templates.",
+          "expected": "Supported reference cleanup or guards are explicit; values and report consumers survive reload without dangling selections.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "mission/mission.spec.ts",
+              "title": "Geographic units"
+            }
+          ],
+          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+        },
+        {
+          "id": "REF-007",
+          "title": "Circle definition lifecycle",
+          "priority": "P1",
+          "action": "Create, rename, resize and delete circles while presets/stations reference them; observe a peer.",
+          "expected": "New circles initialize hidden, deletion prunes references, and radius ordering and map geometry match saved values.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "mission/mission.spec.ts",
+              "title": "Circle definitions"
+            }
+          ],
+          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+        },
+        {
+          "id": "REF-008",
+          "title": "Mission priority identifiers",
+          "priority": "P1",
+          "action": "Create/edit/reorder/delete priorities; assign them to STM and non-STM actions and templates.",
+          "expected": "Priority labels/colors/order and usage handling propagate to actions and reports without rewriting unrelated values.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REF-009",
+          "title": "Reference validation matrix",
+          "priority": "P1",
+          "action": "Exercise required, duplicate, abbreviation length, radius minimum and numeric boundaries for every reference type.",
+          "expected": "Invalid values cannot replace saved values; Cancel preserves both lists and downstream consumers.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "folder",
+      "name": "Folders, ordering and shared lists",
+      "fixture": "Planning entities and presets assigned to multiple folders, including an empty folder.",
+      "sources": ["src/operations/apply/apply-mission-folder.ts", "src/store/thunk/thunkFolder.ts"],
+      "supporting": [
+        "src/tests/vitest/store/thunks/folder_thunk.test.ts",
+        "src/tests/vitest/operations/apply/apply-mission-folder.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "FOLDER-001",
+          "title": "Folder create rename delete",
+          "priority": "P1",
+          "action": "Create and rename folders for POIs, stations, EVAs and presets; delete empty and populated folders; reload.",
+          "expected": "Each list retains its entities and correct folder membership; canceled confirmation and invalid names preserve saved state.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "FOLDER-002",
+          "title": "Move and reorder folder content",
+          "priority": "P1",
+          "action": "Drag entities into/out of folders, reorder supported rows and move between folders.",
+          "expected": "Each UUID occurs in the intended place once, with the documented ordering after reload and on a peer.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "FOLDER-003",
+          "title": "Folder visibility exceptions",
+          "priority": "P1",
+          "action": "Hide a folder then select a contained station/POI or an EVA using hidden stations.",
+          "expected": "Folder visibility, selected-object exceptions and EVA scope remain distinct and produce the intended map features.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "FOLDER-004",
+          "title": "Concurrent folder membership edits",
+          "priority": "P1",
+          "action": "Two clients move/delete the same entity or folder at once.",
+          "expected": "Clients converge without duplicate membership, orphan references, or lost unrelated entities.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "poi",
+      "name": "POI lifecycle and association",
+      "fixture": "Planning mission with a located POI, source actions and stations referencing it.",
+      "sources": ["src/components/panes/poi/poi-right.tsx", "src/operations/apply/apply-poi.ts"],
+      "supporting": ["src/tests/vitest/store/thunks/poi_thunk.test.ts"],
+      "scenarios": [
+        {
+          "id": "POI-001",
+          "title": "POI edits save and cancel independently, and duplicates preserve location without sharing identity",
+          "priority": "P1",
+          "action": "POI edits save and cancel independently, and duplicates preserve location without sharing identity",
+          "expected": "Cancel preserves the source name; rename persists; a duplicate has a fresh UUID and the same location; changing the copy leaves the source independent after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "POI edits save and cancel independently, and duplicates preserve location without sharing identity"
+            }
+          ]
+        },
+        {
+          "id": "POI-002",
+          "title": "deleting a referenced POI clears associated actions and station references while preserving the plan",
+          "priority": "P1",
+          "action": "deleting a referenced POI clears associated actions and station references while preserving the plan",
+          "expected": "Deleting the POI removes its associated actions, station links and action-order references while preserving seeded EVA/traverse data after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "deleting a referenced POI clears associated actions and station references while preserving the plan"
+            }
+          ]
+        },
+        {
+          "id": "POI-003",
+          "title": "Create POI and validate identity",
+          "priority": "P1",
+          "action": "Create a POI through the UI; try blank, duplicate and overlong names; save a valid unique name.",
+          "expected": "New POI has the expected defaults and unique identity; validation blocks invalid writes and reload retains it.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/poiLifecycle.spec.ts",
+              "title": "a new POI has independent default state and rejects blank, duplicate and overlong names"
+            }
+          ]
+        },
+        {
+          "id": "POI-004",
+          "title": "POI deletion Cancel and adopted copies",
+          "priority": "P0",
+          "action": "Copy a POI action into a station; cancel then confirm deleting the POI.",
+          "expected": "Cancel preserves everything; confirmed cleanup follows the current adopted-copy ownership contract and preserves unrelated station actions.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/poiLifecycle.spec.ts",
+              "title": "canceling referenced POI deletion preserves adopted copies and confirming removes only POI-owned actions"
+            }
+          ]
+        },
+        {
+          "id": "POI-005",
+          "title": "POI location lifecycle",
+          "priority": "P1",
+          "action": "Create/move/cancel/clear POI coordinates by map and supported fields; reload.",
+          "expected": "Committed coordinates and elevation match the intended point; Cancel preserves the original; relative elevation and grid display recompute.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POI-006",
+          "title": "POI metadata and icon",
+          "priority": "P2",
+          "action": "Change description and each supported icon shape; cancel and reload.",
+          "expected": "List, detail and map agree with persisted metadata and icon without mutating associations.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POI-007",
+          "title": "POI station links and navigation",
+          "priority": "P1",
+          "action": "Link/unlink one POI from multiple stations and follow backlinks.",
+          "expected": "Association lists and counters agree without implicitly adopting actions; changes persist to peers.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POI-008",
+          "title": "POI report severity and mass",
+          "priority": "P1",
+          "action": "Use missing, disabled and fully specified actions with known masses and science coverage.",
+          "expected": "POI totals, warnings and report state use the correct enabled actions and known quantities.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "station",
+      "name": "Station lifecycle and properties",
+      "fixture": "Planning fixture with a shared station, an unassigned station, child actions, folders and lander copies.",
+      "sources": [
+        "src/components/panes/station/station-right.tsx",
+        "src/operations/apply/apply-station.ts"
+      ],
+      "supporting": ["src/tests/vitest/store/thunks/station_thunk.test.ts"],
+      "scenarios": [
+        {
+          "id": "STATION-001",
+          "title": "station names save to the mission, update the list, and survive a fresh page",
+          "priority": "P1",
+          "action": "station names save to the mission, update the list, and survive a fresh page",
+          "expected": "A saved station name appears exactly once, persists after a fresh page, and leaves the other station unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "station names save to the mission, update the list, and survive a fresh page"
+            }
+          ]
+        },
+        {
+          "id": "STATION-002",
+          "title": "canceling a station rename leaves its name and related traverse names unchanged",
+          "priority": "P1",
+          "action": "canceling a station rename leaves its name and related traverse names unchanged",
+          "expected": "Cancel preserves the original station and traverse names in persisted data and after a fresh page.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "canceling a station rename leaves its name and related traverse names unchanged"
+            }
+          ]
+        },
+        {
+          "id": "STATION-003",
+          "title": "station name validation rejects empty names without saving",
+          "priority": "P1",
+          "action": "station name validation rejects empty names without saving",
+          "expected": "An empty name shows Required and cannot replace either saved station name.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "station name validation rejects empty names without saving"
+            }
+          ]
+        },
+        {
+          "id": "STATION-004",
+          "title": "station name validation rejects case-insensitive duplicates without saving",
+          "priority": "P1",
+          "action": "station name validation rejects case-insensitive duplicates without saving",
+          "expected": "A case-insensitive duplicate shows the uniqueness error and cannot replace either station name.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "station name validation rejects case-insensitive duplicates without saving"
+            }
+          ]
+        },
+        {
+          "id": "STATION-005",
+          "title": "duplicating a station copies its actions with independent identities and editable values",
+          "priority": "P1",
+          "action": "duplicating a station copies its actions with independent identities and editable values",
+          "expected": "The station copy retains location, POI links and action order with fresh station/action UUIDs and lineage; edits leave the original unchanged and persist.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "duplicating a station copies its actions with independent identities and editable values"
+            }
+          ]
+        },
+        {
+          "id": "STATION-006",
+          "title": "a station shared by planned EVAs cannot be deleted directly",
+          "priority": "P1",
+          "action": "a station shared by planned EVAs cannot be deleted directly",
+          "expected": "Deleting a station shared by two planned EVAs is refused and the mission remains unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "a station shared by planned EVAs cannot be deleted directly"
+            }
+          ]
+        },
+        {
+          "id": "STATION-007",
+          "title": "deleting an unassigned station removes its child actions and folder entry while retaining other plans",
+          "priority": "P1",
+          "action": "deleting an unassigned station removes its child actions and folder entry while retaining other plans",
+          "expected": "Deleting an unassigned station removes its child actions and folder membership while retaining the other plans.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "deleting an unassigned station removes its child actions and folder entry while retaining other plans"
+            }
+          ]
+        },
+        {
+          "id": "STATION-008",
+          "title": "a newly created station can be named, persisted, and deleted without modifying existing stations",
+          "priority": "P1",
+          "action": "a newly created station can be named, persisted, and deleted without modifying existing stations",
+          "expected": "A new station can be named, saved, reloaded and removed while the existing stations remain unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "a newly created station can be named, persisted, and deleted without modifying existing stations"
+            }
+          ]
+        },
+        {
+          "id": "STATION-009",
+          "title": "station dwell time saves as minutes and rejects zero without corrupting the saved value",
+          "priority": "P1",
+          "action": "station dwell time saves as minutes and rejects zero without corrupting the saved value",
+          "expected": "Dwell 37 minutes persists; zero is rejected without corrupting the saved duration.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "station dwell time saves as minutes and rejects zero without corrupting the saved value"
+            }
+          ]
+        },
+        {
+          "id": "STATION-010",
+          "title": "Station rename updates connected traverse names",
+          "priority": "P1",
+          "action": "Rename both endpoints of a traverse, singly and from two clients; reload.",
+          "expected": "Connected traverse labels use both final endpoint names regardless of edit order.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STATION-011",
+          "title": "Station delete Cancel and lander protection",
+          "priority": "P0",
+          "action": "Cancel deletion of an unassigned station; try direct deletion of egress/ingress copies.",
+          "expected": "Cancel preserves children and membership; managed lander copies cannot be deleted independently.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STATION-012",
+          "title": "Station location, elevation and lander shortcut",
+          "priority": "P0",
+          "action": "Create/move/cancel station location; use Set to Lander; repeat with missing DEM/lander.",
+          "expected": "Committed location and elevation are correct; connected paths update and unavailable data is represented without corrupting saved geometry.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STATION-013",
+          "title": "Station walkback lifecycle",
+          "priority": "P0",
+          "action": "Open a located station with/without walkback; edit its path/rate; cancel/reset and reload.",
+          "expected": "Walkback endpoints stay pinned to station/lander and distance, time and profile agree with the saved path.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STATION-014",
+          "title": "Station manual versus calculated dwell",
+          "priority": "P0",
+          "action": "Clear manual dwell with known EV1/EV2 and unassigned actions; restore an override.",
+          "expected": "Displayed duration follows the intended override precedence and crew warnings without losing action data.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STATION-015",
+          "title": "Station proximity circles",
+          "priority": "P1",
+          "action": "Toggle/style circles at one station, then inspect another station and a peer.",
+          "expected": "Styles and visibility persist for that station only and map radii match definition metres.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STATION-016",
+          "title": "Station icon description and usage",
+          "priority": "P2",
+          "action": "Edit icon/description and inspect EVA usage and linked POI totals.",
+          "expected": "Lists, map and info agree; shared station usage remains accurate across plans and execution copies.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "eva",
+      "name": "EVA sequence editing and plan identity",
+      "fixture": "Two planned EVAs sharing a station, located lander, actions, traverses and execution copies.",
+      "sources": [
+        "src/components/panes/eva/eva-right.tsx",
+        "src/operations/helpers/evaSequence.ts",
+        "src/operations/stage/stage-eva.ts"
+      ],
+      "supporting": [
+        "src/tests/vitest/operations/helpers/evaSequence.test.ts",
+        "src/tests/vitest/store/thunks/eva_thunk.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "EVA-001",
+          "title": "a new EVA starts with a complete lander-to-lander sequence and can be removed without touching other plans",
+          "priority": "P0",
+          "action": "a new EVA starts with a complete lander-to-lander sequence and can be removed without touching other plans",
+          "expected": "New EVA owns a complete lander-to-lander station/traverse sequence; removing it restores the original graph.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "a new EVA starts with a complete lander-to-lander sequence and can be removed without touching other plans"
+            }
+          ]
+        },
+        {
+          "id": "EVA-002",
+          "title": "duplicating an EVA shares planned stations but owns new traverses",
+          "priority": "P0",
+          "action": "duplicating an EVA shares planned stations but owns new traverses",
+          "expected": "Ordinary EVA duplication shares planned stations, allocates new traverses and lineage, and leaves the original plan unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "duplicating an EVA shares planned stations but owns new traverses"
+            }
+          ]
+        },
+        {
+          "id": "EVA-003",
+          "title": "duplicating an EVA with stations clones its complete station and action tree",
+          "priority": "P0",
+          "action": "duplicating an EVA with stations clones its complete station and action tree",
+          "expected": "Duplicate with Stations allocates independent stations, actions and traverses with copied locations and new identities; the original tree stays unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "duplicating an EVA with stations clones its complete station and action tree"
+            }
+          ]
+        },
+        {
+          "id": "EVA-004",
+          "title": "deleting a planned EVA retains shared stations and the other plan",
+          "priority": "P0",
+          "action": "deleting a planned EVA retains shared stations and the other plan",
+          "expected": "Deleting one planned EVA retains shared stations, their actions and the other plan while removing its own traverses.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "deleting a planned EVA retains shared stations and the other plan"
+            }
+          ]
+        },
+        {
+          "id": "EVA-005",
+          "title": "two executions of the same plan have distinct entities and deleting the plan cascades only through its executions",
+          "priority": "P0",
+          "action": "two executions of the same plan have distinct entities and deleting the plan cascades only through its executions",
+          "expected": "Two REX copies have distinct entities with shared planning lineage; deleting the plan removes exactly its execution families and retains the unrelated plan.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "two executions of the same plan have distinct entities and deleting the plan cascades only through its executions"
+            }
+          ]
+        },
+        {
+          "id": "EVA-006",
+          "title": "EVA metadata and validation",
+          "priority": "P1",
+          "action": "Rename EVA, change description/color/start UTC/duration/rate; test blank, duplicate and numeric boundaries; reload.",
+          "expected": "Saved values and generated labels persist, invalid/canceled edits do not, and planned versus REX name scopes remain distinct.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "EVA-007",
+          "title": "Add and replace itinerary stations",
+          "priority": "P0",
+          "action": "Insert first/middle/last stations and replace a slot using existing, new and lander endpoints.",
+          "expected": "The sequence alternates station/traverse, starts and ends at stations and creates exactly the needed paths.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "EVA-008",
+          "title": "Remove and reorder itinerary stations",
+          "priority": "P0",
+          "action": "Move/remove first, interior and last slots with actions and active selections.",
+          "expected": "Adjacent traverse endpoints and names reconcile; unused owned data is cleaned up; shared stations survive.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "EVA-009",
+          "title": "Change egress and ingress",
+          "priority": "P0",
+          "action": "Switch each endpoint between lander copy and regular station and back.",
+          "expected": "Managed copies/actions are owned correctly, endpoint traverses update, and unrelated stations remain intact.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "EVA-010",
+          "title": "Empty and unresolved sequence slots",
+          "priority": "P1",
+          "action": "Create supported empty station slots and load a fixture with an unresolved reference.",
+          "expected": "UI explains missing selection; reports and map do not crash or silently substitute another entity.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "EVA-011",
+          "title": "EVA folder duplicate and delete confirmations",
+          "priority": "P1",
+          "action": "Cancel duplicate-with-stations and delete dialogs; confirm deletion with several REX families.",
+          "expected": "Cancel preserves the graph; confirmed deletion enumerates and cleans only the intended ownership tree.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "EVA-012",
+          "title": "EVA aggregate actions and resource totals",
+          "priority": "P0",
+          "action": "Use known enabled/disabled station and traverse actions assigned to EV1/EV2.",
+          "expected": "EVA action list, mass, consumables, dwell, travel and total duration match independent expected quantities.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "EVA-013",
+          "title": "Sequence timeline selection and time preview",
+          "priority": "P1",
+          "action": "Select sequence items and scrub planned time across station/traverse boundaries.",
+          "expected": "Map/timeline use the selected EVA and time; editing sequence/duration refreshes the corresponding positions.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "action",
+      "name": "Action editing, reuse and ownership",
+      "fixture": "Planning mission with a station action, empty second station, linked POI and both action-system versions.",
+      "sources": [
+        "src/components/panes/actions-action-menu.tsx",
+        "src/operations/apply/apply-action.ts"
+      ],
+      "supporting": [
+        "src/tests/vitest/operations/apply/apply-action.test.ts",
+        "src/tests/vitest/store/thunks/action_thunk.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "ACTION-001",
+          "title": "view mode protects action fields, crew assignments, and creation until editing is enabled",
+          "priority": "P1",
+          "action": "view mode protects action fields, crew assignments, and creation until editing is enabled",
+          "expected": "View mode prevents field/crew/create controls from writing; enabling Edit exposes the appropriate action controls.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actions.spec.ts",
+              "title": "view mode protects action fields, crew assignments, and creation until editing is enabled"
+            }
+          ]
+        },
+        {
+          "id": "ACTION-002",
+          "title": "action name and duration validation and Cancel preserve the saved action and totals",
+          "priority": "P1",
+          "action": "action name and duration validation and Cancel preserve the saved action and totals",
+          "expected": "Blank action name and duration cannot save; Cancel leaves the persisted action and totals intact; a valid name persists.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actions.spec.ts",
+              "title": "action name and duration validation and Cancel preserve the saved action and totals"
+            }
+          ]
+        },
+        {
+          "id": "ACTION-003",
+          "title": "duration and crew edits recalculate totals, and deactivation excludes the action without deleting it",
+          "priority": "P1",
+          "action": "duration and crew edits recalculate totals, and deactivation excludes the action without deleting it",
+          "expected": "Duration and crew changes produce independently asserted EV1/EV2 totals; deactivation excludes the action without deleting its identity/order, and reactivation restores totals.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actions.spec.ts",
+              "title": "duration and crew edits recalculate totals, and deactivation excludes the action without deleting it"
+            }
+          ]
+        },
+        {
+          "id": "ACTION-004",
+          "title": "duplicated actions own independent values and deletion honors Cancel and removes only the copy",
+          "priority": "P1",
+          "action": "duplicated actions own independent values and deletion honors Cancel and removes only the copy",
+          "expected": "Duplicate has independent identity and copied fields; Cancel retains it and confirmed Delete removes only the copy and its order entry after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actions.spec.ts",
+              "title": "duplicated actions own independent values and deletion honors Cancel and removes only the copy"
+            }
+          ]
+        },
+        {
+          "id": "ACTION-005",
+          "title": "a new action belongs to the selected station and its name and crew survive reload",
+          "priority": "P1",
+          "action": "a new action belongs to the selected station and its name and crew survive reload",
+          "expected": "A created action belongs only to the selected station, retains its name and EV2 crew assignment after reload and leaves the original station/action unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actions.spec.ts",
+              "title": "a new action belongs to the selected station and its name and crew survive reload"
+            }
+          ]
+        },
+        {
+          "id": "ACTION-006",
+          "title": "Action parent matrix",
+          "priority": "P0",
+          "action": "Create, edit, duplicate and delete actions under a POI, station and traverse.",
+          "expected": "Each action belongs to the intended parent and order list; permissions, available fields and cleanup match the parent type.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACTION-007",
+          "title": "Action reorder and stable order",
+          "priority": "P1",
+          "action": "Drag actions within a parent; cancel unsupported moves; reload and inspect a peer.",
+          "expected": "Order is identical in UI and document, with no duplicates or missing actions and no accidental cross-parent ownership change.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACTION-008",
+          "title": "Adopt POI action into station",
+          "priority": "P0",
+          "action": "Link a POI, copy one source action into its station, then edit source and copy independently.",
+          "expected": "New UUID/lineage, source reference and copy metadata are correct; linking alone does not copy actions and later edits remain independent.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACTION-009",
+          "title": "Action v1 and v2 field matrix",
+          "priority": "P0",
+          "action": "Edit v1 title/type/priority/STM and v2 verb/noun/adjective/STM toggle/mission priority; reload.",
+          "expected": "Only version-appropriate fields appear and generated wording, saved values and report consumers agree.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACTION-010",
+          "title": "Action description task text and icon",
+          "priority": "P1",
+          "action": "Edit rich/free text fields and icon; cancel another edit; reload and inspect aggregate cards.",
+          "expected": "Exact supported content persists, task text stays parent-appropriate, and cancellation leaves saved fields unchanged.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACTION-011",
+          "title": "Action duration mass and numeric boundaries",
+          "priority": "P0",
+          "action": "Try zero, unset, fractional, negative, maximum and overlong duration/planned-mass values.",
+          "expected": "Field constraints and calculated totals agree; absent and zero remain distinct where the domain requires it.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACTION-012",
+          "title": "Equipment and geographic assignments",
+          "priority": "P1",
+          "action": "Toggle multiple equipment/geographic items; update reference definitions; reload.",
+          "expected": "Assignments survive and parent/EVA consumable and geographic reports recompute without unrelated changes.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACTION-013",
+          "title": "Action location lifecycle",
+          "priority": "P1",
+          "action": "Create/move/cancel/clear location and use Set to Station or POI.",
+          "expected": "Location, elevation, grid and relative-distance displays match the committed point and preserve parent identity.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACTION-014",
+          "title": "Save as template permission and fidelity",
+          "priority": "P1",
+          "action": "Save a fully populated action as a template as allowed and disallowed users; apply it again.",
+          "expected": "Supported fields survive the round trip, role restrictions hold, and crew/reference semantics are explicit.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "map",
+      "name": "Map display, selection and geometry interactions",
+      "fixture": "Located planning and execution fixtures with known coordinates and map observer; deterministic asset fixtures for visual variants.",
+      "sources": [
+        "src/components/interface/map/AegisMapEditor.tsx",
+        "src/components/interface/map/behaviors/InteractionManager.tsx",
+        "src/components/interface/map/CLAUDE.md"
+      ],
+      "supporting": [
+        "src/tests/vitest-browser/map/InteractionManager.browser.test.tsx",
+        "src/tests/vitest-browser/map/SelectionHighlight.browser.test.tsx"
+      ],
+      "scenarios": [
+        {
+          "id": "MAP-001",
+          "title": "POIs labels change rendered content and their preference survives reload",
+          "priority": "P1",
+          "action": "POIs labels change rendered content and their preference survives reload",
+          "expected": "POI labels contain known values, toggling changes rendered pixels, and the preference survives reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "POIs labels change rendered content and their preference survives reload"
+            }
+          ]
+        },
+        {
+          "id": "MAP-002",
+          "title": "Stations labels change rendered content and their preference survives reload",
+          "priority": "P1",
+          "action": "Stations labels change rendered content and their preference survives reload",
+          "expected": "Station labels contain known values, toggling changes rendered pixels, and the preference survives reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "Stations labels change rendered content and their preference survives reload"
+            }
+          ]
+        },
+        {
+          "id": "MAP-003",
+          "title": "hiding POIs preserves the selected POI until it is deselected",
+          "priority": "P1",
+          "action": "hiding POIs preserves the selected POI until it is deselected",
+          "expected": "Hidden POIs retain the selected POI feature until deselection; saved mission data is unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "hiding POIs preserves the selected POI until it is deselected"
+            }
+          ]
+        },
+        {
+          "id": "MAP-004",
+          "title": "clicking a real station marker selects that station and its information",
+          "priority": "P1",
+          "action": "clicking a real station marker selects that station and its information",
+          "expected": "Clicking the real Bravo station marker selects its exact station and information panel.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "clicking a real station marker selects that station and its information"
+            }
+          ]
+        },
+        {
+          "id": "MAP-005",
+          "title": "scale bar visibility survives reload without changing mission data",
+          "priority": "P1",
+          "action": "scale bar visibility survives reload without changing mission data",
+          "expected": "Scale-bar visibility survives reload without changing the mission document.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "scale bar visibility survives reload without changing mission data"
+            }
+          ]
+        },
+        {
+          "id": "MAP-006",
+          "title": "dragging an interior vertex then Finished preserves endpoints and the intended path after reload",
+          "priority": "P1",
+          "action": "dragging an interior vertex then Finished preserves endpoints and the intended path after reload",
+          "expected": "Finishing an interior vertex drag persists the changed interior path with unchanged endpoints after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "dragging an interior vertex then Finished preserves endpoints and the intended path after reload"
+            }
+          ]
+        },
+        {
+          "id": "MAP-007",
+          "title": "dragging an interior vertex then Cancel preserves endpoints and the intended path after reload",
+          "priority": "P1",
+          "action": "dragging an interior vertex then Cancel preserves endpoints and the intended path after reload",
+          "expected": "Canceling an interior vertex drag restores the original path with unchanged endpoints after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "dragging an interior vertex then Cancel preserves endpoints and the intended path after reload"
+            }
+          ]
+        },
+        {
+          "id": "MAP-008",
+          "title": "Reset Path removes intermediate vertices and retains its neighboring stations",
+          "priority": "P1",
+          "action": "Reset Path removes intermediate vertices and retains its neighboring stations",
+          "expected": "Reset Path removes interior vertices and retains the neighboring station endpoints in persisted geometry.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "Reset Path removes intermediate vertices and retains its neighboring stations"
+            }
+          ]
+        },
+        {
+          "id": "MAP-009",
+          "title": "traverse endpoints cannot be detached from their stations by dragging",
+          "priority": "P1",
+          "action": "traverse endpoints cannot be detached from their stations by dragging",
+          "expected": "Dragging a traverse endpoint cannot detach it from its owning station.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "traverse endpoints cannot be detached from their stations by dragging"
+            }
+          ]
+        },
+        {
+          "id": "MAP-010",
+          "title": "navigating out of an edit removes its map interaction",
+          "priority": "P1",
+          "action": "navigating out of an edit removes its map interaction",
+          "expected": "Navigating away from a path edit removes the interaction and preserves the original saved path.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "navigating out of an edit removes its map interaction"
+            }
+          ]
+        },
+        {
+          "id": "MAP-011",
+          "title": "Map selection and highlight precedence",
+          "priority": "P1",
+          "action": "Select/hover POI, station, traverse, EVA, action and position, including stale higher-priority selection.",
+          "expected": "The intended marker/path is highlighted, unresolved selections fall back correctly, and transient hover does not change persisted selection.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MAP-012",
+          "title": "Selection pan and zoom preservation",
+          "priority": "P1",
+          "action": "Select visible and off-screen entities before/after initial load and during geometry editing.",
+          "expected": "Pan occurs only under the intended conditions and preserves zoom and the active edit target.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MAP-013",
+          "title": "Map directive entry and exit matrix",
+          "priority": "P0",
+          "action": "For POI, station, action, walkback, traverse and position editing exercise Finish, Cancel, Escape, Edit off and navigation.",
+          "expected": "Each supported exit commits or discards exactly as specified; interactions, cursor and overlays are removed and the next selection works.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MAP-014",
+          "title": "Map point placement and removal",
+          "priority": "P0",
+          "action": "Place/move/clear station, POI and action coordinates using known map pixels and an independent projection oracle.",
+          "expected": "Committed lat/lng and derived geometry match the intended location; Cancel preserves prior coordinates.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MAP-015",
+          "title": "Map visibility by scope and entity",
+          "priority": "P1",
+          "action": "Toggle each entity/label/path/circle category for planned, selected, active and historical scopes.",
+          "expected": "Exact feature membership and visibility follow scope and selected-object exceptions, without stale features on switching.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MAP-016",
+          "title": "Map label accuracy and readability",
+          "priority": "P1",
+          "action": "Use colliding, long, multiline and edge-of-viewport labels at several zooms.",
+          "expected": "Text content, placement, clipping, halo and priority remain readable; a known visual baseline catches missing or misplaced content.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MAP-017",
+          "title": "Pan zoom resize and map lifecycle",
+          "priority": "P1",
+          "action": "Pan, use controls/double-click/zoom limits, resize and repeatedly mount/unmount editor.",
+          "expected": "Expected centre/zoom and visible geometry persist with one live map and no orphan interactions or render errors.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "map/mapOlInteractions.spec.ts",
+              "title": "map canvas remains after resizing the browser window"
+            }
+          ],
+          "note": "Legacy map smoke checks visibility after resizing, not exact viewport behavior or repeated mount/unmount resource cleanup."
+        },
+        {
+          "id": "MAP-018",
+          "title": "Mouse coordinates, grid and units",
+          "priority": "P1",
+          "action": "Hover known points under Earth, lunar stereographic and custom Mercator projections.",
+          "expected": "Lat/lng order, grid reference and coordinate precision match independent expected values in each CRS.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MAP-019",
+          "title": "QuickMap handoff",
+          "priority": "P1",
+          "action": "Open POI, station, traverse, EVA and crew-position links with located and missing prerequisites.",
+          "expected": "The generated URL contains the correct coordinates, geometry, color and time, and unavailable links are gated.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "measure",
+      "name": "Measurements and terrain profiles",
+      "fixture": "Local measurements and saved traverse/walkback paths crossing known DEM values and no-data cells.",
+      "sources": [
+        "src/store/thunk/thunkMeasurement.ts",
+        "src/server/express/routes/terrainProfile.ts",
+        "src/utils/paperSlope.ts",
+        "src/components/interface/slope-legend.tsx"
+      ],
+      "supporting": [
+        "src/tests/vitest/store/thunks/measurement_thunk.test.ts",
+        "src/tests/vitest/express/terrainProfile.test.ts",
+        "src/tests/vitest/server/terrain/calculateTerrainSlope.golden.test.ts",
+        "src/tests/vitest-browser/SlopeLegend.browser.test.tsx",
+        "src/tests/vitest-browser/PaperSlope.browser.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "MEASURE-001",
+          "title": "Measurement create edit and cancel",
+          "priority": "P1",
+          "action": "Create a measurement, add/drag/remove vertices, finish, cancel a second edit and delete it.",
+          "expected": "Known distances/bearings update; Cancel restores the prior local path and unrelated mission data never changes.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MEASURE-002",
+          "title": "Measurement local state and navigation",
+          "priority": "P1",
+          "action": "Change measurement tabs and bottom panes, switch mission and reload.",
+          "expected": "Selection does not spuriously recenter the map and local-only measurements obey their explicit lifetime.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MEASURE-003",
+          "title": "Profile known terrain and slope",
+          "priority": "P0",
+          "action": "Draw a path across a golden DEM with known samples, breaks and no-data; compare displayed profile.",
+          "expected": "Distance/elevation/ascent/descent/slope use the correct units and segment boundaries; gaps do not invent bridged terrain.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MEASURE-004",
+          "title": "Profile stale response ordering",
+          "priority": "P0",
+          "action": "Rapidly edit a path and switch mission while older terrain responses are delayed.",
+          "expected": "Only the newest request for the current mission/entity can update its profile; canceled/deleted geometry is not resurrected.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MEASURE-005",
+          "title": "Profile unavailable and malformed inputs",
+          "priority": "P1",
+          "action": "Use absent DEM, unavailable worker, invalid coordinates and over-limit sample requests.",
+          "expected": "Failure states are visible and recoverable; saved path and previous valid data stay coherent.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MEASURE-006",
+          "title": "Path grade versus terrain slope display",
+          "priority": "P0",
+          "fixture": "Golden DEM/path with positive/negative grades and terrain slopes on and just beyond 2, 4, 8, 12, 16 and 20 degree boundaries.",
+          "action": "Display a known terrain profile with differing uphill/downhill path grade and ground slope; inspect both rendered bands and values.",
+          "expected": "Path Grade and Terrain Slope remain distinct quantities in absolute degrees; signed path grades use magnitude for color and exact boundary values use the intended inclusive upper classes.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MEASURE-007",
+          "title": "Slope gaps and colorblind rendering parity",
+          "priority": "P1",
+          "fixture": "Known profile with null samples, disconnected intervals and valid shallow/steep sections plus representative slope raster.",
+          "action": "Render null sample intervals and zero-length/broken segments; toggle standard/colorblind modes and compare map/graph/key.",
+          "expected": "No-data intervals stay transparent without bridging; standard and seven-class colorblind ramps follow their documented graph/raster shallow-slope treatment, and hazards above 20 degrees keep the intended class.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "MEASURE-008",
+          "title": "Slope key dialog and shared preference",
+          "priority": "P1",
+          "fixture": "Loaded real terrain profile with both slope bands and the actual shared color-mode controls.",
+          "action": "Open Key by keyboard; inspect both example rows; toggle Colorblind, close with Escape/backdrop and revisit a profile.",
+          "expected": "The named dialog explains Path Grade versus Terrain Slope and every active range; aria-pressed and shared graph/legend mode agree, with usable focus and dismissal.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "preset",
+      "name": "Presets, layers and GIS display",
+      "fixture": "Mission with two presets, folder ownership, grid/circle definitions and representative raster/vector/time-aware assets.",
+      "sources": [
+        "src/components/panes/preset/preset-right.tsx",
+        "src/operations/apply/apply-mission-preset.ts",
+        "src/components/interface/map/behaviors/TileLayers.tsx",
+        "src/components/panes/preset/preset-right-azimuth.tsx",
+        "src/components/interface/map/hooks/useSunEarthAzimuths.ts"
+      ],
+      "supporting": [
+        "src/tests/vitest-browser/PresetLayers.browser.test.tsx",
+        "src/tests/vitest-browser/PresetAzimuth.browser.test.tsx",
+        "src/tests/vitest/map/layerFactory.test.ts",
+        "src/tests/vitest/utils/lunarSky.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "PRESET-001",
+          "title": "Preset lifecycle and defaults",
+          "priority": "P1",
+          "action": "Create, rename, duplicate and delete presets; set default; cancel deletion; reload.",
+          "expected": "Copies are independent and not default; deleting selected preset returns to the correct default without orphan folder references.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "mission/mission.spec.ts",
+              "title": "Preset"
+            }
+          ],
+          "note": "Existing test covers imported-mission create/rename/duplicate/delete, not default changes, Cancel, reload or independent persisted style."
+        },
+        {
+          "id": "PRESET-002",
+          "title": "Preset view versus saved draft",
+          "priority": "P0",
+          "action": "Change layers/styles/circles in a draft; Save, Cancel and switch preset; observe a peer.",
+          "expected": "Local preview and shared saved state remain distinct; Cancel restores saved values and Save reaches persistence/peer.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-003",
+          "title": "Layer visibility order opacity and blend",
+          "priority": "P1",
+          "action": "Toggle and reorder overlapping layers; vary opacity/blend; save and reload.",
+          "expected": "The rendered stack, saved order and style match expected known pixels and remain scoped to the preset.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-004",
+          "title": "Raster source and projection matrix",
+          "priority": "P0",
+          "action": "Render TMS/XYZ, COG, GeoJSON and PMTiles under supported mission projections.",
+          "expected": "Known geographic features align, tile orientation/resolutions are correct and no source silently disappears.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-005",
+          "title": "Vector and contour style variants",
+          "priority": "P1",
+          "action": "Change line/fill/point/contour styles and label configuration at several zooms.",
+          "expected": "The saved supported styles affect the intended features with correct legends and no stale style cache.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-006",
+          "title": "Time-aware layer selection",
+          "priority": "P0",
+          "action": "Scrub time before/at/after slice boundaries with zero, one and many slices; switch EVA/REX.",
+          "expected": "Correct source slice follows selected scope/time and no stale imagery remains after navigation.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-007",
+          "title": "Grid styles labels and CRS variants",
+          "priority": "P1",
+          "action": "Enable grid/labels; change spacing/styles; compare dynamic LGRS and fixed grids on editor/dashboard.",
+          "expected": "Known grid intersections and labels match the mission CRS and displayed units; minimap spacing follows its contract.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-008",
+          "title": "Preset lander circles and sun directions",
+          "priority": "P1",
+          "action": "Toggle/style lander circles and Sun/Earth/Moon directions at 0/90/359 degrees; save/cancel.",
+          "expected": "Radius is in metres; compass geometry/labels and checkbox states agree across editor/dashboard and saved/local boundaries.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-009",
+          "title": "Missing invalid and slow map assets",
+          "priority": "P1",
+          "action": "Return missing/corrupt tiles, COG metadata or PMTiles ranges and recover them.",
+          "expected": "Failure does not blank unrelated content or leave a stuck load; valid assets resume rendering coherently.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-010",
+          "title": "Preset permissions and shared editing",
+          "priority": "P0",
+          "action": "Create/duplicate/style/delete as viewer/editor/admin and concurrently edit presets from two clients.",
+          "expected": "Each control enforces its declared permission/mode rule and clients converge without lost unrelated settings.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-011",
+          "title": "Calculated celestial directions and manual restoration",
+          "priority": "P0",
+          "fixture": "Located lunar mission with fixed UTC, known lander elevation/radius, independently known true azimuths and non-north-up custom CRS.",
+          "action": "Enable Calculate using EVA date and lander location; change date/lander/projection; switch back to manual and reload.",
+          "expected": "Projected map-up Sun/Earth directions match an independent astronomy/projection oracle; panel and map use the same values, and saved manual angles survive calculated mode.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-012",
+          "title": "Celestial date source and fallback warnings",
+          "priority": "P1",
+          "fixture": "Two EVAs with distinct times, a historical and active REX, dated/undated layer and saved manual angles.",
+          "action": "Select planned/historical/running EVA time, preset preview and layer fallback; remove date/lander or supply an unresolved projection.",
+          "expected": "Date/source/status labels identify the actual source; missing/invalid date, location or projection warns and uses saved manual directions; an undated selected EVA warning is not hidden by a layer date.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "PRESET-013",
+          "title": "Celestial controls debounce and accessibility",
+          "priority": "P1",
+          "fixture": "Two distinct presets with different manual angles, editor/viewer sessions and narrow viewport.",
+          "action": "Drag manual angles, switch preset or leave before debounce fires; toggle calculated mode, indicator visibility and Edit; focus source info by keyboard.",
+          "expected": "The final pending angle writes to its original preset exactly once, mode/permission gates hold, hidden indicators suppress unneeded source controls and source/date explanations remain accessible without overflow.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "calc",
+      "name": "Time, distance, crew and resource calculations",
+      "fixture": "Independent numeric fixtures: EV1 10 min, EV2 4 min, unassigned 1 min; joint 3 min plus solo 2/5 min; 500 m at 3 km/h.",
+      "sources": ["src/store/processing/calculatedFields.ts", "src/utils/mapping/geoMath.ts"],
+      "supporting": [
+        "src/tests/vitest/store/calculatedFields.test.ts",
+        "src/tests/vitest/utils/geoMath.test.ts",
+        "src/tests/vitest/utils/rex.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "CALC-001",
+          "title": "Crew dwell and joint actions",
+          "priority": "P0",
+          "action": "Render the 10/4/1 and joint-3-plus-solo-2/5 action fixtures through station and EVA UI.",
+          "expected": "Work totals are 15 and 10 minutes; joint crew times are 5/8 and dwell 8; unassigned warnings remain distinct from duration.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculations.spec.ts",
+              "title": "separate crew and unassigned work retains distinct work, crew and dwell totals through station and EVA views"
+            },
+            {
+              "file": "behavior/calculations.spec.ts",
+              "title": "joint crew and solo work retains distinct work, crew and dwell totals through station and EVA views"
+            }
+          ]
+        },
+        {
+          "id": "CALC-002",
+          "title": "Disabled action filtering at every consumer",
+          "priority": "P0",
+          "action": "Deactivate a known action and inspect parent, EVA, timeline, mass, equipment and report totals.",
+          "expected": "Each intended consumer excludes disabled work without deleting its identity; reactivation restores exact values.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CALC-003",
+          "title": "Travel rate precedence and zero fallback",
+          "priority": "P0",
+          "action": "Use a 500 m traverse at 3 km/h then vary mission/EVA/traverse override with unset, zero and explicit rate.",
+          "expected": "Base movement is 10 minutes; precedence and zero/unset fallback agree across info, sequence and reports.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculations.spec.ts",
+              "title": "500 meter travel uses traverse then EVA then mission rate and zero restores inherited calculations"
+            }
+          ]
+        },
+        {
+          "id": "CALC-004",
+          "title": "Manual duration and rounding boundaries",
+          "priority": "P0",
+          "action": "Use two 1.2-minute sequence items and manual unset/zero/negative/positive overrides.",
+          "expected": "Per-item ceiling, total display and raw timeline seconds follow documented semantics; form validity is tested separately.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CALC-005",
+          "title": "Traversal movement plus action dwell",
+          "priority": "P0",
+          "action": "Use movement 10 min and action dwell 5 min; inspect calculated/resolved start/end clocks.",
+          "expected": "Each display uses its documented 15-minute combined or 10-minute movement quantity consistently; unresolved discrepancies are recorded.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CALC-006",
+          "title": "Override warning severity thresholds",
+          "priority": "P1",
+          "action": "Use exact ratios .75, .9, 1.1 and 1.25 and values just outside them.",
+          "expected": "Warning classes match the actual agreed inclusive/exclusive boundary behavior and do not depend on rounded labels.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CALC-007",
+          "title": "Mass absent versus zero and units",
+          "priority": "P0",
+          "action": "Mix planned grams, absent executed mass and entered zero/nonzero executed mass.",
+          "expected": "Grams-to-kilograms conversion occurs at the correct display boundary; entered zero is distinguished from missing and delta mass is correct.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CALC-008",
+          "title": "Geodesy and disconnected segment totals",
+          "priority": "P0",
+          "action": "Use known lunar/Earth point pairs and disjoint elevation segments near the pole.",
+          "expected": "Distances/bearings use the intended sphere/CRS; ascent/descent do not bridge disconnected segments.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "CALC-009",
+          "title": "Empty graph and extreme valid values",
+          "priority": "P1",
+          "action": "Render no actions/crew/coordinates and large valid durations/distances.",
+          "expected": "All consumers produce documented empty/zero states without NaN, Infinity, negative wrap or stale totals.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "rex",
+      "name": "Execution lifecycle and PET ownership",
+      "fixture": "Execution fixture: stopped Alpha PET +02:10:05 with position +01:55:05; active paused Bravo PET +00:05:00 with position +00:02:00; controlled browser Date.",
+      "sources": [
+        "src/components/panes/rex/rex-right-rex-info.tsx",
+        "src/store/thunk/thunkRex.ts",
+        "src/components/interface/map/hooks/useRexPetTime.ts"
+      ],
+      "supporting": [
+        "src/tests/vitest/store/thunks/rex_thunk.test.ts",
+        "src/tests/vitest/map/useRexPetTime.test.tsx"
+      ],
+      "scenarios": [
+        {
+          "id": "REX-001",
+          "title": "stopped execution keeps its historical position age with no execution running",
+          "priority": "P0",
+          "action": "stopped execution keeps its historical position age with no execution running",
+          "expected": "With no active execution, stopped Alpha retains PET +02:10:05 and position age +00:15:00 after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "stopped execution keeps its historical position age with no execution running"
+            }
+          ]
+        },
+        {
+          "id": "REX-002",
+          "title": "stopped execution keeps its historical position age with another execution running",
+          "priority": "P0",
+          "action": "stopped execution keeps its historical position age with another execution running",
+          "expected": "With Bravo active, stopped Alpha retains age +00:15:00 while the header displays Bravo PET +00:05:00, including after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "stopped execution keeps its historical position age with another execution running"
+            }
+          ]
+        },
+        {
+          "id": "REX-003",
+          "title": "switching executions A → B → A changes labels without leaking the other clock",
+          "priority": "P0",
+          "action": "switching executions A → B → A changes labels without leaking the other clock",
+          "expected": "Switching A/B/A shows ages +00:15:00/+00:03:00/+00:15:00 and removes positions belonging to the other execution.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "switching executions A → B → A changes labels without leaking the other clock"
+            }
+          ]
+        },
+        {
+          "id": "REX-004",
+          "title": "switching from historical execution to its plan removes execution position labels",
+          "priority": "P0",
+          "action": "switching from historical execution to its plan removes execution position labels",
+          "expected": "Switching from historical Alpha to its plan removes REX information and all execution position labels.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "switching from historical execution to its plan removes execution position labels"
+            }
+          ]
+        },
+        {
+          "id": "REX-005",
+          "title": "paused running execution keeps its PET and position ages fixed as time passes",
+          "priority": "P0",
+          "action": "paused running execution keeps its PET and position ages fixed as time passes",
+          "expected": "Advancing Date by 120 seconds leaves paused Bravo PET +00:05:00 and age +00:03:00 fixed across native timer ticks.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "paused running execution keeps its PET and position ages fixed as time passes"
+            }
+          ]
+        },
+        {
+          "id": "REX-006",
+          "title": "stopped execution stays frozen while a different execution's clock advances",
+          "priority": "P0",
+          "action": "stopped execution stays frozen while a different execution's clock advances",
+          "expected": "Advancing another execution clock changes its header while stopped Alpha PET and position age remain frozen.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "stopped execution stays frozen while a different execution's clock advances"
+            }
+          ]
+        },
+        {
+          "id": "REX-007",
+          "title": "PET crosses zero without resetting position ages",
+          "priority": "P0",
+          "action": "PET crosses zero without resetting position ages",
+          "expected": "PET crosses -00:00:05 to +00:00:05 without resetting the seeded position age.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "PET crosses zero without resetting position ages"
+            }
+          ]
+        },
+        {
+          "id": "REX-008",
+          "title": "PET crosses an hour without resetting position ages",
+          "priority": "P0",
+          "action": "PET crosses an hour without resetting position ages",
+          "expected": "PET crosses +00:59:55 to +01:00:05 without resetting the seeded position age.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "PET crosses an hour without resetting position ages"
+            }
+          ]
+        },
+        {
+          "id": "REX-009",
+          "title": "play, pause and resume advance only unpaused PET and persist the paused value",
+          "priority": "P0",
+          "action": "play, pause and resume advance only unpaused PET and persist the paused value",
+          "expected": "Play/pause/resume advances only running intervals; +00:05:15 and its corresponding position age persist after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "play, pause and resume advance only unpaused PET and persist the paused value"
+            }
+          ]
+        },
+        {
+          "id": "REX-010",
+          "title": "stopping execution also freezes its running PET and removes the live dashboard",
+          "priority": "P0",
+          "action": "stopping execution also freezes its running PET and removes the live dashboard",
+          "expected": "Stopping after 20 seconds saves isRunning=false, petRunning=false and +00:05:20; clocks freeze and the open dashboard removes its maps/clock.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "stopping execution also freezes its running PET and removes the live dashboard"
+            }
+          ]
+        },
+        {
+          "id": "REX-011",
+          "title": "another executing REX prevents starting the historical execution",
+          "priority": "P0",
+          "action": "another executing REX prevents starting the historical execution",
+          "expected": "Bravo running blocks Execute for historical Alpha and preserves both execution running states.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "another executing REX prevents starting the historical execution"
+            }
+          ]
+        },
+        {
+          "id": "REX-012",
+          "title": "starting a stopped REX publishes its own frozen PET to an already-open dashboard",
+          "priority": "P0",
+          "action": "starting a stopped REX publishes its own frozen PET to an already-open dashboard",
+          "expected": "Starting Alpha makes an already-open empty dashboard display Alpha PET +02:10:05 and age +00:15:00 without borrowing Bravo time.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "starting a stopped REX publishes its own frozen PET to an already-open dashboard"
+            }
+          ]
+        },
+        {
+          "id": "REX-013",
+          "title": "execution controls stay unavailable until Edit mode is enabled",
+          "priority": "P0",
+          "action": "execution controls stay unavailable until Edit mode is enabled",
+          "expected": "View mode prevents Stop, PET Play and PET editing; enabling Edit exposes the appropriate execution controls.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "execution controls stay unavailable until Edit mode is enabled"
+            }
+          ]
+        },
+        {
+          "id": "REX-014",
+          "title": "saving a nonzero historical PET updates its position age and survives reload",
+          "priority": "P0",
+          "action": "saving a nonzero historical PET updates its position age and survives reload",
+          "expected": "Saving historical PET updates its corresponding position age and the exact saved value survives reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "saving a nonzero historical PET updates its position age and survives reload"
+            }
+          ]
+        },
+        {
+          "id": "REX-015",
+          "title": "Cancel preserves historical PET and labels in the document and after reload",
+          "priority": "P0",
+          "action": "Cancel preserves historical PET and labels in the document and after reload",
+          "expected": "Canceling historical PET editing preserves document PET and visible position labels after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "Cancel preserves historical PET and labels in the document and after reload"
+            }
+          ]
+        },
+        {
+          "id": "REX-016",
+          "title": "invalid PET format cannot replace the saved time",
+          "priority": "P0",
+          "action": "invalid PET format cannot replace the saved time",
+          "expected": "Malformed PET cannot replace the saved time and leaves the invalid dialog open until canceled.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "invalid PET format cannot replace the saved time"
+            }
+          ]
+        },
+        {
+          "id": "REX-017",
+          "title": "invalid PET empty value cannot replace the saved time",
+          "priority": "P0",
+          "action": "invalid PET empty value cannot replace the saved time",
+          "expected": "Empty PET cannot replace the saved time and leaves the invalid dialog open until canceled.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "invalid PET empty value cannot replace the saved time"
+            }
+          ]
+        },
+        {
+          "id": "REX-018",
+          "title": "cancelling reset preserves the PET",
+          "priority": "P0",
+          "action": "cancelling reset preserves the PET",
+          "expected": "Dismissing Reset confirmation preserves the saved PET and position age.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "cancelling reset preserves the PET"
+            }
+          ]
+        },
+        {
+          "id": "REX-019",
+          "title": "confirming reset sets PET to zero",
+          "priority": "P0",
+          "action": "confirming reset sets PET to zero",
+          "expected": "Accepting Reset confirmation saves PET zero and the corresponding position age.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/execution.spec.ts",
+              "title": "confirming reset sets PET to zero"
+            }
+          ]
+        },
+        {
+          "id": "REX-020",
+          "title": "adding and deleting a REX preserves its planned EVA and gives the execution scoped identities",
+          "priority": "P0",
+          "action": "adding and deleting a REX preserves its planned EVA and gives the execution scoped identities",
+          "expected": "Adding REX allocates a deep execution tree with new UUIDs and retained planning lineage; deleting it restores the original plan graph and selection.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "adding and deleting a REX preserves its planned EVA and gives the execution scoped identities"
+            }
+          ]
+        },
+        {
+          "id": "REX-021",
+          "title": "First execution seeds initial positions",
+          "priority": "P0",
+          "action": "Start a never-executed REX with several position sources/types, stop and start again.",
+          "expected": "Initial positions are seeded once at egress with the correct PET/types; restart does not duplicate them or change planning entities.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REX-022",
+          "title": "REX names metadata and controlled mode",
+          "priority": "P1",
+          "action": "Rename two REXes in one EVA family; edit Maestro control; cancel and reload.",
+          "expected": "Name uniqueness is family-scoped, immutable copied EVA name remains protected and control metadata persists.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REX-023",
+          "title": "Running-only view and remote stop",
+          "priority": "P0",
+          "action": "Enable Show only Executing EVA; stop remotely and start another REX.",
+          "expected": "Selection/list scope follows the active execution and remote stop clears running-only mode without stale controls.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REX-024",
+          "title": "PET manual edit complete boundary matrix",
+          "priority": "P0",
+          "action": "Edit positive, negative, zero, long-hour and out-of-range minute/second values; test typing and length limits.",
+          "expected": "Format, numeric semantics and rejection follow the actual field contract; no cross-execution clock changes occur.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REX-025",
+          "title": "Server-time offset and clock skew",
+          "priority": "P0",
+          "action": "Keep real server-time correction enabled; inject positive/negative skew and reconnect around PET boundaries.",
+          "expected": "Displayed PET and position ages use the agreed server offset exactly once and remain coherent across clients.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REX-026",
+          "title": "Simultaneous execution starts",
+          "priority": "P0",
+          "action": "Have two clients attempt to start different stopped REXes concurrently.",
+          "expected": "The agreed single-active-execution invariant holds after synchronization and reload; any race is exposed explicitly.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REX-027",
+          "title": "Historical execution deletion and selected cleanup",
+          "priority": "P0",
+          "action": "Cancel and confirm deleting the selected stopped REX while another client views it.",
+          "expected": "Only its owned execution graph disappears; both clients fall back safely to the plan and unrelated REXes remain unchanged.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "policy",
+      "name": "Execution edit policies, status and collected values",
+      "fixture": "Original and added station/traverse/actions under never-run, running, stopped and restarted REXes in none/limited/unrestricted modes.",
+      "sources": ["src/utils/rexExecuteEditMode.ts", "src/operations/apply/apply-rex.ts"],
+      "supporting": [
+        "src/tests/vitest/utils/rexExecuteEditMode.test.ts",
+        "src/tests/vitest/operations/apply/apply-rex.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "POLICY-001",
+          "title": "Policy selection and first-start freeze",
+          "priority": "P0",
+          "action": "Choose each policy before first start; start, stop and restart; attempt changing the policy later.",
+          "expected": "First start freezes the chosen policy and original action baseline; stop/restart preserves both.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/executionPolicy.spec.ts",
+              "title": "first execution freezes none policy and its action baseline across stop, restart and reload"
+            },
+            {
+              "file": "behavior/executionPolicy.spec.ts",
+              "title": "first execution freezes limited policy and its action baseline across stop, restart and reload"
+            },
+            {
+              "file": "behavior/executionPolicy.spec.ts",
+              "title": "first execution freezes unrestricted policy and its action baseline across stop, restart and reload"
+            }
+          ]
+        },
+        {
+          "id": "POLICY-002",
+          "title": "Limited original entity edit matrix",
+          "priority": "P0",
+          "action": "On original station/traverse/actions attempt duration/path/sequence/crew/enabled changes and protected general/location/delete fields.",
+          "expected": "Only the declared limited-mode operations succeed; blocked mutations leave persisted data unchanged after reload.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/executionPolicy.spec.ts",
+              "title": "limited execution permits crew and enabled changes but protects original action wording, duration and deletion"
+            }
+          ],
+          "note": "Original action wording/duration/duplicate/delete protection, crew changes and deactivation are exercised in a running limited REX with reload and planning-copy independence. The original station/traverse location/path/duration/sequence matrix still needs coverage."
+        },
+        {
+          "id": "POLICY-003",
+          "title": "Limited newly added entity edit matrix",
+          "priority": "P0",
+          "action": "Add stations/traverses/actions during limited execution and edit/duplicate/delete them.",
+          "expected": "Added-entity exemptions work within limited mode and do not affect original entities or planning copies.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POLICY-004",
+          "title": "None unrestricted and planned scope",
+          "priority": "P0",
+          "action": "Repeat protected operations under None and Unrestricted and on the original plan and POI actions.",
+          "expected": "None blocks applicable edits including added entities; unrestricted works; planned/POI scope follows ordinary permissions.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POLICY-005",
+          "title": "Stable original and added action letters",
+          "priority": "P0",
+          "action": "Reorder/remove original and added actions under original and newly added parents; restart and reload.",
+          "expected": "Original letters follow action identity, removed letters do not compact, and new-parent labels use the correct added numbering.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POLICY-006",
+          "title": "Execution item status lifecycle",
+          "priority": "P0",
+          "action": "Set Pending/In-Progress/Complete/Skipped on station, traverse and action through each available view.",
+          "expected": "The running REX's entries and all status displays update and persist while planned and historical copies remain unchanged.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/executionPolicy.spec.ts",
+              "title": "station, traverse and action statuses cycle without global Edit and preserve historical and planned data"
+            }
+          ]
+        },
+        {
+          "id": "POLICY-007",
+          "title": "Status permission and Maestro ownership",
+          "priority": "P0",
+          "action": "Change status with global Edit off, as viewer, on disabled actions and with Maestro control on.",
+          "expected": "Controls follow mission permission/running/ownership rules; Maestro-controlled clicks explain the gate and do not persist local status writes.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POLICY-008",
+          "title": "Executed mass and sample value merge",
+          "priority": "P0",
+          "action": "Enter absent/zero/nonzero mass and sample identifiers alongside status updates from a peer.",
+          "expected": "Execution entry updates preserve unrelated fields, respect Maestro-controlled fields and show correct executed/delta mass after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/executionPolicy.spec.ts",
+              "title": "executed mass and sample IDs merge with peer status changes and respect Maestro ownership"
+            }
+          ]
+        },
+        {
+          "id": "POLICY-009",
+          "title": "Maestro completion display override",
+          "priority": "P1",
+          "action": "Receive 100-percent crew completion and compare stored status, sequence colors and dashboard.",
+          "expected": "Displayed completion follows the integration contract without silently rewriting stored status.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "position",
+      "name": "Execution position entry, types and sources",
+      "fixture": "Running/stopped REX with multiple timestamped positions, types and sources and known station/traverse coordinates.",
+      "sources": ["src/store/thunk/thunkRexPosEntry.ts", "src/store/thunk/thunkRexPosSource.ts"],
+      "supporting": [
+        "src/tests/vitest/store/thunks/rexPosEntry_thunk.test.ts",
+        "src/tests/vitest/store/thunks/rexPosSource_thunk.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "POSITION-001",
+          "title": "New position PET capture and placement",
+          "priority": "P0",
+          "action": "Start New Pos, advance PET, change types/source, place the point and reload.",
+          "expected": "Position uses the intended captured PET, selected metadata and committed coordinates rather than placement-time drift.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POSITION-002",
+          "title": "Position edit Save versus map placement",
+          "priority": "P0",
+          "action": "Draft type/source changes while moving an existing position; compare map finish, full Save and Cancel.",
+          "expected": "Coordinate/time updates and drafted metadata follow their distinct commit boundaries; Cancel preserves the previous entry.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POSITION-003",
+          "title": "Position list edit duplicate delete",
+          "priority": "P1",
+          "action": "Edit supported position fields, cancel/confirm deletion and inspect map/history.",
+          "expected": "Exact persisted entries, map markers and path connections agree without changing other source/type histories.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POSITION-004",
+          "title": "Position type CRUD order and usage",
+          "priority": "P1",
+          "action": "Create/reorder/rename/style/delete marker types, including types used by entries.",
+          "expected": "Abbreviation/icon/path color persist; usage guards prevent invalid deletion and maps update without stale labels.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POSITION-005",
+          "title": "Position source CRUD and limits",
+          "priority": "P1",
+          "action": "Create/rename/delete sources up to the limit, including used and last remaining source.",
+          "expected": "Limit/usage/last-source guards hold and new entries use the correct surviving source after reload.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POSITION-006",
+          "title": "Position filtering and paths",
+          "priority": "P0",
+          "action": "Toggle sources/types with older/newer and same-PET entries on planned, historical and active views.",
+          "expected": "Visible points/paths use the intended scope, ordering and filters; historical ages stay tied to their own REX.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "POSITION-007",
+          "title": "Concurrent position edits and deletions",
+          "priority": "P0",
+          "action": "Two clients add entries then edit/delete overlapping positions while one briefly disconnects.",
+          "expected": "Both clients converge to the same valid entries without lost unrelated positions or dangling type/source references.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "dash",
+      "name": "Execution dashboard, follow and minimap",
+      "fixture": "Planning/no-execution fixture and active paused execution with known PET, positions and station geometry.",
+      "sources": [
+        "src/pages/dashboard.tsx",
+        "src/components/interface/map/AegisMapDashboard.tsx",
+        "src/components/interface/map/AegisMapMinimap.tsx"
+      ],
+      "supporting": [
+        "src/tests/vitest-browser/map/FollowMode.browser.test.tsx",
+        "src/tests/vitest-browser/map/BigMapBoundsBox.browser.test.tsx"
+      ],
+      "scenarios": [
+        {
+          "id": "DASH-001",
+          "title": "the dashboard explicitly reports that no execution is running",
+          "priority": "P0",
+          "action": "the dashboard explicitly reports that no execution is running",
+          "expected": "Without a running execution the dashboard shows the explicit empty-state message and has no dashboard map or PET clock.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/smoke.spec.ts",
+              "title": "the dashboard explicitly reports that no execution is running"
+            }
+          ]
+        },
+        {
+          "id": "DASH-002",
+          "title": "dashboard clock and both maps belong to the active execution",
+          "priority": "P0",
+          "action": "dashboard clock and both maps belong to the active execution",
+          "expected": "Active dashboard shows PET +00:05:00, one dashboard and one minimap viewport, and the active position age +00:03:00.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/smoke.spec.ts",
+              "title": "dashboard clock and both maps belong to the active execution"
+            }
+          ]
+        },
+        {
+          "id": "DASH-003",
+          "title": "dashboard scale-bar changes reach both maps and persist together after reload",
+          "priority": "P0",
+          "action": "dashboard scale-bar changes reach both maps and persist together after reload",
+          "expected": "Dashboard scale-bar changes affect both maps immediately and survive a shared reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/dashboardMap.spec.ts",
+              "title": "dashboard scale-bar changes reach both maps and persist together after reload"
+            }
+          ]
+        },
+        {
+          "id": "DASH-004",
+          "title": "minimap stations and dashboard position age belong solely to the active execution",
+          "priority": "P0",
+          "action": "minimap stations and dashboard position age belong solely to the active execution",
+          "expected": "Minimap station membership and dashboard position age contain only the active execution, excluding historical Alpha entities.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/dashboardMap.spec.ts",
+              "title": "minimap stations and dashboard position age belong solely to the active execution"
+            }
+          ]
+        },
+        {
+          "id": "DASH-005",
+          "title": "Dashboard timeline and progress",
+          "priority": "P0",
+          "action": "Render known allotted/calculated durations, station/traverse/action states and crew percentages; advance/pause PET.",
+          "expected": "Timeline scale, blocks, PET/allotted lines, colors, numbering and progress match independent known values.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "DASH-006",
+          "title": "Follow mode latest-position selection",
+          "priority": "P0",
+          "action": "Add older/newer positions in different storage order and toggle source/type/station/traverse follow options.",
+          "expected": "Dashboard follows the intended source-filtered latest entries; minimap retains its documented bounds/position selection contract.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "DASH-007",
+          "title": "Follow settings after type changes",
+          "priority": "P1",
+          "action": "Disable follow options, edit position types from a peer and remove the final position.",
+          "expected": "Options rebuild according to the intended persistence rule; empty lists do not leave stale centering or reset unrelated choices.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "DASH-008",
+          "title": "Minimap bounds and arrow bridge",
+          "priority": "P1",
+          "action": "Pan/zoom the big map; toggle traverse arrows/scale/grid; resize and switch active execution.",
+          "expected": "Minimap bounds, arrow visibility, scale and grid spacing stay coherent with dashboard context and current execution.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "DASH-009",
+          "title": "Dashboard live start pause stop and handover",
+          "priority": "P0",
+          "action": "Keep dashboard open while another client starts, pauses, resumes, stops and switches REX.",
+          "expected": "Identity, PET, timeline, markers and empty states transition coherently through the complete sequence without reload.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "stm",
+      "name": "Legacy STM and v2 satisfaction rules",
+      "fixture": "Explicit v1 hierarchy and v2 definitions/rules using small known action tuples with enabled/disabled and duplicate matches.",
+      "sources": [
+        "src/components/panes/stm-legacy/stm-legacy-viewer-page.tsx",
+        "src/components/panes/stm-rules/stm-rules-page.tsx"
+      ],
+      "supporting": [
+        "src/tests/vitest/store/thunks/stmRules_thunk.test.ts",
+        "src/tests/vitest/utils/stmEvaCoverage.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "STM-001",
+          "title": "Legacy hierarchy and action priorities",
+          "priority": "P0",
+          "action": "In v1 load/edit supported STM levels and set/clear H/M/L coverage on actions.",
+          "expected": "Hierarchy, mini coverage strips, severity and persisted per-action coverage agree without cross-version leakage.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STM-002",
+          "title": "Legacy STM filtering and execution colors",
+          "priority": "P1",
+          "action": "Filter/select STM cells with enabled/disabled and executed/skipped action fixtures.",
+          "expected": "Coverage counts, highlights and status colors use the correct plan/REX and omit excluded actions.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STM-003",
+          "title": "Satisfaction rule CRUD and validation",
+          "priority": "P0",
+          "action": "In v2 create/edit/duplicate/delete rules with definition references; cancel and reload.",
+          "expected": "Required and invalid combinations are handled, saved rule identities are independent and referencing definitions remain protected.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STM-004",
+          "title": "Rule tuple matching and thresholds",
+          "priority": "P0",
+          "action": "Use exact verb/noun/adjective tuples, wildcard/missing categories and threshold boundaries.",
+          "expected": "Known satisfied/unsatisfied counts agree with the rule semantics; duplicate and disabled actions are handled explicitly.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STM-005",
+          "title": "Rule ordering layout and persistence",
+          "priority": "P2",
+          "action": "Reorder/resize supported rule columns and navigate/reload.",
+          "expected": "Persisted and local layout settings follow their intended scope without changing rule meaning.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "STM-006",
+          "title": "Rule collaboration and dangling references",
+          "priority": "P0",
+          "action": "Edit/delete rules and referenced definitions from two clients.",
+          "expected": "Clients converge with valid references and matching coverage without stale rule editor selections.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "report",
+      "name": "Comparison, STM coverage, campaigns and POI traceability",
+      "fixture": "v2 planning mission with fixed action durations/counts and lineage; add multiple executed REXes and campaign membership.",
+      "sources": [
+        "src/components/panes/reports/reports-page.tsx",
+        "src/components/panes/reports/shared/report-campaigns-dialog.tsx",
+        "src/components/panes/reports/eva-stm-coverage/eva-stm-coverage-page.tsx",
+        "src/components/panes/reports/poi-traceability/poi-traceability-page.tsx"
+      ],
+      "supporting": [
+        "src/tests/vitest-browser/Reports.browser.test.tsx",
+        "src/tests/vitest-browser/PoiTraceability.browser.test.tsx",
+        "src/tests/vitest/utils/evaReportColumns.campaign.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "REPORT-001",
+          "title": "comparison shows known plan metrics, signed differences, and station breakdowns without changing mission data",
+          "priority": "P0",
+          "action": "comparison shows known plan metrics, signed differences, and station breakdowns without changing mission data",
+          "expected": "Absolute station/action/time totals are 4/3, 1/0, 6/0 and 240/180; Diff shows signed -1/-60 and expansion yields the exact station/traverse distribution without mutating the mission.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/reports.spec.ts",
+              "title": "comparison shows known plan metrics, signed differences, and station breakdowns without changing mission data"
+            }
+          ]
+        },
+        {
+          "id": "REPORT-002",
+          "title": "a saved action duration reaches an open report in another client and survives reload",
+          "priority": "P0",
+          "action": "a saved action duration reaches an open report in another client and survives reload",
+          "expected": "Saving action duration 23 updates an already-open peer report from 6 to 23 and preserves action count 1/0 after reload without browser errors.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/reports.spec.ts",
+              "title": "a saved action duration reaches an open report in another client and survives reload"
+            }
+          ]
+        },
+        {
+          "id": "REPORT-003",
+          "title": "Comparison metric and baseline matrix",
+          "priority": "P0",
+          "action": "Compare known durations, rates, distances, ascent/descent, crew times, mass and equipment across several plans/REXes; change baseline.",
+          "expected": "Every absolute/difference cell uses the independent known quantity and signed/null semantics for its metric.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-004",
+          "title": "Report column selection order and persistence",
+          "priority": "P1",
+          "action": "Add/remove/reorder/expand plan and REX columns, change filters, navigate and reload.",
+          "expected": "Requested columns and local preferences remain consistent; no stale or duplicate column identities appear.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-005",
+          "title": "Campaign lifecycle and membership",
+          "priority": "P0",
+          "action": "Create/rename/duplicate/delete campaigns; add/remove/reorder planned EVA members; cancel and reload.",
+          "expected": "Membership and ownership persist without mutating the plans; invalid/duplicate members are handled explicitly.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-006",
+          "title": "Campaign execution selection and fallback",
+          "priority": "P0",
+          "action": "Select an explicit REX or latest fallback per member; delete the designated REX or plan.",
+          "expected": "Resolution follows the documented explicit/latest/absent rules and reports never compare an unrelated execution.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-007",
+          "title": "Campaign versus EVA aggregate deduplication",
+          "priority": "P0",
+          "action": "Put shared stations/actions and multiple execution copies into a campaign.",
+          "expected": "Counts/mass/science coverage use the intended lineage and aggregation rules without double-counting shared members.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-008",
+          "title": "EVA STM coverage report",
+          "priority": "P0",
+          "action": "Use a tiny known hierarchy/rule set with planned, complete, skipped, disabled and unmatched actions.",
+          "expected": "Cells, tuple counts, satisfied flags and totals match the known fixture across plan/REX/campaign scopes.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-009",
+          "title": "STM drilldown filters and navigation",
+          "priority": "P1",
+          "action": "Expand coverage cells and follow matched/unmatched action links under filters.",
+          "expected": "Drilldown includes exactly the contributing actions and opens the correct parent/plan/REX without changing mission data.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-010",
+          "title": "POI traceability lineage",
+          "priority": "P0",
+          "action": "Link a POI without adoption, adopt one action into two stations, duplicate plan and execute one copy.",
+          "expected": "Trace rows distinguish association from adoption and follow concrete UUIDs and lineage to the correct planned/executed actions.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-011",
+          "title": "POI traceability statuses and sample fields",
+          "priority": "P0",
+          "action": "Change action status, executed mass and sample identifiers with missing/zero values.",
+          "expected": "Trace badges, counts and drilldown reflect the correct execution entry without treating missing as zero.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-012",
+          "title": "Report empty missing and deleted data",
+          "priority": "P1",
+          "action": "Open reports with no EVAs/rules/campaign members, then remove a selected entity from a peer.",
+          "expected": "Empty and unresolved states are explicit; no crash, stale detail or accidental mutation occurs.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "REPORT-013",
+          "title": "Report permission and collaboration matrix",
+          "priority": "P0",
+          "action": "Open all reports as viewer/editor, update rules/campaigns/actions remotely and reload.",
+          "expected": "Read-only reports stay non-mutating and every supported live dependency refreshes for the current scope.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "export",
+      "name": "JSON, GeoJSON and external handoff exports",
+      "fixture": "Planning and executed mission with known coordinates, units, relationships, sample data and export subsets.",
+      "sources": ["src/components/panes/mission/mission-right-export.tsx", "src/utils/export.ts"],
+      "supporting": [
+        "src/tests/vitest/utils/export.test.ts",
+        "src/tests/vitest/utils/quickMap.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "EXPORT-001",
+          "title": "JSON export contains the saved planning values and nested station/action relationships",
+          "priority": "P0",
+          "action": "JSON export contains the saved planning values and nested station/action relationships",
+          "expected": "Downloaded JSON contains saved station name, station action/POI relationships and exact EVA sequence UUID order matching the independently seeded mission.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "JSON export contains the saved planning values and nested station/action relationships"
+            }
+          ]
+        },
+        {
+          "id": "EXPORT-002",
+          "title": "Mission export subset selection and content",
+          "priority": "P0",
+          "action": "Toggle every export category separately and in combinations; parse downloads.",
+          "expected": "Filename and actual included/omitted entities match selection, references are readable and JSON contains the intended mission only.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "mission export includes only the selected evas category"
+            },
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "mission export includes only the selected exportMission category"
+            },
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "mission export includes only the selected pois category"
+            },
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "mission export includes only the selected stations category"
+            },
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "mission export includes only the selected actions category"
+            },
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "mission export includes only the selected traverses category"
+            },
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "mission export includes only the selected rexes category"
+            },
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "combined and empty export selections match their filenames and preserve mission state"
+            }
+          ]
+        },
+        {
+          "id": "EXPORT-003",
+          "title": "EVA and REX export fidelity",
+          "priority": "P0",
+          "action": "Export a plan and a REX with statuses, executed mass, sample values and preserved lineage.",
+          "expected": "Each file contains the intended concrete identities, order, units and execution values without cross-plan or historical leakage.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "plan and execution exports preserve sequence lineage, sample values and execution ownership"
+            }
+          ]
+        },
+        {
+          "id": "EXPORT-004",
+          "title": "Position GeoJSON geometry and metadata",
+          "priority": "P0",
+          "action": "Export multiple position types/sources with exact PET and dates; inspect coordinates and properties.",
+          "expected": "GeoJSON uses longitude/latitude order and expected feature grouping, times, labels and metadata for the selected REX.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "position GeoJSON preserves longitude latitude order, PET, type and source for the selected execution"
+            }
+          ]
+        },
+        {
+          "id": "EXPORT-005",
+          "title": "Export absent and zero values",
+          "priority": "P1",
+          "action": "Export absent/zero durations, masses, locations, empty lists and Unicode names.",
+          "expected": "The output preserves the intended distinctions and valid encoding/schema without NaN or fabricated coordinates.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/exports.spec.ts",
+              "title": "exports retain null and zero values, empty lists and Unicode without fabricated coordinates"
+            }
+          ]
+        },
+        {
+          "id": "EXPORT-006",
+          "title": "Mission dump import and round trip",
+          "priority": "P0",
+          "action": "Dump a disposable mission, import/restore it through supported admin flow and compare a fresh client.",
+          "expected": "Document/relational identity rules, assets and migration boundaries are explicit; relationships and required values survive the supported round trip.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "EXPORT-007",
+          "title": "Download failure and read-only access",
+          "priority": "P1",
+          "action": "Download as viewer/editor with delayed or failed generation and repeated clicks.",
+          "expected": "Allowed reads work, failure is visible, and downloads do not mutate mission state or mix data from a newly selected mission.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "collab",
+      "name": "Collaboration, persistence and recovery",
+      "fixture": "Two independent browser contexts for the same authorized test user and disposable mission; add distinct-user roles for permission scenarios.",
+      "sources": [
+        "src/client/automerge-network-adapter.ts",
+        "src/client/automergeDocHandles.ts",
+        "src/server/automerge"
+      ],
+      "supporting": [
+        "src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts",
+        "src/tests/vitest/automerge/integrityCheck.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "COLLAB-001",
+          "title": "a disconnected client catches up without reloading and can publish edits after reconnecting",
+          "priority": "P0",
+          "action": "a disconnected client catches up without reloading and can publish edits after reconnecting",
+          "expected": "Offline peer cannot enable editing, misses a server-persisted station rename, then catches up without navigation; a peer edit flows back and persists after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaboration.spec.ts",
+              "title": "a disconnected client catches up without reloading and can publish edits after reconnecting"
+            }
+          ]
+        },
+        {
+          "id": "COLLAB-002",
+          "title": "a saved edit reaches another client without changing that client's selected station",
+          "priority": "P0",
+          "action": "a saved edit reaches another client without changing that client's selected station",
+          "expected": "A saved station rename reaches the peer list without changing that peer's independently selected station, and remains after reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaboration.spec.ts",
+              "title": "a saved edit reaches another client without changing that client's selected station"
+            }
+          ]
+        },
+        {
+          "id": "COLLAB-003",
+          "title": "simultaneous edits to different stations merge and persist in both clients",
+          "priority": "P0",
+          "action": "simultaneous edits to different stations merge and persist in both clients",
+          "expected": "Concurrent edits to different stations merge and persist in both clients without losing either value.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaboration.spec.ts",
+              "title": "simultaneous edits to different stations merge and persist in both clients"
+            }
+          ]
+        },
+        {
+          "id": "COLLAB-004",
+          "title": "a canceled dialog draft never replaces the value shown by another client",
+          "priority": "P0",
+          "action": "a canceled dialog draft never replaces the value shown by another client",
+          "expected": "Canceled dialog draft never replaces the persisted or peer-visible value.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaboration.spec.ts",
+              "title": "a canceled dialog draft never replaces the value shown by another client"
+            }
+          ]
+        },
+        {
+          "id": "COLLAB-005",
+          "title": "a station created by one client can be edited by another and deleted without stale list entries",
+          "priority": "P0",
+          "action": "a station created by one client can be edited by another and deleted without stale list entries",
+          "expected": "Station creation, peer editing and deletion converge without stale list entries or changes to unrelated station data.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaboration.spec.ts",
+              "title": "a station created by one client can be edited by another and deleted without stale list entries"
+            }
+          ]
+        },
+        {
+          "id": "COLLAB-006",
+          "title": "a client joining after edits sees persisted state and later changes in both directions",
+          "priority": "P0",
+          "action": "a client joining after edits sees persisted state and later changes in both directions",
+          "expected": "Late joiner sees already persisted changes and subsequent edits propagate in both directions.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaboration.spec.ts",
+              "title": "a client joining after edits sees persisted state and later changes in both directions"
+            }
+          ]
+        },
+        {
+          "id": "COLLAB-007",
+          "title": "Same-field conflict convergence",
+          "priority": "P0",
+          "action": "Two independent clients concurrently rename/edit the same field, then reconnect and reload.",
+          "expected": "All clients and server converge on the documented conflict resolution while preserving unrelated fields; no arbitrary winner is asserted without a contract.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "COLLAB-008",
+          "title": "Atomic graph edits observed by peers",
+          "priority": "P0",
+          "action": "Observe entity graph while a peer duplicates/deletes EVA/REX/station/action trees.",
+          "expected": "Each logical atomic operation exposes valid ownership/order references; no peer observes half-built or orphan graphs.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "COLLAB-009",
+          "title": "Delete while peer edits or selects",
+          "priority": "P0",
+          "action": "Delete a station/action/EVA/REX while the peer has it selected and a draft open.",
+          "expected": "Selections and dialogs recover without resurrecting deleted identities or corrupting surviving relationships.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "COLLAB-010",
+          "title": "Mission switch during synchronization",
+          "priority": "P0",
+          "action": "Switch missions while changes, terrain requests and sockets from the first mission are in flight.",
+          "expected": "Late responses do not update the new mission, and both documents retain their intended independent changes.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "COLLAB-011",
+          "title": "Server restart and epoch mismatch",
+          "priority": "P0",
+          "action": "Restart a disposable server while an old tab remains open; attempt reconnect and stale edits.",
+          "expected": "Epoch gate prevents stale merging, directs the client to version recovery and resumes only with a fresh current document.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "COLLAB-012",
+          "title": "Server unavailable then same-epoch recovery",
+          "priority": "P0",
+          "action": "Drop/recover the server transport with failed version fetches and delayed document readiness.",
+          "expected": "Recovery keeps polling appropriately, disables editing and resumes only after authoritative same-epoch synchronization.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "COLLAB-013",
+          "title": "Browser close and server persistence",
+          "priority": "P0",
+          "action": "Save, close all clients and reopen; separately restart the server after a confirmed durable write.",
+          "expected": "Confirmed saved changes remain in the authoritative store; unsaved drafts do not become persisted data.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "COLLAB-014",
+          "title": "Distinct-user presence and permissions",
+          "priority": "P1",
+          "action": "Connect an editor and viewer as distinct accounts; edit, disconnect and revoke access.",
+          "expected": "Presence/counts and independent selections are correct while each user's write privileges remain enforced.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "name": "Administrative mission, user, file and diagnostic flows",
+      "fixture": "Disposable missions, test users and temporary static directory; explicit admin and super-admin roles.",
+      "sources": [
+        "src/pages/admin/index.tsx",
+        "src/pages/admin/mission.tsx",
+        "src/pages/admin/missionDuplicate.tsx",
+        "src/pages/admin/missionLayers.tsx",
+        "src/pages/admin/missionSTM.tsx",
+        "src/pages/admin/user.tsx",
+        "src/server/express/routes/file"
+      ],
+      "supporting": [
+        "src/tests/vitest/express/file.test.ts",
+        "src/tests/vitest/express/missionAutomergeFields.test.ts",
+        "src/tests/vitest/utils/missionDup.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "ADMIN-001",
+          "title": "Admin mission lifecycle",
+          "priority": "P0",
+          "action": "Create/edit/delete a disposable mission through admin UI; cancel destructive actions and refresh lists.",
+          "expected": "Fields and document listing agree, Cancel preserves state and deletion cleans only the chosen mission.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-002",
+          "title": "Mission duplication identity and ownership",
+          "priority": "P0",
+          "action": "Duplicate a graph-rich mission with/without supported asset options and observe progress/failure.",
+          "expected": "New document/relational IDs and internal references follow the copy contract; source remains unchanged and partial failure is reported.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-003",
+          "title": "Mission layers and sublayers administration",
+          "priority": "P0",
+          "action": "Create/edit/reorder/delete layer headers and each supported sublayer kind; import configured assets.",
+          "expected": "Document-backed layer definitions persist and existing presets reconcile without orphan or foreign-mission references.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-004",
+          "title": "Admin STM configuration and import",
+          "priority": "P0",
+          "action": "Load/edit v1/v2 science structures with valid/invalid files and referenced definitions.",
+          "expected": "Schema/reference failures are explained and do not partially replace a valid mission configuration.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-005",
+          "title": "User permission administration",
+          "priority": "P0",
+          "action": "Create/edit/revoke viewer/editor/admin grants and super-admin-only flags with another user online.",
+          "expected": "Server authorization matches persisted grants and prohibited privilege escalation cannot occur.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-006",
+          "title": "Static files upload list rename delete",
+          "priority": "P0",
+          "action": "Upload representative files, list/sort, rename and cancel/confirm deletion; try duplicate/invalid paths.",
+          "expected": "File bytes and listing agree, progress/errors are accurate and no traversal or cross-scope access changes unrelated files.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-007",
+          "title": "Box browse and download progress",
+          "priority": "P1",
+          "action": "Browse test folders, download a file, inject permission/network failure and retry.",
+          "expected": "Selection, bytes, progress, completion and failure recovery follow the external contract without duplicate partial files.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-008",
+          "title": "Admin dump and Automerge diagnostics",
+          "priority": "P1",
+          "action": "Open export/doc listing/manage-doc routes for valid/missing URLs with authorized and unauthorized users.",
+          "expected": "Diagnostics address the intended document; errors and write-capable operations are explicit and role-gated.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-009",
+          "title": "Connection and integration monitors",
+          "priority": "P1",
+          "action": "Open serverSocketStatus, Maestro, DUST and EMSS pages; join/leave clients and refresh.",
+          "expected": "Counts, mission rooms and connection detail reflect actual sessions without exposing another role's restricted controls.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ADMIN-010",
+          "title": "Environment controls and secrets",
+          "priority": "P0",
+          "action": "Use environment/EMSS configuration routes as admin/super-admin and normal users.",
+          "expected": "Only declared roles can read/change each setting; response/UI content follow the intended secret-redaction boundary.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "integration",
+      "name": "Maestro, DUST and service contracts",
+      "fixture": "Disposable socket clients with valid/invalid endpoint token and EMSS master token; schema-valid deterministic payloads and two missions.",
+      "sources": ["src/server/maestro/v2", "src/server/dust/v1", "src/server/express/restApi.ts"],
+      "supporting": [
+        "src/tests/vitest/maestro/v2/sockets-maestro.test.ts",
+        "src/tests/vitest/maestro/v2/mdauValidator.test.ts",
+        "src/tests/vitest/dust/v1/sockets-dust.test.ts",
+        "src/tests/vitest/dust/v1/sockets-dust-emitters.test.ts"
+      ],
+      "scenarios": [
+        {
+          "id": "INTEGRATION-001",
+          "title": "Maestro subscription and initial hydration",
+          "priority": "P0",
+          "action": "Connect matched-version Maestro client, list missions/REXes, subscribe/join and request current state.",
+          "expected": "Only authorized subscribed entities arrive with the correct concrete/ref UUID map; unsubscribe/leave prevents further delivery.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-002",
+          "title": "MDAU schema reference and atomic rejection",
+          "priority": "P0",
+          "action": "Send valid changes, invalid schema, foreign references and inconsistent action-order/membership.",
+          "expected": "Allowed changes reach UI and persistence atomically; rejected payloads leave the graph unchanged and return a useful failure.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-003",
+          "title": "Maestro execution start and policy freeze",
+          "priority": "P0",
+          "action": "Start a REX with mode/control metadata in the same inbound payload; stop/restart.",
+          "expected": "Policy applies before first-start freeze; execution identity, PET ownership and original numbering stay coherent across both applications.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-004",
+          "title": "Maestro paused zero and duration semantics",
+          "priority": "P0",
+          "action": "Exchange paused numeric PET zero, running sentinel and null/zero/manual durations.",
+          "expected": "Wire encoding preserves paused/running and computed/manual distinctions; displayed clocks and durations agree.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-005",
+          "title": "Maestro concurrent names and lineage",
+          "priority": "P0",
+          "action": "Rename both traverse endpoints in one update, reverse payload order, reorder actions and duplicate execution.",
+          "expected": "Names, order and concrete versus lineage IDs stay consistent with UI and persisted graph.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-006",
+          "title": "Maestro disconnect rejection and resync",
+          "priority": "P0",
+          "action": "Disconnect before send, reject after send and reconnect with current state; vary timestamp-only updates.",
+          "expected": "Retry/baseline behavior follows the actual delivery contract, no timestamp feedback loop occurs, and no durable delivery is assumed without evidence.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-007",
+          "title": "DUST authentication join and resync",
+          "priority": "P0",
+          "action": "Connect with valid/invalid DUST and EMSS tokens; request everything before/after join and after join failure.",
+          "expected": "Auth accepts its declared credentials, resync requires successful mission join and failed setup rolls back room/visitor state.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-008",
+          "title": "DUST live payload and mission isolation",
+          "priority": "P0",
+          "action": "Edit/delete positions, rename mission/REX/EVA/type/source and change running state while two mission clients subscribe.",
+          "expected": "Canonical payload updates reach only the intended mission with correct resolved names and complete positions; no unrelated rooms receive them.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-009",
+          "title": "REST infrastructure authorization and errors",
+          "priority": "P0",
+          "action": "Exercise each registered HTTP route with its declared role, missing resource and invalid input.",
+          "expected": "Wrapped status/HTTP semantics, scope and validation match the handler contract; route registration alone receives no scenario credit.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "INTEGRATION-010",
+          "title": "Health version time logs and metrics",
+          "priority": "P1",
+          "action": "Read health/version/time and permitted diagnostics; send client logs and fail a dependency.",
+          "expected": "No-cache/version-epoch, server-time and metrics/log policies hold and failure does not expose restricted configuration.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "access",
+      "name": "Accessibility, browser compatibility and resilience",
+      "fixture": "Keyboard-only, reduced-motion and narrow/wide viewport sessions; Chromium full suite and Firefox/WebKit smoke configurations.",
+      "sources": ["src/components/interface", "src/tests/playwright/playwright.config.ts"],
+      "supporting": [],
+      "scenarios": [
+        {
+          "id": "ACCESS-001",
+          "title": "Keyboard and dialog focus",
+          "priority": "P1",
+          "action": "Navigate controls by keyboard, open/close validation and confirmation dialogs and restore focus.",
+          "expected": "Controls have usable labels, focus remains visible/contained as appropriate and Save/Cancel operate without a mouse.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACCESS-002",
+          "title": "Responsive editor and dashboard",
+          "priority": "P1",
+          "action": "Use narrow/wide and high-DPI viewports with long labels, expanded lists and reports.",
+          "expected": "Essential controls, modal actions and map/timeline content remain reachable without clipped inaccessible UI.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACCESS-003",
+          "title": "Cross-browser map and dashboard rendering parity",
+          "priority": "P0",
+          "action": "Render the same known Earth/lunar projection, layer, label and dashboard fixtures in Chromium, Firefox and WebKit.",
+          "expected": "Known geometry, labels, layering and dashboard/minimap ownership agree across browsers; source membership and visual assertions detect absent or misplaced content.",
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/smoke.spec.ts",
+              "title": "an isolated mission exposes its planned EVAs, stations, POIs and map"
+            }
+          ],
+          "note": "All four smoke examples are discovered in each browser, but they do not establish projection/layer/label visual parity for the full fixture matrix."
+        },
+        {
+          "id": "ACCESS-004",
+          "title": "Cross-browser editing and downloads",
+          "priority": "P1",
+          "action": "Run representative dialog, drag/path, collaboration and export scenarios in all supported browsers.",
+          "expected": "Native input, pointer, canvas and download behavior satisfy the same contracts outside Chromium; smoke alone is insufficient.",
+          "automation": "gap",
+          "tests": []
+        },
+        {
+          "id": "ACCESS-005",
+          "title": "Accessible status and visual distinction",
+          "priority": "P1",
+          "action": "Inspect errors, status changes, disabled controls, icons and map legends with keyboard/screen-reader and contrast checks.",
+          "expected": "Meaning is available through labels/text as well as color; errors and state changes remain understandable.",
+          "automation": "gap",
+          "tests": []
+        }
+      ]
+    },
+    {
+      "id": "ops",
+      "name": "Operational acceptance outside browser scenario coverage",
+      "fixture": "Disposable deployment/database and representative synthetic GIS assets; record commands, baseline versions and independent oracles.",
+      "sources": [
+        "scripts/upgrade-db.sh",
+        "GIS_data_conversion_pipeline",
+        "docker-compose.yml",
+        "src/server/automerge/migrations"
+      ],
+      "supporting": ["src/tests/vitest/server/automerge/migrationRegistry.test.ts"],
+      "scenarios": [
+        {
+          "id": "OPS-001",
+          "title": "Database migration and restart drill",
+          "priority": "P0",
+          "action": "Upgrade a representative disposable prior database and open fresh/stale clients.",
+          "expected": "Migration order, entity identities and epoch recovery are correct; restart does not merge stale pre-migration client state.",
+          "automation": "external",
+          "tests": [],
+          "note": "Operational acceptance requires its own recorded drill/oracle; it is displayed separately and excluded only from the Playwright-eligible denominator."
+        },
+        {
+          "id": "OPS-002",
+          "title": "Backup restore and disaster recovery",
+          "priority": "P0",
+          "action": "Back up and restore a disposable deployment including mission documents, relational rows and static assets.",
+          "expected": "Restored state is coherent and usable by fresh clients with measured recovery and no cross-mission loss.",
+          "automation": "external",
+          "tests": [],
+          "note": "Operational acceptance requires its own recorded drill/oracle; it is displayed separately and excluded only from the Playwright-eligible denominator."
+        },
+        {
+          "id": "OPS-003",
+          "title": "GIS product conversion and registration",
+          "priority": "P0",
+          "action": "Generate a representative lunar product set and register it into a disposable mission.",
+          "expected": "DEM/COG/PMTiles/grid projections, scientific values and registration agree with independent oracles; publication is separately verified.",
+          "automation": "external",
+          "tests": [],
+          "note": "Operational acceptance requires its own recorded drill/oracle; it is displayed separately and excluded only from the Playwright-eligible denominator."
+        },
+        {
+          "id": "OPS-004",
+          "title": "Proxy authentication and container deployment",
+          "priority": "P0",
+          "action": "Deploy the supported compose/proxy configuration and exercise real authentication and WebSocket upgrades.",
+          "expected": "HTTP/socket paths, roles, static ranges, health and reconnect work with the deployed topology.",
+          "automation": "external",
+          "tests": [],
+          "note": "Operational acceptance requires its own recorded drill/oracle; it is displayed separately and excluded only from the Playwright-eligible denominator."
+        },
+        {
+          "id": "OPS-005",
+          "title": "Load resource and long-session stability",
+          "priority": "P1",
+          "action": "Run representative concurrent editors/viewers and large mission/map data over a sustained period.",
+          "expected": "Documented latency/resource limits and cleanup hold; no unbounded memory/socket growth or lost acknowledged changes occurs.",
+          "automation": "external",
+          "tests": [],
+          "note": "Operational acceptance requires its own recorded drill/oracle; it is displayed separately and excluded only from the Playwright-eligible denominator."
+        },
+        {
+          "id": "OPS-006",
+          "title": "Migration rollback and failed-write recovery",
+          "priority": "P0",
+          "action": "Inject migration/storage failure in a disposable environment and perform the documented recovery procedure.",
+          "expected": "Failure is observable; partial data is recoverable to a coherent version without silent corruption.",
+          "automation": "external",
+          "tests": [],
+          "note": "Operational acceptance requires its own recorded drill/oracle; it is displayed separately and excluded only from the Playwright-eligible denominator."
+        },
+        {
+          "id": "OPS-007",
+          "title": "Diagnostic map sandbox classification",
+          "priority": "P2",
+          "action": "Inspect /testMapPerformant registration and its intended developer-only usage.",
+          "expected": "The sandbox is recorded as a diagnostic surface and contributes no operational mission-workflow acceptance credit.",
+          "automation": "external",
+          "tests": [],
+          "note": "Operational acceptance requires its own recorded drill/oracle; it is displayed separately and excluded only from the Playwright-eligible denominator."
+        }
+      ]
+    }
+  ]
+}

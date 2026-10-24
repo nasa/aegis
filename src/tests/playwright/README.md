@@ -25,6 +25,14 @@ npm run test:playwright -- behavior/execution.spec.ts --project=chromium
 npm run test:playwright -- behavior/mapEditing.spec.ts --project=chromium
 npm run test:playwright -- behavior/planning.spec.ts --project=chromium
 npm run test:playwright -- behavior/collaboration.spec.ts --project=chromium
+npm run test:playwright -- behavior/actions.spec.ts --project=chromium
+npm run test:playwright -- behavior/reports.spec.ts --project=chromium
+npm run test:playwright -- behavior/configuration.spec.ts --project=chromium
+npm run test:playwright -- behavior/calculations.spec.ts --project=chromium
+npm run test:playwright -- behavior/executionPolicy.spec.ts --project=chromium
+npm run test:playwright -- behavior/exports.spec.ts --project=chromium
+npm run test:playwright -- behavior/navigation.spec.ts --project=chromium
+npm run test:playwright -- behavior/poiLifecycle.spec.ts --project=chromium
 ```
 
 The existing `test:playwright` and CI sharding commands also discover these tests.
@@ -33,16 +41,32 @@ does not become a dependency of container image builds or production deployment.
 
 ## Coverage by capability
 
-| Capability                         | Contract examples                                                                                                                                                    | Specification                    |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Application entry and navigation   | Known mission identity, complete seeded domain relationships, no-execution dashboard, active dashboard and minimap                                                   | `behavior/smoke.spec.ts`         |
-| Execution time ownership           | Selected stopped execution, another active execution, A/B/A switching, planned scope, frozen paused clock, ticking clock, zero and hour boundaries                   | `behavior/execution.spec.ts`     |
-| Execution controls                 | Start/pause/resume/stop, interlock against simultaneous execution, manual PET validation/cancel, reset confirmation and persistence, dashboard synchronization       | `behavior/execution.spec.ts`     |
-| Planning and entity lifecycle      | Name and numeric validation, save/cancel, create/duplicate/delete, shared station protection, independent execution copies, deletion cascades, actual export content | `behavior/planning.spec.ts`      |
-| Map representation and preferences | Exact label values, label visibility and changed pixels, selected hidden POI exception, marker click selection, local preference persistence                         | `behavior/mapEditing.spec.ts`    |
-| Geometry edits                     | Interior vertex drag, finish/cancel distinction, endpoint pinning, straight-path reset, editing interaction removal on navigation, persisted paths                   | `behavior/mapEditing.spec.ts`    |
-| Dashboard/minimap consistency      | Shared scale-bar toggles and persistence, minimap limited to the active execution                                                                                    | `behavior/dashboardMap.spec.ts`  |
-| Collaboration                      | Two real browser contexts, live changes, independent local selection, concurrent unrelated edits, canceled edits, creation/deletion, late joining                    | `behavior/collaboration.spec.ts` |
+The [tracked scenario inventory and coverage report](../../../docs/testing/README.md)
+expand this overview into stable scenario IDs, explicit expected outcomes,
+exact test mappings, partial evidence and gaps across the whole application.
+Run `npm run test:playwright:scenarios` to validate the report against current
+discovery, or `npm run docs:playwright-scenarios` after updating its catalog.
+The report measures scenario-to-test mapping; actual browser results remain a
+separate acceptance requirement.
+
+| Capability                         | Contract examples                                                                                                                                                          | Specification                      |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Application entry and navigation   | Known mission identity, complete seeded domain relationships, no-execution dashboard, active dashboard and minimap                                                         | `behavior/smoke.spec.ts`           |
+| Navigation and version recovery    | Direct editor/dashboard links, home/back/forward, deployment mismatch, refreshed mission and current-version redirect                                                      | `behavior/navigation.spec.ts`      |
+| Mission preferences                | Save/Cancel, peer/header updates, reload, new EVA defaults, text limits, numeric filtering and optional signed/zero/cleared values                                         | `behavior/configuration.spec.ts`   |
+| Numeric calculations               | Independent crew/work/dwell totals, incomplete crew warning, 500 m rate precedence, zero/unset fallback, sequence/EVA totals and exported movement minutes                 | `behavior/calculations.spec.ts`    |
+| Execution time ownership           | Selected stopped execution, another active execution, A/B/A switching, planned scope, frozen paused clock, ticking clock, zero and hour boundaries                         | `behavior/execution.spec.ts`       |
+| Execution controls                 | Start/pause/resume/stop, interlock against simultaneous execution, manual PET validation/cancel, reset confirmation and persistence, dashboard synchronization             | `behavior/execution.spec.ts`       |
+| Execution edit policy and values   | First-start policy/baseline freeze, restart/reload, limited original-action protection, status lifecycle in sequence/station/EVA views, peer merges and Maestro sample IDs | `behavior/executionPolicy.spec.ts` |
+| Planning and entity lifecycle      | Name and numeric validation, save/cancel, create/duplicate/delete, shared station protection, independent execution copies, deletion cascades, actual export content       | `behavior/planning.spec.ts`        |
+| POI creation and deletion          | UI-created defaults/identity, blank/duplicate/overlong names, boundary-length save, deletion Cancel, adopted-copy cleanup and unrelated-action preservation                | `behavior/poiLifecycle.spec.ts`    |
+| Downloaded export contents         | Every category alone, all/empty selections, filenames, nested relationships, plan/REX lineage and sample values, position GeoJSON, Unicode and null/zero distinctions      | `behavior/exports.spec.ts`         |
+| Action planning                    | View/edit protection, required fields and Cancel, duration/crew totals, deactivate/reactivate, independent duplicates, delete confirmation, parent ownership and reload    | `behavior/actions.spec.ts`         |
+| EVA comparison reports             | Exact plan counts and minutes, signed baseline differences, station breakdowns, live updates from another page, reload, read-only mission data                             | `behavior/reports.spec.ts`         |
+| Map representation and preferences | Exact label values, label visibility and changed pixels, selected hidden POI exception, marker click selection, local preference persistence                               | `behavior/mapEditing.spec.ts`      |
+| Geometry edits                     | Interior vertex drag, finish/cancel distinction, endpoint pinning, straight-path reset, editing interaction removal on navigation, persisted paths                         | `behavior/mapEditing.spec.ts`      |
+| Dashboard/minimap consistency      | Shared scale-bar toggles and persistence, minimap limited to the active execution                                                                                          | `behavior/dashboardMap.spec.ts`    |
+| Collaboration                      | Two real browser contexts, live changes, independent local selection, concurrent unrelated edits, canceled edits, creation/deletion, late joining, disconnect/reconnect    | `behavior/collaboration.spec.ts`   |
 
 ## Fixtures and isolation
 
@@ -110,6 +134,18 @@ time spanning multiple clock ticks before checking that the value stayed fixed.
 
 Keep the coverage table current when adding a new capability. Test counts and
 line coverage alone do not establish functional completeness. Further coverage
-can grow toward reconnect/clock-skew scenarios, permissions with distinct users,
-GIS asset variants, and generated valid action sequences; those require their
-own explicit expected outcomes and fixtures.
+can grow toward server restarts and clock-skew scenarios, permissions with
+distinct users, execution action status and sample collection, STM/POI report
+contents, GIS asset variants, and generated valid action sequences; those require
+their own explicit expected outcomes and fixtures.
+
+The reconnect contract takes one browser context offline, verifies that editing
+cannot be enabled and that a server-persisted peer edit has not arrived, then
+restores connectivity. It requires catch-up without navigation, a successful edit
+back to the original client, and persistence after reload. It does not establish
+offline editing or recovery after the server's epoch changes.
+
+Comparison report tests explicitly enable action system v2 with empty definition
+dictionaries so startup audits do not insert default definitions during the test.
+Expected report values come from the fixture's known station sequence and action
+duration, rather than the application's report calculators.
