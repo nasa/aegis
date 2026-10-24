@@ -1,8 +1,8 @@
 import type { AutomergeMigration } from "server/automerge/migrations/types";
 
 /** Profiles are now derived on the client and cached on server disk. */
-export const Migration20261022000000: AutomergeMigration = {
-  version: 20261022000000,
+export const Migration20261022010000: AutomergeMigration = {
+  version: 20261022010000,
   name: "move-terrain-profiles-out-of-automerge",
   migrate: async (docHandle) => {
     docHandle.change((mission) => {

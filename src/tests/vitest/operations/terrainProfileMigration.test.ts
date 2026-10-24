@@ -1,5 +1,5 @@
 import * as A from "@automerge/automerge";
-import { Migration20261022000000 } from "server/automerge/migrations/Migration20261022000000";
+import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -29,12 +29,12 @@ it("removes legacy arrays, preserves geometry and is idempotent", async () => {
       })
     )
   );
-  await Migration20261022000000.migrate(handle, undefined);
+  await Migration20261022010000.migrate(handle, undefined);
   expect(handle.doc().traverses[traverse.uuid].path).toEqual(traverse.path);
   expect(handle.doc().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
   expect(handle.doc().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentAbsoluteSlopes");
   expect(handle.doc().stations[station.uuid]).not.toHaveProperty("walkbackPathSegmentElevations");
   const heads = A.getHeads(handle.doc());
-  await Migration20261022000000.migrate(handle, undefined);
+  await Migration20261022010000.migrate(handle, undefined);
   expect(A.getHeads(handle.doc())).toEqual(heads);
 });
