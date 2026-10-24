@@ -6,17 +6,35 @@ Fixture: Distinct guest, viewer, editor, admin and super-admin sessions; two mis
 
 Source: [src/utils/permissions.ts](../../../src/utils/permissions.ts), [src/pages/mission.tsx](../../../src/pages/mission.tsx), [src/pages/admin/index.tsx](../../../src/pages/admin/index.tsx), [src/server/express/routes/auth.ts](../../../src/server/express/routes/auth.ts).
 
-Scenario mapping: **0/8 (0%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **1/8 (12.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/express/login.test.ts](../../../src/tests/vitest/express/login.test.ts), [src/tests/vitest/express/appUser.test.ts](../../../src/tests/vitest/express/appUser.test.ts).
 
 ## AUTH-001: Signed-out and expired-session entry
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Open home, editor, dashboard and admin without a session and with an expired session.
 
 Expected: Authentication recovery follows the configured proxy contract and never exposes protected data or edit controls.
+
+Playwright: [src/tests/playwright/behavior/authEntry.spec.ts:9](../../../src/tests/playwright/behavior/authEntry.spec.ts#L9) — signed out home entry recovers to login without protected controls (chromium).
+
+Playwright: [src/tests/playwright/behavior/authEntry.spec.ts:9](../../../src/tests/playwright/behavior/authEntry.spec.ts#L9) — signed out mission entry recovers to login without protected controls (chromium).
+
+Playwright: [src/tests/playwright/behavior/authEntry.spec.ts:9](../../../src/tests/playwright/behavior/authEntry.spec.ts#L9) — signed out dashboard entry recovers to login without protected controls (chromium).
+
+Playwright: [src/tests/playwright/behavior/authEntry.spec.ts:9](../../../src/tests/playwright/behavior/authEntry.spec.ts#L9) — signed out admin entry recovers to login without protected controls (chromium).
+
+Playwright: [src/tests/playwright/behavior/authEntry.spec.ts:9](../../../src/tests/playwright/behavior/authEntry.spec.ts#L9) — expired cookie home entry recovers to login without protected controls (chromium).
+
+Playwright: [src/tests/playwright/behavior/authEntry.spec.ts:9](../../../src/tests/playwright/behavior/authEntry.spec.ts#L9) — expired cookie mission entry recovers to login without protected controls (chromium).
+
+Playwright: [src/tests/playwright/behavior/authEntry.spec.ts:9](../../../src/tests/playwright/behavior/authEntry.spec.ts#L9) — expired cookie dashboard entry recovers to login without protected controls (chromium).
+
+Playwright: [src/tests/playwright/behavior/authEntry.spec.ts:9](../../../src/tests/playwright/behavior/authEntry.spec.ts#L9) — expired cookie admin entry recovers to login without protected controls (chromium).
+
+Evidence boundary: The configured local cookie-session contract is exercised with no session and browser-expired authenticated cookies at home/editor/dashboard/admin entry. Login recovers with no protected controls; protected list/write HTTP calls reject without changing the mission. This does not assert a separately configured external proxy contract.
 
 ## AUTH-002: Viewer cannot mutate
 

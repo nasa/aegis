@@ -6,7 +6,7 @@ Fixture: Planning/no-execution fixture and active paused execution with known PE
 
 Source: [src/pages/dashboard.tsx](../../../src/pages/dashboard.tsx), [src/components/interface/map/AegisMapDashboard.tsx](../../../src/components/interface/map/AegisMapDashboard.tsx), [src/components/interface/map/AegisMapMinimap.tsx](../../../src/components/interface/map/AegisMapMinimap.tsx).
 
-Scenario mapping: **4/9 (44.4%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **5/9 (55.6%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/map/FollowMode.browser.test.tsx](../../../src/tests/vitest-browser/map/FollowMode.browser.test.tsx), [src/tests/vitest-browser/map/BigMapBoundsBox.browser.test.tsx](../../../src/tests/vitest-browser/map/BigMapBoundsBox.browser.test.tsx).
 
@@ -84,8 +84,12 @@ Expected: Minimap bounds, arrow visibility, scale and grid spacing stay coherent
 
 ## DASH-009: Dashboard live start pause stop and handover
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Keep dashboard open while another client starts, pauses, resumes, stops and switches REX.
 
 Expected: Identity, PET, timeline, markers and empty states transition coherently through the complete sequence without reload.
+
+Playwright: [src/tests/playwright/behavior/dashboardHandoverCoverage.spec.ts:36](../../../src/tests/playwright/behavior/dashboardHandoverCoverage.spec.ts#L36) — dashboard follows remote execution start, PET pause/resume, stop and REX handover without reload (chromium).
+
+Evidence boundary: Open dashboard moves from empty through remote start, paused/resumed PET, stop/empty and a different execution handover without reload; identity, exact PET and map position scopes agree.

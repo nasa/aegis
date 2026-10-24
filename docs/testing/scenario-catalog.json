@@ -117,8 +117,18 @@
           "priority": "P0",
           "action": "Open home with two accessible and one inaccessible mission; select each permitted mission.",
           "expected": "Only authorized missions appear; each opens its own identity and entities without stale prior-mission content.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "viewer mission selector lists only granted missions and switches without prior entities"
+            },
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "editor mission selector lists only granted missions and switches without prior entities"
+            }
+          ],
+          "note": "Distinct nonadmin viewer/editor accounts receive exactly two explicit mission grants and cannot see a third isolated mission. UI selection moves between populated and empty missions without stale entities; an inaccessible direct URL redirects to the permitted selector. Disposable accounts/missions are cleaned up."
         },
         {
           "id": "APP-004",
@@ -149,8 +159,78 @@
           "priority": "P0",
           "action": "Open explicit v1 and v2 missions; visit every registered pane and right-hand tab.",
           "expected": "v1 STM Viewer and v2 STM Rules/Reports appear only for their version; navigation selects the intended content.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "mission exposes every intended right-hand tab in v1"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "preset exposes every intended right-hand tab in v1"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "poi exposes every intended right-hand tab in v1"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "station exposes every intended right-hand tab in v1"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "eva exposes every intended right-hand tab in v1"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "traverse exposes every intended right-hand tab in v1"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "rex exposes every intended right-hand tab in v1"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "legacy STM Viewer owns its fullscreen controls without v2 tabs"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "mission exposes every intended right-hand tab in v2"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "preset exposes every intended right-hand tab in v2"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "poi exposes every intended right-hand tab in v2"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "station exposes every intended right-hand tab in v2"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "eva exposes every intended right-hand tab in v2"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "traverse exposes every intended right-hand tab in v2"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "rex exposes every intended right-hand tab in v2"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "v2 stmRules fullscreen tabs select their own content"
+            },
+            {
+              "file": "behavior/versionNavigation.spec.ts",
+              "title": "v2 reports fullscreen tabs select their own content"
+            }
+          ],
+          "note": "Explicit v1/v2 fixtures visit every registered pane and all mission, preset, POI, station, EVA, traverse and REX right tabs, asserting selected content and version-specific absence. Fullscreen STM/rules/report tabs are covered; navigation leaves the document unchanged."
         },
         {
           "id": "APP-007",
@@ -207,8 +287,42 @@
           "priority": "P0",
           "action": "Open home, editor, dashboard and admin without a session and with an expired session.",
           "expected": "Authentication recovery follows the configured proxy contract and never exposes protected data or edit controls.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "signed out home entry recovers to login without protected controls"
+            },
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "signed out mission entry recovers to login without protected controls"
+            },
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "signed out dashboard entry recovers to login without protected controls"
+            },
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "signed out admin entry recovers to login without protected controls"
+            },
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "expired cookie home entry recovers to login without protected controls"
+            },
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "expired cookie mission entry recovers to login without protected controls"
+            },
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "expired cookie dashboard entry recovers to login without protected controls"
+            },
+            {
+              "file": "behavior/authEntry.spec.ts",
+              "title": "expired cookie admin entry recovers to login without protected controls"
+            }
+          ],
+          "note": "The configured local cookie-session contract is exercised with no session and browser-expired authenticated cookies at home/editor/dashboard/admin entry. Login recovers with no protected controls; protected list/write HTTP calls reject without changing the mission. This does not assert a separately configured external proxy contract."
         },
         {
           "id": "AUTH-002",
@@ -283,7 +397,9 @@
         "src/components/panes/mission/mission-right-prefs.tsx",
         "src/operations/apply/apply-mission.ts"
       ],
-      "supporting": ["src/tests/vitest/store/thunks/mission_thunk.test.ts"],
+      "supporting": [
+        "src/tests/vitest/store/thunks/mission_thunk.test.ts"
+      ],
       "scenarios": [
         {
           "id": "CFG-001",
@@ -389,14 +505,14 @@
           "priority": "P1",
           "action": "Add/rename/delete unused verbs, nouns and adjectives; change singular/plural labels and conjunctions; reload.",
           "expected": "Lists, generated action wording and persisted definitions agree; cancel and field validation preserve prior values.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "mission/mission.spec.ts",
-              "title": "Action definitions"
+              "file": "behavior/referenceData.spec.ts",
+              "title": "v2 definition entries and wording edit, reject invalid drafts, and persist together"
             }
           ],
-          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+          "note": "All three definition categories have UI create/edit/delete evidence; singular/plural labels and conjunctions drive a seeded v2 action wording, invalid Save/Cancel preserves data, and definitions/wording survive reload."
         },
         {
           "id": "REF-002",
@@ -413,14 +529,14 @@
           "priority": "P1",
           "action": "Create, edit, duplicate and delete a template; cancel deletion and reload.",
           "expected": "Copies have independent identities/values, confirmation is respected, and unrelated templates remain unchanged.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "mission/mission.spec.ts",
-              "title": "Action templates"
+              "file": "behavior/referenceData.spec.ts",
+              "title": "action templates duplicate with independent identity and values, and deletion cancellation preserves siblings"
             }
           ],
-          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+          "note": "UI-created templates duplicate into independent identities/names/descriptions, sibling edits remain independent, delete Cancel/confirm preserves intended survivors and reload agrees."
         },
         {
           "id": "REF-004",
@@ -437,14 +553,14 @@
           "priority": "P1",
           "action": "Add/edit/delete consumable and nonconsumable equipment used by actions/templates; reload.",
           "expected": "Usage handling and quantity/consumable totals remain consistent; canceled or invalid edits do not persist.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "mission/mission.spec.ts",
-              "title": "Equipment"
+              "file": "behavior/referenceData.spec.ts",
+              "title": "equipment inventory supports both item types, validates quantity, and survives reload"
             }
           ],
-          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+          "note": "Consumable/reusable UI CRUD, invalid quantity Save/Cancel, action/template assignments and in-use guards are covered. After reload with references retained, two stations each show one consumable while their EVA shows two, excluding reusable equipment. Reference cleanup permits successful deletion and reload."
         },
         {
           "id": "REF-006",
@@ -452,14 +568,14 @@
           "priority": "P1",
           "action": "In v1 create/edit/delete geographic units used by actions and templates.",
           "expected": "Supported reference cleanup or guards are explicit; values and report consumers survive reload without dangling selections.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "mission/mission.spec.ts",
-              "title": "Geographic units"
+              "file": "behavior/referenceData.spec.ts",
+              "title": "geographic units can be created and edited with abbreviation validation and durable values"
             }
           ],
-          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+          "note": "v1 geographic-unit UI CRUD, abbreviation invalid Save/Cancel, action/template assignments and deletion guards are explicit. Reload with live references retains the action label; an actual All Actions JSON download resolves geographicalUnitsReadable to the independent expected unit name. Removing references permits deletion with no dangling selections after reload."
         },
         {
           "id": "REF-007",
@@ -467,23 +583,29 @@
           "priority": "P1",
           "action": "Create, rename, resize and delete circles while presets/stations reference them; observe a peer.",
           "expected": "New circles initialize hidden, deletion prunes references, and radius ordering and map geometry match saved values.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "mission/mission.spec.ts",
-              "title": "Circle definitions"
+              "file": "behavior/referenceCircles.spec.ts",
+              "title": "circle definitions create hidden controls, sort by radius, render saved geometry, and prune every reference"
             }
           ],
-          "note": "Legacy imported-mission helper supplies narrower CRUD/UI evidence; complete fixture, references, failure cases and persisted downstream behavior remain unproved."
+          "note": "Circle creation initializes hidden controls for all presets/non-egress stations. Name/radius edits and validation, radius ordering, independent 350m map geometry on a peer, deletion reference pruning and reload are covered."
         },
         {
           "id": "REF-008",
           "title": "Mission priority identifiers",
           "priority": "P1",
-          "action": "Create/edit/reorder/delete priorities; assign them to STM and non-STM actions and templates.",
-          "expected": "Priority labels/colors/order and usage handling propagate to actions and reports without rewriting unrelated values.",
-          "automation": "gap",
-          "tests": []
+          "action": "Create/edit/delete category and trace identifiers; inspect natural numeric ordering; assign them to STM/non-STM actions and templates and observe a peer/reload.",
+          "expected": "Trace/category labels and natural order reach supported action/template consumers, referenced identifiers are protected and removing references permits deletion without unrelated rewrites. Colors/manual reordering are unsupported.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/missionPriorities.spec.ts",
+              "title": "mission priority traces sort, rename through actions/templates, block in-use deletion, and clean up after references are removed"
+            }
+          ],
+          "note": "Supported trace/category fields have UI lifecycle, numeric trace ordering and independent category ordering (Astronomy/Instrumentation). STM/non-STM action and template labels/assignments, renamed template options after reload, peer updates, in-use guards and cleanup are covered. Color/manual-order fields and controls do not exist and are not claimed."
         },
         {
           "id": "REF-009",
@@ -500,7 +622,10 @@
       "id": "folder",
       "name": "Folders, ordering and shared lists",
       "fixture": "Planning entities and presets assigned to multiple folders, including an empty folder.",
-      "sources": ["src/operations/apply/apply-mission-folder.ts", "src/store/thunk/thunkFolder.ts"],
+      "sources": [
+        "src/operations/apply/apply-mission-folder.ts",
+        "src/store/thunk/thunkFolder.ts"
+      ],
       "supporting": [
         "src/tests/vitest/store/thunks/folder_thunk.test.ts",
         "src/tests/vitest/operations/apply/apply-mission-folder.test.ts"
@@ -512,8 +637,26 @@
           "priority": "P1",
           "action": "Create and rename folders for POIs, stations, EVAs and presets; delete empty and populated folders; reload.",
           "expected": "Each list retains its entities and correct folder membership; canceled confirmation and invalid names preserve saved state.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "poi folder creation, rename validation, cancellation and guarded deletion persist"
+            },
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "station folder creation, rename validation, cancellation and guarded deletion persist"
+            },
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "eva folder creation, rename validation, cancellation and guarded deletion persist"
+            },
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "preset folder creation, rename validation, cancellation and guarded deletion persist"
+            }
+          ],
+          "note": "All four planning folder types cover UI creation/rename, invalid-name Save attempts, canceled rename, populated-folder deletion rejection, empty-folder confirmation Cancel/accept and reload with exact entity preservation. Populated folders are protected rather than deleted while retaining members. The known 50 ms inline draft debounce is advanced by the controlled browser clock before valid Save."
         },
         {
           "id": "FOLDER-002",
@@ -521,8 +664,26 @@
           "priority": "P1",
           "action": "Drag entities into/out of folders, reorder supported rows and move between folders.",
           "expected": "Each UUID occurs in the intended place once, with the documented ordering after reload and on a peer.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "poi items move between folders and root exactly once across peer and reload"
+            },
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "station items move between folders and root exactly once across peer and reload"
+            },
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "eva items move between folders and root exactly once across peer and reload"
+            },
+            {
+              "file": "behavior/folders.spec.ts",
+              "title": "preset items move between folders and root exactly once across peer and reload"
+            }
+          ],
+          "note": "Real pointer activation and target-hover assertions precede every drop for all four list types. Direct folder-to-folder and folder-to-root moves, exact membership arrays, UUID uniqueness and intended peer/reload placement are covered. FolderOrganizer exposes only folder/root drop targets; item-row reordering is unsupported and receives no claim."
         },
         {
           "id": "FOLDER-003",
@@ -557,8 +718,13 @@
       "id": "poi",
       "name": "POI lifecycle and association",
       "fixture": "Planning mission with a located POI, source actions and stations referencing it.",
-      "sources": ["src/components/panes/poi/poi-right.tsx", "src/operations/apply/apply-poi.ts"],
-      "supporting": ["src/tests/vitest/store/thunks/poi_thunk.test.ts"],
+      "sources": [
+        "src/components/panes/poi/poi-right.tsx",
+        "src/operations/apply/apply-poi.ts"
+      ],
+      "supporting": [
+        "src/tests/vitest/store/thunks/poi_thunk.test.ts"
+      ],
       "scenarios": [
         {
           "id": "POI-001",
@@ -631,8 +797,34 @@
           "priority": "P2",
           "action": "Change description and each supported icon shape; cancel and reload.",
           "expected": "List, detail and map agree with persisted metadata and icon without mutating associations.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/poiMetadata.spec.ts",
+              "title": "POI multiline descriptions persist exactly while canceled drafts preserve associations"
+            },
+            {
+              "file": "behavior/poiMetadata.spec.ts",
+              "title": "POI empty descriptions persist exactly while canceled drafts preserve associations"
+            },
+            {
+              "file": "behavior/poiMetadata.spec.ts",
+              "title": "every supported POI circles icon updates the list, detail and rendered map on a peer and reload"
+            },
+            {
+              "file": "behavior/poiMetadata.spec.ts",
+              "title": "every supported POI squares icon updates the list, detail and rendered map on a peer and reload"
+            },
+            {
+              "file": "behavior/poiMetadata.spec.ts",
+              "title": "every supported POI triangles icon updates the list, detail and rendered map on a peer and reload"
+            },
+            {
+              "file": "behavior/poiMetadata.spec.ts",
+              "title": "every supported POI diamonds icon updates the list, detail and rendered map on a peer and reload"
+            }
+          ],
+          "note": "Multiline and empty descriptions, canceled drafts and all 22 supported icon choices are checked against persisted state, list/detail, distinct rendered map icon canvases, a peer and reload without changing associations."
         },
         {
           "id": "POI-007",
@@ -667,7 +859,9 @@
         "src/components/panes/station/station-right.tsx",
         "src/operations/apply/apply-station.ts"
       ],
-      "supporting": ["src/tests/vitest/store/thunks/station_thunk.test.ts"],
+      "supporting": [
+        "src/tests/vitest/store/thunks/station_thunk.test.ts"
+      ],
       "scenarios": [
         {
           "id": "STATION-001",
@@ -801,8 +995,18 @@
           "priority": "P1",
           "action": "Rename both endpoints of a traverse, singly and from two clients; reload.",
           "expected": "Connected traverse labels use both final endpoint names regardless of edit order.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/stationGraph.spec.ts",
+              "title": "renaming traverse endpoints Alpha then Bravo from two clients updates every connected label"
+            },
+            {
+              "file": "behavior/stationGraph.spec.ts",
+              "title": "renaming traverse endpoints Bravo then Alpha from two clients updates every connected label"
+            }
+          ],
+          "note": "Both endpoint save orders from two synchronized clients update all adjacent traverse labels; exact geometry, ownership and unrelated entities remain unchanged after reload. This does not establish simultaneous stale-snapshot rename resolution."
         },
         {
           "id": "STATION-011",
@@ -810,8 +1014,22 @@
           "priority": "P0",
           "action": "Cancel deletion of an unassigned station; try direct deletion of egress/ingress copies.",
           "expected": "Cancel preserves children and membership; managed lander copies cannot be deleted independently.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/stationGraph.spec.ts",
+              "title": "canceling deletion of an unassigned station preserves its actions and folder membership"
+            },
+            {
+              "file": "behavior/stationGraph.spec.ts",
+              "title": "direct deletion of a managed lander egress is rejected without altering the graph"
+            },
+            {
+              "file": "behavior/stationGraph.spec.ts",
+              "title": "direct deletion of a managed lander ingress is rejected without altering the graph"
+            }
+          ],
+          "note": "Cancel preserves the complete unassigned station/action/folder graph. Confirmed direct deletion of either managed lander endpoint is rejected before graph mutation."
         },
         {
           "id": "STATION-012",
@@ -837,8 +1055,18 @@
           "priority": "P0",
           "action": "Clear manual dwell with known EV1/EV2 and unassigned actions; restore an override.",
           "expected": "Displayed duration follows the intended override precedence and crew warnings without losing action data.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/stationGraph.spec.ts",
+              "title": "manual station dwell overrides calculated crew time without unassigned actions"
+            },
+            {
+              "file": "behavior/stationGraph.spec.ts",
+              "title": "manual station dwell overrides calculated crew time with unassigned actions"
+            }
+          ],
+          "note": "Manual-to-calculated-to-manual UI lifecycle uses independent 10/7/3 minute tasks plus a disabled 90 minute task, with and without unassigned work. Peer sequence duration, warning state, saved action data and reload agree."
         },
         {
           "id": "STATION-015",
@@ -846,8 +1074,14 @@
           "priority": "P1",
           "action": "Toggle/style circles at one station, then inspect another station and a peer.",
           "expected": "Styles and visibility persist for that station only and map radii match definition metres.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/stationCircles.spec.ts",
+              "title": "station circle visibility and style stay local and render the defined metre radius"
+            }
+          ],
+          "note": "One station circle visibility/style is changed with a controlled debounce; the other station remains independent. Peer/reload and independently measured 350m radius/tight center association are checked."
         },
         {
           "id": "STATION-016",
@@ -855,8 +1089,14 @@
           "priority": "P2",
           "action": "Edit icon/description and inspect EVA usage and linked POI totals.",
           "expected": "Lists, map and info agree; shared station usage remains accurate across plans and execution copies.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/stationMetadataUsage.spec.ts",
+              "title": "station description and icon agree in list, map, linked POIs and shared EVA usage"
+            }
+          ],
+          "note": "Shared station description Cancel/Save and icon agree with list/map/info, peer and reload. Two planned EVAs share the station while exact execution-owned copies remain unchanged. Linked POI action count/time/mass/use totals are independently known and associations stay intact."
         }
       ]
     },
@@ -950,8 +1190,14 @@
           "priority": "P1",
           "action": "Rename EVA, change description/color/start UTC/duration/rate; test blank, duplicate and numeric boundaries; reload.",
           "expected": "Saved values and generated labels persist, invalid/canceled edits do not, and planned versus REX name scopes remain distinct.",
-          "automation": "gap",
-          "tests": []
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/evaMetadataLifecycle.spec.ts",
+              "title": "validates plan metadata with a read-only peer while REX names stay family-scoped"
+            }
+          ],
+          "note": "Single-editor title/description/color/numeric/UTC validation, persistence, planned-versus-REX name scopes and read-only-peer/fresh-client observation are exercised. A full combined run exposed actual two-editor UTC rollback: the already-open editing peer republishes its stale local datetime over the saved author value. Original failure trace is retained; multi-editor persistence remains unproved and this row receives no complete credit."
         },
         {
           "id": "EVA-007",
@@ -977,8 +1223,18 @@
           "priority": "P0",
           "action": "Switch each endpoint between lander copy and regular station and back.",
           "expected": "Managed copies/actions are owned correctly, endpoint traverses update, and unrelated stations remain intact.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/evaBoundaryLifecycle.spec.ts",
+              "title": "switches egress from managed lander copy to a regular station and back"
+            },
+            {
+              "file": "behavior/evaBoundaryLifecycle.spec.ts",
+              "title": "switches ingress from managed lander copy to a regular station and back"
+            }
+          ],
+          "note": "Both endpoints switch from a managed lander copy to a regular station and back. A real managed-owned child action is deleted, regular-station actions survive exactly, boundary geometry follows the selected location, unrelated graph data and peer/reload remain correct."
         },
         {
           "id": "EVA-010",
@@ -986,8 +1242,14 @@
           "priority": "P1",
           "action": "Create supported empty station slots and load a fixture with an unresolved reference.",
           "expected": "UI explains missing selection; reports and map do not crash or silently substitute another entity.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/evaBoundaryLifecycle.spec.ts",
+              "title": "Add Station creates an explicit empty selector without substituting a station"
+            }
+          ],
+          "note": "UI-created empty slot and a separately arranged unresolved station UUID both show missing selection without substituted data; sequence identity, report rendering, map absence and peer/reload are checked."
         },
         {
           "id": "EVA-011",
@@ -995,8 +1257,18 @@
           "priority": "P1",
           "action": "Cancel duplicate-with-stations and delete dialogs; confirm deletion with several REX families.",
           "expected": "Cancel preserves the graph; confirmed deletion enumerates and cleans only the intended ownership tree.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/evaDeleteOwnership.spec.ts",
+              "title": "canceling duplicate and delete preserves the graph; confirmation deletes only one plan and its REX family"
+            },
+            {
+              "file": "behavior/planning.spec.ts",
+              "title": "two executions of the same plan have distinct entities and deleting the plan cascades only through its executions"
+            }
+          ],
+          "note": "Duplicate-with-stations and EVA-delete confirmations can be canceled without any graph change. Confirmed deletion removes only the intended plan/REX ownership tree while shared planned stations and the other family survive."
         },
         {
           "id": "EVA-012",
@@ -1125,8 +1397,14 @@
           "priority": "P0",
           "action": "Link a POI, copy one source action into its station, then edit source and copy independently.",
           "expected": "New UUID/lineage, source reference and copy metadata are correct; linking alone does not copy actions and later edits remain independent.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionAdoption.spec.ts",
+              "title": "copying a linked POI action creates an independent station action with source lineage"
+            }
+          ],
+          "note": "UI linking alone creates no station action. Explicit adoption creates independent UUID/refUuid and source lineage, copies all supported payload fields and remains independent through edits to both source and copy, peer display and reload."
         },
         {
           "id": "ACTION-009",
@@ -1143,8 +1421,14 @@
           "priority": "P1",
           "action": "Edit rich/free text fields and icon; cancel another edit; reload and inspect aggregate cards.",
           "expected": "Exact supported content persists, task text stays parent-appropriate, and cancellation leaves saved fields unchanged.",
-          "automation": "gap",
-          "tests": []
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/actionAdoption.spec.ts",
+              "title": "action and task descriptions save independently, Cancel preserves text, and saved text survives reload"
+            }
+          ],
+          "note": "Station action description/task text Save, Cancel, persisted values and reload are covered. Icon editing, the parent-appropriate field matrix and aggregate cards remain unproved."
         },
         {
           "id": "ACTION-011",
@@ -1152,8 +1436,14 @@
           "priority": "P0",
           "action": "Try zero, unset, fractional, negative, maximum and overlong duration/planned-mass values.",
           "expected": "Field constraints and calculated totals agree; absent and zero remain distinct where the domain requires it.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionAdoption.spec.ts",
+              "title": "duration and planned mass boundaries preserve unset versus zero and match parent totals"
+            }
+          ],
+          "note": "Duration is required; mass can be null or zero. Decimal punctuation is filtered to integer digits, four-character limits reject overlong saves, and signed/zero values are accepted. Independently known parent totals and reload match the actual saved values."
         },
         {
           "id": "ACTION-012",
@@ -1460,8 +1750,18 @@
           "priority": "P1",
           "action": "Change measurement tabs and bottom panes, switch mission and reload.",
           "expected": "Selection does not spuriously recenter the map and local-only measurements obey their explicit lifetime.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/measurementLifecycle.spec.ts",
+              "title": "temporary measurement tabs preserve the map view and stay local through navigation at zoom 17"
+            },
+            {
+              "file": "behavior/measurementLifecycle.spec.ts",
+              "title": "temporary measurement tabs preserve the map view and stay local through navigation at zoom 19"
+            }
+          ],
+          "note": "Two zoom variants check distinct measurement tabs without recentering, bottom-pane switching, independent peer state, SPA switching between isolated missions, and reload lifetime. The shared mission document is unchanged."
         },
         {
           "id": "MEASURE-003",
@@ -1517,8 +1817,18 @@
           "fixture": "Loaded real terrain profile with both slope bands and the actual shared color-mode controls.",
           "action": "Open Key by keyboard; inspect both example rows; toggle Colorblind, close with Escape/backdrop and revisit a profile.",
           "expected": "The named dialog explains Path Grade versus Terrain Slope and every active range; aria-pressed and shared graph/legend mode agree, with usable focus and dismissal.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/measurementLifecycle.spec.ts",
+              "title": "real DEM slope key exposes ranges, shared graph colors and keyboard focus with Escape dismissal"
+            },
+            {
+              "file": "behavior/measurementLifecycle.spec.ts",
+              "title": "real DEM slope key exposes ranges, shared graph colors and keyboard focus with backdrop dismissal"
+            }
+          ],
+          "note": "The real Apollo14 DEM/worker establishes a golden elevation and loads a measurement profile. Keyboard-opened named Key dialog exposes both 24-sample example bands, explanations and all standard/colorblind ranges; graph pixels and shared mode change, Escape/backdrop restore focus, and revisiting preserves mode."
         }
       ]
     },
@@ -1546,14 +1856,14 @@
           "priority": "P1",
           "action": "Create, rename, duplicate and delete presets; set default; cancel deletion; reload.",
           "expected": "Copies are independent and not default; deleting selected preset returns to the correct default without orphan folder references.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "mission/mission.spec.ts",
-              "title": "Preset"
+              "file": "behavior/presetLifecycle.spec.ts",
+              "title": "presets create, rename, duplicate independently, delete safely, and return to the persisted default"
             }
           ],
-          "note": "Existing test covers imported-mission create/rename/duplicate/delete, not default changes, Cancel, reload or independent persisted style."
+          "note": "Isolated UI creation/rename, independent copied sun styling, default changes, canceled/confirmed selected deletion and default fallback, folder-reference cleanup and reload replace the narrower legacy mapping. Duplicates are explicitly nondefault."
         },
         {
           "id": "PRESET-002",
@@ -1672,7 +1982,10 @@
       "id": "calc",
       "name": "Time, distance, crew and resource calculations",
       "fixture": "Independent numeric fixtures: EV1 10 min, EV2 4 min, unassigned 1 min; joint 3 min plus solo 2/5 min; 500 m at 3 km/h.",
-      "sources": ["src/store/processing/calculatedFields.ts", "src/utils/mapping/geoMath.ts"],
+      "sources": [
+        "src/store/processing/calculatedFields.ts",
+        "src/utils/mapping/geoMath.ts"
+      ],
       "supporting": [
         "src/tests/vitest/store/calculatedFields.test.ts",
         "src/tests/vitest/utils/geoMath.test.ts",
@@ -2076,8 +2389,14 @@
           "priority": "P0",
           "action": "Start a never-executed REX with several position sources/types, stop and start again.",
           "expected": "Initial positions are seeded once at egress with the correct PET/types; restart does not duplicate them or change planning entities.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "first start seeds one egress position per configured source and restart reuses them"
+            }
+          ],
+          "note": "First start seeds one egress/PET-zero entry for every configured source with every type, exact entries survive stop/start and planning data remains unchanged."
         },
         {
           "id": "REX-022",
@@ -2085,8 +2404,14 @@
           "priority": "P1",
           "action": "Rename two REXes in one EVA family; edit Maestro control; cancel and reload.",
           "expected": "Name uniqueness is family-scoped, immutable copied EVA name remains protected and control metadata persists.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/rexMetadata.spec.ts",
+              "title": "REX names are family-scoped and Maestro control persists without renaming the copied EVA"
+            }
+          ],
+          "note": "Two REXes in one EVA family are renamed independently; empty and case-insensitive duplicate saves are rejected, another family name is allowed, Cancel preserves data, and Maestro control persists on a peer and after reload without renaming copied EVA data."
         },
         {
           "id": "REX-023",
@@ -2094,8 +2419,14 @@
           "priority": "P0",
           "action": "Enable Show only Executing EVA; stop remotely and start another REX.",
           "expected": "Selection/list scope follows the active execution and remote stop clears running-only mode without stale controls.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "remote stop exits running-only mode, restores the list and removes stale stop controls"
+            }
+          ],
+          "note": "Running-only scope follows the executing REX, remote stop clears the mode/list restriction and stale controls, a different remote execution appears and reload restores correct stop controls."
         },
         {
           "id": "REX-024",
@@ -2103,8 +2434,50 @@
           "priority": "P0",
           "action": "Edit positive, negative, zero, long-hour and out-of-range minute/second values; test typing and length limits.",
           "expected": "Format, numeric semantics and rejection follow the actual field contract; no cross-execution clock changes occur.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "accepts positive PET according to the field's format and numeric semantics"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "accepts negative PET according to the field's format and numeric semantics"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "accepts zero PET according to the field's format and numeric semantics"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "accepts maximum two-digit hour PET according to the field's format and numeric semantics"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "accepts minute and second values above 59 PET according to the field's format and numeric semantics"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "accepts typing filters non-time characters PET according to the field's format and numeric semantics"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "rejects an invalid PET hour exceeds the two-digit maximum without replacing committed clocks"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "rejects an invalid PET value exceeds nine-character input limit without replacing committed clocks"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "rejects an invalid PET incomplete field without replacing committed clocks"
+            },
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "rejects an invalid PET empty field without replacing committed clocks"
+            }
+          ],
+          "note": "Positive/negative/zero, long-hour, overflow minute/second, filtering, length and rejected-format cases assert PET semantics, historical age clamp, saved/reloaded value and other-execution isolation."
         },
         {
           "id": "REX-025",
@@ -2130,8 +2503,18 @@
           "priority": "P0",
           "action": "Cancel and confirm deleting the selected stopped REX while another client views it.",
           "expected": "Only its owned execution graph disappears; both clients fall back safely to the plan and unrelated REXes remain unchanged.",
-          "automation": "gap",
-          "tests": []
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/rexMetadata.spec.ts",
+              "title": "deleting a selected historical REX preserves its graph boundaries and clears stale controls with no active REX"
+            },
+            {
+              "file": "behavior/rexMetadata.spec.ts",
+              "title": "deleting a selected historical REX preserves its graph boundaries and clears stale controls with another REX active"
+            }
+          ],
+          "note": "Cancel and confirmed historical REX deletion preserve the exact unrelated mission graph; both clients remove stale REX controls/options and fresh pages can navigate to surviving plans/executions. Live restoration of the planned-EVA detail selection is not established: deletion can leave the right panel empty and stale local selection, so this row receives no full mapping credit."
         }
       ]
     },
@@ -2139,7 +2522,10 @@
       "id": "policy",
       "name": "Execution edit policies, status and collected values",
       "fixture": "Original and added station/traverse/actions under never-run, running, stopped and restarted REXes in none/limited/unrestricted modes.",
-      "sources": ["src/utils/rexExecuteEditMode.ts", "src/operations/apply/apply-rex.ts"],
+      "sources": [
+        "src/utils/rexExecuteEditMode.ts",
+        "src/operations/apply/apply-rex.ts"
+      ],
       "supporting": [
         "src/tests/vitest/utils/rexExecuteEditMode.test.ts",
         "src/tests/vitest/operations/apply/apply-rex.test.ts"
@@ -2337,8 +2723,14 @@
           "priority": "P1",
           "action": "Create/reorder/rename/style/delete marker types, including types used by entries.",
           "expected": "Abbreviation/icon/path color persist; usage guards prevent invalid deletion and maps update without stale labels.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/positionTypes.spec.ts",
+              "title": "position types create, rename, reorder, style, guard used deletion and update map labels and paths"
+            }
+          ],
+          "note": "UI create/name/abbreviation/icon/path-color/reorder, used-deletion guards and unused deletion, a newly typed entry, map labels/path styling and reload are checked with unchanged planning data."
         },
         {
           "id": "POSITION-005",
@@ -2346,8 +2738,14 @@
           "priority": "P1",
           "action": "Create/rename/delete sources up to the limit, including used and last remaining source.",
           "expected": "Limit/usage/last-source guards hold and new entries use the correct surviving source after reload.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "position sources enforce the count and usage guards and persist renames and surviving-source entries"
+            }
+          ],
+          "note": "UI creation up to four sources and over-limit rejection, name/abbreviation editing, used-source and final-source deletion guards, deletion of unused sources and new surviving-source positions are checked against persisted state and reload."
         },
         {
           "id": "POSITION-006",
@@ -2355,8 +2753,18 @@
           "priority": "P0",
           "action": "Toggle sources/types with older/newer and same-PET entries on planned, historical and active views.",
           "expected": "Visible points/paths use the intended scope, ordering and filters; historical ages stay tied to their own REX.",
-          "automation": "gap",
-          "tests": []
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "source filters and equal-PET chronology stay scoped to active, historical and planned views"
+            },
+            {
+              "file": "behavior/positionHistoryFilterCoverage.spec.ts",
+              "title": "historical source filters use that REX's own PET and do not leak into active or planned scope"
+            }
+          ],
+          "note": "Active source filters/equal-PET ordering plus historical All/Crew/Rover marker paths and own-REX ages, active-source isolation and planned clearing are covered. The complete marker-type/source/path/age matrix across all scopes remains unproved."
         },
         {
           "id": "POSITION-007",
@@ -2364,8 +2772,14 @@
           "priority": "P0",
           "action": "Two clients add entries then edit/delete overlapping positions while one briefly disconnects.",
           "expected": "Both clients converge to the same valid entries without lost unrelated positions or dangling type/source references.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/positions.spec.ts",
+              "title": "two clients converge on position additions, edits and deletions across a disconnect"
+            }
+          ],
+          "note": "Two clients create entries, an offline peer catches up with online edits/deletion, and concurrent saves to the same surviving entry converge to one valid submitted payload without assuming field-level merging or an arbitrary winner. Unrelated entries and type/source references survive; peer deletion, both UIs, markers and reload agree."
         }
       ]
     },
@@ -2481,8 +2895,14 @@
           "priority": "P0",
           "action": "Keep dashboard open while another client starts, pauses, resumes, stops and switches REX.",
           "expected": "Identity, PET, timeline, markers and empty states transition coherently through the complete sequence without reload.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/dashboardHandoverCoverage.spec.ts",
+              "title": "dashboard follows remote execution start, PET pause/resume, stop and REX handover without reload"
+            }
+          ],
+          "note": "Open dashboard moves from empty through remote start, paused/resumed PET, stop/empty and a different execution handover without reload; identity, exact PET and map position scopes agree."
         }
       ]
     },
@@ -2521,10 +2941,20 @@
           "id": "STM-003",
           "title": "Satisfaction rule CRUD and validation",
           "priority": "P0",
-          "action": "In v2 create/edit/duplicate/delete rules with definition references; cancel and reload.",
-          "expected": "Required and invalid combinations are handled, saved rule identities are independent and referencing definitions remain protected.",
-          "automation": "gap",
-          "tests": []
+          "action": "In v2 create independent rules, edit definition references and count, test the minimum count and empty exact selection, cancel deletion and reload.",
+          "expected": "Saved rule identities remain independent, count cannot fall below one, empty exact categories match nothing and referencing definitions remain protected. Current controls save edits immediately and expose no duplicate-rule operation.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/stmRules.spec.ts",
+              "title": "satisfaction rules create and edit independently, protect referenced definitions, honor delete cancellation, and persist after reload"
+            },
+            {
+              "file": "behavior/stmRules.spec.ts",
+              "title": "STM matching uses exact tuples and wildcards, excludes missing categories, and crosses the rule threshold at the boundary"
+            }
+          ],
+          "note": "Supported create/edit/delete, independent identities, count-minimum guard, empty exact selection producing zero matches, protected-definition deletion, canceled rule deletion and reload are covered. Rule edits commit immediately; there is no duplicate-rule control or separate draft Save/Cancel, and neither is claimed."
         },
         {
           "id": "STM-004",
@@ -2532,8 +2962,14 @@
           "priority": "P0",
           "action": "Use exact verb/noun/adjective tuples, wildcard/missing categories and threshold boundaries.",
           "expected": "Known satisfied/unsatisfied counts agree with the rule semantics; duplicate and disabled actions are handled explicitly.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/stmRules.spec.ts",
+              "title": "STM matching uses exact tuples and wildcards, excludes missing categories, and crosses the rule threshold at the boundary"
+            }
+          ],
+          "note": "Independent exact/wildcard/missing-adjective fixtures include separate identical tuples and a disabled tuple. The rules-page tally includes disabled actions while EVA coverage excludes them; threshold 2/3 changes explicit all/partial satisfaction counts."
         },
         {
           "id": "STM-005",
@@ -2605,26 +3041,64 @@
           "priority": "P0",
           "action": "Compare known durations, rates, distances, ascent/descent, crew times, mass and equipment across several plans/REXes; change baseline.",
           "expected": "Every absolute/difference cell uses the independent known quantity and signed/null semantics for its metric.",
-          "automation": "gap",
-          "tests": []
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/reportMatrix.spec.ts",
+              "title": "all comparison metrics use independent quantities and signed/null differences against Alpha plan"
+            },
+            {
+              "file": "behavior/reportMatrix.spec.ts",
+              "title": "all comparison metrics use independent quantities and signed/null differences against Alpha execution"
+            },
+            {
+              "file": "behavior/reportMatrix.spec.ts",
+              "title": "all comparison metrics use independent quantities and signed/null differences against Bravo plan"
+            },
+            {
+              "file": "behavior/reportMatrix.spec.ts",
+              "title": "all comparison metrics use independent quantities and signed/null differences against Bravo execution"
+            }
+          ],
+          "note": "All 22 metric rows use independent hand-computed values across two plans/two REXes and all four baselines, including masses, consumables, rates, distance/ascent/descent, crew totals and null semantics. A separate development case found mathematically equal travel totals can render negative zero from floating-point roundoff; that signed-equality boundary remains unresolved, so this broad row gets no full credit."
         },
         {
           "id": "REPORT-004",
           "title": "Report column selection order and persistence",
           "priority": "P1",
-          "action": "Add/remove/reorder/expand plan and REX columns, change filters, navigate and reload.",
-          "expected": "Requested columns and local preferences remain consistent; no stale or duplicate column identities appear.",
-          "automation": "gap",
-          "tests": []
+          "action": "Show/hide and expand plan and REX columns; inspect automatic family ordering; change supported filters, navigate, open a peer and reload.",
+          "expected": "Visible column identities and expansions follow stable family ordering without duplicates; local preferences survive section navigation, stay client-local and reset on reload.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/reportColumns.spec.ts",
+              "title": "EVA Comparison column visibility, stable family order, expansion and filters follow their local lifetime"
+            },
+            {
+              "file": "behavior/reportColumns.spec.ts",
+              "title": "EVA STM Coverage column visibility, stable family order, expansion and filters follow their local lifetime"
+            }
+          ],
+          "note": "Both comparison and STM coverage check family/child visibility, exact Show matches results, hide/show all, automatic family order, plan/REX expansion, navigation, peer isolation and reload reset. A known completed/pending REX fixture changes coverage from two contributing actions to one under completeOnly. Preferences are client-local Redux state; manual column reordering is unsupported and unclaimed."
         },
         {
           "id": "REPORT-005",
           "title": "Campaign lifecycle and membership",
           "priority": "P0",
-          "action": "Create/rename/duplicate/delete campaigns; add/remove/reorder planned EVA members; cancel and reload.",
-          "expected": "Membership and ownership persist without mutating the plans; invalid/duplicate members are handled explicitly.",
-          "automation": "gap",
-          "tests": []
+          "action": "Create, rename and delete campaigns through supported controls; add/remove/reinsert planned EVA members, cancel deletion, observe a peer and reload.",
+          "expected": "Unique planned membership and insertion order persist without mutating plans/REXes; new campaigns are independent and canceled deletion preserves the graph. Unsupported duplicate/manual-drag controls remain explicitly unclaimed.",
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/campaignLifecycle.spec.ts",
+              "title": "campaign lifecycle through EVA Comparison preserves unique ordered plan membership, confirmation and reload"
+            },
+            {
+              "file": "behavior/campaignLifecycle.spec.ts",
+              "title": "campaign lifecycle through EVA STM Coverage preserves unique ordered plan membership, confirmation and reload"
+            }
+          ],
+          "note": "Supported campaign create/rename/delete and ordered membership are tested through both report entries, including checkbox uniqueness, planned-only choices, removal/reinsertion ordering, independent new campaign identity, canceled deletion, peer member order and reload. The current dialog has no duplicate or manual member-drag control; neither is claimed."
         },
         {
           "id": "REPORT-006",
@@ -2632,8 +3106,18 @@
           "priority": "P0",
           "action": "Select an explicit REX or latest fallback per member; delete the designated REX or plan.",
           "expected": "Resolution follows the documented explicit/latest/absent rules and reports never compare an unrelated execution.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/campaignFallback.spec.ts",
+              "title": "campaign explicit/latest resolution falls back safely after deleting its designated REX"
+            },
+            {
+              "file": "behavior/campaignFallback.spec.ts",
+              "title": "campaign explicit/latest resolution falls back safely after deleting its planned EVA"
+            }
+          ],
+          "note": "Explicit versus latest selection uses independently known 250g/900g executions and a distinct unrelated 10000g execution. UI deletion of the designated REX falls back to the newest survivor; deleting the last REX/plan yields absent values. Selected execution EVAs and REXes are confirmed absent, planned EVA absence/preservation matches the delete mode, and peer/reload preserve unrelated ownership."
         },
         {
           "id": "REPORT-007",
@@ -2686,8 +3170,18 @@
           "priority": "P1",
           "action": "Open reports with no EVAs/rules/campaign members, then remove a selected entity from a peer.",
           "expected": "Empty and unresolved states are explicit; no crash, stale detail or accidental mutation occurs.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/reportMatrix.spec.ts",
+              "title": "empty reports and remote deletion recover to an explicit empty state without incidental mutations"
+            },
+            {
+              "file": "behavior/reportMatrix.spec.ts",
+              "title": "empty reports and remote deletion recover to another POI without incidental mutations"
+            }
+          ],
+          "note": "No-EVA/no-rule, no-column, empty-campaign-member and POI empty states are explicit. Deleting a selected POI from a peer removes stale detail and falls back to another POI or named empty state without incidental document mutations."
         },
         {
           "id": "REPORT-013",
@@ -2704,7 +3198,10 @@
       "id": "export",
       "name": "JSON, GeoJSON and external handoff exports",
       "fixture": "Planning and executed mission with known coordinates, units, relationships, sample data and export subsets.",
-      "sources": ["src/components/panes/mission/mission-right-export.tsx", "src/utils/export.ts"],
+      "sources": [
+        "src/components/panes/mission/mission-right-export.tsx",
+        "src/utils/export.ts"
+      ],
       "supporting": [
         "src/tests/vitest/utils/export.test.ts",
         "src/tests/vitest/utils/quickMap.test.ts"
@@ -2932,8 +3429,18 @@
           "priority": "P0",
           "action": "Two independent clients concurrently rename/edit the same field, then reconnect and reload.",
           "expected": "All clients and server converge on the documented conflict resolution while preserving unrelated fields; no arbitrary winner is asserted without a contract.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/sameFieldConflictCoverage.spec.ts",
+              "title": "converges concurrent station saves across disconnect and reload"
+            },
+            {
+              "file": "behavior/sameFieldConflictCoverage.spec.ts",
+              "title": "converges concurrent station description saves across disconnect and reload"
+            }
+          ],
+          "note": "Independent clients submit conflicting names/descriptions; only a submitted winner is allowed. Server/both UIs converge, disconnect/reconnect and reload agree, and other fields/stations plus derived traverse names remain valid."
         },
         {
           "id": "COLLAB-008",
@@ -2941,8 +3448,14 @@
           "priority": "P0",
           "action": "Observe entity graph while a peer duplicates/deletes EVA/REX/station/action trees.",
           "expected": "Each logical atomic operation exposes valid ownership/order references; no peer observes half-built or orphan graphs.",
-          "automation": "gap",
-          "tests": []
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/collaborationAtomicGraphCoverage.spec.ts",
+              "title": "peer EVA duplication publishes a complete graph with no observed dangling references"
+            }
+          ],
+          "note": "The new case samples authoritative HTTP snapshots during EVA-with-stations duplication and validates closed references plus eventual peer/reload display. It does not establish every browser document transition or the full EVA/REX/station/action duplicate/delete matrix."
         },
         {
           "id": "COLLAB-009",
@@ -2950,8 +3463,26 @@
           "priority": "P0",
           "action": "Delete a station/action/EVA/REX while the peer has it selected and a draft open.",
           "expected": "Selections and dialogs recover without resurrecting deleted identities or corrupting surviving relationships.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaborationDeleteDraftCoverage.spec.ts",
+              "title": "deleting a station while a peer has a selected draft does not resurrect it"
+            },
+            {
+              "file": "behavior/collaborationDeleteDraftCoverage.spec.ts",
+              "title": "deleting a planned EVA while a peer edits its title removes only that plan graph"
+            },
+            {
+              "file": "behavior/collaborationDeleteDraftCoverage.spec.ts",
+              "title": "deleting an action while a peer has its name draft removes the parent reference"
+            },
+            {
+              "file": "behavior/collaborationDeleteDraftCoverage.spec.ts",
+              "title": "deleting a REX while its title draft is open does not restore execution-owned data"
+            }
+          ],
+          "note": "Station, action, planned EVA and REX are deleted remotely while a peer has a selected unsaved draft. Stale controls/dialogs recover through supported dismissal/reload without resurrecting identity; surviving ownership records stay unchanged."
         },
         {
           "id": "COLLAB-010",
@@ -3115,7 +3646,11 @@
       "id": "integration",
       "name": "Maestro, DUST and service contracts",
       "fixture": "Disposable socket clients with valid/invalid endpoint token and EMSS master token; schema-valid deterministic payloads and two missions.",
-      "sources": ["src/server/maestro/v2", "src/server/dust/v1", "src/server/express/restApi.ts"],
+      "sources": [
+        "src/server/maestro/v2",
+        "src/server/dust/v1",
+        "src/server/express/restApi.ts"
+      ],
       "supporting": [
         "src/tests/vitest/maestro/v2/sockets-maestro.test.ts",
         "src/tests/vitest/maestro/v2/mdauValidator.test.ts",
@@ -3219,7 +3754,10 @@
       "id": "access",
       "name": "Accessibility, browser compatibility and resilience",
       "fixture": "Keyboard-only, reduced-motion and narrow/wide viewport sessions; Chromium full suite and Firefox/WebKit smoke configurations.",
-      "sources": ["src/components/interface", "src/tests/playwright/playwright.config.ts"],
+      "sources": [
+        "src/components/interface",
+        "src/tests/playwright/playwright.config.ts"
+      ],
       "supporting": [],
       "scenarios": [
         {
@@ -3285,7 +3823,9 @@
         "docker-compose.yml",
         "src/server/automerge/migrations"
       ],
-      "supporting": ["src/tests/vitest/server/automerge/migrationRegistry.test.ts"],
+      "supporting": [
+        "src/tests/vitest/server/automerge/migrationRegistry.test.ts"
+      ],
       "scenarios": [
         {
           "id": "OPS-001",

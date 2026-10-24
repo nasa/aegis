@@ -6,7 +6,7 @@ Fixture: Two independent browser contexts for the same authorized test user and 
 
 Source: [src/client/automerge-network-adapter.ts](../../../src/client/automerge-network-adapter.ts), [src/client/automergeDocHandles.ts](../../../src/client/automergeDocHandles.ts), [src/server/automerge](../../../src/server/automerge).
 
-Scenario mapping: **6/14 (42.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **8/14 (57.1%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts](../../../src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts), [src/tests/vitest/automerge/integrityCheck.test.ts](../../../src/tests/vitest/automerge/integrityCheck.test.ts).
 
@@ -72,27 +72,47 @@ Playwright: [src/tests/playwright/behavior/collaboration.spec.ts:255](../../../s
 
 ## COLLAB-007: Same-field conflict convergence
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Two independent clients concurrently rename/edit the same field, then reconnect and reload.
 
 Expected: All clients and server converge on the documented conflict resolution while preserving unrelated fields; no arbitrary winner is asserted without a contract.
 
+Playwright: [src/tests/playwright/behavior/sameFieldConflictCoverage.spec.ts:46](../../../src/tests/playwright/behavior/sameFieldConflictCoverage.spec.ts#L46) — converges concurrent station saves across disconnect and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/sameFieldConflictCoverage.spec.ts:46](../../../src/tests/playwright/behavior/sameFieldConflictCoverage.spec.ts#L46) — converges concurrent station description saves across disconnect and reload (chromium).
+
+Evidence boundary: Independent clients submit conflicting names/descriptions; only a submitted winner is allowed. Server/both UIs converge, disconnect/reconnect and reload agree, and other fields/stations plus derived traverse names remain valid.
+
 ## COLLAB-008: Atomic graph edits observed by peers
 
-**P0 · Gap**
+**P0 · Partial**
 
 Action: Observe entity graph while a peer duplicates/deletes EVA/REX/station/action trees.
 
 Expected: Each logical atomic operation exposes valid ownership/order references; no peer observes half-built or orphan graphs.
 
+Playwright: [src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts:29](../../../src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts#L29) — peer EVA duplication publishes a complete graph with no observed dangling references (chromium).
+
+Evidence boundary: The new case samples authoritative HTTP snapshots during EVA-with-stations duplication and validates closed references plus eventual peer/reload display. It does not establish every browser document transition or the full EVA/REX/station/action duplicate/delete matrix.
+
 ## COLLAB-009: Delete while peer edits or selects
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Delete a station/action/EVA/REX while the peer has it selected and a draft open.
 
 Expected: Selections and dialogs recover without resurrecting deleted identities or corrupting surviving relationships.
+
+Playwright: [src/tests/playwright/behavior/collaborationDeleteDraftCoverage.spec.ts:15](../../../src/tests/playwright/behavior/collaborationDeleteDraftCoverage.spec.ts#L15) — deleting a station while a peer has a selected draft does not resurrect it (chromium).
+
+Playwright: [src/tests/playwright/behavior/collaborationDeleteDraftCoverage.spec.ts:77](../../../src/tests/playwright/behavior/collaborationDeleteDraftCoverage.spec.ts#L77) — deleting a planned EVA while a peer edits its title removes only that plan graph (chromium).
+
+Playwright: [src/tests/playwright/behavior/collaborationDeleteDraftCoverage.spec.ts:124](../../../src/tests/playwright/behavior/collaborationDeleteDraftCoverage.spec.ts#L124) — deleting an action while a peer has its name draft removes the parent reference (chromium).
+
+Playwright: [src/tests/playwright/behavior/collaborationDeleteDraftCoverage.spec.ts:179](../../../src/tests/playwright/behavior/collaborationDeleteDraftCoverage.spec.ts#L179) — deleting a REX while its title draft is open does not restore execution-owned data (chromium).
+
+Evidence boundary: Station, action, planned EVA and REX are deleted remotely while a peer has a selected unsaved draft. Stale controls/dialogs recover through supported dismissal/reload without resurrecting identity; surviving ownership records stay unchanged.
 
 ## COLLAB-010: Mission switch during synchronization
 

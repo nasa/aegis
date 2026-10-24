@@ -6,21 +6,21 @@ Fixture: Mission with two presets, folder ownership, grid/circle definitions and
 
 Source: [src/components/panes/preset/preset-right.tsx](../../../src/components/panes/preset/preset-right.tsx), [src/operations/apply/apply-mission-preset.ts](../../../src/operations/apply/apply-mission-preset.ts), [src/components/interface/map/behaviors/TileLayers.tsx](../../../src/components/interface/map/behaviors/TileLayers.tsx), [src/components/panes/preset/preset-right-azimuth.tsx](../../../src/components/panes/preset/preset-right-azimuth.tsx), [src/components/interface/map/hooks/useSunEarthAzimuths.ts](../../../src/components/interface/map/hooks/useSunEarthAzimuths.ts).
 
-Scenario mapping: **0/13 (0%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **1/13 (7.7%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/PresetLayers.browser.test.tsx](../../../src/tests/vitest-browser/PresetLayers.browser.test.tsx), [src/tests/vitest-browser/PresetAzimuth.browser.test.tsx](../../../src/tests/vitest-browser/PresetAzimuth.browser.test.tsx), [src/tests/vitest/map/layerFactory.test.ts](../../../src/tests/vitest/map/layerFactory.test.ts), [src/tests/vitest/utils/lunarSky.test.ts](../../../src/tests/vitest/utils/lunarSky.test.ts).
 
 ## PRESET-001: Preset lifecycle and defaults
 
-**P1 · Partial**
+**P1 · Mapped**
 
 Action: Create, rename, duplicate and delete presets; set default; cancel deletion; reload.
 
 Expected: Copies are independent and not default; deleting selected preset returns to the correct default without orphan folder references.
 
-Playwright: [src/tests/playwright/mission/mission.spec.ts:43](../../../src/tests/playwright/mission/mission.spec.ts#L43) — Preset (chromium).
+Playwright: [src/tests/playwright/behavior/presetLifecycle.spec.ts:55](../../../src/tests/playwright/behavior/presetLifecycle.spec.ts#L55) — presets create, rename, duplicate independently, delete safely, and return to the persisted default (chromium).
 
-Evidence boundary: Existing test covers imported-mission create/rename/duplicate/delete, not default changes, Cancel, reload or independent persisted style.
+Evidence boundary: Isolated UI creation/rename, independent copied sun styling, default changes, canceled/confirmed selected deletion and default fallback, folder-reference cleanup and reload replace the narrower legacy mapping. Duplicates are explicitly nondefault.
 
 ## PRESET-002: Preset view versus saved draft
 

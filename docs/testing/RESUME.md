@@ -1,189 +1,192 @@
 # Resume Playwright coverage work
 
-Last updated: **2026-10-24**. This is the working handoff; update it after each
-coverage batch. Scenario IDs and acceptance details live in the
-[catalog](scenario-catalog.json) and [coverage report](coverage.md).
+Last updated: **2026-10-24**. Complete acceptance details live in the
+[catalog](scenario-catalog.json) and generated [coverage report](coverage.md).
 
 ## Current checkpoint
 
-Branch at handoff: `codex/playwright-behavioral-baseline`.
+Branch: `codex/playwright-behavioral-baseline`. This working-tree batch follows
+`e3fb7de0`; no new commit was created.
 
-| Commit                      | Completed work                                                                                  |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `55c3d7e4`                  | Initial full-stack behavioral regression baseline                                               |
-| `2f20b96c`                  | Expanded behavior contracts and added the tracked scenario inventory/report                     |
-| `30893093`                  | Five more tests for mission defaults, lander cascades, POI links and folder visibility          |
-| This batch after `29363b92` | Five position tests for captured PET, map/metadata commit boundaries, cancellation and deletion |
+**Added 111 Chromium behavior cases** across 28 new spec files and extensions
+to folders/positions. Three Luna subagents worked in successive parallel batches;
+the coordinator added tests, reviewed assertions/mappings and ran final validation.
+No production source or Playwright configuration was changed.
 
-At this checkpoint, **88/253 eligible scenarios (34.8%)** are fully mapped, including
-**52/146 P0 scenarios (35.6%)**. There are **156 gaps, nine partial mappings and
-seven external scenarios**. The denominator was preserved. These are reviewed
-scenario mappings, not JavaScript line coverage.
+| Measure                              | Before         | Current             |
+| ------------------------------------ | -------------- | ------------------- |
+| Complete eligible scenarios          | 88/253 (34.8%) | **129/253 (51.0%)** |
+| Complete P0 scenarios                | 52/146 (35.6%) | **71/146 (48.6%)**  |
+| Chromium behavior cases              | 102            | **213**             |
+| Combined browser run, including auth | 111            | **222 passed**      |
 
-The latest confirmation passed **111 cases in 4.1 minutes with no failures,
-skips or retries**: 102 Chromium behavior cases, four Firefox smoke cases, four
-WebKit smoke cases and authentication. TypeScript, scoped ESLint, formatting
-and report freshness also passed. See the
-[position validation record](runs/2026-10-24-positions.md) for commands and evidence.
-The complete legacy imported-mission/map suites were not run.
+There are **115 gaps, nine partial mappings and seven external scenarios**.
+The 260-row inventory and 253-scenario denominator are unchanged. Percentages
+measure reviewed complete scenario mappings, not JavaScript line coverage.
+Partial rows receive no credit. Firefox/WebKit run their four smoke cases each;
+the complete behavioral matrix runs in Chromium.
 
-Latest closed IDs: `POSITION-001`, `POSITION-002`, `POSITION-003`, in
-[positions.spec.ts](../../src/tests/playwright/behavior/positions.spec.ts).
-The tests detect deliberate placement-time PET drift and metadata commits during
-map placement; both temporary source mutations were restored byte-for-byte.
-There is no partially implemented test from this batch to finish.
+Final confirmation: **222/222 passed with three workers, zero retries and zero
+skips**. TypeScript, scoped ESLint, Prettier, generated-report freshness and
+`git diff --check` also passed. See the
+[validation record](runs/2026-10-24-expanded-coverage.md) for commands, scope,
+development failures and retained evidence.
 
-The preceding batch closed `CFG-003`, `CFG-004`, `FOLDER-003`, `POI-007`; its tests are
-in [missionDefaults.spec.ts](../../src/tests/playwright/behavior/missionDefaults.spec.ts),
-[folders.spec.ts](../../src/tests/playwright/behavior/folders.spec.ts) and
-[poiLinks.spec.ts](../../src/tests/playwright/behavior/poiLinks.spec.ts).
+### Newly completed scenario mappings
+
+| Area                                                     | Scenarios                                                                 |
+| -------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Application entry and navigation                         | `APP-003`, `APP-006`                                                      |
+| Authentication, permissions and connection gates         | `AUTH-001`                                                                |
+| Mission reference data and templates                     | `REF-001`, `REF-003`, `REF-005`, `REF-006`, `REF-007`, `REF-008`          |
+| Folders, ordering and shared lists                       | `FOLDER-001`, `FOLDER-002`                                                |
+| POI lifecycle and association                            | `POI-006`                                                                 |
+| Station lifecycle and properties                         | `STATION-010`, `STATION-011`, `STATION-014`, `STATION-015`, `STATION-016` |
+| EVA sequence editing and plan identity                   | `EVA-009`, `EVA-010`, `EVA-011`                                           |
+| Action editing, reuse and ownership                      | `ACTION-008`, `ACTION-011`                                                |
+| Measurements and terrain profiles                        | `MEASURE-002`, `MEASURE-008`                                              |
+| Presets, layers and GIS display                          | `PRESET-001`                                                              |
+| Execution lifecycle and PET ownership                    | `REX-021`, `REX-022`, `REX-023`, `REX-024`                                |
+| Execution position entry, types and sources              | `POSITION-004`, `POSITION-005`, `POSITION-007`                            |
+| Execution dashboard, follow and minimap                  | `DASH-009`                                                                |
+| Legacy STM and v2 satisfaction rules                     | `STM-003`, `STM-004`                                                      |
+| Comparison, STM coverage, campaigns and POI traceability | `REPORT-004`, `REPORT-005`, `REPORT-006`, `REPORT-012`                    |
+| Collaboration, persistence and recovery                  | `COLLAB-007`, `COLLAB-009`                                                |
+
+Mappings cover actual supported controls. Catalog wording explicitly records
+that folders support membership rather than row reordering; report columns use
+automatic family ordering and client-local preferences that reset on reload;
+campaigns have no duplicate/manual-drag control; priorities contain trace/category
+rather than color/manual-order fields; STM rule edits save immediately without a
+duplicate control. These features are not claimed as tested or implemented.
+
+### Important remaining boundaries
+
+- `POSITION-006`: source filtering, equal-PET ordering, historical source/path/age
+  checks and planned clearing are covered; the complete marker-type matrix remains.
+- `ACTION-010`: saved/canceled station text is covered; icon/parent-specific fields
+  and aggregate-card coverage remain.
+- `REX-027`: deletion ownership and fresh-page recovery pass. Live plan-detail
+  fallback after remote deletion can leave an empty panel/stale dropdown until reload.
+- `REPORT-003`: 22 independently calculated metric rows across four baselines pass.
+  A mathematically equal travel delta can display negative zero from floating-point
+  roundoff; the row remains partial.
+- `COLLAB-008`: server snapshots during EVA duplication are checked, but the full
+  operation matrix and every browser document transition are unproved.
+- `EVA-006` remains partial: an already-open editing peer can republish its stale
+  UTC date/time over the saved author's value. The passing case explicitly uses one
+  editor and a read-only peer; the failing two-editor trace is retained for follow-up.
 
 ## Start here next time
 
-1. Read this handoff, inspect `git status --short` and `git log -3 --oneline`, and
-   preserve any newer work. The counts above are a checkpoint, not a substitute
-   for checking the current catalog.
-2. Run `npm run test:playwright:scenarios`. This validates discovery and generated
-   documentation without starting the application or database.
-3. Take the folder lifecycle/membership batch below, or choose critical
-   position filtering/concurrency work if prioritizing P0 coverage. Read each catalog row's complete
-   action/expected outcome before implementing it.
-4. Use isolated behavioral fixtures and UI actions; run the focused cases, review
-   their complete scenario mappings, then regenerate and validate the report.
-   Record browser results separately from discovery results.
+1. Read this handoff, `git status --short` and recent history; preserve newer work.
+   The catalog supersedes these checkpoint counts.
+2. Run `npm run test:playwright:scenarios` for discovery/report freshness. It runs no
+   browser cases. Read the full action/expected outcome before choosing a row.
+3. Use isolated fixtures and real UI mutations; assert authoritative persistence,
+   independently known downstream values and required peer/reload behavior.
+4. Run focused cases, review mappings, regenerate reports and run combined browser
+   confirmation. Update this handoff and add a validation record.
 
-## Next bounded coverage batch
+## Next bounded batch
 
-**Suggested first work: `FOLDER-001` and `FOLDER-002`**, extending the existing
-folder spec and reusing its setup/peer/map observation patterns.
+| Priority | Scenarios                    | Remaining work                                                                                                  |
+| -------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| P0       | `AUTH-002`, `AUTH-003`       | Viewer/editor enforcement through UI, API and Automerge; selector tests alone do not prove mutation permissions |
+| P0       | `POSITION-006`               | Complete marker-type/source/path/age combinations across active/historical/planned scopes                       |
+| P0       | `REX-027`                    | Investigate stale local selection and prove automatic safe plan fallback after historical deletion              |
+| P0       | `REPORT-003`                 | Signed-zero equality boundary; retain independent expected metrics                                              |
+| P0       | `COLLAB-008`                 | Full duplicate/delete graph matrix observed in peers as well as authoritative snapshots                         |
+| P0       | `MEASURE-003`, `MEASURE-004` | Independent real DEM heights and stale/delayed-response rejection across missions                               |
+| P1       | `EVA-006`                    | Fix two-editor UTC rollback, then prove saved date/time stays converged without stale local writes              |
+| P1       | `FOLDER-004`                 | Overlapping move/delete operations with unique valid memberships on both clients                                |
 
-| Scenario     | Work to implement                                                                                                                                                                                                                                                      | Starting sources                                                                                                                                          |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FOLDER-001` | Parameterize create/rename/validation/Cancel/delete across POI, station, EVA and preset folders; verify persisted entities and membership after reload. Exercise populated-folder deletion rejection, then empty-folder confirmation and cancellation.                 | `src/components/interface/folders.tsx`, `src/components/interface/form/globalFields.tsx`, `src/operations/op-folder.ts`, `src/store/thunk/thunkFolder.ts` |
-| `FOLDER-002` | Exercise real pointer dragging into folders, between folders and back to root; assert each UUID occurs exactly once in the intended membership, including peer and reload. Check which list types actually support reordering before claiming that portion of the row. | `FolderOrganizer` in `src/components/interface/folders.tsx`, `src/operations/apply/apply-mission-folder.ts`                                               |
-
-Known starting details: the four planning lists expose `addFolder`; folder names
-use the inline editor labeled `Drag/drop items to folder`; menus expose Rename
-Folder and Delete Folder. `opDeleteFolder` currently **rejects folders containing
-live entities**, with `Cannot delete folder with items in it`. Do not assume a
-populated folder can be deleted while retaining its entities. Test that guard
-and the empty-folder path, and clarify the catalog's broad “delete empty and
-populated folders” wording against the reviewed behavior. UI validation must be
-proved by attempting Save and checking persisted state, not merely by seeing
-an error message. These lifecycle/drag/validation paths have not been exercised
-by the new visibility tests.
-
-After that batch, prioritize these uncovered families:
-
-| Priority | Scenarios                      | Fixture/work needed                                                                                                                                                                                                                                               |
-| -------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0       | `POSITION-006`, `POSITION-007` | Extend the new position spec to cover source/type filtering across planned/historical/active scopes, equal-PET ordering and concurrent edits/deletes through disconnect/reconnect. Position creation/edit/delete are covered; these broader matrices remain gaps. |
-| P0       | `AUTH-002`, `AUTH-003`         | Add distinct viewer/editor sessions with explicit mission grants. The current global authentication account is a super-admin, so it cannot prove permission or cross-mission enforcement. Cover both UI and direct transports required by each row.               |
-| P0       | `MEASURE-003`, `MEASURE-004`   | Reuse the real DEM installation pattern, add independently known profile expectations and delayed stale responses/mission switching. The lander test's elevation assertion does not close profile rendering or ordering scenarios.                                |
-
-The full backlog remains in the catalog. Do not promote broad rows based on a
-subset of their outcomes, or remove gaps to raise the percentage.
+Do not promote a broad row from a subset of passing outcomes or change a denominator
+to increase the percentage. Unsupported operations must stay explicit.
 
 ## Commands and environment
 
-Work from the repository root with dependencies/browser binaries installed, the
-normal local environment configured and PostgreSQL/schema/migrations ready.
-Tests start the API and Vite on ports 4001/4000 when needed. The lander DEM setup
-uses `STATIC_DIR` and creates only its isolated mission's files; fixture teardown
-removes them. No imported operational mission is needed for `behavior/` tests.
+Use dependencies/browser binaries, the normal local environment and PostgreSQL
+schema/migrations. The configured server starts API/Vite on 4001/4000 when needed;
+concurrent runs can share one local server with separate report/output directories.
+Tests create/delete isolated missions and need no imported operational mission.
+Real DEM tests use `STATIC_DIR` and clean up only their own mission files.
 
-On this Windows/npm setup, forwarded `npm run ... -- --grep ... --repeat-each ...`
-flags were misparsed. Use Playwright's CLI directly for focused filters, projects
-and repeats; check the discovered count to verify the requested scope.
+Windows npm forwarding previously misparsed grep/repeat flags. Use the direct CLI
+and verify its discovered test count:
 
 ```powershell
-# Focused folder work; choose a fresh report directory per run.
-$env:PLAYWRIGHT_REPORT_DIR='.local/playwright/reports/folders-next'
-node node_modules/@playwright/test/cli.js test --config=src/tests/playwright/playwright.config.ts behavior/folders.spec.ts --project=chromium --trace=retain-on-failure
-
-# Full behavior regression plus the configured Firefox/WebKit smoke suites.
 $env:PLAYWRIGHT_REPORT_DIR='.local/playwright/reports/next-confirmation'
-node node_modules/@playwright/test/cli.js test --config=src/tests/playwright/playwright.config.ts behavior --project=chromium --project=firefox --project=webkit --trace=retain-on-failure
+node node_modules/@playwright/test/cli.js test --config=src/tests/playwright/playwright.config.ts behavior --project=chromium --project=firefox --project=webkit --output=.local/playwright/next-confirmation-results --trace=retain-on-failure
 
-# After reviewing and editing scenario-catalog.json:
 npm run docs:playwright-scenarios
 npm run test:playwright:scenarios
 npm run tsc
 npx eslint src/tests/playwright/behavior
+npx prettier --check src/tests/playwright/behavior docs/testing/RESUME.md docs/testing/runs/2026-10-24-expanded-coverage.md
 git diff --check
 ```
 
-`npm run test:playwright:scenarios:complete` deliberately fails while the tracked
-gaps/partial rows remain. It is not the normal green validation gate.
+`test:playwright:scenarios:complete` intentionally fails while gaps/partials remain;
+it is not the normal green validation gate. Legacy imported-mission/map suites
+were not part of this batch's executed scope.
 
 ## Reuse these fixtures and lessons
 
-- [behavioralTest.ts](../../src/tests/playwright/fixtures/behavioralTest.ts)
-  creates, schema-validates, reads and deletes isolated missions. Use
-  `mission.change()` only to arrange the fixture; perform tested mutations
-  through the UI. `mission.read()` supplies persisted-state assertions.
+- [behavioralTest.ts](../../src/tests/playwright/fixtures/behavioralTest.ts) creates,
+  schema-validates, reads and deletes isolated missions. `mission.change()` arranges
+  data only; tested mutations use UI. Later arrangements bypass initial schema
+  validation: adding unsupported fields can break peer hydration. An invalid extra
+  POI refUuid caused a development spinner and was removed from the test fixture.
 - [missionSeed.ts](../../src/tests/playwright/fixtures/missionSeed.ts) and
-  [entitySeeds.ts](../../src/tests/playwright/fixtures/entitySeeds.ts) provide
-  explicit IDs, plan relationships and execution variants.
+  [entitySeeds.ts](../../src/tests/playwright/fixtures/entitySeeds.ts) supply explicit
+  plan/execution relationships. Use valid UUIDs and copy Automerge proxy values
+  before inserting them into another location.
 - [planningHelpers.ts](../../src/tests/playwright/behavior/planningHelpers.ts)
-  selects stations/POIs/EVAs idempotently. Clicking an already selected row
-  directly can deselect it; use direct clicks only when testing that behavior.
-  Some checkbox inputs expose the generic accessible name `checkbox`; POI link
-  tests scope the real input by its entity ID.
-- [mapAssertions.ts](../../src/tests/playwright/fixtures/mapAssertions.ts)
-  observes actual OpenLayers features. Call `installMapObserver(peer)` before
-  navigating a peer that needs map assertions; the main fixture page already
-  installs it. DOM assertions and real gestures still establish the user flow.
-- The lander test copies the Apollo 14 raster extract into its own mission
-  directory and checks a GDAL golden value through the real terrain API/worker.
-  When arranging Automerge objects, copy point values before inserting them in
-  a second location; inserting an existing document proxy raises a RangeError.
-- Mission traverse/walkback rates can be inherited. Default EVA duration is
-  copied on creation; changing it does not rewrite existing EVA durations.
-- Position controls work with execution edit permission even when the global
-  planning edit toggle is off. The map defaults to Task/Crew source filters;
-  explicitly enable All sources when checking Rover markers. The position menu
-  overlaps the visibility launcher at the default viewport; the new helper
-  moves it with real pointer dragging and restores it afterward. Wait for map
-  animation before converting a known coordinate to a click; keep the click
-  clear of menus and the scale bar. Browser pointer round trips need a
-  submillimeter tolerance in projected map coordinates.
-- New Pos captures PET before placement. Moving an existing position commits
-  location/updatedAt and clears the draft; it retains the saved PET/type/source.
-  Full Save commits drafted metadata. Cancel Edit and Cancel Pos preserve the
-  last committed entry. Position duplication has no current UI control.
-- Folder visibility is shared, while selection/expansion are local. A selected
-  EVA keeps its sequence stations visible even when their folder is hidden.
+  selects entities idempotently. Clicking a selected row can deselect it. Clicking
+  a POI in Station POIs toggles its association; use actual POI navigation to inspect
+  POI totals. Running executions can add another left title, so scope navigation.
+- [mapAssertions.ts](../../src/tests/playwright/fixtures/mapAssertions.ts) observes
+  real OpenLayers features. Install the observer on peers before navigation. Check
+  independent projected distances, style values and rendered canvases where needed.
+- Folder dragging: wait for the previous DragOverlay to disappear, hover the source,
+  move beyond the five-pixel activation threshold, assert dragging, recompute target
+  bounds and assert droppable before mouse-up. The name editor has a known 50 ms
+  debounce; tests advance a controlled clock 51 ms before valid Save.
+- Position menus can overlap controls: move them with real pointer dragging. Wait
+  for map animation before placement. Default filters show Task/Crew; choose All
+  for Rover. New Pos captures PET before placement; existing marker movement commits
+  coordinates separately from metadata Save. Cancel boundaries must be asserted.
+- Concurrent position and same-field metadata saves can choose either submitted
+  winner. Wait for server/both UIs to agree, then capture the result; do not require
+  a particular winner or field-level merging. Preserve unrelated exact records.
+- Real Apollo14 DEM tests check a known elevation through the real terrain API and
+  worker. STM rule summaries include disabled actions, while EVA coverage excludes
+  them; the tests record both independently rather than assuming identical counts.
 
-## Unresolved readiness issue and retained evidence
+## Retained readiness history and evidence
 
-One earlier full run failed the existing test **“duplicating an EVA shares
-planned stations but owns new traverses”** after its data assertions, on reload:
-the page stayed at “Loading mission data…” past the 10-second header assertion.
-The complete planning-file recheck and the final 106-case run passed. Root cause
-is unconfirmed; no timeout increase, automatic retry or production fix was made.
-If it recurs, retain the trace and inspect authentication/version handshake,
-Automerge readiness and `populateStore` before changing waits.
+An earlier baseline run timed out on “Loading mission data…” after duplicating
+an EVA and reloading. Its planning recheck and later 106-case confirmation passed.
+This batch also reproduced a ten-second initial-load spinner in one report-matrix
+variant before any report assertion; the other identical fixture variants passed.
+The retained trace records an Automerge WebSocket ERR_NO_BUFFER_SPACE, a later
+reconnect, then Document unavailable while ordinary API calls succeeded. This
+points to a transient socket/recovery failure rather than a metric assertion;
+the underlying cause remains unconfirmed. Do not hide it with automatic retries
+or blanket timeout increases.
 
-For a focused repeated investigation:
+| Local Git-ignored evidence                                                                                          | Meaning                                                                  |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `.local/playwright/reports/expanded-final-verified/`, `.local/playwright-expanded-final-verified.log`               | Final 222-case combined result                                           |
+| `.local/playwright/reports/expanded-final-confirmation/`, `.local/playwright-expanded-final-confirmation.log`       | Earlier 222-case pass before final cross-review assertions               |
+| `.local/playwright/reports/expanded-reviewed-confirmation/`, `.local/playwright-expanded-reviewed-confirmation.log` | Combined run exposing UTC rollback and an initial-load readiness timeout |
+| `.local/playwright/reports/expanded-confirmed/`, `.local/playwright-expanded-confirmed.log`                         | First-wave 141 passes/one incomplete folder gesture                      |
+| `.local/playwright/reports/folder-drag-repeat/`                                                                     | Corrected station drag passed three repeats plus auth                    |
+| `.local/playwright/reports/report-expanded/`, `.local/playwright/report-expanded-results/`                          | Signed-zero equality development evidence                                |
+| `.local/playwright/reports/positions-confirmed/`, `.local/playwright-positions-confirmed.log`                       | Previous position-batch confirmation                                     |
+| `.local/playwright/reports/confirmed/`, `.local/playwright-confirmed.log`                                           | Earlier 106-case confirmation                                            |
+| `.local/playwright/reports/positions-mutations/`, `.local/playwright/reports/mutations/`                            | Prior batches' deliberate mutation checks, restored before confirmation  |
 
-```powershell
-$env:PLAYWRIGHT_REPORT_DIR='.local/playwright/reports/reload-investigation'
-node node_modules/@playwright/test/cli.js test --config=src/tests/playwright/playwright.config.ts behavior/planning.spec.ts --project=chromium --grep="duplicating an EVA shares" --repeat-each=3 --trace=retain-on-failure
-```
-
-Local, Git-ignored evidence retained on this checkout:
-
-| Directory/log                                                                                 | Evidence                                                                                                                                              |
-| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.local/playwright/reports/positions-confirmed/`, `.local/playwright-positions-confirmed.log` | Current position-batch full behavior confirmation                                                                                                     |
-| `.local/playwright/reports/positions-mutations/`, `.local/playwright-positions-mutations.log` | Both intended failures for placement-time PET drift and source commits during map placement; production source restored byte-for-byte                 |
-| `.local/playwright/reports/confirmed/`, `.local/playwright-confirmed.log`                     | Final 106 passes                                                                                                                                      |
-| `.local/playwright/reports/final/`, `.local/playwright-final.log`                             | Initial 105 passes plus the reload timeout                                                                                                            |
-| `.local/playwright/reports/reload-check/`, `.local/playwright-reload-check.log`               | 18 planning cases plus authentication passed; this was not a three-repeat run because npm misparsed the forwarded flags                               |
-| `.local/playwright/reports/mutations/`, `.local/playwright-mutations.log`                     | Both intended failures when folder filtering and lander-copy relocation were temporarily broken; production sources were restored before confirmation |
-
-These local reports may not exist on a fresh checkout; the committed validation
-record preserves the findings. At the end of the next batch, update this handoff's
-checkpoint, counts, closed IDs, remaining first task and unresolved issues; add
-a run record with actual scope/results and commit the reviewed tests/catalog/docs.
+No production mutations were performed in this batch. Local reports may be absent
+on a fresh checkout; committed validation records preserve the findings.

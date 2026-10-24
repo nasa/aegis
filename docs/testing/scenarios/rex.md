@@ -6,7 +6,7 @@ Fixture: Execution fixture: stopped Alpha PET +02:10:05 with position +01:55:05;
 
 Source: [src/components/panes/rex/rex-right-rex-info.tsx](../../../src/components/panes/rex/rex-right-rex-info.tsx), [src/store/thunk/thunkRex.ts](../../../src/store/thunk/thunkRex.ts), [src/components/interface/map/hooks/useRexPetTime.ts](../../../src/components/interface/map/hooks/useRexPetTime.ts).
 
-Scenario mapping: **20/27 (74.1%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **24/27 (88.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/rex_thunk.test.ts](../../../src/tests/vitest/store/thunks/rex_thunk.test.ts), [src/tests/vitest/map/useRexPetTime.test.tsx](../../../src/tests/vitest/map/useRexPetTime.test.tsx).
 
@@ -212,35 +212,69 @@ Playwright: [src/tests/playwright/behavior/planning.spec.ts:458](../../../src/te
 
 ## REX-021: First execution seeds initial positions
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Start a never-executed REX with several position sources/types, stop and start again.
 
 Expected: Initial positions are seeded once at egress with the correct PET/types; restart does not duplicate them or change planning entities.
 
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:67](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L67) — first start seeds one egress position per configured source and restart reuses them (chromium).
+
+Evidence boundary: First start seeds one egress/PET-zero entry for every configured source with every type, exact entries survive stop/start and planning data remains unchanged.
+
 ## REX-022: REX names metadata and controlled mode
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Rename two REXes in one EVA family; edit Maestro control; cancel and reload.
 
 Expected: Name uniqueness is family-scoped, immutable copied EVA name remains protected and control metadata persists.
 
+Playwright: [src/tests/playwright/behavior/rexMetadata.spec.ts:22](../../../src/tests/playwright/behavior/rexMetadata.spec.ts#L22) — REX names are family-scoped and Maestro control persists without renaming the copied EVA (chromium).
+
+Evidence boundary: Two REXes in one EVA family are renamed independently; empty and case-insensitive duplicate saves are rejected, another family name is allowed, Cancel preserves data, and Maestro control persists on a peer and after reload without renaming copied EVA data.
+
 ## REX-023: Running-only view and remote stop
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Enable Show only Executing EVA; stop remotely and start another REX.
 
 Expected: Selection/list scope follows the active execution and remote stop clears running-only mode without stale controls.
 
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:156](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L156) — remote stop exits running-only mode, restores the list and removes stale stop controls (chromium).
+
+Evidence boundary: Running-only scope follows the executing REX, remote stop clears the mode/list restriction and stale controls, a different remote execution appears and reload restores correct stop controls.
+
 ## REX-024: PET manual edit complete boundary matrix
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Edit positive, negative, zero, long-hour and out-of-range minute/second values; test typing and length limits.
 
 Expected: Format, numeric semantics and rejection follow the actual field contract; no cross-execution clock changes occur.
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts positive PET according to the field's format and numeric semantics (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts negative PET according to the field's format and numeric semantics (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts zero PET according to the field's format and numeric semantics (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts maximum two-digit hour PET according to the field's format and numeric semantics (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts minute and second values above 59 PET according to the field's format and numeric semantics (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts typing filters non-time characters PET according to the field's format and numeric semantics (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:285](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L285) — rejects an invalid PET hour exceeds the two-digit maximum without replacing committed clocks (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:285](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L285) — rejects an invalid PET value exceeds nine-character input limit without replacing committed clocks (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:285](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L285) — rejects an invalid PET incomplete field without replacing committed clocks (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:285](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L285) — rejects an invalid PET empty field without replacing committed clocks (chromium).
+
+Evidence boundary: Positive/negative/zero, long-hour, overflow minute/second, filtering, length and rejected-format cases assert PET semantics, historical age clamp, saved/reloaded value and other-execution isolation.
 
 ## REX-025: Server-time offset and clock skew
 
@@ -260,8 +294,14 @@ Expected: The agreed single-active-execution invariant holds after synchronizati
 
 ## REX-027: Historical execution deletion and selected cleanup
 
-**P0 · Gap**
+**P0 · Partial**
 
 Action: Cancel and confirm deleting the selected stopped REX while another client views it.
 
 Expected: Only its owned execution graph disappears; both clients fall back safely to the plan and unrelated REXes remain unchanged.
+
+Playwright: [src/tests/playwright/behavior/rexMetadata.spec.ts:96](../../../src/tests/playwright/behavior/rexMetadata.spec.ts#L96) — deleting a selected historical REX preserves its graph boundaries and clears stale controls with no active REX (chromium).
+
+Playwright: [src/tests/playwright/behavior/rexMetadata.spec.ts:96](../../../src/tests/playwright/behavior/rexMetadata.spec.ts#L96) — deleting a selected historical REX preserves its graph boundaries and clears stale controls with another REX active (chromium).
+
+Evidence boundary: Cancel and confirmed historical REX deletion preserve the exact unrelated mission graph; both clients remove stale REX controls/options and fresh pages can navigate to surviving plans/executions. Live restoration of the planned-EVA detail selection is not established: deletion can leave the right panel empty and stale local selection, so this row receives no full mapping credit.
