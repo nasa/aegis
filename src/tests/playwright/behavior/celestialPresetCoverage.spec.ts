@@ -282,11 +282,13 @@ test.describe("Celestial time attribution and fallback", () => {
       );
       await expect(page.getByLabel("sunEarthFromDateNote", { exact: true })).toContainText(date);
       await expect(source).toHaveAttribute("data-status", "Calculated");
+      await expect(source).toHaveAttribute("aria-description", /Calculated|Selected EVA|date/i);
     }
     await mission.change((doc) => {
       doc.evas[mission.ids.rexEvaB].datetime = null;
     });
     await expect(source).toHaveAttribute("data-status", "Fallback");
+    await expect(source).toHaveAttribute("aria-description", /no valid date/i);
     await expect(page.getByLabel("sunEarthWarning", { exact: true })).toContainText(
       "has no valid date"
     );

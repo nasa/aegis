@@ -1,5 +1,6 @@
 /** Represents the DB structure for the Layer table */
 interface Layer {
+  order?: number;
   uuid: string;
   name: string;
   createdAt: number;

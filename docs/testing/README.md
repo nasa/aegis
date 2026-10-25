@@ -8,8 +8,13 @@ shows the percentage with a complete reviewed Playwright mapping, and lists ever
 discovered browser test and registered UI/HTTP surface. The machine-readable
 [summary](coverage-summary.json) contains the same counts for dashboards or CI.
 
-Executed results and defect-detection evidence for the latest coverage additions
-are recorded in the [ninety-percent validation note](runs/2026-10-25-ninety-percent-coverage.md).
+The latest mapping review is recorded in the [coverage-closure review](runs/2026-10-25-mapping-closure-review.md).
+It records the current catalog evidence and explicitly separates mapping from
+executed browser results. The latest full browser result is in the
+[100% coverage validation note](runs/2026-10-25-full-coverage-validation.md).
+Earlier executed checkpoints remain in the
+[ninety-percent validation note](runs/2026-10-25-ninety-percent-coverage.md).
+
 The [sixty-percent record](runs/2026-10-25-sixty-percent-coverage.md) preserves the prior checkpoint.
 The [expanded coverage](runs/2026-10-24-expanded-coverage.md),
 [position](runs/2026-10-24-positions.md) and
@@ -116,15 +121,17 @@ npm run test:playwright:scenarios
 # Rebuild the report, per-area chapters and machine-readable summary.
 npm run docs:playwright-scenarios
 
-# Future closure gate: fails until every eligible row has a complete mapping.
+# Completeness gate: requires every eligible row to have a complete mapping.
 npm run test:playwright:scenarios:complete
 ```
 
 These commands run `playwright --list`, not browser execution, global setup or
 the application/database. They use the installed project dependencies and need
 no operational mission data. Normal validation succeeds with honestly recorded
-gaps; the completeness gate is intentionally stricter and currently fails.
-No existing CI/deployment job is changed to require full coverage.
+gaps; the completeness gate requires every eligible row to be mapped and passed
+at the 2026-10-25 checkpoint (253/253). Run it before MR acceptance. It is not
+currently wired into CI and does not replace the manually triggered full browser
+suite described in the [browser behavior guide](../../src/tests/playwright/README.md#before-merging).
 
 To add or close a scenario:
 
@@ -157,13 +164,14 @@ complete scenario mapping, so they remain visible without inflating the score.
 The mapping gate must pass with no Partial or Gap rows. Then execute all required
 browser projects against the reviewed commit with explicit fixtures, and retain
 results showing which cases passed, failed, skipped or retried. Current Firefox
-and WebKit configuration covers the small smoke set; comprehensive cross-browser
-editing remains a separate tracked gap. A successful Chromium run cannot close
-that gap.
+and WebKit configuration covers smoke and selected parity workflows, including
+editing, accessibility, raster/layer behavior and presence. Chromium runs the
+full regression suite. The 100% scenario mapping figure does not imply that
+every scenario executes in every browser.
 
 Check that tests fail when their targeted behavior is broken. Review the
 denominator again for missing supported capabilities and states. External restore,
 migration, deployment, GIS and load drills have their own evidence and acceptance
 decisions; they are not prerequisites for 100% Playwright scenario mapping.
-Release acceptance also follows the repository's full local/CI regression rules.
+Release acceptance also follows the repository's merge-readiness CI regression rules.
 A generated percentage or a green test count alone does not establish acceptance.

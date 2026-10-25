@@ -18,7 +18,7 @@ Action: view mode protects action fields, crew assignments, and creation until e
 
 Expected: View mode prevents field/crew/create controls from writing; enabling Edit exposes the appropriate action controls.
 
-Playwright: [src/tests/playwright/behavior/actions.spec.ts:33](../../../src/tests/playwright/behavior/actions.spec.ts#L33) — view mode protects action fields, crew assignments, and creation until editing is enabled (chromium).
+Playwright: [src/tests/playwright/behavior/actions.spec.ts:33](../../../src/tests/playwright/behavior/actions.spec.ts#L33) — view mode protects action fields, crew assignments, and creation until editing is enabled (chromium, firefox, webkit).
 
 ## ACTION-002: action name and duration validation and Cancel preserve the saved action and totals
 
@@ -28,7 +28,7 @@ Action: action name and duration validation and Cancel preserve the saved action
 
 Expected: Blank action name and duration cannot save; Cancel leaves the persisted action and totals intact; a valid name persists.
 
-Playwright: [src/tests/playwright/behavior/actions.spec.ts:59](../../../src/tests/playwright/behavior/actions.spec.ts#L59) — action name and duration validation and Cancel preserve the saved action and totals (chromium).
+Playwright: [src/tests/playwright/behavior/actions.spec.ts:59](../../../src/tests/playwright/behavior/actions.spec.ts#L59) — action name and duration validation and Cancel preserve the saved action and totals (chromium, firefox, webkit).
 
 ## ACTION-003: duration and crew edits recalculate totals, and deactivation excludes the action without deleting it
 
@@ -38,7 +38,7 @@ Action: duration and crew edits recalculate totals, and deactivation excludes th
 
 Expected: Duration and crew changes produce independently asserted EV1/EV2 totals; deactivation excludes the action without deleting its identity/order, and reactivation restores totals.
 
-Playwright: [src/tests/playwright/behavior/actions.spec.ts:91](../../../src/tests/playwright/behavior/actions.spec.ts#L91) — duration and crew edits recalculate totals, and deactivation excludes the action without deleting it (chromium).
+Playwright: [src/tests/playwright/behavior/actions.spec.ts:91](../../../src/tests/playwright/behavior/actions.spec.ts#L91) — duration and crew edits recalculate totals, and deactivation excludes the action without deleting it (chromium, firefox, webkit).
 
 ## ACTION-004: duplicated actions own independent values and deletion honors Cancel and removes only the copy
 
@@ -48,7 +48,7 @@ Action: duplicated actions own independent values and deletion honors Cancel and
 
 Expected: Duplicate has independent identity and copied fields; Cancel retains it and confirmed Delete removes only the copy and its order entry after reload.
 
-Playwright: [src/tests/playwright/behavior/actions.spec.ts:134](../../../src/tests/playwright/behavior/actions.spec.ts#L134) — duplicated actions own independent values and deletion honors Cancel and removes only the copy (chromium).
+Playwright: [src/tests/playwright/behavior/actions.spec.ts:134](../../../src/tests/playwright/behavior/actions.spec.ts#L134) — duplicated actions own independent values and deletion honors Cancel and removes only the copy (chromium, firefox, webkit).
 
 ## ACTION-005: a new action belongs to the selected station and its name and crew survive reload
 
@@ -58,7 +58,7 @@ Action: a new action belongs to the selected station and its name and crew survi
 
 Expected: A created action belongs only to the selected station, retains its name and EV2 crew assignment after reload and leaves the original station/action unchanged.
 
-Playwright: [src/tests/playwright/behavior/actions.spec.ts:193](../../../src/tests/playwright/behavior/actions.spec.ts#L193) — a new action belongs to the selected station and its name and crew survive reload (chromium).
+Playwright: [src/tests/playwright/behavior/actions.spec.ts:193](../../../src/tests/playwright/behavior/actions.spec.ts#L193) — a new action belongs to the selected station and its name and crew survive reload (chromium, firefox, webkit).
 
 ## ACTION-006: Action parent matrix
 

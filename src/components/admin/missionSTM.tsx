@@ -94,7 +94,7 @@ ${blocker}`);
   return (
     <>
       {!stmTree && <AsyncStatus pending="Loading science traceability matrix..." />}
-      {missionId && automergeUrl && stmTree && (
+      {missionId && automergeUrl && missionDocHandle && stmTree && (
         <div>
           <div className={adminStyles.sectionDiv}>
             <div className={adminStyles.sectionDivHeading}>Science Traceability Matrix</div>

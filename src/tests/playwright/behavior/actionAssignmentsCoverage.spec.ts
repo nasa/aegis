@@ -63,6 +63,9 @@ test("multiple equipment and geographic assignments toggle independently and ren
     .getByLabel("Equipment item name", { exact: true })
     .fill("Renamed sample bag");
   await page.locator("dialog[open]").getByText("Save", { exact: true }).click();
+  await expect
+    .poll(async () => (await mission.read()).equipmentItems[ids.bag].name)
+    .toBe("Renamed sample bag");
   await page.getByLabel("geographicUnit_panel", { exact: true }).click();
   const unit = page.getByLabel("geoUnitList-item", { exact: true }).filter({ hasText: "Highland" });
   await unit.locator('div[aria-label="Geographic unit name"]').click();
@@ -71,6 +74,9 @@ test("multiple equipment and geographic assignments toggle independently and ren
     .getByLabel("Geographic unit name", { exact: true })
     .fill("Renamed highland");
   await page.locator("dialog[open]").getByText("Save", { exact: true }).click();
+  await expect
+    .poll(async () => (await mission.read()).geographicUnits[ids.highland].name)
+    .toBe("Renamed highland");
   await mission.open(page);
   await selectPlanningStationActions(page, "Alpha station");
   await page.getByRole("listitem").locator('svg[data-icon="caret-right"]').click();

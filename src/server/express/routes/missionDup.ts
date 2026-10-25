@@ -94,7 +94,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const newMissionId: number | null = await upsertDatabaseRetry(() =>
-      duplicateMission(parsedMissionId, writeProgress)
+      duplicateMission(parsedMissionId, writeProgress, req.body.copyAssets !== false)
     );
 
     // Check response
@@ -146,10 +146,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-const duplicateMission = async (
-  missionId: number,
-  onProgress: (message: string) => void
-): Promise<number> => {
+const duplicateMission = async (missionId: number, onProgress: (message: string) => void, copyAssets: boolean): Promise<number> => {
   if (!missionId) {
     throw new Error("Mission ID is required");
   }
@@ -162,11 +159,7 @@ const duplicateMission = async (
 
     // 2. Create a copy of the mission with related entities
     onProgress("Creating mission copy...");
-    const newMissionId = await createMissionCopy(
-      sourceData,
-      { nameSuffix: "Copy", copyGISAssets: true },
-      onProgress
-    );
+    const newMissionId = await createMissionCopy(sourceData, { nameSuffix: "Copy", copyGISAssets: copyAssets }, onProgress);
 
     onProgress("Saving duplicated mission...");
     await em.commit(); // Commit the transaction
@@ -183,6 +176,7 @@ export const createMissionCopy = async (
   options: MissionCopyOptions,
   onProgress?: (message: string) => void
 ): Promise<number> => {
+  let copiedUrl: AutomergeUrl | undefined;
   try {
     // 1. Create new mission. All mission entities ride along on the mission doc copy.
 
@@ -199,6 +193,7 @@ export const createMissionCopy = async (
 
     // create an mission automerge document; entities ride along and are scoped by the new doc
     const docListing: AutomergeDocListing = await createAutomergeMission(newMission);
+    copiedUrl = docListing.automergeUrl as AutomergeUrl;
     // retrieve the mission object
     const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
       docListing.automergeUrl as AutomergeUrl
@@ -224,6 +219,7 @@ export const createMissionCopy = async (
 
     return newMissionId;
   } catch (error) {
+    if (copiedUrl) await globalValues.automergeRepo.delete(copiedUrl);
     throw new Error(`Failed to create mission copy: ${error}`);
   }
 };

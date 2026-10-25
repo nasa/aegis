@@ -116,6 +116,20 @@ describe("File Functions", () => {
       ).rejects.toThrow();
       expect(fs.existsSync(path.join(staticTestDir, "/testZipContentsDoesNotExist/"))).toBe(false);
     });
+
+    test("Unzip File: Failure preserves an existing destination", async () => {
+      const destination = path.join(staticTestDir, "existingZipContents");
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, "existing.txt"), "existing asset");
+
+      await expect(
+        unzip("testZipDoesNotExist.zip", "vitestTest", "existingZipContents")
+      ).rejects.toThrow();
+
+      expect(fs.readFileSync(path.join(destination, "existing.txt"), "utf8")).toBe(
+        "existing asset"
+      );
+    });
   });
 
   describe("Move File", () => {

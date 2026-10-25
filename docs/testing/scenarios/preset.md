@@ -6,7 +6,7 @@ Fixture: Mission with two presets, folder ownership, grid/circle definitions and
 
 Source: [src/components/panes/preset/preset-right.tsx](../../../src/components/panes/preset/preset-right.tsx), [src/operations/apply/apply-mission-preset.ts](../../../src/operations/apply/apply-mission-preset.ts), [src/components/interface/map/behaviors/TileLayers.tsx](../../../src/components/interface/map/behaviors/TileLayers.tsx), [src/components/panes/preset/preset-right-azimuth.tsx](../../../src/components/panes/preset/preset-right-azimuth.tsx), [src/components/interface/map/hooks/useSunEarthAzimuths.ts](../../../src/components/interface/map/hooks/useSunEarthAzimuths.ts).
 
-Scenario mapping: **12/13 (92.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **13/13 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/PresetLayers.browser.test.tsx](../../../src/tests/vitest-browser/PresetLayers.browser.test.tsx), [src/tests/vitest-browser/PresetAzimuth.browser.test.tsx](../../../src/tests/vitest-browser/PresetAzimuth.browser.test.tsx), [src/tests/vitest/map/layerFactory.test.ts](../../../src/tests/vitest/map/layerFactory.test.ts), [src/tests/vitest/utils/lunarSky.test.ts](../../../src/tests/vitest/utils/lunarSky.test.ts).
 
@@ -42,19 +42,31 @@ Action: Toggle and reorder overlapping layers; vary opacity/blend; save and relo
 
 Expected: The rendered stack, saved order and style match expected known pixels and remain scoped to the preset.
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:85](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L85) — overlapping preset rasters render the saved UI order, opacity and blend pixel after reload (chromium).
+Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:115](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L115) — overlapping preset rasters render the saved UI order, opacity and blend pixel after reload (chromium, firefox, webkit).
 
 Evidence boundary: Uses known red and green overlapping tile pixels to assert the initial saved stack, a real UI opacity change and difference blend pixel, a real UI reorder pixel, persistence after reload, and independent style/order state in a second preset.
 
 ## PRESET-004: Raster source and projection matrix
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Render TMS/XYZ, COG, GeoJSON and PMTiles fixtures using named supported source/projection pairs for Earth and lunar missions.
 
 Expected: Known geographic features align, tile orientation/resolutions are correct and no source silently disappears.
 
-Evidence boundary: Record each fixture's source format, CRS, bounds, known feature coordinates and expected resolution/orientation. Cover declared supported pairs; do not infer support for the full Cartesian product of arbitrary projections and sources.
+Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:270](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L270) — Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location (chromium, firefox, webkit).
+
+Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:346](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L346) — Earth Web Mercator XYZ places its known tile feature at the declared coordinate and resolution (chromium, firefox, webkit).
+
+Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:513](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L513) — Earth Web Mercator PMTiles archive exposes its known center feature (chromium, firefox, webkit).
+
+Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:612](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L612) — lunar south-polar stereographic GeoJSON places a known lunar feature near the lander (chromium, firefox, webkit).
+
+Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:795](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L795) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium, firefox, webkit).
+
+Playwright: [src/tests/playwright/behavior/celestialPresetCoverage.spec.ts:188](../../../src/tests/playwright/behavior/celestialPresetCoverage.spec.ts#L188) — planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions (chromium).
+
+Evidence boundary: Named Earth TMS/XYZ/PMTiles and lunar GeoJSON/GeoTIFF fixtures assert known content, projected feature placement, XYZ tile coordinate and resolution, and TMS Y orientation.
 
 ## PRESET-005: Vector and contour style variants
 
@@ -64,7 +76,7 @@ Action: Change line/fill/point/contour styles and label configuration at several
 
 Expected: The saved supported styles affect the intended features with correct legends and no stale style cache.
 
-Playwright: [src/tests/playwright/behavior/layerStylesAssets90.spec.ts:254](../../../src/tests/playwright/behavior/layerStylesAssets90.spec.ts#L254) — line, fill, point and contour labels use saved styles, legends and zoom thresholds (chromium).
+Playwright: [src/tests/playwright/behavior/layerStylesAssets90.spec.ts:254](../../../src/tests/playwright/behavior/layerStylesAssets90.spec.ts#L254) — line, fill, point and contour labels use saved styles, legends and zoom thresholds (chromium, firefox, webkit).
 
 Evidence boundary: Loads a small deterministic GeoJSON with line, polygon, and point geometries and a metre legend. Changes supported weight, fill-opacity and label-min-zoom controls in the UI; checks independent OpenLayers stroke/fill/symbol/label values at two zooms, persisted legend content and reload, and distinct saved styles after switching between presets to detect stale style-cache state.
 
@@ -122,7 +134,7 @@ Action: Return missing/corrupt tiles, COG metadata or PMTiles ranges and recover
 
 Expected: Failure does not blank unrelated content or leave a stuck load; valid assets resume rendering coherently.
 
-Playwright: [src/tests/playwright/behavior/layerStylesAssets90.spec.ts:378](../../../src/tests/playwright/behavior/layerStylesAssets90.spec.ts#L378) — failed tiles preserve healthy content, a delayed prior-preset tile stays isolated, and a recovered asset renders (chromium).
+Playwright: [src/tests/playwright/behavior/layerStylesAssets90.spec.ts:378](../../../src/tests/playwright/behavior/layerStylesAssets90.spec.ts#L378) — failed tiles preserve healthy content, a delayed prior-preset tile stays isolated, and a recovered asset renders (chromium, firefox, webkit).
 
 Evidence boundary: Controlled tile requests return 404, corrupt PNG bytes, a delayed valid tile and a later recovered tile. Known rendered pixels verify healthy content remains visible under failures, the delayed old-preset response cannot affect the selected detail preset, and a corrected valid source renders after returning to the overview.
 
