@@ -6,7 +6,7 @@ Fixture: Disposable missions, test users and temporary static directory; explici
 
 Source: [src/pages/admin/index.tsx](../../../src/pages/admin/index.tsx), [src/pages/admin/mission.tsx](../../../src/pages/admin/mission.tsx), [src/pages/admin/missionDuplicate.tsx](../../../src/pages/admin/missionDuplicate.tsx), [src/pages/admin/missionLayers.tsx](../../../src/pages/admin/missionLayers.tsx), [src/pages/admin/missionSTM.tsx](../../../src/pages/admin/missionSTM.tsx), [src/pages/admin/user.tsx](../../../src/pages/admin/user.tsx), [src/server/express/routes/file](../../../src/server/express/routes/file).
 
-Scenario mapping: **10/10 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **9/10 (90%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/express/file.test.ts](../../../src/tests/vitest/express/file.test.ts), [src/tests/vitest/express/missionAutomergeFields.test.ts](../../../src/tests/vitest/express/missionAutomergeFields.test.ts), [src/tests/vitest/utils/missionDup.test.ts](../../../src/tests/vitest/utils/missionDup.test.ts).
 
@@ -56,7 +56,7 @@ Action: Load/edit v1/v2 science structures with valid/invalid files and referenc
 
 Expected: Schema/reference failures are explained and do not partially replace a valid mission configuration.
 
-Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:283](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L283) — admin STM import validates hierarchy references and preserves the existing tree on invalid input for v1 and v2 (chromium).
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:291](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L291) — admin STM import validates hierarchy references and preserves the existing tree on invalid input for v1 and v2 (chromium).
 
 Playwright: [src/tests/playwright/behavior/adminCompleteness.spec.ts:441](../../../src/tests/playwright/behavior/adminCompleteness.spec.ts#L441) — v2 STM edits honor referenced rules and import validation preserves or clears dependent references atomically (chromium).
 
@@ -80,7 +80,7 @@ Action: Upload representative files, list/sort, rename and cancel/confirm deleti
 
 Expected: File bytes and listing agree, progress/errors are accurate and no traversal or cross-scope access changes unrelated files.
 
-Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:542](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L542) — admin file manager uploads, lists, renames, cancels deletion, and deletes only the selected file (chromium).
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:550](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L550) — admin file manager uploads, lists, renames, cancels deletion, and deletes only the selected file (chromium).
 
 Playwright: [src/tests/playwright/behavior/adminCompleteness.spec.ts:176](../../../src/tests/playwright/behavior/adminCompleteness.spec.ts#L176) — admin uploads show processing and duplicate errors and cannot operate on another mission path (chromium).
 
@@ -94,7 +94,7 @@ Action: Browse test folders, download a file, inject permission/network failure 
 
 Expected: Selection, bytes, progress, completion and failure recovery follow the external contract without duplicate partial files.
 
-Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:438](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L438) — Box browser flow browses folders, displays byte progress, reports provider errors, and retries cleanly (chromium).
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:446](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L446) — Box browser flow browses folders, displays byte progress, reports provider errors, and retries cleanly (chromium).
 
 Playwright: [src/tests/playwright/behavior/adminCompleteness.spec.ts:91](../../../src/tests/playwright/behavior/adminCompleteness.spec.ts#L91) — Box SDK provider bytes survive permission and interrupted-stream failures and archive retry (chromium).
 
@@ -126,14 +126,16 @@ Evidence boundary: Uses an isolated view-only visitor scoped to the fixture miss
 
 ## ADMIN-010: Environment and EMSS configuration controls
 
-**P0 · Mapped**
+**P0 · Partial**
 
 Action: Use environment/EMSS configuration routes as admin/super-admin and normal users.
 
 Expected: Only super-admins can read/change the declared environment overrides and EMSS enable flag. Environment effective/default/override values, unknown-key rejection, and EMSS boolean validation match the configured handler contracts.
 
-Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:671](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L671) — super-admin environment overrides show effective values, reject unknown keys, and restore the default (chromium).
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:679](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L679) — super-admin environment configuration shows defaults and rejects viewer access and unknown keys (chromium).
 
-Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:780](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L780) — EMSS admin toggle requires a boolean, preserves confirmation cancellation, and restores its initial state (chromium).
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:764](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L764) — EMSS admin toggle requires a boolean, preserves confirmation cancellation, and restores its initial state (chromium).
 
 Playwright: [src/tests/playwright/behavior/authBoundaries.spec.ts:237](../../../src/tests/playwright/behavior/authBoundaries.spec.ts#L237) — declared admin routes and field policies separate editor, admin, and super-admin (chromium).
+
+Evidence boundary: Browser coverage checks super-admin defaults, viewer read/write rejection, and unknown keys. Save/clear of shared deployment overrides is covered by the environmentConfig server tests; browser mutation is omitted because parallel runs cannot isolate the server-wide setting. EMSS toggle coverage uses a disposable API process.
