@@ -6,7 +6,7 @@ Fixture: Planning fixture with a shared station, an unassigned station, child ac
 
 Source: [src/components/panes/station/station-right.tsx](../../../src/components/panes/station/station-right.tsx), [src/operations/apply/apply-station.ts](../../../src/operations/apply/apply-station.ts).
 
-Scenario mapping: **14/16 (87.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **16/16 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/station_thunk.test.ts](../../../src/tests/vitest/store/thunks/station_thunk.test.ts).
 
@@ -132,19 +132,29 @@ Evidence boundary: Cancel preserves the complete unassigned station/action/folde
 
 ## STATION-012: Station location, elevation and lander shortcut
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Create/move/cancel station location; use Set to Lander; repeat with missing DEM/lander.
 
 Expected: Committed location and elevation are correct; connected paths update and unavailable data is represented without corrupting saved geometry.
 
+Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:195](../../../src/tests/playwright/behavior/stationGeometry90.spec.ts#L195) — station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry (chromium).
+
+Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:211](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L211) — station location can be cancelled, cleared, and recreated from a known map pixel (chromium).
+
+Evidence boundary: Existing golden DEM/grid coverage for station create/move/cancel, Set to Lander and missing data is complemented by UI clear and map-pixel recreation. The clear mutation resets elevation and dependent walkback data, retains connected traverse geometry, and hides station/walkback features; recreated coordinates and persisted map geometry are independently checked.
+
 ## STATION-013: Station walkback lifecycle
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Open a located station with/without walkback; edit its path/rate; cancel/reset and reload.
 
 Expected: Walkback endpoints stay pinned to station/lander and distance, time and profile agree with the saved path.
+
+Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:366](../../../src/tests/playwright/behavior/stationGeometry90.spec.ts#L366) — walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints (chromium).
+
+Evidence boundary: Opens a located station whose walkback data is independently populated from a direct terrain-profile API response, drags a path vertex and cancels, then edits and saves the path and traverse rate. It checks pinned station/lander endpoints, rendered map geometry, sampled per-segment profiles, independent distance/time metrics, Reset Path, and persisted values after reload. Uses and cleans its test-owned golden DEM/grid fixture.
 
 ## STATION-014: Station manual versus calculated dwell
 

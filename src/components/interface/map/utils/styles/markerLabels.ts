@@ -195,14 +195,18 @@ function renderBaseLabelCanvas(
 
   _measureCtx.font = font;
   _measureCtx.textBaseline = "alphabetic";
-  const metrics = _measureCtx.measureText(name);
-  const textWidth = metrics.width;
+  const lines = name.split(/\r?\n/);
+  const metrics = lines.map((line) => _measureCtx!.measureText(line));
+  const textWidth = Math.max(...metrics.map((line) => line.width));
 
   // Size and center on real font metrics so glyphs are vertically centered by
   // their true extent (fall back to em-square estimates if metrics are absent).
-  const ascent = metrics.fontBoundingBoxAscent ?? fontSizePx * 0.8;
-  const descent = metrics.fontBoundingBoxDescent ?? fontSizePx * 0.2;
-  const textHeight = ascent + descent;
+  const ascent = Math.max(...metrics.map((line) => line.fontBoundingBoxAscent ?? fontSizePx * 0.8));
+  const descent = Math.max(
+    ...metrics.map((line) => line.fontBoundingBoxDescent ?? fontSizePx * 0.2)
+  );
+  const lineHeight = ascent + descent;
+  const textHeight = lineHeight * lines.length;
 
   const boxWidth = Math.ceil(textWidth + TEXT_PADDING_H * 2);
   const boxHeight = Math.ceil(textHeight + TEXT_PADDING_V * 2);
@@ -223,9 +227,6 @@ function renderBaseLabelCanvas(
   ctx.roundRect(0, 0, boxWidth, boxHeight, 3);
   ctx.fill();
 
-  // Baseline sits `ascent` below the top padding.
-  const baselineY = TEXT_PADDING_V + ascent;
-
   // Text outline
   ctx.font = font;
   ctx.textBaseline = "alphabetic";
@@ -233,11 +234,14 @@ function renderBaseLabelCanvas(
   ctx.strokeStyle = "#000";
   ctx.lineWidth = 3;
   ctx.lineJoin = "round";
-  ctx.strokeText(name, boxWidth / 2, baselineY);
-
-  // Text fill
-  ctx.fillStyle = textColor;
-  ctx.fillText(name, boxWidth / 2, baselineY);
+  lines.forEach((line, index) => {
+    // The first baseline sits `ascent` below the top padding; later lines use
+    // the same metric-derived spacing so multiline labels remain readable.
+    const baselineY = TEXT_PADDING_V + ascent + index * lineHeight;
+    ctx.strokeText(line, boxWidth / 2, baselineY);
+    ctx.fillStyle = textColor;
+    ctx.fillText(line, boxWidth / 2, baselineY);
+  });
 
   return canvas;
 }

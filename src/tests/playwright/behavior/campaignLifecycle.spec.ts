@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "../fixtures/behavioralTest";
+import { enablePlanningEditMode } from "./planningHelpers";
 
 test.use({ scenario: "execution" });
 
@@ -20,6 +21,7 @@ for (const entry of ["EVA Comparison", "EVA STM Coverage"] as const) {
     });
     const before = await mission.read();
     await mission.open(page);
+    await enablePlanningEditMode(page);
     await reports(page, entry);
     const peer = await context.newPage();
     await mission.open(peer);

@@ -146,7 +146,10 @@ const IndicatorGridCell: FunctionComponent<{
       return null;
     }
     let actionsWithThisLevel3 = stationActions.filter(
-      (action) => action.stmPriorities && Object.keys(action.stmPriorities).includes(level3Uuid)
+      (action) =>
+        action.enabled &&
+        action.stmPriorities &&
+        Object.keys(action.stmPriorities).includes(level3Uuid)
     );
 
     // filter against stmViewSelectedActionTypes

@@ -98,12 +98,17 @@ export function drawGraphAxes(
   axisGroup.addChild(startLine);
 
   //determine interval for elevation markers
+  const minimumElevation = measureDerivedValuesRef.current.minElevationMeters;
+  const maximumElevation = measureDerivedValuesRef.current.maxElevationMeters;
+  const elevationRange =
+    minimumElevation === null || maximumElevation === null
+      ? 0
+      : maximumElevation - minimumElevation;
+  if (!Number.isFinite(elevationRange) || elevationRange <= 0) return;
+
   let elevationInterval = possibleIntervalMeters[0];
   for (let i = 0; i < possibleIntervalMeters.length; i++) {
-    const numMarkers =
-      (measureDerivedValuesRef.current.maxElevationMeters -
-        measureDerivedValuesRef.current.minElevationMeters) /
-      possibleIntervalMeters[i];
+    const numMarkers = elevationRange / possibleIntervalMeters[i];
     //determine how many can fit taking into account the marker spacing pixels
     if (numMarkers < paperVars.graphHeight / markerSpacingPx && i > 0) {
       elevationInterval = possibleIntervalMeters[i - 1];
@@ -113,6 +118,8 @@ export function drawGraphAxes(
 
   //draw elevation markers
   const elevationIntervalInPixels = elevationInterval * paperVars.pixelsPerMeterElevationY;
+  if (!Number.isFinite(elevationIntervalInPixels) || elevationIntervalInPixels <= 0) return;
+  const maximumMarkerCount = Math.ceil(paperVars.graphHeight / markerSpacingPx) + 1;
   const yLocStartElevation = paperVars.drawingTop + paperVars.startElevationFromGraphTop;
   let markerArea: number;
   let numMarkers: number;
@@ -120,7 +127,7 @@ export function drawGraphAxes(
   //draw markers below start
   markerArea = paperVars.graphHeight - paperVars.startElevationFromGraphTop;
   numMarkers = markerArea / elevationIntervalInPixels;
-  for (let i = 1; i < numMarkers; i++) {
+  for (let i = 1; i < numMarkers && i <= maximumMarkerCount; i++) {
     drawMeterMarker(
       measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
       xLocRightYaxis,
@@ -134,7 +141,7 @@ export function drawGraphAxes(
   //draw markers above start
   markerArea = paperVars.startElevationFromGraphTop;
   numMarkers = markerArea / elevationIntervalInPixels;
-  for (let i = 1; i < numMarkers; i++) {
+  for (let i = 1; i < numMarkers && i <= maximumMarkerCount; i++) {
     drawMeterMarker(
       measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
       xLocRightYaxis,
@@ -155,28 +162,30 @@ export function drawElevationProfile(
   const yStartPixel = paperVars.drawingTop + paperVars.startElevationFromGraphTop;
 
   //build points for each sequence and draw
-  const fillPoints: number[][] = [];
-  const strokePoints: number[][] = [];
-
   const graphDataItems = derivedValues.elevationGraphValues;
   if (!graphDataItems || graphDataItems.length === 0) return;
-
-  fillPoints.push([graphDataItems[0].xPixel, yStartPixel]);
-  for (const graphDataItem of graphDataItems) {
-    fillPoints.push([graphDataItem.xPixel, graphDataItem.yPixel]);
-    strokePoints.push([graphDataItem.xPixel, graphDataItem.yPixel]);
+  const runs: GraphDataItem[][] = [[]];
+  for (const item of graphDataItems) {
+    if (item.breakBefore) runs.push([]);
+    runs.at(-1)!.push(item);
   }
-  fillPoints.push([graphDataItems.at(-1).xPixel, yStartPixel]);
+  for (const run of runs) {
+    if (run.length === 0) continue;
+    const fillPoints = [
+      [run[0].xPixel, yStartPixel],
+      ...run.map(({ xPixel, yPixel }) => [xPixel, yPixel]),
+      [run.at(-1).xPixel, yStartPixel],
+    ];
+    const elevationFillPath = new paper.Path(fillPoints);
+    elevationFillPath.fillColor = measurePaperDataRef.current.styles.green;
+    elevationFillPath.opacity = 0.1;
 
-  const elevationFillPath = new paper.Path(fillPoints);
-  elevationFillPath.fillColor = measurePaperDataRef.current.styles.green;
-  elevationFillPath.opacity = 0.1;
-
-  //build points for the stroke path and draw
-  const elevationStrokePath = new paper.Path(strokePoints);
-  elevationStrokePath.strokeColor = measurePaperDataRef.current.styles.green;
-  elevationStrokePath.opacity = 1;
-  elevationStrokePath.strokeWidth = 1.5;
+    const strokePoints = run.map(({ xPixel, yPixel }) => [xPixel, yPixel]);
+    const elevationStrokePath = new paper.Path(strokePoints);
+    elevationStrokePath.strokeColor = measurePaperDataRef.current.styles.green;
+    elevationStrokePath.opacity = 1;
+    elevationStrokePath.strokeWidth = 1.5;
+  }
 
   //draw first and last dots on the elevation graph
   const diamond = new paper.Path.Rectangle({
@@ -424,9 +433,12 @@ export const drawMouseHover = (
 
   //get hover values and draw diamonds, when elevation data is available
   const hasElevationData = !!derivedValues.elevationGraphValues?.length;
-  const elevationHoverData = hasElevationData
-    ? getHoverValue(derivedValues.elevationGraphValues, hoverPoint.x)
-    : null;
+  const elevationPoints = derivedValues.elevationGraphValues ?? [];
+  const pointAfter = elevationPoints.find(({ xPixel }) => xPixel >= hoverPoint.x);
+  const inNoDataGap =
+    pointAfter?.breakBefore === true && elevationPoints.some(({ xPixel }) => xPixel < hoverPoint.x);
+  const elevationHoverData =
+    hasElevationData && !inNoDataGap ? getHoverValue(elevationPoints, hoverPoint.x) : null;
 
   const newHoverValues: MeasureHoverValues = {
     totalDistanceMeters: derivedValues.totalDistanceMeters,

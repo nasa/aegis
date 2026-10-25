@@ -47,6 +47,8 @@ const Main: React.FunctionComponent = () => {
 
   const [missionPerms, setMissionPerms] = useState(null);
   const [storeIsPopulated, setStoreIsPopulated] = useState(false);
+  const [hydrationError, setHydrationError] = useState<string | null>(null);
+  const [hydrationAttempt, setHydrationAttempt] = useState(0);
   const [searchParams] = useSearchParams();
   const evaRefUuid = searchParams.get("evaRefUuid");
   const actionRefUuid = searchParams.get("actionRefUuid");
@@ -110,35 +112,41 @@ const Main: React.FunctionComponent = () => {
   useEffect(() => {
     if (!missionPerms || !isVersionChecked || !automergeRepo) return;
 
+    let isCurrentHydration = true;
     (async () => {
       // Get the rest of the store data
-      let wholeStoreState: WholeStoreState;
-      if (missionPerms.permissions?.edit) {
-        wholeStoreState = await populateStore({
+      try {
+        const wholeStoreState: WholeStoreState = await populateStore({
           missionId: intMissionId,
-          runAudit: true,
+          runAudit: Boolean(missionPerms.permissions?.edit),
           automergeRepo,
         });
-      } else {
-        // User does not have edit permissions, so do not run audit (which causes DB changes)
-        wholeStoreState = await populateStore({
-          missionId: intMissionId,
-          runAudit: false,
-          automergeRepo,
-        });
+        if (!isCurrentHydration) return;
+        if (!wholeStoreState) {
+          throw new Error("The server did not return mission data.");
+        }
+
+        // Dispatch a single action to populate the stores across all slices using the wholeStoreState
+        dispatch(setAllSliceStores(wholeStoreState));
+        syncMissionTerrainProfiles(store);
+
+        // If evaRefUuid, actionRefUuid are present in the URL, set the selected action using thunk
+        if (evaRefUuid && actionRefUuid) {
+          dispatch(thunkSelectEvaAction({ evaRefUuid, actionRefUuid, rexUuid }));
+        }
+
+        setHydrationError(null);
+        setStoreIsPopulated(true);
+      } catch {
+        if (isCurrentHydration) {
+          setHydrationError("Mission data could not be loaded. Please retry.");
+        }
       }
-
-      // Dispatch a single action to populate the stores across all slices using the wholeStoreState
-      dispatch(setAllSliceStores(wholeStoreState));
-      syncMissionTerrainProfiles(store);
-
-      // If evaRefUuid, actionRefUuid are present in the URL, set the selected action using thunk
-      if (evaRefUuid && actionRefUuid) {
-        dispatch(thunkSelectEvaAction({ evaRefUuid, actionRefUuid, rexUuid }));
-      }
-
-      setStoreIsPopulated(true);
     })();
+
+    return () => {
+      isCurrentHydration = false;
+    };
   }, [
     isVersionChecked,
     automergeRepo,
@@ -148,6 +156,7 @@ const Main: React.FunctionComponent = () => {
     evaRefUuid,
     actionRefUuid,
     rexUuid,
+    hydrationAttempt,
   ]);
 
   useEffect(() => {
@@ -185,7 +194,23 @@ const Main: React.FunctionComponent = () => {
 
   return (
     <>
-      {missionPerms && partialMission && storeIsPopulated ? (
+      {hydrationError && !storeIsPopulated ? (
+        <div
+          role="alert"
+          style={{ display: "grid", justifyItems: "center", gap: "1rem", padding: "2rem" }}
+        >
+          <div>{hydrationError}</div>
+          <button
+            type="button"
+            onClick={() => {
+              setHydrationError(null);
+              setHydrationAttempt((attempt) => attempt + 1);
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : missionPerms && partialMission && storeIsPopulated ? (
         <>
           {partialMission.archivedAt ? (
             <div className={styles.archivedBody}>

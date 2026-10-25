@@ -147,6 +147,12 @@ export function measureLabelText(
   const ctx = getMeasureCtx();
   if (!ctx) return null;
   ctx.font = `${fontSizePx}px sans-serif`;
-  const metrics = ctx.measureText(name);
-  return { width: metrics.width + 12, height: fontSizePx + 8 }; // padding included
+  const lines = name.split(/\r?\n/);
+  const metrics = lines.map((line) => ctx.measureText(line));
+  const width = Math.max(...metrics.map((line) => line.width));
+  const ascent = Math.max(...metrics.map((line) => line.fontBoundingBoxAscent ?? fontSizePx * 0.8));
+  const descent = Math.max(
+    ...metrics.map((line) => line.fontBoundingBoxDescent ?? fontSizePx * 0.2)
+  );
+  return { width: width + 12, height: (ascent + descent) * lines.length + 8 }; // padding included
 }
