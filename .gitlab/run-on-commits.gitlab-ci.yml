@@ -236,6 +236,30 @@ test-playwright:start:
   script:
     - echo "Starting all eight Playwright regression shards"
 
+# Install Ubuntu dependencies once, in parallel with the deployment image builds.
+prepare-playwright:
+  stage: stageless
+  tags: ["openshift"]
+  image: mcr.microsoft.com/playwright:v1.63.0-jammy
+  needs:
+    - job: test-playwright:start
+      artifacts: false
+  cache:
+    key:
+      prefix: playwright-npm
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  script:
+    # Install on Ubuntu so every native dependency matches the browser image.
+    - npm ci --cache .npm --prefer-offline
+    - tar -cf node_modules.tar node_modules
+  artifacts:
+    paths:
+      - node_modules.tar
+    expire_in: 1 day
+
 test-playwright:
   when: on_success
   allow_failure: false
@@ -251,6 +275,7 @@ test-playwright:
       - SHARD_INDEX: 8
   variables:
     NUM_SHARDS: 8
+    GIT_COMMIT: ${CI_COMMIT_SHA}
     # Avoid @emss/logger's console fallback and remote sends in every shard,
     # including migrations. Aegis console warnings/errors remain enabled below.
     AEGIS_TEST_DISABLE_REMOTE_LOGGING: "true"
@@ -259,13 +284,13 @@ test-playwright:
   # Keep this tag in sync with the @playwright/test version in package.json.
   image: mcr.microsoft.com/playwright:v1.63.0-jammy
   needs:
-    - job: test-playwright:start
-      artifacts: false
-    - install_dependencies
+    - prepare-playwright
+    - docker:build:apiv1
     - make-dotenv:test
     - z:db-export:prod
   script:
     - echo "Running shard ${SHARD_INDEX} of ${NUM_SHARDS}"
+    - test "$(cat .local/build-commit)" = "$CI_COMMIT_SHA"
     # loadEnv overrides process variables with .env; quiet the job's copy directly.
     # Keep warnings and errors visible while suppressing routine API debug output.
     - sed -i 's/^VITE_PUBLIC_CONSOLE_LOG_LEVEL=.*/VITE_PUBLIC_CONSOLE_LOG_LEVEL=warning/' .env
@@ -273,13 +298,9 @@ test-playwright:
     - mkdir -p playwright-report
     - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
 
-    - npm run api:build # Build api in advance so it also builds the automerge:migration
-    - npm run migration:up
-    - npm run automerge:migration
-
-    # node_modules artifact was built on Alpine (musl); this image is Ubuntu (glibc).
-    # npm skips libc-mismatched optional deps, so install the glibc rollup binary explicitly.
-    - npm install --no-save @rollup/rollup-linux-x64-gnu
+    # Run the deployment image's compiled migrations against this shard's DB.
+    - npm run migration:up:run
+    - node .local/automerge/dist/migration.js
 
     # Run Playwright tests
     - npm run test:playwright:ci
@@ -414,10 +435,14 @@ test-automerge-integrity:
     TARGET_STAGE: prod
     # Retag jobs promote preview images after the required checks pass.
     IMAGE_TAG: "preview-${IMAGE_VERSION}"
-    GIT_COMMIT: ${CI_COMMIT_SHORT_SHA}
+    GIT_COMMIT: ${CI_COMMIT_SHA}
     # Buildah reads named build args from the job environment, including dotenv artifacts.
     BUILDAH_BUILD_OPTIONS: >-
       --skip-unused-stages
+      --pull=always
+      --layers
+      --cache-from ${CI_REGISTRY_IMAGE}/build-cache/${CI_JOB_NAME_SLUG}
+      --cache-to ${CI_REGISTRY_IMAGE}/build-cache/${CI_JOB_NAME_SLUG}
       --build-arg GIT_COMMIT
 
 docker:build:nginx:
@@ -427,6 +452,10 @@ docker:build:nginx:
     IMAGE_NAME: "${CI_REGISTRY_IMAGE}/nginx"
     BUILDAH_BUILD_OPTIONS: >-
       --skip-unused-stages
+      --pull=always
+      --layers
+      --cache-from ${CI_REGISTRY_IMAGE}/build-cache/${CI_JOB_NAME_SLUG}
+      --cache-to ${CI_REGISTRY_IMAGE}/build-cache/${CI_JOB_NAME_SLUG}
       --build-arg GIT_COMMIT
       --build-arg VITE_PUBLIC_CONSOLE_LOG_LEVEL
       --build-arg VITE_PUBLIC_REMOTE_LOG_LEVEL
@@ -436,6 +465,16 @@ docker:build:apiv1:
   variables:
     DOCKERFILE: docker/apiv1/Dockerfile
     IMAGE_NAME: "${CI_REGISTRY_IMAGE}/apiv1"
+  script:
+    - !reference [.buildah-build, script]
+    - buildah unshare sh .gitlab/scripts/export-api-build.sh "${IMAGE_NAME}:${IMAGE_TAG}"
+  artifacts:
+    paths:
+      - .local/express/
+      - .local/automerge/
+      - .local/schemas/
+      - .local/build-commit
+    expire_in: 1 day
 
 #
 # Retag docker images after necessary jobs pass (e.g. unit testing passes)
