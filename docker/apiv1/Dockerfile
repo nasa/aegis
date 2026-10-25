@@ -5,12 +5,6 @@ FROM node:26.13.0-alpine AS base
 # Set the working directory. It will create if doesn't exist
 WORKDIR /app
 
-# Make GIT_COMMIT available in the image so it can be baked into the code at build time
-# The GIT_COMMIT value is passed as a build argument from the job pipeline.
-# When building this container locally, this is not available so "localDev" will be used as default value
-ARG GIT_COMMIT=localDev
-ENV GIT_COMMIT=$GIT_COMMIT
-
 # The * after npmrc ensure copy operation will not fail if the file does not exist
 COPY .npmrc* .
 COPY package*.json .
@@ -37,7 +31,10 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci
 # Copy the rest of the files and build the app
 COPY . /app
 
-RUN npm run api:build
+# Keep dependency layers reusable; every commit gets a fresh application build.
+ARG GIT_COMMIT=localDev
+ENV GIT_COMMIT=$GIT_COMMIT
+RUN npm run api:build && printf '%s\n' "$GIT_COMMIT" > .local/build-commit
 
 # # # # # # # #
 # PROD image  #
@@ -56,6 +53,7 @@ COPY --from=build /app/src/server/database /app/src/server/database
 COPY --from=build /app/tsconfig.json /app
 # copy schemas over
 COPY --from=build /app/.local/schemas /app/.local/schemas
+COPY --from=build /app/.local/build-commit /app/.local/build-commit
 
 # Run node with production config
 ENV NODE_ENV=production
@@ -72,6 +70,9 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --omit=dev
 RUN apk add --no-cache \
   rsync \
   tini=0.19.0-r3
+
+ARG GIT_COMMIT=localDev
+LABEL org.opencontainers.image.revision=$GIT_COMMIT
 
 ENTRYPOINT ["/sbin/tini", "--"]
 
