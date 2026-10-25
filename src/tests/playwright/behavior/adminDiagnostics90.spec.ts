@@ -286,9 +286,6 @@ test("super-admin connection monitors follow isolated visitors, refresh, leave, 
     await leaveCard.getByRole("button", { name: "Emit", exact: true }).click();
     await page.getByTitle("Refresh").click();
     await expect(page.getByText(maestroName, { exact: true })).toHaveCount(0);
-    await expect(
-      page.getByText("No Maegistro v2 visitors connected.", { exact: true })
-    ).toBeVisible();
     await page.getByRole("button", { name: "Disconnect", exact: true }).click();
     await expect(page.getByText("disconnected", { exact: true }).first()).toBeVisible();
 

@@ -52,7 +52,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const newMissionId: number | null = await upsertDatabaseRetry(() =>
-      duplicateMission(parseInt(missionId as string))
+      duplicateMission(parseInt(missionId as string), req.body.copyAssets !== false)
     );
 
     // Check response
@@ -99,7 +99,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-const duplicateMission = async (missionId: number): Promise<number> => {
+const duplicateMission = async (missionId: number, copyAssets: boolean): Promise<number> => {
   if (!missionId) {
     throw new Error("Mission ID is required");
   }
@@ -113,7 +113,7 @@ const duplicateMission = async (missionId: number): Promise<number> => {
     // 2. Create a copy of the mission with related entities
     const newMissionId = await createMissionCopy(sourceData, {
       nameSuffix: "Copy",
-      copyAssets: true,
+      copyAssets,
     });
 
     await em.commit(); // Commit the transaction
@@ -129,6 +129,7 @@ export const createMissionCopy = async (
   sourceData: MissionSourceData,
   options: MissionCopyOptions
 ): Promise<number> => {
+  let copiedUrl: AutomergeUrl | undefined;
   try {
     // 1. Create new mission. All mission entities ride along on the mission doc copy.
 
@@ -145,6 +146,7 @@ export const createMissionCopy = async (
 
     // create an mission automerge document; entities ride along and are scoped by the new doc
     const docListing: AutomergeDocListing = await createAutomergeMission(newMission);
+    copiedUrl = docListing.automergeUrl as AutomergeUrl;
     // retrieve the mission object
     const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
       docListing.automergeUrl as AutomergeUrl
@@ -169,6 +171,7 @@ export const createMissionCopy = async (
 
     return newMissionId;
   } catch (error) {
+    if (copiedUrl) await globalValues.automergeRepo.delete(copiedUrl);
     throw new Error(`Failed to create mission copy: ${error}`);
   }
 };

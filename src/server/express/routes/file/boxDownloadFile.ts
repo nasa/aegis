@@ -1,3 +1,4 @@
+import { createBoxClient } from "server/file/boxClient";
 /**
  * Box API v2 download flow:
  * - `makeRequest` calls `/2.0/files/:id/content` so ranged responses expose status and headers.
@@ -7,15 +8,15 @@
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 
-import { BoxClient, BoxCcgAuth, CcgConfig } from "box-node-sdk";
+import type { BoxClient } from "box-node-sdk";
 import express from "express";
 
-import { unzip } from "server/file/file";
+import { assertMissionFilePath, resolveStaticPath, unzip } from "server/file/file";
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -88,24 +89,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
+  let stagedPath: string | undefined;
   try {
+    assertMissionFilePath(queryObj.missionId, queryObj.path);
     const staticDirectory = process.env.STATIC_DIR;
     if (!staticDirectory) {
       throw new Error("STATIC_DIR is not configured");
     }
 
-    // setup access to the Box.com SDK
-    const auth = new BoxCcgAuth({
-      config: new CcgConfig({
-        clientId: process.env.BOX_CLIENT_ID,
-        clientSecret: process.env.BOX_CLIENT_SECRET,
-        enterpriseId: process.env.BOX_ENTERPRISE_ID,
-        userId: process.env.BOX_USER_ID,
-      }),
-    });
-    const client = new BoxClient({ auth }).withTimeouts({
-      timeoutMs: BOX_DOWNLOAD_REQUEST_TIMEOUT_MS,
-    });
+    const client = createBoxClient().withTimeouts({ timeoutMs: BOX_DOWNLOAD_REQUEST_TIMEOUT_MS });
 
     beginProgressResponse(res);
     writeProgress(res, { type: "progress", stage: "starting" });
@@ -130,13 +122,17 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       logValue: `Box metadata received for ${metadata.name}: ${totalBytes ?? "unknown"} bytes`,
     });
 
-    const stagedDownloadFilePath = path.join(
-      staticDirectory,
-      "missionFiles",
-      String(queryObj.missionId),
-      metadata.name
+    if (
+      !metadata.name ||
+      metadata.name === "." ||
+      metadata.name === ".." ||
+      path.basename(metadata.name) !== metadata.name
+    )
+      throw new Error("Invalid Box file name");
+    const stagedDownloadFilePath = resolveStaticPath(
+      path.join("missionFiles", String(queryObj.missionId), `${randomUUID()}-${metadata.name}`)
     );
-    const legacyDownloadFilePath = path.join(staticDirectory, metadata.name);
+    stagedPath = stagedDownloadFilePath;
 
     await downloadFileFromBox(
       client,
@@ -144,7 +140,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       stagedDownloadFilePath,
       totalBytes,
       metadata.sha1,
-      legacyDownloadFilePath,
       (bytesDownloaded) => {
         writeProgress(res, {
           type: "progress",
@@ -182,12 +177,15 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       }
     } else {
       writeProgress(res, { type: "progress", stage: "moving", fileName: metadata.name });
-      const destinationDirectory = path.join(staticDirectory, queryObj.path ?? "");
+      const destinationDirectory = assertMissionFilePath(queryObj.missionId, queryObj.path);
       if (!fs.existsSync(destinationDirectory)) {
         fs.mkdirSync(destinationDirectory, { recursive: true });
       }
 
-      fs.renameSync(stagedDownloadFilePath, path.join(destinationDirectory, metadata.name));
+      const destinationFile = resolveStaticPath(path.join(queryObj.path, metadata.name));
+      if (fs.existsSync(destinationFile))
+        throw new Error("A file with that name already exists in the destination");
+      fs.renameSync(stagedDownloadFilePath, destinationFile);
     }
 
     serverLogger.info({
@@ -202,6 +200,10 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
     res.end();
   } catch (e) {
+    if (stagedPath) {
+      fs.rmSync(stagedPath, { force: true });
+      fs.rmSync(`${stagedPath}.part`, { force: true });
+    }
     const error = asError(e);
     serverLogger.apiRoute({
       logLevel: "error",
@@ -231,12 +233,10 @@ async function downloadFileFromBox(
   downloadFilePath: string,
   totalBytes: number | undefined,
   expectedSha1: string | undefined,
-  legacyDownloadFilePath: string,
   onProgress: (bytesDownloaded: number) => void
 ): Promise<void> {
   const partialFilePath = `${downloadFilePath}.part`;
   removePartialFile(partialFilePath);
-  removePartialFile(`${legacyDownloadFilePath}.part`);
   fs.mkdirSync(path.dirname(downloadFilePath), { recursive: true });
 
   try {

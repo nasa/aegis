@@ -27,6 +27,7 @@ const FileManager: FunctionComponent<{
   const { path, setFileList, isUsed } = { ...props };
   const [dirListing, setDirListing] = useState<fileState[]>([]);
   const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(false);
+  const [sortBy, setSortBy] = useState("name");
   const [hideDirectoryListing, setHideDirectoryListing] = useState(false);
 
   const navigate = useNavigate();
@@ -219,6 +220,14 @@ const FileManager: FunctionComponent<{
       </div>
       {!hideDirectoryListing && (
         <div>
+          <label>
+            Sort files by{" "}
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+              <option value="name">Name</option>
+              <option value="size">Size</option>
+              <option value="count">File Count</option>
+            </select>
+          </label>
           {dirListing.length > 0 ? (
             <table className={adminStyles.fileTable}>
               <thead>
@@ -231,67 +240,74 @@ const FileManager: FunctionComponent<{
                 </tr>
               </thead>
               <tbody>
-                {dirListing.map((file) => {
-                  return (
-                    <tr key={file.key}>
-                      <td>{file.type}</td>
-                      <td>{file.count}</td>
-                      <td>{prettyBytes(file.size)}</td>
-                      <td>{file.name}</td>
-                      <td>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          {file.showRename ? (
-                            <>
-                              <input
-                                className={adminStyles.renameInput}
-                                type="text"
-                                title="New Name"
-                                value={file.newName}
-                                onChange={(e) => {
-                                  renameChangeHandler(file.key, e.target.value);
-                                }}
-                              />
-                              <button
-                                className={adminStyles.button}
-                                onClick={() => {
-                                  saveRename(file.key);
-                                }}
-                              >
-                                Save
-                              </button>
-                            </>
-                          ) : (
-                            <></>
-                          )}
-                          <button
-                            className={adminStyles.button}
-                            onClick={() => {
-                              showHideRename(file.key);
+                {[...dirListing]
+                  .sort((a, b) =>
+                    sortBy === "name"
+                      ? a.name.localeCompare(b.name)
+                      : (sortBy === "size" ? a.size - b.size : a.count - b.count) ||
+                        a.name.localeCompare(b.name)
+                  )
+                  .map((file) => {
+                    return (
+                      <tr key={file.key}>
+                        <td>{file.type}</td>
+                        <td>{file.count}</td>
+                        <td>{prettyBytes(file.size)}</td>
+                        <td>{file.name}</td>
+                        <td>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              flexWrap: "wrap",
                             }}
                           >
-                            {file.showRename ? "Cancel" : "Rename"}
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              deleteFileToAPI(e, file.name);
-                            }}
-                            className={adminStyles.deleteButton}
-                          >
-                            Delete
-                          </button>
-                          {isUsed ? !isUsed(file.name) && "Not assigned to a layer" : ""}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                            {file.showRename ? (
+                              <>
+                                <input
+                                  className={adminStyles.renameInput}
+                                  type="text"
+                                  title="New Name"
+                                  value={file.newName}
+                                  onChange={(e) => {
+                                    renameChangeHandler(file.key, e.target.value);
+                                  }}
+                                />
+                                <button
+                                  className={adminStyles.button}
+                                  onClick={() => {
+                                    saveRename(file.key);
+                                  }}
+                                >
+                                  Save
+                                </button>
+                              </>
+                            ) : (
+                              <></>
+                            )}
+                            <button
+                              className={adminStyles.button}
+                              onClick={() => {
+                                showHideRename(file.key);
+                              }}
+                            >
+                              {file.showRename ? "Cancel" : "Rename"}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                deleteFileToAPI(e, file.name);
+                              }}
+                              className={adminStyles.deleteButton}
+                            >
+                              Delete
+                            </button>
+                            {isUsed ? !isUsed(file.name) && "Not assigned to a layer" : ""}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           ) : (

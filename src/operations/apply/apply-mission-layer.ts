@@ -15,6 +15,9 @@ export function normalizeLayerInput(m: Mission, input: Partial<Layer>): Layer {
   const existing = input.uuid ? m.layers[input.uuid] : undefined;
   const blank = generateBlankLayer();
   return {
+    ...(Number.isFinite(input.order ?? existing?.order)
+      ? { order: input.order ?? existing.order }
+      : {}),
     uuid: input.uuid ?? blank.uuid,
     name: input.name ?? existing?.name ?? "",
     createdAt: existing?.createdAt ?? now,
@@ -79,6 +82,19 @@ export function applyUpsertLayers(m: Mission, layers: Layer[]): void {
     if (!isNew) continue;
     for (const preset of Object.values(m.presets)) {
       getPresetLayerOrderEntry(preset, layer.uuid);
+      preset.updatedAt = now;
+    }
+  }
+  if (layers.some((layer) => layer.order !== undefined)) {
+    for (const preset of Object.values(m.presets)) {
+      const ordered = preset.layerOrder
+        .map((entry) => ({ layerUuid: entry.layerUuid, sublayerUuids: [...entry.sublayerUuids] }))
+        .sort(
+          (a, b) =>
+            (m.layers[a.layerUuid]?.order ?? Number.MAX_SAFE_INTEGER) -
+            (m.layers[b.layerUuid]?.order ?? Number.MAX_SAFE_INTEGER)
+        );
+      preset.layerOrder.splice(0, preset.layerOrder.length, ...ordered);
       preset.updatedAt = now;
     }
   }

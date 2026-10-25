@@ -4,7 +4,7 @@ import type { Socket } from "socket.io-client";
 import { Repo } from "@automerge/automerge-repo";
 import type { DocHandle } from "@automerge/automerge-repo";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { WebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
+import { authenticatedAutomergeAdapter } from "../fixtures/authenticatedAutomerge";
 import Ajv, { type ValidateFunction } from "ajv";
 import { test, expect } from "@playwright/test";
 import type { APIRequestContext } from "@playwright/test";
@@ -172,7 +172,9 @@ async function createDustFixture(
     const socketUrl = new URL("/api/automergeSocket/", origin);
     socketUrl.protocol = origin.protocol === "https:" ? "wss:" : "ws:";
     socketUrl.searchParams.set("serverEpochUuid", version.serverEpochUuid);
-    repo = new Repo({ network: [new WebSocketClientAdapter(socketUrl.toString())] });
+    repo = new Repo({
+      network: [await authenticatedAutomergeAdapter(request, socketUrl.toString())],
+    });
     const handle = await repo.find<Mission>(automergeUrl as AutomergeUrl, {
       signal: AbortSignal.timeout(15000),
     });

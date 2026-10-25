@@ -107,7 +107,7 @@ ${blocker}`);
 
   return (
     <>
-      {missionId && automergeUrl && (
+      {missionId && automergeUrl && missionDocHandle && stmTree && (
         <div>
           <div className={adminStyles.sectionDiv}>
             <div className={adminStyles.sectionDivHeading}>Science Traceability Matrix</div>

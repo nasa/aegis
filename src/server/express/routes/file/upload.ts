@@ -2,19 +2,18 @@ import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 import express from "express";
 import multer from "multer";
 
-import { deleteFile, moveFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
+import { assertMissionFilePath, deleteFile, moveFile, renameFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 
 // Express router to replace nextConnect
 const router = express.Router();
-
-let filename = "";
 
 const parseQuery = (query: Query) => {
   const { missionId } = query;
@@ -52,8 +51,8 @@ const upload = multer({
   storage: multer.diskStorage({
     destination: process.env.STATIC_DIR, // all files are uploaded into the root STATIC_DIR location
     filename: (req, file, cb) => {
-      cb(null, file.originalname);
-      filename = file.originalname;
+      const filename = `${randomUUID()}-${path.basename(file.originalname)}`;
+      cb(null, filename);
       req.on("aborted", () => {
         serverLogger.info({ logId: "file", logValue: `Client aborted upload` });
         deleteFile(filename);
@@ -70,6 +69,11 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
   const queryObj = parseQuery(req.query);
   try {
     if (req.file) {
+      const filename = req.file.filename;
+      assertMissionFilePath(
+        queryObj.missionId,
+        path.join(req.body.path ?? "", req.body.subfolder ?? "")
+      );
       let statusMessage = "File received";
       // File processing logic
       if (path.extname(filename) === ".zip") {
@@ -77,7 +81,12 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
         statusMessage = "File received and extracted";
       } else {
         // move to subfolder
-        await moveFile(filename, req.body.path, req.body.subfolder);
+        const destination = path.join(req.body.path, req.body.subfolder ?? "");
+        await moveFile(filename, destination);
+        if (!(await renameFile(destination, filename, req.file.originalname))) {
+          await deleteFile(path.join(destination, filename));
+          throw new Error("A file with that name already exists in the destination");
+        }
       }
       res.status(201).json(statusMessage);
     } else {
@@ -93,6 +102,7 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
       res.status(400).json("No file provided in request body");
     }
   } catch (error) {
+    if (req.file) await deleteFile(req.file.filename);
     serverLogger.apiRoute({
       logLevel: "error",
       httpMethod: "POST",

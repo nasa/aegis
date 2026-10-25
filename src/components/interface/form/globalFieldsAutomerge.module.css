@@ -19,7 +19,13 @@
   border-radius: var(--panelRadius);
 }
 
+.dialogContainerEditable:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 .editField {
+  box-sizing: border-box;
   padding: 4px;
   height: 2em;
   background-color: var(--grey1);
@@ -105,7 +111,7 @@
 .errorMessage {
   flex-grow: 1;
   align-self: flex-start;
-  color: #ff6060;
+  color: #ff9a9a;
   font-weight: 500;
   font-size: 0.8rem;
 }

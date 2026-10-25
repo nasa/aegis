@@ -59,13 +59,12 @@ const app: Application = express();
 app.use(express.json({ limit: "40mb" }));
 app.use(cors());
 app.use(express.urlencoded({ limit: "40mb", extended: true }));
-app.use(
-  cookieSession({
-    name: "aegis-session",
-    keys: [process.env.SESSION_PASSWORD],
-    maxAge: 24 * 60 * 60 * 1000 * 365, // 1 year
-  })
-);
+export const sessionMiddleware = cookieSession({
+  name: "aegis-session",
+  keys: [process.env.SESSION_PASSWORD],
+  maxAge: 24 * 60 * 60 * 1000 * 365, // 1 year
+});
+app.use(sessionMiddleware);
 // static asset passthrough for dev. This path is relative to the esbuild output dir (.local/express/dist/api)
 app.use("/static", express.static(path.join(__dirname, `../../../../${process.env.STATIC_DIR}`)));
 

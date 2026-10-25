@@ -101,7 +101,7 @@ test.describe("EVA metadata lifecycle", () => {
       const dialog = await openPlanningField(page, "EVA Title");
       await dialog.getByLabel("EVA Title", { exact: true }).fill(value);
       await expect(dialog.getByText(error, { exact: true })).toBeVisible();
-      await dialog.getByText("Save", { exact: true }).click();
+      await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
       await expect(dialog.getByLabel("EVA Title", { exact: true })).toBeVisible();
       expect((await mission.read()).evas[mission.ids.evaA].name).toBe("Survey Alpha");
       await dialog.getByText("Cancel", { exact: true }).click();
@@ -134,7 +134,7 @@ test.describe("EVA metadata lifecycle", () => {
       const dialog = await openPlanningField(page, label);
       await dialog.getByLabel(label, { exact: true }).fill(value);
       await expect(dialog.getByText(error, { exact: true })).toBeVisible();
-      await dialog.getByText("Save", { exact: true }).click();
+      await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
       await expect(dialog.getByLabel(label, { exact: true })).toBeVisible();
       await dialog.getByText("Cancel", { exact: true }).click();
     }
@@ -157,7 +157,7 @@ test.describe("EVA metadata lifecycle", () => {
     await expect(
       invalidDate.getByText("Must be in YYYY-MM-DD format", { exact: true })
     ).toBeVisible();
-    await invalidDate.getByText("Save", { exact: true }).click();
+    await expect(invalidDate.getByText("Save", { exact: true })).toBeDisabled();
     await expect(invalidDate.getByLabel("evaDate", { exact: true })).toBeVisible();
     await invalidDate.getByText("Cancel", { exact: true }).click();
     await savePlanningField(page, "evaDate", date);

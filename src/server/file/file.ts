@@ -1,11 +1,59 @@
 import { serverLogger } from "utils/logging/serverLogger";
 import StreamZip from "node-stream-zip";
 import * as fs from "fs";
-import { readdir, mkdir, rm, rename, stat } from "node:fs/promises";
+import { readdir, mkdir, rm, rename, stat, cp, mkdtemp } from "node:fs/promises";
 import path from "node:path";
-import { spawn } from "node:child_process";
 
 const destRoot = process.env.STATIC_DIR;
+
+export function resolveStaticPath(relativePath: string): string {
+  if (!destRoot) throw new Error("STATIC_DIR is not configured");
+  const root = path.resolve(destRoot);
+  const resolved = path.resolve(root, relativePath);
+  const relative = path.relative(root, resolved);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error("Path must stay within STATIC_DIR");
+  }
+  let segment = root;
+  for (const part of relative.split(path.sep).filter(Boolean)) {
+    segment = path.join(segment, part);
+    if (fs.lstatSync(segment, { throwIfNoEntry: false })?.isSymbolicLink()) {
+      throw new Error("File paths cannot traverse symbolic links");
+    }
+  }
+  return resolved;
+}
+
+function assertSafeFileName(name: string): void {
+  if (!name || name === "." || name === ".." || path.basename(name) !== name) {
+    throw new Error("File name must be a single path segment");
+  }
+}
+export function assertMissionFilePath(missionId: number, relativePath: string): string {
+  if (!Number.isInteger(missionId) || missionId <= 0 || typeof relativePath !== "string") {
+    throw new Error("A mission ID and file path are required");
+  }
+  const scope = resolveStaticPath(`missionFiles/${missionId}`);
+  const resolved = resolveStaticPath(relativePath);
+  const relative = path.relative(scope, resolved);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error("File path must belong to the authorized mission");
+  }
+  let ancestor = resolved;
+  while (!fs.existsSync(ancestor)) ancestor = path.dirname(ancestor);
+  if (fs.existsSync(scope)) {
+    const physicalRelative = path.relative(fs.realpathSync(scope), fs.realpathSync(ancestor));
+    if (
+      physicalRelative === ".." ||
+      physicalRelative.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(physicalRelative)
+    ) {
+      throw new Error("File path must belong to the authorized mission");
+    }
+  }
+  return resolved;
+}
+
 /**
  * File structure for the STATIC_DIR is as follows
  * [missionId]/
@@ -26,23 +74,34 @@ export async function unzip(
   outputDir: string,
   subfolder?: string
 ): Promise<void> {
-  const unzipDirectory = subfolder
-    ? `${destRoot}/${outputDir}/${subfolder}`
-    : `${destRoot}/${outputDir}`;
+  const unzipDirectory = resolveStaticPath(subfolder ? path.join(outputDir, subfolder) : outputDir);
+  const zipPath = resolveStaticPath(filename);
+  let extractionDirectory: string | undefined;
+  let zip: StreamZip.StreamZipAsync | undefined;
   try {
-    //make directory if it doesn't exist
-    if (!fs.existsSync(unzipDirectory)) {
-      await mkdir(unzipDirectory, { recursive: true });
-    }
+    await mkdir(path.dirname(unzipDirectory), { recursive: true });
 
     //unzip the file. contents will overwrite if they already exist in location
     serverLogger.info({
       logId: "file",
       logValue: `Unzipping with overwrite: ${destRoot}/${filename}`,
     });
-    const zip = new StreamZip.async({ file: `${destRoot}/${filename}` });
-    const numFiles = await zip.extract(null, unzipDirectory);
+    extractionDirectory = await mkdtemp(path.join(path.dirname(unzipDirectory), ".extract-"));
+    zip = new StreamZip.async({ file: zipPath });
+    const numFiles = await zip.extract(null, extractionDirectory);
     await zip.close();
+    zip = undefined;
+    const validateDestination = async (source: string, destination: string): Promise<void> => {
+      resolveStaticPath(path.relative(destRoot, destination));
+      for (const entry of await readdir(source, { withFileTypes: true })) {
+        const target = path.join(destination, entry.name);
+        resolveStaticPath(path.relative(destRoot, target));
+        if (entry.isSymbolicLink()) throw new Error("Archives cannot contain symbolic links");
+        if (entry.isDirectory()) await validateDestination(path.join(source, entry.name), target);
+      }
+    };
+    await validateDestination(extractionDirectory, unzipDirectory);
+    await cp(extractionDirectory, unzipDirectory, { recursive: true });
 
     //delete the original file
     await deleteFile(filename);
@@ -52,15 +111,12 @@ export async function unzip(
       logValue: `File unzip success. Extracted ${numFiles} files. Deleted .zip`,
     });
   } catch (e) {
-    //cleanup
-    if (subfolder) {
-      if (fs.existsSync(`${destRoot}/${outputDir}/${subfolder}`)) {
-        await deleteFile(`${outputDir}/${subfolder}`);
-      }
-    }
     await deleteFile(filename);
     // rethrow the error after cleanup so the calling function can catch it
     throw e;
+  } finally {
+    if (zip) await zip.close();
+    if (extractionDirectory) await rm(extractionDirectory, { recursive: true, force: true });
   }
 }
 
@@ -75,15 +131,18 @@ export async function moveFile(
   destDir: string,
   subfolder?: string
 ): Promise<void> {
-  let destination = `${destRoot}/${destDir}`;
-  if (subfolder) destination = `${destination}/${subfolder}`;
+  const destination = resolveStaticPath(subfolder ? path.join(destDir, subfolder) : destDir);
 
   if (!fs.existsSync(destination)) {
     await mkdir(destination, { recursive: true });
   }
 
-  const srcPath = `${destRoot}/${filename}`;
-  const destPath = `${destination}/${filename}`;
+  const srcPath = resolveStaticPath(filename);
+  const destPath = resolveStaticPath(
+    path.join(subfolder ? path.join(destDir, subfolder) : destDir, path.basename(filename))
+  );
+  if (fs.existsSync(destPath))
+    throw new Error("A file with that name already exists in the destination");
 
   serverLogger.info({ logId: "file", logValue: `Moving: ${srcPath} to ${destPath}` });
   await rename(srcPath, destPath);
@@ -96,12 +155,13 @@ export async function moveFile(
  */
 export async function deleteFile(path: string): Promise<boolean> {
   try {
-    if (fs.existsSync(`${destRoot}/${path}`)) {
-      await rm(`${destRoot}/${path}`, { recursive: true }); //delete file or folder
-      serverLogger.info({ logId: "file", logValue: `File/directory deleted ${destRoot}/${path}` });
+    const target = resolveStaticPath(path);
+    if (fs.existsSync(target)) {
+      await rm(target, { recursive: true }); //delete file or folder
+      serverLogger.info({ logId: "file", logValue: `File/directory deleted ${target}` });
       return true;
     } else {
-      throw new Error(`File/directory does not exist ${destRoot}/${path}`);
+      throw new Error(`File/directory does not exist ${target}`);
     }
   } catch (e) {
     serverLogger.warning({ logId: "file", logValue: `Error in deleteFile: ${e}` });
@@ -114,31 +174,34 @@ export async function deleteFile(path: string): Promise<boolean> {
  * @param path the path to directory in the root STATIC_DIR to list
  * @returns an array of files/folders. Returns null if error
  */
-export async function listFiles(path: string): Promise<GISfile[]> {
+export async function listFiles(directoryPath: string): Promise<GISfile[]> {
   try {
-    if (fs.existsSync(`${destRoot}/${path}`)) {
-      const filesAndFolders = await readdir(`${destRoot}/${path}`, { withFileTypes: true });
+    const target = resolveStaticPath(directoryPath);
+    if (fs.existsSync(target)) {
+      const filesAndFolders = await readdir(target, { withFileTypes: true });
       return await Promise.all(
-        filesAndFolders.map(async (fileOrFolder) => {
-          let fileCount = 1;
-          let size = null;
-          if (fileOrFolder.isDirectory()) {
-            fileCount = await countFiles(`${destRoot}/${path}/${fileOrFolder.name}`);
-            size = await getDirectorySize(`${destRoot}/${path}/${fileOrFolder.name}`);
-          } else {
-            size = (await stat(`${destRoot}/${path}/${fileOrFolder.name}`)).size;
-          }
-          const f: GISfile = {
-            name: fileOrFolder.name,
-            isDir: fileOrFolder.isDirectory(),
-            fileCount: fileCount,
-            size,
-          };
-          return f;
-        })
+        filesAndFolders
+          .filter((entry) => !entry.isSymbolicLink())
+          .map(async (fileOrFolder) => {
+            let fileCount = 1;
+            let size = null;
+            if (fileOrFolder.isDirectory()) {
+              fileCount = await countFiles(path.join(target, fileOrFolder.name));
+              size = await getDirectorySize(path.join(target, fileOrFolder.name));
+            } else {
+              size = (await stat(path.join(target, fileOrFolder.name))).size;
+            }
+            const f: GISfile = {
+              name: fileOrFolder.name,
+              isDir: fileOrFolder.isDirectory(),
+              fileCount: fileCount,
+              size,
+            };
+            return f;
+          })
       );
     } else {
-      throw new Error(`Path does not exist: ${destRoot}/${path}`);
+      throw new Error(`Path does not exist: ${target}`);
     }
   } catch (e) {
     serverLogger.warning({ logId: "file", logValue: `Error in listfiles: ${e}` });
@@ -195,12 +258,24 @@ async function countFiles(directory: string): Promise<number> {
  * @param newName new file or folder name
  * @returns true if rename is successful, false otherwise
  */
-export async function renameFile(path: string, oldName: string, newName: string): Promise<boolean> {
+export async function renameFile(
+  directoryPath: string,
+  oldName: string,
+  newName: string
+): Promise<boolean> {
   try {
-    await rename(`${destRoot}/${path}/${oldName}`, `${destRoot}/${path}/${newName}`);
+    assertSafeFileName(oldName);
+    assertSafeFileName(newName);
+    const directory = resolveStaticPath(directoryPath);
+    const sourcePath = path.join(directory, oldName);
+    const destinationPath = path.join(directory, newName);
+    if (oldName !== newName && fs.existsSync(destinationPath)) {
+      throw new Error("A file with that name already exists in the directory");
+    }
+    await rename(sourcePath, destinationPath);
     serverLogger.info({
       logId: "file",
-      logValue: `Path renamed in ${destRoot}/${path} from ${oldName} to ${newName}`,
+      logValue: `Path renamed in ${directory} from ${oldName} to ${newName}`,
     });
     return true;
   } catch (e) {
@@ -214,11 +289,13 @@ export async function copyDirectoryContents(
   fromMissionId: number,
   toMissionId: number
 ): Promise<void> {
-  const staticDir = process.env.STATIC_DIR;
   const sourcePath = `missionFiles/${fromMissionId}`;
   const targetPath = `missionFiles/${toMissionId}`;
-  const fullSourcePath = path.join(staticDir, sourcePath);
-  const fullTargetPath = path.join(staticDir, targetPath);
+  const fullSourcePath = assertMissionFilePath(fromMissionId, sourcePath);
+  const fullTargetPath = assertMissionFilePath(toMissionId, targetPath);
+  if (fromMissionId === toMissionId || fs.existsSync(fullTargetPath)) {
+    throw new Error("The copied mission asset directory must be new");
+  }
 
   if (!fs.existsSync(fullSourcePath)) {
     serverLogger.info({
@@ -228,94 +305,18 @@ export async function copyDirectoryContents(
     return;
   }
 
-  // Create target directory if it doesn't exist
-  if (!fs.existsSync(fullTargetPath)) {
-    await mkdir(fullTargetPath, { recursive: true });
-  }
-
-  // Try to use system-specific commands for better performance
-  // All these commands are configured to copy recursively
   try {
-    const platform = process.platform;
-
-    if (platform === "win32") {
-      // Use robocopy on Windows (more modern than xcopy)
-      // /E ensures recursive copying (includes empty subdirectories)
-      try {
-        await executeCommand("robocopy", [fullSourcePath, fullTargetPath, "/E", "/NFL", "/NDL"], {
-          acceptableExitCodes: [0, 1, 2, 3, 4, 5, 6, 7],
-        });
-        serverLogger.info({
-          logId: "file",
-          logValue: `Directory recursively copied using robocopy from ${sourcePath} to ${targetPath}`,
-        });
-        return;
-      } catch (error) {
-        serverLogger.warning({
-          logId: "file",
-          logValue: `robocopy failed, falling back to xcopy: ${error instanceof Error ? error.message : String(error)}`,
-        });
-        // Fallback to xcopy if robocopy fails or is not available
-        // /E ensures recursive copying (includes empty subdirectories)
-        await executeCommand("xcopy", [fullSourcePath, fullTargetPath, "/E", "/I", "/H", "/Y"]);
-        serverLogger.info({
-          logId: "file",
-          logValue: `Directory recursively copied using xcopy from ${sourcePath} to ${targetPath}`,
-        });
-        return;
-      }
-    } else if (platform === "darwin" || platform === "linux") {
-      // Use rsync on Linux/macOS
-      // -a (archive) ensures recursive copying with permissions preservation
-      await executeCommand("rsync", ["-a", `${fullSourcePath}/`, fullTargetPath]);
-      serverLogger.info({
-        logId: "file",
-        logValue: `Directory recursively copied using rsync from ${sourcePath} to ${targetPath}`,
-      });
-      return;
-    } else {
-      // log an error if the platform is not supported
-      serverLogger.error(
-        { logId: "file", logValue: `Unsupported platform: ${platform}` },
-        new Error(`Unsupported platform for directory copy: ${platform}. Please copy manually.`)
-      );
-      return;
-    }
+    await cp(fullSourcePath, fullTargetPath, {
+      recursive: true,
+      filter: async (source) => {
+        const sourceStat = await fs.promises.lstat(source);
+        if (sourceStat.isSymbolicLink())
+          throw new Error("Mission assets cannot contain symbolic links");
+        return true;
+      },
+    });
   } catch (error) {
-    serverLogger.error(
-      { logId: "file", logValue: "System copy command failed" },
-      error instanceof Error ? error : new Error(String(error))
-    );
+    await rm(fullTargetPath, { recursive: true, force: true });
+    throw error;
   }
-}
-
-/**
- * Execute a system command with the given arguments
- * @param command The command to execute
- * @param args Array of arguments
- * @param options Optional settings
- * @returns Promise that resolves when command completes
- */
-async function executeCommand(
-  command: string,
-  args: string[],
-  options: { acceptableExitCodes?: number[]; cwd?: string } = {}
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(command, args, { cwd: options.cwd });
-
-    proc.on("error", (err: Error) => {
-      reject(new Error(`Failed to execute ${command}: ${err.message}`));
-    });
-
-    proc.on("close", (code: number) => {
-      if (options.acceptableExitCodes && options.acceptableExitCodes.includes(code)) {
-        resolve();
-      } else if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`${command} exited with code ${code}`));
-      }
-    });
-  });
 }

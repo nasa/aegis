@@ -402,7 +402,7 @@ lines.push(
   "",
   "`npm run test:playwright:scenarios:90` validates generated documentation and requires at least 90% of eligible scenarios to be fully mapped. The threshold uses exact counts before rounding; partial scenarios receive no credit. This mapping gate does not execute browser tests.",
   "",
-  "`npm run test:playwright:scenarios:complete` fails while any eligible scenario is partial or a gap. Use it as a future completeness gate; the normal report/check commands validate accurate documentation without pretending missing tests are complete. The full gate is deliberately not part of existing CI yet.",
+  "`npm run test:playwright:scenarios:complete` fails while any eligible scenario is partial or a gap. Run it before MR acceptance; the normal report/check commands allow accurately documented gaps. This mapping check is not currently wired into CI and does not execute browsers. When the MR is ready to merge, manually trigger `test-playwright:start` for the latest commit and require all eight CI shards to pass. A duplicate full local browser run is optional.",
   "",
   "For acceptance, close each scenario with explicit fixture/action/expected assertions, demonstrate defect detection, run all required projects against the reviewed commit, record configuration and results, and complete the external operational drills separately. A green mapping gate alone does not establish runtime acceptance or exhaust all possible states.",
   ""

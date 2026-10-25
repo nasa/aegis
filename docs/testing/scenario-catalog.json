@@ -356,14 +356,13 @@
           "priority": "P0",
           "action": "As a view-only user open fields, menus, geometry editing and execution controls; issue equivalent direct writes.",
           "expected": "Read access works; UI and server reject mutations with the mission unchanged.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/adminPermissions90.spec.ts",
-              "title": "super-admin grant changes deny HTTP access and capture existing Automerge writes"
+              "file": "behavior/authBoundaries.spec.ts",
+              "title": "viewer can read fields, geometry and execution but UI and raw writes leave the mission unchanged"
             }
-          ],
-          "note": "Viewer read access and a rejected direct HTTP fields write are asserted. The remaining viewer geometry/execution UI and raw transport mutation boundaries still need explicit evidence; permission changes on an already-open editor socket follow AUTH-005."
+          ]
         },
         {
           "id": "AUTH-003",
@@ -371,8 +370,13 @@
           "priority": "P0",
           "action": "As an editor for mission A attempt reads and writes for mission B by URL, API and Automerge socket.",
           "expected": "Mission A remains editable and mission B stays protected across all transports.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/authBoundaries.spec.ts",
+              "title": "editor access stays on mission A across direct URLs, REST reads and writes, and known-document sockets"
+            }
+          ]
         },
         {
           "id": "AUTH-004",
@@ -380,9 +384,13 @@
           "priority": "P0",
           "action": "Enumerate declared policies for registered admin routes and mutation endpoints; exercise each distinct policy boundary with viewer, editor, admin and super-admin accounts as applicable.",
           "expected": "Visibility and server enforcement agree with each route's declared policy, including super-admin-only controls.",
-          "automation": "gap",
-          "tests": [],
-          "note": "Build a named route/method-policy matrix from current handlers before writing the remaining tests. Group equivalent role policies, retain separate mission-scope and super-admin checks, and reuse existing admin evidence only for the boundaries its assertions prove. A four-role Cartesian product for every route is not itself a product requirement."
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/authBoundaries.spec.ts",
+              "title": "declared admin routes and field policies separate editor, admin, and super-admin"
+            }
+          ]
         },
         {
           "id": "AUTH-005",
@@ -462,7 +470,9 @@
         "src/components/panes/mission/mission-right-prefs.tsx",
         "src/operations/apply/apply-mission.ts"
       ],
-      "supporting": ["src/tests/vitest/store/thunks/mission_thunk.test.ts"],
+      "supporting": [
+        "src/tests/vitest/store/thunks/mission_thunk.test.ts"
+      ],
       "scenarios": [
         {
           "id": "CFG-001",
@@ -777,7 +787,10 @@
       "id": "folder",
       "name": "Folders, ordering and shared lists",
       "fixture": "Planning entities and presets assigned to multiple folders, including an empty folder.",
-      "sources": ["src/operations/apply/apply-mission-folder.ts", "src/store/thunk/thunkFolder.ts"],
+      "sources": [
+        "src/operations/apply/apply-mission-folder.ts",
+        "src/store/thunk/thunkFolder.ts"
+      ],
       "supporting": [
         "src/tests/vitest/store/thunks/folder_thunk.test.ts",
         "src/tests/vitest/operations/apply/apply-mission-folder.test.ts"
@@ -884,8 +897,13 @@
       "id": "poi",
       "name": "POI lifecycle and association",
       "fixture": "Planning mission with a located POI, source actions and stations referencing it.",
-      "sources": ["src/components/panes/poi/poi-right.tsx", "src/operations/apply/apply-poi.ts"],
-      "supporting": ["src/tests/vitest/store/thunks/poi_thunk.test.ts"],
+      "sources": [
+        "src/components/panes/poi/poi-right.tsx",
+        "src/operations/apply/apply-poi.ts"
+      ],
+      "supporting": [
+        "src/tests/vitest/store/thunks/poi_thunk.test.ts"
+      ],
       "scenarios": [
         {
           "id": "POI-001",
@@ -1032,7 +1050,9 @@
         "src/components/panes/station/station-right.tsx",
         "src/operations/apply/apply-station.ts"
       ],
-      "supporting": ["src/tests/vitest/store/thunks/station_thunk.test.ts"],
+      "supporting": [
+        "src/tests/vitest/store/thunks/station_thunk.test.ts"
+      ],
       "scenarios": [
         {
           "id": "STATION-001",
@@ -2475,9 +2495,34 @@
           "priority": "P0",
           "action": "Render TMS/XYZ, COG, GeoJSON and PMTiles fixtures using named supported source/projection pairs for Earth and lunar missions.",
           "expected": "Known geographic features align, tile orientation/resolutions are correct and no source silently disappears.",
-          "automation": "gap",
-          "tests": [],
-          "note": "Record each fixture's source format, CRS, bounds, known feature coordinates and expected resolution/orientation. Cover declared supported pairs; do not infer support for the full Cartesian product of arbitrary projections and sources."
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "Earth Web Mercator XYZ places its known tile feature at the declared coordinate and resolution"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "Earth Web Mercator PMTiles archive exposes its known center feature"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "lunar south-polar stereographic GeoJSON places a known lunar feature near the lander"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
+            },
+            {
+              "file": "behavior/celestialPresetCoverage.spec.ts",
+              "title": "planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions"
+            }
+          ],
+          "note": "Named Earth TMS/XYZ/PMTiles and lunar GeoJSON/GeoTIFF fixtures assert known content, projected feature placement, XYZ tile coordinate and resolution, and TMS Y orientation."
         },
         {
           "id": "PRESET-005",
@@ -2655,7 +2700,10 @@
       "id": "calc",
       "name": "Time, distance, crew and resource calculations",
       "fixture": "Independent numeric fixtures: EV1 10 min, EV2 4 min, unassigned 1 min; joint 3 min plus solo 2/5 min; 500 m at 3 km/h.",
-      "sources": ["src/store/processing/calculatedFields.ts", "src/utils/mapping/geoMath.ts"],
+      "sources": [
+        "src/store/processing/calculatedFields.ts",
+        "src/utils/mapping/geoMath.ts"
+      ],
       "supporting": [
         "src/tests/vitest/store/calculatedFields.test.ts",
         "src/tests/vitest/utils/geoMath.test.ts",
@@ -3224,9 +3272,13 @@
           "priority": "P0",
           "action": "Have two clients attempt to start different stopped REXes concurrently.",
           "expected": "After synchronization and reload, both clients agree on persisted REX running/timing state and retain valid ownership references. Once a client observes another running REX, its existing start control gate applies.",
-          "automation": "gap",
-          "tests": [],
-          "note": "The UI gates starts using its currently observed document. This row tests concurrent convergence and that observed-state gate; it does not introduce a globally serialized single-winner guarantee. Such a guarantee would need a separate product decision and implementation contract."
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/executionCoverage.spec.ts",
+              "title": "two clients starting different stopped REXes concurrently converge and apply the observed running-state gate"
+            }
+          ]
         },
         {
           "id": "REX-027",
@@ -3253,7 +3305,10 @@
       "id": "policy",
       "name": "Execution edit policies, status and collected values",
       "fixture": "Original and added station/traverse/actions under never-run, running, stopped and restarted REXes in none/limited/unrestricted modes.",
-      "sources": ["src/utils/rexExecuteEditMode.ts", "src/operations/apply/apply-rex.ts"],
+      "sources": [
+        "src/utils/rexExecuteEditMode.ts",
+        "src/operations/apply/apply-rex.ts"
+      ],
       "supporting": [
         "src/tests/vitest/utils/rexExecuteEditMode.test.ts",
         "src/tests/vitest/operations/apply/apply-rex.test.ts"
@@ -4071,7 +4126,10 @@
       "id": "export",
       "name": "JSON, GeoJSON and external handoff exports",
       "fixture": "Planning and executed mission with known coordinates, units, relationships, sample data and export subsets.",
-      "sources": ["src/components/panes/mission/mission-right-export.tsx", "src/utils/export.ts"],
+      "sources": [
+        "src/components/panes/mission/mission-right-export.tsx",
+        "src/utils/export.ts"
+      ],
       "supporting": [
         "src/tests/vitest/utils/export.test.ts",
         "src/tests/vitest/utils/quickMap.test.ts"
@@ -4330,14 +4388,29 @@
           "priority": "P0",
           "action": "Observe entity graph while a peer duplicates/deletes EVA/REX/station/action trees.",
           "expected": "Peer document snapshots at logical operation boundaries contain valid ownership/order references; final peer UI and fresh loads agree on the complete resulting graph.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
               "file": "behavior/collaborationAtomicGraphCoverage.spec.ts",
               "title": "peer EVA duplication publishes a complete graph with no observed dangling references"
+            },
+            {
+              "file": "behavior/collaborationAtomicGraphCoverage.spec.ts",
+              "title": "peer observes atomic shared-station EVA duplication and deletion with complete ownership and order references"
+            },
+            {
+              "file": "behavior/collaborationAtomicGraphCoverage.spec.ts",
+              "title": "peer observes atomic station with actions duplication and deletion with complete ownership and order references"
+            },
+            {
+              "file": "behavior/collaborationAtomicGraphCoverage.spec.ts",
+              "title": "peer observes atomic action duplication and deletion with complete ownership and order references"
+            },
+            {
+              "file": "behavior/collaborationAtomicGraphCoverage.spec.ts",
+              "title": "peer observes complete REX creation, REX deletion and planned-EVA execution cascade in single document changes"
             }
-          ],
-          "note": "The current case samples authoritative HTTP snapshots during EVA-with-stations duplication and validates closed references plus eventual peer/reload display. Remaining evidence needs peer document-change snapshots and the named supported EVA/REX/station/action duplicate/cascade-delete operations. The contract concerns logical document changes, not every intermediate React render or every possible interleaving."
+          ]
         },
         {
           "id": "COLLAB-009",
@@ -4387,8 +4460,13 @@
           "priority": "P0",
           "action": "Restart a disposable server while an old tab remains open; attempt reconnect and stale edits.",
           "expected": "Epoch gate prevents stale merging, directs the client to version recovery and resumes only with a fresh current document.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaborationDurability.spec.ts",
+              "title": "a real API restart preserves durable writes and rejects the old epoch and stale client changes"
+            }
+          ]
         },
         {
           "id": "COLLAB-012",
@@ -4411,8 +4489,17 @@
           "priority": "P0",
           "action": "Save, close all clients and reopen; separately restart the server after a confirmed durable write.",
           "expected": "Confirmed saved changes remain in the authoritative store; unsaved drafts do not become persisted data.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaborationDurability.spec.ts",
+              "title": "closing every browser client preserves saved changes and discards an unsaved draft"
+            },
+            {
+              "file": "behavior/collaborationDurability.spec.ts",
+              "title": "a real API restart preserves durable writes and rejects the old epoch and stale client changes"
+            }
+          ]
         },
         {
           "id": "COLLAB-014",
@@ -4420,8 +4507,13 @@
           "priority": "P1",
           "action": "Connect an editor and viewer as distinct accounts; edit, disconnect and revoke access.",
           "expected": "Presence/counts and independent selections reflect the distinct users and disconnects. Viewer controls respect initial grants; revocation denies subsequent HTTP access as in AUTH-005, while already-open Automerge sockets may continue writing.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/collaborationPresence.spec.ts",
+              "title": "distinct editor and viewer accounts share presence and edits, retain independent selections and lose HTTP access after revocation"
+            }
+          ]
         }
       ]
     },
@@ -4465,8 +4557,21 @@
           "priority": "P0",
           "action": "Duplicate a graph-rich mission with/without supported asset options and observe progress/failure.",
           "expected": "New document/relational IDs and internal references follow the copy contract; source remains unchanged and partial failure is reported.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/adminDataWorkflows.spec.ts",
+              "title": "duplicating a mission gives it a new document identity and preserves its graph and source"
+            },
+            {
+              "file": "behavior/adminDataWorkflows.spec.ts",
+              "title": "mission duplication reports a missing-source failure without creating a partial mission"
+            },
+            {
+              "file": "behavior/adminCompleteness.spec.ts",
+              "title": "mission asset options preserve source bytes and roll back an interrupted asset copy"
+            }
+          ]
         },
         {
           "id": "ADMIN-003",
@@ -4474,8 +4579,17 @@
           "priority": "P0",
           "action": "Create/edit/reorder/delete layer headers and each supported sublayer kind; import configured assets.",
           "expected": "Document-backed layer definitions persist and existing presets reconcile without orphan or foreign-mission references.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/adminDataWorkflows.spec.ts",
+              "title": "admin layer headers and linked sublayers persist, and deletion removes their document references"
+            },
+            {
+              "file": "behavior/adminCompleteness.spec.ts",
+              "title": "admin imports configured archives, persists every sublayer kind and reconciles header ordering and preset references"
+            }
+          ]
         },
         {
           "id": "ADMIN-004",
@@ -4483,8 +4597,17 @@
           "priority": "P0",
           "action": "Load/edit v1/v2 science structures with valid/invalid files and referenced definitions.",
           "expected": "Schema/reference failures are explained and do not partially replace a valid mission configuration.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/adminDataWorkflows.spec.ts",
+              "title": "admin STM import validates hierarchy references and preserves the existing tree on invalid input for v1 and v2"
+            },
+            {
+              "file": "behavior/adminCompleteness.spec.ts",
+              "title": "v2 STM edits honor referenced rules and import validation preserves or clears dependent references atomically"
+            }
+          ]
         },
         {
           "id": "ADMIN-005",
@@ -4507,8 +4630,18 @@
           "priority": "P0",
           "action": "Upload representative files, list/sort, rename and cancel/confirm deletion; try duplicate/invalid paths.",
           "expected": "File bytes and listing agree, progress/errors are accurate and no traversal or cross-scope access changes unrelated files.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/adminDataWorkflows.spec.ts",
+              "title": "admin file manager uploads, lists, renames, cancels deletion, and deletes only the selected file"
+            },
+            {
+              "file": "behavior/adminCompleteness.spec.ts",
+              "title": "admin uploads show processing and duplicate errors and cannot operate on another mission path"
+            }
+          ],
+          "note": "Upload bytes, listing order by name and size, rename, deletion confirmation/cancellation, duplicate/error handling and path-scope rejection are asserted. UI row values are checked against the documented sort choices."
         },
         {
           "id": "ADMIN-007",
@@ -4516,9 +4649,17 @@
           "priority": "P1",
           "action": "Browse test folders, download a file, inject permission/network failure and retry.",
           "expected": "Selection, bytes, progress, completion and failure recovery follow the external contract without duplicate partial files.",
-          "automation": "gap",
-          "tests": [],
-          "note": "Use deterministic provider folder/file/error fixtures at the Box boundary while exercising the AEGIS browser/server flow. Live Box credentials and real provider outages are not prerequisites; fixture bytes, progress, cleanup and retry need explicit assertions."
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/adminDataWorkflows.spec.ts",
+              "title": "Box browser flow browses folders, displays byte progress, reports provider errors, and retries cleanly"
+            },
+            {
+              "file": "behavior/adminCompleteness.spec.ts",
+              "title": "Box SDK provider bytes survive permission and interrupted-stream failures and archive retry"
+            }
+          ]
         },
         {
           "id": "ADMIN-008",
@@ -4560,9 +4701,21 @@
           "priority": "P0",
           "action": "Use environment/EMSS configuration routes as admin/super-admin and normal users.",
           "expected": "Only super-admins can read/change the declared environment overrides and EMSS enable flag. Environment effective/default/override values, unknown-key rejection, and EMSS boolean validation match the configured handler contracts.",
-          "automation": "gap",
-          "tests": [],
-          "note": "The current environment CONFIG_LIST declares maestroServer, a URL setting. Use disposable values and restore configuration after testing. This row does not invent a secret-redaction policy for fields that are not declared secret."
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/adminDataWorkflows.spec.ts",
+              "title": "super-admin environment overrides show effective values, reject unknown keys, and restore the default"
+            },
+            {
+              "file": "behavior/adminDataWorkflows.spec.ts",
+              "title": "EMSS admin toggle requires a boolean, preserves confirmation cancellation, and restores its initial state"
+            },
+            {
+              "file": "behavior/authBoundaries.spec.ts",
+              "title": "declared admin routes and field policies separate editor, admin, and super-admin"
+            }
+          ]
         }
       ]
     },
@@ -4570,7 +4723,11 @@
       "id": "integration",
       "name": "Maestro, DUST and service contracts",
       "fixture": "Disposable socket clients with valid/invalid endpoint token and EMSS master token; schema-valid deterministic payloads and two missions.",
-      "sources": ["src/server/maestro/v2", "src/server/dust/v1", "src/server/express/restApi.ts"],
+      "sources": [
+        "src/server/maestro/v2",
+        "src/server/dust/v1",
+        "src/server/express/restApi.ts"
+      ],
       "supporting": [
         "src/tests/vitest/maestro/v2/sockets-maestro.test.ts",
         "src/tests/vitest/maestro/v2/mdauValidator.test.ts",
@@ -4720,9 +4877,25 @@
           "priority": "P0",
           "action": "Enumerate HTTP handler/method contracts, then exercise named authorization, missing-resource and invalid-input cases with explicit fixtures; reuse reviewed browser evidence from the owning scenario families.",
           "expected": "Wrapped status/HTTP semantics, scope and validation match the handler contract; route registration alone receives no scenario credit.",
-          "automation": "gap",
-          "tests": [],
-          "note": "Use a finite matrix of declared policy and response classes, with named routes and assertions for each case. Missing-resource or input validation applies only where the endpoint defines that contract; every route times every role times every malformed input is not the scenario. Handler unit tests remain supporting evidence and cannot alone close this Playwright row."
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/restAuthorizationContracts.spec.ts",
+              "title": "REST mission routes enforce grants and return their declared validation and missing-resource responses"
+            },
+            {
+              "file": "behavior/authBoundaries.spec.ts",
+              "title": "declared admin routes and field policies separate editor, admin, and super-admin"
+            },
+            {
+              "file": "behavior/infrastructure90.spec.ts",
+              "title": "health, version, time, and permitted diagnostics follow their service policies"
+            },
+            {
+              "file": "behavior/infrastructure90.spec.ts",
+              "title": "server version dependency failure shows a safe startup diagnostic"
+            }
+          ]
         },
         {
           "id": "INTEGRATION-010",
@@ -4749,7 +4922,10 @@
       "id": "access",
       "name": "Accessibility, browser compatibility and resilience",
       "fixture": "Keyboard-only, reduced-motion and narrow/wide viewport sessions; Chromium full suite and Firefox/WebKit smoke configurations.",
-      "sources": ["src/components/interface", "src/tests/playwright/playwright.config.ts"],
+      "sources": [
+        "src/components/interface",
+        "src/tests/playwright/playwright.config.ts"
+      ],
       "supporting": [],
       "scenarios": [
         {
@@ -4758,8 +4934,13 @@
           "priority": "P1",
           "action": "Navigate controls by keyboard, open/close validation and confirmation dialogs and restore focus.",
           "expected": "Controls have usable labels, focus remains visible/contained as appropriate and Save/Cancel operate without a mouse.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "keyboard edit focuses the dialog field and restores focus after dismissal"
+            }
+          ]
         },
         {
           "id": "ACCESS-002",
@@ -4767,8 +4948,22 @@
           "priority": "P1",
           "action": "Use narrow/wide and high-DPI viewports with long labels, expanded lists and reports.",
           "expected": "Essential controls, modal actions and map/timeline content remain reachable without clipped inaccessible UI.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "editor controls and map remain reachable at narrow and wide viewports"
+            },
+            {
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "dashboard map and minimap stay visible and within narrow and wide viewports"
+            },
+            {
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "long labels, report text and timeline canvas stay inside the narrow editor viewport"
+            }
+          ],
+          "note": "High-DPI narrow/wide editor and dashboard viewports check map/control bounds, an editor dialog, an expanded EVA list and the dashboard clock. A long station label must wrap within its list row, and the report panel and timeline canvas are checked against the narrow viewport bounds and horizontal overflow."
         },
         {
           "id": "ACCESS-003",
@@ -4776,14 +4971,41 @@
           "priority": "P0",
           "action": "Render the same known Earth/lunar projection, layer, label and dashboard fixtures in Chromium, Firefox and WebKit.",
           "expected": "Known geometry, labels, layering and dashboard/minimap ownership agree across browsers; source membership and visual assertions detect absent or misplaced content.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/smoke.spec.ts",
-              "title": "an isolated mission exposes its planned EVAs, stations, POIs and map"
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "known station, POI and traverse labels render in the editor map"
+            },
+            {
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "dashboard and minimap own the active execution and share its feature labels"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "overlapping preset rasters render the saved UI order, opacity and blend pixel after reload"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "Earth Web Mercator PMTiles archive exposes its known center feature"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "lunar south-polar stereographic GeoJSON places a known lunar feature near the lander"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
+            },
+            {
+              "file": "behavior/layerStylesAssets90.spec.ts",
+              "title": "line, fill, point and contour labels use saved styles, legends and zoom thresholds"
             }
-          ],
-          "note": "All four smoke examples are discovered in each browser, but they do not establish projection/layer/label visual parity for the full fixture matrix."
+          ]
         },
         {
           "id": "ACCESS-004",
@@ -4791,8 +5013,26 @@
           "priority": "P1",
           "action": "Run representative dialog, drag/path, collaboration and export scenarios in all supported browsers.",
           "expected": "Native input, pointer, canvas and download behavior satisfy the same contracts outside Chromium; smoke alone is insufficient.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "keyboard text edit persists and mission export downloads valid JSON"
+            },
+            {
+              "file": "behavior/actions.spec.ts",
+              "title": "action name and duration validation and Cancel preserve the saved action and totals"
+            },
+            {
+              "file": "behavior/mapEditing.spec.ts",
+              "title": "dragging an interior vertex then Finished preserves endpoints and the intended path after reload"
+            },
+            {
+              "file": "behavior/collaborationPresence.spec.ts",
+              "title": "distinct editor and viewer accounts share presence and edits, retain independent selections and lose HTTP access after revocation"
+            }
+          ],
+          "note": "Selected representative dialog/edit, pointer path, collaborative multi-user and download workflows are assigned to Firefox and WebKit as well as Chromium."
         },
         {
           "id": "ACCESS-005",
@@ -4800,8 +5040,26 @@
           "priority": "P1",
           "action": "Inspect errors, status changes, disabled controls, icons and map legends with keyboard/screen-reader and contrast checks.",
           "expected": "Meaning is available through labels/text as well as color; errors and state changes remain understandable.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "invalid numeric input exposes a readable error and prevents saving"
+            },
+            {
+              "file": "behavior/accessibilityCoverage.spec.ts",
+              "title": "report status is named and keyboard-operable when its warning icon changes"
+            },
+            {
+              "file": "behavior/celestialPresetCoverage.spec.ts",
+              "title": "planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions"
+            },
+            {
+              "file": "behavior/rasterDisplay90.spec.ts",
+              "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
+            }
+          ],
+          "note": "Keyboard checks cover readable validation and disabled controls. Report tab status descriptions name warning and clear states while the icon changes, celestial source warnings remain available as descriptions, and the map legend pairs labeled slope meanings with distinct standard and colorblind swatches."
         }
       ]
     },
@@ -4815,7 +5073,9 @@
         "docker-compose.yml",
         "src/server/automerge/migrations"
       ],
-      "supporting": ["src/tests/vitest/server/automerge/migrationRegistry.test.ts"],
+      "supporting": [
+        "src/tests/vitest/server/automerge/migrationRegistry.test.ts"
+      ],
       "scenarios": [
         {
           "id": "OPS-001",

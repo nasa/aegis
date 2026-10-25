@@ -6,7 +6,7 @@ Fixture: Execution fixture: stopped Alpha PET +02:10:05 with position +01:55:05;
 
 Source: [src/components/panes/rex/rex-right-rex-info.tsx](../../../src/components/panes/rex/rex-right-rex-info.tsx), [src/store/thunk/thunkRex.ts](../../../src/store/thunk/thunkRex.ts), [src/components/interface/map/hooks/useRexPetTime.ts](../../../src/components/interface/map/hooks/useRexPetTime.ts).
 
-Scenario mapping: **26/27 (96.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **27/27 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/rex_thunk.test.ts](../../../src/tests/vitest/store/thunks/rex_thunk.test.ts), [src/tests/vitest/map/useRexPetTime.test.tsx](../../../src/tests/vitest/map/useRexPetTime.test.tsx).
 
@@ -218,7 +218,7 @@ Action: Start a never-executed REX with several position sources/types, stop and
 
 Expected: Initial positions are seeded once at egress with the correct PET/types; restart does not duplicate them or change planning entities.
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:67](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L67) — first start seeds one egress position per configured source and restart reuses them (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:172](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L172) — first start seeds one egress position per configured source and restart reuses them (chromium).
 
 Evidence boundary: First start seeds one egress/PET-zero entry for every configured source with every type, exact entries survive stop/start and planning data remains unchanged.
 
@@ -242,7 +242,7 @@ Action: Enable Show only Executing EVA; stop remotely and start another REX.
 
 Expected: Selection/list scope follows the active execution and remote stop clears running-only mode without stale controls.
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:156](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L156) — remote stop exits running-only mode, restores the list and removes stale stop controls (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:261](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L261) — remote stop exits running-only mode, restores the list and removes stale stop controls (chromium).
 
 Evidence boundary: Running-only scope follows the executing REX, remote stop clears the mode/list restriction and stale controls, a different remote execution appears and reload restores correct stop controls.
 
@@ -254,25 +254,25 @@ Action: Edit positive, negative, zero, long-hour and out-of-range minute/second 
 
 Expected: Format, numeric semantics and rejection follow the actual field contract; no cross-execution clock changes occur.
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts positive PET according to the field's format and numeric semantics (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:344](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L344) — accepts positive PET according to the field's format and numeric semantics (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts negative PET according to the field's format and numeric semantics (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:344](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L344) — accepts negative PET according to the field's format and numeric semantics (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts zero PET according to the field's format and numeric semantics (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:344](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L344) — accepts zero PET according to the field's format and numeric semantics (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts maximum two-digit hour PET according to the field's format and numeric semantics (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:344](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L344) — accepts maximum two-digit hour PET according to the field's format and numeric semantics (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts minute and second values above 59 PET according to the field's format and numeric semantics (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:344](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L344) — accepts minute and second values above 59 PET according to the field's format and numeric semantics (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:239](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L239) — accepts typing filters non-time characters PET according to the field's format and numeric semantics (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:344](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L344) — accepts typing filters non-time characters PET according to the field's format and numeric semantics (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:285](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L285) — rejects an invalid PET hour exceeds the two-digit maximum without replacing committed clocks (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:390](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L390) — rejects an invalid PET hour exceeds the two-digit maximum without replacing committed clocks (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:285](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L285) — rejects an invalid PET value exceeds nine-character input limit without replacing committed clocks (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:390](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L390) — rejects an invalid PET value exceeds nine-character input limit without replacing committed clocks (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:285](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L285) — rejects an invalid PET incomplete field without replacing committed clocks (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:390](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L390) — rejects an invalid PET incomplete field without replacing committed clocks (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:285](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L285) — rejects an invalid PET empty field without replacing committed clocks (chromium).
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:390](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L390) — rejects an invalid PET empty field without replacing committed clocks (chromium).
 
 Evidence boundary: Positive/negative/zero, long-hour, overflow minute/second, filtering, length and rejected-format cases assert PET semantics, historical age clamp, saved/reloaded value and other-execution isolation.
 
@@ -292,13 +292,13 @@ Evidence boundary: Keeps real server status time correction active, injects +120
 
 ## REX-026: Simultaneous execution-start convergence
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Have two clients attempt to start different stopped REXes concurrently.
 
 Expected: After synchronization and reload, both clients agree on persisted REX running/timing state and retain valid ownership references. Once a client observes another running REX, its existing start control gate applies.
 
-Evidence boundary: The UI gates starts using its currently observed document. This row tests concurrent convergence and that observed-state gate; it does not introduce a globally serialized single-winner guarantee. Such a guarantee would need a separate product decision and implementation contract.
+Playwright: [src/tests/playwright/behavior/executionCoverage.spec.ts:67](../../../src/tests/playwright/behavior/executionCoverage.spec.ts#L67) — two clients starting different stopped REXes concurrently converge and apply the observed running-state gate (chromium).
 
 ## REX-027: Historical execution deletion and selected cleanup
 

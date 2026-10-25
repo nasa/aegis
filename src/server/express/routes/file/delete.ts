@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { deleteFile } from "server/file/file"; // Assuming this function is compatible with Express
+import { assertMissionFilePath, deleteFile } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -40,7 +40,8 @@ router.delete("/", async (req: Request, res: Response) => {
   }
 
   try {
-    const success = await deleteFile(decodeURIComponent(queryObj.path as string));
+    assertMissionFilePath(queryObj.missionId, queryObj.path);
+    const success = await deleteFile(queryObj.path);
     if (!success) {
       throw new Error("Unable to delete file. Check server log");
     }

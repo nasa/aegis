@@ -42,6 +42,7 @@ const MAP_MENU_HEIGHT = 356;
 const MAP_MENU_LEFT_OFFSET = 45;
 const MAP_MENU_TOP_OFFSET = 10;
 const PANEL_SEPARATOR_SIZE = 1;
+const MAP_MINIMUM_WIDTH = 110;
 
 const LeftPanel: FunctionComponent = () => {
   const selectedNavItem = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
@@ -92,14 +93,37 @@ function getMapBounds(api: DockviewApi) {
 
 function setFixedPanelWidth(panel: ReturnType<DockviewApi["getPanel"]>, width: number) {
   if (!panel) return;
-  panel.group.api.setConstraints({ minimumWidth: width, maximumWidth: width });
-  panel.group.api.setSize({ width });
+  const group = panel.group;
+  if (group.minimumWidth !== width || group.maximumWidth !== width) {
+    group.api.setConstraints({ minimumWidth: width, maximumWidth: width });
+  }
+  if (group.api.width !== width) group.api.setSize({ width });
 }
 
 function setFixedPanelHeight(panel: ReturnType<DockviewApi["getPanel"]>, height: number) {
   if (!panel) return;
-  panel.group.api.setConstraints({ minimumHeight: height, maximumHeight: height });
-  panel.group.api.setSize({ height });
+  const group = panel.group;
+  if (group.minimumHeight !== height || group.maximumHeight !== height) {
+    group.api.setConstraints({ minimumHeight: height, maximumHeight: height });
+  }
+  if (group.api.height !== height) group.api.setSize({ height });
+}
+
+function getPanelWidths(containerWidth: number, leftOpen: boolean, rightOpen: boolean) {
+  const desiredLeft = leftOpen ? LEFT_OPEN_WIDTH : LEFT_CLOSED_WIDTH;
+  const desiredRight = rightOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH;
+  const availableWidth = Math.max(0, containerWidth - 2 * PANEL_SEPARATOR_SIZE);
+  if (containerWidth <= 0 || desiredLeft + desiredRight + MAP_MINIMUM_WIDTH <= availableWidth) {
+    return { left: desiredLeft, right: desiredRight };
+  }
+
+  const left = leftOpen
+    ? Math.min(LEFT_OPEN_WIDTH, Math.round(containerWidth * 0.4), availableWidth)
+    : LEFT_CLOSED_WIDTH;
+  const right = rightOpen
+    ? Math.min(RIGHT_OPEN_WIDTH, Math.max(0, availableWidth - left - MAP_MINIMUM_WIDTH))
+    : 0;
+  return { left, right };
 }
 
 function setMapMenuSize(
@@ -109,13 +133,8 @@ function setMapMenuSize(
   if (!panel) return;
   const width = Math.min(MAP_MENU_WIDTH, mapBounds.width);
   const height = Math.min(MAP_MENU_HEIGHT, mapBounds.height);
-  panel.group.api.setConstraints({
-    minimumWidth: width,
-    minimumHeight: height,
-    maximumWidth: width,
-    maximumHeight: height,
-  });
-  panel.group.api.setSize({ width, height });
+  setFixedPanelWidth(panel, width);
+  setFixedPanelHeight(panel, height);
 }
 
 export function MissionDockviewLayout(): JSX.Element {
@@ -198,29 +217,15 @@ export function MissionDockviewLayout(): JSX.Element {
     setApi(dockviewApi);
   }, []);
 
-  useEffect(() => {
-    if (!api) return;
-    setFixedPanelWidth(api.getPanel("left"), leftPanelIsOpen ? LEFT_OPEN_WIDTH : LEFT_CLOSED_WIDTH);
-  }, [api, leftPanelIsOpen]);
-
-  useEffect(() => {
-    if (!api) return;
-    setFixedPanelHeight(
-      api.getPanel("bottom"),
-      bottomPanelIsOpen ? BOTTOM_OPEN_HEIGHT : BOTTOM_CLOSED_HEIGHT
-    );
-  }, [api, bottomPanelIsOpen]);
-
-  useEffect(() => {
-    if (!api) return;
-    setFixedPanelWidth(
-      api.getPanel("right"),
-      rightPanelIsOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH
-    );
-  }, [api, rightPanelIsOpen]);
-
   useLayoutEffect(() => {
     if (!api) return;
+    let menuAnimationFrame: number | null = null;
+    const updateMenuSize = () => {
+      menuAnimationFrame = null;
+      const mapBounds = getMapBounds(api);
+      const menuPanel = api.getPanel("map-menu");
+      if (mapBounds && menuPanel) setMapMenuSize(menuPanel, mapBounds);
+    };
     const updateLayout = () => {
       const container = containerRef.current;
       const leftPanel = container?.querySelector<HTMLElement>("[data-testid='mission-panel-left']");
@@ -251,9 +256,9 @@ export function MissionDockviewLayout(): JSX.Element {
         }
       }
 
-      const mapBounds = getMapBounds(api);
-      const menuPanel = api.getPanel("map-menu");
-      if (mapBounds && menuPanel) setMapMenuSize(menuPanel, mapBounds);
+      if (menuAnimationFrame === null) {
+        menuAnimationFrame = requestAnimationFrame(updateMenuSize);
+      }
     };
 
     const layoutDisposable = api.onDidLayoutChange(updateLayout);
@@ -263,16 +268,32 @@ export function MissionDockviewLayout(): JSX.Element {
     const removeDisposable = api.onDidRemovePanel((panel) => {
       if (panel.id === "map-menu") dispatch(setMapMenuIsOpen(false));
     });
-    const resizeObserver = new ResizeObserver(updateLayout);
+    const resizeLayout = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const widths = getPanelWidths(container.clientWidth, leftPanelIsOpen, rightPanelIsOpen);
+      setFixedPanelWidth(api.getPanel("left"), widths.left);
+      setFixedPanelWidth(api.getPanel("right"), widths.right);
+      setFixedPanelHeight(
+        api.getPanel("bottom"),
+        bottomPanelIsOpen
+          ? Math.min(BOTTOM_OPEN_HEIGHT, container.clientHeight)
+          : BOTTOM_CLOSED_HEIGHT
+      );
+      api.layout(container.clientWidth, container.clientHeight);
+      updateLayout();
+    };
+    const resizeObserver = new ResizeObserver(resizeLayout);
     if (containerRef.current) resizeObserver.observe(containerRef.current);
-    updateLayout();
+    resizeLayout();
     return () => {
       layoutDisposable.dispose();
       for (const disposable of dimensionDisposables) disposable?.dispose();
       removeDisposable.dispose();
       resizeObserver.disconnect();
+      if (menuAnimationFrame !== null) cancelAnimationFrame(menuAnimationFrame);
     };
-  }, [api, dispatch]);
+  }, [api, dispatch, leftPanelIsOpen, rightPanelIsOpen, bottomPanelIsOpen]);
 
   const transformFloatingGroupDrag = useCallback(
     ({ group, proposed }: FloatingGroupDragContext) => {
@@ -300,6 +321,7 @@ export function MissionDockviewLayout(): JSX.Element {
         onReady={onReady}
         locked={true}
         disableDnd={true}
+        disableAutoResizing={true}
         floatingGroupBounds="boundedWithinViewport"
         floatingGroupDragHandle="titlebar"
         transformFloatingGroupDrag={transformFloatingGroupDrag}

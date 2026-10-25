@@ -279,8 +279,10 @@ export async function getLayers(missionId: number, layerUuid?: string): Promise<
   const records = Object.values(handle?.doc()?.layers ?? {}).filter(
     (record) => !layerUuid || record.uuid === layerUuid
   );
-  return JSON.parse(JSON.stringify(records)).sort((a: Layer, b: Layer) =>
-    a.name.localeCompare(b.name)
+  return JSON.parse(JSON.stringify(records)).sort(
+    (a: Layer, b: Layer) =>
+      (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
+      a.name.localeCompare(b.name)
   );
 }
 

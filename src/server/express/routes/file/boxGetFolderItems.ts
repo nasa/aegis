@@ -1,7 +1,7 @@
+import { createBoxClient } from "server/file/boxClient";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
-import { BoxClient, BoxCcgAuth, CcgConfig } from "box-node-sdk";
 import express from "express";
 
 import { hasPerms } from "utils/permissions";
@@ -43,16 +43,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
   try {
-    // setup access to the Box.com SDK
-    const auth = new BoxCcgAuth({
-      config: new CcgConfig({
-        clientId: process.env.BOX_CLIENT_ID,
-        clientSecret: process.env.BOX_CLIENT_SECRET,
-        enterpriseId: process.env.BOX_ENTERPRISE_ID,
-        userId: process.env.BOX_USER_ID,
-      }),
-    });
-    const client = new BoxClient({ auth });
+    const client = createBoxClient();
 
     // use "0" as the root folder which is actually looked up via env variable
     const folderId = queryObj.itemId != "0" ? queryObj.itemId : process.env.BOX_INITIAL_FOLDER_ID;

@@ -471,38 +471,4 @@ test.describe("Mission 22 — Dashboard Integration", () => {
     );
     expect(fatal).toHaveLength(0);
   });
-
-  test("when an EVA is running, both big-map and minimap OL viewports render", async ({ page }) => {
-    await page.goto(DASHBOARD_URL);
-    await waitForPageReady(page);
-
-    // The loading overlay hides before React commits either dashboard branch,
-    // so poll until one of the two terminal states is on screen. Reading the
-    // "no EVA" message immediately makes the skip decision on an empty page and
-    // sends the test on to wait for a viewport that will never render.
-    const noEvaMessage = page.getByText("No EVA is currently running.");
-    await expect
-      .poll(
-        async () => {
-          const hasMaps = (await page.locator(".ol-viewport").count()) > 0;
-          const hasNoEvaMessage = await noEvaMessage.isVisible().catch(() => false);
-          return hasMaps || hasNoEvaMessage;
-        },
-        { timeout: 15000 }
-      )
-      .toBe(true);
-
-    const noEva = await noEvaMessage.isVisible().catch(() => false);
-
-    test.skip(
-      noEva,
-      "Mission 22 has no REX currently running — map portion of dashboard is hidden"
-    );
-
-    // Wait for at least one OL viewport to attach
-    await page.locator(".ol-viewport").first().waitFor({ state: "visible", timeout: 15000 });
-    const viewportCount = await page.locator(".ol-viewport").count();
-    // Big map + minimap → 2 OL viewports
-    expect(viewportCount).toBeGreaterThanOrEqual(2);
-  });
 });

@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { listFiles } from "server/file/file"; // Assuming this function is compatible with Express
+import { assertMissionFilePath, listFiles } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -40,7 +40,8 @@ router.get("/", async (req: Request, res: Response) => {
   }
 
   try {
-    const listing: GISfile[] = await listFiles(decodeURIComponent(queryObj.path as string));
+    assertMissionFilePath(queryObj.missionId, queryObj.path);
+    const listing: GISfile[] = await listFiles(queryObj.path);
     res.status(200).json({ data: listing });
   } catch (e) {
     serverLogger.apiRoute({

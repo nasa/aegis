@@ -3,7 +3,7 @@ import type { Query } from "express-serve-static-core";
 
 import express from "express";
 
-import { renameFile } from "server/file/file"; // Assuming this function is compatible with Express
+import { assertMissionFilePath, renameFile } from "server/file/file"; // Assuming this function is compatible with Express
 import { hasPerms } from "utils/permissions"; // Assuming you have a session middleware compatible with Express
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -43,11 +43,8 @@ router.get("/", async (req: Request, res: Response) => {
   }
 
   try {
-    const success = await renameFile(
-      decodeURIComponent(queryObj.path as string),
-      decodeURIComponent(queryObj.oldname as string),
-      decodeURIComponent(queryObj.newname as string)
-    );
+    assertMissionFilePath(queryObj.missionId, queryObj.path);
+    const success = await renameFile(queryObj.path, queryObj.oldname, queryObj.newname);
     if (!success) {
       throw new Error("Unable to rename file. Check server log");
     }

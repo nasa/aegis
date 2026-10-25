@@ -134,8 +134,16 @@ const Main: React.FunctionComponent = () => {
 
         setHydrationError(null);
         setStoreIsPopulated(true);
-      } catch {
+      } catch (error) {
         if (isCurrentHydration) {
+          clientLogger.error(
+            {
+              logId: "missionHydration",
+              logValue: "Could not load mission data",
+              missionId: intMissionId,
+            },
+            error instanceof Error ? error : new Error(String(error))
+          );
           setHydrationError("Mission data could not be loaded. Please retry.");
         }
       }

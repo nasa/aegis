@@ -1,14 +1,16 @@
 import "utils/loadEnv";
 import type { Server as NetServer } from "http";
-import { createServer } from "http";
+import { createServer, ServerResponse } from "http";
+import type { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
 import { Repo } from "@automerge/automerge-repo/slim";
 import type { StorageAdapterInterface } from "@automerge/automerge-repo/slim";
-import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket";
-import app from "./restApi";
+import app, { sessionMiddleware } from "./restApi";
+import { AuthorizedNetworkAdapter } from "server/automerge/authorized-network-adapter";
+import { App_User_db } from "server/database/models/app_user.model";
 
 import { setupSocketIO } from "./sockets";
 import { setupMaestroNamespace as setupMaestroNamespaceV2 } from "../maestro/v2/sockets-maestro";
@@ -23,6 +25,7 @@ import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapt
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
+import { emssTokenIsValid } from "utils/permissions";
 
 // this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
@@ -144,8 +147,29 @@ initializeBase64Wasm(automergeWasmBase64);
       return;
     }
 
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit("connection", ws, request);
+    sessionMiddleware(request as Request, new ServerResponse(request) as Response, () => {
+      (async () => {
+        const sessionUser = (request as Request).session?.appUser;
+        const user =
+          sessionUser &&
+          (await globalValues.orm.em.fork().findOne(App_User_db, { id: sessionUser.id }));
+        const masterKey = emssTokenIsValid(request.headers["emss-token"] as string);
+        if (!user && !masterKey) {
+          socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
+          socket.destroy();
+          return;
+        }
+        const snapshot: AppUser = {
+          ...sessionUser,
+          isAdmin: Boolean(user?.isAdmin),
+          isSuperAdmin: masterKey || Boolean(user?.isSuperAdmin),
+          permissionList: user?.permissionList ?? [],
+        };
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          networkAdapter.authorize(ws, snapshot);
+          wss.emit("connection", ws, request);
+        });
+      })().catch(() => socket.destroy());
     });
   });
 
@@ -154,7 +178,7 @@ initializeBase64Wasm(automergeWasmBase64);
   // ==========================================================================
 
   // hook up the network (socket server) and storage to a new automerge repo
-  const networkAdapter = new NodeWSServerAdapter(wss);
+  const networkAdapter = new AuthorizedNetworkAdapter(wss);
   const storageAdapter: StorageAdapterInterface = new PostgresStorageAdapter(
     "automerge_native_db",
     dbConfig

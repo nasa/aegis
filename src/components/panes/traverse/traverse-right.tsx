@@ -97,6 +97,8 @@ const TraverseEditorRight: FunctionComponent = () => {
     },
     report_panel: {
       title: "Reports",
+      statusDescription:
+        calculatedFields.reportItems.length > 0 ? "Warnings present" : "No warnings",
       panel: Report_Panel,
       panelProps: {
         reportItems: calculatedFields.reportItems,

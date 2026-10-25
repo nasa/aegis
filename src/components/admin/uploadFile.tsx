@@ -132,7 +132,7 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
       if (progress < 100) {
         setProgressMsg(`Upload progress: ${progress} %`);
       } else {
-        setProgressMsg("File received! Extracting...");
+        setProgressMsg("File received! Processing...");
       }
     });
 

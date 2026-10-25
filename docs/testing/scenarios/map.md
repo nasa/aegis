@@ -18,7 +18,7 @@ Action: POIs labels change rendered content and their preference survives reload
 
 Expected: POI labels contain known values, toggling changes rendered pixels, and the preference survives reload.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:60](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L60) — POIs labels change rendered content and their preference survives reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:67](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L67) — POIs labels change rendered content and their preference survives reload (chromium, firefox, webkit).
 
 ## MAP-002: Stations labels change rendered content and their preference survives reload
 
@@ -28,7 +28,7 @@ Action: Stations labels change rendered content and their preference survives re
 
 Expected: Station labels contain known values, toggling changes rendered pixels, and the preference survives reload.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:60](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L60) — Stations labels change rendered content and their preference survives reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:67](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L67) — Stations labels change rendered content and their preference survives reload (chromium, firefox, webkit).
 
 ## MAP-003: hiding POIs preserves the selected POI until it is deselected
 
@@ -38,7 +38,7 @@ Action: hiding POIs preserves the selected POI until it is deselected
 
 Expected: Hidden POIs retain the selected POI feature until deselection; saved mission data is unchanged.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:110](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L110) — hiding POIs preserves the selected POI until it is deselected (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:117](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L117) — hiding POIs preserves the selected POI until it is deselected (chromium, firefox, webkit).
 
 ## MAP-004: clicking a real station marker selects that station and its information
 
@@ -48,7 +48,7 @@ Action: clicking a real station marker selects that station and its information
 
 Expected: Clicking the real Bravo station marker selects its exact station and information panel.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:129](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L129) — clicking a real station marker selects that station and its information (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:136](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L136) — clicking a real station marker selects that station and its information (chromium, firefox, webkit).
 
 ## MAP-005: scale bar visibility survives reload without changing mission data
 
@@ -58,7 +58,7 @@ Action: scale bar visibility survives reload without changing mission data
 
 Expected: Scale-bar visibility survives reload without changing the mission document.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:172](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L172) — scale bar visibility survives reload without changing mission data (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:179](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L179) — scale bar visibility survives reload without changing mission data (chromium, firefox, webkit).
 
 ## MAP-006: dragging an interior vertex then Finished preserves endpoints and the intended path after reload
 
@@ -68,7 +68,7 @@ Action: dragging an interior vertex then Finished preserves endpoints and the in
 
 Expected: Finishing an interior vertex drag persists the changed interior path with unchanged endpoints after reload.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:191](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L191) — dragging an interior vertex then Finished preserves endpoints and the intended path after reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:198](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L198) — dragging an interior vertex then Finished preserves endpoints and the intended path after reload (chromium, firefox, webkit).
 
 ## MAP-007: dragging an interior vertex then Cancel preserves endpoints and the intended path after reload
 
@@ -78,7 +78,7 @@ Action: dragging an interior vertex then Cancel preserves endpoints and the inte
 
 Expected: Canceling an interior vertex drag restores the original path with unchanged endpoints after reload.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:191](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L191) — dragging an interior vertex then Cancel preserves endpoints and the intended path after reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:198](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L198) — dragging an interior vertex then Cancel preserves endpoints and the intended path after reload (chromium, firefox, webkit).
 
 ## MAP-008: Reset Path removes intermediate vertices and retains its neighboring stations
 
@@ -88,7 +88,7 @@ Action: Reset Path removes intermediate vertices and retains its neighboring sta
 
 Expected: Reset Path removes interior vertices and retains the neighboring station endpoints in persisted geometry.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:237](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L237) — Reset Path removes intermediate vertices and retains its neighboring stations (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:244](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L244) — Reset Path removes intermediate vertices and retains its neighboring stations (chromium, firefox, webkit).
 
 ## MAP-009: traverse endpoints cannot be detached from their stations by dragging
 
@@ -98,7 +98,7 @@ Action: traverse endpoints cannot be detached from their stations by dragging
 
 Expected: Dragging a traverse endpoint cannot detach it from its owning station.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:264](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L264) — traverse endpoints cannot be detached from their stations by dragging (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:271](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L271) — traverse endpoints cannot be detached from their stations by dragging (chromium, firefox, webkit).
 
 ## MAP-010: navigating out of an edit removes its map interaction
 
@@ -108,7 +108,7 @@ Action: navigating out of an edit removes its map interaction
 
 Expected: Navigating away from a path edit removes the interaction and preserves the original saved path.
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:281](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L281) — navigating out of an edit removes its map interaction (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:288](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L288) — navigating out of an edit removes its map interaction (chromium, firefox, webkit).
 
 ## MAP-011: Map selection and highlight precedence
 
@@ -196,11 +196,11 @@ Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:195](../../
 
 Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:366](../../../src/tests/playwright/behavior/stationGeometry90.spec.ts#L366) — walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:191](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L191) — dragging an interior vertex then Finished preserves endpoints and the intended path after reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:198](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L198) — dragging an interior vertex then Finished preserves endpoints and the intended path after reload (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:191](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L191) — dragging an interior vertex then Cancel preserves endpoints and the intended path after reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:198](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L198) — dragging an interior vertex then Cancel preserves endpoints and the intended path after reload (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:281](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L281) — navigating out of an edit removes its map interaction (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:288](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L288) — navigating out of an edit removes its map interaction (chromium, firefox, webkit).
 
 Playwright: [src/tests/playwright/behavior/positions.spec.ts:307](../../../src/tests/playwright/behavior/positions.spec.ts#L307) — Cancel Pos abandons a new entry and removes the pending map placement (chromium).
 
@@ -242,7 +242,7 @@ Playwright: [src/tests/playwright/behavior/mapVisibilityLabels90.spec.ts:148](..
 
 Playwright: [src/tests/playwright/behavior/positionRendering90.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering90.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:110](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L110) — hiding POIs preserves the selected POI until it is deselected (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:117](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L117) — hiding POIs preserves the selected POI until it is deselected (chromium, firefox, webkit).
 
 Playwright: [src/tests/playwright/behavior/stationCircles.spec.ts:69](../../../src/tests/playwright/behavior/stationCircles.spec.ts#L69) — station circle visibility and style stay local and render the defined metre radius (chromium).
 
@@ -258,9 +258,9 @@ Expected: Text content, placement, clipping, halo and priority remain readable; 
 
 Playwright: [src/tests/playwright/behavior/mapVisibilityLabels90.spec.ts:243](../../../src/tests/playwright/behavior/mapVisibilityLabels90.spec.ts#L243) — colliding long and multiline labels keep exact text, priority, fixed offset and readable rendered ink across zooms (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:60](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L60) — POIs labels change rendered content and their preference survives reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:67](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L67) — POIs labels change rendered content and their preference survives reload (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:60](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L60) — Stations labels change rendered content and their preference survives reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:67](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L67) — Stations labels change rendered content and their preference survives reload (chromium, firefox, webkit).
 
 Playwright: [src/tests/playwright/behavior/positionRendering90.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering90.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
 

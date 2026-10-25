@@ -75,22 +75,14 @@ export const CollaborationInputField: FunctionComponent<{
 
     const rect = containerRef.current.getBoundingClientRect();
 
-    // Check if dialog would overflow right edge of viewport
-    const wouldOverflow = rect.left + rect.width > window.innerWidth;
-    setIsRightAligned(wouldOverflow);
-
-    if (wouldOverflow) {
-      // Position dialog right-aligned to match container's right edge
-      dialogChildrenRef.current.style.right = `${window.innerWidth - rect.right}px`;
-      dialogChildrenRef.current.style.left = "auto";
-    } else {
-      // Position dialog left-aligned to match container's left edge
-      dialogChildrenRef.current.style.left = `${rect.left}px`;
-      dialogChildrenRef.current.style.right = "auto";
-    }
+    const width = Math.min(Math.max(160, rect.width), Math.max(0, window.innerWidth - 8));
+    const left = Math.max(4, Math.min(rect.left, window.innerWidth - width - 4));
+    setIsRightAligned(left < rect.left);
+    dialogChildrenRef.current.style.left = `${left}px`;
+    dialogChildrenRef.current.style.right = "auto";
 
     dialogChildrenRef.current.style.top = `${rect.top}px`;
-    dialogChildrenRef.current.style.width = `${rect.width}px`;
+    dialogChildrenRef.current.style.width = `${width}px`;
     dialogChildrenRef.current.style.transform = `translateX(0)`;
   };
 
@@ -120,12 +112,27 @@ export const CollaborationInputField: FunctionComponent<{
       ref={containerRef}
       style={styleContainer}
       className={`${editMode ? formStyles.dialogContainerEditable : formStyles.dialogContainer}`}
+      role={editMode ? "button" : undefined}
+      tabIndex={editMode ? 0 : undefined}
+      aria-label={editMode ? `${fieldProps.ariaLabel} edit` : undefined}
       onClick={(e) => {
         if (!editMode) return;
         e.stopPropagation();
         setDialogLocation();
         dialogRef.current?.showModal();
         lastValidValueRef.current = valueToShow; // Initialize valid value when dialog opens
+      }}
+      onKeyDown={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          !editMode ||
+          (event.key !== "Enter" && event.key !== " ")
+        )
+          return;
+        event.preventDefault();
+        setDialogLocation();
+        dialogRef.current?.showModal();
+        lastValidValueRef.current = valueToShow;
       }}
     >
       <dialog
@@ -207,13 +214,16 @@ export const CollaborationInputField: FunctionComponent<{
                         const fieldError = errors?.[fieldProps.name];
                         // display error messages
                         return fieldError ? (
-                          <div className={formStyles.errorMessage}>{fieldError}</div>
+                          <div className={formStyles.errorMessage} role="alert">
+                            {fieldError}
+                          </div>
                         ) : null;
                       }}
                     </FormSpy>
 
                     <div className={formStyles.buttonControls}>
-                      <div
+                      <button
+                        type="button"
                         className={formStyles.doneButton}
                         onClick={(e) => {
                           dialogRef.current?.close();
@@ -221,7 +231,7 @@ export const CollaborationInputField: FunctionComponent<{
                         }}
                       >
                         Done
-                      </div>
+                      </button>
                     </div>
                   </div>
                 </form>
@@ -284,9 +294,12 @@ export const CollaborationTextArea: FunctionComponent<{
     if (!containerRef.current || !dialogChildrenRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    dialogChildrenRef.current.style.left = `${rect.left}px`;
+    const width = Math.min(Math.max(160, rect.width), Math.max(0, window.innerWidth - 8));
+    const left = Math.max(4, Math.min(rect.left, window.innerWidth - width - 4));
+    dialogChildrenRef.current.style.left = `${left}px`;
+    dialogChildrenRef.current.style.right = "auto";
     dialogChildrenRef.current.style.top = `${rect.top}px`;
-    dialogChildrenRef.current.style.width = `${rect.width}px`;
+    dialogChildrenRef.current.style.width = `${width}px`;
     dialogChildrenRef.current.style.transform = `translateX(0)`;
   };
 
@@ -320,6 +333,9 @@ export const CollaborationTextArea: FunctionComponent<{
       ref={containerRef}
       style={styleContainer}
       className={`${editMode ? formStyles.dialogContainerEditable : formStyles.dialogContainer}`}
+      role={editMode ? "button" : undefined}
+      tabIndex={editMode ? 0 : undefined}
+      aria-label={editMode ? `${fieldProps.ariaLabel} edit` : undefined}
       onClick={(e) => {
         if (!editMode) return;
         e.stopPropagation();
@@ -327,6 +343,19 @@ export const CollaborationTextArea: FunctionComponent<{
         dialogRef.current?.showModal();
         lastValidValueRef.current = valueToShow; // Initialize valid value when dialog opens
         requestAnimationFrame(() => autoResizeTextarea()); // Resize textarea after dialog is rendered
+      }}
+      onKeyDown={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          !editMode ||
+          (event.key !== "Enter" && event.key !== " ")
+        )
+          return;
+        event.preventDefault();
+        setDialogLocation();
+        dialogRef.current?.showModal();
+        lastValidValueRef.current = valueToShow;
+        requestAnimationFrame(() => autoResizeTextarea());
       }}
     >
       <dialog
@@ -411,13 +440,16 @@ export const CollaborationTextArea: FunctionComponent<{
                         const fieldError = errors?.[fieldProps.name];
                         // display error messages
                         return fieldError ? (
-                          <div className={formStyles.errorMessage}>{fieldError}</div>
+                          <div className={formStyles.errorMessage} role="alert">
+                            {fieldError}
+                          </div>
                         ) : null;
                       }}
                     </FormSpy>
 
                     <div className={formStyles.buttonControls}>
-                      <div
+                      <button
+                        type="button"
                         className={formStyles.doneButton}
                         onClick={(e) => {
                           dialogRef.current?.close();
@@ -425,7 +457,7 @@ export const CollaborationTextArea: FunctionComponent<{
                         }}
                       >
                         Done
-                      </div>
+                      </button>
                     </div>
                   </div>
                 </form>
@@ -495,22 +527,13 @@ export const ValidatedInputField: FunctionComponent<{
     if (!containerRef.current || !dialogChildrenRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const width = Math.max(160, rect.width);
+    const width = Math.min(Math.max(160, rect.width), Math.max(0, window.innerWidth - 8));
+    const left = Math.max(4, Math.min(rect.left, window.innerWidth - width - 4));
     setIsNarrowDialog(width <= 160); // Check if we're using the minimum width (meaning container was <= 130px)
 
-    // Check if dialog would overflow right edge of viewport
-    const wouldOverflow = rect.left + width > window.innerWidth;
-    setIsRightAligned(wouldOverflow);
-
-    if (wouldOverflow) {
-      // Position dialog right-aligned to match container's right edge
-      dialogChildrenRef.current.style.right = `${window.innerWidth - rect.right}px`;
-      dialogChildrenRef.current.style.left = "auto";
-    } else {
-      // Position dialog left-aligned to match container's left edge
-      dialogChildrenRef.current.style.left = `${rect.left}px`;
-      dialogChildrenRef.current.style.right = "auto";
-    }
+    setIsRightAligned(left < rect.left);
+    dialogChildrenRef.current.style.left = `${left}px`;
+    dialogChildrenRef.current.style.right = "auto";
 
     dialogChildrenRef.current.style.top = `${rect.top}px`;
     dialogChildrenRef.current.style.width = `${width}px`;
@@ -537,6 +560,9 @@ export const ValidatedInputField: FunctionComponent<{
       ref={containerRef}
       style={styleContainer}
       className={`${editMode ? formStyles.dialogContainerEditable : formStyles.dialogContainer}`}
+      role={editMode ? "button" : undefined}
+      tabIndex={editMode ? 0 : undefined}
+      aria-label={editMode ? `${fieldProps.ariaLabel} edit` : undefined}
       onClick={(e) => {
         if (!editMode) return;
 
@@ -545,6 +571,18 @@ export const ValidatedInputField: FunctionComponent<{
         setDialogLocation();
         dialogRef.current?.showModal();
         initialValueRef.current = valueToShow; // Initialize valid value when dialog opens
+      }}
+      onKeyDown={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          !editMode ||
+          (event.key !== "Enter" && event.key !== " ")
+        )
+          return;
+        event.preventDefault();
+        setDialogLocation();
+        dialogRef.current?.showModal();
+        initialValueRef.current = valueToShow;
       }}
     >
       <dialog
@@ -622,9 +660,14 @@ export const ValidatedInputField: FunctionComponent<{
                         const hasError = errors?.[fieldProps.name];
                         return (
                           <>
-                            {hasError && <div className={formStyles.errorMessage}>{hasError}</div>}
+                            {hasError && (
+                              <div className={formStyles.errorMessage} role="alert">
+                                {hasError}
+                              </div>
+                            )}
                             <div className={formStyles.buttonControls}>
-                              <div
+                              <button
+                                type="button"
                                 className={formStyles.cancelButton}
                                 onClick={(e) => {
                                   form.change(fieldProps.name, initialValueRef.current);
@@ -633,8 +676,10 @@ export const ValidatedInputField: FunctionComponent<{
                                 }}
                               >
                                 Cancel
-                              </div>
-                              <div
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!!hasError || !isOnline}
                                 className={`${formStyles.saveButton} ${(hasError || !isOnline) && formStyles.saveButtonDisabled}`}
                                 onClick={(e) => {
                                   if (hasError || !isOnline) return;
@@ -644,7 +689,7 @@ export const ValidatedInputField: FunctionComponent<{
                                 }}
                               >
                                 Save
-                              </div>
+                              </button>
                             </div>
                           </>
                         );

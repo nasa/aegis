@@ -1,5 +1,6 @@
+import { isLoggedIn } from "http-client/login";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { duplicateMission } from "http-client/mission";
 import adminCommon from "./adminCommon.module.css";
 import { getAutomergeDocListing } from "http-client/docListing";
@@ -12,32 +13,54 @@ type RouteParams = {
 };
 
 const AdminMissionDuplicate: React.FunctionComponent = () => {
+  const [copyAssets, setCopyAssets] = useState(true);
+  const [duplicating, setDuplicating] = useState(false);
   const [status, setStatus] = useState<string>("Idle");
 
+  const navigate = useNavigate();
+  const [authorized, setAuthorized] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    isLoggedIn()
+      .then((result) => {
+        if (result.status === "success" && result.data?.isSuperAdmin) {
+          if (mounted) setAuthorized(true);
+        } else navigate("/");
+      })
+      .catch(() => navigate("/"));
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
 
   const [automergeUrl, setAutomergeUrl] = useState<AutomergeUrl>();
   useEffect(() => {
+    if (!authorized) return;
     getAutomergeDocListing(intMissionId).then((res) => {
       if (res.data?.[0] && isValidAutomergeUrl(res.data[0].automergeUrl)) {
         setAutomergeUrl(res.data[0].automergeUrl as AutomergeUrl);
       }
     });
-  }, [intMissionId]);
+  }, [intMissionId, authorized]);
   const [missionDoc] = useDocument<Mission>(automergeUrl);
   const missionName = missionDoc?.name;
 
   const onDuplicateMission = async (missionId: number) => {
+    setDuplicating(true);
     setStatus("Duplicating mission...");
-    const response = await duplicateMission(missionId);
+    const response = await duplicateMission(missionId, copyAssets);
+    setDuplicating(false);
     if (response.status === "success") {
       setStatus(response.message);
     } else {
       setStatus("Error duplicating mission");
     }
   };
+
+  if (!authorized) return null;
 
   return (
     <main className={adminCommon.page}>
@@ -64,10 +87,20 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
               This process may take some time depending on the size of the mission and the number of
               GIS products. Please be patient and do not refresh the page or navigate away.
             </p>
+            <label>
+              <input
+                type="checkbox"
+                checked={copyAssets}
+                disabled={duplicating}
+                onChange={(event) => setCopyAssets(event.target.checked)}
+              />
+              Copy mission assets
+            </label>
             <div className={adminCommon.actionButtons}>
               <button
                 className={adminCommon.buttonPrimary}
                 type="button"
+                disabled={duplicating}
                 onClick={() => {
                   onDuplicateMission(intMissionId);
                 }}
@@ -75,7 +108,7 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
                 Duplicate Mission
               </button>
             </div>
-            <p className={adminCommon.statusMessage}>
+            <p role="status" className={adminCommon.statusMessage}>
               <strong>Status:</strong> {status}
             </p>
           </div>

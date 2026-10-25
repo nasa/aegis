@@ -66,14 +66,16 @@ Format every changed file with the root `.prettierrc.json` before the full check
 
 ## Before Finishing a Merge Request
 
-Keep the MR in Draft until the full Playwright regression suite passes locally and all eight CI shards pass for the latest MR commit. Before marking an MR Ready, requesting final review, or merging:
+Run affected Playwright tests locally during development. When you think an MR is ready to merge, manually trigger the full suite in GitLab. Keep the MR in Draft until all eight CI shards and the other required checks pass for the latest MR commit:
 
 1. Run the standard checks above.
-2. With the local development database available and migrations current, run `npm run test:playwright` without file filters, project filters, grep filters, or a shard argument. This runs the entire configured suite: Chromium regression tests, Firefox/WebKit smoke tests, and authentication setup. Install the configured browser binaries with `npx playwright install` if needed.
-3. Push the final changes, then click Play once on `test-playwright:start` in that commit's GitLab pipeline. It automatically releases all eight `test-playwright` shards. Wait for every shard and the rest of the required pipeline to pass before marking the MR Ready.
-4. Record the local result, any retries or skipped tests, and the successful CI pipeline link in the MR description. Investigate failures and retries; do not present a partial or filtered run as full regression validation.
+2. Update affected tests and the scenario catalog for changed behavior, regenerate the coverage documentation, and run `npm run test:playwright:scenarios:complete`. Review the assertions as well as the mapping; the catalog check does not execute browsers.
+3. Push the final changes, then click Play once on `test-playwright:start` in that commit's GitLab pipeline. It automatically releases all eight `test-playwright` shards, covering the full configured suite: authentication setup, Chromium regression tests, and Firefox/WebKit smoke and selected parity workflows. Wait for every shard and the rest of the required pipeline to pass before marking the MR Ready.
+4. Record the tested commit, successful CI pipeline link, and any retries or skipped tests in the MR description. Check the full Playwright suite checkbox only after all eight shards pass. Investigate failures and retries; do not present a partial or filtered run as full regression validation.
 
-Any new commit requires a fresh full local run and all eight CI shards for that commit before the MR is Ready again. If local prerequisites prevent the full run, report the blocker and leave the MR in Draft. `npm run test:all` does not run Playwright. `test-playwright:start` is a manual blocking job (`allow_failure: false`), and all eight shards run automatically after it succeeds and their setup dependencies finish. An unstarted gate or a failing shard prevents pipeline success and, with the project's required-pipeline setting, prevents merging. The GitLab Ready status is a manual workflow step, so a green pipeline alone does not replace these local checks.
+A duplicate full local Playwright run is optional; use `npm run test:playwright` without filters or sharding when needed for diagnosis. `npm run test:all` does not run Playwright. Full Playwright execution is manually triggered at merge readiness, not on every development push. Any new commit after validation invalidates the checkbox: return the MR to Draft and rerun all eight CI shards when the updated candidate is ready. Refresh validation after incorporating target-branch changes as well.
+
+`test-playwright:start` is a manual blocking job (`allow_failure: false`), and all eight shards run automatically after it succeeds and their setup dependencies finish. An unstarted gate or a failing shard prevents pipeline success and, with the project's required-pipeline setting, prevents merging. Use the [MR template](.gitlab/merge_request_templates/Default.md) to record the evidence; the checkbox does not replace the required pipeline.
 
 ## Map / OpenLayers
 

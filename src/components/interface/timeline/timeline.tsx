@@ -424,8 +424,8 @@ const NavTimeline: FunctionComponent = () => {
       if (animationFrame !== null) cancelAnimationFrame(animationFrame);
       animationFrame = requestAnimationFrame(() => {
         animationFrame = null;
-        const width = canvasElement.clientWidth;
-        const height = canvasElement.clientHeight;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
         if (
           width <= 0 ||
           height <= 0 ||

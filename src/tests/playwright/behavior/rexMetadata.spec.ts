@@ -43,7 +43,7 @@ test("REX names are family-scoped and Maestro control persists without renaming 
     const dialog = await openPlanningField(page, "REX Title");
     await dialog.getByLabel("REX Title", { exact: true }).fill(value);
     await expect(dialog.getByText(error, { exact: true })).toBeVisible();
-    await dialog.getByText("Save", { exact: true }).click();
+    await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
     await expect(dialog.getByLabel("REX Title", { exact: true })).toBeVisible();
     expect((await mission.read()).rexes[created.uuid].name).toBe("Second Alpha run");
     await dialog.getByText("Cancel", { exact: true }).click();
