@@ -263,6 +263,10 @@ test-playwright:
     - z:db-export:prod
   script:
     - echo "Running shard ${SHARD_INDEX} of ${NUM_SHARDS}"
+    # loadEnv overrides process variables with .env; quiet the job's copy directly.
+    # Keep warnings and errors visible while suppressing routine API debug output.
+    - sed -i 's/^VITE_PUBLIC_CONSOLE_LOG_LEVEL=.*/VITE_PUBLIC_CONSOLE_LOG_LEVEL=warning/' .env
+    - sed -i 's/^VITE_PUBLIC_REMOTE_LOG_LEVEL=.*/VITE_PUBLIC_REMOTE_LOG_LEVEL=off/' .env
     - mkdir -p playwright-report
     - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
 
