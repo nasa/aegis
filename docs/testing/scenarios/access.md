@@ -46,17 +46,17 @@ Playwright: [src/tests/playwright/behavior/accessibilityCoverage.spec.ts:234](..
 
 Playwright: [src/tests/playwright/behavior/accessibilityCoverage.spec.ts:308](../../../src/tests/playwright/behavior/accessibilityCoverage.spec.ts#L308) — dashboard and minimap own the active execution and share its feature labels (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:115](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L115) — overlapping preset rasters render the saved UI order, opacity and blend pixel after reload (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:110](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L110) — overlapping preset rasters render the saved UI order, opacity and blend pixel after reload (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:270](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L270) — Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:265](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L265) — Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:513](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L513) — Earth Web Mercator PMTiles archive exposes its known center feature (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:508](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L508) — Earth Web Mercator PMTiles archive exposes its known center feature (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:612](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L612) — lunar south-polar stereographic GeoJSON places a known lunar feature near the lander (chromium, firefox, webkit).
-
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:795](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L795) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:607](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L607) — lunar south-polar stereographic GeoJSON places a known lunar feature near the lander (chromium, firefox, webkit).
 
 Playwright: [src/tests/playwright/behavior/layerStylesAssets.spec.ts:254](../../../src/tests/playwright/behavior/layerStylesAssets.spec.ts#L254) — line, fill, point and contour labels use saved styles, legends and zoom thresholds (chromium, firefox, webkit).
+
+Evidence boundary: Cross-browser parity covers the named geometry, label, TMS/XYZ/PMTiles/GeoJSON, layer style, and dashboard fixtures.
 
 ## ACCESS-004: Cross-browser editing and downloads
 
@@ -90,6 +90,6 @@ Playwright: [src/tests/playwright/behavior/accessibilityCoverage.spec.ts:375](..
 
 Playwright: [src/tests/playwright/behavior/celestialPresetCoverage.spec.ts:188](../../../src/tests/playwright/behavior/celestialPresetCoverage.spec.ts#L188) — planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions (chromium).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:795](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L795) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:703](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L703) — timeline slope legend preserves labels and distinct colorblind palettes (chromium, firefox, webkit).
 
 Evidence boundary: Keyboard checks cover readable validation and disabled controls. Report tab status descriptions name warning and clear states while the icon changes, celestial source warnings remain available as descriptions, and the map legend pairs labeled slope meanings with distinct standard and colorblind swatches.

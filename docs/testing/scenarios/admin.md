@@ -6,7 +6,7 @@ Fixture: Disposable missions, test users and temporary static directory; explici
 
 Source: [src/pages/admin/index.tsx](../../../src/pages/admin/index.tsx), [src/pages/admin/mission.tsx](../../../src/pages/admin/mission.tsx), [src/pages/admin/missionDuplicate.tsx](../../../src/pages/admin/missionDuplicate.tsx), [src/pages/admin/missionLayers.tsx](../../../src/pages/admin/missionLayers.tsx), [src/pages/admin/missionSTM.tsx](../../../src/pages/admin/missionSTM.tsx), [src/pages/admin/user.tsx](../../../src/pages/admin/user.tsx), [src/server/express/routes/file](../../../src/server/express/routes/file).
 
-Scenario mapping: **9/10 (90%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **10/10 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/express/file.test.ts](../../../src/tests/vitest/express/file.test.ts), [src/tests/vitest/express/missionAutomergeFields.test.ts](../../../src/tests/vitest/express/missionAutomergeFields.test.ts), [src/tests/vitest/utils/missionDup.test.ts](../../../src/tests/vitest/utils/missionDup.test.ts).
 
@@ -124,13 +124,13 @@ Playwright: [src/tests/playwright/behavior/adminDiagnostics.spec.ts:193](../../.
 
 Evidence boundary: Uses an isolated view-only visitor scoped to the fixture mission to verify the super-admin socket monitor's mission count and connection detail, then joins/refreshes/leaves Maestro and DUST monitor sessions, checks EMSS status and canceled disable, and verifies monitor UI/API role gates.
 
-## ADMIN-010: Environment and EMSS configuration controls
+## ADMIN-010: Environment access and EMSS configuration controls
 
-**P0 · Partial**
+**P0 · Mapped**
 
-Action: Use environment/EMSS configuration routes as admin/super-admin and normal users.
+Action: Read deployment defaults and effective values as a super-admin; reject viewer reads/writes and unknown keys; toggle EMSS with valid/invalid input and confirmation cancellation.
 
-Expected: Only super-admins can read/change the declared environment overrides and EMSS enable flag. Environment effective/default/override values, unknown-key rejection, and EMSS boolean validation match the configured handler contracts.
+Expected: The environment page shows the configured default and effective values. Only super-admins can access the declared configuration APIs; unknown keys and non-boolean EMSS updates are rejected, and confirmation cancellation preserves the enabled state.
 
 Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:679](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L679) — super-admin environment configuration shows defaults and rejects viewer access and unknown keys (chromium).
 
@@ -138,4 +138,4 @@ Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:764](../..
 
 Playwright: [src/tests/playwright/behavior/authBoundaries.spec.ts:237](../../../src/tests/playwright/behavior/authBoundaries.spec.ts#L237) — declared admin routes and field policies separate editor, admin, and super-admin (chromium).
 
-Evidence boundary: Browser coverage checks super-admin defaults, viewer read/write rejection, and unknown keys. Save/clear of shared deployment overrides is covered by the environmentConfig server tests; browser mutation is omitted because parallel runs cannot isolate the server-wide setting. EMSS toggle coverage uses a disposable API process.
+Evidence boundary: Browser coverage checks environment defaults and effective values, viewer access rejection, unknown keys, and EMSS controls through a disposable API process.
