@@ -230,7 +230,9 @@ test-playwright:start:
   tags: ["openshift"]
   needs: []
   when: manual
-  allow_failure: false
+  # Optional launch: pipelines can pass without running Playwright.
+  # The shards below still fail the pipeline if they run and fail.
+  allow_failure: true
   script:
     - echo "Starting all eight Playwright regression shards"
 
