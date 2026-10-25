@@ -50,6 +50,9 @@ COPY ./docker/nginx/*.html /usr/share/nginx/html/
 # COG byte-range slice cache directory
 RUN mkdir -p /var/cache/nginx/cog && chown nginx:nginx /var/cache/nginx/cog
 
+ARG GIT_COMMIT=localDev
+LABEL org.opencontainers.image.revision=$GIT_COMMIT
+
 # This image is intended to be run with docker-compose. See docker-compose*.yml files for necessary
 # environment variables
 CMD ["nginx", "-g", "daemon off;"]
