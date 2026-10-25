@@ -40,6 +40,13 @@ npm run test:playwright -- behavior/poiLinks.spec.ts --project=chromium
 npm run test:playwright -- behavior/folders.spec.ts --project=chromium
 npm run test:playwright -- behavior/missionDefaults.spec.ts --project=chromium
 npm run test:playwright -- behavior/positions.spec.ts --project=chromium
+npm run test:playwright -- behavior/transportRecovery.spec.ts --project=chromium
+npm run test:playwright -- behavior/actionParentMatrixCoverage.spec.ts --project=chromium
+npm run test:playwright -- behavior/actionTemplateRoundTripCoverage.spec.ts --project=chromium
+npm run test:playwright -- behavior/calculationBoundaries.spec.ts --project=chromium
+npm run test:playwright -- behavior/celestialPresetCoverage.spec.ts --project=chromium
+npm run test:playwright -- behavior/dashboardFollowCoverage.spec.ts --project=chromium
+npm run test:playwright -- behavior/mapLifecycleHandoff.spec.ts --project=chromium
 ```
 
 The existing `test:playwright` and CI sharding commands also discover these tests.

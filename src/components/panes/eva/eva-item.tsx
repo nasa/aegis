@@ -8,6 +8,7 @@ import {
   setSelectedEvaUuid,
   setSelectedEvaSequenceItemUuid,
   deleteExpandedEvaUuids,
+  setEvaDropdownUIState,
 } from "store/eva";
 import evaStyles from "./eva.module.css";
 
@@ -239,6 +240,10 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
       null,
     refEqual
   );
+  const dropdownEvaExists = useMissionDocSelector(
+    (mission) => !!mission.evas?.[dropdownEvaUuid],
+    refEqual
+  );
 
   const isDropdownRexUuidRunning = useMissionDocSelector(
     (mission) => (dropdownRexUuid ? (mission.rexes?.[dropdownRexUuid]?.isRunning ?? false) : false),
@@ -251,6 +256,27 @@ const EvaItem: FunctionComponent<{ asPlannedEvaUuid: string; first?: boolean }> 
     refEqual
   );
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
+  useEffect(() => {
+    if (asPlannedEva && !dropdownEvaExists) {
+      if (selectedEvaUuid === dropdownEvaUuid) {
+        dispatch(
+          thunkUIChangeEvaDropdown({
+            dropdownEvaUuid: asPlannedEvaUuid,
+            asPlanedEvaUuid: asPlannedEvaUuid,
+          })
+        );
+      } else {
+        dispatch(setEvaDropdownUIState({ asPlannedEvaUuid, dropdownEvaUuid: asPlannedEvaUuid }));
+      }
+    }
+  }, [
+    asPlannedEva,
+    asPlannedEvaUuid,
+    dropdownEvaExists,
+    dropdownEvaUuid,
+    selectedEvaUuid,
+    dispatch,
+  ]);
   // Tracking the expand/collapse state is off of the as-planned eva uuid
   const isExpanded = useAppSelector(
     (state) => state.eva.expandedEvaUuids.includes(asPlannedEvaUuid),

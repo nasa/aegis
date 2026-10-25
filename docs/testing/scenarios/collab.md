@@ -6,7 +6,7 @@ Fixture: Two independent browser contexts for the same authorized test user and 
 
 Source: [src/client/automerge-network-adapter.ts](../../../src/client/automerge-network-adapter.ts), [src/client/automergeDocHandles.ts](../../../src/client/automergeDocHandles.ts), [src/server/automerge](../../../src/server/automerge).
 
-Scenario mapping: **8/14 (57.1%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **9/14 (64.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts](../../../src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts), [src/tests/vitest/automerge/integrityCheck.test.ts](../../../src/tests/vitest/automerge/integrityCheck.test.ts).
 
@@ -132,11 +132,15 @@ Expected: Epoch gate prevents stale merging, directs the client to version recov
 
 ## COLLAB-012: Server unavailable then same-epoch recovery
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Drop/recover the server transport with failed version fetches and delayed document readiness.
 
 Expected: Recovery keeps polling appropriately, disables editing and resumes only after authoritative same-epoch synchronization.
+
+Playwright: [src/tests/playwright/behavior/transportRecovery.spec.ts:12](../../../src/tests/playwright/behavior/transportRecovery.spec.ts#L12) — server transport outage keeps polling through failed version requests before same-epoch recovery (chromium).
+
+Evidence boundary: Browser-scoped transport fault injection closes both live sockets and returns 503 to two successive version polls. Same-epoch reconnect buffers real Automerge server messages to delay readiness, verifies editing stays disabled, then releases handshake/data and proves catch-up without navigation plus peer/persistence/reload. This is an outage/recovery test, not a server-restart test (COLLAB-011).
 
 ## COLLAB-013: Browser close and server persistence
 

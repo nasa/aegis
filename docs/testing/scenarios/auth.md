@@ -6,7 +6,7 @@ Fixture: Distinct guest, viewer, editor, admin and super-admin sessions; two mis
 
 Source: [src/utils/permissions.ts](../../../src/utils/permissions.ts), [src/pages/mission.tsx](../../../src/pages/mission.tsx), [src/pages/admin/index.tsx](../../../src/pages/admin/index.tsx), [src/server/express/routes/auth.ts](../../../src/server/express/routes/auth.ts).
 
-Scenario mapping: **1/8 (12.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **2/8 (25%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/express/login.test.ts](../../../src/tests/vitest/express/login.test.ts), [src/tests/vitest/express/appUser.test.ts](../../../src/tests/vitest/express/appUser.test.ts).
 
@@ -78,11 +78,15 @@ Expected: Each control observes its permission and mode requirements; canceling 
 
 ## AUTH-007: Transport-specific disconnect gate
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Drop only Automerge while keeping HTTP and Socket.IO alive, and then restore it.
 
 Expected: Edit and Save are disabled while the document transport is unavailable and recover only after synchronization.
+
+Playwright: [src/tests/playwright/behavior/transportRecovery.spec.ts:12](../../../src/tests/playwright/behavior/transportRecovery.spec.ts#L12) — Automerge-only disconnect gates Edit and an open Save before same-epoch recovery (chromium).
+
+Evidence boundary: Only the real Automerge transport is closed; HTTP and incoming Socket.IO frames remain live. Open Save and Edit are gated, canceled drafts stay absent, a peer edit catches up and subsequent writes persist and survive reload.
 
 ## AUTH-008: Session and request error recovery
 

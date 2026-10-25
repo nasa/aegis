@@ -28,10 +28,10 @@ function cells(page: Page, label: string) {
 }
 
 const expectedMetrics: Record<string, (number | null)[]> = {
-  "Total EVA time (calculated)": [29, 22, 10, 28],
+  "Total EVA time (calculated)": [29, 22, 13, 16],
   "Total EVA time (allotted)": [60, 80, 40, 50],
-  "EVA time margin (allotted − calculated)": [31, 58, 30, 22],
-  "Traverse time": [12, 6, 3, 24],
+  "EVA time margin (allotted − calculated)": [31, 58, 27, 34],
+  "Traverse time": [12, 6, 6, 12],
   "Dwell time EV1": [10, 12, 0, 0],
   "Dwell time EV2": [7, 4, 7, 4],
   "Dwell time unassigned": [3, 2, 3, 2],
@@ -109,7 +109,7 @@ test.describe("Independent report metrics", () => {
           evaId: mission.ids.evaB,
           rex: null,
           duration: 40,
-          rate: 12,
+          rate: 6,
           crew: [10, 7, 3],
           mass: [1000, 500],
           quantity: [2, 3],
@@ -118,7 +118,7 @@ test.describe("Independent report metrics", () => {
           evaId: mission.ids.rexEvaB,
           rex: mission.ids.rexB,
           duration: 50,
-          rate: 1.5,
+          rate: 3,
           crew: [12, 4, 2],
           mass: [2000, 250],
           quantity: [4, 1],
@@ -210,6 +210,32 @@ test.describe("Independent report metrics", () => {
         }
       }
     });
+  });
+  test("equal travel totals have neutral cells and disappear from differences-only rows", async ({
+    page,
+    mission,
+  }) => {
+    await mission.change((doc) => {
+      for (const eva of Object.values(doc.evas)) eva.traverseRate = 3;
+    });
+    const before = await mission.read();
+    await mission.open(page);
+    await comparison(page);
+    await page
+      .locator('[data-tooltip-content="Column that other columns are compared against"] select')
+      .selectOption(mission.ids.evaA);
+    await expect(cells(page, "Traverse time")).toHaveText(["12", "=", "=", "="]);
+    for (let index = 1; index < 4; index++) {
+      await expect(cells(page, "Traverse time").nth(index)).toHaveAttribute(
+        "data-tooltip-html",
+        /same as baseline$/
+      );
+      await expect(cells(page, "Traverse time").nth(index)).toHaveClass(/cellDiffEqual/);
+    }
+    await page.getByText("Differences only", { exact: true }).click();
+    await expect(cells(page, "Traverse time")).toHaveCount(0);
+    await expect(cells(page, "Total dwell time (max EV1/EV2)")).toHaveCount(4);
+    expect(await mission.read()).toEqual(before);
   });
   for (const baseline of ["Alpha plan", "Alpha execution", "Bravo plan", "Bravo execution"]) {
     test(`all comparison metrics use independent quantities and signed/null differences against ${baseline}`, async ({
