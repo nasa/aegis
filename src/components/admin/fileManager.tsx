@@ -34,6 +34,7 @@ const FileManager: FunctionComponent<{
   const { path, setFileList, isUsed } = { ...props };
   const [dirListing, setDirListing] = useState<fileState[]>([]);
   const [refreshDirectoryListing, setRefreshDirectoryListing] = useState(false);
+  const [sortBy, setSortBy] = useState("name");
   const [hideDirectoryListing, setHideDirectoryListing] = useState(false);
 
   const navigate = useNavigate();
@@ -235,6 +236,14 @@ const FileManager: FunctionComponent<{
       <AsyncStatus {...action} />
       {!hideDirectoryListing && (
         <div>
+          <label>
+            Sort files by{" "}
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+              <option value="name">Name</option>
+              <option value="size">Size</option>
+              <option value="count">File Count</option>
+            </select>
+          </label>
           {dirListing.length > 0 ? (
             <table className={adminStyles.fileTable}>
               <thead>
@@ -247,7 +256,7 @@ const FileManager: FunctionComponent<{
                 </tr>
               </thead>
               <tbody>
-                {dirListing.map((file) => {
+                {[...dirListing].sort((a, b) => sortBy === "name" ? a.name.localeCompare(b.name) : (sortBy === "size" ? a.size - b.size : a.count - b.count) || a.name.localeCompare(b.name)).map((file) => {
                   return (
                     <tr key={file.key}>
                       <td>{file.type}</td>

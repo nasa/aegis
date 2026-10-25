@@ -4,6 +4,7 @@ import { expect } from "../fixtures/behavioralTest";
 export async function selectExecution(page: Page, plan: string, evaUuid: string): Promise<Locator> {
   await page.getByLabel("evas Section", { exact: true }).click();
   const showAll = page.getByLabel("Show All EVAs", { exact: true });
+  await expect(showAll.or(page.getByLabel("evaList-item", { exact: true })).first()).toBeVisible();
   if (await showAll.isVisible()) await showAll.click();
   const row = page.getByLabel("evaList-item", { exact: true }).filter({ hasText: plan });
   await row.locator("select").first().selectOption(evaUuid);

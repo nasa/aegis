@@ -99,7 +99,7 @@ test.describe("Mission preference contracts", () => {
       const dialog = await openPlanningField(page, label);
       await dialog.getByLabel(label, { exact: true }).fill(value);
       await expect(dialog.getByText(error, { exact: true })).toBeVisible();
-      await dialog.getByText("Save", { exact: true }).click();
+      await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
       await expect(dialog.getByLabel(label, { exact: true })).toBeVisible();
       await dialog.getByText("Cancel", { exact: true }).click();
     }

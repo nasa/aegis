@@ -45,7 +45,7 @@ test.describe("POI lifecycle contracts", () => {
       const dialog = await openPlanningField(page, "POI");
       await dialog.getByLabel("POI", { exact: true }).fill(name);
       await expect(dialog.getByText(error, { exact: true })).toBeVisible();
-      await dialog.getByText("Save", { exact: true }).click();
+      await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
       await expect(dialog.getByLabel("POI", { exact: true })).toBeVisible();
       await dialog.getByText("Cancel", { exact: true }).click();
       expect((await mission.read()).pois[created.uuid].name).toBe(created.name);

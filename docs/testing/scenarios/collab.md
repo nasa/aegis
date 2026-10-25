@@ -6,7 +6,7 @@ Fixture: Two independent browser contexts for the same authorized test user and 
 
 Source: [src/client/automerge-network-adapter.ts](../../../src/client/automerge-network-adapter.ts), [src/client/automergeDocHandles.ts](../../../src/client/automergeDocHandles.ts), [src/server/automerge](../../../src/server/automerge).
 
-Scenario mapping: **10/14 (71.4%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **14/14 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts](../../../src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts), [src/tests/vitest/automerge/integrityCheck.test.ts](../../../src/tests/vitest/automerge/integrityCheck.test.ts).
 
@@ -86,15 +86,21 @@ Evidence boundary: Independent clients submit conflicting names/descriptions; on
 
 ## COLLAB-008: Atomic graph edits observed by peers
 
-**P0 · Partial**
+**P0 · Mapped**
 
 Action: Observe entity graph while a peer duplicates/deletes EVA/REX/station/action trees.
 
 Expected: Peer document snapshots at logical operation boundaries contain valid ownership/order references; final peer UI and fresh loads agree on the complete resulting graph.
 
-Playwright: [src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts:29](../../../src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts#L29) — peer EVA duplication publishes a complete graph with no observed dangling references (chromium).
+Playwright: [src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts:83](../../../src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts#L83) — peer EVA duplication publishes a complete graph with no observed dangling references (chromium).
 
-Evidence boundary: The current case samples authoritative HTTP snapshots during EVA-with-stations duplication and validates closed references plus eventual peer/reload display. Remaining evidence needs peer document-change snapshots and the named supported EVA/REX/station/action duplicate/cascade-delete operations. The contract concerns logical document changes, not every intermediate React render or every possible interleaving.
+Playwright: [src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts:158](../../../src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts#L158) — peer observes atomic shared-station EVA duplication and deletion with complete ownership and order references (chromium).
+
+Playwright: [src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts:158](../../../src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts#L158) — peer observes atomic station with actions duplication and deletion with complete ownership and order references (chromium).
+
+Playwright: [src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts:158](../../../src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts#L158) — peer observes atomic action duplication and deletion with complete ownership and order references (chromium).
+
+Playwright: [src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts:285](../../../src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts#L285) — peer observes complete REX creation, REX deletion and planned-EVA execution cascade in single document changes (chromium).
 
 ## COLLAB-009: Delete while peer edits or selects
 
@@ -128,11 +134,13 @@ Evidence boundary: Uses two isolated missions and a real Automerge peer. Holds t
 
 ## COLLAB-011: Server restart and epoch mismatch
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Restart a disposable server while an old tab remains open; attempt reconnect and stale edits.
 
 Expected: Epoch gate prevents stale merging, directs the client to version recovery and resumes only with a fresh current document.
+
+Playwright: [src/tests/playwright/behavior/collaborationDurability.spec.ts:51](../../../src/tests/playwright/behavior/collaborationDurability.spec.ts#L51) — a real API restart preserves durable writes and rejects the old epoch and stale client changes (chromium).
 
 ## COLLAB-012: Server unavailable then same-epoch recovery
 
@@ -148,16 +156,22 @@ Evidence boundary: Browser-scoped transport fault injection closes both live soc
 
 ## COLLAB-013: Browser close and server persistence
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Save, close all clients and reopen; separately restart the server after a confirmed durable write.
 
 Expected: Confirmed saved changes remain in the authoritative store; unsaved drafts do not become persisted data.
 
+Playwright: [src/tests/playwright/behavior/collaborationDurability.spec.ts:12](../../../src/tests/playwright/behavior/collaborationDurability.spec.ts#L12) — closing every browser client preserves saved changes and discards an unsaved draft (chromium).
+
+Playwright: [src/tests/playwright/behavior/collaborationDurability.spec.ts:51](../../../src/tests/playwright/behavior/collaborationDurability.spec.ts#L51) — a real API restart preserves durable writes and rejects the old epoch and stale client changes (chromium).
+
 ## COLLAB-014: Distinct-user presence and permissions
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Connect an editor and viewer as distinct accounts; edit, disconnect and revoke access.
 
 Expected: Presence/counts and independent selections reflect the distinct users and disconnects. Viewer controls respect initial grants; revocation denies subsequent HTTP access as in AUTH-005, while already-open Automerge sockets may continue writing.
+
+Playwright: [src/tests/playwright/behavior/collaborationPresence.spec.ts:19](../../../src/tests/playwright/behavior/collaborationPresence.spec.ts#L19) — distinct editor and viewer accounts share presence and edits, retain independent selections and lose HTTP access after revocation (chromium, firefox, webkit).

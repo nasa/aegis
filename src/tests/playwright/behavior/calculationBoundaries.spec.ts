@@ -256,7 +256,7 @@ test("fractional sequence estimates retain raw seconds while displayed totals ce
   for (const invalid of ["0", "-1"]) {
     const dialog = await openPlanningField(page, "Time in minutes");
     await dialog.getByLabel("Time in minutes", { exact: true }).fill(invalid);
-    await dialog.getByText("Save", { exact: true }).click();
+    await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
     await expect(dialog.getByLabel("Time in minutes", { exact: true })).toBeVisible();
     await dialog.getByText("Cancel", { exact: true }).click();
     expect((await mission.read()).stations[mission.ids.stationA].duration).toBe(7);

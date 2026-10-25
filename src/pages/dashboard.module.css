@@ -83,3 +83,31 @@
   padding-top: 30px;
   height: 500px;
 }
+
+@media (width <= 640px) {
+  .mainContent {
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .middlePanel {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .rightPanel {
+    flex: 0 0 30%;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .minimapWrapper {
+    width: 32%;
+    height: 32%;
+  }
+}

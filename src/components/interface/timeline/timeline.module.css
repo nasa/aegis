@@ -8,6 +8,7 @@
 }
 
 .timelineBodyItem {
+  min-width: 0;
   height: 100%;
   background-color: var(--grey2);
   border-radius: var(--panelRadius);
@@ -71,6 +72,7 @@
 
 .canvasContainer {
   flex: 1 1 auto;
+  min-width: 0;
   bottom: 0;
   left: 0;
   z-index: 500;
@@ -79,6 +81,8 @@
 }
 
 .canvasContainer canvas {
+  display: block;
+  max-width: 100%;
   height: 100%;
   width: 100%;
 }
@@ -130,4 +134,46 @@
   height: 0.5rem;
 }
 
+.svgLine svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 /* make a dashed line using gradient */
+
+@media (width <= 640px) {
+  .timelineContainer {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .timelineHoverContainer {
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-right: 4px;
+  }
+
+  .timelineOptions {
+    flex-wrap: wrap;
+  }
+
+  .timelineHoverValues {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .timelineHoverValueItem {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .canvasContainer {
+    flex: 1 0 120px;
+  }
+
+  .timelineRight {
+    width: auto;
+    flex: 0 0 auto;
+  }
+}
