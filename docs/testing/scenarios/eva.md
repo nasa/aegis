@@ -6,7 +6,7 @@ Fixture: Two planned EVAs sharing a station, located lander, actions, traverses 
 
 Source: [src/components/panes/eva/eva-right.tsx](../../../src/components/panes/eva/eva-right.tsx), [src/operations/helpers/evaSequence.ts](../../../src/operations/helpers/evaSequence.ts), [src/operations/stage/stage-eva.ts](../../../src/operations/stage/stage-eva.ts).
 
-Scenario mapping: **8/13 (61.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **10/13 (76.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/operations/helpers/evaSequence.test.ts](../../../src/tests/vitest/operations/helpers/evaSequence.test.ts), [src/tests/vitest/store/thunks/eva_thunk.test.ts](../../../src/tests/vitest/store/thunks/eva_thunk.test.ts).
 
@@ -62,15 +62,17 @@ Playwright: [src/tests/playwright/behavior/planning.spec.ts:551](../../../src/te
 
 ## EVA-006: EVA metadata and validation
 
-**P1 · Partial**
+**P1 · Mapped**
 
 Action: Rename EVA, change description/color/start UTC/duration/rate; test blank, duplicate and numeric boundaries; reload.
 
 Expected: Saved values and generated labels persist, invalid/canceled edits do not, and planned versus REX name scopes remain distinct.
 
-Playwright: [src/tests/playwright/behavior/evaMetadataLifecycle.spec.ts:38](../../../src/tests/playwright/behavior/evaMetadataLifecycle.spec.ts#L38) — validates plan metadata with a read-only peer while REX names stay family-scoped (chromium).
+Playwright: [src/tests/playwright/behavior/evaMetadataLifecycle.spec.ts:75](../../../src/tests/playwright/behavior/evaMetadataLifecycle.spec.ts#L75) — validates plan metadata with two editors while REX names stay family-scoped (chromium).
 
-Evidence boundary: Single-editor title/description/color/numeric/UTC validation, persistence, planned-versus-REX name scopes and read-only-peer/fresh-client observation are exercised. A full combined run exposed actual two-editor UTC rollback: the already-open editing peer republishes its stale local datetime over the saved author value. Original failure trace is retained; multi-editor persistence remains unproved and this row receives no complete credit.
+Playwright: [src/tests/playwright/behavior/evaMetadataLifecycle.spec.ts:38](../../../src/tests/playwright/behavior/evaMetadataLifecycle.spec.ts#L38) — UTC fields combine an initially empty date and time only after explicit saves and preserve canceled edits (chromium).
+
+Evidence boundary: Two active editors converge on explicit UTC saves without replaying stale local values. Full metadata validation, plan/REX name isolation, saved/canceled values and a fresh client are checked; a separate empty-date/time case checks explicit partial input and cancellation.
 
 ## EVA-007: Add and replace itinerary stations
 
@@ -130,11 +132,15 @@ Evidence boundary: Duplicate-with-stations and EVA-delete confirmations can be c
 
 ## EVA-012: EVA aggregate actions and resource totals
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Use known enabled/disabled station and traverse actions assigned to EV1/EV2.
 
 Expected: EVA action list, mass, consumables, dwell, travel and total duration match independent expected quantities.
+
+Playwright: [src/tests/playwright/behavior/calculationBoundaries.spec.ts:58](../../../src/tests/playwright/behavior/calculationBoundaries.spec.ts#L58) — enabled station and traverse work controls EVA resources, timeline and report totals through deactivation and reactivation (chromium).
+
+Evidence boundary: Known 6-minute EV1 station work and 5-minute EV2 traverse work plus 10-minute movement: EVA aggregate list, 1750g, five consumables, 6/15/21 minute station/traverse/total times; excluded 99-minute/99000g disabled work.
 
 ## EVA-013: Sequence timeline selection and time preview
 
