@@ -86,7 +86,7 @@ Action: Toggle sources/types with older/newer and same-PET entries on planned, h
 
 Expected: Visible points/paths use the intended scope, ordering and filters; historical ages stay tied to their own REX.
 
-Playwright: [src/tests/playwright/behavior/positionRendering90.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering90.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
+Playwright: [src/tests/playwright/behavior/positionRendering.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
 
 Playwright: [src/tests/playwright/behavior/positions.spec.ts:492](../../../src/tests/playwright/behavior/positions.spec.ts#L492) — source filters and equal-PET chronology stay scoped to active, historical and planned views (chromium).
 

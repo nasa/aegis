@@ -74,7 +74,7 @@ Action: Revoke edit/view permission while the user's editor is open; attempt HTT
 
 Expected: Persisted grants are refreshed for subsequent HTTP requests: revoked mission reads/writes are denied in existing and fresh sessions. An already-open Automerge socket may continue writing after grant removal.
 
-Playwright: [src/tests/playwright/behavior/adminPermissions90.spec.ts:214](../../../src/tests/playwright/behavior/adminPermissions90.spec.ts#L214) — super-admin grant changes deny HTTP access and capture existing Automerge writes (chromium).
+Playwright: [src/tests/playwright/behavior/adminPermissions.spec.ts:214](../../../src/tests/playwright/behavior/adminPermissions.spec.ts#L214) — super-admin grant changes deny HTTP access and capture existing Automerge writes (chromium).
 
 Evidence boundary: User-confirmed policy on 2026-10-25 permits continued writes on existing Automerge sockets. The test asserts persisted grant removal, existing-session HTTP denial with unchanged data after the rejected write, fresh-login grants and HTTP denial. The socket attachment is characterization, not a socket-revocation acceptance assertion. Initial transport authorization remains in AUTH-002/003.
 
@@ -86,7 +86,7 @@ Action: Toggle Edit off/on for mission, entity, preset, report, position and exe
 
 Expected: Each control observes its permission and mode requirements; canceling drafts does not enable a write.
 
-Playwright: [src/tests/playwright/behavior/editModeMatrix90.spec.ts:37](../../../src/tests/playwright/behavior/editModeMatrix90.spec.ts#L37) — global Edit gates shared fields and menus across mission, entity, preset, report and position surfaces (chromium).
+Playwright: [src/tests/playwright/behavior/editModeMatrix.spec.ts:37](../../../src/tests/playwright/behavior/editModeMatrix.spec.ts#L37) — global Edit gates shared fields and menus across mission, entity, preset, report and position surfaces (chromium).
 
 Playwright: [src/tests/playwright/behavior/executionPolicy.spec.ts:204](../../../src/tests/playwright/behavior/executionPolicy.spec.ts#L204) — station, traverse and action statuses cycle without global Edit and preserve historical and planned data (chromium).
 
@@ -114,6 +114,6 @@ Action: Fail a protected request with 401/403/500 while a dialog is open; restor
 
 Expected: Failure is visible, saved values remain intact, and retry does not apply a duplicate mutation.
 
-Playwright: [src/tests/playwright/behavior/requestRecovery90.spec.ts:11](../../../src/tests/playwright/behavior/requestRecovery90.spec.ts#L11) — 401, 403, and 500 user-save failures preserve the open form and recover without duplicate creation (chromium).
+Playwright: [src/tests/playwright/behavior/requestRecovery.spec.ts:11](../../../src/tests/playwright/behavior/requestRecovery.spec.ts#L11) — 401, 403, and 500 user-save failures preserve the open form and recover without duplicate creation (chromium).
 
 Evidence boundary: For each 401, 403, and 500 protected user-create request, the Create User form remains open with username/password intact, an error is visible, and the saved-user list remains unchanged. The browser session is cleared and restored with a fresh login while the dialog stays open; one retry succeeds, the form reports creation, and the authoritative list contains exactly one user. The 401 is a real unauthenticated server response; 403/500 are one-time injected responses at the same protected endpoint.

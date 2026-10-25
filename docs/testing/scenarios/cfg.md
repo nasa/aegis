@@ -62,7 +62,7 @@ Action: Clear/set lander location and open location-dependent controls and repor
 
 Expected: Unavailable calculations show their documented empty state; restoring location recomputes them without NaN or stale endpoints.
 
-Playwright: [src/tests/playwright/behavior/missionLander90.spec.ts:28](../../../src/tests/playwright/behavior/missionLander90.spec.ts#L28) — location-dependent controls and comparison values recover after the lander is restored (chromium).
+Playwright: [src/tests/playwright/behavior/missionLander.spec.ts:28](../../../src/tests/playwright/behavior/missionLander.spec.ts#L28) — location-dependent controls and comparison values recover after the lander is restored (chromium).
 
 Evidence boundary: Clears the lander location and elevation and exercises station QuickMap and Set to Lander controls, the station walkback unavailable state, the documented zero Max distance from lander report state, and no NaN display. Restores a known location through Mission Preferences, then verifies those controls, report calculation, and both EVA boundary traverse endpoints recalculate. This uses an execution fixture with four comparison columns.
 
@@ -74,8 +74,8 @@ Action: Use authorized admin controls to change projection/action version; open 
 
 Expected: Allowed fields persist, rendering and pane availability follow configuration, and normal editors cannot change admin-only fields.
 
-Playwright: [src/tests/playwright/behavior/adminPermissions90.spec.ts:29](../../../src/tests/playwright/behavior/adminPermissions90.spec.ts#L29) — admin projection and action-version changes persist to live and fresh editor clients (chromium).
+Playwright: [src/tests/playwright/behavior/adminPermissions.spec.ts:29](../../../src/tests/playwright/behavior/adminPermissions.spec.ts#L29) — admin projection and action-version changes persist to live and fresh editor clients (chromium).
 
-Playwright: [src/tests/playwright/behavior/referenceValidation90.spec.ts:325](../../../src/tests/playwright/behavior/referenceValidation90.spec.ts#L325) — mission reference navigation falls back when an action version removes the selected tab (chromium).
+Playwright: [src/tests/playwright/behavior/referenceValidation.spec.ts:325](../../../src/tests/playwright/behavior/referenceValidation.spec.ts#L325) — mission reference navigation falls back when an action version removes the selected tab (chromium).
 
 Evidence boundary: The super-admin changes action-system version and the editor mission from built-in EPSG:3857 to valid custom EPSG:4326 longlat through the admin UI with geographic bounds/resolution. The test verifies persisted config, live and fresh editor map projection plus the known station feature coordinates in both CRSs, live/reloaded pane availability, and a mission editor HTTP attempt to change the configuration is denied with the authoritative values unchanged.

@@ -18,7 +18,7 @@ Action: Create a measurement, add/drag/remove vertices, finish, cancel a second 
 
 Expected: Known distances/bearings update; Cancel restores the prior local path and unrelated mission data never changes.
 
-Playwright: [src/tests/playwright/behavior/measurementTerrain90.spec.ts:209](../../../src/tests/playwright/behavior/measurementTerrain90.spec.ts#L209) — measurement editing inserts, drags and removes vertices, and cancel restores the original local path (chromium).
+Playwright: [src/tests/playwright/behavior/measurementTerrain.spec.ts:209](../../../src/tests/playwright/behavior/measurementTerrain.spec.ts#L209) — measurement editing inserts, drags and removes vertices, and cancel restores the original local path (chromium).
 
 Evidence boundary: Covers local measurement creation, vertex insertion/drag/removal, finalized distance and bearing updates, canceled-edit rollback, and mission-document isolation. Rollback failed before the InteractionManager measurement restore branch was added, then passed after the fix.
 
@@ -44,7 +44,7 @@ Action: Draw a path across a golden DEM with known samples, breaks and no-data; 
 
 Expected: Distance/elevation/ascent/descent/slope use the correct units and segment boundaries; gaps do not invent bridged terrain.
 
-Playwright: [src/tests/playwright/behavior/terrainDem90.spec.ts:180](../../../src/tests/playwright/behavior/terrainDem90.spec.ts#L180) — golden terrain samples and a no-data break match the displayed segmented profile (chromium).
+Playwright: [src/tests/playwright/behavior/terrainDem.spec.ts:180](../../../src/tests/playwright/behavior/terrainDem.spec.ts#L180) — golden terrain samples and a no-data break match the displayed segmented profile (chromium).
 
 Evidence boundary: Writes a deterministic GeoTIFF with exact elevation and no-data cells, verifies the real terrain service profile against known samples/slopes and independently calculated ascent/descent, then checks the UI terrain profile, no-data gap, segment distances, hover values and slope ramp. The UI gap regression failed before the measurement graph was changed to split at the service no-data sentinel.
 
@@ -56,7 +56,7 @@ Action: Rapidly edit a path and switch mission while older terrain responses are
 
 Expected: Only the newest request for the current mission/entity can update its profile; canceled/deleted geometry is not resurrected.
 
-Playwright: [src/tests/playwright/behavior/measurementTerrain90.spec.ts:431](../../../src/tests/playwright/behavior/measurementTerrain90.spec.ts#L431) — older terrain responses cannot replace a newer edited profile or cross a mission switch (chromium).
+Playwright: [src/tests/playwright/behavior/measurementTerrain.spec.ts:431](../../../src/tests/playwright/behavior/measurementTerrain.spec.ts#L431) — older terrain responses cannot replace a newer edited profile or cross a mission switch (chromium).
 
 Evidence boundary: Delays and releases an older profile after a newer edit, removes a measurement while its profile request is pending, then switches missions before a delayed response completes; asserts stale profiles and deleted geometry stay absent.
 
@@ -68,7 +68,7 @@ Action: Request profiles with absent DEM, invalid coordinates and over-limit sam
 
 Expected: The API rejects malformed/unavailable inputs; a worker-unavailable response shows a recoverable profile state while measurement geometry, distance and bearing remain usable, and a successful request clears the error without changing mission data.
 
-Playwright: [src/tests/playwright/behavior/geodesyTerrain90.spec.ts:247](../../../src/tests/playwright/behavior/geodesyTerrain90.spec.ts#L247) — terrain profile errors retain a usable measurement and recover after the worker responds (chromium).
+Playwright: [src/tests/playwright/behavior/geodesyTerrain.spec.ts:247](../../../src/tests/playwright/behavior/geodesyTerrain.spec.ts#L247) — terrain profile errors retain a usable measurement and recover after the worker responds (chromium).
 
 Evidence boundary: Reviewed 2026-10-25 as an API-validation and browser response-handling contract. Real API validation errors and deterministic intercepted 503/success responses establish it; inducing a worker-pool outage is not required for this row. Real successful terrain sampling is covered by the other measurement scenarios.
 
@@ -82,7 +82,7 @@ Action: Display a known terrain profile with differing uphill/downhill path grad
 
 Expected: Path Grade and Terrain Slope remain distinct quantities in absolute degrees; signed path grades use magnitude for color and exact boundary values use the intended inclusive upper classes.
 
-Playwright: [src/tests/playwright/behavior/measurementTerrain90.spec.ts:360](../../../src/tests/playwright/behavior/measurementTerrain90.spec.ts#L360) — signed path grades stay distinct from terrain slope at inclusive color boundaries (chromium).
+Playwright: [src/tests/playwright/behavior/measurementTerrain.spec.ts:360](../../../src/tests/playwright/behavior/measurementTerrain.spec.ts#L360) — signed path grades stay distinct from terrain slope at inclusive color boundaries (chromium).
 
 Evidence boundary: Uses deterministic profile values to verify path-grade and terrain-slope hover values diverge for uphill and downhill segments, signed path grades use magnitude for the rendered class, and the terrain band honors each inclusive threshold and just-over value from 2° through 20°.
 
@@ -96,13 +96,13 @@ Action: Render null sample intervals and zero-length/broken segments; toggle sta
 
 Expected: No-data intervals stay transparent without bridging; standard and seven-class colorblind ramps follow their documented graph/raster shallow-slope treatment, and hazards above 20 degrees keep the intended class.
 
-Playwright: [src/tests/playwright/behavior/terrainDem90.spec.ts:180](../../../src/tests/playwright/behavior/terrainDem90.spec.ts#L180) — golden terrain samples and a no-data break match the displayed segmented profile (chromium).
+Playwright: [src/tests/playwright/behavior/terrainDem.spec.ts:180](../../../src/tests/playwright/behavior/terrainDem.spec.ts#L180) — golden terrain samples and a no-data break match the displayed segmented profile (chromium).
 
-Playwright: [src/tests/playwright/behavior/measurementTerrain90.spec.ts:296](../../../src/tests/playwright/behavior/measurementTerrain90.spec.ts#L296) — known segmented terrain profile drives distance and slope display without changing the mission (chromium).
+Playwright: [src/tests/playwright/behavior/measurementTerrain.spec.ts:296](../../../src/tests/playwright/behavior/measurementTerrain.spec.ts#L296) — known segmented terrain profile drives distance and slope display without changing the mission (chromium).
 
-Playwright: [src/tests/playwright/behavior/measurementTerrain90.spec.ts:360](../../../src/tests/playwright/behavior/measurementTerrain90.spec.ts#L360) — signed path grades stay distinct from terrain slope at inclusive color boundaries (chromium).
+Playwright: [src/tests/playwright/behavior/measurementTerrain.spec.ts:360](../../../src/tests/playwright/behavior/measurementTerrain.spec.ts#L360) — signed path grades stay distinct from terrain slope at inclusive color boundaries (chromium).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:795](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L795) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:795](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L795) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium, firefox, webkit).
 
 Evidence boundary: Existing terrain graph coverage asserts segmented no-data gaps, shallow classes and hazard/key boundaries; the known synthetic slope GeoTIFF adds rendered map pixels for transparent shallow and no-data cells plus the shared middle and >20° hazard colors, with layer visibility confirming the transparent underlay.
 

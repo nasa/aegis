@@ -138,9 +138,9 @@ Action: Create/move/cancel station location; use Set to Lander; repeat with miss
 
 Expected: Committed location and elevation are correct; connected paths update and unavailable data is represented without corrupting saved geometry.
 
-Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:195](../../../src/tests/playwright/behavior/stationGeometry90.spec.ts#L195) — station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry (chromium).
+Playwright: [src/tests/playwright/behavior/stationGeometry.spec.ts:195](../../../src/tests/playwright/behavior/stationGeometry.spec.ts#L195) — station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:211](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L211) — station location can be cancelled, cleared, and recreated from a known map pixel (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:211](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L211) — station location can be cancelled, cleared, and recreated from a known map pixel (chromium).
 
 Evidence boundary: Existing golden DEM/grid coverage for station create/move/cancel, Set to Lander and missing data is complemented by UI clear and map-pixel recreation. The clear mutation resets elevation and dependent walkback data, retains connected traverse geometry, and hides station/walkback features; recreated coordinates and persisted map geometry are independently checked.
 
@@ -152,7 +152,7 @@ Action: Open a located station with/without walkback; edit its path/rate; cancel
 
 Expected: Walkback endpoints stay pinned to station/lander and distance, time and profile agree with the saved path.
 
-Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:366](../../../src/tests/playwright/behavior/stationGeometry90.spec.ts#L366) — walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints (chromium).
+Playwright: [src/tests/playwright/behavior/stationGeometry.spec.ts:366](../../../src/tests/playwright/behavior/stationGeometry.spec.ts#L366) — walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints (chromium).
 
 Evidence boundary: Opens a located station whose walkback data is independently populated from a direct terrain-profile API response, drags a path vertex and cancels, then edits and saves the path and traverse rate. It checks pinned station/lander endpoints, rendered map geometry, sampled per-segment profiles, independent distance/time metrics, Reset Path, and persisted values after reload. Uses and cleans its test-owned golden DEM/grid fixture.
 

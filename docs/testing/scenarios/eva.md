@@ -82,7 +82,7 @@ Action: Insert first/middle/last stations and replace a slot using existing, new
 
 Expected: The sequence alternates station/traverse, starts and ends at stations and creates exactly the needed paths.
 
-Playwright: [src/tests/playwright/behavior/evaItinerary90.spec.ts:368](../../../src/tests/playwright/behavior/evaItinerary90.spec.ts#L368) — adding and replacing itinerary stations keeps shared stations and owned traverse paths aligned (chromium).
+Playwright: [src/tests/playwright/behavior/evaItinerary.spec.ts:368](../../../src/tests/playwright/behavior/evaItinerary.spec.ts#L368) — adding and replacing itinerary stations keeps shared stations and owned traverse paths aligned (chromium).
 
 Evidence boundary: Uses a test-owned 64×32 synthetic GeoTIFF in EPSG:3857 with bounded station coordinates and known cell elevations. The real EVA editor adds three stations, reorders added slots to first/middle/last positions, replaces a shared station, uses shared and managed lander endpoints, and checks alternating sequence order, independently recomputed traverse paths/profiles, preserved shared station/action and other-EVA ownership, peer state, and reload persistence. The test removes its own raster after each run.
 
@@ -94,7 +94,7 @@ Action: Move/remove first, interior and last slots with actions and active selec
 
 Expected: Adjacent traverse endpoints and names reconcile; unused owned data is cleaned up; shared stations survive.
 
-Playwright: [src/tests/playwright/behavior/evaItinerary90.spec.ts:550](../../../src/tests/playwright/behavior/evaItinerary90.spec.ts#L550) — reordering and removing itinerary stations updates paths and cleans only owned traverse actions (chromium).
+Playwright: [src/tests/playwright/behavior/evaItinerary.spec.ts:550](../../../src/tests/playwright/behavior/evaItinerary.spec.ts#L550) — reordering and removing itinerary stations updates paths and cleans only owned traverse actions (chromium).
 
 Evidence boundary: Uses the same test-owned small synthetic GeoTIFF and known point elevations. The real editor adds stations, moves first/middle/last regular slots, selects and removes a shared station, removes interior and last regular slots, and verifies exact order, regenerated paths and independent profiles, deletion of an owned traverse action, survival/enabled state of shared and retained station actions, peer state, and reload persistence. The test removes its own raster after each run.
 
@@ -158,6 +158,6 @@ Action: Select sequence items and scrub planned time across station/traverse bou
 
 Expected: Map/timeline use the selected EVA and time; editing sequence/duration refreshes the corresponding positions.
 
-Playwright: [src/tests/playwright/behavior/evaTimeline90.spec.ts:109](../../../src/tests/playwright/behavior/evaTimeline90.spec.ts#L109) — timeline selection and scrubbing preview the selected EVA and refresh after duration edits (chromium).
+Playwright: [src/tests/playwright/behavior/evaTimeline.spec.ts:109](../../../src/tests/playwright/behavior/evaTimeline.spec.ts#L109) — timeline selection and scrubbing preview the selected EVA and refresh after duration edits (chromium).
 
 Evidence boundary: Seeds distinct EVA start dates and traverse durations, previews station and traverse intervals through timeline hover, verifies astronaut map position from independently projected fixture coordinates, selects sequence rows for both EVAs and checks their distinct traverse durations, confirms view-only selection and hover do not write mission data, then edits Alpha station duration and checks the shifted timeline/map positions plus unrelated station/traverse/action/EVA values.

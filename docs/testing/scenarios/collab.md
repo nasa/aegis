@@ -128,7 +128,7 @@ Action: Switch missions while changes, terrain requests and sockets from the fir
 
 Expected: Late responses do not update the new mission, and both documents retain their intended independent changes.
 
-Playwright: [src/tests/playwright/behavior/missionSyncSwitch90.spec.ts:11](../../../src/tests/playwright/behavior/missionSyncSwitch90.spec.ts#L11) — switching missions isolates delayed document, terrain, and socket updates (chromium).
+Playwright: [src/tests/playwright/behavior/missionSyncSwitch.spec.ts:11](../../../src/tests/playwright/behavior/missionSyncSwitch.spec.ts#L11) — switching missions isolates delayed document, terrain, and socket updates (chromium).
 
 Evidence boundary: Uses two isolated missions and a real Automerge peer. Holds the source mission's actual incoming protocol frames and a real terrain-profile HTTP request across the UI switch, applies an independent target-document change, then releases stale traffic and verifies the selected UI stays on the target and both authoritative documents retain their own intended changes.
 
