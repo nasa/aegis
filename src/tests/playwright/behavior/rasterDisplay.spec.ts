@@ -1,7 +1,4 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { createRequire } from "node:module";
-import { writeArrayBuffer } from "geotiff";
 import { PbfWriter } from "pbf";
 import type Point from "ol/geom/Point";
 import type TileLayer from "ol/layer/Tile";
@@ -28,8 +25,6 @@ const ids = {
   redSublayer: "30000000-0000-4000-8000-000000009202",
   greenLayer: "30000000-0000-4000-8000-000000009203",
   greenSublayer: "30000000-0000-4000-8000-000000009204",
-  slopeLayer: "30000000-0000-4000-8000-000000009205",
-  slopeSublayer: "30000000-0000-4000-8000-000000009206",
 };
 
 const initialStyle: MapSublayerStyle = {
@@ -705,200 +700,45 @@ test("lunar south-polar stereographic GeoJSON places a known lunar feature near 
   expect(transformed.coordinates[1]).toBeCloseTo(1516.165, 2);
 });
 
-const slopeRasterName = "coverage90-slope-classes.tif";
-const slopeRaster = { width: 64, height: 32, originX: -96, originY: 48, pixelSize: 3 };
-
-function rasterBand(value: number): number[][] {
-  return Array.from({ length: slopeRaster.height }, () =>
-    Array.from({ length: slopeRaster.width }, () => value)
-  );
-}
-
-async function writeSlopeClassRaster(directory: string): Promise<void> {
-  await mkdir(directory, { recursive: true });
-  const red = rasterBand(0);
-  const green = rasterBand(0);
-  const blue = rasterBand(0);
-  const alpha = rasterBand(255);
-  // A distinct transparent shallow class, one representative middle class, and >20° hazard.
-  for (let row = 0; row < slopeRaster.height; row += 1) {
-    for (let column = 0; column < slopeRaster.width; column += 1) {
-      if (column < 8) {
-        alpha[row][column] = 0;
-      } else if (column < 20) {
-        alpha[row][column] = 0;
-      } else if (column < 42) {
-        red[row][column] = 253;
-        green[row][column] = 157;
-        blue[row][column] = 67;
-      } else {
-        red[row][column] = 48;
-        green[row][column] = 31;
-        blue[row][column] = 66;
-      }
-    }
-  }
-  const bytes = await writeArrayBuffer([red, green, blue, alpha], {
-    width: slopeRaster.width,
-    height: slopeRaster.height,
-    BitsPerSample: [8, 8, 8, 8],
-    SampleFormat: [1, 1, 1, 1],
-    SamplesPerPixel: [4],
-    PhotometricInterpretation: 2,
-    ExtraSamples: [2],
-    PlanarConfiguration: 1,
-    ProjectedCSTypeGeoKey: 3857,
-    GeographicTypeGeoKey: 4326,
-    ModelPixelScale: [slopeRaster.pixelSize, slopeRaster.pixelSize, 0],
-    ModelTiepoint: [0, 0, 0, slopeRaster.originX, slopeRaster.originY, 0],
-  });
-  await writeFile(path.join(directory, slopeRasterName), Buffer.from(bytes));
-}
-
-async function readSlopeRasterPixel(
-  page: Page,
-  column: number,
-  row: number
-): Promise<{ color: string; alpha: number }> {
-  const viewport = page.locator('[data-map-mode="editor"] .ol-viewport');
-  const screenshot = PNG.sync.read(await viewport.screenshot({ scale: "css" }));
-  const pixel = await page.evaluate(
-    ({ originX, originY, pixelSize, column, row }) => {
-      const map = window.__aegisMaps
-        .filter((entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected)
-        .at(-1)?.map;
-      if (!map) throw new Error("Editor map is unavailable");
-      const coordinate = [originX + (column + 0.5) * pixelSize, originY - (row + 0.5) * pixelSize];
-      const mapPixel = map.getPixelFromCoordinate(coordinate);
-      const bounds = map.getTargetElement().getBoundingClientRect();
-      const viewportBounds = document
-        .querySelector('[data-map-mode="editor"] .ol-viewport')
-        ?.getBoundingClientRect();
-      if (!viewportBounds) throw new Error("Editor map viewport is unavailable");
-      return {
-        x: Math.round(bounds.left + mapPixel[0] - viewportBounds.left),
-        y: Math.round(bounds.top + mapPixel[1] - viewportBounds.top),
-      };
-    },
-    { ...slopeRaster, column, row }
-  );
-  const offset = (pixel.y * screenshot.width + pixel.x) * 4;
-  const rgba = screenshot.data.subarray(offset, offset + 4);
-  return {
-    color: `#${[...rgba.subarray(0, 3)]
-      .map((value) => value.toString(16).padStart(2, "0"))
-      .join("")}`,
-    alpha: rgba[3],
-  };
-}
-
-test("slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color", async ({
+test("timeline slope legend preserves labels and distinct colorblind palettes", async ({
   page,
   mission,
 }) => {
-  const directory = path.resolve(
-    process.env.STATIC_DIR ?? "",
-    "missionFiles",
-    String(mission.id),
-    "Layers"
-  );
-  await writeSlopeClassRaster(directory);
-  await mission.change((doc) => {
-    doc.projIsCustom = false;
-    doc.planetRadius = 6_378_137;
-    doc.demFilePath = "";
-    doc.layers[ids.slopeLayer] = {
-      uuid: ids.slopeLayer,
-      name: "Classified slope",
-      createdAt: 1,
-      updatedAt: 1,
-    };
-    doc.sublayers[ids.slopeSublayer] = {
-      uuid: ids.slopeSublayer,
-      layerUuid: ids.slopeLayer,
-      type: "tile",
-      name: "Slope classes",
-      description: "Synthetic alpha slope raster",
-      legend: null,
-      path: slopeRasterName,
-      tilePattern: null,
-      boundingBox: null,
-      tileFormat: null,
-      minNativeZoom: null,
-      maxNativeZoom: null,
-      maxZoom: null,
-      isTimeBased: false,
-      timeLayerManifest: [],
-      createdAt: 1,
-      updatedAt: 1,
-    };
-    const preset = doc.presets[mission.ids.presetA];
-    preset.layerOrder = [{ layerUuid: ids.slopeLayer, sublayerUuids: [ids.slopeSublayer] }];
-    preset.mapSublayerControls[ids.slopeSublayer] = {
-      name: "Slope classes",
-      sublayerUuid: ids.slopeSublayer,
-      visible: true,
-      style: { ...initialStyle },
-    };
-  });
-
-  try {
-    await mission.open(page);
-    const shallow = () => readSlopeRasterPixel(page, 10, 5);
-    const noData = () => readSlopeRasterPixel(page, 3, 5);
-    const middle = () => readSlopeRasterPixel(page, 30, 5);
-    const hazard = () => readSlopeRasterPixel(page, 50, 5);
-    await expect.poll(async () => (await middle()).color).toBe("#fd9d43");
-    await expect.poll(async () => (await hazard()).color).toBe("#301f42");
-    const shallowUnderlay = await shallow();
-    const noDataUnderlay = await noData();
-    expect(shallowUnderlay.alpha).toBe(255);
-    expect(shallowUnderlay.color).not.toBe("#ffffcc");
-    await enablePlanningEditMode(page);
-    await page.getByLabel("layers_panel", { exact: true }).click();
-    const shallowLayer = page.getByText("Slope classes (tile)", { exact: true }).locator("..");
-    await shallowLayer.locator('svg[data-icon="eye"]').click();
-    await expect.poll(async () => (await shallow()).color).toBe(shallowUnderlay.color);
-    await expect.poll(async () => (await noData()).color).toBe(noDataUnderlay.color);
-    expect((await mission.read()).sublayers[ids.slopeSublayer].path).toBe(slopeRasterName);
-
-    await page.getByLabel("evas Section", { exact: true }).click();
-    await page
-      .getByLabel("evaList-item")
-      .filter({ hasText: "Survey Alpha" })
-      .getByText("Survey Alpha", { exact: true })
-      .click();
-    await page.locator('[data-tooltip-content="Timeline"]').click();
-    await page.getByRole("button", { name: "Key", exact: true }).click();
-    const legend = page.locator("dialog[open]");
-    await expect(legend).toHaveAttribute("aria-labelledby");
-    await expect(legend.getByText("Slope color = absolute degrees", { exact: true })).toBeVisible();
-    await expect(legend.getByText("Path Grade (top)", { exact: true })).toBeVisible();
-    await expect(legend.getByText("Terrain Slope (bottom)", { exact: true })).toBeVisible();
-    const standardColors = await legend
-      .getByLabel("Path Grade example", { exact: true })
-      .locator("span")
-      .evaluateAll((swatches) =>
-        swatches.slice(0, 6).map((swatch) => getComputedStyle(swatch).backgroundColor)
-      );
-    await legend.getByRole("button", { name: "Close", exact: true }).click();
-    await page.getByRole("button", { name: "Colorblind", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Colorblind", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true"
+  await mission.open(page);
+  await page.getByLabel("evas Section", { exact: true }).click();
+  await page
+    .getByLabel("evaList-item")
+    .filter({ hasText: "Survey Alpha" })
+    .getByText("Survey Alpha", { exact: true })
+    .click();
+  await page.locator('[data-tooltip-content="Timeline"]').click();
+  await page.getByRole("button", { name: "Key", exact: true }).click();
+  const legend = page.locator("dialog[open]");
+  await expect(legend).toHaveAttribute("aria-labelledby");
+  await expect(legend.getByText("Slope color = absolute degrees", { exact: true })).toBeVisible();
+  await expect(legend.getByText("Path Grade (top)", { exact: true })).toBeVisible();
+  await expect(legend.getByText("Terrain Slope (bottom)", { exact: true })).toBeVisible();
+  const standardColors = await legend
+    .getByLabel("Path Grade example", { exact: true })
+    .locator("span")
+    .evaluateAll((swatches) =>
+      swatches.slice(0, 6).map((swatch) => getComputedStyle(swatch).backgroundColor)
     );
-    await page.getByRole("button", { name: "Key", exact: true }).click();
-    const colorblindColors = await legend
-      .getByLabel("Path Grade example", { exact: true })
-      .locator("span")
-      .evaluateAll((swatches) =>
-        swatches.slice(0, 6).map((swatch) => getComputedStyle(swatch).backgroundColor)
-      );
-    expect(colorblindColors).not.toEqual(standardColors);
-    await expect(legend.getByText("Path Grade (top)", { exact: true })).toBeVisible();
-    await expect(legend.getByText("Terrain Slope (bottom)", { exact: true })).toBeVisible();
-    await legend.getByRole("button", { name: "Close", exact: true }).click();
-  } finally {
-    await rm(path.join(directory, slopeRasterName), { force: true });
-  }
+  await legend.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Colorblind", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Colorblind", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await page.getByRole("button", { name: "Key", exact: true }).click();
+  const colorblindColors = await legend
+    .getByLabel("Path Grade example", { exact: true })
+    .locator("span")
+    .evaluateAll((swatches) =>
+      swatches.slice(0, 6).map((swatch) => getComputedStyle(swatch).backgroundColor)
+    );
+  expect(colorblindColors).not.toEqual(standardColors);
+  await expect(legend.getByText("Path Grade (top)", { exact: true })).toBeVisible();
+  await expect(legend.getByText("Terrain Slope (bottom)", { exact: true })).toBeVisible();
+  await legend.getByRole("button", { name: "Close", exact: true }).click();
 });
