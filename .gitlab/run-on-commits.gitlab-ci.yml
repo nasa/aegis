@@ -251,6 +251,9 @@ test-playwright:
       - SHARD_INDEX: 8
   variables:
     NUM_SHARDS: 8
+    # Avoid @emss/logger's console fallback and remote sends in every shard,
+    # including migrations. Aegis console warnings/errors remain enabled below.
+    AEGIS_TEST_DISABLE_REMOTE_LOGGING: "true"
   extends: .test_template
   stage: stageless
   # Keep this tag in sync with the @playwright/test version in package.json.
