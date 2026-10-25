@@ -216,9 +216,9 @@ test("admin uploads show processing and duplicate errors and cannot operate on a
     });
     await page.getByRole("button", { name: "Submit", exact: true }).click();
     await expect(page.getByText(/Upload Error\. Status 500/)).toBeVisible();
-    expect(await (await request.get(`/static/${directory}/upload.txt`)).body()).toEqual(
-      Buffer.alloc(1024 * 1024, 4)
-    );
+    const uploaded = await request.get(`/static/${directory}/upload.txt`);
+    expect(uploaded.status()).toBe(200);
+    expect((await uploaded.body()).equals(Buffer.alloc(1024 * 1024, 4))).toBe(true);
     expect(
       (
         await request.post(`/api/v1/file/upload?missionId=${mission.id}`, {
