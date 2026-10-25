@@ -53,6 +53,29 @@ The existing `test:playwright` and CI sharding commands also discover these test
 Legacy mission/configuration and map smoke tests remain available. Playwright
 does not become a dependency of container image builds or production deployment.
 
+## CI preparation and build caching
+
+`docker:build:apiv1` exports the API, migration tools, and schemas from the actual
+deployment image. After the manual launch, `prepare-playwright` installs the
+locked dependencies once in the same Ubuntu image used by the eight shards,
+alongside the deployment image builds. Each shard downloads those dependencies
+and the API build, restores its own database, and runs the prepared migrations;
+it does not compile the API or generate schemas.
+
+Both export and shard jobs reject an API build whose embedded full commit
+SHA differs from `CI_COMMIT_SHA`. Vite uses that same SHA for client version
+checks. The frontend still runs through Vite: map assertions observe its
+development-only map event, and client-state checks import live Vite modules.
+Using the production nginx image requires adapting those checks first.
+
+The deployment image builds pull their base images and use separate remote layer
+caches for API and nginx. Dependency installation precedes the commit build
+argument, so dependency layers can be reused across code changes. Source files
+are copied before compilation, and the full commit SHA is a build input after
+dependency installation, forcing application compilation for each new commit.
+The cache supplies matching intermediate layers; it never selects a previously
+published application image as the current pipeline's result.
+
 ## Before merging
 
 Run affected tests locally while developing. When you think the MR is ready to
