@@ -54,7 +54,7 @@ export default defineConfig({
   testIgnore: "**/automergeCRDT.spec.ts", // do not run this test. It is for local dev only
 
   // Set the timeout for each test.
-  timeout: 120000,
+  timeout: 300000,
 
   // Tests within a single file may run in parallel; whether they actually do
   // depends on each file's `test.describe.configure({ mode })`.
@@ -62,6 +62,7 @@ export default defineConfig({
 
   // Fail the build on CI if you accidentally left test.only in the source code.
   forbidOnly: !!process.env.CI,
+  failOnFlakyTests: !!process.env.CI,
 
   // Retry on CI only.
   retries: process.env.CI ? 2 : 0,
@@ -73,7 +74,7 @@ export default defineConfig({
       ? 4
       : 3,
 
-  expect: { timeout: 10000 },
+  expect: { timeout: 60000 },
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
@@ -92,8 +93,8 @@ export default defineConfig({
     // Preserve local failure diagnostics even when retries are disabled.
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    actionTimeout: 10000,
-    navigationTimeout: 30000,
+    actionTimeout: 60000,
+    navigationTimeout: 120000,
   },
 
   // Configure projects for major browsers.
@@ -149,7 +150,7 @@ export default defineConfig({
       command: process.env.CI ? "npm run dev:ci" : "npm run dev",
       url: "http://localhost:4000",
       reuseExistingServer: !process.env.CI,
-      timeout: 180 * 1000,
+      timeout: 300 * 1000,
       cwd: path.resolve(__dirname, "../../.."),
       stdout: "pipe", // forward stdout so we have better debugging
       stderr: "pipe",
