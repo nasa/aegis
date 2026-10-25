@@ -118,9 +118,9 @@ Action: Select/hover POI, station, traverse, EVA, action and position, including
 
 Expected: The intended marker/path is highlighted, unresolved selections fall back correctly, and transient hover does not change persisted selection.
 
-Playwright: [src/tests/playwright/behavior/mapSelection90.spec.ts:78](../../../src/tests/playwright/behavior/mapSelection90.spec.ts#L78) — selection context wins over stale selections, while POI station traverse action and position hover stays transient (chromium).
+Playwright: [src/tests/playwright/behavior/mapSelection.spec.ts:78](../../../src/tests/playwright/behavior/mapSelection.spec.ts#L78) — selection context wins over stale selections, while POI station traverse action and position hover stays transient (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapSelection90.spec.ts:269](../../../src/tests/playwright/behavior/mapSelection90.spec.ts#L269) — selecting and hovering a crew position highlights the resolved position without changing mission data (chromium).
+Playwright: [src/tests/playwright/behavior/mapSelection.spec.ts:269](../../../src/tests/playwright/behavior/mapSelection.spec.ts#L269) — selecting and hovering a crew position highlights the resolved position without changing mission data (chromium).
 
 Evidence boundary: Uses UI selection of station, POI, EVA and traverse with independent rendered highlight/feature assertions, including stale station and POI selections losing precedence in their inactive scope. Real pointer hover verifies POI, traverse and action overlays clear again; execution position hover/select resolves its highlight. Mission snapshots remain unchanged through transient hovers and position selection.
 
@@ -132,7 +132,7 @@ Action: Select visible and off-screen entities before/after initial load and dur
 
 Expected: Pan occurs only under the intended conditions and preserves zoom and the active edit target.
 
-Playwright: [src/tests/playwright/behavior/mapSelection90.spec.ts:189](../../../src/tests/playwright/behavior/mapSelection90.spec.ts#L189) — selection pans only to off-screen targets, preserves zoom, and geometry edits keep their target (chromium).
+Playwright: [src/tests/playwright/behavior/mapSelection.spec.ts:189](../../../src/tests/playwright/behavior/mapSelection.spec.ts#L189) — selection pans only to off-screen targets, preserves zoom, and geometry edits keep their target (chromium).
 
 Evidence boundary: Selects a visible station without moving the initial center and an off-screen POI which pans to its known projected target without changing zoom; reload returns to the initial view. A real traverse vertex drag updates then Cancel restores the saved path. Selecting that off-screen POI during editing safely ends the edit, pans to its target at the same zoom, and preserves the traverse path.
 
@@ -144,57 +144,57 @@ Action: For POI, station, action, walkback, traverse and position editing exerci
 
 Expected: Each supported exit commits or discards exactly as specified; interactions, cursor and overlays are removed and the next selection works.
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:159](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L159) — Escape dismisses a field dialog before cancelling the POI marker edit and preserving its point (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:159](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L159) — Escape dismisses a field dialog before cancelling the POI marker edit and preserving its point (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:186](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L186) — turning Edit off exits a pending POI placement without creating a coordinate (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:186](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L186) — turning Edit off exits a pending POI placement without creating a coordinate (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:302](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L302) — Escape restores a dragged traverse and removes the modify interaction (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:302](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L302) — Escape restores a dragged traverse and removes the modify interaction (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:364](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L364) — Escape cancels an existing position edit without saving a map move (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:364](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L364) — Escape cancels an existing position edit without saving a map move (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — poi edit exits cleanly through Escape without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — poi edit exits cleanly through Escape without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — poi edit exits cleanly through Edit off without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — poi edit exits cleanly through Edit off without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — poi edit exits cleanly through navigation without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — poi edit exits cleanly through navigation without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — station edit exits cleanly through Escape without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — station edit exits cleanly through Escape without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — station edit exits cleanly through Edit off without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — station edit exits cleanly through Edit off without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — station edit exits cleanly through navigation without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — station edit exits cleanly through navigation without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — action edit exits cleanly through Escape without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — action edit exits cleanly through Escape without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — action edit exits cleanly through Edit off without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — action edit exits cleanly through Edit off without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — action edit exits cleanly through navigation without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — action edit exits cleanly through navigation without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — walkback edit exits cleanly through Escape without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — walkback edit exits cleanly through Escape without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — walkback edit exits cleanly through Edit off without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — walkback edit exits cleanly through Edit off without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — walkback edit exits cleanly through navigation without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — walkback edit exits cleanly through navigation without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — traverse edit exits cleanly through Escape without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — traverse edit exits cleanly through Escape without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — traverse edit exits cleanly through Edit off without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — traverse edit exits cleanly through Edit off without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L346) — traverse edit exits cleanly through navigation without changing its saved geometry (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:346](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L346) — traverse edit exits cleanly through navigation without changing its saved geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:395](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L395) — position edit exits cleanly through Escape without changing its saved position (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:395](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L395) — position edit exits cleanly through Escape without changing its saved position (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:395](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L395) — position edit exits cleanly through Edit off without changing its saved position (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:395](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L395) — position edit exits cleanly through Edit off without changing its saved position (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:395](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L395) — position edit exits cleanly through navigation without changing its saved position (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:395](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L395) — position edit exits cleanly through navigation without changing its saved position (chromium).
 
-Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:242](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L242) — POI location create, move, field edit, cancel, clear, and reload preserve the point contract (chromium).
+Playwright: [src/tests/playwright/behavior/entityLocations.spec.ts:242](../../../src/tests/playwright/behavior/entityLocations.spec.ts#L242) — POI location create, move, field edit, cancel, clear, and reload preserve the point contract (chromium).
 
-Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:366](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L366) — action location create, move, cancel, clear, and Set to Station keep parent identity and reload (chromium).
+Playwright: [src/tests/playwright/behavior/entityLocations.spec.ts:366](../../../src/tests/playwright/behavior/entityLocations.spec.ts#L366) — action location create, move, cancel, clear, and Set to Station keep parent identity and reload (chromium).
 
-Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:195](../../../src/tests/playwright/behavior/stationGeometry90.spec.ts#L195) — station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry (chromium).
+Playwright: [src/tests/playwright/behavior/stationGeometry.spec.ts:195](../../../src/tests/playwright/behavior/stationGeometry.spec.ts#L195) — station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry (chromium).
 
-Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:366](../../../src/tests/playwright/behavior/stationGeometry90.spec.ts#L366) — walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints (chromium).
+Playwright: [src/tests/playwright/behavior/stationGeometry.spec.ts:366](../../../src/tests/playwright/behavior/stationGeometry.spec.ts#L366) — walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints (chromium).
 
 Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:198](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L198) — dragging an interior vertex then Finished preserves endpoints and the intended path after reload (chromium, firefox, webkit).
 
@@ -216,13 +216,13 @@ Action: Place/move/clear station, POI and action coordinates using known map pix
 
 Expected: Committed lat/lng and derived geometry match the intended location; Cancel preserves prior coordinates.
 
-Playwright: [src/tests/playwright/behavior/mapDirectives90.spec.ts:211](../../../src/tests/playwright/behavior/mapDirectives90.spec.ts#L211) — station location can be cancelled, cleared, and recreated from a known map pixel (chromium).
+Playwright: [src/tests/playwright/behavior/mapDirectives.spec.ts:211](../../../src/tests/playwright/behavior/mapDirectives.spec.ts#L211) — station location can be cancelled, cleared, and recreated from a known map pixel (chromium).
 
-Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:242](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L242) — POI location create, move, field edit, cancel, clear, and reload preserve the point contract (chromium).
+Playwright: [src/tests/playwright/behavior/entityLocations.spec.ts:242](../../../src/tests/playwright/behavior/entityLocations.spec.ts#L242) — POI location create, move, field edit, cancel, clear, and reload preserve the point contract (chromium).
 
-Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:366](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L366) — action location create, move, cancel, clear, and Set to Station keep parent identity and reload (chromium).
+Playwright: [src/tests/playwright/behavior/entityLocations.spec.ts:366](../../../src/tests/playwright/behavior/entityLocations.spec.ts#L366) — action location create, move, cancel, clear, and Set to Station keep parent identity and reload (chromium).
 
-Playwright: [src/tests/playwright/behavior/stationGeometry90.spec.ts:195](../../../src/tests/playwright/behavior/stationGeometry90.spec.ts#L195) — station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry (chromium).
+Playwright: [src/tests/playwright/behavior/stationGeometry.spec.ts:195](../../../src/tests/playwright/behavior/stationGeometry.spec.ts#L195) — station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry (chromium).
 
 Playwright: [src/tests/playwright/behavior/positions.spec.ts:307](../../../src/tests/playwright/behavior/positions.spec.ts#L307) — Cancel Pos abandons a new entry and removes the pending map placement (chromium).
 
@@ -238,9 +238,9 @@ Action: Toggle each entity/label/path/circle category for planned, selected, act
 
 Expected: Exact feature membership and visibility follow scope and selected-object exceptions, without stale features on switching.
 
-Playwright: [src/tests/playwright/behavior/mapVisibilityLabels90.spec.ts:148](../../../src/tests/playwright/behavior/mapVisibilityLabels90.spec.ts#L148) — planned and selected entity visibility follows location, enabled state, parent scope and toggles (chromium).
+Playwright: [src/tests/playwright/behavior/mapVisibilityLabels.spec.ts:148](../../../src/tests/playwright/behavior/mapVisibilityLabels.spec.ts#L148) — planned and selected entity visibility follows location, enabled state, parent scope and toggles (chromium).
 
-Playwright: [src/tests/playwright/behavior/positionRendering90.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering90.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
+Playwright: [src/tests/playwright/behavior/positionRendering.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
 
 Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:117](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L117) — hiding POIs preserves the selected POI until it is deselected (chromium, firefox, webkit).
 
@@ -256,13 +256,13 @@ Action: Use colliding, long, multiline and edge-of-viewport labels at several zo
 
 Expected: Text content, placement, clipping, halo and priority remain readable; a known visual baseline catches missing or misplaced content.
 
-Playwright: [src/tests/playwright/behavior/mapVisibilityLabels90.spec.ts:243](../../../src/tests/playwright/behavior/mapVisibilityLabels90.spec.ts#L243) — colliding long and multiline labels keep exact text, priority, fixed offset and readable rendered ink across zooms (chromium).
+Playwright: [src/tests/playwright/behavior/mapVisibilityLabels.spec.ts:243](../../../src/tests/playwright/behavior/mapVisibilityLabels.spec.ts#L243) — colliding long and multiline labels keep exact text, priority, fixed offset and readable rendered ink across zooms (chromium).
 
 Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:67](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L67) — POIs labels change rendered content and their preference survives reload (chromium, firefox, webkit).
 
 Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:67](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L67) — Stations labels change rendered content and their preference survives reload (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/positionRendering90.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering90.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
+Playwright: [src/tests/playwright/behavior/positionRendering.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
 
 Evidence boundary: The new visual contract checks exact label text including a multiline name, map-projected anchor, feature offset of 28 screen pixels at zooms 12/16/19, colliding label priority opacity, actual label-canvas width/height and non-background text pixels, plus a long label placed at the viewport edge. Existing label-toggle tests verify the rendered map changes and label preferences survive reload; execution coverage verifies exact numbered PET/source text for active and historical positions.
 
@@ -286,7 +286,7 @@ Action: Hover known points under Earth, lunar stereographic and custom Mercator 
 
 Expected: Lat/lng order, grid reference and coordinate precision match independent expected values in each CRS.
 
-Playwright: [src/tests/playwright/behavior/gridCoordinates90.spec.ts:120](../../../src/tests/playwright/behavior/gridCoordinates90.spec.ts#L120) — mouse coordinates show independent lat/lng order, precision and grid reference in three CRSs (chromium).
+Playwright: [src/tests/playwright/behavior/gridCoordinates.spec.ts:120](../../../src/tests/playwright/behavior/gridCoordinates.spec.ts#L120) — mouse coordinates show independent lat/lng order, precision and grid reference in three CRSs (chromium).
 
 Evidence boundary: Real pointer movement over the known map center checks six-decimal lat/lng order and exact grid references for Earth Web Mercator (Known-2-2), canonical lunar south-LPS (AZM B95 D44), and custom Mercator (Known-2-1).
 

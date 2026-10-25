@@ -58,7 +58,7 @@ Action: Create/move/cancel/clear POI coordinates by map and supported fields; re
 
 Expected: Committed coordinates and elevation match the intended point; Cancel preserves the original; relative elevation and grid display recompute.
 
-Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:242](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L242) — POI location create, move, field edit, cancel, clear, and reload preserve the point contract (chromium).
+Playwright: [src/tests/playwright/behavior/entityLocations.spec.ts:242](../../../src/tests/playwright/behavior/entityLocations.spec.ts#L242) — POI location create, move, field edit, cancel, clear, and reload preserve the point contract (chromium).
 
 Evidence boundary: Copies the checked-in Apollo 14 golden GeoTIFF into this test's mission directory and writes a unique 41x41 named server grid under that mission's Data directory; both files are removed after the test. A direct terrain API sample independently verifies each persisted elevation. The test exercises map create/move/cancel/clear and coordinate-field edits, checks committed and canceled document state, rendered map geometry, relative elevation and grid-cell recomputation, and verifies values after reload.
 

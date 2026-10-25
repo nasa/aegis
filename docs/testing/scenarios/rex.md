@@ -284,9 +284,9 @@ Action: Keep real server-time correction enabled; inject positive/negative skew 
 
 Expected: Displayed PET and position ages use the agreed server offset exactly once and remain coherent across clients.
 
-Playwright: [src/tests/playwright/behavior/executionClock90.spec.ts:262](../../../src/tests/playwright/behavior/executionClock90.spec.ts#L262) — real server-time correction applies once with positive client clock skew across PET boundary reconnect (chromium).
+Playwright: [src/tests/playwright/behavior/executionClock.spec.ts:262](../../../src/tests/playwright/behavior/executionClock.spec.ts#L262) — real server-time correction applies once with positive client clock skew across PET boundary reconnect (chromium).
 
-Playwright: [src/tests/playwright/behavior/executionClock90.spec.ts:262](../../../src/tests/playwright/behavior/executionClock90.spec.ts#L262) — real server-time correction applies once with negative client clock skew across PET boundary reconnect (chromium).
+Playwright: [src/tests/playwright/behavior/executionClock.spec.ts:262](../../../src/tests/playwright/behavior/executionClock.spec.ts#L262) — real server-time correction applies once with negative client clock skew across PET boundary reconnect (chromium).
 
 Evidence boundary: Keeps real server status time correction active, injects +120s and -120s browser Date.now skew, compares PET and position-age displays against independent /api/v1/time windows before and after an hour-boundary crossing plus full socket reconnect, and verifies the measured client-minus-server offset after each connection.
 

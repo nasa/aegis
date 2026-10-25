@@ -58,7 +58,7 @@ Action: Render known allotted/calculated durations, station/traverse/action stat
 
 Expected: Timeline scale, blocks, PET/allotted lines, colors, numbering and progress match independent known values.
 
-Playwright: [src/tests/playwright/behavior/dashboardProgress90.spec.ts:7](../../../src/tests/playwright/behavior/dashboardProgress90.spec.ts#L7) — dashboard timeline scales known allotted and calculated work with PET and crew progress (chromium).
+Playwright: [src/tests/playwright/behavior/dashboardProgress.spec.ts:7](../../../src/tests/playwright/behavior/dashboardProgress.spec.ts#L7) — dashboard timeline scales known allotted and calculated work with PET and crew progress (chromium).
 
 Playwright: [src/tests/playwright/behavior/dashboardHandoverCoverage.spec.ts:36](../../../src/tests/playwright/behavior/dashboardHandoverCoverage.spec.ts#L36) — dashboard follows remote execution start, PET pause/resume, stop and REX handover without reload (chromium).
 
@@ -96,7 +96,7 @@ Action: Pan/zoom the big map; toggle traverse arrows/scale/grid; resize and swit
 
 Expected: Minimap bounds, arrow visibility, scale and grid spacing stay coherent with dashboard context and current execution.
 
-Playwright: [src/tests/playwright/behavior/dashboardBridge90.spec.ts:90](../../../src/tests/playwright/behavior/dashboardBridge90.spec.ts#L90) — dashboard minimap bounds, arrows, scale, grid spacing and execution stay bridged (chromium).
+Playwright: [src/tests/playwright/behavior/dashboardBridge.spec.ts:90](../../../src/tests/playwright/behavior/dashboardBridge.spec.ts#L90) — dashboard minimap bounds, arrows, scale, grid spacing and execution stay bridged (chromium).
 
 Evidence boundary: Real dashboard/minimap maps and visibility menu: viewport bounds are compared to the minimap bounds polygon after pan, zoom, resize, and a running-REX handover; dashboard grid-spacing selection changes rendered lines on both maps; traverse arrow styles and scale-bar visibility mirror to the minimap; the handover updates active-execution station/traverse features and PET.
 
