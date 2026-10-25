@@ -6,7 +6,7 @@ Fixture: Execution fixture: stopped Alpha PET +02:10:05 with position +01:55:05;
 
 Source: [src/components/panes/rex/rex-right-rex-info.tsx](../../../src/components/panes/rex/rex-right-rex-info.tsx), [src/store/thunk/thunkRex.ts](../../../src/store/thunk/thunkRex.ts), [src/components/interface/map/hooks/useRexPetTime.ts](../../../src/components/interface/map/hooks/useRexPetTime.ts).
 
-Scenario mapping: **24/27 (88.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **25/27 (92.6%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/rex_thunk.test.ts](../../../src/tests/vitest/store/thunks/rex_thunk.test.ts), [src/tests/vitest/map/useRexPetTime.test.tsx](../../../src/tests/vitest/map/useRexPetTime.test.tsx).
 
@@ -294,7 +294,7 @@ Expected: The agreed single-active-execution invariant holds after synchronizati
 
 ## REX-027: Historical execution deletion and selected cleanup
 
-**P0 · Partial**
+**P0 · Mapped**
 
 Action: Cancel and confirm deleting the selected stopped REX while another client views it.
 
@@ -304,4 +304,4 @@ Playwright: [src/tests/playwright/behavior/rexMetadata.spec.ts:96](../../../src/
 
 Playwright: [src/tests/playwright/behavior/rexMetadata.spec.ts:96](../../../src/tests/playwright/behavior/rexMetadata.spec.ts#L96) — deleting a selected historical REX preserves its graph boundaries and clears stale controls with another REX active (chromium).
 
-Evidence boundary: Cancel and confirmed historical REX deletion preserve the exact unrelated mission graph; both clients remove stale REX controls/options and fresh pages can navigate to surviving plans/executions. Live restoration of the planned-EVA detail selection is not established: deletion can leave the right panel empty and stale local selection, so this row receives no full mapping credit.
+Evidence boundary: Cancel preserves the full graph; confirmation deletes exactly the selected stopped execution graph. Both author and live peer restore planned information automatically from an execution-only tab, with no stale dropdown/control; unrelated execution and subsequent reload are checked.

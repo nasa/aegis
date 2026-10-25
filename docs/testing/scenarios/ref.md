@@ -6,7 +6,7 @@ Fixture: Separate v1/v2 missions with definitions used and unused by actions, te
 
 Source: [src/components/panes/mission/mission-right-actionDefinitions.tsx](../../../src/components/panes/mission/mission-right-actionDefinitions.tsx), [src/components/panes/mission/mission-right-actionTemplates.tsx](../../../src/components/panes/mission/mission-right-actionTemplates.tsx), [src/components/panes/mission/mission-right-equipment.tsx](../../../src/components/panes/mission/mission-right-equipment.tsx), [src/components/panes/mission/mission-right-geographicUnits.tsx](../../../src/components/panes/mission/mission-right-geographicUnits.tsx), [src/components/panes/mission/mission-right-circles.tsx](../../../src/components/panes/mission/mission-right-circles.tsx), [src/components/panes/mission/mission-right-missionPriorities.tsx](../../../src/components/panes/mission/mission-right-missionPriorities.tsx).
 
-Scenario mapping: **6/9 (66.7%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **8/9 (88.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/operations/op-actionDefinition.test.ts](../../../src/tests/vitest/operations/op-actionDefinition.test.ts), [src/tests/vitest/operations/op-missionPriority.test.ts](../../../src/tests/vitest/operations/op-missionPriority.test.ts).
 
@@ -24,11 +24,13 @@ Evidence boundary: All three definition categories have UI create/edit/delete ev
 
 ## REF-002: Definition usage guards
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Attempt to delete definitions used by POI/station/traverse actions, templates and STM rules.
 
 Expected: Every live reference blocks deletion with useful usage information; removing references permits deletion.
+
+Playwright: [src/tests/playwright/behavior/definitionUsageCoverage.spec.ts:12](../../../src/tests/playwright/behavior/definitionUsageCoverage.spec.ts#L12) — each definition category blocks all action parents, templates and rules until every live reference is removed (chromium).
 
 ## REF-003: Template CRUD and independence
 
@@ -44,11 +46,29 @@ Evidence boundary: UI-created templates duplicate into independent identities/na
 
 ## REF-004: Apply template and save action as template
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Apply a known template to each action parent; save an action as a template under allowed and forbidden roles.
 
 Expected: All supported fields copy correctly with new action identity; later template changes do not retroactively mutate actions.
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v1 fully populated poi action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v1 fully populated station action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v1 fully populated traverse action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v2 fully populated poi action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v2 fully populated station action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v2 fully populated traverse action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:171](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L171) — viewer template creation observes the real account permission while action reads remain available (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:171](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L171) — editor template creation observes the real account permission while action reads remain available (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:171](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L171) — admin template creation observes the real account permission while action reads remain available (chromium).
 
 ## REF-005: Equipment CRUD and consumer totals
 

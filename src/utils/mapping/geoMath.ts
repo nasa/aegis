@@ -344,6 +344,7 @@ export function addPointsAtMeters(
   meters: number,
   radius: number
 ): AEGISPoint[] {
+  if (!Number.isFinite(meters) || meters <= 0) return path;
   if (path.length < 2) return path;
   if (isEqual(path[0], path[1])) return path;
 

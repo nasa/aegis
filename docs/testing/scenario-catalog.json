@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewDate": "2026-10-24",
+  "reviewDate": "2026-10-25",
   "scope": "Current AEGIS application families and known state/failure boundaries; finite reviewed inventory, not every possible input/interleaving.",
   "surfaceAssignments": {
     "uiRoutes": {
@@ -375,8 +375,14 @@
           "priority": "P0",
           "action": "Drop only Automerge while keeping HTTP and Socket.IO alive, and then restore it.",
           "expected": "Edit and Save are disabled while the document transport is unavailable and recover only after synchronization.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/transportRecovery.spec.ts",
+              "title": "Automerge-only disconnect gates Edit and an open Save before same-epoch recovery"
+            }
+          ],
+          "note": "Only the real Automerge transport is closed; HTTP and incoming Socket.IO frames remain live. Open Save and Edit are gated, canceled drafts stay absent, a peer edit catches up and subsequent writes persist and survive reload."
         },
         {
           "id": "AUTH-008",
@@ -520,8 +526,13 @@
           "priority": "P0",
           "action": "Attempt to delete definitions used by POI/station/traverse actions, templates and STM rules.",
           "expected": "Every live reference blocks deletion with useful usage information; removing references permits deletion.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/definitionUsageCoverage.spec.ts",
+              "title": "each definition category blocks all action parents, templates and rules until every live reference is removed"
+            }
+          ]
         },
         {
           "id": "REF-003",
@@ -544,8 +555,45 @@
           "priority": "P0",
           "action": "Apply a known template to each action parent; save an action as a template under allowed and forbidden roles.",
           "expected": "All supported fields copy correctly with new action identity; later template changes do not retroactively mutate actions.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v1 fully populated poi action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v1 fully populated station action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v1 fully populated traverse action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v2 fully populated poi action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v2 fully populated station action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v2 fully populated traverse action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "viewer template creation observes the real account permission while action reads remain available"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "editor template creation observes the real account permission while action reads remain available"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "admin template creation observes the real account permission while action reads remain available"
+            }
+          ]
         },
         {
           "id": "REF-005",
@@ -846,8 +894,14 @@
           "priority": "P1",
           "action": "Use missing, disabled and fully specified actions with known masses and science coverage.",
           "expected": "POI totals, warnings and report state use the correct enabled actions and known quantities.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/poiMassBoundaries.spec.ts",
+              "title": "POI totals and science coverage distinguish missing values, disabled work and complete actions and remove warnings only for enabled work"
+            }
+          ],
+          "note": "Specified 1250-gram work is distinguished from disabled 9999-gram work. Legacy science strips and exact warning severity are checked; UI deactivation removes totals/science and shows the no-actions warning. A new action with missing mass/science removes that warning without claiming science coverage. Reload verifies persistence."
         }
       ]
     },
@@ -1190,14 +1244,18 @@
           "priority": "P1",
           "action": "Rename EVA, change description/color/start UTC/duration/rate; test blank, duplicate and numeric boundaries; reload.",
           "expected": "Saved values and generated labels persist, invalid/canceled edits do not, and planned versus REX name scopes remain distinct.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
               "file": "behavior/evaMetadataLifecycle.spec.ts",
-              "title": "validates plan metadata with a read-only peer while REX names stay family-scoped"
+              "title": "validates plan metadata with two editors while REX names stay family-scoped"
+            },
+            {
+              "file": "behavior/evaMetadataLifecycle.spec.ts",
+              "title": "UTC fields combine an initially empty date and time only after explicit saves and preserve canceled edits"
             }
           ],
-          "note": "Single-editor title/description/color/numeric/UTC validation, persistence, planned-versus-REX name scopes and read-only-peer/fresh-client observation are exercised. A full combined run exposed actual two-editor UTC rollback: the already-open editing peer republishes its stale local datetime over the saved author value. Original failure trace is retained; multi-editor persistence remains unproved and this row receives no complete credit."
+          "note": "Two active editors converge on explicit UTC saves without replaying stale local values. Full metadata validation, plan/REX name isolation, saved/canceled values and a fresh client are checked; a separate empty-date/time case checks explicit partial input and cancellation."
         },
         {
           "id": "EVA-007",
@@ -1276,8 +1334,14 @@
           "priority": "P0",
           "action": "Use known enabled/disabled station and traverse actions assigned to EV1/EV2.",
           "expected": "EVA action list, mass, consumables, dwell, travel and total duration match independent expected quantities.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculationBoundaries.spec.ts",
+              "title": "enabled station and traverse work controls EVA resources, timeline and report totals through deactivation and reactivation"
+            }
+          ],
+          "note": "Known 6-minute EV1 station work and 5-minute EV2 traverse work plus 10-minute movement: EVA aggregate list, 1750g, five consumables, 6/15/21 minute station/traverse/total times; excluded 99-minute/99000g disabled work."
         },
         {
           "id": "EVA-013",
@@ -1379,8 +1443,21 @@
           "priority": "P0",
           "action": "Create, edit, duplicate and delete actions under a POI, station and traverse.",
           "expected": "Each action belongs to the intended parent and order list; permissions, available fields and cleanup match the parent type.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "poi action creation, editing, duplication and deletion preserve exact parent ownership"
+            },
+            {
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "station action creation, editing, duplication and deletion preserve exact parent ownership"
+            },
+            {
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "traverse action creation, editing, duplication and deletion preserve exact parent ownership"
+            }
+          ]
         },
         {
           "id": "ACTION-007",
@@ -1388,8 +1465,21 @@
           "priority": "P1",
           "action": "Drag actions within a parent; cancel unsupported moves; reload and inspect a peer.",
           "expected": "Order is identical in UI and document, with no duplicates or missing actions and no accidental cross-parent ownership change.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "poi action drag order reaches a peer and reload with stable unique ownership"
+            },
+            {
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "station action drag order reaches a peer and reload with stable unique ownership"
+            },
+            {
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "traverse action drag order reaches a peer and reload with stable unique ownership"
+            }
+          ]
         },
         {
           "id": "ACTION-008",
@@ -1412,8 +1502,17 @@
           "priority": "P0",
           "action": "Edit v1 title/type/priority/STM and v2 verb/noun/adjective/STM toggle/mission priority; reload.",
           "expected": "Only version-appropriate fields appear and generated wording, saved values and report consumers agree.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionVersionFieldsCoverage.spec.ts",
+              "title": "legacy action type, title, task priority and all STM priority choices persist without v2 fields"
+            },
+            {
+              "file": "behavior/actionVersionFieldsCoverage.spec.ts",
+              "title": "v2 action verb noun adjective and mission priority survive STM toggles and refresh aggregate wording"
+            }
+          ]
         },
         {
           "id": "ACTION-010",
@@ -1421,14 +1520,21 @@
           "priority": "P1",
           "action": "Edit rich/free text fields and icon; cancel another edit; reload and inspect aggregate cards.",
           "expected": "Exact supported content persists, task text stays parent-appropriate, and cancellation leaves saved fields unchanged.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/actionAdoption.spec.ts",
-              "title": "action and task descriptions save independently, Cancel preserves text, and saved text survives reload"
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "poi action text and icon save, Cancel preserves exact content, and aggregate cards retain supported fields"
+            },
+            {
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "station action text and icon save, Cancel preserves exact content, and aggregate cards retain supported fields"
+            },
+            {
+              "file": "behavior/actionParentMatrixCoverage.spec.ts",
+              "title": "traverse action text and icon save, Cancel preserves exact content, and aggregate cards retain supported fields"
             }
-          ],
-          "note": "Station action description/task text Save, Cancel, persisted values and reload are covered. Icon editing, the parent-appropriate field matrix and aggregate cards remain unproved."
+          ]
         },
         {
           "id": "ACTION-011",
@@ -1451,8 +1557,14 @@
           "priority": "P1",
           "action": "Toggle multiple equipment/geographic items; update reference definitions; reload.",
           "expected": "Assignments survive and parent/EVA consumable and geographic reports recompute without unrelated changes.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionAssignmentsCoverage.spec.ts",
+              "title": "multiple equipment and geographic assignments toggle independently and renamed references refresh totals and exported geography"
+            }
+          ],
+          "note": "The supported geographic reporting consumer is downloaded JSON geographicalUnitsReadable; there is no separate parent/EVA geographic aggregate UI. The test checks displayed assignment names and downloaded geographic names after reference rename/reload, alongside independent parent/EVA consumable totals."
         },
         {
           "id": "ACTION-013",
@@ -1469,8 +1581,45 @@
           "priority": "P1",
           "action": "Save a fully populated action as a template as allowed and disallowed users; apply it again.",
           "expected": "Supported fields survive the round trip, role restrictions hold, and crew/reference semantics are explicit.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v1 fully populated poi action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v1 fully populated station action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v1 fully populated traverse action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v2 fully populated poi action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v2 fully populated station action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "v2 fully populated traverse action template round trip retains supported fields with independent identity"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "viewer template creation observes the real account permission while action reads remain available"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "editor template creation observes the real account permission while action reads remain available"
+            },
+            {
+              "file": "behavior/actionTemplateRoundTripCoverage.spec.ts",
+              "title": "admin template creation observes the real account permission while action reads remain available"
+            }
+          ]
         }
       ]
     },
@@ -1688,14 +1837,14 @@
           "priority": "P1",
           "action": "Pan, use controls/double-click/zoom limits, resize and repeatedly mount/unmount editor.",
           "expected": "Expected centre/zoom and visible geometry persist with one live map and no orphan interactions or render errors.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
-              "file": "map/mapOlInteractions.spec.ts",
-              "title": "map canvas remains after resizing the browser window"
+              "file": "behavior/mapLifecycleHandoff.spec.ts",
+              "title": "map pan, controls, double-click and viewport resizing retain one usable editor through remounts"
             }
           ],
-          "note": "Legacy map smoke checks visibility after resizing, not exact viewport behavior or repeated mount/unmount resource cleanup."
+          "note": "Real pointer pan, zoom buttons/double-click, upper zoom of 28 and viewport-derived lower world bound, resize preserving centre/zoom, three remounts with one connected map, stable interaction count, visible geometry and unchanged authoritative mission."
         },
         {
           "id": "MAP-018",
@@ -1712,8 +1861,14 @@
           "priority": "P1",
           "action": "Open POI, station, traverse, EVA and crew-position links with located and missing prerequisites.",
           "expected": "The generated URL contains the correct coordinates, geometry, color and time, and unavailable links are gated.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/mapLifecycleHandoff.spec.ts",
+              "title": "POI, station, traverse, EVA and crew handoffs encode known geometry, colors and time and gate missing locations"
+            }
+          ],
+          "note": "Real UI handoffs capture window.open URLs without opening the external service. Exact POI/station/traverse and crew point/path geometry, plan sequence feature collection and explicit/fallback colors, EVA UTC, projection/stack/resolution, independent centers, and missing lander/entity/path/position gates."
         }
       ]
     },
@@ -1953,8 +2108,18 @@
           "fixture": "Located lunar mission with fixed UTC, known lander elevation/radius, independently known true azimuths and non-north-up custom CRS.",
           "action": "Enable Calculate using EVA date and lander location; change date/lander/projection; switch back to manual and reload.",
           "expected": "Projected map-up Sun/Earth directions match an independent astronomy/projection oracle; panel and map use the same values, and saved manual angles survive calculated mode.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/celestialPresetCoverage.spec.ts",
+              "title": "calculated celestial directions follow independent SPICE values and Mercator map north while manual values survive mode changes"
+            },
+            {
+              "file": "behavior/celestialPresetCoverage.spec.ts",
+              "title": "calculated celestial directions follow independent SPICE values and polar map north while manual values survive mode changes"
+            }
+          ],
+          "note": "The checked-in SPICE reference corpus supplies independent site/date values. South-polar grid convergence uses analytic true-bearing + longitude, Mercator preserves true bearing. Tests observe actual icon positions and rounded labels under date/location updates, calculate/manual UI toggles and reload without overwriting saved manual angles."
         },
         {
           "id": "PRESET-012",
@@ -1963,8 +2128,14 @@
           "fixture": "Two EVAs with distinct times, a historical and active REX, dated/undated layer and saved manual angles.",
           "action": "Select planned/historical/running EVA time, preset preview and layer fallback; remove date/lander or supply an unresolved projection.",
           "expected": "Date/source/status labels identify the actual source; missing/invalid date, location or projection warns and uses saved manual directions; an undated selected EVA warning is not hidden by a layer date.",
-          "automation": "gap",
-          "tests": []
+          "automation": "partial",
+          "tests": [
+            {
+              "file": "behavior/celestialPresetCoverage.spec.ts",
+              "title": "planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions"
+            }
+          ],
+          "note": "Planned/historical/running EVA date labels, layer fallback, preset preview, absent date/lander and unresolved projection warn and preserve manual values. The selected-undated-EVA warning remains visible during layer/preview fallback. Invalid date numeric/string inputs are not covered; retain partial status."
         },
         {
           "id": "PRESET-013",
@@ -2016,8 +2187,14 @@
           "priority": "P0",
           "action": "Deactivate a known action and inspect parent, EVA, timeline, mass, equipment and report totals.",
           "expected": "Each intended consumer excludes disabled work without deleting its identity; reactivation restores exact values.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculationBoundaries.spec.ts",
+              "title": "enabled station and traverse work controls EVA resources, timeline and report totals through deactivation and reactivation"
+            }
+          ],
+          "note": "UI deactivation/reactivation checks station and EVA action/crew/mass/consumable totals, retained disabled identity, exported sequence-clock contribution and comparison report values, including reload."
         },
         {
           "id": "CALC-003",
@@ -2039,8 +2216,14 @@
           "priority": "P0",
           "action": "Use two 1.2-minute sequence items and manual unset/zero/negative/positive overrides.",
           "expected": "Per-item ceiling, total display and raw timeline seconds follow documented semantics; form validity is tested separately.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculationBoundaries.spec.ts",
+              "title": "fractional sequence estimates retain raw seconds while displayed totals ceil each item and manual overrides preserve zero and negative data"
+            }
+          ],
+          "note": "Two 1.2-minute station items yield four resolved display minutes, three action display minutes and raw manual clock 0..72..144sec; null/zero/negative/positive imported override values exercised separately from UI validation/filtering."
         },
         {
           "id": "CALC-005",
@@ -2048,8 +2231,14 @@
           "priority": "P0",
           "action": "Use movement 10 min and action dwell 5 min; inspect calculated/resolved start/end clocks.",
           "expected": "Each display uses its documented 15-minute combined or 10-minute movement quantity consistently; unresolved discrepancies are recorded.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculationBoundaries.spec.ts",
+              "title": "ten minutes movement plus five minutes traverse work exposes combined durations and distinct calculated and resolved clocks"
+            }
+          ],
+          "note": "The traverse/EVA sequence and total are 15 minutes; the exported movement alias remains 10 minutes. Calculated and resolved sequence clocks both span 0–900 seconds. The regression fixes double-counted dwell that previously shifted calculated start/end to 300/1200 seconds."
         },
         {
           "id": "CALC-006",
@@ -2057,8 +2246,14 @@
           "priority": "P1",
           "action": "Use exact ratios .75, .9, 1.1 and 1.25 and values just outside them.",
           "expected": "Warning classes match the actual agreed inclusive/exclusive boundary behavior and do not depend on rounded labels.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculationBoundaries.spec.ts",
+              "title": "station override warnings use strict ratio boundaries and retain exact severity independently of rounded totals"
+            }
+          ],
+          "note": "Real station saves at 74/75/89/90/110/111/125/126 minutes are compared with independently known 100-minute work. Exact warning messages and severity classes record the existing strict thresholds and warning/error assignments."
         },
         {
           "id": "CALC-007",
@@ -2066,8 +2261,14 @@
           "priority": "P0",
           "action": "Mix planned grams, absent executed mass and entered zero/nonzero executed mass.",
           "expected": "Grams-to-kilograms conversion occurs at the correct display boundary; entered zero is distinguished from missing and delta mass is correct.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/poiMassBoundaries.spec.ts",
+              "title": "planned grams, absent mass, entered zero and nonzero execution mass retain their units and signed deltas in cards and comparison"
+            }
+          ],
+          "note": "Actual mass absent/null/zero/1750g/cleared checked across cards, signed gram deltas and kg comparison cells, persistence/export/reload. Comparison metric fix preserves absent as null instead of zero."
         },
         {
           "id": "CALC-008",
@@ -2084,8 +2285,18 @@
           "priority": "P1",
           "action": "Render no actions/crew/coordinates and large valid durations/distances.",
           "expected": "All consumers produce documented empty/zero states without NaN, Infinity, negative wrap or stale totals.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/calculationBoundaries.spec.ts",
+              "title": "empty graphs and large valid durations display finite totals and independent zero states without mutating data"
+            },
+            {
+              "file": "behavior/calculationBoundaries.spec.ts",
+              "title": "a traverse with geometry and zero cached distances keeps the EVA responsive and preserves its original points"
+            }
+          ],
+          "note": "Empty actions, crew, coordinates and itinerary show finite zeros/warnings without writes. A 9999-minute station and traverse plus a billion-metre cached distance render/reload as 19998 minutes and 1,000,000,000 metres. Zero cached distances with nonzero geometry stay responsive after the subdivision guard."
         }
       ]
     },
@@ -2503,7 +2714,7 @@
           "priority": "P0",
           "action": "Cancel and confirm deleting the selected stopped REX while another client views it.",
           "expected": "Only its owned execution graph disappears; both clients fall back safely to the plan and unrelated REXes remain unchanged.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
               "file": "behavior/rexMetadata.spec.ts",
@@ -2514,7 +2725,7 @@
               "title": "deleting a selected historical REX preserves its graph boundaries and clears stale controls with another REX active"
             }
           ],
-          "note": "Cancel and confirmed historical REX deletion preserve the exact unrelated mission graph; both clients remove stale REX controls/options and fresh pages can navigate to surviving plans/executions. Live restoration of the planned-EVA detail selection is not established: deletion can leave the right panel empty and stale local selection, so this row receives no full mapping credit."
+          "note": "Cancel preserves the full graph; confirmation deletes exactly the selected stopped execution graph. Both author and live peer restore planned information automatically from an execution-only tab, with no stale dropdown/control; unrelated execution and subsequent reload are checked."
         }
       ]
     },
@@ -2615,8 +2826,13 @@
           "priority": "P0",
           "action": "Change status with global Edit off, as viewer, on disabled actions and with Maestro control on.",
           "expected": "Controls follow mission permission/running/ownership rules; Maestro-controlled clicks explain the gate and do not persist local status writes.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/actionStatusPermissionCoverage.spec.ts",
+              "title": "execution action status requires editor and running ownership, permits Edit off, and rejects disabled and Maestro controlled writes"
+            }
+          ]
         },
         {
           "id": "POLICY-008",
@@ -2868,8 +3084,14 @@
           "priority": "P0",
           "action": "Add older/newer positions in different storage order and toggle source/type/station/traverse follow options.",
           "expected": "Dashboard follows the intended source-filtered latest entries; minimap retains its documented bounds/position selection contract.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/dashboardFollowCoverage.spec.ts",
+              "title": "dashboard follows newest source-filtered positions and independently selected active stations and traverses"
+            }
+          ],
+          "note": "Out-of-order stored entries have independent createdAt timestamps and explicit source locations. UI source and station/traverse/type follow toggles assert projected centers; minimap bounds include the documented first stored position and active plan station, with exact active station ownership. Auto-follow off preserves center."
         },
         {
           "id": "DASH-007",
@@ -2877,8 +3099,14 @@
           "priority": "P1",
           "action": "Disable follow options, edit position types from a peer and remove the final position.",
           "expected": "Options rebuild according to the intended persistence rule; empty lists do not leave stale centering or reset unrelated choices.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/dashboardFollowCoverage.spec.ts",
+              "title": "peer marker-type edits preserve disabled follow choices and deleting the last position leaves no stale recentering"
+            }
+          ],
+          "note": "A peer renames a position type and deletes the final position through real UI. Follow choices remain unchecked and the dashboard center stays fixed; enabling an empty type causes no stale follow, and station follow still works. Failing-before trace demonstrates station/traverse option reset; FollowModeProvider now preserves unrelated choices."
         },
         {
           "id": "DASH-008",
@@ -3041,7 +3269,7 @@
           "priority": "P0",
           "action": "Compare known durations, rates, distances, ascent/descent, crew times, mass and equipment across several plans/REXes; change baseline.",
           "expected": "Every absolute/difference cell uses the independent known quantity and signed/null semantics for its metric.",
-          "automation": "partial",
+          "automation": "mapped",
           "tests": [
             {
               "file": "behavior/reportMatrix.spec.ts",
@@ -3058,9 +3286,13 @@
             {
               "file": "behavior/reportMatrix.spec.ts",
               "title": "all comparison metrics use independent quantities and signed/null differences against Bravo execution"
+            },
+            {
+              "file": "behavior/reportMatrix.spec.ts",
+              "title": "equal travel totals have neutral cells and disappear from differences-only rows"
             }
           ],
-          "note": "All 22 metric rows use independent hand-computed values across two plans/two REXes and all four baselines, including masses, consumables, rates, distance/ascent/descent, crew totals and null semantics. A separate development case found mathematically equal travel totals can render negative zero from floating-point roundoff; that signed-equality boundary remains unresolved, so this broad row gets no full credit."
+          "note": "All 22 independently calculated rows across four baselines include mathematically equal travel times from different summation paths. Equality is neutral in text, tint, tooltip and differences-only filtering; meaningful small numeric differences remain distinct in unit regression."
         },
         {
           "id": "REPORT-004",
@@ -3508,8 +3740,14 @@
           "priority": "P0",
           "action": "Drop/recover the server transport with failed version fetches and delayed document readiness.",
           "expected": "Recovery keeps polling appropriately, disables editing and resumes only after authoritative same-epoch synchronization.",
-          "automation": "gap",
-          "tests": []
+          "automation": "mapped",
+          "tests": [
+            {
+              "file": "behavior/transportRecovery.spec.ts",
+              "title": "server transport outage keeps polling through failed version requests before same-epoch recovery"
+            }
+          ],
+          "note": "Browser-scoped transport fault injection closes both live sockets and returns 503 to two successive version polls. Same-epoch reconnect buffers real Automerge server messages to delay readiness, verifies editing stays disabled, then releases handshake/data and proves catch-up without navigation plus peer/persistence/reload. This is an outage/recovery test, not a server-restart test (COLLAB-011)."
         },
         {
           "id": "COLLAB-013",

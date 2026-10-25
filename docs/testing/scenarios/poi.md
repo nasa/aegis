@@ -6,7 +6,7 @@ Fixture: Planning mission with a located POI, source actions and stations refere
 
 Source: [src/components/panes/poi/poi-right.tsx](../../../src/components/panes/poi/poi-right.tsx), [src/operations/apply/apply-poi.ts](../../../src/operations/apply/apply-poi.ts).
 
-Scenario mapping: **6/8 (75%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **7/8 (87.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/poi_thunk.test.ts](../../../src/tests/vitest/store/thunks/poi_thunk.test.ts).
 
@@ -92,8 +92,12 @@ Playwright: [src/tests/playwright/behavior/poiLinks.spec.ts:28](../../../src/tes
 
 ## POI-008: POI report severity and mass
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Use missing, disabled and fully specified actions with known masses and science coverage.
 
 Expected: POI totals, warnings and report state use the correct enabled actions and known quantities.
+
+Playwright: [src/tests/playwright/behavior/poiMassBoundaries.spec.ts:32](../../../src/tests/playwright/behavior/poiMassBoundaries.spec.ts#L32) — POI totals and science coverage distinguish missing values, disabled work and complete actions and remove warnings only for enabled work (chromium).
+
+Evidence boundary: Specified 1250-gram work is distinguished from disabled 9999-gram work. Legacy science strips and exact warning severity are checked; UI deactivation removes totals/science and shows the no-actions warning. A new action with missing mass/science removes that warning without claiming science coverage. Reload verifies persistence.

@@ -6,7 +6,7 @@ Fixture: Planning mission with a station action, empty second station, linked PO
 
 Source: [src/components/panes/actions-action-menu.tsx](../../../src/components/panes/actions-action-menu.tsx), [src/operations/apply/apply-action.ts](../../../src/operations/apply/apply-action.ts).
 
-Scenario mapping: **7/14 (50%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **13/14 (92.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/operations/apply/apply-action.test.ts](../../../src/tests/vitest/operations/apply/apply-action.test.ts), [src/tests/vitest/store/thunks/action_thunk.test.ts](../../../src/tests/vitest/store/thunks/action_thunk.test.ts).
 
@@ -62,19 +62,31 @@ Playwright: [src/tests/playwright/behavior/actions.spec.ts:193](../../../src/tes
 
 ## ACTION-006: Action parent matrix
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Create, edit, duplicate and delete actions under a POI, station and traverse.
 
 Expected: Each action belongs to the intended parent and order list; permissions, available fields and cleanup match the parent type.
 
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:117](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L117) — poi action creation, editing, duplication and deletion preserve exact parent ownership (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:117](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L117) — station action creation, editing, duplication and deletion preserve exact parent ownership (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:117](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L117) — traverse action creation, editing, duplication and deletion preserve exact parent ownership (chromium).
+
 ## ACTION-007: Action reorder and stable order
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Drag actions within a parent; cancel unsupported moves; reload and inspect a peer.
 
 Expected: Order is identical in UI and document, with no duplicates or missing actions and no accidental cross-parent ownership change.
+
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:52](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L52) — poi action drag order reaches a peer and reload with stable unique ownership (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:52](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L52) — station action drag order reaches a peer and reload with stable unique ownership (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:52](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L52) — traverse action drag order reaches a peer and reload with stable unique ownership (chromium).
 
 ## ACTION-008: Adopt POI action into station
 
@@ -90,23 +102,29 @@ Evidence boundary: UI linking alone creates no station action. Explicit adoption
 
 ## ACTION-009: Action v1 and v2 field matrix
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Edit v1 title/type/priority/STM and v2 verb/noun/adjective/STM toggle/mission priority; reload.
 
 Expected: Only version-appropriate fields appear and generated wording, saved values and report consumers agree.
 
+Playwright: [src/tests/playwright/behavior/actionVersionFieldsCoverage.spec.ts:21](../../../src/tests/playwright/behavior/actionVersionFieldsCoverage.spec.ts#L21) — legacy action type, title, task priority and all STM priority choices persist without v2 fields (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionVersionFieldsCoverage.spec.ts:100](../../../src/tests/playwright/behavior/actionVersionFieldsCoverage.spec.ts#L100) — v2 action verb noun adjective and mission priority survive STM toggles and refresh aggregate wording (chromium).
+
 ## ACTION-010: Action description task text and icon
 
-**P1 · Partial**
+**P1 · Mapped**
 
 Action: Edit rich/free text fields and icon; cancel another edit; reload and inspect aggregate cards.
 
 Expected: Exact supported content persists, task text stays parent-appropriate, and cancellation leaves saved fields unchanged.
 
-Playwright: [src/tests/playwright/behavior/actionAdoption.spec.ts:174](../../../src/tests/playwright/behavior/actionAdoption.spec.ts#L174) — action and task descriptions save independently, Cancel preserves text, and saved text survives reload (chromium).
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:211](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L211) — poi action text and icon save, Cancel preserves exact content, and aggregate cards retain supported fields (chromium).
 
-Evidence boundary: Station action description/task text Save, Cancel, persisted values and reload are covered. Icon editing, the parent-appropriate field matrix and aggregate cards remain unproved.
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:211](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L211) — station action text and icon save, Cancel preserves exact content, and aggregate cards retain supported fields (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:211](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L211) — traverse action text and icon save, Cancel preserves exact content, and aggregate cards retain supported fields (chromium).
 
 ## ACTION-011: Action duration mass and numeric boundaries
 
@@ -122,11 +140,15 @@ Evidence boundary: Duration is required; mass can be null or zero. Decimal punct
 
 ## ACTION-012: Equipment and geographic assignments
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Toggle multiple equipment/geographic items; update reference definitions; reload.
 
 Expected: Assignments survive and parent/EVA consumable and geographic reports recompute without unrelated changes.
+
+Playwright: [src/tests/playwright/behavior/actionAssignmentsCoverage.spec.ts:17](../../../src/tests/playwright/behavior/actionAssignmentsCoverage.spec.ts#L17) — multiple equipment and geographic assignments toggle independently and renamed references refresh totals and exported geography (chromium).
+
+Evidence boundary: The supported geographic reporting consumer is downloaded JSON geographicalUnitsReadable; there is no separate parent/EVA geographic aggregate UI. The test checks displayed assignment names and downloaded geographic names after reference rename/reload, alongside independent parent/EVA consumable totals.
 
 ## ACTION-013: Action location lifecycle
 
@@ -138,8 +160,26 @@ Expected: Location, elevation, grid and relative-distance displays match the com
 
 ## ACTION-014: Save as template permission and fidelity
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Save a fully populated action as a template as allowed and disallowed users; apply it again.
 
 Expected: Supported fields survive the round trip, role restrictions hold, and crew/reference semantics are explicit.
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v1 fully populated poi action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v1 fully populated station action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v1 fully populated traverse action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v2 fully populated poi action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v2 fully populated station action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:40](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L40) — v2 fully populated traverse action template round trip retains supported fields with independent identity (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:171](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L171) — viewer template creation observes the real account permission while action reads remain available (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:171](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L171) — editor template creation observes the real account permission while action reads remain available (chromium).
+
+Playwright: [src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts:171](../../../src/tests/playwright/behavior/actionTemplateRoundTripCoverage.spec.ts#L171) — admin template creation observes the real account permission while action reads remain available (chromium).

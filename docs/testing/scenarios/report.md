@@ -6,7 +6,7 @@ Fixture: v2 planning mission with fixed action durations/counts and lineage; add
 
 Source: [src/components/panes/reports/reports-page.tsx](../../../src/components/panes/reports/reports-page.tsx), [src/components/panes/reports/shared/report-campaigns-dialog.tsx](../../../src/components/panes/reports/shared/report-campaigns-dialog.tsx), [src/components/panes/reports/eva-stm-coverage/eva-stm-coverage-page.tsx](../../../src/components/panes/reports/eva-stm-coverage/eva-stm-coverage-page.tsx), [src/components/panes/reports/poi-traceability/poi-traceability-page.tsx](../../../src/components/panes/reports/poi-traceability/poi-traceability-page.tsx).
 
-Scenario mapping: **6/13 (46.2%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **7/13 (53.8%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/Reports.browser.test.tsx](../../../src/tests/vitest-browser/Reports.browser.test.tsx), [src/tests/vitest-browser/PoiTraceability.browser.test.tsx](../../../src/tests/vitest-browser/PoiTraceability.browser.test.tsx), [src/tests/vitest/utils/evaReportColumns.campaign.test.ts](../../../src/tests/vitest/utils/evaReportColumns.campaign.test.ts).
 
@@ -32,21 +32,23 @@ Playwright: [src/tests/playwright/behavior/reports.spec.ts:74](../../../src/test
 
 ## REPORT-003: Comparison metric and baseline matrix
 
-**P0 · Partial**
+**P0 · Mapped**
 
 Action: Compare known durations, rates, distances, ascent/descent, crew times, mass and equipment across several plans/REXes; change baseline.
 
 Expected: Every absolute/difference cell uses the independent known quantity and signed/null semantics for its metric.
 
-Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:215](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L215) — all comparison metrics use independent quantities and signed/null differences against Alpha plan (chromium).
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:241](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L241) — all comparison metrics use independent quantities and signed/null differences against Alpha plan (chromium).
 
-Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:215](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L215) — all comparison metrics use independent quantities and signed/null differences against Alpha execution (chromium).
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:241](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L241) — all comparison metrics use independent quantities and signed/null differences against Alpha execution (chromium).
 
-Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:215](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L215) — all comparison metrics use independent quantities and signed/null differences against Bravo plan (chromium).
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:241](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L241) — all comparison metrics use independent quantities and signed/null differences against Bravo plan (chromium).
 
-Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:215](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L215) — all comparison metrics use independent quantities and signed/null differences against Bravo execution (chromium).
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:241](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L241) — all comparison metrics use independent quantities and signed/null differences against Bravo execution (chromium).
 
-Evidence boundary: All 22 metric rows use independent hand-computed values across two plans/two REXes and all four baselines, including masses, consumables, rates, distance/ascent/descent, crew totals and null semantics. A separate development case found mathematically equal travel totals can render negative zero from floating-point roundoff; that signed-equality boundary remains unresolved, so this broad row gets no full credit.
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:214](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L214) — equal travel totals have neutral cells and disappear from differences-only rows (chromium).
+
+Evidence boundary: All 22 independently calculated rows across four baselines include mathematically equal travel times from different summation paths. Equality is neutral in text, tint, tooltip and differences-only filtering; meaningful small numeric differences remain distinct in unit regression.
 
 ## REPORT-004: Report column selection order and persistence
 
@@ -138,9 +140,9 @@ Action: Open reports with no EVAs/rules/campaign members, then remove a selected
 
 Expected: Empty and unresolved states are explicit; no crash, stale detail or accidental mutation occurs.
 
-Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:254](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L254) — empty reports and remote deletion recover to an explicit empty state without incidental mutations (chromium).
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:280](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L280) — empty reports and remote deletion recover to an explicit empty state without incidental mutations (chromium).
 
-Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:254](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L254) — empty reports and remote deletion recover to another POI without incidental mutations (chromium).
+Playwright: [src/tests/playwright/behavior/reportMatrix.spec.ts:280](../../../src/tests/playwright/behavior/reportMatrix.spec.ts#L280) — empty reports and remote deletion recover to another POI without incidental mutations (chromium).
 
 Evidence boundary: No-EVA/no-rule, no-column, empty-campaign-member and POI empty states are explicit. Deleting a selected POI from a peer removes stale detail and falls back to another POI or named empty state without incidental document mutations.
 

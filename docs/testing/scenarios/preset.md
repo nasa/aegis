@@ -6,7 +6,7 @@ Fixture: Mission with two presets, folder ownership, grid/circle definitions and
 
 Source: [src/components/panes/preset/preset-right.tsx](../../../src/components/panes/preset/preset-right.tsx), [src/operations/apply/apply-mission-preset.ts](../../../src/operations/apply/apply-mission-preset.ts), [src/components/interface/map/behaviors/TileLayers.tsx](../../../src/components/interface/map/behaviors/TileLayers.tsx), [src/components/panes/preset/preset-right-azimuth.tsx](../../../src/components/panes/preset/preset-right-azimuth.tsx), [src/components/interface/map/hooks/useSunEarthAzimuths.ts](../../../src/components/interface/map/hooks/useSunEarthAzimuths.ts).
 
-Scenario mapping: **1/13 (7.7%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **2/13 (15.4%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/PresetLayers.browser.test.tsx](../../../src/tests/vitest-browser/PresetLayers.browser.test.tsx), [src/tests/vitest-browser/PresetAzimuth.browser.test.tsx](../../../src/tests/vitest-browser/PresetAzimuth.browser.test.tsx), [src/tests/vitest/map/layerFactory.test.ts](../../../src/tests/vitest/map/layerFactory.test.ts), [src/tests/vitest/utils/lunarSky.test.ts](../../../src/tests/vitest/utils/lunarSky.test.ts).
 
@@ -96,7 +96,7 @@ Expected: Each control enforces its declared permission/mode rule and clients co
 
 ## PRESET-011: Calculated celestial directions and manual restoration
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Fixture: Located lunar mission with fixed UTC, known lander elevation/radius, independently known true azimuths and non-north-up custom CRS.
 
@@ -104,15 +104,25 @@ Action: Enable Calculate using EVA date and lander location; change date/lander/
 
 Expected: Projected map-up Sun/Earth directions match an independent astronomy/projection oracle; panel and map use the same values, and saved manual angles survive calculated mode.
 
+Playwright: [src/tests/playwright/behavior/celestialPresetCoverage.spec.ts:51](../../../src/tests/playwright/behavior/celestialPresetCoverage.spec.ts#L51) — calculated celestial directions follow independent SPICE values and Mercator map north while manual values survive mode changes (chromium).
+
+Playwright: [src/tests/playwright/behavior/celestialPresetCoverage.spec.ts:51](../../../src/tests/playwright/behavior/celestialPresetCoverage.spec.ts#L51) — calculated celestial directions follow independent SPICE values and polar map north while manual values survive mode changes (chromium).
+
+Evidence boundary: The checked-in SPICE reference corpus supplies independent site/date values. South-polar grid convergence uses analytic true-bearing + longitude, Mercator preserves true bearing. Tests observe actual icon positions and rounded labels under date/location updates, calculate/manual UI toggles and reload without overwriting saved manual angles.
+
 ## PRESET-012: Celestial date source and fallback warnings
 
-**P1 · Gap**
+**P1 · Partial**
 
 Fixture: Two EVAs with distinct times, a historical and active REX, dated/undated layer and saved manual angles.
 
 Action: Select planned/historical/running EVA time, preset preview and layer fallback; remove date/lander or supply an unresolved projection.
 
 Expected: Date/source/status labels identify the actual source; missing/invalid date, location or projection warns and uses saved manual directions; an undated selected EVA warning is not hidden by a layer date.
+
+Playwright: [src/tests/playwright/behavior/celestialPresetCoverage.spec.ts:188](../../../src/tests/playwright/behavior/celestialPresetCoverage.spec.ts#L188) — planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions (chromium).
+
+Evidence boundary: Planned/historical/running EVA date labels, layer fallback, preset preview, absent date/lander and unresolved projection warn and preserve manual values. The selected-undated-EVA warning remains visible during layer/preview fallback. Invalid date numeric/string inputs are not covered; retain partial status.
 
 ## PRESET-013: Celestial controls debounce and accessibility
 
