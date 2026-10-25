@@ -6,7 +6,7 @@ Fixture: Original and added station/traverse/actions under never-run, running, s
 
 Source: [src/utils/rexExecuteEditMode.ts](../../../src/utils/rexExecuteEditMode.ts), [src/operations/apply/apply-rex.ts](../../../src/operations/apply/apply-rex.ts).
 
-Scenario mapping: **3/9 (33.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **4/9 (44.4%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/utils/rexExecuteEditMode.test.ts](../../../src/tests/vitest/utils/rexExecuteEditMode.test.ts), [src/tests/vitest/operations/apply/apply-rex.test.ts](../../../src/tests/vitest/operations/apply/apply-rex.test.ts).
 
@@ -72,11 +72,13 @@ Playwright: [src/tests/playwright/behavior/executionPolicy.spec.ts:204](../../..
 
 ## POLICY-007: Status permission and Maestro ownership
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Change status with global Edit off, as viewer, on disabled actions and with Maestro control on.
 
 Expected: Controls follow mission permission/running/ownership rules; Maestro-controlled clicks explain the gate and do not persist local status writes.
+
+Playwright: [src/tests/playwright/behavior/actionStatusPermissionCoverage.spec.ts:30](../../../src/tests/playwright/behavior/actionStatusPermissionCoverage.spec.ts#L30) — execution action status requires editor and running ownership, permits Edit off, and rejects disabled and Maestro controlled writes (chromium).
 
 ## POLICY-008: Executed mass and sample value merge
 

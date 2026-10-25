@@ -1,25 +1,25 @@
 {
   "schemaVersion": 1,
-  "reviewDate": "2026-10-24",
+  "reviewDate": "2026-10-25",
   "measurement": "Reviewed scenario-to-test mapping in Chromium; not executed pass rate or code coverage",
   "executionEvidence": "No browser tests executed by this report",
   "overall": {
     "total": 260,
     "eligible": 253,
-    "mapped": 129,
-    "partial": 9,
-    "gap": 115,
+    "mapped": 156,
+    "partial": 5,
+    "gap": 92,
     "external": 7,
-    "percent": 51
+    "percent": 61.7
   },
   "critical": {
     "total": 151,
     "eligible": 146,
-    "mapped": 71,
-    "partial": 6,
-    "gap": 69,
+    "mapped": 87,
+    "partial": 4,
+    "gap": 55,
     "external": 5,
-    "percent": 48.6
+    "percent": 59.6
   },
   "areas": [
     {
@@ -38,11 +38,11 @@
       "name": "Authentication, permissions and connection gates",
       "total": 8,
       "eligible": 8,
-      "mapped": 1,
+      "mapped": 2,
       "partial": 0,
-      "gap": 7,
+      "gap": 6,
       "external": 0,
-      "percent": 12.5
+      "percent": 25
     },
     {
       "id": "cfg",
@@ -60,11 +60,11 @@
       "name": "Mission reference data and templates",
       "total": 9,
       "eligible": 9,
-      "mapped": 6,
+      "mapped": 8,
       "partial": 0,
-      "gap": 3,
+      "gap": 1,
       "external": 0,
-      "percent": 66.7
+      "percent": 88.9
     },
     {
       "id": "folder",
@@ -82,11 +82,11 @@
       "name": "POI lifecycle and association",
       "total": 8,
       "eligible": 8,
-      "mapped": 6,
+      "mapped": 7,
       "partial": 0,
-      "gap": 2,
+      "gap": 1,
       "external": 0,
-      "percent": 75
+      "percent": 87.5
     },
     {
       "id": "station",
@@ -104,33 +104,33 @@
       "name": "EVA sequence editing and plan identity",
       "total": 13,
       "eligible": 13,
-      "mapped": 8,
-      "partial": 1,
-      "gap": 4,
+      "mapped": 10,
+      "partial": 0,
+      "gap": 3,
       "external": 0,
-      "percent": 61.5
+      "percent": 76.9
     },
     {
       "id": "action",
       "name": "Action editing, reuse and ownership",
       "total": 14,
       "eligible": 14,
-      "mapped": 7,
-      "partial": 1,
-      "gap": 6,
+      "mapped": 13,
+      "partial": 0,
+      "gap": 1,
       "external": 0,
-      "percent": 50
+      "percent": 92.9
     },
     {
       "id": "map",
       "name": "Map display, selection and geometry interactions",
       "total": 19,
       "eligible": 19,
-      "mapped": 10,
-      "partial": 1,
-      "gap": 8,
+      "mapped": 12,
+      "partial": 0,
+      "gap": 7,
       "external": 0,
-      "percent": 52.6
+      "percent": 63.2
     },
     {
       "id": "measure",
@@ -148,44 +148,44 @@
       "name": "Presets, layers and GIS display",
       "total": 13,
       "eligible": 13,
-      "mapped": 1,
-      "partial": 0,
-      "gap": 12,
+      "mapped": 2,
+      "partial": 1,
+      "gap": 10,
       "external": 0,
-      "percent": 7.7
+      "percent": 15.4
     },
     {
       "id": "calc",
       "name": "Time, distance, crew and resource calculations",
       "total": 9,
       "eligible": 9,
-      "mapped": 2,
+      "mapped": 8,
       "partial": 0,
-      "gap": 7,
+      "gap": 1,
       "external": 0,
-      "percent": 22.2
+      "percent": 88.9
     },
     {
       "id": "rex",
       "name": "Execution lifecycle and PET ownership",
       "total": 27,
       "eligible": 27,
-      "mapped": 24,
-      "partial": 1,
+      "mapped": 25,
+      "partial": 0,
       "gap": 2,
       "external": 0,
-      "percent": 88.9
+      "percent": 92.6
     },
     {
       "id": "policy",
       "name": "Execution edit policies, status and collected values",
       "total": 9,
       "eligible": 9,
-      "mapped": 3,
+      "mapped": 4,
       "partial": 1,
-      "gap": 5,
+      "gap": 4,
       "external": 0,
-      "percent": 33.3
+      "percent": 44.4
     },
     {
       "id": "position",
@@ -203,11 +203,11 @@
       "name": "Execution dashboard, follow and minimap",
       "total": 9,
       "eligible": 9,
-      "mapped": 5,
+      "mapped": 7,
       "partial": 0,
-      "gap": 4,
+      "gap": 2,
       "external": 0,
-      "percent": 55.6
+      "percent": 77.8
     },
     {
       "id": "stm",
@@ -225,11 +225,11 @@
       "name": "Comparison, STM coverage, campaigns and POI traceability",
       "total": 13,
       "eligible": 13,
-      "mapped": 6,
-      "partial": 1,
+      "mapped": 7,
+      "partial": 0,
       "gap": 6,
       "external": 0,
-      "percent": 46.2
+      "percent": 53.8
     },
     {
       "id": "export",
@@ -247,11 +247,11 @@
       "name": "Collaboration, persistence and recovery",
       "total": 14,
       "eligible": 14,
-      "mapped": 8,
+      "mapped": 9,
       "partial": 1,
-      "gap": 5,
+      "gap": 4,
       "external": 0,
-      "percent": 57.1
+      "percent": 64.3
     },
     {
       "id": "admin",
@@ -305,7 +305,7 @@
   },
   "discoveredProjects": {
     "auth": 1,
-    "chromium": 281,
+    "chromium": 324,
     "firefox": 4,
     "webkit": 4
   }

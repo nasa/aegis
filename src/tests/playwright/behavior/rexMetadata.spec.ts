@@ -108,6 +108,8 @@ for (const otherRunning of [false, true]) {
     const peer = await context.newPage();
     await mission.open(peer);
     await selectRex(peer, "Survey Alpha", mission.ids.rexEvaA);
+    await page.getByLabel("rex_info_panel", { exact: true }).click();
+    await peer.getByLabel("rex_info_panel", { exact: true }).click();
     page.once("dialog", (dialog) => dialog.dismiss());
     await page.getByLabel("deleteEva", { exact: true }).click();
     expect(await mission.read()).toEqual(before);
@@ -140,8 +142,11 @@ for (const otherRunning of [false, true]) {
           'option[value="' + mission.ids.rexEvaA + '"]'
         )
       ).toHaveCount(0);
-      // Live restoration of the plan selection is tracked separately in REX-027;
-      // these assertions establish deletion boundaries and fresh-page recovery.
+      await expect(planningField(client, "EVA Title")).toHaveText("Survey Alpha");
+      await expect(client.getByText("EVA Information (As Planned)", { exact: true })).toBeVisible();
+      await expect(
+        planningEvaRow(client, "Survey Alpha").locator('select[class*="dropdownSelector"]')
+      ).toHaveCount(0);
       await mission.open(client);
       await selectRex(client, "Survey Bravo", mission.ids.evaB);
       await expect(planningEvaRow(client, "Survey Alpha")).toBeVisible();

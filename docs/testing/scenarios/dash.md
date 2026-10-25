@@ -6,7 +6,7 @@ Fixture: Planning/no-execution fixture and active paused execution with known PE
 
 Source: [src/pages/dashboard.tsx](../../../src/pages/dashboard.tsx), [src/components/interface/map/AegisMapDashboard.tsx](../../../src/components/interface/map/AegisMapDashboard.tsx), [src/components/interface/map/AegisMapMinimap.tsx](../../../src/components/interface/map/AegisMapMinimap.tsx).
 
-Scenario mapping: **5/9 (55.6%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **7/9 (77.8%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/map/FollowMode.browser.test.tsx](../../../src/tests/vitest-browser/map/FollowMode.browser.test.tsx), [src/tests/vitest-browser/map/BigMapBoundsBox.browser.test.tsx](../../../src/tests/vitest-browser/map/BigMapBoundsBox.browser.test.tsx).
 
@@ -60,19 +60,27 @@ Expected: Timeline scale, blocks, PET/allotted lines, colors, numbering and prog
 
 ## DASH-006: Follow mode latest-position selection
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Add older/newer positions in different storage order and toggle source/type/station/traverse follow options.
 
 Expected: Dashboard follows the intended source-filtered latest entries; minimap retains its documented bounds/position selection contract.
 
+Playwright: [src/tests/playwright/behavior/dashboardFollowCoverage.spec.ts:54](../../../src/tests/playwright/behavior/dashboardFollowCoverage.spec.ts#L54) — dashboard follows newest source-filtered positions and independently selected active stations and traverses (chromium).
+
+Evidence boundary: Out-of-order stored entries have independent createdAt timestamps and explicit source locations. UI source and station/traverse/type follow toggles assert projected centers; minimap bounds include the documented first stored position and active plan station, with exact active station ownership. Auto-follow off preserves center.
+
 ## DASH-007: Follow settings after type changes
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Disable follow options, edit position types from a peer and remove the final position.
 
 Expected: Options rebuild according to the intended persistence rule; empty lists do not leave stale centering or reset unrelated choices.
+
+Playwright: [src/tests/playwright/behavior/dashboardFollowCoverage.spec.ts:151](../../../src/tests/playwright/behavior/dashboardFollowCoverage.spec.ts#L151) — peer marker-type edits preserve disabled follow choices and deleting the last position leaves no stale recentering (chromium).
+
+Evidence boundary: A peer renames a position type and deletes the final position through real UI. Follow choices remain unchecked and the dashboard center stays fixed; enabling an empty type causes no stale follow, and station follow still works. Failing-before trace demonstrates station/traverse option reset; FollowModeProvider now preserves unrelated choices.
 
 ## DASH-008: Minimap bounds and arrow bridge
 

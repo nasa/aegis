@@ -80,7 +80,6 @@ export function FollowModeProvider({ children }: FollowModeProviderProps): JSX.E
   // Rebuild pos-type follow options when the running REX's pos types change,
   // preserving any existing follow state the user has toggled.
   useEffect(() => {
-    if (!posTypes.length) return;
     const followPosOptions: MapFollowOptions = {};
     for (const pt of posTypes) {
       followPosOptions[pt.uuid] = {
@@ -89,7 +88,8 @@ export function FollowModeProvider({ children }: FollowModeProviderProps): JSX.E
       };
     }
     setFollowModeOptions((prev) => ({
-      ...defaultFollowOptions,
+      stations: prev.stations ?? defaultFollowOptions.stations,
+      traverses: prev.traverses ?? defaultFollowOptions.traverses,
       ...followPosOptions,
       // Preserve any existing follow state for pos types that haven't changed
       ...Object.keys(prev).reduce((preserved, key) => {

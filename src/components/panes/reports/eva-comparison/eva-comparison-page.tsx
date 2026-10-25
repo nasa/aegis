@@ -14,6 +14,7 @@ import {
   EVA_COMPARISON_METRIC_ROWS,
   computeComparisonColumnValues,
   computeSequenceItemMetrics,
+  comparisonDelta,
 } from "utils/evaComparison";
 import { getEvaSequenceItems } from "utils/stmEvaCoverage";
 import {
@@ -178,7 +179,9 @@ const EvaComparisonPage: FunctionComponent = () => {
       if (column.key === baselineKey) continue;
       const values = metricsByColumnKey[column.key] ?? {};
       for (const row of EVA_COMPARISON_METRIC_ROWS) {
-        if ((values[row.id] ?? null) !== (baseline[row.id] ?? null)) {
+        const value = values[row.id] ?? null;
+        const base = baseline[row.id] ?? null;
+        if (value == null || base == null ? value !== base : comparisonDelta(value, base) !== 0) {
           rowIds.add(row.id);
           columnKeys.add(column.key);
         }

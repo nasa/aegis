@@ -12,6 +12,13 @@ import {
   getTotalDistance,
 } from "utils/mapping/geoMath";
 
+/** Treat floating-point summation noise as equality while retaining small real differences. */
+export function comparisonDelta(value: number, baseline: number): number {
+  const delta = value - baseline;
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(value), Math.abs(baseline)) * 8;
+  return Math.abs(delta) <= tolerance ? 0 : delta;
+}
+
 /**
  * Pure computation module for the "EVA Comparison" report.
  *
@@ -343,16 +350,16 @@ const computePlanMetrics = (mission: Mission, evaUuid: string): EvaComparisonCol
 
 /** REX-only metric values for a single REX, keyed by metric row id. */
 const computeRexMetrics = (rex: Rex, planetRadius: number): EvaComparisonColumnValues => {
-  let actualSampleMass = 0;
+  let actualSampleMass: number | null = null;
   let actionsCompleteCount = 0;
   let actionsSkippedCount = 0;
   for (const entry of Object.values(rex.actionEntries ?? {})) {
-    if (typeof entry.mass === "number") actualSampleMass += entry.mass;
+    if (typeof entry.mass === "number") actualSampleMass = (actualSampleMass ?? 0) + entry.mass;
     if (entry.rexStatus === "complete") actionsCompleteCount += 1;
     if (entry.rexStatus === "skipped") actionsSkippedCount += 1;
   }
   return {
-    actualSampleMass: actualSampleMass / GRAMS_PER_KG,
+    actualSampleMass: actualSampleMass == null ? null : actualSampleMass / GRAMS_PER_KG,
     actionsCompleteCount,
     actionsSkippedCount,
     actualDistanceWalked: getActualDistanceWalked(rex, planetRadius),
@@ -550,17 +557,17 @@ export const computeSequenceItemMetrics = ({
   if (column.kind === "rex") {
     const rex = column.rexUuid ? mission.rexes?.[column.rexUuid] : undefined;
     if (rex) {
-      let actualSampleMass = 0;
+      let actualSampleMass: number | null = null;
       let actionsCompleteCount = 0;
       let actionsSkippedCount = 0;
       for (const action of itemActions) {
         const entry = rex.actionEntries?.[action.uuid];
         if (!entry) continue;
-        if (typeof entry.mass === "number") actualSampleMass += entry.mass;
+        if (typeof entry.mass === "number") actualSampleMass = (actualSampleMass ?? 0) + entry.mass;
         if (entry.rexStatus === "complete") actionsCompleteCount += 1;
         if (entry.rexStatus === "skipped") actionsSkippedCount += 1;
       }
-      values.actualSampleMass = actualSampleMass / GRAMS_PER_KG;
+      values.actualSampleMass = actualSampleMass == null ? null : actualSampleMass / GRAMS_PER_KG;
       values.actionsCompleteCount = actionsCompleteCount;
       values.actionsSkippedCount = actionsSkippedCount;
       // actualDistanceWalked is a REX-level position track — not attributable per item.

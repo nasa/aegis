@@ -13,6 +13,85 @@ import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 describe("Calculated fields", () => {
+  test("traverse dwell advances calculated clocks once and leaves manual overrides independent", () => {
+    const start = generateBlankStation({ name: "Start", duration: 0 });
+    const end = generateBlankStation({ name: "End", duration: 0 });
+    const traverse = generateBlankTraverse({
+      name: "Start to End",
+      pathSegmentDistances: [500],
+      traverseRate: 3,
+      duration: null,
+    });
+    const action = {
+      ...generateBlankAction({ name: "Five minute traverse work", traverseUuid: traverse.uuid }),
+      duration: 5,
+      crewAssigned: ["EV1" as const],
+    };
+    const disabled = {
+      ...generateBlankAction({ name: "Excluded work", traverseUuid: traverse.uuid }),
+      duration: 99,
+      crewAssigned: ["EV1" as const],
+      enabled: false,
+    };
+    const eva = generateBlankEVA({ name: "Traverse clock regression" });
+    eva.sequence = [
+      { type: "station", uuid: start.uuid },
+      { type: "traverse", uuid: traverse.uuid },
+      { type: "station", uuid: end.uuid },
+    ];
+    const calculate = () =>
+      getCalcFieldsForEva({
+        eva,
+        evaStations: [start, end],
+        missionWalkbackRate: 3,
+        missionTraverseRate: 3,
+        evaActions: [action, disabled],
+        evaTraverses: [traverse],
+      });
+    const calculated = calculate();
+    expect(calculated.totalResolvedEvaTime).toBe(15);
+    expect(calculated.totalDwellTime).toBe(5);
+    expect(calculated.sequenceItemsCalculatedData).toEqual([
+      {
+        uuid: start.uuid,
+        startSeconds: 0,
+        endSeconds: 0,
+        manualStartSeconds: 0,
+        manualEndSeconds: 0,
+        resolvedDurationMins: 0,
+      },
+      {
+        uuid: traverse.uuid,
+        startSeconds: 0,
+        endSeconds: 900,
+        manualStartSeconds: 0,
+        manualEndSeconds: 900,
+        resolvedDurationMins: 15,
+      },
+      {
+        uuid: end.uuid,
+        startSeconds: 900,
+        endSeconds: 900,
+        manualStartSeconds: 900,
+        manualEndSeconds: 900,
+        resolvedDurationMins: 0,
+      },
+    ]);
+    traverse.duration = 7;
+    expect(calculate().sequenceItemsCalculatedData[1]).toEqual({
+      uuid: traverse.uuid,
+      startSeconds: 0,
+      endSeconds: 900,
+      manualStartSeconds: 0,
+      manualEndSeconds: 420,
+      resolvedDurationMins: 7,
+    });
+    expect(calculate().sequenceItemsCalculatedData[2]).toMatchObject({
+      startSeconds: 900,
+      manualStartSeconds: 420,
+    });
+  });
+
   it("getCalculatedFieldsByPoi()", async () => {
     //populate the poi state in the store
     const poi: POI = generateBlankPoi({ name: "Vitest Poi-1" });

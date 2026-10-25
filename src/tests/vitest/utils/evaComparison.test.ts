@@ -4,6 +4,7 @@ import {
   computeSequenceItemMetrics,
   getActualDistanceWalked,
   getMaxDistanceFromLander,
+  comparisonDelta,
 } from "utils/evaComparison";
 import { getDistanceBetweenTwoCoordinates, getTotalDistance } from "utils/mapping/geoMath";
 import { generateBlankMission } from "store/storeUtils/mission";
@@ -14,6 +15,19 @@ import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankRex, generateBlankPosEntry } from "store/storeUtils/rex";
 
 const LANDER: AEGISPoint = { lat: 0, lng: 0 };
+
+describe("comparison delta", () => {
+  test("normalizes summation roundoff in either direction without suppressing real small deltas", () => {
+    expect(comparisonDelta(0.1 + 0.2, 0.3)).toBe(0);
+    expect(comparisonDelta(0.3, 0.1 + 0.2)).toBe(0);
+    expect(comparisonDelta(12 - Number.EPSILON * 8, 12)).toBe(0);
+    expect(comparisonDelta(12, 12 - Number.EPSILON * 8)).toBe(0);
+    expect(comparisonDelta(1.00000001, 1)).toBeGreaterThan(0);
+    expect(comparisonDelta(1, 1.00000001)).toBeLessThan(0);
+    expect(comparisonDelta(0, 0)).toBe(0);
+    expect(comparisonDelta(0, 2)).toBe(-2);
+  });
+});
 
 /**
  * Fixture: one as-planned EVA "Alpha" (eva1) — traverse t1 then stations s1, s2 —
@@ -196,6 +210,36 @@ const bravoColumn: EvaReportColumn = {
 };
 
 const RADIUS = 1737400; // moon default
+
+describe("executed mass presence", () => {
+  test.each([undefined, null, 0, 1750])(
+    "preserves %s as absent or recorded across EVA and station metrics",
+    (mass) => {
+      const { mission } = buildFixture();
+      mission.rexes.rex1.actionEntries = {
+        a1: { rexStatus: "complete", ...(mass === undefined ? {} : { mass }) },
+      };
+      const expected = mass == null ? null : mass / 1000;
+      expect(computeComparisonColumnValues({ mission, column: rexColumn }).actualSampleMass).toBe(
+        expected
+      );
+      expect(
+        computeSequenceItemMetrics({
+          mission,
+          column: rexColumn,
+          item: { uuid: "s1", type: "station", name: "Station 1" },
+        }).actualSampleMass
+      ).toBe(expected);
+      expect(
+        computeSequenceItemMetrics({
+          mission,
+          column: rexColumn,
+          item: { uuid: "s2", type: "station", name: "Station 2" },
+        }).actualSampleMass
+      ).toBeNull();
+    }
+  );
+});
 
 describe("EVA_COMPARISON_METRIC_ROWS", () => {
   test("ids are unique and rexOnly rows are exactly the four rexOnly-group rows", () => {

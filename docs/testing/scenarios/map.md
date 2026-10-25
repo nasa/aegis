@@ -6,7 +6,7 @@ Fixture: Located planning and execution fixtures with known coordinates and map 
 
 Source: [src/components/interface/map/AegisMapEditor.tsx](../../../src/components/interface/map/AegisMapEditor.tsx), [src/components/interface/map/behaviors/InteractionManager.tsx](../../../src/components/interface/map/behaviors/InteractionManager.tsx), [src/components/interface/map/CLAUDE.md](../../../src/components/interface/map/CLAUDE.md).
 
-Scenario mapping: **10/19 (52.6%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **12/19 (63.2%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/map/InteractionManager.browser.test.tsx](../../../src/tests/vitest-browser/map/InteractionManager.browser.test.tsx), [src/tests/vitest-browser/map/SelectionHighlight.browser.test.tsx](../../../src/tests/vitest-browser/map/SelectionHighlight.browser.test.tsx).
 
@@ -160,15 +160,15 @@ Expected: Text content, placement, clipping, halo and priority remain readable; 
 
 ## MAP-017: Pan zoom resize and map lifecycle
 
-**P1 · Partial**
+**P1 · Mapped**
 
 Action: Pan, use controls/double-click/zoom limits, resize and repeatedly mount/unmount editor.
 
 Expected: Expected centre/zoom and visible geometry persist with one live map and no orphan interactions or render errors.
 
-Playwright: [src/tests/playwright/map/mapOlInteractions.spec.ts:696](../../../src/tests/playwright/map/mapOlInteractions.spec.ts#L696) — map canvas remains after resizing the browser window (chromium).
+Playwright: [src/tests/playwright/behavior/mapLifecycleHandoff.spec.ts:34](../../../src/tests/playwright/behavior/mapLifecycleHandoff.spec.ts#L34) — map pan, controls, double-click and viewport resizing retain one usable editor through remounts (chromium).
 
-Evidence boundary: Legacy map smoke checks visibility after resizing, not exact viewport behavior or repeated mount/unmount resource cleanup.
+Evidence boundary: Real pointer pan, zoom buttons/double-click, upper zoom of 28 and viewport-derived lower world bound, resize preserving centre/zoom, three remounts with one connected map, stable interaction count, visible geometry and unchanged authoritative mission.
 
 ## MAP-018: Mouse coordinates, grid and units
 
@@ -180,8 +180,12 @@ Expected: Lat/lng order, grid reference and coordinate precision match independe
 
 ## MAP-019: QuickMap handoff
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Open POI, station, traverse, EVA and crew-position links with located and missing prerequisites.
 
 Expected: The generated URL contains the correct coordinates, geometry, color and time, and unavailable links are gated.
+
+Playwright: [src/tests/playwright/behavior/mapLifecycleHandoff.spec.ts:105](../../../src/tests/playwright/behavior/mapLifecycleHandoff.spec.ts#L105) — POI, station, traverse, EVA and crew handoffs encode known geometry, colors and time and gate missing locations (chromium).
+
+Evidence boundary: Real UI handoffs capture window.open URLs without opening the external service. Exact POI/station/traverse and crew point/path geometry, plan sequence feature collection and explicit/fallback colors, EVA UTC, projection/stack/resolution, independent centers, and missing lander/entity/path/position gates.

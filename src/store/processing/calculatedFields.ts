@@ -557,7 +557,6 @@ export const getCalcFieldsForEva = (params: {
       evaCalculatedFields.totalDwellTime += thisTraverseCalculatedFields.totalDwellTime;
       evaCalculatedFields.actionCount += thisTraverseCalculatedFields.actionCount;
       evaCalculatedFields.totalMass += thisTraverseCalculatedFields.totalMass;
-      runningEvaSeconds += thisTraverseCalculatedFields.totalDwellTime * 60;
       evaCalculatedFields.totalEquipmentItems = mergeEquipmentItems(
         thisTraverseCalculatedFields.totalEquipmentItems,
         evaCalculatedFields.totalEquipmentItems

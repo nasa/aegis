@@ -7,6 +7,7 @@ import {
   setSelectedEvaUuid,
   setOnlyShowRunningRex,
   setSelectedEvaSequenceItemUuid,
+  setSelectedEvaRightNavItem,
 } from "store/eva";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { setSectionSelected } from "store/interface";
@@ -105,6 +106,8 @@ export const thunkDocDeleteRex = appCreateAsyncThunk<{ rexUuid: string }>(
       })
     );
     dispatch(setSelectedEvaUuid(asPlannedEvaUuid));
+    dispatch(setSelectedEvaSequenceItemUuid(null));
+    dispatch(setSelectedEvaRightNavItem("info_panel"));
     dispatch(setSelectedPosEntryUuid(null));
     dispatch(setSelectedRexUuid(null));
   }

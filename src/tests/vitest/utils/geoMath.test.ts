@@ -144,6 +144,17 @@ describe("Geomath Functions", () => {
   });
 
   describe("addPointsAtMeters", () => {
+    it.each([0, -1, NaN, Infinity])(
+      "preserves geometry when subdivision spacing is %s",
+      (spacing) => {
+        const path = [
+          { lat: 0, lng: 0 },
+          { lat: 0, lng: 0.001 },
+        ];
+        expect(addPointsAtMeters(path, spacing, earthRadius)).toEqual(path);
+      }
+    );
+
     it("should return a new path with the same distance as the old path", () => {
       const path = [
         { lat: -3.645421873728663, lng: -17.47186660766602 },
