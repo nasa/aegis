@@ -35,7 +35,44 @@ async function selectRex(page: Page, family: string, rexEvaUuid: string): Promis
 test.describe("EVA metadata lifecycle", () => {
   test.use({ scenario: "execution" });
 
-  test("validates plan metadata with a read-only peer while REX names stay family-scoped", async ({
+  test("UTC fields combine an initially empty date and time only after explicit saves and preserve canceled edits", async ({
+    page,
+    context,
+    mission,
+  }) => {
+    await mission.change((doc) => {
+      doc.evas[mission.ids.evaA].datetime = null;
+    });
+    await mission.open(page);
+    await enablePlanningEditMode(page);
+    await selectPlannedEva(page, "Survey Alpha", mission.ids.evaA);
+    await page.getByLabel("info_panel", { exact: true }).click();
+    const peer = await context.newPage();
+    await mission.open(peer);
+    await enablePlanningEditMode(peer);
+    await selectPlannedEva(peer, "Survey Alpha", mission.ids.evaA);
+    await peer.getByLabel("info_panel", { exact: true }).click();
+    await savePlanningField(page, "evaDate", "2026-10-25");
+    expect((await mission.read()).evas[mission.ids.evaA].datetime).toBeNull();
+    await savePlanningField(page, "evaTime", "12:34:56");
+    await expect
+      .poll(async () => (await mission.read()).evas[mission.ids.evaA].datetime)
+      .toBe(Date.parse("2026-10-25T12:34:56Z"));
+    await expect(planningField(peer, "evaDate")).toHaveText("2026-10-25");
+    await expect(planningField(peer, "evaTime")).toHaveText("12:34:56");
+    await cancelPlanningField(peer, "evaDate", "2030-01-01");
+    await cancelPlanningField(peer, "evaTime", "00:00:00");
+    expect((await mission.read()).evas[mission.ids.evaA].datetime).toBe(
+      Date.parse("2026-10-25T12:34:56Z")
+    );
+    await mission.open(page);
+    await selectPlannedEva(page, "Survey Alpha", mission.ids.evaA);
+    await page.getByLabel("info_panel", { exact: true }).click();
+    await expect(planningField(page, "evaDate")).toHaveText("2026-10-25");
+    await expect(planningField(page, "evaTime")).toHaveText("12:34:56");
+  });
+
+  test("validates plan metadata with two editors while REX names stay family-scoped", async ({
     page,
     context,
     mission,
@@ -52,8 +89,7 @@ test.describe("EVA metadata lifecycle", () => {
     await page.getByLabel("info_panel", { exact: true }).click();
     const peer = await context.newPage();
     await mission.open(peer);
-    // Keep the observer read-only: enabling edit mode here exposes an existing
-    // stale-local-date synchronization race when another editor changes datetime.
+    await enablePlanningEditMode(peer);
     await selectPlannedEva(peer, "Survey Alpha", mission.ids.evaA);
     await peer.getByLabel("info_panel", { exact: true }).click();
 

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import styles from "../shared/report-grid.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { BaseCell, NumericDiff, numericDiffClass } from "../shared/report-cell";
+import { comparisonDelta } from "utils/evaComparison";
 
 const REPORT_ID: ColumnReportId = "comparison";
 
@@ -80,7 +81,7 @@ const SummaryCell: FunctionComponent<{ column: EvaReportColumn; row: EvaComparis
         tooltip: `${column.label}: ${formatNumber(row, value)}${row.unit ? ` ${row.unit}` : ""}`,
       };
     }
-    const delta = value - baselineValue;
+    const delta = comparisonDelta(value, baselineValue);
     return {
       content: <NumericDiff delta={delta} format={(v) => formatNumber(row, v)} />,
       className: numericDiffClass(delta),
