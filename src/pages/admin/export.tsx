@@ -8,6 +8,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 
+import { getAutomergeDocListing } from "http-client/docListing";
 import { isLoggedIn } from "http-client/login";
 import { dumpMission } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -50,6 +51,7 @@ const ExportPage: React.FunctionComponent = () => {
   const [selectRexes, setSelectRexes] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     runLoad("Loading mission for export...", async () => {
       const response = await isLoggedIn();
       if (
@@ -59,15 +61,23 @@ const ExportPage: React.FunctionComponent = () => {
         navigate("/");
         return;
       }
+      const listing = await getAutomergeDocListing(intMissionId);
+      if (cancelled) return;
+      if (!Number.isInteger(intMissionId) || intMissionId <= 0 || listing.status !== "success" || !listing.data?.some((record) => record.missionId === intMissionId)) {
+        throw new Error(`Mission ${slug} was not found or is unavailable.`);
+      }
       const wholeStoreState = await populateStore({
         missionId: intMissionId,
         runAudit: false,
         automergeRepo,
       });
+      if (cancelled) return;
+      if (!wholeStoreState) throw new Error(`Mission ${slug} was not found or is unavailable.`);
       dispatch(setAllSliceStores(wholeStoreState));
       syncMissionTerrainProfiles(store);
     });
-  }, [intMissionId, automergeRepo, dispatch, navigate, runLoad]);
+    return () => { cancelled = true; };
+  }, [intMissionId, automergeRepo, dispatch, navigate, runLoad, slug]);
 
   return (
     <main className={adminCommon.page}>
@@ -76,7 +86,7 @@ const ExportPage: React.FunctionComponent = () => {
           ← Missions
         </Link>
         <h1 className={adminCommon.pageTitle}>Export Mission</h1>
-        {missionName && (
+        {!loading.pending && !loading.error && missionName && (
           <div className={adminCommon.missionSubheader}>
             <span className={adminCommon.missionSubheaderLabel}>Mission</span>
             <span className={adminCommon.missionSubheaderName}>{missionName}</span>
@@ -86,6 +96,7 @@ const ExportPage: React.FunctionComponent = () => {
         <AsyncStatus {...loading} />
         <AsyncStatus {...action} />
 
+        {!loading.pending && !loading.error && <>
         <section className={adminCommon.section}>
           <h2>Export</h2>
           <div className={adminCommon.details}>
@@ -277,6 +288,7 @@ const ExportPage: React.FunctionComponent = () => {
             </div>
           </div>
         </section>
+        </>}
       </div>
     </main>
   );

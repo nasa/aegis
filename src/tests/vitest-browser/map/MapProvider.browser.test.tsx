@@ -61,8 +61,15 @@ const mockProjConfig: {
 };
 
 vi.mock("utils/useDocSelector", () => ({
-  useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
-    selector(mockProjConfig),
+  useMissionDocSelector: <TSel,>(
+    selector: (doc: unknown) => TSel,
+    equalityFn: (previous: TSel, next: TSel) => boolean = Object.is
+  ): TSel => {
+    const selected = selector(mockProjConfig);
+    const selectedRef = useRef(selected);
+    if (!equalityFn(selectedRef.current, selected)) selectedRef.current = selected;
+    return selectedRef.current;
+  },
   useDocSelector: (): undefined => undefined,
 }));
 

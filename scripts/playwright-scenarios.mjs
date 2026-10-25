@@ -9,8 +9,22 @@ import prettier from "prettier";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const docs = path.join(root, "docs/testing");
 const args = new Set(process.argv.slice(2));
+const minimumArgs = [...args].filter((arg) => arg.startsWith("--minimum="));
+assert(minimumArgs.length <= 1, "Choose one minimum scenario percentage");
+const minimum = minimumArgs.length ? Number(minimumArgs[0].slice("--minimum=".length)) : null;
+assert(
+  minimum === null ||
+    (minimumArgs[0].slice("--minimum=".length).trim() !== "" &&
+      Number.isFinite(minimum) &&
+      minimum >= 0 &&
+      minimum <= 100),
+  "Minimum scenario percentage must be a number between 0 and 100"
+);
 for (const arg of args) {
-  assert(["--write", "--check", "--require-complete"].includes(arg), `Unknown option: ${arg}`);
+  assert(
+    ["--write", "--check", "--require-complete"].includes(arg) || minimumArgs.includes(arg),
+    `Unknown option: ${arg}`
+  );
 }
 assert(!(args.has("--write") && args.has("--check")), "Choose --write or --check");
 const catalog = JSON.parse(fs.readFileSync(path.join(docs, "scenario-catalog.json"), "utf8"));
@@ -386,6 +400,8 @@ lines.push(
   "",
   "## Closure criteria",
   "",
+  "`npm run test:playwright:scenarios:90` validates generated documentation and requires at least 90% of eligible scenarios to be fully mapped. The threshold uses exact counts before rounding; partial scenarios receive no credit. This mapping gate does not execute browser tests.",
+  "",
   "`npm run test:playwright:scenarios:complete` fails while any eligible scenario is partial or a gap. Use it as a future completeness gate; the normal report/check commands validate accurate documentation without pretending missing tests are complete. The full gate is deliberately not part of existing CI yet.",
   "",
   "For acceptance, close each scenario with explicit fixture/action/expected assertions, demonstrate defect detection, run all required projects against the reviewed commit, record configuration and results, and complete the external operational drills separately. A green mapping gate alone does not establish runtime acceptance or exhaust all possible states.",
@@ -425,5 +441,9 @@ if (args.has("--require-complete") && summary.overall.mapped !== summary.overall
   console.error(
     "Scenario completeness gate failed: every eligible scenario needs a complete reviewed test mapping."
   );
+  process.exitCode = 1;
+}
+if (minimum !== null && 100 * summary.overall.mapped < minimum * summary.overall.eligible) {
+  console.error(`Scenario coverage gate failed: at least ${minimum}% must be fully mapped.`);
   process.exitCode = 1;
 }

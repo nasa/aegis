@@ -20,7 +20,7 @@ import { deepEqual } from "utils/useAppSelector";
 
 import styles from "./report-campaigns-dialog.module.css";
 
-const ReportCampaignsDialog: FunctionComponent = () => {
+const ReportCampaignsDialog: FunctionComponent<{ canEdit: boolean }> = ({ canEdit }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const mission = useMissionDocSelector((doc) => doc, deepEqual);
   const [selectedCampaignUuid, setSelectedCampaignUuid] = useState<string | null>(null);
@@ -40,7 +40,7 @@ const ReportCampaignsDialog: FunctionComponent = () => {
     fieldName: K,
     value: ReportCampaign[K]
   ) => {
-    if (!selectedCampaign) return;
+    if (!canEdit || !selectedCampaign) return;
     withMissionChange((m) =>
       applyUpdateReportCampaignByField(m, {
         reportCampaignUuid: selectedCampaign.uuid,
@@ -51,7 +51,7 @@ const ReportCampaignsDialog: FunctionComponent = () => {
   };
 
   const toggleMember = (evaUuid: string) => {
-    if (!selectedCampaign) return;
+    if (!canEdit || !selectedCampaign) return;
     const isMember = selectedCampaign.memberEvaUuids.includes(evaUuid);
     const memberEvaUuids = isMember
       ? selectedCampaign.memberEvaUuids.filter((uuid) => uuid !== evaUuid)
@@ -76,7 +76,7 @@ const ReportCampaignsDialog: FunctionComponent = () => {
   };
 
   const selectExecutionRex = (evaUuid: string, rexUuid: string) => {
-    if (!selectedCampaign) return;
+    if (!canEdit || !selectedCampaign) return;
     const executionSelections = { ...(selectedCampaign.executionRexUuidByEvaUuid ?? {}) };
     if (rexUuid) executionSelections[evaUuid] = rexUuid;
     else delete executionSelections[evaUuid];
@@ -122,7 +122,9 @@ const ReportCampaignsDialog: FunctionComponent = () => {
               <Button
                 icon={faPlus}
                 label="New campaign"
+                enabled={canEdit}
                 onClick={() => {
+                  if (!canEdit) return;
                   const uuid = withMissionChange((m) => applyCreateReportCampaign(m));
                   setSelectedCampaignUuid(uuid);
                 }}
@@ -155,6 +157,7 @@ const ReportCampaignsDialog: FunctionComponent = () => {
                       aria-label="Campaign name"
                       value={selectedCampaign.name}
                       maxLength={255}
+                      disabled={!canEdit}
                       onChange={(event) => updateCampaign("name", event.target.value)}
                     />
                     <button
@@ -162,7 +165,9 @@ const ReportCampaignsDialog: FunctionComponent = () => {
                       className={styles.deleteButton}
                       aria-label="Delete Campaign"
                       title="Delete campaign"
+                      disabled={!canEdit}
                       onClick={() => {
+                        if (!canEdit) return;
                         if (!window.confirm(`Delete campaign “${selectedCampaign.name}”?`)) return;
                         withMissionChange((m) =>
                           applyDeleteReportCampaign(m, {
@@ -183,6 +188,7 @@ const ReportCampaignsDialog: FunctionComponent = () => {
                     className={styles.description}
                     value={selectedCampaign.description ?? ""}
                     maxLength={2000}
+                    disabled={!canEdit}
                     onChange={(event) => updateCampaign("description", event.target.value || null)}
                   />
                   <div className={styles.membersHeader}>
@@ -201,28 +207,38 @@ const ReportCampaignsDialog: FunctionComponent = () => {
                             <input
                               type="checkbox"
                               checked={isMember}
+                              disabled={!canEdit}
                               onChange={() => toggleMember(eva.uuid)}
                             />
                             <span>{eva.name}</span>
                           </label>
-                          {isMember && (
-                            <Dropdown
-                              selected={
-                                selectedCampaign.executionRexUuidByEvaUuid?.[eva.uuid] ?? ""
-                              }
-                              onChange={(value) => selectExecutionRex(eva.uuid, value)}
-                              toolTip="Execution REX used by this campaign"
-                            >
-                              <option value="">
-                                {rexes.length ? "Latest REX" : "No REX available"}
-                              </option>
-                              {rexes.map((rex) => (
-                                <option key={rex.uuid} value={rex.uuid}>
-                                  {rex.name}
+                          {isMember &&
+                            (canEdit ? (
+                              <Dropdown
+                                selected={
+                                  selectedCampaign.executionRexUuidByEvaUuid?.[eva.uuid] ?? ""
+                                }
+                                onChange={(value) => selectExecutionRex(eva.uuid, value)}
+                                toolTip="Execution REX used by this campaign"
+                              >
+                                <option value="">
+                                  {rexes.length ? "Latest REX" : "No REX available"}
                                 </option>
-                              ))}
-                            </Dropdown>
-                          )}
+                                {rexes.map((rex) => (
+                                  <option key={rex.uuid} value={rex.uuid}>
+                                    {rex.name}
+                                  </option>
+                                ))}
+                              </Dropdown>
+                            ) : (
+                              <div className={styles.fieldLabel}>
+                                {rexes.find(
+                                  (rex) =>
+                                    rex.uuid ===
+                                    selectedCampaign.executionRexUuidByEvaUuid?.[eva.uuid]
+                                )?.name ?? (rexes.length ? "Latest REX" : "No REX available")}
+                              </div>
+                            ))}
                         </div>
                       );
                     })}

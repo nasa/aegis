@@ -6,7 +6,7 @@ Fixture: Independent numeric fixtures: EV1 10 min, EV2 4 min, unassigned 1 min; 
 
 Source: [src/store/processing/calculatedFields.ts](../../../src/store/processing/calculatedFields.ts), [src/utils/mapping/geoMath.ts](../../../src/utils/mapping/geoMath.ts).
 
-Scenario mapping: **8/9 (88.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **9/9 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/calculatedFields.test.ts](../../../src/tests/vitest/store/calculatedFields.test.ts), [src/tests/vitest/utils/geoMath.test.ts](../../../src/tests/vitest/utils/geoMath.test.ts), [src/tests/vitest/utils/rex.test.ts](../../../src/tests/vitest/utils/rex.test.ts).
 
@@ -94,11 +94,17 @@ Evidence boundary: Actual mass absent/null/zero/1750g/cleared checked across car
 
 ## CALC-008: Geodesy and disconnected segment totals
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Use known lunar/Earth point pairs and disjoint elevation segments near the pole.
 
 Expected: Distances/bearings use the intended sphere/CRS; ascent/descent do not bridge disconnected segments.
+
+Playwright: [src/tests/playwright/behavior/geodesyTerrain90.spec.ts:176](../../../src/tests/playwright/behavior/geodesyTerrain90.spec.ts#L176) — Earth measurement geodesy matches a known pair near the pole (chromium).
+
+Playwright: [src/tests/playwright/behavior/geodesyTerrain90.spec.ts:176](../../../src/tests/playwright/behavior/geodesyTerrain90.spec.ts#L176) — Moon measurement geodesy matches a known pair near the pole (chromium).
+
+Evidence boundary: Creates real UI measurements by dragging to known points near 89.9 degrees latitude, independently checks their CRS-transformed coordinates, spherical distances and bearings using Earth and lunar radii, then verifies the traverse UI totals only the within-segment elevation changes (15 m ascent, 10 m descent) across three disconnected segments.
 
 ## CALC-009: Empty graph and extreme valid values
 
