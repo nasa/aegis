@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { test as base, expect } from "@playwright/test";
 import { Repo } from "@automerge/automerge-repo";
-import { WebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
+import { authenticatedAutomergeAdapter } from "./authenticatedAutomerge";
 import type { ValidateFunction } from "ajv";
 import Ajv from "ajv";
 
@@ -97,7 +97,9 @@ export const test = base.extend<BehavioralFixtures>({
       const socketUrl = new URL("/api/automergeSocket/", origin);
       socketUrl.protocol = origin.protocol === "https:" ? "wss:" : "ws:";
       socketUrl.searchParams.set("serverEpochUuid", version.serverEpochUuid);
-      repo = new Repo({ network: [new WebSocketClientAdapter(socketUrl.toString())] });
+      repo = new Repo({
+        network: [await authenticatedAutomergeAdapter(request, socketUrl.toString())],
+      });
       const handle = await repo.find<Mission>(listing.automergeUrl as AutomergeUrl, {
         signal: AbortSignal.timeout(15000),
       });

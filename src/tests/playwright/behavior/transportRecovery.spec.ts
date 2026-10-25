@@ -87,8 +87,7 @@ for (const failVersion of [false, true]) {
       "Offline: Editing Disabled"
     );
     const save = dialog.getByText("Save", { exact: true });
-    await expect(save).toHaveClass(/saveButtonDisabled/);
-    await save.click();
+    await expect(save).toBeDisabled();
     await expect(dialog.getByLabel("Station", { exact: true })).toBeVisible();
     expect((await mission.read()).stations[mission.ids.stationA]).toEqual(
       original.stations[mission.ids.stationA]

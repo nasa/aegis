@@ -90,7 +90,7 @@ test("circle definitions create hidden controls, sort by radius, render saved ge
   await expect(
     invalid.getByText("Should be greater than or equal to 1", { exact: true })
   ).toBeVisible();
-  await invalid.getByText("Save", { exact: true }).click();
+  await expect(invalid.getByText("Save", { exact: true })).toBeDisabled();
   await expect(invalid.getByLabel("Circle Definition Range", { exact: true })).toBeVisible();
   await invalid.getByText("Cancel", { exact: true }).click();
   await expect

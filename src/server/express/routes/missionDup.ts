@@ -94,7 +94,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const newMissionId: number | null = await upsertDatabaseRetry(() =>
-      duplicateMission(parsedMissionId, missionRequestedBy, writeProgress)
+      duplicateMission(parsedMissionId, missionRequestedBy, writeProgress, req.body.copyAssets !== false)
     );
 
     // Check response
@@ -149,7 +149,8 @@ export default router;
 const duplicateMission = async (
   missionId: number,
   missionRequestedBy: string,
-  onProgress: (message: string) => void
+  onProgress: (message: string) => void,
+  copyAssets: boolean
 ): Promise<number> => {
   if (!missionId) {
     throw new Error("Mission ID is required");
@@ -165,7 +166,7 @@ const duplicateMission = async (
     onProgress("Creating mission copy...");
     const newMissionId = await createMissionCopy(
       sourceData,
-      { nameSuffix: "Copy", copyGISAssets: true },
+      { nameSuffix: "Copy", copyGISAssets: copyAssets },
       missionRequestedBy,
       onProgress
     );
@@ -186,6 +187,7 @@ export const createMissionCopy = async (
   missionRequestedBy: string,
   onProgress?: (message: string) => void
 ): Promise<number> => {
+  let copiedUrl: AutomergeUrl | undefined;
   try {
     // 1. Create new mission. All mission entities ride along on the mission doc copy.
 
@@ -203,6 +205,7 @@ export const createMissionCopy = async (
 
     // create an mission automerge document; entities ride along and are scoped by the new doc
     const docListing: AutomergeDocListing = await createAutomergeMission(newMission);
+    copiedUrl = docListing.automergeUrl as AutomergeUrl;
     // retrieve the mission object
     const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
       docListing.automergeUrl as AutomergeUrl
@@ -228,6 +231,7 @@ export const createMissionCopy = async (
 
     return newMissionId;
   } catch (error) {
+    if (copiedUrl) await globalValues.automergeRepo.delete(copiedUrl);
     throw new Error(`Failed to create mission copy: ${error}`);
   }
 };

@@ -396,8 +396,22 @@ export const RightTabs: FunctionComponent<{
                 ? paneStyles.rightIconContainerSelectedTab
                 : paneStyles.rightIconContainer
             }
+            role="button"
+            tabIndex={0}
             aria-label={panelType}
+            aria-description={
+              panelTypes[panelType].statusDescription
+                ? `${panelTypes[panelType].title}: ${panelTypes[panelType].statusDescription}`
+                : panelTypes[panelType].title
+            }
+            aria-pressed={selectedRightNavItem === panelType}
             onClick={() => dispatch(dispatchFunction(panelType))}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                dispatch(dispatchFunction(panelType));
+              }
+            }}
           >
             <div
               className={paneStyles.rightIcon}

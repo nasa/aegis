@@ -6,14 +6,19 @@ export async function openPlanningSection(
   section: "station" | "poi" | "evas" | "mission"
 ): Promise<void> {
   await page.getByLabel(`${section} Section`, { exact: true }).click();
-  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
-    {
-      station: "Stations",
-      poi: "Points of Interest",
-      evas: "EVAs",
-      mission: "Mission Configuration",
-    }[section]
-  );
+  if (section === "evas") {
+    const showAll = page.getByLabel("Show All EVAs", { exact: true });
+    if (await showAll.isVisible()) await showAll.click();
+  }
+  const title = {
+    station: "Stations",
+    poi: "Points of Interest",
+    evas: "EVAs",
+    mission: "Mission Configuration",
+  }[section];
+  await expect(
+    page.getByLabel("leftPanelTitle", { exact: true }).filter({ hasText: title })
+  ).toHaveText(title);
 }
 
 export async function enablePlanningEditMode(page: Page): Promise<void> {
@@ -26,7 +31,7 @@ export async function enablePlanningEditMode(page: Page): Promise<void> {
 }
 
 export function planningField(page: Page, label: string): Locator {
-  return page.locator(`div[aria-label="${label}"]`);
+  return page.locator(`div[aria-label="${label}"]:not([role="button"])`);
 }
 
 export async function openPlanningField(page: Page, label: string): Promise<Locator> {

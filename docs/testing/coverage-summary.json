@@ -6,20 +6,20 @@
   "overall": {
     "total": 260,
     "eligible": 253,
-    "mapped": 232,
-    "partial": 3,
-    "gap": 18,
+    "mapped": 253,
+    "partial": 0,
+    "gap": 0,
     "external": 7,
-    "percent": 91.7
+    "percent": 100
   },
   "critical": {
     "total": 151,
     "eligible": 146,
-    "mapped": 131,
-    "partial": 3,
-    "gap": 12,
+    "mapped": 146,
+    "partial": 0,
+    "gap": 0,
     "external": 5,
-    "percent": 89.7
+    "percent": 100
   },
   "areas": [
     {
@@ -38,11 +38,11 @@
       "name": "Authentication, permissions and connection gates",
       "total": 8,
       "eligible": 8,
-      "mapped": 5,
-      "partial": 1,
-      "gap": 2,
+      "mapped": 8,
+      "partial": 0,
+      "gap": 0,
       "external": 0,
-      "percent": 62.5
+      "percent": 100
     },
     {
       "id": "cfg",
@@ -148,11 +148,11 @@
       "name": "Presets, layers and GIS display",
       "total": 13,
       "eligible": 13,
-      "mapped": 12,
+      "mapped": 13,
       "partial": 0,
-      "gap": 1,
+      "gap": 0,
       "external": 0,
-      "percent": 92.3
+      "percent": 100
     },
     {
       "id": "calc",
@@ -170,11 +170,11 @@
       "name": "Execution lifecycle and PET ownership",
       "total": 27,
       "eligible": 27,
-      "mapped": 26,
+      "mapped": 27,
       "partial": 0,
-      "gap": 1,
+      "gap": 0,
       "external": 0,
-      "percent": 96.3
+      "percent": 100
     },
     {
       "id": "policy",
@@ -247,44 +247,44 @@
       "name": "Collaboration, persistence and recovery",
       "total": 14,
       "eligible": 14,
-      "mapped": 10,
-      "partial": 1,
-      "gap": 3,
+      "mapped": 14,
+      "partial": 0,
+      "gap": 0,
       "external": 0,
-      "percent": 71.4
+      "percent": 100
     },
     {
       "id": "admin",
       "name": "Administrative mission, user, file and diagnostic flows",
       "total": 10,
       "eligible": 10,
-      "mapped": 4,
+      "mapped": 10,
       "partial": 0,
-      "gap": 6,
+      "gap": 0,
       "external": 0,
-      "percent": 40
+      "percent": 100
     },
     {
       "id": "integration",
       "name": "Maestro, DUST and service contracts",
       "total": 10,
       "eligible": 10,
-      "mapped": 9,
+      "mapped": 10,
       "partial": 0,
-      "gap": 1,
+      "gap": 0,
       "external": 0,
-      "percent": 90
+      "percent": 100
     },
     {
       "id": "access",
       "name": "Accessibility, browser compatibility and resilience",
       "total": 5,
       "eligible": 5,
-      "mapped": 0,
-      "partial": 1,
-      "gap": 4,
+      "mapped": 5,
+      "partial": 0,
+      "gap": 0,
       "external": 0,
-      "percent": 0
+      "percent": 100
     },
     {
       "id": "ops",
@@ -305,8 +305,8 @@
   },
   "discoveredProjects": {
     "auth": 1,
-    "chromium": 438,
-    "firefox": 4,
-    "webkit": 4
+    "chromium": 477,
+    "firefox": 37,
+    "webkit": 37
   }
 }

@@ -6,7 +6,7 @@ import adminStyles from "./admin.module.css";
 import adminCommon from "pages/admin/adminCommon.module.css";
 import LayerEdit from "components/admin/layerEdit";
 import SublayerEdit from "components/admin/layerSublayerEdit";
-import { deleteLayers, getLayers } from "http-client/layer";
+import { deleteLayers, getLayers, upsertLayers } from "http-client/layer";
 import FileManager from "components/admin/fileManager";
 import { deleteSublayers, getSublayers } from "http-client/sublayer";
 import { generateBlankLayer } from "store/storeUtils/layer";
@@ -50,7 +50,7 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
         }
         setAllLayers(layers.data);
         setAllSublayers(sublayers.data);
-        if (layers.data.length > 0) setEditSublayerParentUUID(layers.data[0].uuid);
+        setEditSublayerParentUUID((selected) => layers.data.some((layer) => layer.uuid === selected) ? selected : (layers.data[0]?.uuid ?? "0"));
       }),
     [missionId, runLoad]
   );
@@ -361,9 +361,47 @@ const LayerList = (props: {
             <AsyncStatus {...action} />
           </li>
         )}
-        {props.layers.map((layer) => {
+        {props.layers.map((layer, layerIndex) => {
           return (
             <li key={layer.uuid} className={adminStyles.layerListItem}>
+              <button
+                type="button"
+                aria-label={`Move ${layer.name} up`}
+                disabled={layerIndex === 0}
+                onClick={async () => {
+                  const ordered = [...props.layers];
+                  [ordered[layerIndex - 1], ordered[layerIndex]] = [
+                    ordered[layerIndex],
+                    ordered[layerIndex - 1],
+                  ];
+                  await upsertLayers(
+                    props.missionId,
+                    ordered.map((entry, order) => ({ ...entry, order }))
+                  );
+                  props.refreshLayerList();
+                }}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                aria-label={`Move ${layer.name} down`}
+                disabled={layerIndex === props.layers.length - 1}
+                onClick={async () => {
+                  const ordered = [...props.layers];
+                  [ordered[layerIndex + 1], ordered[layerIndex]] = [
+                    ordered[layerIndex],
+                    ordered[layerIndex + 1],
+                  ];
+                  await upsertLayers(
+                    props.missionId,
+                    ordered.map((entry, order) => ({ ...entry, order }))
+                  );
+                  props.refreshLayerList();
+                }}
+              >
+                ↓
+              </button>
               <FontAwesomeIcon
                 icon={collapsedLayers.includes(layer.uuid) ? faCaretRight : faCaretDown}
                 onClick={() => {

@@ -43,6 +43,7 @@ const BOTTOM_CLOSED_HEIGHT = 0;
 const RIGHT_OPEN_WIDTH = 480;
 const RIGHT_CLOSED_WIDTH = 0;
 const PANEL_SEPARATOR_SIZE = 1;
+const MAP_MINIMUM_WIDTH = 110;
 
 // Dockview's built-in dark theme supplies the default tab formatting (active vs inactive tab
 // colors, dividers, drag-over styles); missionDockviewLayout.module.css recolors it to the AEGIS
@@ -101,14 +102,37 @@ function getMapBounds(api: DockviewApi) {
 
 function setFixedPanelWidth(panel: ReturnType<DockviewApi["getPanel"]>, width: number) {
   if (!panel) return;
-  panel.group.api.setConstraints({ minimumWidth: width, maximumWidth: width });
-  panel.group.api.setSize({ width });
+  const group = panel.group;
+  if (group.minimumWidth !== width || group.maximumWidth !== width) {
+    group.api.setConstraints({ minimumWidth: width, maximumWidth: width });
+  }
+  if (group.api.width !== width) group.api.setSize({ width });
 }
 
 function setFixedPanelHeight(panel: ReturnType<DockviewApi["getPanel"]>, height: number) {
   if (!panel) return;
-  panel.group.api.setConstraints({ minimumHeight: height, maximumHeight: height });
-  panel.group.api.setSize({ height });
+  const group = panel.group;
+  if (group.minimumHeight !== height || group.maximumHeight !== height) {
+    group.api.setConstraints({ minimumHeight: height, maximumHeight: height });
+  }
+  if (group.api.height !== height) group.api.setSize({ height });
+}
+
+function getPanelWidths(containerWidth: number, leftOpen: boolean, rightOpen: boolean) {
+  const desiredLeft = leftOpen ? LEFT_OPEN_WIDTH : LEFT_CLOSED_WIDTH;
+  const desiredRight = rightOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH;
+  const availableWidth = Math.max(0, containerWidth - 2 * PANEL_SEPARATOR_SIZE);
+  if (containerWidth <= 0 || desiredLeft + desiredRight + MAP_MINIMUM_WIDTH <= availableWidth) {
+    return { left: desiredLeft, right: desiredRight };
+  }
+
+  const left = leftOpen
+    ? Math.min(LEFT_OPEN_WIDTH, Math.round(containerWidth * 0.4), availableWidth)
+    : LEFT_CLOSED_WIDTH;
+  const right = rightOpen
+    ? Math.min(RIGHT_OPEN_WIDTH, Math.max(0, availableWidth - left - MAP_MINIMUM_WIDTH))
+    : 0;
+  return { left, right };
 }
 
 export function MissionDockviewLayout(): JSX.Element {
@@ -158,27 +182,6 @@ export function MissionDockviewLayout(): JSX.Element {
     }
     setApi(dockviewApi);
   }, []);
-
-  useEffect(() => {
-    if (!api) return;
-    setFixedPanelWidth(api.getPanel("left"), leftPanelIsOpen ? LEFT_OPEN_WIDTH : LEFT_CLOSED_WIDTH);
-  }, [api, leftPanelIsOpen]);
-
-  useEffect(() => {
-    if (!api) return;
-    setFixedPanelHeight(
-      api.getPanel("bottom"),
-      bottomPanelIsOpen ? BOTTOM_OPEN_HEIGHT : BOTTOM_CLOSED_HEIGHT
-    );
-  }, [api, bottomPanelIsOpen]);
-
-  useEffect(() => {
-    if (!api) return;
-    setFixedPanelWidth(
-      api.getPanel("right"),
-      rightPanelIsOpen ? RIGHT_OPEN_WIDTH : RIGHT_CLOSED_WIDTH
-    );
-  }, [api, rightPanelIsOpen]);
 
   useLayoutEffect(() => {
     if (!api) return;
@@ -241,15 +244,30 @@ export function MissionDockviewLayout(): JSX.Element {
     const dimensionDisposables = ["left", "map", "bottom", "right"].map((id) =>
       api.getPanel(id)?.api.onDidDimensionsChange(updateLayout)
     );
-    const resizeObserver = new ResizeObserver(updateLayout);
+    const resizeLayout = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const widths = getPanelWidths(container.clientWidth, leftPanelIsOpen, rightPanelIsOpen);
+      setFixedPanelWidth(api.getPanel("left"), widths.left);
+      setFixedPanelWidth(api.getPanel("right"), widths.right);
+      setFixedPanelHeight(
+        api.getPanel("bottom"),
+        bottomPanelIsOpen
+          ? Math.min(BOTTOM_OPEN_HEIGHT, container.clientHeight)
+          : BOTTOM_CLOSED_HEIGHT
+      );
+      api.layout(container.clientWidth, container.clientHeight);
+      updateLayout();
+    };
+    const resizeObserver = new ResizeObserver(resizeLayout);
     if (containerRef.current) resizeObserver.observe(containerRef.current);
-    updateLayout();
+    resizeLayout();
     return () => {
       layoutDisposable.dispose();
       for (const disposable of dimensionDisposables) disposable?.dispose();
       resizeObserver.disconnect();
     };
-  }, [api]);
+  }, [api, leftPanelIsOpen, rightPanelIsOpen, bottomPanelIsOpen]);
 
   return (
     <div ref={containerRef} className={styles.container} data-testid="mission-dockview">
@@ -261,6 +279,7 @@ export function MissionDockviewLayout(): JSX.Element {
         theme={dockviewTheme}
         locked={true}
         disableDnd={true}
+        disableAutoResizing={true}
         floatingGroupBounds="boundedWithinViewport"
         floatingGroupDragHandle="titlebar"
       />

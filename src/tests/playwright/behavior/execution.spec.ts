@@ -430,7 +430,7 @@ test.describe("PET value editing", () => {
       await expect(
         dialog.getByText(invalidPet ? "Must be in HH:MM:SS format" : "Required", { exact: true })
       ).toBeVisible();
-      await dialog.getByText("Save", { exact: true }).click();
+      await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
       await expect(dialog).toBeAttached();
       expect((await mission.read()).rexes[mission.ids.rexA].petValueAtStartStop).toBe("+02:10:05");
       await dialog.getByText("Cancel", { exact: true }).click();

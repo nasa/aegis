@@ -27,25 +27,32 @@ async function selectTraverse(page: Page): Promise<void> {
 
 async function dragVertex(page: Page, id: string, vertex: number): Promise<AEGISPoint> {
   const pixel = await mapFeaturePixel(page, id, "editor", vertex);
-  const destination = await page.evaluate(
-    ({ x, y }) => {
-      const map = window.__aegisMaps.find(
-        (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
-      ).map;
-      const bounds = map.getTargetElement().getBoundingClientRect();
-      const [east, north] = map.getCoordinateFromPixel([x - bounds.left, y - bounds.top]);
-      return {
-        lng: ((east / 6378137) * 180) / Math.PI,
-        lat: ((2 * Math.atan(Math.exp(north / 6378137)) - Math.PI / 2) * 180) / Math.PI,
-      };
-    },
-    { x: pixel.x + 45, y: pixel.y - 35 }
-  );
+  await page.evaluate(() => {
+    const map = window.__aegisMaps.find(
+      (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
+    ).map;
+    Reflect.deleteProperty(window, "aegisDragDestination");
+    document.addEventListener(
+      "pointerup",
+      (event) => {
+        const bounds = map.getTargetElement().getBoundingClientRect();
+        const [east, north] = map.getCoordinateFromPixel([
+          event.clientX - bounds.left,
+          event.clientY - bounds.top,
+        ]);
+        Reflect.set(window, "aegisDragDestination", {
+          lng: ((east / 6378137) * 180) / Math.PI,
+          lat: ((2 * Math.atan(Math.exp(north / 6378137)) - Math.PI / 2) * 180) / Math.PI,
+        });
+      },
+      { once: true, capture: true }
+    );
+  });
   await page.mouse.move(pixel.x, pixel.y);
   await page.mouse.down();
   await page.mouse.move(pixel.x + 45, pixel.y - 35, { steps: 12 });
   await page.mouse.up();
-  return destination;
+  return page.evaluate(() => Reflect.get(window, "aegisDragDestination"));
 }
 
 async function featureIds(page: Page, layerZIndex: number): Promise<string[]> {

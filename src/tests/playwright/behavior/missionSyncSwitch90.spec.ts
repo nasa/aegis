@@ -3,7 +3,7 @@ import path from "node:path";
 import type { WebSocketRoute } from "@playwright/test";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { Repo } from "@automerge/automerge-repo";
-import { WebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
+import { authenticatedAutomergeAdapter } from "../fixtures/authenticatedAutomerge";
 import { test, expect } from "../fixtures/behavioralTest";
 
 const terrainFile = "coverage90-switch-dem.tif";
@@ -46,7 +46,9 @@ test("switching missions isolates delayed document, terrain, and socket updates"
   const socketUrl = new URL("/api/automergeSocket/", origin);
   socketUrl.protocol = origin.protocol === "https:" ? "wss:" : "ws:";
   socketUrl.searchParams.set("serverEpochUuid", version.serverEpochUuid);
-  const peerRepo = new Repo({ network: [new WebSocketClientAdapter(socketUrl.toString())] });
+  const peerRepo = new Repo({
+    network: [await authenticatedAutomergeAdapter(request, socketUrl.toString())],
+  });
   const oldPeer = await peerRepo.find<Mission>(mission.docUrl as AutomergeUrl);
   const nextPeer = await peerRepo.find<Mission>(listing.automergeUrl as AutomergeUrl);
 

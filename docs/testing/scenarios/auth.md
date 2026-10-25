@@ -6,7 +6,7 @@ Fixture: Distinct guest, viewer, editor, admin and super-admin sessions; two mis
 
 Source: [src/utils/permissions.ts](../../../src/utils/permissions.ts), [src/pages/mission.tsx](../../../src/pages/mission.tsx), [src/pages/admin/index.tsx](../../../src/pages/admin/index.tsx), [src/server/express/routes/auth.ts](../../../src/server/express/routes/auth.ts).
 
-Scenario mapping: **5/8 (62.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **8/8 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/express/login.test.ts](../../../src/tests/vitest/express/login.test.ts), [src/tests/vitest/express/appUser.test.ts](../../../src/tests/vitest/express/appUser.test.ts).
 
@@ -38,33 +38,33 @@ Evidence boundary: The configured local cookie-session contract is exercised wit
 
 ## AUTH-002: Viewer cannot mutate
 
-**P0 · Partial**
+**P0 · Mapped**
 
 Action: As a view-only user open fields, menus, geometry editing and execution controls; issue equivalent direct writes.
 
 Expected: Read access works; UI and server reject mutations with the mission unchanged.
 
-Playwright: [src/tests/playwright/behavior/adminPermissions90.spec.ts:214](../../../src/tests/playwright/behavior/adminPermissions90.spec.ts#L214) — super-admin grant changes deny HTTP access and capture existing Automerge writes (chromium).
-
-Evidence boundary: Viewer read access and a rejected direct HTTP fields write are asserted. The remaining viewer geometry/execution UI and raw transport mutation boundaries still need explicit evidence; permission changes on an already-open editor socket follow AUTH-005.
+Playwright: [src/tests/playwright/behavior/authBoundaries.spec.ts:76](../../../src/tests/playwright/behavior/authBoundaries.spec.ts#L76) — viewer can read fields, geometry and execution but UI and raw writes leave the mission unchanged (chromium).
 
 ## AUTH-003: Editor access stays mission-scoped
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: As an editor for mission A attempt reads and writes for mission B by URL, API and Automerge socket.
 
 Expected: Mission A remains editable and mission B stays protected across all transports.
 
+Playwright: [src/tests/playwright/behavior/authBoundaries.spec.ts:165](../../../src/tests/playwright/behavior/authBoundaries.spec.ts#L165) — editor access stays on mission A across direct URLs, REST reads and writes, and known-document sockets (chromium).
+
 ## AUTH-004: Admin and super-admin boundaries
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Enumerate declared policies for registered admin routes and mutation endpoints; exercise each distinct policy boundary with viewer, editor, admin and super-admin accounts as applicable.
 
 Expected: Visibility and server enforcement agree with each route's declared policy, including super-admin-only controls.
 
-Evidence boundary: Build a named route/method-policy matrix from current handlers before writing the remaining tests. Group equivalent role policies, retain separate mission-scope and super-admin checks, and reuse existing admin evidence only for the boundaries its assertions prove. A four-role Cartesian product for every route is not itself a product requirement.
+Playwright: [src/tests/playwright/behavior/authBoundaries.spec.ts:237](../../../src/tests/playwright/behavior/authBoundaries.spec.ts#L237) — declared admin routes and field policies separate editor, admin, and super-admin (chromium).
 
 ## AUTH-005: Permission revocation in an open session
 
@@ -90,7 +90,7 @@ Playwright: [src/tests/playwright/behavior/editModeMatrix90.spec.ts:37](../../..
 
 Playwright: [src/tests/playwright/behavior/executionPolicy.spec.ts:204](../../../src/tests/playwright/behavior/executionPolicy.spec.ts#L204) — station, traverse and action statuses cycle without global Edit and preserve historical and planned data (chromium).
 
-Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:191](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L191) — dragging an interior vertex then Cancel preserves endpoints and the intended path after reload (chromium).
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:198](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L198) — dragging an interior vertex then Cancel preserves endpoints and the intended path after reload (chromium, firefox, webkit).
 
 Evidence boundary: A live editor with global Edit off cannot open mission, station, or preset drafts, add or delete stations, add presets, mutate reports, or add position sources; authoritative mission data stays unchanged. Turning Edit on enables the supported field/menu writes. Mission-description and preset drafts are canceled and proven unchanged before a separate saved edit; station draft cancellation is also verified. The report campaign gate covers create, rename, and membership mutation, while local report viewing remains available. Supporting tests cover execution status controls under their independent execution permissions and map path edit/cancel persistence. This validates the editor global-mode UI matrix across the listed authoring surfaces; execution status controls intentionally remain available without global Edit.
 

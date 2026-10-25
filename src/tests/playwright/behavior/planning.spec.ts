@@ -74,7 +74,7 @@ test.describe("Planning contracts", () => {
       await expect(
         dialog.getByText(invalidName ? "Name must be unique" : "Required", { exact: true })
       ).toBeVisible();
-      await dialog.getByText("Save", { exact: true }).click();
+      await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
       await expect(dialog.getByLabel("Station", { exact: true })).toBeVisible();
       await dialog.getByText("Cancel", { exact: true }).click();
 
@@ -363,7 +363,7 @@ test.describe("Planning contracts", () => {
     await expect(
       dialog.getByText("Must be a number greater than 0", { exact: true })
     ).toBeVisible();
-    await dialog.getByText("Save", { exact: true }).click();
+    await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
     await expect(dialog.getByLabel("Time in minutes", { exact: true })).toBeVisible();
     await dialog.getByText("Cancel", { exact: true }).click();
     await mission.open(page);

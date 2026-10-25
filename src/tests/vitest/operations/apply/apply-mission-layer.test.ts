@@ -45,6 +45,28 @@ describe("apply-mission-layer", () => {
     expect(getMission().layers[layer.uuid].name).toBe("Renamed");
   });
 
+  it("applyUpsertLayers() reorders preset headers while retaining their sublayers", () => {
+    const second = generateBlankLayer({ name: "Second" });
+    const sublayer = generateBlankSublayer({ layerUuid: layer.uuid });
+    withMissionChange((m) => {
+      applyUpsertLayers(m, [second]);
+      applyUpsertSublayers(m, [sublayer]);
+    });
+
+    withMissionChange((m) =>
+      applyUpsertLayers(m, [
+        { ...second, order: 0 },
+        { ...layer, order: 1 },
+      ])
+    );
+
+    expect(getPreset().layerOrder).toEqual([
+      { layerUuid: second.uuid, sublayerUuids: [] },
+      { layerUuid: layer.uuid, sublayerUuids: [sublayer.uuid] },
+    ]);
+    expect(getPreset().mapSublayerControls[sublayer.uuid].sublayerUuid).toBe(sublayer.uuid);
+  });
+
   it("applyUpsertSublayers() adds a hidden control and keeps the control name in sync", () => {
     const sublayer = generateBlankSublayer({ name: "Vitest Sublayer", layerUuid: layer.uuid });
     withMissionChange((m) => applyUpsertSublayers(m, [sublayer]));

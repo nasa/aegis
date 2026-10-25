@@ -53,12 +53,28 @@ The existing `test:playwright` and CI sharding commands also discover these test
 Legacy mission/configuration and map smoke tests remain available. Playwright
 does not become a dependency of container image builds or production deployment.
 
-Before finishing an MR, run `npm run test:playwright` locally without filters or
-sharding, then click Play once on `test-playwright:start` in the latest commit's
-GitLab pipeline to release all eight shards automatically. Every shard must pass
-for the pipeline to succeed and the MR to be mergeable. Keep the MR in Draft
-until both the local run and the required pipeline pass; new commits require
-fresh validation. See
+## Before merging
+
+Run affected tests locally while developing. When you think the MR is ready to
+merge, push the final changes and manually click Play once on
+`test-playwright:start` in that commit's GitLab pipeline. This releases all eight
+shards automatically. Together they run the full configured suite: authentication
+setup, Chromium regression tests, and Firefox/WebKit smoke and selected parity
+workflows. Full Playwright execution is not required on every development push.
+
+Keep the MR in Draft until every shard and the other required pipeline checks
+pass. Record the tested commit, pipeline link, and any retries or skipped tests
+in the MR description, and check the full Playwright suite checkbox in the
+[MR template](../../../.gitlab/merge_request_templates/Default.md). Investigate
+failures and retries; a filtered run is not full-suite evidence. A duplicate full
+local run is optional; `npm run test:playwright` without filters or sharding is
+available for diagnosis. `npm run test:all` does not run Playwright.
+
+New commits invalidate the recorded result and checkbox. Return the MR to Draft
+and trigger a fresh full CI run when the updated candidate is ready, including
+after incorporating target-branch changes. Update tests and scenario mappings
+for changed behavior, regenerate the coverage docs, and run
+`npm run test:playwright:scenarios:complete` before acceptance. See
 [Before Finishing a Merge Request](../../../CLAUDE.md#before-finishing-a-merge-request).
 
 ## Coverage by capability
@@ -158,18 +174,21 @@ time spanning multiple clock ticks before checking that the value stayed fixed.
   `MarkerLabels`'s `useRexPetTime` call should fail the stopped-execution
   scenario even if the hook's unit tests still pass.
 
-Keep the coverage table current when adding a new capability. Test counts and
-line coverage alone do not establish functional completeness. Further coverage
-can grow toward server restarts and clock-skew scenarios, permissions with
-distinct users, execution action status and sample collection, STM/POI report
-contents, GIS asset variants, and generated valid action sequences; those require
-their own explicit expected outcomes and fixtures.
+Keep the scenario catalog and generated coverage documentation current when
+adding a new capability. The reviewed inventory has 253/253 eligible scenarios
+mapped at the 2026-10-25 checkpoint, including server restart, distinct-user
+permissions, execution, report and GIS contracts. Test counts and mapping
+coverage do not establish exhaustive state coverage. Review new capabilities
+and material state boundaries with explicit expected outcomes and fixtures;
+do not limit the inventory to preserve its percentage.
 
 The reconnect contract takes one browser context offline, verifies that editing
 cannot be enabled and that a server-persisted peer edit has not arrived, then
 restores connectivity. It requires catch-up without navigation, a successful edit
 back to the original client, and persistence after reload. It does not establish
-offline editing or recovery after the server's epoch changes.
+offline editing or recovery after the server's epoch changes. The separate
+`behavior/collaborationDurability.spec.ts` tests cover real API restart durability,
+stale-epoch rejection, and recovery with a fresh document.
 
 Comparison report tests explicitly enable action system v2 with empty definition
 dictionaries so startup audits do not insert default definitions during the test.
