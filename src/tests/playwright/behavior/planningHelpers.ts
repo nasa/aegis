@@ -22,6 +22,8 @@ export async function openPlanningSection(
 }
 
 export async function enablePlanningEditMode(page: Page): Promise<void> {
+  await page.mouse.move(0, 0);
+  await expect(page.locator("#aegis-tooltip")).toBeHidden();
   const toggle = page.getByLabel("globalEditToggle", { exact: true });
   await expect(toggle).toHaveAttribute("data-tooltip-content", /^Turn (On|Off) Edit Mode$/);
   if ((await toggle.getAttribute("data-tooltip-content")) === "Turn On Edit Mode") {

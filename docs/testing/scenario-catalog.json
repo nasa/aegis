@@ -4680,11 +4680,11 @@
           "priority": "P0",
           "action": "Use environment/EMSS configuration routes as admin/super-admin and normal users.",
           "expected": "Only super-admins can read/change the declared environment overrides and EMSS enable flag. Environment effective/default/override values, unknown-key rejection, and EMSS boolean validation match the configured handler contracts.",
-          "automation": "mapped",
+          "automation": "partial",
           "tests": [
             {
               "file": "behavior/adminDataWorkflows.spec.ts",
-              "title": "super-admin environment overrides show effective values, reject unknown keys, and restore the default"
+              "title": "super-admin environment configuration shows defaults and rejects viewer access and unknown keys"
             },
             {
               "file": "behavior/adminDataWorkflows.spec.ts",
@@ -4694,7 +4694,8 @@
               "file": "behavior/authBoundaries.spec.ts",
               "title": "declared admin routes and field policies separate editor, admin, and super-admin"
             }
-          ]
+          ],
+          "note": "Browser coverage checks super-admin defaults, viewer read/write rejection, and unknown keys. Save/clear of shared deployment overrides is covered by the environmentConfig server tests; browser mutation is omitted because parallel runs cannot isolate the server-wide setting. EMSS toggle coverage uses a disposable API process."
         }
       ]
     },
