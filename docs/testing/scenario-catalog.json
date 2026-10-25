@@ -153,7 +153,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/authBoundaries90.spec.ts",
+              "file": "behavior/missionAccess.spec.ts",
               "title": "unavailable mission links redirect scoped users without exposing or editing stale mission data"
             }
           ],
@@ -247,7 +247,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/appState90.spec.ts",
+              "file": "behavior/appState.spec.ts",
               "title": "layout, section selection, and collapsed folders follow their local persistence boundaries"
             }
           ],
@@ -262,15 +262,15 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/appState90.spec.ts",
+              "file": "behavior/appState.spec.ts",
               "title": "mission edit controls stay gated during doc hydration and a failed request can be retried"
             },
             {
-              "file": "behavior/appState90.spec.ts",
+              "file": "behavior/appState.spec.ts",
               "title": "a delayed hydration from a previous mission cannot replace the newly selected mission"
             },
             {
-              "file": "behavior/appState90.spec.ts",
+              "file": "behavior/appState.spec.ts",
               "title": "a failed document-list request shows a retry action and recovers mission hydration"
             }
           ],
@@ -401,7 +401,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/adminPermissions90.spec.ts",
+              "file": "behavior/adminPermissions.spec.ts",
               "title": "super-admin grant changes deny HTTP access and capture existing Automerge writes"
             }
           ],
@@ -416,7 +416,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/editModeMatrix90.spec.ts",
+              "file": "behavior/editModeMatrix.spec.ts",
               "title": "global Edit gates shared fields and menus across mission, entity, preset, report and position surfaces"
             },
             {
@@ -454,7 +454,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/requestRecovery90.spec.ts",
+              "file": "behavior/requestRecovery.spec.ts",
               "title": "401, 403, and 500 user-save failures preserve the open form and recover without duplicate creation"
             }
           ],
@@ -470,9 +470,7 @@
         "src/components/panes/mission/mission-right-prefs.tsx",
         "src/operations/apply/apply-mission.ts"
       ],
-      "supporting": [
-        "src/tests/vitest/store/thunks/mission_thunk.test.ts"
-      ],
+      "supporting": ["src/tests/vitest/store/thunks/mission_thunk.test.ts"],
       "scenarios": [
         {
           "id": "CFG-001",
@@ -544,7 +542,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/missionLander90.spec.ts",
+              "file": "behavior/missionLander.spec.ts",
               "title": "location-dependent controls and comparison values recover after the lander is restored"
             }
           ],
@@ -559,11 +557,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/adminPermissions90.spec.ts",
+              "file": "behavior/adminPermissions.spec.ts",
               "title": "admin projection and action-version changes persist to live and fresh editor clients"
             },
             {
-              "file": "behavior/referenceValidation90.spec.ts",
+              "file": "behavior/referenceValidation.spec.ts",
               "title": "mission reference navigation falls back when an action version removes the selected tab"
             }
           ],
@@ -747,15 +745,15 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/referenceValidation90.spec.ts",
+              "file": "behavior/referenceValidation.spec.ts",
               "title": "reference lists reject invalid required, duplicate, abbreviation and numeric drafts without changing consumers"
             },
             {
-              "file": "behavior/referenceValidation90.spec.ts",
+              "file": "behavior/referenceValidation.spec.ts",
               "title": "geographic unit required and abbreviation boundaries preserve saved consumers"
             },
             {
-              "file": "behavior/referenceValidation90.spec.ts",
+              "file": "behavior/referenceValidation.spec.ts",
               "title": "mission reference navigation falls back when an action version removes the selected tab"
             },
             {
@@ -787,10 +785,7 @@
       "id": "folder",
       "name": "Folders, ordering and shared lists",
       "fixture": "Planning entities and presets assigned to multiple folders, including an empty folder.",
-      "sources": [
-        "src/operations/apply/apply-mission-folder.ts",
-        "src/store/thunk/thunkFolder.ts"
-      ],
+      "sources": ["src/operations/apply/apply-mission-folder.ts", "src/store/thunk/thunkFolder.ts"],
       "supporting": [
         "src/tests/vitest/store/thunks/folder_thunk.test.ts",
         "src/tests/vitest/operations/apply/apply-mission-folder.test.ts"
@@ -877,15 +872,15 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/folderConcurrency90.spec.ts",
+              "file": "behavior/folderConcurrency.spec.ts",
               "title": "concurrent moves of one station converge to one folder membership without losing peers"
             },
             {
-              "file": "behavior/folderConcurrency90.spec.ts",
+              "file": "behavior/folderConcurrency.spec.ts",
               "title": "a move racing with folder deletion leaves a valid station and no orphan membership"
             },
             {
-              "file": "behavior/folderConcurrency90.spec.ts",
+              "file": "behavior/folderConcurrency.spec.ts",
               "title": "a POI deletion racing with a folder move converges without an orphan reference"
             }
           ],
@@ -897,13 +892,8 @@
       "id": "poi",
       "name": "POI lifecycle and association",
       "fixture": "Planning mission with a located POI, source actions and stations referencing it.",
-      "sources": [
-        "src/components/panes/poi/poi-right.tsx",
-        "src/operations/apply/apply-poi.ts"
-      ],
-      "supporting": [
-        "src/tests/vitest/store/thunks/poi_thunk.test.ts"
-      ],
+      "sources": ["src/components/panes/poi/poi-right.tsx", "src/operations/apply/apply-poi.ts"],
+      "supporting": ["src/tests/vitest/store/thunks/poi_thunk.test.ts"],
       "scenarios": [
         {
           "id": "POI-001",
@@ -970,7 +960,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/entityLocations90.spec.ts",
+              "file": "behavior/entityLocations.spec.ts",
               "title": "POI location create, move, field edit, cancel, clear, and reload preserve the point contract"
             }
           ],
@@ -1050,9 +1040,7 @@
         "src/components/panes/station/station-right.tsx",
         "src/operations/apply/apply-station.ts"
       ],
-      "supporting": [
-        "src/tests/vitest/store/thunks/station_thunk.test.ts"
-      ],
+      "supporting": ["src/tests/vitest/store/thunks/station_thunk.test.ts"],
       "scenarios": [
         {
           "id": "STATION-001",
@@ -1232,11 +1220,11 @@
           "tests": [
             {
               "title": "station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry",
-              "file": "behavior/stationGeometry90.spec.ts"
+              "file": "behavior/stationGeometry.spec.ts"
             },
             {
               "title": "station location can be cancelled, cleared, and recreated from a known map pixel",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             }
           ],
           "note": "Existing golden DEM/grid coverage for station create/move/cancel, Set to Lander and missing data is complemented by UI clear and map-pixel recreation. The clear mutation resets elevation and dependent walkback data, retains connected traverse geometry, and hides station/walkback features; recreated coordinates and persisted map geometry are independently checked."
@@ -1250,7 +1238,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/stationGeometry90.spec.ts",
+              "file": "behavior/stationGeometry.spec.ts",
               "title": "walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints"
             }
           ],
@@ -1419,7 +1407,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/evaItinerary90.spec.ts",
+              "file": "behavior/evaItinerary.spec.ts",
               "title": "adding and replacing itinerary stations keeps shared stations and owned traverse paths aligned"
             }
           ],
@@ -1434,7 +1422,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/evaItinerary90.spec.ts",
+              "file": "behavior/evaItinerary.spec.ts",
               "title": "reordering and removing itinerary stations updates paths and cleans only owned traverse actions"
             }
           ],
@@ -1517,7 +1505,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/evaTimeline90.spec.ts",
+              "file": "behavior/evaTimeline.spec.ts",
               "title": "timeline selection and scrubbing preview the selected EVA and refresh after duration edits"
             }
           ],
@@ -1746,11 +1734,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/entityLocations90.spec.ts",
+              "file": "behavior/entityLocations.spec.ts",
               "title": "action location create, move, cancel, clear, and Set to Station keep parent identity and reload"
             },
             {
-              "file": "behavior/entityLocations90.spec.ts",
+              "file": "behavior/entityLocations.spec.ts",
               "title": "a POI action uses Set to POI without changing its POI parent"
             }
           ],
@@ -1967,11 +1955,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/mapSelection90.spec.ts",
+              "file": "behavior/mapSelection.spec.ts",
               "title": "selection context wins over stale selections, while POI station traverse action and position hover stays transient"
             },
             {
-              "file": "behavior/mapSelection90.spec.ts",
+              "file": "behavior/mapSelection.spec.ts",
               "title": "selecting and hovering a crew position highlights the resolved position without changing mission data"
             }
           ],
@@ -1986,7 +1974,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/mapSelection90.spec.ts",
+              "file": "behavior/mapSelection.spec.ts",
               "title": "selection pans only to off-screen targets, preserves zoom, and geometry edits keep their target"
             }
           ],
@@ -2002,107 +1990,107 @@
           "tests": [
             {
               "title": "Escape dismisses a field dialog before cancelling the POI marker edit and preserving its point",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "turning Edit off exits a pending POI placement without creating a coordinate",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "Escape restores a dragged traverse and removes the modify interaction",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "Escape cancels an existing position edit without saving a map move",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "poi edit exits cleanly through Escape without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "poi edit exits cleanly through Edit off without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "poi edit exits cleanly through navigation without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "station edit exits cleanly through Escape without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "station edit exits cleanly through Edit off without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "station edit exits cleanly through navigation without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "action edit exits cleanly through Escape without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "action edit exits cleanly through Edit off without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "action edit exits cleanly through navigation without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "walkback edit exits cleanly through Escape without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "walkback edit exits cleanly through Edit off without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "walkback edit exits cleanly through navigation without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "traverse edit exits cleanly through Escape without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "traverse edit exits cleanly through Edit off without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "traverse edit exits cleanly through navigation without changing its saved geometry",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "position edit exits cleanly through Escape without changing its saved position",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "position edit exits cleanly through Edit off without changing its saved position",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "position edit exits cleanly through navigation without changing its saved position",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "POI location create, move, field edit, cancel, clear, and reload preserve the point contract",
-              "file": "behavior/entityLocations90.spec.ts"
+              "file": "behavior/entityLocations.spec.ts"
             },
             {
               "title": "action location create, move, cancel, clear, and Set to Station keep parent identity and reload",
-              "file": "behavior/entityLocations90.spec.ts"
+              "file": "behavior/entityLocations.spec.ts"
             },
             {
               "title": "station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry",
-              "file": "behavior/stationGeometry90.spec.ts"
+              "file": "behavior/stationGeometry.spec.ts"
             },
             {
               "title": "walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints",
-              "file": "behavior/stationGeometry90.spec.ts"
+              "file": "behavior/stationGeometry.spec.ts"
             },
             {
               "title": "dragging an interior vertex then Finished preserves endpoints and the intended path after reload",
@@ -2137,19 +2125,19 @@
           "tests": [
             {
               "title": "station location can be cancelled, cleared, and recreated from a known map pixel",
-              "file": "behavior/mapDirectives90.spec.ts"
+              "file": "behavior/mapDirectives.spec.ts"
             },
             {
               "title": "POI location create, move, field edit, cancel, clear, and reload preserve the point contract",
-              "file": "behavior/entityLocations90.spec.ts"
+              "file": "behavior/entityLocations.spec.ts"
             },
             {
               "title": "action location create, move, cancel, clear, and Set to Station keep parent identity and reload",
-              "file": "behavior/entityLocations90.spec.ts"
+              "file": "behavior/entityLocations.spec.ts"
             },
             {
               "title": "station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry",
-              "file": "behavior/stationGeometry90.spec.ts"
+              "file": "behavior/stationGeometry.spec.ts"
             },
             {
               "title": "Cancel Pos abandons a new entry and removes the pending map placement",
@@ -2171,11 +2159,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/mapVisibilityLabels90.spec.ts",
+              "file": "behavior/mapVisibilityLabels.spec.ts",
               "title": "planned and selected entity visibility follows location, enabled state, parent scope and toggles"
             },
             {
-              "file": "behavior/positionRendering90.spec.ts",
+              "file": "behavior/positionRendering.spec.ts",
               "title": "marker types, source paths and PET ages remain scoped to active, historical and planned REX views"
             },
             {
@@ -2198,7 +2186,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/mapVisibilityLabels90.spec.ts",
+              "file": "behavior/mapVisibilityLabels.spec.ts",
               "title": "colliding long and multiline labels keep exact text, priority, fixed offset and readable rendered ink across zooms"
             },
             {
@@ -2210,7 +2198,7 @@
               "title": "Stations labels change rendered content and their preference survives reload"
             },
             {
-              "file": "behavior/positionRendering90.spec.ts",
+              "file": "behavior/positionRendering.spec.ts",
               "title": "marker types, source paths and PET ages remain scoped to active, historical and planned REX views"
             }
           ],
@@ -2240,7 +2228,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/gridCoordinates90.spec.ts",
+              "file": "behavior/gridCoordinates.spec.ts",
               "title": "mouse coordinates show independent lat/lng order, precision and grid reference in three CRSs"
             }
           ],
@@ -2290,7 +2278,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/measurementTerrain90.spec.ts",
+              "file": "behavior/measurementTerrain.spec.ts",
               "title": "measurement editing inserts, drags and removes vertices, and cancel restores the original local path"
             }
           ],
@@ -2324,7 +2312,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/terrainDem90.spec.ts",
+              "file": "behavior/terrainDem.spec.ts",
               "title": "golden terrain samples and a no-data break match the displayed segmented profile"
             }
           ],
@@ -2339,7 +2327,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/measurementTerrain90.spec.ts",
+              "file": "behavior/measurementTerrain.spec.ts",
               "title": "older terrain responses cannot replace a newer edited profile or cross a mission switch"
             }
           ],
@@ -2354,7 +2342,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/geodesyTerrain90.spec.ts",
+              "file": "behavior/geodesyTerrain.spec.ts",
               "title": "terrain profile errors retain a usable measurement and recover after the worker responds"
             }
           ],
@@ -2370,7 +2358,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/measurementTerrain90.spec.ts",
+              "file": "behavior/measurementTerrain.spec.ts",
               "title": "signed path grades stay distinct from terrain slope at inclusive color boundaries"
             }
           ],
@@ -2387,19 +2375,19 @@
           "tests": [
             {
               "title": "golden terrain samples and a no-data break match the displayed segmented profile",
-              "file": "behavior/terrainDem90.spec.ts"
+              "file": "behavior/terrainDem.spec.ts"
             },
             {
               "title": "known segmented terrain profile drives distance and slope display without changing the mission",
-              "file": "behavior/measurementTerrain90.spec.ts"
+              "file": "behavior/measurementTerrain.spec.ts"
             },
             {
               "title": "signed path grades stay distinct from terrain slope at inclusive color boundaries",
-              "file": "behavior/measurementTerrain90.spec.ts"
+              "file": "behavior/measurementTerrain.spec.ts"
             },
             {
               "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color",
-              "file": "behavior/rasterDisplay90.spec.ts"
+              "file": "behavior/rasterDisplay.spec.ts"
             }
           ],
           "note": "Existing terrain graph coverage asserts segmented no-data gaps, shallow classes and hazard/key boundaries; the known synthetic slope GeoTIFF adds rendered map pixels for transparent shallow and no-data cells plus the shared middle and >20° hazard colors, with layer visibility confirming the transparent underlay."
@@ -2468,7 +2456,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/presetEditing90.spec.ts",
+              "file": "behavior/presetEditing.spec.ts",
               "title": "preset edits keep an unsaved value local until Save, Cancel restores it, and saved style and circle changes reach a peer"
             }
           ],
@@ -2484,7 +2472,7 @@
           "tests": [
             {
               "title": "overlapping preset rasters render the saved UI order, opacity and blend pixel after reload",
-              "file": "behavior/rasterDisplay90.spec.ts"
+              "file": "behavior/rasterDisplay.spec.ts"
             }
           ],
           "note": "Uses known red and green overlapping tile pixels to assert the initial saved stack, a real UI opacity change and difference blend pixel, a real UI reorder pixel, persistence after reload, and independent style/order state in a second preset."
@@ -2498,23 +2486,23 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "Earth Web Mercator XYZ places its known tile feature at the declared coordinate and resolution"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "Earth Web Mercator PMTiles archive exposes its known center feature"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "lunar south-polar stereographic GeoJSON places a known lunar feature near the lander"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
             },
             {
@@ -2533,7 +2521,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/layerStylesAssets90.spec.ts",
+              "file": "behavior/layerStylesAssets.spec.ts",
               "title": "line, fill, point and contour labels use saved styles, legends and zoom thresholds"
             }
           ],
@@ -2548,7 +2536,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/presetTimeCircles90.spec.ts",
+              "file": "behavior/presetTimeCircles.spec.ts",
               "title": "time slices refresh at inclusive boundaries across EVA and REX scopes with zero and one-slice sources"
             }
           ],
@@ -2563,11 +2551,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/gridCoordinates90.spec.ts",
+              "file": "behavior/gridCoordinates.spec.ts",
               "title": "fixed-grid visibility, labels, style and preset scope match known CRS intersections"
             },
             {
-              "file": "behavior/dashboardBridge90.spec.ts",
+              "file": "behavior/dashboardBridge.spec.ts",
               "title": "dashboard minimap bounds, arrows, scale, grid spacing and execution stay bridged"
             }
           ],
@@ -2582,7 +2570,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/presetTimeCircles90.spec.ts",
+              "file": "behavior/presetTimeCircles.spec.ts",
               "title": "lander circle uses the saved metre radius in the editor and dashboard"
             },
             {
@@ -2598,7 +2586,7 @@
               "title": "calculated celestial directions follow independent SPICE values and polar map north while manual values survive mode changes"
             },
             {
-              "file": "behavior/presetEditing90.spec.ts",
+              "file": "behavior/presetEditing.spec.ts",
               "title": "preset edits keep an unsaved value local until Save, Cancel restores it, and saved style and circle changes reach a peer"
             }
           ],
@@ -2613,7 +2601,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/layerStylesAssets90.spec.ts",
+              "file": "behavior/layerStylesAssets.spec.ts",
               "title": "failed tiles preserve healthy content, a delayed prior-preset tile stays isolated, and a recovered asset renders"
             }
           ],
@@ -2628,11 +2616,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/presetPermissions90.spec.ts",
+              "file": "behavior/presetPermissions.spec.ts",
               "title": "viewer access stays local while editor and admin preset edits converge across peers"
             },
             {
-              "file": "behavior/presetEditing90.spec.ts",
+              "file": "behavior/presetEditing.spec.ts",
               "title": "preset edits keep an unsaved value local until Save, Cancel restores it, and saved style and circle changes reach a peer"
             }
           ],
@@ -2672,7 +2660,7 @@
               "title": "planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions"
             },
             {
-              "file": "behavior/celestialControls90.spec.ts",
+              "file": "behavior/celestialControls.spec.ts",
               "title": "invalid selected EVA dates retain the EVA warning through layer and preview fallback and preserve manual angles"
             }
           ],
@@ -2688,7 +2676,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/celestialControls90.spec.ts",
+              "file": "behavior/celestialControls.spec.ts",
               "title": "manual angle drags flush to their original preset on switch, and viewer controls and source info stay usable"
             }
           ],
@@ -2700,10 +2688,7 @@
       "id": "calc",
       "name": "Time, distance, crew and resource calculations",
       "fixture": "Independent numeric fixtures: EV1 10 min, EV2 4 min, unassigned 1 min; joint 3 min plus solo 2/5 min; 500 m at 3 km/h.",
-      "sources": [
-        "src/store/processing/calculatedFields.ts",
-        "src/utils/mapping/geoMath.ts"
-      ],
+      "sources": ["src/store/processing/calculatedFields.ts", "src/utils/mapping/geoMath.ts"],
       "supporting": [
         "src/tests/vitest/store/calculatedFields.test.ts",
         "src/tests/vitest/utils/geoMath.test.ts",
@@ -2826,11 +2811,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/geodesyTerrain90.spec.ts",
+              "file": "behavior/geodesyTerrain.spec.ts",
               "title": "Earth measurement geodesy matches a known pair near the pole"
             },
             {
-              "file": "behavior/geodesyTerrain90.spec.ts",
+              "file": "behavior/geodesyTerrain.spec.ts",
               "title": "Moon measurement geodesy matches a known pair near the pole"
             }
           ],
@@ -3256,11 +3241,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/executionClock90.spec.ts",
+              "file": "behavior/executionClock.spec.ts",
               "title": "real server-time correction applies once with positive client clock skew across PET boundary reconnect"
             },
             {
-              "file": "behavior/executionClock90.spec.ts",
+              "file": "behavior/executionClock.spec.ts",
               "title": "real server-time correction applies once with negative client clock skew across PET boundary reconnect"
             }
           ],
@@ -3305,10 +3290,7 @@
       "id": "policy",
       "name": "Execution edit policies, status and collected values",
       "fixture": "Original and added station/traverse/actions under never-run, running, stopped and restarted REXes in none/limited/unrestricted modes.",
-      "sources": [
-        "src/utils/rexExecuteEditMode.ts",
-        "src/operations/apply/apply-rex.ts"
-      ],
+      "sources": ["src/utils/rexExecuteEditMode.ts", "src/operations/apply/apply-rex.ts"],
       "supporting": [
         "src/tests/vitest/utils/rexExecuteEditMode.test.ts",
         "src/tests/vitest/operations/apply/apply-rex.test.ts"
@@ -3345,7 +3327,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/limitedPolicy90.spec.ts",
+              "file": "behavior/limitedPolicy.spec.ts",
               "title": "limited mode edits original station and traverse duration/path/sequence while blocking protected fields"
             },
             {
@@ -3364,7 +3346,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/limitedPolicy90.spec.ts",
+              "file": "behavior/limitedPolicy.spec.ts",
               "title": "limited additions register editable station/traverse/actions and cleanly delete their copies"
             }
           ],
@@ -3379,11 +3361,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/policyScopes90.spec.ts",
+              "file": "behavior/policyScopes.spec.ts",
               "title": "None blocks original and added REX action edits"
             },
             {
-              "file": "behavior/policyScopes90.spec.ts",
+              "file": "behavior/policyScopes.spec.ts",
               "title": "Unrestricted mode edits and duplicates/deletes a protected original action"
             },
             {
@@ -3406,7 +3388,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/policyScopes90.spec.ts",
+              "file": "behavior/policyScopes.spec.ts",
               "title": "limited action letters follow identity across reorder, removal, new parent, restart and reload"
             }
           ],
@@ -3463,7 +3445,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/executionClock90.spec.ts",
+              "file": "behavior/executionClock.spec.ts",
               "title": "Maestro 100 percent crew completion overrides display while retaining the stored status"
             }
           ],
@@ -3584,7 +3566,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/positionRendering90.spec.ts",
+              "file": "behavior/positionRendering.spec.ts",
               "title": "marker types, source paths and PET ages remain scoped to active, historical and planned REX views"
             },
             {
@@ -3694,7 +3676,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/dashboardProgress90.spec.ts",
+              "file": "behavior/dashboardProgress.spec.ts",
               "title": "dashboard timeline scales known allotted and calculated work with PET and crew progress"
             },
             {
@@ -3743,7 +3725,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/dashboardBridge90.spec.ts",
+              "file": "behavior/dashboardBridge.spec.ts",
               "title": "dashboard minimap bounds, arrows, scale, grid spacing and execution stay bridged"
             }
           ],
@@ -3788,7 +3770,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/legacyStm90.spec.ts",
+              "file": "behavior/legacyStm.spec.ts",
               "title": "admin hierarchy edits persist into the v1 viewer without exposing v2 rules"
             },
             {
@@ -3807,7 +3789,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/legacyStm90.spec.ts",
+              "file": "behavior/legacyStm.spec.ts",
               "title": "legacy STM filters plan cells and keeps execution copies out of plan coverage"
             }
           ],
@@ -3856,7 +3838,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/ruleLayout90.spec.ts",
+              "file": "behavior/ruleLayout.spec.ts",
               "title": "v2 rule columns keep fixed order and auto-fit while tier layout stays local"
             }
           ],
@@ -3871,7 +3853,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/ruleCollaboration90.spec.ts",
+              "file": "behavior/ruleCollaboration.spec.ts",
               "title": "rule edits, deletion, and referenced definition cleanup converge across two editors"
             }
           ],
@@ -4020,7 +4002,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/reportAggregation90.spec.ts",
+              "file": "behavior/reportAggregation.spec.ts",
               "title": "campaign aggregates count shared action lineage once per member and one chosen REX per EVA"
             }
           ],
@@ -4035,7 +4017,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/stmReports90.spec.ts",
+              "file": "behavior/stmReports.spec.ts",
               "title": "STM coverage totals and satisfaction follow independent plan, REX, and campaign fixtures"
             }
           ],
@@ -4050,7 +4032,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/stmReports90.spec.ts",
+              "file": "behavior/stmReports.spec.ts",
               "title": "STM drilldown expands sequence counts and scopes matched and unmatched rules to the selected plan or REX"
             }
           ],
@@ -4065,7 +4047,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/reportTraceability90.spec.ts",
+              "file": "behavior/reportTraceability.spec.ts",
               "title": "POI lineage distinguishes links, station adoptions, and a duplicated execution by UUID"
             }
           ],
@@ -4080,7 +4062,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/reportAggregation90.spec.ts",
+              "file": "behavior/reportAggregation.spec.ts",
               "title": "POI trace shows each execution status and preserves zero, missing mass, and sample IDs"
             }
           ],
@@ -4114,7 +4096,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/reportCollaboration90.spec.ts",
+              "file": "behavior/reportCollaboration.spec.ts",
               "title": "viewer reports stay read-only while rules, campaigns, and actions refresh live and after reload"
             }
           ],
@@ -4126,10 +4108,7 @@
       "id": "export",
       "name": "JSON, GeoJSON and external handoff exports",
       "fixture": "Planning and executed mission with known coordinates, units, relationships, sample data and export subsets.",
-      "sources": [
-        "src/components/panes/mission/mission-right-export.tsx",
-        "src/utils/export.ts"
-      ],
+      "sources": ["src/components/panes/mission/mission-right-export.tsx", "src/utils/export.ts"],
       "supporting": [
         "src/tests/vitest/utils/export.test.ts",
         "src/tests/vitest/utils/quickMap.test.ts"
@@ -4242,7 +4221,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/exportRoundTrip90.spec.ts",
+              "file": "behavior/exportRoundTrip.spec.ts",
               "title": "admin dump restores the same mission document through the supported Automerge import"
             }
           ],
@@ -4257,7 +4236,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/exportRecovery90.spec.ts",
+              "file": "behavior/exportRecovery.spec.ts",
               "title": "viewer and editor exports survive failure, repeated clicks, and a delayed mission switch"
             }
           ],
@@ -4448,7 +4427,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/missionSyncSwitch90.spec.ts",
+              "file": "behavior/missionSyncSwitch.spec.ts",
               "title": "switching missions isolates delayed document, terrain, and socket updates"
             }
           ],
@@ -4545,7 +4524,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/adminMission90.spec.ts",
+              "file": "behavior/adminMission.spec.ts",
               "title": "admin creates, edits, cancels destructive actions, and deletes only its chosen mission"
             }
           ],
@@ -4618,7 +4597,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/adminPermissions90.spec.ts",
+              "file": "behavior/adminPermissions.spec.ts",
               "title": "super-admin grant changes deny HTTP access and capture existing Automerge writes"
             }
           ],
@@ -4670,11 +4649,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/adminDiagnostics90.spec.ts",
+              "file": "behavior/adminDiagnostics.spec.ts",
               "title": "admin export and Automerge diagnostics address their mission and reject missing or unauthorized data"
             },
             {
-              "file": "behavior/adminDiagnostics90.spec.ts",
+              "file": "behavior/adminDiagnostics.spec.ts",
               "title": "export route hides prior mission controls while a changed mission ID is loading"
             }
           ],
@@ -4689,7 +4668,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/adminDiagnostics90.spec.ts",
+              "file": "behavior/adminDiagnostics.spec.ts",
               "title": "super-admin connection monitors follow isolated visitors, refresh, leave, and role limits"
             }
           ],
@@ -4723,11 +4702,7 @@
       "id": "integration",
       "name": "Maestro, DUST and service contracts",
       "fixture": "Disposable socket clients with valid/invalid endpoint token and EMSS master token; schema-valid deterministic payloads and two missions.",
-      "sources": [
-        "src/server/maestro/v2",
-        "src/server/dust/v1",
-        "src/server/express/restApi.ts"
-      ],
+      "sources": ["src/server/maestro/v2", "src/server/dust/v1", "src/server/express/restApi.ts"],
       "supporting": [
         "src/tests/vitest/maestro/v2/sockets-maestro.test.ts",
         "src/tests/vitest/maestro/v2/mdauValidator.test.ts",
@@ -4744,7 +4719,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/maestroHydration90.spec.ts",
+              "file": "behavior/maestroHydration.spec.ts",
               "title": "Maestro auth, subscription hydration, UUID maps, unsubscribe, and leave gating"
             }
           ],
@@ -4759,23 +4734,23 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/maestroHydration90.spec.ts",
+              "file": "behavior/maestroHydration.spec.ts",
               "title": "valid MDAU edits reach the subscribed client and persist as one graph update"
             },
             {
-              "file": "behavior/maestroHydration90.spec.ts",
+              "file": "behavior/maestroHydration.spec.ts",
               "title": "invalid-schema MDAU payload rejects all sibling writes without changing the graph"
             },
             {
-              "file": "behavior/maestroHydration90.spec.ts",
+              "file": "behavior/maestroHydration.spec.ts",
               "title": "foreign MDAU entity references reject valid sibling changes atomically"
             },
             {
-              "file": "behavior/maestroHydration90.spec.ts",
+              "file": "behavior/maestroHydration.spec.ts",
               "title": "inconsistent MDAU action order rejects parent edits without partial application"
             },
             {
-              "file": "behavior/maestroHydration90.spec.ts",
+              "file": "behavior/maestroHydration.spec.ts",
               "title": "cross-parent MDAU action membership rejects valid sibling edits atomically"
             }
           ],
@@ -4790,7 +4765,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/maestroExecution90.spec.ts",
+              "file": "behavior/maestroExecution.spec.ts",
               "title": "Maestro start applies policy before freeze and preserves execution identity across stop and restart"
             }
           ],
@@ -4805,7 +4780,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/maestroExecution90.spec.ts",
+              "file": "behavior/maestroExecution.spec.ts",
               "title": "Maestro preserves paused zero, running PET sentinel, and null, zero, and manual durations"
             }
           ],
@@ -4820,7 +4795,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/maestroRecovery90.spec.ts",
+              "file": "behavior/maestroRecovery.spec.ts",
               "title": "Maestro resolves concurrent traverse names, action order, and concrete lineage IDs"
             }
           ],
@@ -4835,7 +4810,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/maestroRecovery90.spec.ts",
+              "file": "behavior/maestroRecovery.spec.ts",
               "title": "Maestro disconnect, rejection, reconnect snapshot, and timestamp-only updates follow delivery acknowledgements"
             }
           ],
@@ -4850,7 +4825,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/dustContract90.spec.ts",
+              "file": "behavior/dustContract.spec.ts",
               "title": "DUST and EMSS socket authentication, mission join, resync, and failed-join rollback"
             }
           ],
@@ -4865,7 +4840,7 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/dustContract90.spec.ts",
+              "file": "behavior/dustContract.spec.ts",
               "title": "DUST streams complete canonical updates only to the subscribed mission"
             }
           ],
@@ -4888,11 +4863,11 @@
               "title": "declared admin routes and field policies separate editor, admin, and super-admin"
             },
             {
-              "file": "behavior/infrastructure90.spec.ts",
+              "file": "behavior/infrastructure.spec.ts",
               "title": "health, version, time, and permitted diagnostics follow their service policies"
             },
             {
-              "file": "behavior/infrastructure90.spec.ts",
+              "file": "behavior/infrastructure.spec.ts",
               "title": "server version dependency failure shows a safe startup diagnostic"
             }
           ]
@@ -4906,11 +4881,11 @@
           "automation": "mapped",
           "tests": [
             {
-              "file": "behavior/infrastructure90.spec.ts",
+              "file": "behavior/infrastructure.spec.ts",
               "title": "health, version, time, and permitted diagnostics follow their service policies"
             },
             {
-              "file": "behavior/infrastructure90.spec.ts",
+              "file": "behavior/infrastructure.spec.ts",
               "title": "server version dependency failure shows a safe startup diagnostic"
             }
           ],
@@ -4922,10 +4897,7 @@
       "id": "access",
       "name": "Accessibility, browser compatibility and resilience",
       "fixture": "Keyboard-only, reduced-motion and narrow/wide viewport sessions; Chromium full suite and Firefox/WebKit smoke configurations.",
-      "sources": [
-        "src/components/interface",
-        "src/tests/playwright/playwright.config.ts"
-      ],
+      "sources": ["src/components/interface", "src/tests/playwright/playwright.config.ts"],
       "supporting": [],
       "scenarios": [
         {
@@ -4982,27 +4954,27 @@
               "title": "dashboard and minimap own the active execution and share its feature labels"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "overlapping preset rasters render the saved UI order, opacity and blend pixel after reload"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "Earth Web Mercator PMTiles archive exposes its known center feature"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "lunar south-polar stereographic GeoJSON places a known lunar feature near the lander"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
             },
             {
-              "file": "behavior/layerStylesAssets90.spec.ts",
+              "file": "behavior/layerStylesAssets.spec.ts",
               "title": "line, fill, point and contour labels use saved styles, legends and zoom thresholds"
             }
           ]
@@ -5055,7 +5027,7 @@
               "title": "planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions"
             },
             {
-              "file": "behavior/rasterDisplay90.spec.ts",
+              "file": "behavior/rasterDisplay.spec.ts",
               "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
             }
           ],
@@ -5073,9 +5045,7 @@
         "docker-compose.yml",
         "src/server/automerge/migrations"
       ],
-      "supporting": [
-        "src/tests/vitest/server/automerge/migrationRegistry.test.ts"
-      ],
+      "supporting": ["src/tests/vitest/server/automerge/migrationRegistry.test.ts"],
       "scenarios": [
         {
           "id": "OPS-001",

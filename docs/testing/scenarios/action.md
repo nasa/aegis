@@ -158,9 +158,9 @@ Action: Create/move/cancel/clear location and use Set to Station or POI.
 
 Expected: Location, elevation, grid and relative-distance displays match the committed point and preserve parent identity.
 
-Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:366](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L366) — action location create, move, cancel, clear, and Set to Station keep parent identity and reload (chromium).
+Playwright: [src/tests/playwright/behavior/entityLocations.spec.ts:366](../../../src/tests/playwright/behavior/entityLocations.spec.ts#L366) — action location create, move, cancel, clear, and Set to Station keep parent identity and reload (chromium).
 
-Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:505](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L505) — a POI action uses Set to POI without changing its POI parent (chromium).
+Playwright: [src/tests/playwright/behavior/entityLocations.spec.ts:505](../../../src/tests/playwright/behavior/entityLocations.spec.ts#L505) — a POI action uses Set to POI without changing its POI parent (chromium).
 
 Evidence boundary: Uses the same test-owned golden DEM and mission-scoped named grid fixture, with cleanup after each test. Independently samples elevations through the terrain API, exercises action map create/move/cancel/clear and Set to Station/POI from their actual parent lists, checks committed coordinates/elevation, preserved parent identity, rendered markers, relative elevation/distance/grid values against the seeded parent, and reload persistence.
 
