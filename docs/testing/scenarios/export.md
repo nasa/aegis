@@ -6,7 +6,7 @@ Fixture: Planning and executed mission with known coordinates, units, relationsh
 
 Source: [src/components/panes/mission/mission-right-export.tsx](../../../src/components/panes/mission/mission-right-export.tsx), [src/utils/export.ts](../../../src/utils/export.ts).
 
-Scenario mapping: **5/7 (71.4%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **7/7 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/utils/export.test.ts](../../../src/tests/vitest/utils/export.test.ts), [src/tests/vitest/utils/quickMap.test.ts](../../../src/tests/vitest/utils/quickMap.test.ts).
 
@@ -76,16 +76,24 @@ Playwright: [src/tests/playwright/behavior/exports.spec.ts:234](../../../src/tes
 
 ## EXPORT-006: Mission dump import and round trip
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Dump a disposable mission, import/restore it through supported admin flow and compare a fresh client.
 
 Expected: Document/relational identity rules, assets and migration boundaries are explicit; relationships and required values survive the supported round trip.
 
+Playwright: [src/tests/playwright/behavior/exportRoundTrip90.spec.ts:7](../../../src/tests/playwright/behavior/exportRoundTrip90.spec.ts#L7) — admin dump restores the same mission document through the supported Automerge import (chromium).
+
+Evidence boundary: Downloads a disposable mission dump, restores its missionData.mission through the supported Manage Automerge import-as-new-version flow, and verifies required values, stations, POIs, actions, EVA relationships and exact mission document from UI, API, and a fresh client. The existing document identity and Automerge URL are retained. Scope boundary: the dump envelope contains the Automerge mission document only; this does not import relational rows or binary assets and does not run database migrations.
+
 ## EXPORT-007: Download failure and read-only access
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Download as viewer/editor with delayed or failed generation and repeated clicks.
 
 Expected: Allowed reads work, failure is visible, and downloads do not mutate mission state or mix data from a newly selected mission.
+
+Playwright: [src/tests/playwright/behavior/exportRecovery90.spec.ts:43](../../../src/tests/playwright/behavior/exportRecovery90.spec.ts#L43) — viewer and editor exports survive failure, repeated clicks, and a delayed mission switch (chromium).
+
+Evidence boundary: Isolated viewer and editor both download mission details; editor verifies repeated downloads, a delayed download after switching missions remains tied to its original source, a forced object-URL failure is shown accessibly and retry succeeds. API dumps before/after confirm neither mission document changed and output identity/values are not mixed.

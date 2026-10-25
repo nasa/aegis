@@ -267,11 +267,9 @@ export function getAccurateNow(): Date {
   if (timeOffsetMs === null || isNaN(timeOffsetMs)) return new Date();
   if (Math.abs(timeOffsetMs) < 1000) return new Date(); // if timeOffsetMs is less than 1 second, don't bother adjusting time
 
-  if (timeOffsetMs > 0) {
-    return new Date(Date.now() - timeOffsetMs);
-  } else {
-    return new Date(Date.now() + timeOffsetMs);
-  }
+  // The stored offset is client time minus server time, so subtract it for
+  // both ahead and behind clients to land on the server's clock.
+  return new Date(Date.now() - timeOffsetMs);
 }
 
 /**

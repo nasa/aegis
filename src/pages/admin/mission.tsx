@@ -2,7 +2,7 @@ import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useCallback, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import adminStyles from "components/admin/admin.module.css";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import { getElevationSinglePoint } from "http-client/terrainProfile";
@@ -18,6 +18,7 @@ import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
 import { getLgrsCompatibility } from "utils/lgrs/compatibility";
 import { getGridRenderMode } from "utils/mapping/grid";
+import { isLoggedIn } from "http-client/login";
 
 type RouteParams = {
   id: string;
@@ -27,7 +28,9 @@ type RouteParams = {
 const Mission: React.FunctionComponent = () => {
   const elevationStatus = useAsyncStatus();
   const maestroStatus = useAsyncStatus();
+  const navigate = useNavigate();
   const params = useParams<RouteParams>();
+  const [isAuthorized, setIsAuthorized] = useState(false);
   // Access the automerge mission document via the useDocument hook instead of the
   // useMissionDocSelector (to read) and useDocHandle (to write). This is because for this
   // component, in particular, we access most/all of the properties of mission and it is simpler
@@ -89,6 +92,25 @@ const Mission: React.FunctionComponent = () => {
   const dynamicLgrsCompatibility = automergeMission ? getLgrsCompatibility(automergeMission) : null;
   const dynamicLgrsCompatible = dynamicLgrsCompatibility?.compatible ?? false;
 
+  useEffect(() => {
+    let isMounted = true;
+    const checkAdminAccess = async () => {
+      const response = await isLoggedIn();
+      if (
+        response.status !== "success" ||
+        !(response.data?.isAdmin || response.data?.isSuperAdmin)
+      ) {
+        navigate("/");
+        return;
+      }
+      if (isMounted) setIsAuthorized(true);
+    };
+    checkAdminAccess().catch(() => navigate("/"));
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
+
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
     setMaestroError(null);
@@ -132,6 +154,8 @@ const Mission: React.FunctionComponent = () => {
       m.maestroDocId = null;
     });
   }, [changeAutomergeMission]);
+
+  if (!isAuthorized) return null;
 
   return (
     <main className={adminCommon.page}>

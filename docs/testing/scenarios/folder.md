@@ -6,7 +6,7 @@ Fixture: Planning entities and presets assigned to multiple folders, including a
 
 Source: [src/operations/apply/apply-mission-folder.ts](../../../src/operations/apply/apply-mission-folder.ts), [src/store/thunk/thunkFolder.ts](../../../src/store/thunk/thunkFolder.ts).
 
-Scenario mapping: **3/4 (75%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **4/4 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/folder_thunk.test.ts](../../../src/tests/vitest/store/thunks/folder_thunk.test.ts), [src/tests/vitest/operations/apply/apply-mission-folder.test.ts](../../../src/tests/vitest/operations/apply/apply-mission-folder.test.ts).
 
@@ -60,8 +60,16 @@ Playwright: [src/tests/playwright/behavior/folders.spec.ts:23](../../../src/test
 
 ## FOLDER-004: Concurrent folder membership edits
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Two clients move/delete the same entity or folder at once.
 
 Expected: Clients converge without duplicate membership, orphan references, or lost unrelated entities.
+
+Playwright: [src/tests/playwright/behavior/folderConcurrency90.spec.ts:103](../../../src/tests/playwright/behavior/folderConcurrency90.spec.ts#L103) — concurrent moves of one station converge to one folder membership without losing peers (chromium).
+
+Playwright: [src/tests/playwright/behavior/folderConcurrency90.spec.ts:211](../../../src/tests/playwright/behavior/folderConcurrency90.spec.ts#L211) — a move racing with folder deletion leaves a valid station and no orphan membership (chromium).
+
+Playwright: [src/tests/playwright/behavior/folderConcurrency90.spec.ts:323](../../../src/tests/playwright/behavior/folderConcurrency90.spec.ts#L323) — a POI deletion racing with a folder move converges without an orphan reference (chromium).
+
+Evidence boundary: Uses two authenticated editor clients and held WebSocket messages to overlap UI operations. Covers competing moves of one station, a station move concurrent with destination-folder deletion, and POI deletion concurrent with folder move. Verifies one membership at most, no dangling references, stable unrelated station/folder membership, and peer convergence. Repair is performed only after a fresh persisted permission check; only POI, station, EVA, and preset membership types are normalized.

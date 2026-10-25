@@ -6,7 +6,7 @@ Fixture: Planning/no-execution fixture and active paused execution with known PE
 
 Source: [src/pages/dashboard.tsx](../../../src/pages/dashboard.tsx), [src/components/interface/map/AegisMapDashboard.tsx](../../../src/components/interface/map/AegisMapDashboard.tsx), [src/components/interface/map/AegisMapMinimap.tsx](../../../src/components/interface/map/AegisMapMinimap.tsx).
 
-Scenario mapping: **7/9 (77.8%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **9/9 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/map/FollowMode.browser.test.tsx](../../../src/tests/vitest-browser/map/FollowMode.browser.test.tsx), [src/tests/vitest-browser/map/BigMapBoundsBox.browser.test.tsx](../../../src/tests/vitest-browser/map/BigMapBoundsBox.browser.test.tsx).
 
@@ -52,11 +52,17 @@ Playwright: [src/tests/playwright/behavior/dashboardMap.spec.ts:59](../../../src
 
 ## DASH-005: Dashboard timeline and progress
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Render known allotted/calculated durations, station/traverse/action states and crew percentages; advance/pause PET.
 
 Expected: Timeline scale, blocks, PET/allotted lines, colors, numbering and progress match independent known values.
+
+Playwright: [src/tests/playwright/behavior/dashboardProgress90.spec.ts:7](../../../src/tests/playwright/behavior/dashboardProgress90.spec.ts#L7) — dashboard timeline scales known allotted and calculated work with PET and crew progress (chromium).
+
+Playwright: [src/tests/playwright/behavior/dashboardHandoverCoverage.spec.ts:36](../../../src/tests/playwright/behavior/dashboardHandoverCoverage.spec.ts#L36) — dashboard follows remote execution start, PET pause/resume, stop and REX handover without reload (chromium).
+
+Evidence boundary: The dashboard test uses five known block durations totaling 25 minutes inside a 30-minute allotment, including an EV1 action-derived eight-minute station dwell. It verifies per-block top/height, the 0:00/0:30 scale, 12-minute PET marker/clock, complete and in-progress colors, crew percentages, Maestro numbering/color, and persisted action/station state. The existing handover case advances/pauses PET and verifies stop and REX switching.
 
 ## DASH-006: Follow mode latest-position selection
 
@@ -84,11 +90,15 @@ Evidence boundary: A peer renames a position type and deletes the final position
 
 ## DASH-008: Minimap bounds and arrow bridge
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Pan/zoom the big map; toggle traverse arrows/scale/grid; resize and switch active execution.
 
 Expected: Minimap bounds, arrow visibility, scale and grid spacing stay coherent with dashboard context and current execution.
+
+Playwright: [src/tests/playwright/behavior/dashboardBridge90.spec.ts:90](../../../src/tests/playwright/behavior/dashboardBridge90.spec.ts#L90) — dashboard minimap bounds, arrows, scale, grid spacing and execution stay bridged (chromium).
+
+Evidence boundary: Real dashboard/minimap maps and visibility menu: viewport bounds are compared to the minimap bounds polygon after pan, zoom, resize, and a running-REX handover; dashboard grid-spacing selection changes rendered lines on both maps; traverse arrow styles and scale-bar visibility mirror to the minimap; the handover updates active-execution station/traverse features and PET.
 
 ## DASH-009: Dashboard live start pause stop and handover
 
