@@ -42,31 +42,29 @@ Action: Toggle and reorder overlapping layers; vary opacity/blend; save and relo
 
 Expected: The rendered stack, saved order and style match expected known pixels and remain scoped to the preset.
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:115](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L115) — overlapping preset rasters render the saved UI order, opacity and blend pixel after reload (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:110](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L110) — overlapping preset rasters render the saved UI order, opacity and blend pixel after reload (chromium, firefox, webkit).
 
 Evidence boundary: Uses known red and green overlapping tile pixels to assert the initial saved stack, a real UI opacity change and difference blend pixel, a real UI reorder pixel, persistence after reload, and independent style/order state in a second preset.
 
-## PRESET-004: Raster source and projection matrix
+## PRESET-004: Raster source and projection fixture matrix
 
 **P0 · Mapped**
 
-Action: Render TMS/XYZ, COG, GeoJSON and PMTiles fixtures using named supported source/projection pairs for Earth and lunar missions.
+Action: Render Earth Web Mercator TMS, XYZ, and PMTiles fixtures and lunar south-polar stereographic GeoJSON fixtures.
 
-Expected: Known geographic features align, tile orientation/resolutions are correct and no source silently disappears.
+Expected: Known geographic features align for the named source/projection pairs; TMS Y orientation and XYZ tile coordinates/resolution are correct.
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:270](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L270) — Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:265](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L265) — Earth Web Mercator TMS requests invert Y and render the declared tile at the known map location (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:346](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L346) — Earth Web Mercator XYZ places its known tile feature at the declared coordinate and resolution (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:341](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L341) — Earth Web Mercator XYZ places its known tile feature at the declared coordinate and resolution (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:513](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L513) — Earth Web Mercator PMTiles archive exposes its known center feature (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:508](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L508) — Earth Web Mercator PMTiles archive exposes its known center feature (chromium, firefox, webkit).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:612](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L612) — lunar south-polar stereographic GeoJSON places a known lunar feature near the lander (chromium, firefox, webkit).
-
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:795](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L795) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:607](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L607) — lunar south-polar stereographic GeoJSON places a known lunar feature near the lander (chromium, firefox, webkit).
 
 Playwright: [src/tests/playwright/behavior/celestialPresetCoverage.spec.ts:188](../../../src/tests/playwright/behavior/celestialPresetCoverage.spec.ts#L188) — planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions (chromium).
 
-Evidence boundary: Named Earth TMS/XYZ/PMTiles and lunar GeoJSON/GeoTIFF fixtures assert known content, projected feature placement, XYZ tile coordinate and resolution, and TMS Y orientation.
+Evidence boundary: The named TMS/XYZ/PMTiles and GeoJSON fixtures check known content, projected placement, tile coordinates/resolution, and Y orientation.
 
 ## PRESET-005: Vector and contour style variants
 

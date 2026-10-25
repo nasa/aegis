@@ -2366,11 +2366,11 @@
         },
         {
           "id": "MEASURE-007",
-          "title": "Slope gaps and colorblind rendering parity",
+          "title": "Slope gaps and colorblind graph/key behavior",
           "priority": "P1",
-          "fixture": "Known profile with null samples, disconnected intervals and valid shallow/steep sections plus representative slope raster.",
-          "action": "Render null sample intervals and zero-length/broken segments; toggle standard/colorblind modes and compare map/graph/key.",
-          "expected": "No-data intervals stay transparent without bridging; standard and seven-class colorblind ramps follow their documented graph/raster shallow-slope treatment, and hazards above 20 degrees keep the intended class.",
+          "fixture": "Known profile with null samples, disconnected intervals, and valid shallow/steep sections.",
+          "action": "Render null sample intervals and zero-length/broken segments; toggle standard/colorblind modes and inspect the terrain graph and slope key.",
+          "expected": "No-data intervals remain gaps without bridging; signed path grades and terrain slopes follow their documented color boundaries. The key retains readable slope labels and distinct standard/colorblind palettes.",
           "automation": "mapped",
           "tests": [
             {
@@ -2386,11 +2386,11 @@
               "file": "behavior/measurementTerrain.spec.ts"
             },
             {
-              "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color",
+              "title": "timeline slope legend preserves labels and distinct colorblind palettes",
               "file": "behavior/rasterDisplay.spec.ts"
             }
           ],
-          "note": "Existing terrain graph coverage asserts segmented no-data gaps, shallow classes and hazard/key boundaries; the known synthetic slope GeoTIFF adds rendered map pixels for transparent shallow and no-data cells plus the shared middle and >20° hazard colors, with layer visibility confirming the transparent underlay."
+          "note": "Terrain graph checks cover segmented no-data gaps, shallow classes, and hazard/key boundaries. The cross-browser timeline key checks slope labels and distinct standard/colorblind palettes."
         },
         {
           "id": "MEASURE-008",
@@ -2479,10 +2479,10 @@
         },
         {
           "id": "PRESET-004",
-          "title": "Raster source and projection matrix",
+          "title": "Raster source and projection fixture matrix",
           "priority": "P0",
-          "action": "Render TMS/XYZ, COG, GeoJSON and PMTiles fixtures using named supported source/projection pairs for Earth and lunar missions.",
-          "expected": "Known geographic features align, tile orientation/resolutions are correct and no source silently disappears.",
+          "action": "Render Earth Web Mercator TMS, XYZ, and PMTiles fixtures and lunar south-polar stereographic GeoJSON fixtures.",
+          "expected": "Known geographic features align for the named source/projection pairs; TMS Y orientation and XYZ tile coordinates/resolution are correct.",
           "automation": "mapped",
           "tests": [
             {
@@ -2502,15 +2502,11 @@
               "title": "lunar south-polar stereographic GeoJSON places a known lunar feature near the lander"
             },
             {
-              "file": "behavior/rasterDisplay.spec.ts",
-              "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
-            },
-            {
               "file": "behavior/celestialPresetCoverage.spec.ts",
               "title": "planned, historical, running, layer and preview dates identify their source and invalid prerequisites retain manual directions"
             }
           ],
-          "note": "Named Earth TMS/XYZ/PMTiles and lunar GeoJSON/GeoTIFF fixtures assert known content, projected feature placement, XYZ tile coordinate and resolution, and TMS Y orientation."
+          "note": "The named TMS/XYZ/PMTiles and GeoJSON fixtures check known content, projected placement, tile coordinates/resolution, and Y orientation."
         },
         {
           "id": "PRESET-005",
@@ -4676,11 +4672,11 @@
         },
         {
           "id": "ADMIN-010",
-          "title": "Environment and EMSS configuration controls",
+          "title": "Environment access and EMSS configuration controls",
           "priority": "P0",
-          "action": "Use environment/EMSS configuration routes as admin/super-admin and normal users.",
-          "expected": "Only super-admins can read/change the declared environment overrides and EMSS enable flag. Environment effective/default/override values, unknown-key rejection, and EMSS boolean validation match the configured handler contracts.",
-          "automation": "partial",
+          "action": "Read deployment defaults and effective values as a super-admin; reject viewer reads/writes and unknown keys; toggle EMSS with valid/invalid input and confirmation cancellation.",
+          "expected": "The environment page shows the configured default and effective values. Only super-admins can access the declared configuration APIs; unknown keys and non-boolean EMSS updates are rejected, and confirmation cancellation preserves the enabled state.",
+          "automation": "mapped",
           "tests": [
             {
               "file": "behavior/adminDataWorkflows.spec.ts",
@@ -4695,7 +4691,7 @@
               "title": "declared admin routes and field policies separate editor, admin, and super-admin"
             }
           ],
-          "note": "Browser coverage checks super-admin defaults, viewer read/write rejection, and unknown keys. Save/clear of shared deployment overrides is covered by the environmentConfig server tests; browser mutation is omitted because parallel runs cannot isolate the server-wide setting. EMSS toggle coverage uses a disposable API process."
+          "note": "Browser coverage checks environment defaults and effective values, viewer access rejection, unknown keys, and EMSS controls through a disposable API process."
         }
       ]
     },
@@ -4971,14 +4967,11 @@
               "title": "lunar south-polar stereographic GeoJSON places a known lunar feature near the lander"
             },
             {
-              "file": "behavior/rasterDisplay.spec.ts",
-              "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
-            },
-            {
               "file": "behavior/layerStylesAssets.spec.ts",
               "title": "line, fill, point and contour labels use saved styles, legends and zoom thresholds"
             }
-          ]
+          ],
+          "note": "Cross-browser parity covers the named geometry, label, TMS/XYZ/PMTiles/GeoJSON, layer style, and dashboard fixtures."
         },
         {
           "id": "ACCESS-004",
@@ -5029,7 +5022,7 @@
             },
             {
               "file": "behavior/rasterDisplay.spec.ts",
-              "title": "slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color"
+              "title": "timeline slope legend preserves labels and distinct colorblind palettes"
             }
           ],
           "note": "Keyboard checks cover readable validation and disabled controls. Report tab status descriptions name warning and clear states while the icon changes, celestial source warnings remain available as descriptions, and the map legend pairs labeled slope meanings with distinct standard and colorblind swatches."
