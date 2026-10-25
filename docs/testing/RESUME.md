@@ -4,6 +4,42 @@ Last updated: **2026-10-25**. The [catalog](scenario-catalog.json) preserves the
 reviewed scenario contracts; the generated [coverage report](coverage.md)
 contains the reviewed test mappings.
 
+## Current mapping closure
+
+The current mapping review is **253/253 (100%)**, with **146/146 P0 (100%)**.
+All 260 catalog rows remain: 253 mapped, no partial rows, no gaps and seven
+external. The final clauses add XYZ tile placement/orientation and resolution,
+sorted file listing, long-label/report responsiveness, and accessible
+status/icon/legend distinctions. The complete mapping gate passes with all
+81 registered surfaces mapped.
+
+New behavioral tests now cover viewer mutation and mission-scoped editor
+transports, declared admin role policies, concurrent REX starts, peer-observed
+graph operations, restart/epoch durability, multi-user presence, admin mission,
+layer, STM, Box and environment workflows, REST response classes, keyboard
+focus, map parity and selected Firefox/WebKit editing workflows. The generated
+report records **zero browser tests executed** by mapping validation because
+that command discovers tests without running browsers. This count is specific
+to the mapping command; it does not describe separately executed Playwright
+runs. The separately executed full suite is recorded in the
+[100% validation note](runs/2026-10-25-full-coverage-validation.md); the
+[90% validation record](runs/2026-10-25-ninety-percent-coverage.md) is historical.
+
+See the [mapping-closure review](runs/2026-10-25-mapping-closure-review.md)
+for the commands and final clause-level review.
+
+## Full 100% validation (2026-10-25)
+
+Unfiltered `npm run test:playwright` passed **552/552** with the default three
+workers: auth 1/1, Chromium 477/477, Firefox 37/37 and WebKit 37/37. There were
+zero retries, skips, flaky or unexpected results, and the run took 17m 28s.
+The final run used the Windows-only Chromium `TcpPortRandomizationWin`
+workaround after an upstream loopback socket issue; the details and artifacts
+are in the [full validation note](runs/2026-10-25-full-coverage-validation.md).
+
+`npm run test:all` also passed: lint, TypeScript, builds, 2,124 unit tests and
+399 browser component tests. Its log is `../../.local/test-all-chromium-workaround.log`.
+
 ## Executed 90% checkpoint
 
 Branch: `codex/playwright-behavioral-baseline`, following `1415ddd73`.
@@ -34,15 +70,15 @@ for commands, scope, repaired defects, environment requirements and retained
 failure evidence. The [sixty-percent record](runs/2026-10-25-sixty-percent-coverage.md)
 preserves the prior checkpoint.
 
-## Scope sweep and current mapping
+## Previous scope sweep checkpoint
 
 The 2026-10-25 follow-up used three disposable Luna reviewers for requirements,
 remaining behavioral gaps, and coverage structure. The coordinator reviewed the
 referenced assertions. This was a catalog/documentation sweep; no application or
 test code changed and no browsers were executed again.
 
-Current mapping is **232/253 (91.7%)**, with **131/146 P0 (89.7%)**. All 260 IDs
-remain: 232 mapped, three partial, 18 gaps, seven external. The increase of four
+At that checkpoint, mapping was **232/253 (91.7%)**, with **131/146 P0 (89.7%)**. All 260 IDs
+remained: 232 mapped, three partial, 18 gaps, seven external. The increase of four
 comes from reviewed contract corrections, not new tests or new executed evidence:
 
 - `AUTH-005` and `ADMIN-005`: the user explicitly accepts writes from already-open
@@ -56,7 +92,7 @@ comes from reviewed contract corrections, not new tests or new executed evidence
   establish browser error handling and recovery. Inducing a worker-pool failure
   is not required to prove that bounded response-handling contract.
 
-`AUTH-002` is now partial, acknowledging its existing viewer read/HTTP denial
+`AUTH-002` became partial, acknowledging its existing viewer read/HTTP denial
 evidence without claiming the full geometry/execution/transport matrix. The other
 partial rows remain `COLLAB-008` and `ACCESS-003`.
 
@@ -67,14 +103,13 @@ the UI check does not establish a distributed single-winner guarantee.
 there is no established secret-redaction policy for the current URL setting.
 `COLLAB-014` follows the same accepted socket-revocation policy as `AUTH-005`.
 
-## Next batches toward 100%
+## Historical closure plan
 
-Each row below needs explicit assertions before promotion. Preserve the current
-IDs and denominator; record any further contract correction with its evidence.
-Scope matrices enumerate supported cases, rather than creating requirements
-from every possible combination.
+The scope sweep organized its remaining work into the batches below. The current
+mapping closure at the top of this handoff supersedes their former gap status;
+the rows preserve the accepted boundaries used when adding assertions.
 
-| Batch                            | Remaining IDs                                          | Concrete work and boundary                                                                                                                                                                                                                                                                                                            |
+| Batch                            | IDs at that checkpoint                                 | Concrete work and boundary                                                                                                                                                                                                                                                                                                            |
 | -------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Initial permissions              | `AUTH-002`, `AUTH-003`, `AUTH-004`                     | Finish viewer UI/direct-write checks, editor A versus mission B API/socket isolation, and a route-role matrix derived from declared admin policies. Group equivalent policies; keep super-admin distinctions. Do not require live revocation of existing sockets.                                                                     |
 | Admin mission data               | `ADMIN-002`, `ADMIN-003`, `ADMIN-004`                  | Disposable mission copy identity/assets/failure, layer and supported sublayer CRUD/import, valid/invalid STM import. Check source preservation, references and persistence.                                                                                                                                                           |
@@ -93,9 +128,9 @@ supports current literal routes and default-import mounted routers; named import
 and dynamic mounts need explicit scanner support/review if introduced.
 
 Sweep validation passed report regeneration, the exact 90% freshness/discovery
-gate, Prettier and `git diff --check`. The complete gate still fails as expected
-with the 21 remaining rows. Browser execution and `test:all` were not rerun for
-these catalog/documentation edits; the 379-case result above belongs to the
+gate, Prettier and `git diff --check`. The complete gate then rejected the 21
+remaining rows. Browser execution and `test:all` were not rerun for
+that catalog/documentation sweep; the 379-case result above belongs to the
 earlier executed checkpoint.
 
 ## Commands and environment
@@ -111,20 +146,20 @@ and proxy readiness plus a fresh login page before the combined run. Use unique
 report and result directories for concurrent runs.
 
 ```powershell
-$env:PLAYWRIGHT_REPORT_DIR='.local/coverage90/final-verified-report'
-node node_modules/@playwright/test/cli.js test --config=src/tests/playwright/playwright.config.ts behavior --project=chromium --project=firefox --project=webkit --workers=3 --retries=0 --trace=retain-on-failure --output=.local/coverage90/final-verified-results
+npm run test:all
+$env:PLAYWRIGHT_REPORT_DIR='.local/coverage100/final-verified-report'
+npm run test:playwright
 
 npm run docs:playwright-scenarios
-npm run test:playwright:scenarios:90
-npm run test:all
+npm run test:playwright:scenarios:complete
 git diff --check
 ```
 
-The 90% gate checks report freshness and the exact unrounded mapping fraction;
+The complete gate checks report freshness and every eligible mapping;
 report generation executes no browser tests. All 81 registered surfaces are
-assigned. Every mapped test reference belongs to the combined scope: all Chromium
-behavior tests, four smoke cases each in Firefox/WebKit, and authentication.
-Legacy imported-mission/map suites are outside this acceptance scope. Before
+assigned. Full browser validation runs every configured project and test without
+file, project, grep or shard filters, including the imported-mission/map suites.
+The Playwright configuration defines the selected Firefox/WebKit parity workflows. Before
 finishing an MR, follow [CLAUDE.md](../../CLAUDE.md#before-finishing-a-merge-request).
 No commit, push, pipeline or MR-state change was made.
 

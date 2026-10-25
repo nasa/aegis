@@ -6,7 +6,7 @@ Fixture: Disposable socket clients with valid/invalid endpoint token and EMSS ma
 
 Source: [src/server/maestro/v2](../../../src/server/maestro/v2), [src/server/dust/v1](../../../src/server/dust/v1), [src/server/express/restApi.ts](../../../src/server/express/restApi.ts).
 
-Scenario mapping: **9/10 (90%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **10/10 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/maestro/v2/sockets-maestro.test.ts](../../../src/tests/vitest/maestro/v2/sockets-maestro.test.ts), [src/tests/vitest/maestro/v2/mdauValidator.test.ts](../../../src/tests/vitest/maestro/v2/mdauValidator.test.ts), [src/tests/vitest/dust/v1/sockets-dust.test.ts](../../../src/tests/vitest/dust/v1/sockets-dust.test.ts), [src/tests/vitest/dust/v1/sockets-dust-emitters.test.ts](../../../src/tests/vitest/dust/v1/sockets-dust-emitters.test.ts).
 
@@ -98,7 +98,7 @@ Action: Connect with valid/invalid DUST and EMSS tokens; request everything befo
 
 Expected: Auth accepts its declared credentials, resync requires successful mission join and failed setup rolls back room/visitor state.
 
-Playwright: [src/tests/playwright/behavior/dustContract90.spec.ts:353](../../../src/tests/playwright/behavior/dustContract90.spec.ts#L353) — DUST and EMSS socket authentication, mission join, resync, and failed-join rollback (chromium).
+Playwright: [src/tests/playwright/behavior/dustContract90.spec.ts:355](../../../src/tests/playwright/behavior/dustContract90.spec.ts#L355) — DUST and EMSS socket authentication, mission join, resync, and failed-join rollback (chromium).
 
 Evidence boundary: Uses real DUST namespace clients and two isolated schema-validated Automerge missions to verify accepted DUST/EMSS credentials, invalid token rejection, getEverything before and after joins, and failed setup cleanup through exposed visitor/listener diagnostics.
 
@@ -110,19 +110,25 @@ Action: Edit/delete positions, rename mission/REX/EVA/type/source and change run
 
 Expected: Canonical payload updates reach only the intended mission with correct resolved names and complete positions; no unrelated rooms receive them.
 
-Playwright: [src/tests/playwright/behavior/dustContract90.spec.ts:450](../../../src/tests/playwright/behavior/dustContract90.spec.ts#L450) — DUST streams complete canonical updates only to the subscribed mission (chromium).
+Playwright: [src/tests/playwright/behavior/dustContract90.spec.ts:452](../../../src/tests/playwright/behavior/dustContract90.spec.ts#L452) — DUST streams complete canonical updates only to the subscribed mission (chromium).
 
 Evidence boundary: Uses two real mission subscriptions with independently known position values to verify add/edit/delete full payloads, mission/REX/EVA/type/source rename resolution, running-state gating, full resync, and absence of cross-mission events.
 
 ## INTEGRATION-009: REST infrastructure authorization and errors
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Enumerate HTTP handler/method contracts, then exercise named authorization, missing-resource and invalid-input cases with explicit fixtures; reuse reviewed browser evidence from the owning scenario families.
 
 Expected: Wrapped status/HTTP semantics, scope and validation match the handler contract; route registration alone receives no scenario credit.
 
-Evidence boundary: Use a finite matrix of declared policy and response classes, with named routes and assertions for each case. Missing-resource or input validation applies only where the endpoint defines that contract; every route times every role times every malformed input is not the scenario. Handler unit tests remain supporting evidence and cannot alone close this Playwright row.
+Playwright: [src/tests/playwright/behavior/restAuthorizationContracts.spec.ts:9](../../../src/tests/playwright/behavior/restAuthorizationContracts.spec.ts#L9) — REST mission routes enforce grants and return their declared validation and missing-resource responses (chromium).
+
+Playwright: [src/tests/playwright/behavior/authBoundaries.spec.ts:237](../../../src/tests/playwright/behavior/authBoundaries.spec.ts#L237) — declared admin routes and field policies separate editor, admin, and super-admin (chromium).
+
+Playwright: [src/tests/playwright/behavior/infrastructure90.spec.ts:4](../../../src/tests/playwright/behavior/infrastructure90.spec.ts#L4) — health, version, time, and permitted diagnostics follow their service policies (chromium).
+
+Playwright: [src/tests/playwright/behavior/infrastructure90.spec.ts:113](../../../src/tests/playwright/behavior/infrastructure90.spec.ts#L113) — server version dependency failure shows a safe startup diagnostic (chromium).
 
 ## INTEGRATION-010: Health version time logs and metrics
 

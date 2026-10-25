@@ -6,7 +6,7 @@ Fixture: Disposable missions, test users and temporary static directory; explici
 
 Source: [src/pages/admin/index.tsx](../../../src/pages/admin/index.tsx), [src/pages/admin/mission.tsx](../../../src/pages/admin/mission.tsx), [src/pages/admin/missionDuplicate.tsx](../../../src/pages/admin/missionDuplicate.tsx), [src/pages/admin/missionLayers.tsx](../../../src/pages/admin/missionLayers.tsx), [src/pages/admin/missionSTM.tsx](../../../src/pages/admin/missionSTM.tsx), [src/pages/admin/user.tsx](../../../src/pages/admin/user.tsx), [src/server/express/routes/file](../../../src/server/express/routes/file).
 
-Scenario mapping: **4/10 (40%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **10/10 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/express/file.test.ts](../../../src/tests/vitest/express/file.test.ts), [src/tests/vitest/express/missionAutomergeFields.test.ts](../../../src/tests/vitest/express/missionAutomergeFields.test.ts), [src/tests/vitest/utils/missionDup.test.ts](../../../src/tests/vitest/utils/missionDup.test.ts).
 
@@ -24,27 +24,41 @@ Evidence boundary: Creates two isolated missions in the admin UI, edits and veri
 
 ## ADMIN-002: Mission duplication identity and ownership
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Duplicate a graph-rich mission with/without supported asset options and observe progress/failure.
 
 Expected: New document/relational IDs and internal references follow the copy contract; source remains unchanged and partial failure is reported.
 
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:20](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L20) — duplicating a mission gives it a new document identity and preserves its graph and source (chromium).
+
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:104](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L104) — mission duplication reports a missing-source failure without creating a partial mission (chromium).
+
+Playwright: [src/tests/playwright/behavior/adminCompleteness.spec.ts:7](../../../src/tests/playwright/behavior/adminCompleteness.spec.ts#L7) — mission asset options preserve source bytes and roll back an interrupted asset copy (chromium).
+
 ## ADMIN-003: Mission layers and sublayers administration
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Create/edit/reorder/delete layer headers and each supported sublayer kind; import configured assets.
 
 Expected: Document-backed layer definitions persist and existing presets reconcile without orphan or foreign-mission references.
 
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:159](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L159) — admin layer headers and linked sublayers persist, and deletion removes their document references (chromium).
+
+Playwright: [src/tests/playwright/behavior/adminCompleteness.spec.ts:288](../../../src/tests/playwright/behavior/adminCompleteness.spec.ts#L288) — admin imports configured archives, persists every sublayer kind and reconciles header ordering and preset references (chromium).
+
 ## ADMIN-004: Admin STM configuration and import
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Load/edit v1/v2 science structures with valid/invalid files and referenced definitions.
 
 Expected: Schema/reference failures are explained and do not partially replace a valid mission configuration.
+
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:283](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L283) — admin STM import validates hierarchy references and preserves the existing tree on invalid input for v1 and v2 (chromium).
+
+Playwright: [src/tests/playwright/behavior/adminCompleteness.spec.ts:441](../../../src/tests/playwright/behavior/adminCompleteness.spec.ts#L441) — v2 STM edits honor referenced rules and import validation preserves or clears dependent references atomically (chromium).
 
 ## ADMIN-005: User permission administration
 
@@ -60,21 +74,29 @@ Evidence boundary: The UI creates a view-only user, upgrades it to an admin with
 
 ## ADMIN-006: Static files upload list rename delete
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Upload representative files, list/sort, rename and cancel/confirm deletion; try duplicate/invalid paths.
 
 Expected: File bytes and listing agree, progress/errors are accurate and no traversal or cross-scope access changes unrelated files.
 
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:542](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L542) — admin file manager uploads, lists, renames, cancels deletion, and deletes only the selected file (chromium).
+
+Playwright: [src/tests/playwright/behavior/adminCompleteness.spec.ts:176](../../../src/tests/playwright/behavior/adminCompleteness.spec.ts#L176) — admin uploads show processing and duplicate errors and cannot operate on another mission path (chromium).
+
+Evidence boundary: Upload bytes, listing order by name and size, rename, deletion confirmation/cancellation, duplicate/error handling and path-scope rejection are asserted. UI row values are checked against the documented sort choices.
+
 ## ADMIN-007: Box browse and download progress
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Browse test folders, download a file, inject permission/network failure and retry.
 
 Expected: Selection, bytes, progress, completion and failure recovery follow the external contract without duplicate partial files.
 
-Evidence boundary: Use deterministic provider folder/file/error fixtures at the Box boundary while exercising the AEGIS browser/server flow. Live Box credentials and real provider outages are not prerequisites; fixture bytes, progress, cleanup and retry need explicit assertions.
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:438](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L438) — Box browser flow browses folders, displays byte progress, reports provider errors, and retries cleanly (chromium).
+
+Playwright: [src/tests/playwright/behavior/adminCompleteness.spec.ts:91](../../../src/tests/playwright/behavior/adminCompleteness.spec.ts#L91) — Box SDK provider bytes survive permission and interrupted-stream failures and archive retry (chromium).
 
 ## ADMIN-008: Admin dump and Automerge diagnostics
 
@@ -104,10 +126,14 @@ Evidence boundary: Uses an isolated view-only visitor scoped to the fixture miss
 
 ## ADMIN-010: Environment and EMSS configuration controls
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Use environment/EMSS configuration routes as admin/super-admin and normal users.
 
 Expected: Only super-admins can read/change the declared environment overrides and EMSS enable flag. Environment effective/default/override values, unknown-key rejection, and EMSS boolean validation match the configured handler contracts.
 
-Evidence boundary: The current environment CONFIG_LIST declares maestroServer, a URL setting. Use disposable values and restore configuration after testing. This row does not invent a secret-redaction policy for fields that are not declared secret.
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:671](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L671) — super-admin environment overrides show effective values, reject unknown keys, and restore the default (chromium).
+
+Playwright: [src/tests/playwright/behavior/adminDataWorkflows.spec.ts:780](../../../src/tests/playwright/behavior/adminDataWorkflows.spec.ts#L780) — EMSS admin toggle requires a boolean, preserves confirmation cancellation, and restores its initial state (chromium).
+
+Playwright: [src/tests/playwright/behavior/authBoundaries.spec.ts:237](../../../src/tests/playwright/behavior/authBoundaries.spec.ts#L237) — declared admin routes and field policies separate editor, admin, and super-admin (chromium).

@@ -15,7 +15,38 @@ const reportDirectory = path.resolve(
   process.env.PLAYWRIGHT_REPORT_DIR ?? "playwright-report"
 );
 
-const SMOKE_TESTS = /behavior[\\/]smoke\.spec\.ts/;
+const boxProviderUrl = `http://127.0.0.1:${process.env.PLAYWRIGHT_BOX_PORT ?? 4179}`;
+process.env.AEGIS_TEST_BOX_PROVIDER_URL = boxProviderUrl;
+
+const CROSS_BROWSER_TESTS =
+  /behavior[\\/](smoke|accessibilityCoverage|actions|rasterDisplay90|layerStylesAssets90|mapEditing|collaborationPresence)\.spec\.ts/;
+
+// Chromium 153 on Windows can fail loopback requests with ERR_NO_BUFFER_SPACE:
+// https://issues.chromium.org/issues/572515601. Keep Playwright 1.63's defaults
+// when adding the workaround because Chromium uses the last --disable-features.
+const windowsChromiumArgs =
+  process.platform === "win32"
+    ? [
+        `--disable-features=${[
+          "AvoidUnnecessaryBeforeUnloadCheckSync",
+          "DestroyProfileOnBrowserClose",
+          "DialMediaRouteProvider",
+          "GlobalMediaControls",
+          "HttpsUpgrades",
+          "LensOverlay",
+          "MediaRouter",
+          "PaintHolding",
+          "ThirdPartyStoragePartitioning",
+          "BlockOriginHeaderModificationOnRedirect",
+          "Translate",
+          "AutoDeElevate",
+          "OptimizationHints",
+          "msForceBrowserSignIn",
+          "msEdgeUpdateLaunchServicesPreferredVersion",
+          "TcpPortRandomizationWin",
+        ].join(",")}`,
+      ]
+    : [];
 
 export default defineConfig({
   // Look for test files in the "tests" directory, relative to this configuration file.
@@ -36,7 +67,11 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
 
   // Bound simultaneous full-stack clients on developer machines and CI shards.
-  workers: process.env.CI ? 4 : 3,
+  workers: process.env.PLAYWRIGHT_WORKERS
+    ? Number(process.env.PLAYWRIGHT_WORKERS)
+    : process.env.CI
+      ? 4
+      : 3,
 
   expect: { timeout: 10000 },
 
@@ -54,15 +89,15 @@ export default defineConfig({
     headless: true, // Ensure headless mode is enabled
     viewport: { width: 1960, height: 1080 }, // Set screen resolution
 
-    // Collect trace when retrying the failed test.
-    trace: "on-first-retry",
+    // Preserve local failure diagnostics even when retries are disabled.
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
     actionTimeout: 10000,
     navigationTimeout: 30000,
   },
 
   // Configure projects for major browsers.
-  // chromium runs everything; firefox/webkit run smoke only
+  // Chromium runs everything; Firefox/WebKit run smoke plus declared parity workflows.
   projects: [
     { name: "auth", testMatch: /.*\.auth\.ts/ },
     {
@@ -70,12 +105,13 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         storageState: storageStatePath,
+        launchOptions: { args: windowsChromiumArgs },
       },
       dependencies: ["auth"],
     },
     {
       name: "firefox",
-      testMatch: SMOKE_TESTS,
+      testMatch: CROSS_BROWSER_TESTS,
       use: {
         ...devices["Desktop Firefox"],
         storageState: storageStatePath,
@@ -84,7 +120,7 @@ export default defineConfig({
     },
     {
       name: "webkit",
-      testMatch: SMOKE_TESTS,
+      testMatch: CROSS_BROWSER_TESTS,
       use: {
         ...devices["Desktop Safari"],
         storageState: storageStatePath,
@@ -94,15 +130,31 @@ export default defineConfig({
   ],
   // Run dev server before starting the tests.
   // In CI, run a modified dev command that has already built the API server
-  webServer: {
-    command: process.env.CI ? "npm run dev:ci" : "npm run dev",
-    url: "http://localhost:4000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 180 * 1000,
-    cwd: path.resolve(__dirname, "../../.."),
-    stdout: "pipe", // forward stdout so we have better debugging
-    stderr: "pipe",
-  },
+  webServer: [
+    {
+      command: "node src/tests/playwright/fixtures/boxProvider.mjs",
+      url: `${boxProviderUrl}/health`,
+      reuseExistingServer: !process.env.CI,
+      cwd: path.resolve(__dirname, "../../.."),
+    },
+    {
+      env: {
+        NODE_ENV: "test",
+        AEGIS_TEST_BOX_PROVIDER_URL: boxProviderUrl,
+        BOX_CLIENT_ID: "playwright-fixture-client",
+        BOX_CLIENT_SECRET: "playwright-fixture-credential",
+        BOX_ENTERPRISE_ID: "playwright-fixture-enterprise",
+        BOX_INITIAL_FOLDER_ID: "0",
+      },
+      command: process.env.CI ? "npm run dev:ci" : "npm run dev",
+      url: "http://localhost:4000",
+      reuseExistingServer: !process.env.CI,
+      timeout: 180 * 1000,
+      cwd: path.resolve(__dirname, "../../.."),
+      stdout: "pipe", // forward stdout so we have better debugging
+      stderr: "pipe",
+    },
+  ],
 
   globalSetup: path.resolve(__dirname, "./playwright.globalSetup.ts"),
   globalTeardown: path.resolve(__dirname, "./playwright.globalTeardown.ts"),

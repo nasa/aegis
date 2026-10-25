@@ -1,6 +1,10 @@
 import type { AxiosRequestConfig, AxiosResponse, AxiosProgressEvent } from "axios";
 import axios from "axios";
 
+function getMissionId(filePath: string): string | null {
+  return /^missionFiles[\\/](\d+)(?:[\\/]|$)/.exec(filePath)?.[1] ?? null;
+}
+
 export async function uploadFile(
   formData: FormData,
   controller: AbortController,
@@ -12,8 +16,7 @@ export async function uploadFile(
     validateStatus: (_status) => true, //define HTTP code(s) that should throw an error (return false)
     signal: controller.signal, //abort controller for user to cancel upload
   };
-  const missionId =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = getMissionId(String(formData.get("path") ?? ""));
 
   try {
     return await axios.post(`/api/v1/file/upload?missionId=${missionId}`, formData, config);
@@ -36,8 +39,7 @@ export async function uploadFile(
  * @returns boolean if delete was successful
  */
 export async function deleteFile(path: string): Promise<Response> {
-  const missionId =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = getMissionId(path);
   // send as a DELETE request
   return (await fetch(
     `/api/v1/file/delete?missionId=${missionId}&path=${encodeURIComponent(path)}`,
@@ -59,8 +61,7 @@ export async function renameFile(
   oldName: string,
   newName: string
 ): Promise<Response> {
-  const missionId =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = getMissionId(path);
   return (await fetch(
     `/api/v1/file/rename?missionId=${missionId}&path=${encodeURIComponent(path)}&oldname=${encodeURIComponent(
       oldName
@@ -74,8 +75,7 @@ export async function renameFile(
  * @returns the json response containing array of file listing
  */
 export async function listFiles(path: string): Promise<GISfile[]> {
-  const missionId =
-    typeof window !== "undefined" ? window.sessionStorage.getItem("missionId") : null;
+  const missionId = getMissionId(path);
   const res: Response = await fetch(
     `/api/v1/file/list?missionId=${missionId}&path=${encodeURIComponent(path)}`
   );

@@ -100,13 +100,71 @@ const STMEdit: FunctionComponent<{
  * Replace every STM item on the mission with the items from an exported STM JSON. New uuids
  * are allocated so the import never collides with items from another mission.
  */
-const destructiveImportSTM = (stmJson: string, missionId: number, changeMission: ChangeMission) => {
-  const stm = JSON.parse(stmJson);
+const parseImportSTM = (
+  stmJson: string
+):
+  | { stm: { level1s: STMLevel1[]; level2s: STMLevel2[]; level3s: STMLevel3[] } }
+  | { error: string } => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stmJson);
+  } catch {
+    return { error: "Invalid STM JSON. Check that the file contains valid JSON." };
+  }
+
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return { error: "STM JSON must be an object containing level1s, level2s, and level3s arrays." };
+  }
+
+  const candidate = parsed as Record<string, unknown>;
+  const keys = ["level1s", "level2s", "level3s"] as const;
+  for (const key of keys) {
+    if (candidate[key] !== undefined && !Array.isArray(candidate[key])) {
+      return { error: `STM ${key} must be an array.` };
+    }
+  }
+
+  const level1s = (candidate.level1s ?? []) as STMLevel1[];
+  const level2s = (candidate.level2s ?? []) as STMLevel2[];
+  const level3s = (candidate.level3s ?? []) as STMLevel3[];
+  const allItems = [...level1s, ...level2s, ...level3s] as Array<Record<string, unknown>>;
+  const allUuids = new Set<string>();
+  for (const [index, item] of allItems.entries()) {
+    if (
+      typeof item !== "object" ||
+      item === null ||
+      typeof item.uuid !== "string" ||
+      item.uuid.trim() === "" ||
+      typeof item.name !== "string" ||
+      typeof item.numbering !== "string"
+    ) {
+      return { error: `STM entry ${index + 1} must have string uuid, name, and numbering fields.` };
+    }
+    if (allUuids.has(item.uuid)) return { error: `Duplicate STM UUID: ${item.uuid}.` };
+    allUuids.add(item.uuid);
+  }
+
+  const level1Uuids = new Set(level1s.map((item) => item.uuid));
+  const level2Uuids = new Set(level2s.map((item) => item.uuid));
+  if (level2s.some((item) => !level1Uuids.has(item.level1Uuid))) {
+    return { error: "STM level2s contains a reference to a missing level1." };
+  }
+  if (level3s.some((item) => !level2Uuids.has(item.level2Uuid))) {
+    return { error: "STM level3s contains a reference to a missing level2." };
+  }
+  return { stm: { level1s, level2s, level3s } };
+};
+
+const destructiveImportSTM = (
+  stm: { level1s: STMLevel1[]; level2s: STMLevel2[]; level3s: STMLevel3[] },
+  missionId: number,
+  changeMission: ChangeMission
+) => {
   const now = getAccurateNow().getTime();
   const level1s: STMLevel1[] = [];
   const level2s: STMLevel2[] = [];
   const level3s: STMLevel3[] = [];
-  for (const obj of (stm.level1s ?? []) as STMLevel1[]) {
+  for (const obj of stm.level1s) {
     const newLevel1: STMLevel1 = {
       uuid: uuidv4(),
       name: obj.name,
@@ -115,9 +173,7 @@ const destructiveImportSTM = (stmJson: string, missionId: number, changeMission:
       updatedAt: now,
     };
     level1s.push(newLevel1);
-    for (const level2 of ((stm.level2s ?? []) as STMLevel2[]).filter(
-      (g) => g.level1Uuid === obj.uuid
-    )) {
+    for (const level2 of stm.level2s.filter((g) => g.level1Uuid === obj.uuid)) {
       const newLevel2: STMLevel2 = {
         uuid: uuidv4(),
         name: level2.name,
@@ -127,9 +183,7 @@ const destructiveImportSTM = (stmJson: string, missionId: number, changeMission:
         updatedAt: now,
       };
       level2s.push(newLevel2);
-      for (const level3 of ((stm.level3s ?? []) as STMLevel3[]).filter(
-        (i) => i.level2Uuid === level2.uuid
-      )) {
+      for (const level3 of stm.level3s.filter((i) => i.level2Uuid === level2.uuid)) {
         level3s.push({
           uuid: uuidv4(),
           name: level3.name,
@@ -304,30 +358,43 @@ const ImportSTM: FunctionComponent<{
   missionId: number;
   changeMission: ChangeMission;
 }> = ({ missionId, changeMission }) => {
-  const [stmJson, setStmJson] = useState<string>(null);
+  const [stmJson, setStmJson] = useState<string>("");
+  const [importError, setImportError] = useState<string>("");
 
   return (
     <>
       <textarea
         id="importStm"
+        value={stmJson}
         placeholder="paste STM json to import here"
-        onChange={(e) => setStmJson(e.target.value)}
+        onChange={(e) => {
+          setStmJson(e.target.value);
+          setImportError("");
+        }}
         style={{ width: "500px" }}
       />
       <button
+        disabled={stmJson.trim() === ""}
         onClick={() => {
+          const result = parseImportSTM(stmJson);
+          if ("error" in result) {
+            setImportError(result.error);
+            return;
+          }
           if (
-            confirm(
+            !confirm(
               "Are you sure you want to import? This will destroy all existing STM records for this mission"
             )
-          ) {
-            destructiveImportSTM(stmJson, missionId, changeMission);
-          }
+          )
+            return;
+          destructiveImportSTM(result.stm, missionId, changeMission);
+          setStmJson("");
         }}
         className={adminCommon.button}
       >
         Import STM
       </button>
+      {importError && <div role="alert">{importError}</div>}
     </>
   );
 };

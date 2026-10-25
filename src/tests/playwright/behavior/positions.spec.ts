@@ -954,7 +954,9 @@ test.describe("Execution position contracts", () => {
     await rowAction(positionRowWithSource(page, "+00:02:00", "C"), page, "Delete Entry");
     page.once("dialog", (dialog) => dialog.accept());
     await rowAction(positionRowWithSource(page, "+00:05:00", "F"), page, "Delete Entry");
-    expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual([]);
+    await expect
+      .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries)
+      .toEqual([]);
     await expect(positionsMenu.getByLabel("New Pos.", { exact: true })).toBeVisible();
 
     await mission.open(page);

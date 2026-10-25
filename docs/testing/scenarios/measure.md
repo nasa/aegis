@@ -102,7 +102,7 @@ Playwright: [src/tests/playwright/behavior/measurementTerrain90.spec.ts:296](../
 
 Playwright: [src/tests/playwright/behavior/measurementTerrain90.spec.ts:360](../../../src/tests/playwright/behavior/measurementTerrain90.spec.ts#L360) — signed path grades stay distinct from terrain slope at inclusive color boundaries (chromium).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:310](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L310) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium).
+Playwright: [src/tests/playwright/behavior/rasterDisplay90.spec.ts:795](../../../src/tests/playwright/behavior/rasterDisplay90.spec.ts#L795) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium, firefox, webkit).
 
 Evidence boundary: Existing terrain graph coverage asserts segmented no-data gaps, shallow classes and hazard/key boundaries; the known synthetic slope GeoTIFF adds rendered map pixels for transparent shallow and no-data cells plus the shared middle and >20° hazard colors, with layer visibility confirming the transparent underlay.
 

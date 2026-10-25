@@ -167,7 +167,7 @@ test.describe("Reference data contracts", () => {
     await expect(badDraft.getByLabel("Verbs name", { exact: true })).toBeVisible();
     await badDraft.getByLabel("Verbs name", { exact: true }).fill("");
     await expect(badDraft.getByText("Required", { exact: true })).toBeVisible();
-    await badDraft.getByText("Save", { exact: true }).click();
+    await expect(badDraft.getByText("Save", { exact: true })).toBeDisabled();
     await expect(badDraft.getByLabel("Verbs name", { exact: true })).toBeVisible();
     await badDraft.getByText("Cancel", { exact: true }).click();
 
@@ -249,7 +249,7 @@ test.describe("Reference data contracts", () => {
     await expect(
       quantityDialog.getByText("Should be greater than or equal to 1", { exact: true })
     ).toBeVisible();
-    await quantityDialog.getByText("Save", { exact: true }).click();
+    await expect(quantityDialog.getByText("Save", { exact: true })).toBeDisabled();
     await expect(
       quantityDialog.getByLabel("Equipment item quantity", { exact: true })
     ).toBeVisible();
@@ -484,7 +484,7 @@ test.describe("Reference data contracts", () => {
     await expect(
       invalid.getByText("Must be at no more than 5 characters", { exact: true })
     ).toBeVisible();
-    await invalid.getByText("Save", { exact: true }).click();
+    await expect(invalid.getByText("Save", { exact: true })).toBeDisabled();
     await expect(invalid.getByLabel("Geographic unit abbreviation", { exact: true })).toBeVisible();
     await invalid.getByText("Cancel", { exact: true }).click();
     const persisted = await mission.read();

@@ -68,7 +68,7 @@ test.describe("Action planning contracts", () => {
     const nameDialog = await openPlanningField(page, "Action Name");
     await nameDialog.getByLabel("Action Name", { exact: true }).fill("");
     await expect(nameDialog.getByText("Required", { exact: true })).toBeVisible();
-    await nameDialog.getByText("Save", { exact: true }).click();
+    await expect(nameDialog.getByText("Save", { exact: true })).toBeDisabled();
     await expect(nameDialog.getByLabel("Action Name", { exact: true })).toBeVisible();
     await nameDialog.getByText("Cancel", { exact: true }).click();
 
@@ -77,7 +77,7 @@ test.describe("Action planning contracts", () => {
     const durationDialog = await openPlanningField(page, "Duration in minutes");
     await durationDialog.getByLabel("Duration in minutes", { exact: true }).fill("");
     await expect(durationDialog.getByText("Required", { exact: true })).toBeVisible();
-    await durationDialog.getByText("Save", { exact: true }).click();
+    await expect(durationDialog.getByText("Save", { exact: true })).toBeDisabled();
     await expect(durationDialog.getByLabel("Duration in minutes", { exact: true })).toBeVisible();
     await durationDialog.getByText("Cancel", { exact: true }).click();
     await expectCrewTime(page, "EV1", "6");
