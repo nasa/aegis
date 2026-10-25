@@ -6,7 +6,7 @@ Fixture: v2 planning mission with fixed action durations/counts and lineage; add
 
 Source: [src/components/panes/reports/reports-page.tsx](../../../src/components/panes/reports/reports-page.tsx), [src/components/panes/reports/shared/report-campaigns-dialog.tsx](../../../src/components/panes/reports/shared/report-campaigns-dialog.tsx), [src/components/panes/reports/eva-stm-coverage/eva-stm-coverage-page.tsx](../../../src/components/panes/reports/eva-stm-coverage/eva-stm-coverage-page.tsx), [src/components/panes/reports/poi-traceability/poi-traceability-page.tsx](../../../src/components/panes/reports/poi-traceability/poi-traceability-page.tsx).
 
-Scenario mapping: **7/13 (53.8%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **13/13 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest-browser/Reports.browser.test.tsx](../../../src/tests/vitest-browser/Reports.browser.test.tsx), [src/tests/vitest-browser/PoiTraceability.browser.test.tsx](../../../src/tests/vitest-browser/PoiTraceability.browser.test.tsx), [src/tests/vitest/utils/evaReportColumns.campaign.test.ts](../../../src/tests/vitest/utils/evaReportColumns.campaign.test.ts).
 
@@ -72,9 +72,9 @@ Action: Create, rename and delete campaigns through supported controls; add/remo
 
 Expected: Unique planned membership and insertion order persist without mutating plans/REXes; new campaigns are independent and canceled deletion preserves the graph. Unsupported duplicate/manual-drag controls remain explicitly unclaimed.
 
-Playwright: [src/tests/playwright/behavior/campaignLifecycle.spec.ts:12](../../../src/tests/playwright/behavior/campaignLifecycle.spec.ts#L12) — campaign lifecycle through EVA Comparison preserves unique ordered plan membership, confirmation and reload (chromium).
+Playwright: [src/tests/playwright/behavior/campaignLifecycle.spec.ts:13](../../../src/tests/playwright/behavior/campaignLifecycle.spec.ts#L13) — campaign lifecycle through EVA Comparison preserves unique ordered plan membership, confirmation and reload (chromium).
 
-Playwright: [src/tests/playwright/behavior/campaignLifecycle.spec.ts:12](../../../src/tests/playwright/behavior/campaignLifecycle.spec.ts#L12) — campaign lifecycle through EVA STM Coverage preserves unique ordered plan membership, confirmation and reload (chromium).
+Playwright: [src/tests/playwright/behavior/campaignLifecycle.spec.ts:13](../../../src/tests/playwright/behavior/campaignLifecycle.spec.ts#L13) — campaign lifecycle through EVA STM Coverage preserves unique ordered plan membership, confirmation and reload (chromium).
 
 Evidence boundary: Supported campaign create/rename/delete and ordered membership are tested through both report entries, including checkbox uniqueness, planned-only choices, removal/reinsertion ordering, independent new campaign identity, canceled deletion, peer member order and reload. The current dialog has no duplicate or manual member-drag control; neither is claimed.
 
@@ -94,43 +94,63 @@ Evidence boundary: Explicit versus latest selection uses independently known 250
 
 ## REPORT-007: Campaign versus EVA aggregate deduplication
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Put shared stations/actions and multiple execution copies into a campaign.
 
 Expected: Counts/mass/science coverage use the intended lineage and aggregation rules without double-counting shared members.
 
+Playwright: [src/tests/playwright/behavior/reportAggregation90.spec.ts:28](../../../src/tests/playwright/behavior/reportAggregation90.spec.ts#L28) — campaign aggregates count shared action lineage once per member and one chosen REX per EVA (chromium).
+
+Evidence boundary: Verifies independent known action counts and planned masses for Alpha and Bravo and their campaign, plus actual sample masses from the explicitly selected REX per member. A second Alpha REX has a distinct known mass and is excluded from the campaign aggregate; the persisted campaign selection and mission remain unchanged.
+
 ## REPORT-008: EVA STM coverage report
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Use a tiny known hierarchy/rule set with planned, complete, skipped, disabled and unmatched actions.
 
 Expected: Cells, tuple counts, satisfied flags and totals match the known fixture across plan/REX/campaign scopes.
 
+Playwright: [src/tests/playwright/behavior/stmReports90.spec.ts:264](../../../src/tests/playwright/behavior/stmReports90.spec.ts#L264) — STM coverage totals and satisfaction follow independent plan, REX, and campaign fixtures (chromium).
+
+Evidence boundary: A tiny known hierarchy and two rules are checked across both plans, their selected REXes, and explicit campaign planned/executed scopes. Known tuple counts and rule satisfaction are verified with exact, skipped, disabled, and incomplete-definition actions under all, completeOnly, and notSkipped filters.
+
 ## REPORT-009: STM drilldown filters and navigation
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Expand coverage cells and follow matched/unmatched action links under filters.
 
 Expected: Drilldown includes exactly the contributing actions and opens the correct parent/plan/REX without changing mission data.
 
+Playwright: [src/tests/playwright/behavior/stmReports90.spec.ts:343](../../../src/tests/playwright/behavior/stmReports90.spec.ts#L343) — STM drilldown expands sequence counts and scopes matched and unmatched rules to the selected plan or REX (chromium).
+
+Evidence boundary: Expands plan sequence counts; opens the Alpha REX and Bravo plan cells; checks per-rule matches, zero-match rules, displayed matched tuples, status-filter updates, campaign executed drilldown, and unchanged mission data.
+
 ## REPORT-010: POI traceability lineage
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Link a POI without adoption, adopt one action into two stations, duplicate plan and execute one copy.
 
 Expected: Trace rows distinguish association from adoption and follow concrete UUIDs and lineage to the correct planned/executed actions.
 
+Playwright: [src/tests/playwright/behavior/reportTraceability90.spec.ts:41](../../../src/tests/playwright/behavior/reportTraceability90.spec.ts#L41) — POI lineage distinguishes links, station adoptions, and a duplicated execution by UUID (chromium).
+
+Evidence boundary: UI links Reference POI to Alpha, confirms the linked-but-unadopted report state, adopts the source action into Alpha and Bravo, duplicates Survey Alpha with stations, adds a REX, completes one executed copy, and asserts displayed branches against independent POI/action/station/EVA/REX UUID lineage. Bravo is shared with Survey Bravo, so its adoption is represented in both planned EVA branches.
+
 ## REPORT-011: POI traceability statuses and sample fields
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Change action status, executed mass and sample identifiers with missing/zero values.
 
 Expected: Trace badges, counts and drilldown reflect the correct execution entry without treating missing as zero.
+
+Playwright: [src/tests/playwright/behavior/reportAggregation90.spec.ts:142](../../../src/tests/playwright/behavior/reportAggregation90.spec.ts#L142) — POI trace shows each execution status and preserves zero, missing mass, and sample IDs (chromium).
+
+Evidence boundary: Shows completed, in-progress, and skipped statuses for exact planned adoption branches. Read-only execution previews assert zero versus absent mass and exact marker, primary-container, and secondary-container IDs against the seeded REX entries, then confirm mission data is unchanged.
 
 ## REPORT-012: Report empty missing and deleted data
 
@@ -148,8 +168,12 @@ Evidence boundary: No-EVA/no-rule, no-column, empty-campaign-member and POI empt
 
 ## REPORT-013: Report permission and collaboration matrix
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Open all reports as viewer/editor, update rules/campaigns/actions remotely and reload.
 
 Expected: Read-only reports stay non-mutating and every supported live dependency refreshes for the current scope.
+
+Playwright: [src/tests/playwright/behavior/reportCollaboration90.spec.ts:50](../../../src/tests/playwright/behavior/reportCollaboration90.spec.ts#L50) — viewer reports stay read-only while rules, campaigns, and actions refresh live and after reload (chromium).
+
+Evidence boundary: A view-only user opens Comparison, STM Coverage, and POI Traceability without campaign write controls. The editor changes the selected rule, creates an Alpha campaign, and edits the adopted action; the viewer sees campaign columns/known action-time totals, updated rule coverage, and POI action details live and after reload. The viewer visit leaves the mission unchanged.

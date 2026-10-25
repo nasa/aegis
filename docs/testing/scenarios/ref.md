@@ -6,7 +6,7 @@ Fixture: Separate v1/v2 missions with definitions used and unused by actions, te
 
 Source: [src/components/panes/mission/mission-right-actionDefinitions.tsx](../../../src/components/panes/mission/mission-right-actionDefinitions.tsx), [src/components/panes/mission/mission-right-actionTemplates.tsx](../../../src/components/panes/mission/mission-right-actionTemplates.tsx), [src/components/panes/mission/mission-right-equipment.tsx](../../../src/components/panes/mission/mission-right-equipment.tsx), [src/components/panes/mission/mission-right-geographicUnits.tsx](../../../src/components/panes/mission/mission-right-geographicUnits.tsx), [src/components/panes/mission/mission-right-circles.tsx](../../../src/components/panes/mission/mission-right-circles.tsx), [src/components/panes/mission/mission-right-missionPriorities.tsx](../../../src/components/panes/mission/mission-right-missionPriorities.tsx).
 
-Scenario mapping: **8/9 (88.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **9/9 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/operations/op-actionDefinition.test.ts](../../../src/tests/vitest/operations/op-actionDefinition.test.ts), [src/tests/vitest/operations/op-missionPriority.test.ts](../../../src/tests/vitest/operations/op-missionPriority.test.ts).
 
@@ -120,8 +120,26 @@ Evidence boundary: Supported trace/category fields have UI lifecycle, numeric tr
 
 ## REF-009: Reference validation matrix
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Exercise required, duplicate, abbreviation length, radius minimum and numeric boundaries for every reference type.
 
 Expected: Invalid values cannot replace saved values; Cancel preserves both lists and downstream consumers.
+
+Playwright: [src/tests/playwright/behavior/referenceValidation90.spec.ts:87](../../../src/tests/playwright/behavior/referenceValidation90.spec.ts#L87) — reference lists reject invalid required, duplicate, abbreviation and numeric drafts without changing consumers (chromium).
+
+Playwright: [src/tests/playwright/behavior/referenceValidation90.spec.ts:291](../../../src/tests/playwright/behavior/referenceValidation90.spec.ts#L291) — geographic unit required and abbreviation boundaries preserve saved consumers (chromium).
+
+Playwright: [src/tests/playwright/behavior/referenceValidation90.spec.ts:325](../../../src/tests/playwright/behavior/referenceValidation90.spec.ts#L325) — mission reference navigation falls back when an action version removes the selected tab (chromium).
+
+Playwright: [src/tests/playwright/behavior/referenceData.spec.ts:65](../../../src/tests/playwright/behavior/referenceData.spec.ts#L65) — v2 definition entries and wording edit, reject invalid drafts, and persist together (chromium).
+
+Playwright: [src/tests/playwright/behavior/referenceData.spec.ts:219](../../../src/tests/playwright/behavior/referenceData.spec.ts#L219) — equipment inventory supports both item types, validates quantity, and survives reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/referenceData.spec.ts:460](../../../src/tests/playwright/behavior/referenceData.spec.ts#L460) — geographic units can be created and edited with abbreviation validation and durable values (chromium).
+
+Playwright: [src/tests/playwright/behavior/referenceCircles.spec.ts:60](../../../src/tests/playwright/behavior/referenceCircles.spec.ts#L60) — circle definitions create hidden controls, sort by radius, render saved geometry, and prune every reference (chromium).
+
+Playwright: [src/tests/playwright/behavior/missionPriorities.spec.ts:55](../../../src/tests/playwright/behavior/missionPriorities.spec.ts#L55) — mission priority traces sort, rename through actions/templates, block in-use deletion, and clean up after references are removed (chromium).
+
+Evidence boundary: The new browser matrix uses version-appropriate live panels. It checks required fields for v2 definition names/abbreviations and all wording labels/conjunctions, equipment name/quantity, v1 geography name/abbreviation, circle name/radius, mission-priority category/trace, and action-template name; invalid Save is disabled and each draft is canceled. It checks 10/5 character abbreviation limits, equipment quantity 1..999 boundaries, circle radius 1..9999999 boundaries, and duplicate priority-category rejection. Equipment duplicate names are supported: two same-name entries retain distinct UUIDs and the action continues referencing only the original UUID. Invalid attempts preserve saved reference lists and action/station/preset consumer maps. Existing behavior tests remain evidence for editing, downstream rendering/export, usage guards, and peer/reload persistence. The selected reference tab now falls back to Mission Preferences if changing action-system version removes that tab.

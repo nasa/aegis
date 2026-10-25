@@ -78,6 +78,9 @@ vi.mock("store/thunk/thunkRexPosEntry", () => ({
   thunkSetPosEntryEditLocation: vi.fn(() => ({
     type: "mock/thunkSetPosEntryEditLocation",
   })),
+  thunkUICancelPosEntryInEdit: vi.fn(() => ({
+    type: "mock/thunkUICancelPosEntryInEdit",
+  })),
 }));
 
 vi.mock("store/thunk/thunkTraverse", () => ({

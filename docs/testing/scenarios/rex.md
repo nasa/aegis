@@ -6,7 +6,7 @@ Fixture: Execution fixture: stopped Alpha PET +02:10:05 with position +01:55:05;
 
 Source: [src/components/panes/rex/rex-right-rex-info.tsx](../../../src/components/panes/rex/rex-right-rex-info.tsx), [src/store/thunk/thunkRex.ts](../../../src/store/thunk/thunkRex.ts), [src/components/interface/map/hooks/useRexPetTime.ts](../../../src/components/interface/map/hooks/useRexPetTime.ts).
 
-Scenario mapping: **25/27 (92.6%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **26/27 (96.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/rex_thunk.test.ts](../../../src/tests/vitest/store/thunks/rex_thunk.test.ts), [src/tests/vitest/map/useRexPetTime.test.tsx](../../../src/tests/vitest/map/useRexPetTime.test.tsx).
 
@@ -278,19 +278,27 @@ Evidence boundary: Positive/negative/zero, long-hour, overflow minute/second, fi
 
 ## REX-025: Server-time offset and clock skew
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Keep real server-time correction enabled; inject positive/negative skew and reconnect around PET boundaries.
 
 Expected: Displayed PET and position ages use the agreed server offset exactly once and remain coherent across clients.
 
-## REX-026: Simultaneous execution starts
+Playwright: [src/tests/playwright/behavior/executionClock90.spec.ts:262](../../../src/tests/playwright/behavior/executionClock90.spec.ts#L262) — real server-time correction applies once with positive client clock skew across PET boundary reconnect (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionClock90.spec.ts:262](../../../src/tests/playwright/behavior/executionClock90.spec.ts#L262) — real server-time correction applies once with negative client clock skew across PET boundary reconnect (chromium).
+
+Evidence boundary: Keeps real server status time correction active, injects +120s and -120s browser Date.now skew, compares PET and position-age displays against independent /api/v1/time windows before and after an hour-boundary crossing plus full socket reconnect, and verifies the measured client-minus-server offset after each connection.
+
+## REX-026: Simultaneous execution-start convergence
 
 **P0 · Gap**
 
 Action: Have two clients attempt to start different stopped REXes concurrently.
 
-Expected: The agreed single-active-execution invariant holds after synchronization and reload; any race is exposed explicitly.
+Expected: After synchronization and reload, both clients agree on persisted REX running/timing state and retain valid ownership references. Once a client observes another running REX, its existing start control gate applies.
+
+Evidence boundary: The UI gates starts using its currently observed document. This row tests concurrent convergence and that observed-state gate; it does not introduce a globally serialized single-winner guarantee. Such a guarantee would need a separate product decision and implementation contract.
 
 ## REX-027: Historical execution deletion and selected cleanup
 

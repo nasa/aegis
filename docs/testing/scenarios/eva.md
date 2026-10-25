@@ -6,7 +6,7 @@ Fixture: Two planned EVAs sharing a station, located lander, actions, traverses 
 
 Source: [src/components/panes/eva/eva-right.tsx](../../../src/components/panes/eva/eva-right.tsx), [src/operations/helpers/evaSequence.ts](../../../src/operations/helpers/evaSequence.ts), [src/operations/stage/stage-eva.ts](../../../src/operations/stage/stage-eva.ts).
 
-Scenario mapping: **10/13 (76.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **13/13 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/operations/helpers/evaSequence.test.ts](../../../src/tests/vitest/operations/helpers/evaSequence.test.ts), [src/tests/vitest/store/thunks/eva_thunk.test.ts](../../../src/tests/vitest/store/thunks/eva_thunk.test.ts).
 
@@ -76,19 +76,27 @@ Evidence boundary: Two active editors converge on explicit UTC saves without rep
 
 ## EVA-007: Add and replace itinerary stations
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Insert first/middle/last stations and replace a slot using existing, new and lander endpoints.
 
 Expected: The sequence alternates station/traverse, starts and ends at stations and creates exactly the needed paths.
 
+Playwright: [src/tests/playwright/behavior/evaItinerary90.spec.ts:368](../../../src/tests/playwright/behavior/evaItinerary90.spec.ts#L368) — adding and replacing itinerary stations keeps shared stations and owned traverse paths aligned (chromium).
+
+Evidence boundary: Uses a test-owned 64×32 synthetic GeoTIFF in EPSG:3857 with bounded station coordinates and known cell elevations. The real EVA editor adds three stations, reorders added slots to first/middle/last positions, replaces a shared station, uses shared and managed lander endpoints, and checks alternating sequence order, independently recomputed traverse paths/profiles, preserved shared station/action and other-EVA ownership, peer state, and reload persistence. The test removes its own raster after each run.
+
 ## EVA-008: Remove and reorder itinerary stations
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Move/remove first, interior and last slots with actions and active selections.
 
 Expected: Adjacent traverse endpoints and names reconcile; unused owned data is cleaned up; shared stations survive.
+
+Playwright: [src/tests/playwright/behavior/evaItinerary90.spec.ts:550](../../../src/tests/playwright/behavior/evaItinerary90.spec.ts#L550) — reordering and removing itinerary stations updates paths and cleans only owned traverse actions (chromium).
+
+Evidence boundary: Uses the same test-owned small synthetic GeoTIFF and known point elevations. The real editor adds stations, moves first/middle/last regular slots, selects and removes a shared station, removes interior and last regular slots, and verifies exact order, regenerated paths and independent profiles, deletion of an owned traverse action, survival/enabled state of shared and retained station actions, peer state, and reload persistence. The test removes its own raster after each run.
 
 ## EVA-009: Change egress and ingress
 
@@ -144,8 +152,12 @@ Evidence boundary: Known 6-minute EV1 station work and 5-minute EV2 traverse wor
 
 ## EVA-013: Sequence timeline selection and time preview
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Select sequence items and scrub planned time across station/traverse boundaries.
 
 Expected: Map/timeline use the selected EVA and time; editing sequence/duration refreshes the corresponding positions.
+
+Playwright: [src/tests/playwright/behavior/evaTimeline90.spec.ts:109](../../../src/tests/playwright/behavior/evaTimeline90.spec.ts#L109) — timeline selection and scrubbing preview the selected EVA and refresh after duration edits (chromium).
+
+Evidence boundary: Seeds distinct EVA start dates and traverse durations, previews station and traverse intervals through timeline hover, verifies astronaut map position from independently projected fixture coordinates, selects sequence rows for both EVAs and checks their distinct traverse durations, confirms view-only selection and hover do not write mission data, then edits Alpha station duration and checks the shifted timeline/map positions plus unrelated station/traverse/action/EVA values.

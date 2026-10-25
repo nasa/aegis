@@ -124,8 +124,11 @@ const MissionPrefsRight: FunctionComponent = () => {
     };
   }
 
+  const activeRightNavItem = panelTypes[selectedRightNavItem]
+    ? selectedRightNavItem
+    : "prefs_panel";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
+  const ActiveComponent: FunctionComponent<any> = panelTypes[activeRightNavItem].panel;
 
   return (
     <>
@@ -134,7 +137,7 @@ const MissionPrefsRight: FunctionComponent = () => {
       </div>
       <div className={paneStyles.rightSubTray}>
         <RightTabs
-          selectedRightNavItem={selectedRightNavItem}
+          selectedRightNavItem={activeRightNavItem}
           panelTypes={panelTypes}
           dispatchFunction={setSelectedMissionRightNavItem}
         />

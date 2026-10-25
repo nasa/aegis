@@ -6,7 +6,7 @@ Fixture: Planning mission with a located POI, source actions and stations refere
 
 Source: [src/components/panes/poi/poi-right.tsx](../../../src/components/panes/poi/poi-right.tsx), [src/operations/apply/apply-poi.ts](../../../src/operations/apply/apply-poi.ts).
 
-Scenario mapping: **7/8 (87.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **8/8 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/poi_thunk.test.ts](../../../src/tests/vitest/store/thunks/poi_thunk.test.ts).
 
@@ -52,11 +52,15 @@ Playwright: [src/tests/playwright/behavior/poiLifecycle.spec.ts:63](../../../src
 
 ## POI-005: POI location lifecycle
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Create/move/cancel/clear POI coordinates by map and supported fields; reload.
 
 Expected: Committed coordinates and elevation match the intended point; Cancel preserves the original; relative elevation and grid display recompute.
+
+Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:242](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L242) — POI location create, move, field edit, cancel, clear, and reload preserve the point contract (chromium).
+
+Evidence boundary: Copies the checked-in Apollo 14 golden GeoTIFF into this test's mission directory and writes a unique 41x41 named server grid under that mission's Data directory; both files are removed after the test. A direct terrain API sample independently verifies each persisted elevation. The test exercises map create/move/cancel/clear and coordinate-field edits, checks committed and canceled document state, rendered map geometry, relative elevation and grid-cell recomputation, and verifies values after reload.
 
 ## POI-006: POI metadata and icon
 
