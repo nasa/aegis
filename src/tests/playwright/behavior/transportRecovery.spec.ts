@@ -93,6 +93,8 @@ for (const failVersion of [false, true]) {
       original.stations[mission.ids.stationA]
     );
     await dialog.getByText("Cancel", { exact: true }).click();
+    await page.mouse.move(0, 0);
+    await expect(page.locator("#aegis-tooltip")).toBeHidden();
     await page.getByLabel("globalEditToggle", { exact: true }).click();
     await planningField(page, "Station").locator("..").click();
     await expect(page.locator("dialog[open]")).toHaveCount(0);
@@ -109,7 +111,7 @@ for (const failVersion of [false, true]) {
       .toBe("Saved while transport unavailable");
     await expect(planningField(page, "Station")).toHaveText("Alpha station");
     if (failVersion) {
-      await expect.poll(() => versionFailures, { timeout: 15000 }).toBeGreaterThanOrEqual(2);
+      await expect.poll(() => versionFailures).toBeGreaterThanOrEqual(2);
       expect(attempts).toBe(1);
       await expect(page).toHaveURL(new RegExp(`${mission.url}$`));
       holdReadiness = true;
