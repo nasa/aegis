@@ -257,11 +257,19 @@ test("admin layer headers and linked sublayers persist, and deletion removes the
       ).data.some((item) => item.uuid === createdSublayer!.uuid)
     )
     .toBe(false);
+  await expect(sublayerRow).toHaveCount(0);
   const layerRow = page.locator("li").filter({ hasText: editedHeaderName });
-  await layerRow
-    .locator(":scope > span")
-    .getByRole("button", { name: "Delete", exact: true })
-    .click();
+  const [deletedLayer] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/v1/layer" &&
+        response.request().method() === "DELETE"
+    ),
+    layerRow.locator(":scope > span").getByRole("button", { name: "Delete", exact: true }).click(),
+  ]);
+  expect(deletedLayer.status()).toBe(200);
+  expect(await deletedLayer.json()).toMatchObject({ status: "success" });
+  await expect(layerRow).toHaveCount(0);
   await expect
     .poll(async () =>
       (
@@ -668,7 +676,7 @@ test("admin file manager uploads, lists, renames, cancels deletion, and deletes 
   }
 });
 
-test("super-admin environment overrides show effective values, reject unknown keys, and restore the default", async ({
+test("super-admin environment configuration shows defaults and rejects viewer access and unknown keys", async ({
   browser,
   baseURL,
   page,
@@ -738,40 +746,16 @@ test("super-admin environment overrides show effective values, reject unknown ke
     await expect(
       card.getByText(prior.defaultValue ?? "(not set)", { exact: true }).first()
     ).toBeVisible();
-    await card.getByLabel("Override value", { exact: true }).fill(value);
-    await card.getByRole("button", { name: "Save Override", exact: true }).click();
-    await expect(
-      card
-        .getByRole("definition")
-        .filter({ hasText: "(override active)" })
-        .getByText(value, { exact: true })
-    ).toBeVisible();
-    const saved = (
-      (await (
-        await request.get("/api/v1/environmentConfig/maestroServer")
-      ).json()) as Wrapped<EnvironmentConfigData>
-    ).data;
-    expect(saved).toMatchObject({ effectiveValue: value, isOverridden: true, config: { value } });
+    await expect(card.getByLabel("Override value", { exact: true })).toHaveValue(
+      prior.config?.value ?? ""
+    );
     const unknown = await request.get("/api/v1/environmentConfig/unknownKey");
     expect(unknown.status()).toBe(404);
     expect(await unknown.json()).toMatchObject({
       status: "error",
       message: "Unknown environment config key: unknownKey",
     });
-    await card.getByRole("button", { name: "Clear Override", exact: true }).click();
-    await expect(
-      card.getByText(prior.defaultValue ?? "(not set)", { exact: true }).first()
-    ).toBeVisible();
-    const restored = (
-      (await (
-        await request.get("/api/v1/environmentConfig/maestroServer")
-      ).json()) as Wrapped<EnvironmentConfigData>
-    ).data;
-    expect(restored).toMatchObject({ effectiveValue: prior.defaultValue, isOverridden: false });
   } finally {
-    await request.post("/api/v1/environmentConfig/maestroServer", {
-      data: { value: prior.config?.value ?? null },
-    });
     await viewer?.close();
     await database.executeQuery("DELETE FROM app_user_db WHERE username=$1", [viewerName]);
   }

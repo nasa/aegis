@@ -6,20 +6,20 @@
   "overall": {
     "total": 260,
     "eligible": 253,
-    "mapped": 253,
-    "partial": 0,
+    "mapped": 252,
+    "partial": 1,
     "gap": 0,
     "external": 7,
-    "percent": 100
+    "percent": 99.6
   },
   "critical": {
     "total": 151,
     "eligible": 146,
-    "mapped": 146,
-    "partial": 0,
+    "mapped": 145,
+    "partial": 1,
     "gap": 0,
     "external": 5,
-    "percent": 100
+    "percent": 99.3
   },
   "areas": [
     {
@@ -258,11 +258,11 @@
       "name": "Administrative mission, user, file and diagnostic flows",
       "total": 10,
       "eligible": 10,
-      "mapped": 10,
-      "partial": 0,
+      "mapped": 9,
+      "partial": 1,
       "gap": 0,
       "external": 0,
-      "percent": 100
+      "percent": 90
     },
     {
       "id": "integration",

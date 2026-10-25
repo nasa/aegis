@@ -66,7 +66,7 @@ export const sessionMiddleware = cookieSession({
 });
 app.use(sessionMiddleware);
 // static asset passthrough for dev. This path is relative to the esbuild output dir (.local/express/dist/api)
-app.use("/static", express.static(path.join(__dirname, `../../../../${process.env.STATIC_DIR}`)));
+app.use("/static", express.static(path.resolve(__dirname, "../../../..", process.env.STATIC_DIR)));
 
 // Mikro-ORM RequestContext should be last middleware before routes
 // <https://mikro-orm.io/docs/identity-map#request-context>

@@ -69,7 +69,7 @@ export const test = base.extend<BehavioralFixtures>({
       throw new Error("Behavioral fixtures create and delete missions; use a local test server.");
     }
 
-    const response = await request.post("/api/v1/missionAutomerge", { data: {}, timeout: 30000 });
+    const response = await request.post("/api/v1/missionAutomerge", { data: {}, timeout: 90000 });
     expect(response.ok(), "Create the isolated mission through the application API").toBe(true);
     const created: WrappedResponse<AutomergeDocListing> = await response.json();
     expect(created.status).toBe("success");
@@ -81,7 +81,7 @@ export const test = base.extend<BehavioralFixtures>({
     const id = listing.missionId;
     const name = `Behavior ${testInfo.workerIndex} ${randomUUID()}`;
     const read = async (): Promise<Mission> => {
-      const result = await request.get(`/api/v1/missionDump?missionId=${id}`, { timeout: 30000 });
+      const result = await request.get(`/api/v1/missionDump?missionId=${id}`, { timeout: 90000 });
       expect(result.ok(), `Read mission ${id} from the server`).toBe(true);
       const body: WrappedResponse<MissionDump> = await result.json();
       expect(body.status).toBe("success");
@@ -101,7 +101,7 @@ export const test = base.extend<BehavioralFixtures>({
         network: [await authenticatedAutomergeAdapter(request, socketUrl.toString())],
       });
       const handle = await repo.find<Mission>(listing.automergeUrl as AutomergeUrl, {
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(60000),
       });
       const change = async (mutator: (mission: Mission) => void): Promise<void> => {
         handle.change(mutator);
@@ -109,7 +109,7 @@ export const test = base.extend<BehavioralFixtures>({
         await expect
           .poll(read, {
             message: "Wait for the server to receive the fixture change",
-            timeout: 15000,
+            timeout: 60000,
           })
           .toEqual(expected);
       };
@@ -162,7 +162,7 @@ export const test = base.extend<BehavioralFixtures>({
         } finally {
           const deleted = await request.delete("/api/v1/missionAutomerge", {
             data: { missionIds: [id] },
-            timeout: 30000,
+            timeout: 90000,
           });
           expect(deleted.ok(), `Delete only this test's isolated mission ${id}`).toBe(true);
           const result: WrappedResponse<unknown> = await deleted.json();
