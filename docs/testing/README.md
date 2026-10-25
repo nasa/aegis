@@ -1,24 +1,9 @@
 # AEGIS tracked scenarios and Playwright coverage
 
-**Continuing the test work? Read the [resume handoff](RESUME.md) first** for the
-last validated checkpoint, reviewed scope, next scenario batches and commands.
-
 Start with the [coverage report](coverage.md). It links every scenario family,
 shows the percentage with a complete reviewed Playwright mapping, and lists every
 discovered browser test and registered UI/HTTP surface. The machine-readable
 [summary](coverage-summary.json) contains the same counts for dashboards or CI.
-
-The latest mapping review is recorded in the [coverage-closure review](runs/2026-10-25-mapping-closure-review.md).
-It records the current catalog evidence and explicitly separates mapping from
-executed browser results. The latest full browser result is in the
-[100% coverage validation note](runs/2026-10-25-full-coverage-validation.md).
-Earlier executed checkpoints remain in the
-[ninety-percent validation note](runs/2026-10-25-ninety-percent-coverage.md).
-
-The [sixty-percent record](runs/2026-10-25-sixty-percent-coverage.md) preserves the prior checkpoint.
-The [expanded coverage](runs/2026-10-24-expanded-coverage.md),
-[position](runs/2026-10-24-positions.md) and
-[earlier behavior](runs/2026-10-24-behavior.md) records preserve prior evidence.
 
 The [scenario catalog](scenario-catalog.json) is the editable source of truth.
 Generated scenario chapters live in [scenarios/](scenarios). The existing

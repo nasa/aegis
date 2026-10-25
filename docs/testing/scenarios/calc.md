@@ -100,9 +100,9 @@ Action: Use known lunar/Earth point pairs and disjoint elevation segments near t
 
 Expected: Distances/bearings use the intended sphere/CRS; ascent/descent do not bridge disconnected segments.
 
-Playwright: [src/tests/playwright/behavior/geodesyTerrain90.spec.ts:176](../../../src/tests/playwright/behavior/geodesyTerrain90.spec.ts#L176) — Earth measurement geodesy matches a known pair near the pole (chromium).
+Playwright: [src/tests/playwright/behavior/geodesyTerrain.spec.ts:176](../../../src/tests/playwright/behavior/geodesyTerrain.spec.ts#L176) — Earth measurement geodesy matches a known pair near the pole (chromium).
 
-Playwright: [src/tests/playwright/behavior/geodesyTerrain90.spec.ts:176](../../../src/tests/playwright/behavior/geodesyTerrain90.spec.ts#L176) — Moon measurement geodesy matches a known pair near the pole (chromium).
+Playwright: [src/tests/playwright/behavior/geodesyTerrain.spec.ts:176](../../../src/tests/playwright/behavior/geodesyTerrain.spec.ts#L176) — Moon measurement geodesy matches a known pair near the pole (chromium).
 
 Evidence boundary: Creates real UI measurements by dragging to known points near 89.9 degrees latitude, independently checks their CRS-transformed coordinates, spherical distances and bearings using Earth and lunar radii, then verifies the traverse UI totals only the within-segment elevation changes (15 m ascent, 10 m descent) across three disconnected segments.
 

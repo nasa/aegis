@@ -1,7 +1,7 @@
 # AEGIS browser behavior contracts
 
-For the current checkpoint and next coverage batch, start with the
-[resume handoff](../../../docs/testing/RESUME.md).
+For the scenario catalog, coverage report and maintenance commands, start with the
+[scenario coverage guide](../../../docs/testing/README.md).
 
 The `behavior/` suite describes observable application behavior across states and
 transitions. It runs the actual React application, API, PostgreSQL persistence,

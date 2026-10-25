@@ -100,7 +100,7 @@ Action: Put shared stations/actions and multiple execution copies into a campaig
 
 Expected: Counts/mass/science coverage use the intended lineage and aggregation rules without double-counting shared members.
 
-Playwright: [src/tests/playwright/behavior/reportAggregation90.spec.ts:28](../../../src/tests/playwright/behavior/reportAggregation90.spec.ts#L28) — campaign aggregates count shared action lineage once per member and one chosen REX per EVA (chromium).
+Playwright: [src/tests/playwright/behavior/reportAggregation.spec.ts:28](../../../src/tests/playwright/behavior/reportAggregation.spec.ts#L28) — campaign aggregates count shared action lineage once per member and one chosen REX per EVA (chromium).
 
 Evidence boundary: Verifies independent known action counts and planned masses for Alpha and Bravo and their campaign, plus actual sample masses from the explicitly selected REX per member. A second Alpha REX has a distinct known mass and is excluded from the campaign aggregate; the persisted campaign selection and mission remain unchanged.
 
@@ -112,7 +112,7 @@ Action: Use a tiny known hierarchy/rule set with planned, complete, skipped, dis
 
 Expected: Cells, tuple counts, satisfied flags and totals match the known fixture across plan/REX/campaign scopes.
 
-Playwright: [src/tests/playwright/behavior/stmReports90.spec.ts:264](../../../src/tests/playwright/behavior/stmReports90.spec.ts#L264) — STM coverage totals and satisfaction follow independent plan, REX, and campaign fixtures (chromium).
+Playwright: [src/tests/playwright/behavior/stmReports.spec.ts:264](../../../src/tests/playwright/behavior/stmReports.spec.ts#L264) — STM coverage totals and satisfaction follow independent plan, REX, and campaign fixtures (chromium).
 
 Evidence boundary: A tiny known hierarchy and two rules are checked across both plans, their selected REXes, and explicit campaign planned/executed scopes. Known tuple counts and rule satisfaction are verified with exact, skipped, disabled, and incomplete-definition actions under all, completeOnly, and notSkipped filters.
 
@@ -124,7 +124,7 @@ Action: Expand coverage cells and follow matched/unmatched action links under fi
 
 Expected: Drilldown includes exactly the contributing actions and opens the correct parent/plan/REX without changing mission data.
 
-Playwright: [src/tests/playwright/behavior/stmReports90.spec.ts:343](../../../src/tests/playwright/behavior/stmReports90.spec.ts#L343) — STM drilldown expands sequence counts and scopes matched and unmatched rules to the selected plan or REX (chromium).
+Playwright: [src/tests/playwright/behavior/stmReports.spec.ts:343](../../../src/tests/playwright/behavior/stmReports.spec.ts#L343) — STM drilldown expands sequence counts and scopes matched and unmatched rules to the selected plan or REX (chromium).
 
 Evidence boundary: Expands plan sequence counts; opens the Alpha REX and Bravo plan cells; checks per-rule matches, zero-match rules, displayed matched tuples, status-filter updates, campaign executed drilldown, and unchanged mission data.
 
@@ -136,7 +136,7 @@ Action: Link a POI without adoption, adopt one action into two stations, duplica
 
 Expected: Trace rows distinguish association from adoption and follow concrete UUIDs and lineage to the correct planned/executed actions.
 
-Playwright: [src/tests/playwright/behavior/reportTraceability90.spec.ts:41](../../../src/tests/playwright/behavior/reportTraceability90.spec.ts#L41) — POI lineage distinguishes links, station adoptions, and a duplicated execution by UUID (chromium).
+Playwright: [src/tests/playwright/behavior/reportTraceability.spec.ts:41](../../../src/tests/playwright/behavior/reportTraceability.spec.ts#L41) — POI lineage distinguishes links, station adoptions, and a duplicated execution by UUID (chromium).
 
 Evidence boundary: UI links Reference POI to Alpha, confirms the linked-but-unadopted report state, adopts the source action into Alpha and Bravo, duplicates Survey Alpha with stations, adds a REX, completes one executed copy, and asserts displayed branches against independent POI/action/station/EVA/REX UUID lineage. Bravo is shared with Survey Bravo, so its adoption is represented in both planned EVA branches.
 
@@ -148,7 +148,7 @@ Action: Change action status, executed mass and sample identifiers with missing/
 
 Expected: Trace badges, counts and drilldown reflect the correct execution entry without treating missing as zero.
 
-Playwright: [src/tests/playwright/behavior/reportAggregation90.spec.ts:142](../../../src/tests/playwright/behavior/reportAggregation90.spec.ts#L142) — POI trace shows each execution status and preserves zero, missing mass, and sample IDs (chromium).
+Playwright: [src/tests/playwright/behavior/reportAggregation.spec.ts:142](../../../src/tests/playwright/behavior/reportAggregation.spec.ts#L142) — POI trace shows each execution status and preserves zero, missing mass, and sample IDs (chromium).
 
 Evidence boundary: Shows completed, in-progress, and skipped statuses for exact planned adoption branches. Read-only execution previews assert zero versus absent mass and exact marker, primary-container, and secondary-container IDs against the seeded REX entries, then confirm mission data is unchanged.
 
@@ -174,6 +174,6 @@ Action: Open all reports as viewer/editor, update rules/campaigns/actions remote
 
 Expected: Read-only reports stay non-mutating and every supported live dependency refreshes for the current scope.
 
-Playwright: [src/tests/playwright/behavior/reportCollaboration90.spec.ts:50](../../../src/tests/playwright/behavior/reportCollaboration90.spec.ts#L50) — viewer reports stay read-only while rules, campaigns, and actions refresh live and after reload (chromium).
+Playwright: [src/tests/playwright/behavior/reportCollaboration.spec.ts:50](../../../src/tests/playwright/behavior/reportCollaboration.spec.ts#L50) — viewer reports stay read-only while rules, campaigns, and actions refresh live and after reload (chromium).
 
 Evidence boundary: A view-only user opens Comparison, STM Coverage, and POI Traceability without campaign write controls. The editor changes the selected rule, creates an Alpha campaign, and edits the adopted action; the viewer sees campaign columns/known action-time totals, updated rule coverage, and POI action details live and after reload. The viewer visit leaves the mission unchanged.

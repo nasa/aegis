@@ -126,11 +126,11 @@ Action: Exercise required, duplicate, abbreviation length, radius minimum and nu
 
 Expected: Invalid values cannot replace saved values; Cancel preserves both lists and downstream consumers.
 
-Playwright: [src/tests/playwright/behavior/referenceValidation90.spec.ts:87](../../../src/tests/playwright/behavior/referenceValidation90.spec.ts#L87) — reference lists reject invalid required, duplicate, abbreviation and numeric drafts without changing consumers (chromium).
+Playwright: [src/tests/playwright/behavior/referenceValidation.spec.ts:87](../../../src/tests/playwright/behavior/referenceValidation.spec.ts#L87) — reference lists reject invalid required, duplicate, abbreviation and numeric drafts without changing consumers (chromium).
 
-Playwright: [src/tests/playwright/behavior/referenceValidation90.spec.ts:291](../../../src/tests/playwright/behavior/referenceValidation90.spec.ts#L291) — geographic unit required and abbreviation boundaries preserve saved consumers (chromium).
+Playwright: [src/tests/playwright/behavior/referenceValidation.spec.ts:291](../../../src/tests/playwright/behavior/referenceValidation.spec.ts#L291) — geographic unit required and abbreviation boundaries preserve saved consumers (chromium).
 
-Playwright: [src/tests/playwright/behavior/referenceValidation90.spec.ts:325](../../../src/tests/playwright/behavior/referenceValidation90.spec.ts#L325) — mission reference navigation falls back when an action version removes the selected tab (chromium).
+Playwright: [src/tests/playwright/behavior/referenceValidation.spec.ts:325](../../../src/tests/playwright/behavior/referenceValidation.spec.ts#L325) — mission reference navigation falls back when an action version removes the selected tab (chromium).
 
 Playwright: [src/tests/playwright/behavior/referenceData.spec.ts:65](../../../src/tests/playwright/behavior/referenceData.spec.ts#L65) — v2 definition entries and wording edit, reject invalid drafts, and persist together (chromium).
 

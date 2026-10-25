@@ -32,7 +32,7 @@ Action: On original station/traverse/actions attempt duration/path/sequence/crew
 
 Expected: Only the declared limited-mode operations succeed; blocked mutations leave persisted data unchanged after reload.
 
-Playwright: [src/tests/playwright/behavior/limitedPolicy90.spec.ts:35](../../../src/tests/playwright/behavior/limitedPolicy90.spec.ts#L35) — limited mode edits original station and traverse duration/path/sequence while blocking protected fields (chromium).
+Playwright: [src/tests/playwright/behavior/limitedPolicy.spec.ts:35](../../../src/tests/playwright/behavior/limitedPolicy.spec.ts#L35) — limited mode edits original station and traverse duration/path/sequence while blocking protected fields (chromium).
 
 Playwright: [src/tests/playwright/behavior/executionPolicy.spec.ts:277](../../../src/tests/playwright/behavior/executionPolicy.spec.ts#L277) — limited execution permits crew and enabled changes but protects original action wording, duration and deletion (chromium).
 
@@ -46,7 +46,7 @@ Action: Add stations/traverses/actions during limited execution and edit/duplica
 
 Expected: Added-entity exemptions work within limited mode and do not affect original entities or planning copies.
 
-Playwright: [src/tests/playwright/behavior/limitedPolicy90.spec.ts:101](../../../src/tests/playwright/behavior/limitedPolicy90.spec.ts#L101) — limited additions register editable station/traverse/actions and cleanly delete their copies (chromium).
+Playwright: [src/tests/playwright/behavior/limitedPolicy.spec.ts:101](../../../src/tests/playwright/behavior/limitedPolicy.spec.ts#L101) — limited additions register editable station/traverse/actions and cleanly delete their copies (chromium).
 
 Evidence boundary: Limited REX UI adds an EVA station slot from a spare planning station, verifies added station/traverse registration, edits station name/duration/location and traverse path/duration, creates/edits/duplicates/deletes an action, then removes the added station/traverse and confirms planning entities are unchanged.
 
@@ -58,9 +58,9 @@ Action: Repeat protected operations under None and Unrestricted and on the origi
 
 Expected: None blocks applicable edits including added entities; unrestricted works; planned/POI scope follows ordinary permissions.
 
-Playwright: [src/tests/playwright/behavior/policyScopes90.spec.ts:71](../../../src/tests/playwright/behavior/policyScopes90.spec.ts#L71) — None blocks original and added REX action edits (chromium).
+Playwright: [src/tests/playwright/behavior/policyScopes.spec.ts:71](../../../src/tests/playwright/behavior/policyScopes.spec.ts#L71) — None blocks original and added REX action edits (chromium).
 
-Playwright: [src/tests/playwright/behavior/policyScopes90.spec.ts:111](../../../src/tests/playwright/behavior/policyScopes90.spec.ts#L111) — Unrestricted mode edits and duplicates/deletes a protected original action (chromium).
+Playwright: [src/tests/playwright/behavior/policyScopes.spec.ts:111](../../../src/tests/playwright/behavior/policyScopes.spec.ts#L111) — Unrestricted mode edits and duplicates/deletes a protected original action (chromium).
 
 Playwright: [src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts:117](../../../src/tests/playwright/behavior/actionParentMatrixCoverage.spec.ts#L117) — poi action creation, editing, duplication and deletion preserve exact parent ownership (chromium).
 
@@ -76,7 +76,7 @@ Action: Reorder/remove original and added actions under original and newly added
 
 Expected: Original letters follow action identity, removed letters do not compact, and new-parent labels use the correct added numbering.
 
-Playwright: [src/tests/playwright/behavior/policyScopes90.spec.ts:155](../../../src/tests/playwright/behavior/policyScopes90.spec.ts#L155) — limited action letters follow identity across reorder, removal, new parent, restart and reload (chromium).
+Playwright: [src/tests/playwright/behavior/policyScopes.spec.ts:155](../../../src/tests/playwright/behavior/policyScopes.spec.ts#L155) — limited action letters follow identity across reorder, removal, new parent, restart and reload (chromium).
 
 Evidence boundary: Limited REX UI action rows show baseline letters attached to action identities across drag reorder; removal of a middle baseline UUID preserves the surviving letter gap, added actions on an original parent take subsequent letters, and an added parent uses 0+ positional labels through reorder/removal. Stop/restart, reload and persisted order/state retain those labels and ownership.
 
@@ -118,6 +118,6 @@ Action: Receive 100-percent crew completion and compare stored status, sequence 
 
 Expected: Displayed completion follows the integration contract without silently rewriting stored status.
 
-Playwright: [src/tests/playwright/behavior/executionClock90.spec.ts:184](../../../src/tests/playwright/behavior/executionClock90.spec.ts#L184) — Maestro 100 percent crew completion overrides display while retaining the stored status (chromium).
+Playwright: [src/tests/playwright/behavior/executionClock.spec.ts:184](../../../src/tests/playwright/behavior/executionClock.spec.ts#L184) — Maestro 100 percent crew completion overrides display while retaining the stored status (chromium).
 
 Evidence boundary: A real Maestro MDAU supplies pending status with 100 percent completion for both crew. The execution row shows the Complete tooltip and completed name color, the dashboard activity uses the completed color, and persisted status remains pending.
