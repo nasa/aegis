@@ -86,15 +86,15 @@ Playwright: [src/tests/playwright/behavior/measurementTerrain.spec.ts:360](../..
 
 Evidence boundary: Uses deterministic profile values to verify path-grade and terrain-slope hover values diverge for uphill and downhill segments, signed path grades use magnitude for the rendered class, and the terrain band honors each inclusive threshold and just-over value from 2° through 20°.
 
-## MEASURE-007: Slope gaps and colorblind rendering parity
+## MEASURE-007: Slope gaps and colorblind graph/key behavior
 
 **P1 · Mapped**
 
-Fixture: Known profile with null samples, disconnected intervals and valid shallow/steep sections plus representative slope raster.
+Fixture: Known profile with null samples, disconnected intervals, and valid shallow/steep sections.
 
-Action: Render null sample intervals and zero-length/broken segments; toggle standard/colorblind modes and compare map/graph/key.
+Action: Render null sample intervals and zero-length/broken segments; toggle standard/colorblind modes and inspect the terrain graph and slope key.
 
-Expected: No-data intervals stay transparent without bridging; standard and seven-class colorblind ramps follow their documented graph/raster shallow-slope treatment, and hazards above 20 degrees keep the intended class.
+Expected: No-data intervals remain gaps without bridging; signed path grades and terrain slopes follow their documented color boundaries. The key retains readable slope labels and distinct standard/colorblind palettes.
 
 Playwright: [src/tests/playwright/behavior/terrainDem.spec.ts:180](../../../src/tests/playwright/behavior/terrainDem.spec.ts#L180) — golden terrain samples and a no-data break match the displayed segmented profile (chromium).
 
@@ -102,9 +102,9 @@ Playwright: [src/tests/playwright/behavior/measurementTerrain.spec.ts:296](../..
 
 Playwright: [src/tests/playwright/behavior/measurementTerrain.spec.ts:360](../../../src/tests/playwright/behavior/measurementTerrain.spec.ts#L360) — signed path grades stay distinct from terrain slope at inclusive color boundaries (chromium).
 
-Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:795](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L795) — slope GeoTIFF preserves transparent shallow/no-data cells and the shared >20° hazard color (chromium, firefox, webkit).
+Playwright: [src/tests/playwright/behavior/rasterDisplay.spec.ts:703](../../../src/tests/playwright/behavior/rasterDisplay.spec.ts#L703) — timeline slope legend preserves labels and distinct colorblind palettes (chromium, firefox, webkit).
 
-Evidence boundary: Existing terrain graph coverage asserts segmented no-data gaps, shallow classes and hazard/key boundaries; the known synthetic slope GeoTIFF adds rendered map pixels for transparent shallow and no-data cells plus the shared middle and >20° hazard colors, with layer visibility confirming the transparent underlay.
+Evidence boundary: Terrain graph checks cover segmented no-data gaps, shallow classes, and hazard/key boundaries. The cross-browser timeline key checks slope labels and distinct standard/colorblind palettes.
 
 ## MEASURE-008: Slope key dialog and shared preference
 
