@@ -209,10 +209,10 @@ type TraverseUpdateStageData = {
  */
 type StationLocationUpdateStageData = {
   stationUuid: string;
-  newLocation: AEGISPoint;
+  newLocation: AEGISPoint | null;
   newElevation: number | null;
-  newWalkbackPath: AEGISPoint[];
-  newWalkbackPathSegmentDistances: number[];
+  newWalkbackPath: AEGISPoint[] | null;
+  newWalkbackPathSegmentDistances: number[] | null;
   newWalkbackPathSegmentElevations: number[][] | null;
   /** All adjacent EVA sequence traverses to update. */
   traverseUpdates: TraverseUpdateStageData[];

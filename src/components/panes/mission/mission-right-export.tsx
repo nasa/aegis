@@ -1,6 +1,7 @@
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
+import reportStyles from "../report.module.css";
 import missionStyles from "./mission.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faFileExport } from "@fortawesome/free-solid-svg-icons";
@@ -20,34 +21,40 @@ const Export_panel: FunctionComponent = () => {
   const [selectActions, setSelectActions] = useState(false);
   const [selectTraverses, setSelectTraverses] = useState(false);
   const [selectRexes, setSelectRexes] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const exportFile = async () => {
-    const output = makeExportString({
-      mission,
-      selectEvas,
-      selectMission,
-      selectPois,
-      selectStations,
-      selectActions,
-      selectTraverses,
-      selectRexes,
-    });
+    setExportError("");
+    try {
+      const output = makeExportString({
+        mission,
+        selectEvas,
+        selectMission,
+        selectPois,
+        selectStations,
+        selectActions,
+        selectTraverses,
+        selectRexes,
+      });
 
-    const element = document.createElement("a");
-    const file = new Blob([output], { type: "text/json" });
-    element.href = URL.createObjectURL(file);
-    let filename = `${missionName}_`;
-    if (selectEvas) filename += "evas_";
-    if (selectMission) filename += "mission_";
-    if (selectPois) filename += "pois_";
-    if (selectStations) filename += "stations_";
-    if (selectActions) filename += "actions_";
-    if (selectTraverses) filename += "traverses_";
-    if (selectRexes) filename += "rexes_";
-    filename += "export.json";
-    element.download = filename;
-    document.body.appendChild(element); // Required for this to work in FireFox
-    element.click();
+      const element = document.createElement("a");
+      const file = new Blob([output], { type: "text/json" });
+      element.href = URL.createObjectURL(file);
+      let filename = `${missionName}_`;
+      if (selectEvas) filename += "evas_";
+      if (selectMission) filename += "mission_";
+      if (selectPois) filename += "pois_";
+      if (selectStations) filename += "stations_";
+      if (selectActions) filename += "actions_";
+      if (selectTraverses) filename += "traverses_";
+      if (selectRexes) filename += "rexes_";
+      filename += "export.json";
+      element.download = filename;
+      document.body.appendChild(element); // Required for this to work in Firefox
+      element.click();
+    } catch {
+      setExportError("Export failed. Please try again.");
+    }
   };
 
   return (
@@ -128,6 +135,11 @@ const Export_panel: FunctionComponent = () => {
                   exportFile();
                 }}
               />
+              {exportError && (
+                <p className={reportStyles.error} role="alert">
+                  {exportError}
+                </p>
+              )}
             </div>
           </div>
         </div>

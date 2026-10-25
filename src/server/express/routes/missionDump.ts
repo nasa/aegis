@@ -51,6 +51,13 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const missionData = await dumpMissionData(queryObj.missionId);
+    if (!missionData.missionData.mission) {
+      res.status(404).json({
+        status: "failure",
+        message: `Mission ${queryObj.missionId} not found`,
+      });
+      return;
+    }
 
     // Always return a wrapped response with the dump data
     res.status(200).json({

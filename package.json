@@ -28,6 +28,7 @@
     "test:playwright:ci": "playwright test --config=./src/tests/playwright/playwright.config.ts --shard=$SHARD_INDEX/$NUM_SHARDS",
     "test:playwright:ui": "playwright test --config ./src/tests/playwright/playwright.config.ts --ui",
     "test:playwright:scenarios": "node scripts/playwright-scenarios.mjs --check",
+    "test:playwright:scenarios:90": "node scripts/playwright-scenarios.mjs --check --minimum=90",
     "test:playwright:scenarios:complete": "node scripts/playwright-scenarios.mjs --check --require-complete",
     "docs:playwright-scenarios": "node scripts/playwright-scenarios.mjs --write",
     "test:loadtest:build": "node ./src/tests/loadTest/esbuild.loadtest.mjs",

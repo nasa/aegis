@@ -10,7 +10,7 @@ import { PathColorPickerMenu, Button } from "../form/globalFields";
 import { upsertMeasurementByField } from "store/measure";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import { updateMapDirective } from "store/map";
+import { setOriginalPoints, updateMapDirective } from "store/map";
 import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
@@ -21,6 +21,8 @@ import {
   calculateWindowedPathSlopes,
 } from "utils/paper";
 import SlopeLegend from "../slope-legend";
+
+const TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS = -1_100_101;
 
 const initHoverValues: MeasureHoverValues = {
   totalDistanceMeters: null,
@@ -51,6 +53,13 @@ const Measure: FunctionComponent = () => {
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
   const slopeColorMode = useAppSelector((state) => state.interface.slopeColorMode, refEqual);
+  const elevationPending = useAppSelector(
+    (state) =>
+      selectedMeasurement
+        ? state.interface.elevationPendingItemUuids.includes(selectedMeasurement.uuid)
+        : false,
+    refEqual
+  );
 
   const [hoverValues, setHoverValues] = useState<MeasureHoverValues>(initHoverValues);
 
@@ -172,6 +181,7 @@ const Measure: FunctionComponent = () => {
   }, [drawMeasurement]);
 
   const handlePathEdit = () => {
+    dispatch(setOriginalPoints(selectedMeasurement.path));
     dispatch(
       updateMapDirective({
         uuid: selectedMeasurement.uuid,
@@ -238,6 +248,13 @@ const Measure: FunctionComponent = () => {
         <div className={styles.measureBodyRightContainer}>
           <MeasureTabs />
           <div className={styles.measureCanvasContainer}>
+            {selectedMeasurement &&
+              !selectedMeasurement.pathSegmentElevations &&
+              !elevationPending && (
+                <div className={styles.terrainProfileUnavailable} role="status">
+                  Terrain profile unavailable. Check the DEM or try again.
+                </div>
+              )}
             <canvas ref={canvas} data-paper-resize />
           </div>
         </div>
@@ -305,9 +322,16 @@ function initMeasurePaperRefs(
   // make elevations relative to the start elevation
   // Guard against null/undefined elevations (e.g. during drag before elevation fetch completes)
   const safeElevations = pathSegmentElevations ?? [];
-  const startElevation = safeElevations.length > 0 ? safeElevations[0][0] : 0;
+  const startElevation =
+    safeElevations
+      .flat()
+      .find((elevation) => elevation !== TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS) ?? 0;
   measureDerivedValuesRef.current.relativeElevationsMeters = safeElevations.map((segment) =>
-    segment.map((elevation) => elevation - startElevation)
+    segment.map((elevation) =>
+      elevation === TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS
+        ? elevation
+        : elevation - startElevation
+    )
   );
 
   //find max/min of elevation
@@ -317,14 +341,15 @@ function initMeasurePaperRefs(
 
   for (const elevationSegment of measureDerivedValuesRef.current.relativeElevationsMeters) {
     for (const elevation of elevationSegment) {
+      if (elevation === TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS) continue;
       if (
-        !measureDerivedValuesRef.current.maxElevationMeters ||
+        measureDerivedValuesRef.current.maxElevationMeters === null ||
         measureDerivedValuesRef.current.maxElevationMeters < elevation
       ) {
         measureDerivedValuesRef.current.maxElevationMeters = elevation;
       }
       if (
-        !measureDerivedValuesRef.current.minElevationMeters ||
+        measureDerivedValuesRef.current.minElevationMeters === null ||
         measureDerivedValuesRef.current.minElevationMeters > elevation
       ) {
         measureDerivedValuesRef.current.minElevationMeters = elevation;
@@ -408,19 +433,32 @@ function calcElevationGraphValues(
   const graphData_elevation: GraphDataItem[] = [];
   if (!pathSegmentElevations || pathSegmentElevations.length === 0) return graphData_elevation;
   const profile = buildDistanceElevationProfile(pathSegmentElevations, pathSegmentDistances ?? []);
-  const slopes = calculateWindowedPathSlopes(profile);
+  const profileRuns: (typeof profile)[] = [[]];
+  for (const sample of profile) {
+    if (sample.elevationMeters === TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS) {
+      if (profileRuns.at(-1)?.length) profileRuns.push([]);
+      continue;
+    }
+    profileRuns.at(-1)!.push(sample);
+  }
 
-  for (const [index, { distanceMeters, elevationMeters }] of profile.entries()) {
-    graphData_elevation.push({
-      xPixel: xLocStart + distanceMeters * paperVars.pixelsPerMeterDistanceX,
-      yPixel:
-        paperVars.drawingTop +
-        (measureDerivedValuesRef.current.maxElevationMeters - elevationMeters) *
-          paperVars.pixelsPerMeterElevationY,
-      val: elevationMeters,
-      distanceMeters,
-      slopeDegrees: slopes[index],
-    });
+  for (const [runIndex, run] of profileRuns.entries()) {
+    if (run.length === 0) continue;
+    const slopes = calculateWindowedPathSlopes(run);
+    for (const [index, { distanceMeters, elevationMeters }] of run.entries()) {
+      graphData_elevation.push({
+        xPixel: xLocStart + distanceMeters * paperVars.pixelsPerMeterDistanceX,
+        yPixel:
+          paperVars.drawingTop +
+          (measureDerivedValuesRef.current.maxElevationMeters - elevationMeters) *
+            paperVars.pixelsPerMeterElevationY,
+        val: elevationMeters,
+        distanceMeters,
+        slopeDegrees:
+          runIndex > 0 && index === 0 ? null : index === run.length - 1 ? null : slopes[index],
+        breakBefore: runIndex > 0 && index === 0,
+      });
+    }
   }
   return graphData_elevation;
 }

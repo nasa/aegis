@@ -6,7 +6,7 @@ Fixture: Two independent browser contexts for the same authorized test user and 
 
 Source: [src/client/automerge-network-adapter.ts](../../../src/client/automerge-network-adapter.ts), [src/client/automergeDocHandles.ts](../../../src/client/automergeDocHandles.ts), [src/server/automerge](../../../src/server/automerge).
 
-Scenario mapping: **9/14 (64.3%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **10/14 (71.4%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts](../../../src/tests/vitest/utils/versionGatedNetworkAdapter.test.ts), [src/tests/vitest/automerge/integrityCheck.test.ts](../../../src/tests/vitest/automerge/integrityCheck.test.ts).
 
@@ -90,11 +90,11 @@ Evidence boundary: Independent clients submit conflicting names/descriptions; on
 
 Action: Observe entity graph while a peer duplicates/deletes EVA/REX/station/action trees.
 
-Expected: Each logical atomic operation exposes valid ownership/order references; no peer observes half-built or orphan graphs.
+Expected: Peer document snapshots at logical operation boundaries contain valid ownership/order references; final peer UI and fresh loads agree on the complete resulting graph.
 
 Playwright: [src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts:29](../../../src/tests/playwright/behavior/collaborationAtomicGraphCoverage.spec.ts#L29) — peer EVA duplication publishes a complete graph with no observed dangling references (chromium).
 
-Evidence boundary: The new case samples authoritative HTTP snapshots during EVA-with-stations duplication and validates closed references plus eventual peer/reload display. It does not establish every browser document transition or the full EVA/REX/station/action duplicate/delete matrix.
+Evidence boundary: The current case samples authoritative HTTP snapshots during EVA-with-stations duplication and validates closed references plus eventual peer/reload display. Remaining evidence needs peer document-change snapshots and the named supported EVA/REX/station/action duplicate/cascade-delete operations. The contract concerns logical document changes, not every intermediate React render or every possible interleaving.
 
 ## COLLAB-009: Delete while peer edits or selects
 
@@ -116,11 +116,15 @@ Evidence boundary: Station, action, planned EVA and REX are deleted remotely whi
 
 ## COLLAB-010: Mission switch during synchronization
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Switch missions while changes, terrain requests and sockets from the first mission are in flight.
 
 Expected: Late responses do not update the new mission, and both documents retain their intended independent changes.
+
+Playwright: [src/tests/playwright/behavior/missionSyncSwitch90.spec.ts:11](../../../src/tests/playwright/behavior/missionSyncSwitch90.spec.ts#L11) — switching missions isolates delayed document, terrain, and socket updates (chromium).
+
+Evidence boundary: Uses two isolated missions and a real Automerge peer. Holds the source mission's actual incoming protocol frames and a real terrain-profile HTTP request across the UI switch, applies an independent target-document change, then releases stale traffic and verifies the selected UI stays on the target and both authoritative documents retain their own intended changes.
 
 ## COLLAB-011: Server restart and epoch mismatch
 
@@ -156,4 +160,4 @@ Expected: Confirmed saved changes remain in the authoritative store; unsaved dra
 
 Action: Connect an editor and viewer as distinct accounts; edit, disconnect and revoke access.
 
-Expected: Presence/counts and independent selections are correct while each user's write privileges remain enforced.
+Expected: Presence/counts and independent selections reflect the distinct users and disconnects. Viewer controls respect initial grants; revocation denies subsequent HTTP access as in AUTH-005, while already-open Automerge sockets may continue writing.

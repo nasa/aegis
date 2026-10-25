@@ -6,7 +6,7 @@ Fixture: Disposable planning mission with two EVAs, shared and unshared stations
 
 Source: [src/App.tsx](../../../src/App.tsx), [src/pages/index.tsx](../../../src/pages/index.tsx), [src/pages/mission.tsx](../../../src/pages/mission.tsx), [src/components/interface/_paneTypes.ts](../../../src/components/interface/_paneTypes.ts).
 
-Scenario mapping: **6/9 (66.7%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **9/9 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 ## APP-001: an isolated mission exposes its planned EVAs, stations, POIs and map
 
@@ -54,11 +54,15 @@ Playwright: [src/tests/playwright/behavior/navigation.spec.ts:5](../../../src/te
 
 ## APP-005: Unavailable mission handling
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Open nonexistent, deleted and inaccessible mission IDs, including a stale link.
 
 Expected: Show the supported failure or redirect; do not expose another mission or leave an editable stale document.
+
+Playwright: [src/tests/playwright/behavior/authBoundaries90.spec.ts:7](../../../src/tests/playwright/behavior/authBoundaries90.spec.ts#L7) — unavailable mission links redirect scoped users without exposing or editing stale mission data (chromium).
+
+Evidence boundary: A disposable view-only user can open only the fixture mission. An inaccessible mission, nonexistent ID, deleted ID, and deleted stale deep link all redirect to the mission selector; the selector exposes only the allowed mission, no mission edit controls or map remain, direct read/write attempts to the inaccessible mission are rejected, and the allowed mission stays unchanged.
 
 ## APP-006: Pane and tab availability by action version
 
@@ -106,19 +110,31 @@ Evidence boundary: Explicit v1/v2 fixtures visit every registered pane and all m
 
 ## APP-007: Layout and local selection persistence
 
-**P2 · Gap**
+**P2 · Mapped**
 
 Action: Resize panes; expand/collapse lists; switch section, mission, and reload.
 
 Expected: Layout and selection follow their documented local persistence boundaries without changing mission data.
 
+Playwright: [src/tests/playwright/behavior/appState90.spec.ts:6](../../../src/tests/playwright/behavior/appState90.spec.ts#L6) — layout, section selection, and collapsed folders follow their local persistence boundaries (chromium).
+
+Evidence boundary: The browser test exercises fixed Dockview panel bounds and collapse/open behavior, attempts a sash resize and confirms fixed dimensions, selects a station section/item, then verifies section and drawer state reset on reload and mission switch while the folder's locally persisted collapsed state survives reload and switching away/back. The mission document remains unchanged by these UI-only operations.
+
 ## APP-008: Loading and failed hydration
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Delay and fail initial mission/doc requests, then retry.
 
 Expected: Loading does not enable editing before authoritative state is ready; failure is visible and retry recovers.
+
+Playwright: [src/tests/playwright/behavior/appState90.spec.ts:161](../../../src/tests/playwright/behavior/appState90.spec.ts#L161) — mission edit controls stay gated during doc hydration and a failed request can be retried (chromium).
+
+Playwright: [src/tests/playwright/behavior/appState90.spec.ts:225](../../../src/tests/playwright/behavior/appState90.spec.ts#L225) — a delayed hydration from a previous mission cannot replace the newly selected mission (chromium).
+
+Playwright: [src/tests/playwright/behavior/appState90.spec.ts:297](../../../src/tests/playwright/behavior/appState90.spec.ts#L297) — a failed document-list request shows a retry action and recovers mission hydration (chromium).
+
+Evidence boundary: The document-list request is held while loading UI is visible and edit controls/map are absent. Separate initial mission-data and document-list failures each produce an accessible retry alert; retry completes hydration and enables editing. A held response from a prior mission is released after selecting another mission and cannot replace its ready state.
 
 ## APP-009: Version check page recovery
 

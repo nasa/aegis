@@ -279,6 +279,26 @@ const Info_Panel: FunctionComponent<{
                           style={{ width: "90px" }}
                         />
                       )}
+                      {selectedPoi.location && (
+                        <Button
+                          onClick={() => {
+                            withMissionChange((m) => {
+                              applyUpdatePoiByField(m, {
+                                poiUuid: selectedPoi.uuid,
+                                fieldName: "location",
+                                value: null,
+                              });
+                              applyUpdatePoiByField(m, {
+                                poiUuid: selectedPoi.uuid,
+                                fieldName: "elevation",
+                                value: null,
+                              });
+                            });
+                          }}
+                          label="Clear Location"
+                          style={{ width: "99px" }}
+                        />
+                      )}
                     </>
                   )}
                   {editMode && mapAction === "createMarker" && (

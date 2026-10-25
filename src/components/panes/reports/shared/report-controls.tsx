@@ -58,6 +58,10 @@ const ReportControls: FunctionComponent<{
     (state) => state.report[reportId].hiddenColumns,
     shallowEqual
   );
+  const canEditCampaigns = useAppSelector(
+    (state) => Boolean(state.user.missionPerms?.permissions.edit && state.mission.isInEditMode),
+    refEqual
+  );
 
   const hasRexColumns = allColumns.some(
     (column) => column.isRex || column.kind === "campaignExecuted"
@@ -124,7 +128,7 @@ const ReportControls: FunctionComponent<{
         </div>
       )}
       <ReportColumnPanel allColumns={allColumns} hiddenColumnKeys={hiddenColumns} />
-      <ReportCampaignsDialog />
+      <ReportCampaignsDialog canEdit={canEditCampaigns} />
       {help}
     </div>
   );

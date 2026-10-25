@@ -6,7 +6,7 @@ Fixture: Running/stopped REX with multiple timestamped positions, types and sour
 
 Source: [src/components/interface/map/overlays/map-menu-pos.tsx](../../../src/components/interface/map/overlays/map-menu-pos.tsx), [src/components/interface/map/overlays/map-menu-pos-menu.tsx](../../../src/components/interface/map/overlays/map-menu-pos-menu.tsx), [src/components/interface/map/behaviors/PosEntries.tsx](../../../src/components/interface/map/behaviors/PosEntries.tsx), [src/store/thunk/thunkRexPosEntry.ts](../../../src/store/thunk/thunkRexPosEntry.ts), [src/store/thunk/thunkRexPosSource.ts](../../../src/store/thunk/thunkRexPosSource.ts).
 
-Scenario mapping: **6/7 (85.7%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **7/7 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/store/thunks/rexPosEntry_thunk.test.ts](../../../src/tests/vitest/store/thunks/rexPosEntry_thunk.test.ts), [src/tests/vitest/store/thunks/rexPosSource_thunk.test.ts](../../../src/tests/vitest/store/thunks/rexPosSource_thunk.test.ts).
 
@@ -80,17 +80,19 @@ Evidence boundary: UI creation up to four sources and over-limit rejection, name
 
 ## POSITION-006: Position filtering and paths
 
-**P0 · Partial**
+**P0 · Mapped**
 
 Action: Toggle sources/types with older/newer and same-PET entries on planned, historical and active views.
 
 Expected: Visible points/paths use the intended scope, ordering and filters; historical ages stay tied to their own REX.
 
+Playwright: [src/tests/playwright/behavior/positionRendering90.spec.ts:105](../../../src/tests/playwright/behavior/positionRendering90.spec.ts#L105) — marker types, source paths and PET ages remain scoped to active, historical and planned REX views (chromium).
+
 Playwright: [src/tests/playwright/behavior/positions.spec.ts:492](../../../src/tests/playwright/behavior/positions.spec.ts#L492) — source filters and equal-PET chronology stay scoped to active, historical and planned views (chromium).
 
 Playwright: [src/tests/playwright/behavior/positionHistoryFilterCoverage.spec.ts:84](../../../src/tests/playwright/behavior/positionHistoryFilterCoverage.spec.ts#L84) — historical source filters use that REX's own PET and do not leak into active or planned scope (chromium).
 
-Evidence boundary: Active source filters/equal-PET ordering plus historical All/Crew/Rover marker paths and own-REX ages, active-source isolation and planned clearing are covered. The complete marker-type/source/path/age matrix across all scopes remains unproved.
+Evidence boundary: Actual map-source assertions cover EV2 marker icon/EV classification/path color, exact active and historical marker/path coordinates, Crew/Rover source filtering, All/Latest/None marker controls, All/None path controls, labels with the selected REX PET age, and no position markers or paths on planned EVA. Existing cases add equal-PET creation chronology and source isolation across active, historical, and planned scopes.
 
 ## POSITION-007: Concurrent position edits and deletions
 

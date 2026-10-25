@@ -6,7 +6,7 @@ Fixture: Planning mission with a station action, empty second station, linked PO
 
 Source: [src/components/panes/actions-action-menu.tsx](../../../src/components/panes/actions-action-menu.tsx), [src/operations/apply/apply-action.ts](../../../src/operations/apply/apply-action.ts).
 
-Scenario mapping: **13/14 (92.9%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **14/14 (100%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/operations/apply/apply-action.test.ts](../../../src/tests/vitest/operations/apply/apply-action.test.ts), [src/tests/vitest/store/thunks/action_thunk.test.ts](../../../src/tests/vitest/store/thunks/action_thunk.test.ts).
 
@@ -152,11 +152,17 @@ Evidence boundary: The supported geographic reporting consumer is downloaded JSO
 
 ## ACTION-013: Action location lifecycle
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Create/move/cancel/clear location and use Set to Station or POI.
 
 Expected: Location, elevation, grid and relative-distance displays match the committed point and preserve parent identity.
+
+Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:366](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L366) — action location create, move, cancel, clear, and Set to Station keep parent identity and reload (chromium).
+
+Playwright: [src/tests/playwright/behavior/entityLocations90.spec.ts:505](../../../src/tests/playwright/behavior/entityLocations90.spec.ts#L505) — a POI action uses Set to POI without changing its POI parent (chromium).
+
+Evidence boundary: Uses the same test-owned golden DEM and mission-scoped named grid fixture, with cleanup after each test. Independently samples elevations through the terrain API, exercises action map create/move/cancel/clear and Set to Station/POI from their actual parent lists, checks committed coordinates/elevation, preserved parent identity, rendered markers, relative elevation/distance/grid values against the seeded parent, and reload persistence.
 
 ## ACTION-014: Save as template permission and fidelity
 

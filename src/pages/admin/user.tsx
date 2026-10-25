@@ -22,6 +22,7 @@ const User: React.FunctionComponent = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [createMode, setCreateMode] = useState<boolean>(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
+  const [docListingLoaded, setDocListingLoaded] = useState(false);
   const [automergeDocList, setAutomergeDocList] = useState<AutomergeDocListing[]>([]);
   const [missionList, setMissionList] = useState<{ id: number; name: string }[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
@@ -40,6 +41,7 @@ const User: React.FunctionComponent = () => {
         // get a list of all automerge mission records
         const automergeDocListings: AutomergeDocListing[] = (await getAutomergeDocListing()).data;
         setAutomergeDocList(automergeDocListings);
+        setDocListingLoaded(true);
 
         const missionNamesAndIds = [];
         // get their names
@@ -136,6 +138,7 @@ const User: React.FunctionComponent = () => {
   };
 
   const handleCreate = () => {
+    if (!docListingLoaded) return;
     setCreateMode(!createMode);
 
     const permissionList = automergeDocList.map((amRecord) => {
@@ -288,15 +291,26 @@ const User: React.FunctionComponent = () => {
                               <label className={adminCommon.checkboxItem}>
                                 <input
                                   type="checkbox"
-                                  onChange={() => {
-                                    const userPermissionUpdated = user.permissionList.map((p) => {
-                                      if (p.missionId === mission.id) {
-                                        p.permissions.view = !p.permissions.view;
-                                      }
-                                      return p;
-                                    });
-                                    setUser({ ...user, permissionList: userPermissionUpdated });
-                                  }}
+                                  onChange={() =>
+                                    setUser((currentUser) => {
+                                      if (!currentUser) return currentUser;
+                                      return {
+                                        ...currentUser,
+                                        permissionList: (currentUser.permissionList ?? []).map(
+                                          (permission) =>
+                                            permission.missionId === mission.id
+                                              ? {
+                                                  ...permission,
+                                                  permissions: {
+                                                    ...permission.permissions,
+                                                    view: !permission.permissions.view,
+                                                  },
+                                                }
+                                              : permission
+                                        ),
+                                      };
+                                    })
+                                  }
                                   checked={
                                     user?.permissionList?.some(
                                       (p) => p.missionId === mission.id && p.permissions.view
@@ -310,18 +324,30 @@ const User: React.FunctionComponent = () => {
                               <label className={adminCommon.checkboxItem}>
                                 <input
                                   type="checkbox"
-                                  onChange={() => {
-                                    const userPermissionUpdated = user.permissionList.map((p) => {
-                                      if (p.missionId === mission.id) {
-                                        p.permissions.edit = !p.permissions.edit;
-                                        if (p.permissions.edit) {
-                                          p.permissions.view = true;
-                                        }
-                                      }
-                                      return p;
-                                    });
-                                    setUser({ ...user, permissionList: userPermissionUpdated });
-                                  }}
+                                  onChange={() =>
+                                    setUser((currentUser) => {
+                                      if (!currentUser) return currentUser;
+                                      return {
+                                        ...currentUser,
+                                        permissionList: (currentUser.permissionList ?? []).map(
+                                          (permission) => {
+                                            if (permission.missionId !== mission.id) {
+                                              return permission;
+                                            }
+                                            const edit = !permission.permissions.edit;
+                                            return {
+                                              ...permission,
+                                              permissions: {
+                                                ...permission.permissions,
+                                                edit,
+                                                view: edit || permission.permissions.view,
+                                              },
+                                            };
+                                          }
+                                        ),
+                                      };
+                                    })
+                                  }
                                   checked={
                                     user?.permissionList?.some(
                                       (p) => p.missionId === mission.id && p.permissions.edit
@@ -373,7 +399,11 @@ const User: React.FunctionComponent = () => {
               </h2>
               <div className={adminCommon.details}>
                 <div className={adminCommon.formActions} style={{ marginBottom: 12 }}>
-                  <button className={adminCommon.buttonPrimary} onClick={() => handleCreate()}>
+                  <button
+                    className={adminCommon.buttonPrimary}
+                    disabled={!docListingLoaded}
+                    onClick={() => handleCreate()}
+                  >
                     + Add User
                   </button>
                 </div>

@@ -42,7 +42,10 @@ import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
-import { thunkDocUpdatePosEntryWithLocation } from "store/thunk/thunkRexPosEntry";
+import {
+  thunkDocUpdatePosEntryWithLocation,
+  thunkUICancelPosEntryInEdit,
+} from "store/thunk/thunkRexPosEntry";
 
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
@@ -171,8 +174,8 @@ export function InteractionManager(): null {
   useEffect(() => {
     const isEditAction =
       mapDirective != null &&
-      mapDirective.mapItemType !== "posEntry" &&
-      (mapDirective.mapAction === "editPolyline" ||
+      (mapDirective.mapItemType === "posEntry" ||
+        mapDirective.mapAction === "editPolyline" ||
         mapDirective.mapAction === "editMarker" ||
         mapDirective.mapAction === "createMarker");
 
@@ -186,7 +189,11 @@ export function InteractionManager(): null {
       selectionKeyAtEditStartRef.current = selectionKey;
     } else if (selectionKeyAtEditStartRef.current !== selectionKey) {
       // Selection/navigation changed while editing → cancel the edit.
-      dispatch(updateMapDirective(null));
+      if (mapDirective?.mapItemType === "posEntry") {
+        dispatch(thunkUICancelPosEntryInEdit());
+      } else {
+        dispatch(updateMapDirective(null));
+      }
     }
   }, [mapDirective, selectionKey, dispatch]);
 
@@ -197,6 +204,28 @@ export function InteractionManager(): null {
       if (el) el.style.cursor = "";
       return;
     }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')
+      ) {
+        return;
+      }
+
+      if (mapDirective.mapItemType === "posEntry") {
+        dispatch(thunkUICancelPosEntryInEdit());
+      } else if (mapDirective.mapAction === "createMarker") {
+        dispatch(updateMapDirective({ ...mapDirective, mapAction: "cancelCreateMarker" }));
+      } else if (mapDirective.mapAction === "editMarker") {
+        dispatch(updateMapDirective({ ...mapDirective, mapAction: "cancelEditMarker" }));
+      } else if (mapDirective.mapAction === "editPolyline") {
+        dispatch(updateMapDirective({ ...mapDirective, mapAction: "cancelEditPolyline" }));
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
 
     switch (mapDirective.mapAction) {
       // -----------------------------------------------------------------
@@ -497,6 +526,13 @@ export function InteractionManager(): null {
             dispatch(
               thunkDocUpdateWalkback({ stationUuid: mapDirective.uuid, path: originalPath })
             );
+          } else if (mapDirective.mapItemType === "measurement") {
+            dispatch(
+              thunkUpdateMeasurementPath({
+                measurementUuid: mapDirective.uuid,
+                path: originalPath,
+              })
+            );
           }
         }
         dispatch(updateMapDirective(null));
@@ -510,6 +546,7 @@ export function InteractionManager(): null {
 
     // Effect cleanup: if the component unmounts or directive changes, clean up
     return () => {
+      document.removeEventListener("keydown", handleEscape);
       if (activeRef.current) {
         activeRef.current.cleanup();
         activeRef.current = null;

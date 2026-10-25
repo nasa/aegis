@@ -115,6 +115,8 @@ const Info_Panel: FunctionComponent<{
     [mapDirective, selectedStationUuid]
   );
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
+  const hasLanderLocation =
+    partialMission.landerLocation?.lat != null && partialMission.landerLocation?.lng != null;
 
   const elevationPendingIndex = useAppSelector(
     (state) =>
@@ -295,17 +297,11 @@ const Info_Panel: FunctionComponent<{
     if (isLanderXgress) return;
     if (!selectedStation.walkbackPath) {
       // if there is no walkback, set the walkback to the default
-      if (selectedStation.location && partialMission.landerLocation) {
+      if (selectedStation.location && hasLanderLocation) {
         handleResetWalkback();
       }
     }
-  }, [
-    selectedStation,
-    dispatch,
-    handleResetWalkback,
-    partialMission.landerLocation,
-    isLanderXgress,
-  ]);
+  }, [selectedStation, dispatch, handleResetWalkback, hasLanderLocation, isLanderXgress]);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -507,6 +503,20 @@ const Info_Panel: FunctionComponent<{
                     ) : (
                       <span className={stationStyles.statusLoading} />
                     )}
+                    {selectedStation.location && saveButtonState !== "pending" && (
+                      <Button
+                        onClick={async () => {
+                          await dispatch(
+                            thunkDocUpdateStationLocation({
+                              location: null,
+                              stationUuid: selectedStation.uuid,
+                            })
+                          );
+                        }}
+                        label="Clear Location"
+                        style={{ width: "105px" }}
+                      />
+                    )}
                     {selectedStation.poiUuids?.length > 0 ? (
                       saveButtonState !== "pending" && (
                         <Button
@@ -520,7 +530,7 @@ const Info_Panel: FunctionComponent<{
                     ) : (
                       <></>
                     )}
-                    {partialMission.landerLocation?.lat && partialMission.landerLocation?.lng ? (
+                    {hasLanderLocation ? (
                       saveButtonState !== "pending" && (
                         <Button
                           onClick={async () => {
@@ -614,7 +624,9 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {!selectedStation.elevation ? (
+                        {!hasLanderLocation ||
+                        selectedStation.elevation == null ||
+                        partialMission.landerElevationMeters == null ? (
                           <>Not set</>
                         ) : (
                           (
@@ -652,14 +664,14 @@ const Info_Panel: FunctionComponent<{
                       <div className={paneStyles.panelText}>Station Location not set</div>
                     </div>
                   )}
-                  {!partialMission.landerLocation && (
+                  {!hasLanderLocation && (
                     <div className={`${paneStyles.verticalCenter} ${paneStyles.buttonPlaceholder}`}>
                       <div className={paneStyles.panelText}>Mission lander location not set</div>
                     </div>
                   )}
 
                   {selectedStation.location &&
-                    partialMission.landerLocation &&
+                    hasLanderLocation &&
                     mapAction === null &&
                     (saveButtonState === "pending" ? (
                       <span className={stationStyles.statusLoading} />

@@ -37,6 +37,34 @@ export interface MapContextValue {
   mode: MapMode;
 }
 
+function projectionConfigIsUsable(
+  config:
+    | {
+        projIsCustom?: boolean;
+        projProj4String?: string | null;
+      }
+    | null
+    | undefined,
+  landerLocation: AEGISPoint | null | undefined
+): boolean {
+  if (!config?.projIsCustom) return true;
+  if (!config.projProj4String) return false;
+
+  try {
+    const projection = new proj4.Proj(config.projProj4String);
+    if (Number.isFinite(landerLocation?.lat) && Number.isFinite(landerLocation?.lng)) {
+      const point = proj4("EPSG:4326", projection, [
+        landerLocation.lng as number,
+        landerLocation.lat as number,
+      ]);
+      return point.every(Number.isFinite);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Exported so tests can wrap children in a stub MapContext.Provider with a
  * hand-rolled `Map` instance — avoids needing the full Automerge mission doc
@@ -74,40 +102,68 @@ export function MapProvider({
   const [mapInstance, setMapInstance] = useState<Map | null>(null);
 
   // Pull only the projection-related fields from the mission doc
-  const projConfigRaw = useMissionDocSelector(
-    (doc) => ({
+  const projConfigRaw = useMissionDocSelector((doc) => {
+    const hasCustomProjection = Boolean(doc.projIsCustom && doc.projProj4String && doc.projEpsg);
+    return {
       id: doc.id,
-      projIsCustom: doc.projIsCustom,
-      projEpsg: doc.projEpsg,
-      projProj4String: doc.projProj4String,
-      projResUnitsPerPixel: doc.projResUnitsPerPixel,
-      projResZoomLevel: doc.projResZoomLevel,
-      projOriginX: doc.projOriginX,
-      projOriginY: doc.projOriginY,
-      projBoundsMinX: doc.projBoundsMinX,
-      projBoundsMinY: doc.projBoundsMinY,
-      projBoundsMaxX: doc.projBoundsMaxX,
-      projBoundsMaxY: doc.projBoundsMaxY,
-      landerLocation: doc.landerLocation,
-      initialZoom: doc.initialZoom,
-    }),
+      projIsCustom: hasCustomProjection,
+      projEpsg: hasCustomProjection ? doc.projEpsg : undefined,
+      projProj4String: hasCustomProjection ? doc.projProj4String : undefined,
+      projResUnitsPerPixel: hasCustomProjection ? doc.projResUnitsPerPixel : undefined,
+      projResZoomLevel: hasCustomProjection ? doc.projResZoomLevel : undefined,
+      projOriginX: hasCustomProjection ? doc.projOriginX : undefined,
+      projOriginY: hasCustomProjection ? doc.projOriginY : undefined,
+      projBoundsMinX: hasCustomProjection ? doc.projBoundsMinX : undefined,
+      projBoundsMinY: hasCustomProjection ? doc.projBoundsMinY : undefined,
+      projBoundsMaxX: hasCustomProjection ? doc.projBoundsMaxX : undefined,
+      projBoundsMaxY: hasCustomProjection ? doc.projBoundsMaxY : undefined,
+    };
+  }, deepEqual);
+  const initialViewConfig = useMissionDocSelector(
+    (doc) => ({ landerLocation: doc.landerLocation, initialZoom: doc.initialZoom }),
     deepEqual
   );
+  const initialViewConfigRef = useRef(initialViewConfig);
+  const [acceptedProjectionConfig, setAcceptedProjectionConfig] = useState(() => {
+    if (
+      projectionConfigIsUsable(projConfigRaw, initialViewConfig?.landerLocation) ||
+      !projConfigRaw
+    ) {
+      return projConfigRaw;
+    }
+    return {
+      ...projConfigRaw,
+      projIsCustom: false,
+      projEpsg: undefined,
+      projProj4String: undefined,
+      projResUnitsPerPixel: undefined,
+      projResZoomLevel: undefined,
+      projOriginX: undefined,
+      projOriginY: undefined,
+      projBoundsMinX: undefined,
+      projBoundsMinY: undefined,
+      projBoundsMaxX: undefined,
+      projBoundsMaxY: undefined,
+    };
+  });
 
-  // Ref that holds the live map + resize observer. The map is created once
-  // (when projConfig is first available) and only disposed on unmount.
-  const mapRef = useRef<Map | null>(null);
-  const roRef = useRef<ResizeObserver | null>(null);
+  useEffect(() => {
+    initialViewConfigRef.current = initialViewConfig;
+  }, [initialViewConfig]);
 
-  // --- One-shot initialization effect ------------------------------------
-  // Deps include projConfigRaw so the effect re-runs when it arrives, BUT
-  // the mapRef guard ensures we only create the map once.  There is
-  // intentionally NO cleanup here — the map must survive re-renders and
-  // dependency changes.  Disposal happens in the separate unmount effect.
+  useEffect(() => {
+    if (!projectionConfigIsUsable(projConfigRaw, initialViewConfig?.landerLocation)) return;
+    setAcceptedProjectionConfig((current) =>
+      deepEqual(current, projConfigRaw) ? current : projConfigRaw
+    );
+  }, [initialViewConfig?.landerLocation, projConfigRaw]);
+
+  // The map's projection and view are fixed at construction, so rebuild it
+  // when mission projection settings change instead of retaining stale state.
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || mapRef.current || !projConfigRaw) return;
-    const projConfig = projConfigRaw;
+    if (!el || !acceptedProjectionConfig) return;
+    const projConfig = acceptedProjectionConfig;
 
     // --- Projection setup -------------------------------------------------
     let projCode = "EPSG:3857";
@@ -147,11 +203,12 @@ export function MapProvider({
     }
 
     // --- Centre on lander -------------------------------------------------
+    const viewConfig = initialViewConfigRef.current;
     let center: [number, number] = [0, 0];
-    if (projConfig.landerLocation?.lat != null && projConfig.landerLocation?.lng != null) {
+    if (viewConfig?.landerLocation?.lat != null && viewConfig.landerLocation?.lng != null) {
       center = proj4("EPSG:4326", projCode, [
-        projConfig.landerLocation.lng,
-        projConfig.landerLocation.lat,
+        viewConfig.landerLocation.lng,
+        viewConfig.landerLocation.lat,
       ]) as [number, number];
     }
 
@@ -159,7 +216,7 @@ export function MapProvider({
     const view = new View({
       projection: projCode,
       center,
-      zoom: projConfig.initialZoom ?? 2,
+      zoom: viewConfig?.initialZoom ?? 2,
       resolutions,
       extent,
       constrainResolution: false,
@@ -177,7 +234,6 @@ export function MapProvider({
       controls,
     });
 
-    mapRef.current = map;
     setMapInstance(map);
 
     if (import.meta.env.DEV) {
@@ -188,19 +244,12 @@ export function MapProvider({
 
     const ro = new ResizeObserver(() => map.updateSize());
     ro.observe(el);
-    roRef.current = ro;
-  }, [containerRef, projConfigRaw, mode]);
-
-  // --- Cleanup on unmount only ---
-  useEffect(() => {
     return () => {
-      roRef.current?.disconnect();
-      mapRef.current?.setTarget(undefined);
-      mapRef.current?.dispose();
-      mapRef.current = null;
-      roRef.current = null;
+      ro.disconnect();
+      map.setTarget(undefined);
+      map.dispose();
     };
-  }, []);
+  }, [acceptedProjectionConfig, containerRef, mode]);
 
   if (!mapInstance) return null;
 

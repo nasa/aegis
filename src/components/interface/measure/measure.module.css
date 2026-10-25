@@ -53,12 +53,24 @@
   width: 100%;
 }
 .measureCanvasContainer {
+  position: relative;
   height: 216px;
   background-color: var(--grey2);
   border-bottom-left-radius: var(--panelRadius);
   border-bottom-right-radius: var(--panelRadius);
   border-top-right-radius: var(--panelRadius);
   margin: 0 0 4px 4px;
+}
+
+.terrainProfileUnavailable {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: var(--grey5);
+  pointer-events: none;
+  font-size: 0.85rem;
 }
 
 .measureCanvasContainer canvas {

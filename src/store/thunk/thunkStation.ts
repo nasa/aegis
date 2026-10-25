@@ -22,6 +22,7 @@ import {
 } from "operations/apply/apply-station";
 import { stageDuplicateStation } from "operations/stage/stage-station";
 import { getAccurateNow } from "utils/formatting";
+import { isQuickMapPoint } from "utils/quickMap";
 import { thunkSetRightPanelIsOpenIfAuto } from "./thunkInterface";
 import { generateBlankStation } from "store/storeUtils/station";
 import { defaultSublayerStyle } from "store/storeUtils/sublayer";
@@ -36,7 +37,7 @@ const latestIssuedStationLocationRevisionByStation = new Map<string, number>();
 const latestIssuedWalkbackProfileRevisionByStation = new Map<string, number>();
 
 export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
-  location: AEGISPoint;
+  location: AEGISPoint | null;
   stationUuid: string;
 }>("updateStationLocation", async ({ location, stationUuid }, { dispatch }) => {
   const missionDocHandle = getMissionDocHandle();
@@ -49,23 +50,30 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 
   // ── Step 1: Build walkback path, collect all adjacent traverses, fetch all elevations in parallel, and build the stage ──
   const landerLocation = mission.landerLocation;
+  const hasLanderLocation = isQuickMapPoint(landerLocation);
   const rawWalkbackPath = station.walkbackPath;
 
-  let newWalkbackPath: AEGISPoint[];
-  if (!rawWalkbackPath || rawWalkbackPath.length === 0) {
-    newWalkbackPath = cloneDeep([location, landerLocation]);
+  let newWalkbackPath: AEGISPoint[] | null;
+  if (!location) {
+    newWalkbackPath = null;
+  } else if (!rawWalkbackPath || rawWalkbackPath.length === 0) {
+    newWalkbackPath = hasLanderLocation ? cloneDeep([location, landerLocation]) : null;
   } else {
     newWalkbackPath = cloneDeep(rawWalkbackPath);
-    // Snap start to new station location, end to lander
+    // Snap the start to the station. Keep the saved endpoint until a valid
+    // mission lander is available to replace it.
     newWalkbackPath[0] = location;
-    newWalkbackPath[newWalkbackPath.length - 1] = landerLocation;
+    if (hasLanderLocation) newWalkbackPath[newWalkbackPath.length - 1] = landerLocation;
   }
 
-  const walkbackSegmentDistances: number[] = [];
-  for (let i = 1; i < newWalkbackPath.length; i++) {
-    walkbackSegmentDistances.push(
-      getTotalDistance([newWalkbackPath[i - 1], newWalkbackPath[i]], mission.planetRadius)
-    );
+  let walkbackSegmentDistances: number[] | null = null;
+  if (newWalkbackPath) {
+    walkbackSegmentDistances = [];
+    for (let i = 1; i < newWalkbackPath.length; i++) {
+      walkbackSegmentDistances.push(
+        getTotalDistance([newWalkbackPath[i - 1], newWalkbackPath[i]], mission.planetRadius)
+      );
+    }
   }
 
   // ── Collect all adjacent traverses to update ──────────
@@ -139,7 +147,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
       traverseUuid,
       evaSequence,
       mission.stations,
-      { uuid: stationUuid, location, name: station.name ?? "" }
+      location ? { uuid: stationUuid, location, name: station.name ?? "" } : undefined
     );
 
     if (locationBefore && !isEqual(path.at(0), locationBefore)) path[0] = locationBefore;
@@ -162,16 +170,17 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   );
 
   const [stationElevResult, walkbackElevResult, ...traverseProfileResults] = await Promise.all([
-    // Station elevation
-    dispatch(thunkFetchPointElevation({ point: location, uuid: stationUuid })),
-    // Walkback terrain profile; only its elevations are stored until slope rendering is supported.
-    dispatch(
-      thunkFetchTerrainProfile({
-        path: newWalkbackPath,
-        pathSegmentDistances: walkbackSegmentDistances,
-        uuid: `${stationUuid}_walkback`,
-      })
-    ),
+    location ? dispatch(thunkFetchPointElevation({ point: location, uuid: stationUuid })) : null,
+    // Skip the profile when there is no valid lander and no saved walkback.
+    newWalkbackPath
+      ? dispatch(
+          thunkFetchTerrainProfile({
+            path: newWalkbackPath,
+            pathSegmentDistances: walkbackSegmentDistances!,
+            uuid: `${stationUuid}_walkback`,
+          })
+        )
+      : Promise.resolve(null),
     // Get traverse elevations
     ...traversesToUpdate.map(({ traverseUuid }, idx) => {
       const { path, distances } = recalculatedTraversePaths[idx];
@@ -183,12 +192,12 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 
   // ── Build the stage ────────────────────────────────────
   const newElevation =
-    stationElevResult.meta.requestStatus === "fulfilled"
+    location && stationElevResult?.meta.requestStatus === "fulfilled"
       ? (stationElevResult.payload as number)
       : null;
 
   const newWalkbackElevations =
-    walkbackElevResult.meta.requestStatus === "fulfilled"
+    walkbackElevResult?.meta.requestStatus === "fulfilled"
       ? (walkbackElevResult.payload as TerrainProfile).elevationsMeters
       : null;
 

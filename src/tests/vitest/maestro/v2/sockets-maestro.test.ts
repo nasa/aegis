@@ -629,11 +629,15 @@ describe("maestro namespace socket handlers", () => {
   // ─── sendMDAU ─────────────────────────────────────────────────────────────
 
   describe("sendMDAU", () => {
-    // A minimal doc handle registered for MISSION_ID so the sendMDAU handler
-    // can resolve one. Only the sendMDAU tests need this; the subscribe/eva
-    // tests intentionally rely on an empty docHandles map. The doc carries the
-    // action definitions and mission priorities the payloads below reference so
-    // mdauDataValidator passes.
+    // An isolated doc handle registered for MISSION_ID. The sendMDAU tests
+    // need valid referenced mission entities as well as the action definitions
+    // and mission priorities used by their full payloads.
+    const stationUuid9 = "station-uuid-9";
+    const stationUuid1 = "station-uuid-1";
+    const traverseUuid1 = "traverse-uuid-1";
+    const evaUuid1 = "eva-uuid-1";
+    const actionUuid1 = "action-uuid-1";
+    const rexUuid1 = "rex-uuid-1";
     const sendMdauMission = {
       actionDefinitions: {
         verbs: { "verb-1": { name: "Collect", abbr: "COL" } },
@@ -643,7 +647,35 @@ describe("maestro namespace socket handlers", () => {
       missionPriorities: {
         "priority-1": { trace: "SIMD-0005.1", category: "Vitest Category" },
       },
-    };
+      stations: {
+        [stationUuid9]: generateBlankStation({ uuid: stationUuid9 }),
+        [stationUuid1]: generateBlankStation({
+          uuid: stationUuid1,
+          actionOrderUuids: [actionUuid1],
+        }),
+      },
+      traverses: {
+        [traverseUuid1]: generateBlankTraverse({ uuid: traverseUuid1 }),
+      },
+      evas: {
+        [evaUuid1]: generateBlankEVA({
+          uuid: evaUuid1,
+          sequence: [
+            { type: "station", uuid: stationUuid1 },
+            { type: "traverse", uuid: traverseUuid1 },
+          ],
+        }),
+      },
+      actions: {
+        [actionUuid1]: generateBlankAction({
+          uuid: actionUuid1,
+          stationUuid: stationUuid1,
+        }),
+      },
+      rexes: {
+        [rexUuid1]: generateBlankRex({ uuid: rexUuid1, evaUuid: evaUuid1 }),
+      },
+    } as unknown as Mission;
     const sendMdauDocHandle = { doc: vi.fn().mockReturnValue(sendMdauMission) };
     beforeEach(() => {
       globalValues.maestroV2.docHandles.set(MISSION_ID, sendMdauDocHandle as never);

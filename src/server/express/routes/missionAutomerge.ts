@@ -135,6 +135,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
  * single change(). It does NOT accept entity collections — use the websocket repo for those.
  * Access uses the standard mission edit permission: a valid EMSS token, a super-admin
  * session, or an authenticated user session with edit permission for the mission.
+ * Projection and action-system configuration additionally requires an admin role.
  *
  * Mounted as a POST sub-route so it never collides with the create
  * endpoint above and keeps the API to GET/POST/DELETE verbs.
@@ -194,6 +195,41 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
         status: "error",
         message: "No mission fields provided",
       });
+      return;
+    }
+
+    const adminOnlyFields: (keyof MissionFields)[] = [
+      "actionSystemVersion",
+      "projIsCustom",
+      "projEpsg",
+      "projProj4String",
+      "projBoundsMinX",
+      "projBoundsMinY",
+      "projBoundsMaxX",
+      "projBoundsMaxY",
+      "projOriginX",
+      "projOriginY",
+      "projResZoomLevel",
+      "projResUnitsPerPixel",
+      "usingLGRSCoordinates",
+      "gridRenderMode",
+    ];
+    const changesAdminOnlyFields = applied.some((field) => adminOnlyFields.includes(field));
+    const hasAdminRole =
+      req.session?.appUser?.isAdmin ||
+      req.session?.appUser?.isSuperAdmin ||
+      emssTokenIsValid(emssToken);
+    if (changesAdminOnlyFields && !hasAdminRole) {
+      serverLogger.apiRoute({
+        logLevel: "warning",
+        httpMethod: "POST",
+        responseStatus: 401,
+        routeName: "missionAutomerge/fields",
+        appUsername: req.session?.appUser?.username,
+        missionId,
+        message: "Unauthorized",
+      });
+      res.status(401).json({ status: "failure", message: "Unauthorized" });
       return;
     }
 

@@ -6,7 +6,7 @@ Fixture: Distinct guest, viewer, editor, admin and super-admin sessions; two mis
 
 Source: [src/utils/permissions.ts](../../../src/utils/permissions.ts), [src/pages/mission.tsx](../../../src/pages/mission.tsx), [src/pages/admin/index.tsx](../../../src/pages/admin/index.tsx), [src/server/express/routes/auth.ts](../../../src/server/express/routes/auth.ts).
 
-Scenario mapping: **2/8 (25%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
+Scenario mapping: **5/8 (62.5%)**. Mapped means reviewed test implementation, not a passing browser run. Partial receives no percentage credit.
 
 Supporting unit/component evidence (no Playwright scenario credit): [src/tests/vitest/express/login.test.ts](../../../src/tests/vitest/express/login.test.ts), [src/tests/vitest/express/appUser.test.ts](../../../src/tests/vitest/express/appUser.test.ts).
 
@@ -38,11 +38,15 @@ Evidence boundary: The configured local cookie-session contract is exercised wit
 
 ## AUTH-002: Viewer cannot mutate
 
-**P0 · Gap**
+**P0 · Partial**
 
 Action: As a view-only user open fields, menus, geometry editing and execution controls; issue equivalent direct writes.
 
 Expected: Read access works; UI and server reject mutations with the mission unchanged.
+
+Playwright: [src/tests/playwright/behavior/adminPermissions90.spec.ts:214](../../../src/tests/playwright/behavior/adminPermissions90.spec.ts#L214) — super-admin grant changes deny HTTP access and capture existing Automerge writes (chromium).
+
+Evidence boundary: Viewer read access and a rejected direct HTTP fields write are asserted. The remaining viewer geometry/execution UI and raw transport mutation boundaries still need explicit evidence; permission changes on an already-open editor socket follow AUTH-005.
 
 ## AUTH-003: Editor access stays mission-scoped
 
@@ -56,25 +60,39 @@ Expected: Mission A remains editable and mission B stays protected across all tr
 
 **P0 · Gap**
 
-Action: Visit every admin route as viewer, editor, admin and super-admin and call its mutation endpoint.
+Action: Enumerate declared policies for registered admin routes and mutation endpoints; exercise each distinct policy boundary with viewer, editor, admin and super-admin accounts as applicable.
 
 Expected: Visibility and server enforcement agree with each route's declared policy, including super-admin-only controls.
 
+Evidence boundary: Build a named route/method-policy matrix from current handlers before writing the remaining tests. Group equivalent role policies, retain separate mission-scope and super-admin checks, and reuse existing admin evidence only for the boundaries its assertions prove. A four-role Cartesian product for every route is not itself a product requirement.
+
 ## AUTH-005: Permission revocation in an open session
 
-**P0 · Gap**
+**P0 · Mapped**
 
-Action: Revoke edit/view permission while the user's editor and socket are open; attempt another mutation.
+Action: Revoke edit/view permission while the user's editor is open; attempt HTTP reads/writes with the existing session and a fresh login.
 
-Expected: The next protected action follows revocation policy; no unauthorized persisted mutation occurs.
+Expected: Persisted grants are refreshed for subsequent HTTP requests: revoked mission reads/writes are denied in existing and fresh sessions. An already-open Automerge socket may continue writing after grant removal.
+
+Playwright: [src/tests/playwright/behavior/adminPermissions90.spec.ts:214](../../../src/tests/playwright/behavior/adminPermissions90.spec.ts#L214) — super-admin grant changes deny HTTP access and capture existing Automerge writes (chromium).
+
+Evidence boundary: User-confirmed policy on 2026-10-25 permits continued writes on existing Automerge sockets. The test asserts persisted grant removal, existing-session HTTP denial with unchanged data after the rejected write, fresh-login grants and HTTP denial. The socket attachment is characterization, not a socket-revocation acceptance assertion. Initial transport authorization remains in AUTH-002/003.
 
 ## AUTH-006: Edit mode field and menu matrix
 
-**P0 · Gap**
+**P0 · Mapped**
 
 Action: Toggle Edit off/on for mission, entity, preset, report, position and execution controls.
 
 Expected: Each control observes its permission and mode requirements; canceling drafts does not enable a write.
+
+Playwright: [src/tests/playwright/behavior/editModeMatrix90.spec.ts:37](../../../src/tests/playwright/behavior/editModeMatrix90.spec.ts#L37) — global Edit gates shared fields and menus across mission, entity, preset, report and position surfaces (chromium).
+
+Playwright: [src/tests/playwright/behavior/executionPolicy.spec.ts:204](../../../src/tests/playwright/behavior/executionPolicy.spec.ts#L204) — station, traverse and action statuses cycle without global Edit and preserve historical and planned data (chromium).
+
+Playwright: [src/tests/playwright/behavior/mapEditing.spec.ts:191](../../../src/tests/playwright/behavior/mapEditing.spec.ts#L191) — dragging an interior vertex then Cancel preserves endpoints and the intended path after reload (chromium).
+
+Evidence boundary: A live editor with global Edit off cannot open mission, station, or preset drafts, add or delete stations, add presets, mutate reports, or add position sources; authoritative mission data stays unchanged. Turning Edit on enables the supported field/menu writes. Mission-description and preset drafts are canceled and proven unchanged before a separate saved edit; station draft cancellation is also verified. The report campaign gate covers create, rename, and membership mutation, while local report viewing remains available. Supporting tests cover execution status controls under their independent execution permissions and map path edit/cancel persistence. This validates the editor global-mode UI matrix across the listed authoring surfaces; execution status controls intentionally remain available without global Edit.
 
 ## AUTH-007: Transport-specific disconnect gate
 
@@ -90,8 +108,12 @@ Evidence boundary: Only the real Automerge transport is closed; HTTP and incomin
 
 ## AUTH-008: Session and request error recovery
 
-**P1 · Gap**
+**P1 · Mapped**
 
 Action: Fail a protected request with 401/403/500 while a dialog is open; restore the session and retry.
 
 Expected: Failure is visible, saved values remain intact, and retry does not apply a duplicate mutation.
+
+Playwright: [src/tests/playwright/behavior/requestRecovery90.spec.ts:11](../../../src/tests/playwright/behavior/requestRecovery90.spec.ts#L11) — 401, 403, and 500 user-save failures preserve the open form and recover without duplicate creation (chromium).
+
+Evidence boundary: For each 401, 403, and 500 protected user-create request, the Create User form remains open with username/password intact, an error is visible, and the saved-user list remains unchanged. The browser session is cleared and restored with a fresh login while the dialog stays open; one retry succeeds, the form reports creation, and the authoritative list contains exactly one user. The 401 is a real unauthenticated server response; 403/500 are one-time injected responses at the same protected endpoint.

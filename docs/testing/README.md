@@ -1,7 +1,7 @@
 # AEGIS tracked scenarios and Playwright coverage
 
 **Continuing the test work? Read the [resume handoff](RESUME.md) first** for the
-last validated commit, next scenario batch, commands and unresolved reload issue.
+last validated checkpoint, reviewed scope, next scenario batches and commands.
 
 Start with the [coverage report](coverage.md). It links every scenario family,
 shows the percentage with a complete reviewed Playwright mapping, and lists every
@@ -9,7 +9,8 @@ discovered browser test and registered UI/HTTP surface. The machine-readable
 [summary](coverage-summary.json) contains the same counts for dashboards or CI.
 
 Executed results and defect-detection evidence for the latest coverage additions
-are recorded in the [sixty-percent validation note](runs/2026-10-25-sixty-percent-coverage.md).
+are recorded in the [ninety-percent validation note](runs/2026-10-25-ninety-percent-coverage.md).
+The [sixty-percent record](runs/2026-10-25-sixty-percent-coverage.md) preserves the prior checkpoint.
 The [expanded coverage](runs/2026-10-24-expanded-coverage.md),
 [position](runs/2026-10-24-positions.md) and
 [earlier behavior](runs/2026-10-24-behavior.md) records preserve prior evidence.
@@ -77,9 +78,11 @@ The structure follows the recent sibling MaestroPlus review:
 
 Those sibling documents are historical research inputs, not proof of this
 checkout's behavior. The local catalog records current implementation sources
-for every area. Expectations requiring policy clarification or an independent
-scientific oracle stay as gaps; source-derived behavior is not automatically an
-approved product requirement. Sibling links require both repositories to be
+for every area. The latest semantic sweep is **2026-10-25**. Source-derived
+behavior and research suggestions are not automatically approved product
+requirements. Before implementing a gap, establish its supported contract and
+oracle; correct an unsupported catalog assumption with a recorded rationale.
+Sibling links require both repositories to be
 checked out side by side; the AEGIS catalog/report work independently.
 
 The surface appendix inspects current TypeScript registrations: all UI routes,
@@ -90,10 +93,19 @@ GIS tools and operational scripts are represented by the broader family review;
 the registration scanner does not exhaust their possible behavior. A family can
 have complete registration accounting and zero mapped scenarios.
 
-The catalog is a finite, extensible denominator. New features and discovered
-states must add scenarios even if that lowers the percentage. Do not delete,
-merge, downgrade or classify a browser scenario as external to reach 100%.
-Document removals or scope changes with the corresponding product change.
+The catalog is a finite, extensible denominator. New supported capabilities and
+material state boundaries need scenario review even if that lowers the percentage.
+Keep stable IDs and record why a contract changes: a product decision, a supported
+implementation boundary, or correction of an unsupported assumption. A catalog
+correction does not require a product change. Never change scope solely to raise
+the score, or classify browser work as external to hide missing tests.
+
+Existing Automerge sockets may continue writing after grant removal. Subsequent
+HTTP requests refresh persisted grants; initial transport authorization remains
+a separate contract. Tests must distinguish those boundaries. Draft Save/Cancel
+requirements apply only to controls that offer drafts. Deterministic injected
+service responses can establish browser failure/recovery behavior; a real process
+outage is required only when process recovery is the contract under test.
 
 ## Maintain and regenerate
 
@@ -121,6 +133,9 @@ To add or close a scenario:
 2. Specify fixture, user action and independently checkable expected outcomes.
    Add a per-scenario `fixture` when a case needs a more specific setup than its
    area's default. Describe relevant state boundaries in the action/expectation.
+   Name finite supported combinations and permission policies. Do not assume a
+   full Cartesian product, distributed serialization, or a new UX transaction
+   merely because a broad inventory row suggests one.
 3. Add exact test-relative `file` and expanded `title` references. Parameterized
    titles must match actual `--list` discovery. The checker rejects missing,
    ambiguous, excluded or statically skipped complete mappings.
@@ -146,8 +161,9 @@ and WebKit configuration covers the small smoke set; comprehensive cross-browser
 editing remains a separate tracked gap. A successful Chromium run cannot close
 that gap.
 
-Check that tests fail when their targeted behavior is broken. Execute external
-restore, migration, deployment, GIS and load drills with their own oracles and
-records. Review the denominator again for missing capabilities and states.
-Only those combined records support an acceptance claim; a generated percentage
-or a green test count alone does not.
+Check that tests fail when their targeted behavior is broken. Review the
+denominator again for missing supported capabilities and states. External restore,
+migration, deployment, GIS and load drills have their own evidence and acceptance
+decisions; they are not prerequisites for 100% Playwright scenario mapping.
+Release acceptance also follows the repository's full local/CI regression rules.
+A generated percentage or a green test count alone does not establish acceptance.

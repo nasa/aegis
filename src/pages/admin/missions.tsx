@@ -123,7 +123,7 @@ const Missions: React.FunctionComponent = () => {
                 navigate(`/admin/mission/${res.data.missionId}/${res.data.automergeUrl}`);
               }
             }}
-            disabled={user?.id !== 1}
+            disabled={user?.id !== 1 && !user?.isSuperAdmin}
           >
             + Add New Mission
           </button>
