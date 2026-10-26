@@ -28,8 +28,8 @@ The dashboard provides a mission-level overview of EVA plans, summaries, and sys
 
 ## Key Capabilities
 
-Test planning: [tracked scenarios and Playwright coverage](docs/testing/README.md)
-document the whole-application scenario inventory, current test mappings and gaps.
+Test planning: [AI-assisted functionality audits](docs/testing/README.md)
+compare app functionality with the executable Playwright scenarios and record gaps.
 
 - **EVA, station, and POI composition** -- build EVAs from stations and points of interest, each with activity definitions, crew assignments, contingency plans, and safety measures.
 - **Science Traceability Matrix (STM) integration** -- plan against science objectives and visualize STM coverage to maximize the science return of each traverse.
