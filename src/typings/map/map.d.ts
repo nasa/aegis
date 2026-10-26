@@ -95,6 +95,9 @@ type MapMenuCookie = {
   showMouseLatLon: boolean;
   gridSpacingMode: GridSpacingMode;
   gridLabelInterval: GridSpacingMode;
+  /** The REX uuid `submenuPos.sourceUuids` was last defaulted for. Lets a refresh with the
+   * same REX keep the saved selection while a REX switch re-applies the Task + Crew default. */
+  sourceUuidsRexUuid: string | null;
 };
 
 /*

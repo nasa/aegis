@@ -53,8 +53,12 @@ export interface MapMenuSetters {
   setShowSunEarth: Dispatch<SetStateAction<boolean>>;
   setGridSpacingMode: Dispatch<SetStateAction<GridSpacingMode>>;
   setGridLabelInterval: Dispatch<SetStateAction<GridSpacingMode>>;
-  /** Applies the default position-source selection once, only when no cookie existed on load. */
-  applyDefaultSourceUuids: (sourceUuids: string[]) => void;
+  /**
+   * Applies the default position-source selection for `rexUuid`. A no-op when `rexUuid`
+   * matches the REX the current selection was already defaulted/restored for — e.g. on a
+   * same-REX refresh, where the cookie's saved selection should be kept instead.
+   */
+  applyDefaultSourceUuids: (rexUuid: string, sourceUuids: string[]) => void;
 }
 
 const DEFAULT_SETTINGS: MapMenuSettings = {
@@ -178,14 +182,13 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
   );
 
   // The default source selection depends on the REX's source uuids, so it can't be part of
-  // DEFAULT_SETTINGS. It is applied once, only when the cookie had no saved selection.
-
-  // sourceUuidsSettledRef tracks whether the cookie already has a saved selection for source UUIDs.
-  const sourceUuidsSettledRef = useRef(Array.isArray(savedCookie?.submenuPos?.sourceUuids));
-  const applyDefaultSourceUuids = useCallback((sourceUuids: string[]) => {
-    if (sourceUuidsSettledRef.current) return;
-    sourceUuidsSettledRef.current = true;
-    // Only apply defaults when there was nothing in the cookie
+  // DEFAULT_SETTINGS. Tracks which REX the current `submenuPos.sourceUuids` selection belongs
+  // to (restored from the cookie, or last defaulted for) so a same-REX refresh keeps the saved
+  // selection while switching REXes re-applies the Task + Crew default.
+  const sourceUuidsRexUuidRef = useRef<string | null>(savedCookie?.sourceUuidsRexUuid ?? null);
+  const applyDefaultSourceUuids = useCallback((rexUuid: string, sourceUuids: string[]) => {
+    if (sourceUuidsRexUuidRef.current === rexUuid) return;
+    sourceUuidsRexUuidRef.current = rexUuid;
     setSubmenuPos((current) => ({ ...current, sourceUuids }));
   }, []);
 
@@ -206,6 +209,9 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
         showMouseLatLon,
         gridSpacingMode,
         gridLabelInterval,
+        // Updated synchronously by applyDefaultSourceUuids before submenuPos changes, so this
+        // effect (which depends on submenuPos) always sees the ref's latest value.
+        sourceUuidsRexUuid: sourceUuidsRexUuidRef.current,
       } satisfies MapMenuCookie),
       // maxAge (1 year, in seconds) makes this a persistent cookie — without an
       // expiry it defaults to a session cookie and is dropped when the browser closes.

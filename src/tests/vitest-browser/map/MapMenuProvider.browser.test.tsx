@@ -31,6 +31,8 @@ import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHar
 
 // Mutable mock Automerge doc for MapMenuPosSourceSync.
 const mockMissionDoc: Partial<Mission> = {};
+// Mutable mock selected REX uuid for MapMenuPosSourceSync.
+let mockSelectedRexUuid = "rex-1";
 
 vi.mock("utils/useDocSelector", () => ({
   useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
@@ -40,7 +42,7 @@ vi.mock("utils/useDocSelector", () => ({
 vi.mock("utils/useAppSelector", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   useAppSelector: <TSel,>(selector: (state: unknown) => TSel): TSel =>
-    selector({ rex: { selectedRexUuid: "rex-1" } }),
+    selector({ rex: { selectedRexUuid: mockSelectedRexUuid } }),
 }));
 
 let harness: ReactHarness;
@@ -48,6 +50,7 @@ let cookies: Cookies;
 
 beforeEach(() => {
   harness = createReactHarness();
+  mockSelectedRexUuid = "rex-1";
   // Each test gets its own Cookies instance — react-cookie also writes to
   // document.cookie though, so clear that too.
   document.cookie.split(";").forEach((c) => {
@@ -378,8 +381,11 @@ describe("MapMenuPosSourceSync", () => {
   const task: PosSource = { uuid: "src-task", name: "Task", abbr: "T", pathColor: "#009CE0" };
   const ser: PosSource = { uuid: "src-ser", name: "SER", abbr: "S", pathColor: "#68BC00" };
 
-  function setRexPosSources(posSources: PosSource[]): void {
-    mockMissionDoc.rexes = { "rex-1": { uuid: "rex-1", posSources } as Rex };
+  function setRexPosSources(posSources: PosSource[], rexUuid = "rex-1"): void {
+    mockMissionDoc.rexes = {
+      ...mockMissionDoc.rexes,
+      [rexUuid]: { uuid: rexUuid, posSources } as Rex,
+    };
   }
 
   afterEach(() => {
@@ -440,8 +446,46 @@ describe("MapMenuPosSourceSync", () => {
     expect(settings!.submenuPos.sourceUuids).toEqual([task.uuid, crew.uuid]);
   });
 
-  it("keeps the cookie's source selection on load, even if it belongs to another REX", async () => {
-    setRexPosSources([crew, task, ser]);
+  it("re-applies the Task + Crew default when the selected REX changes", async () => {
+    const crew2: PosSource = { uuid: "src-crew-2", name: "Crew", abbr: "C", pathColor: "#ff0000" };
+    const task2: PosSource = { uuid: "src-task-2", name: "Task", abbr: "T", pathColor: "#009CE0" };
+    setRexPosSources([crew, task, ser], "rex-1");
+    let settings: MapMenuSettings | null = null;
+    let setters: MapMenuSetters | null = null;
+    function Probe(): null {
+      settings = useMapMenuContext();
+      setters = useMapMenuSetters();
+      return null;
+    }
+    const tree = () =>
+      withCookies(
+        <>
+          <MapMenuPosSourceSync />
+          <Probe />
+        </>
+      );
+    harness.render(tree());
+    await new Promise((r) => setTimeout(r, 0));
+    harness.render(tree());
+    expect(settings!.submenuPos.sourceUuids).toEqual([task.uuid, crew.uuid]);
+
+    // User narrows the selection to just SER on rex-1.
+    flushSync(() => setters!.setSubmenuPos((current) => ({ ...current, sourceUuids: [ser.uuid] })));
+    expect(settings!.submenuPos.sourceUuids).toEqual([ser.uuid]);
+
+    // Switch to a different REX with different source uuids.
+    mockSelectedRexUuid = "rex-2";
+    setRexPosSources([crew2, task2], "rex-2");
+    harness.render(tree());
+    await new Promise((r) => setTimeout(r, 0));
+    harness.render(tree());
+
+    // The new REX's Task + Crew default is applied, not the stale rex-1 selection.
+    expect(settings!.submenuPos.sourceUuids).toEqual([task2.uuid, crew2.uuid]);
+  });
+
+  it("keeps the saved selection across a refresh when the REX has not changed", async () => {
+    setRexPosSources([crew, task, ser], "rex-1");
     const savedCookies = new Cookies();
     savedCookies.set(
       "AEGIS_Map_Menu_Settings",
@@ -456,9 +500,11 @@ describe("MapMenuPosSourceSync", () => {
           showMarkers: true,
           showOldMarkers: true,
           fadeOldMarkers: true,
-          sourceUuids: ["other-rex-source"],
+          sourceUuids: [ser.uuid],
           pathMode: "separate",
         },
+        // Saved for the same REX this session restores into, so the selection is kept.
+        sourceUuidsRexUuid: "rex-1",
       },
       { path: "/" }
     );
@@ -479,7 +525,51 @@ describe("MapMenuPosSourceSync", () => {
     await new Promise((r) => setTimeout(r, 0));
     harness.render(tree());
 
-    expect(settings!.submenuPos.sourceUuids).toEqual(["other-rex-source"]);
+    expect(settings!.submenuPos.sourceUuids).toEqual([ser.uuid]);
     expect(settings!.submenuPos.pathMode).toBe("separate");
+  });
+
+  it("applies the Task + Crew default on load when the cookie was saved for a different REX", async () => {
+    setRexPosSources([crew, task, ser], "rex-1");
+    const savedCookies = new Cookies();
+    savedCookies.set(
+      "AEGIS_Map_Menu_Settings",
+      {
+        submenuPos: {
+          show: true,
+          showAllLabels: false,
+          showLatestLabels: true,
+          showPaths: true,
+          showOldPaths: true,
+          fadeOldPaths: true,
+          showMarkers: true,
+          showOldMarkers: true,
+          fadeOldMarkers: true,
+          sourceUuids: ["other-rex-source"],
+          pathMode: "separate",
+        },
+        // Saved for a REX other than the one this session restores into.
+        sourceUuidsRexUuid: "rex-0",
+      },
+      { path: "/" }
+    );
+    let settings: MapMenuSettings | null = null;
+    function Probe(): null {
+      settings = useMapMenuContext();
+      return null;
+    }
+    const tree = () =>
+      withCookies(
+        <>
+          <MapMenuPosSourceSync />
+          <Probe />
+        </>,
+        savedCookies
+      );
+    harness.render(tree());
+    await new Promise((r) => setTimeout(r, 0));
+    harness.render(tree());
+
+    expect(settings!.submenuPos.sourceUuids).toEqual([task.uuid, crew.uuid]);
   });
 });
