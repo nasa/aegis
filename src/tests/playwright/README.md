@@ -1,7 +1,7 @@
 # AEGIS browser behavior contracts
 
-For the scenario catalog, coverage report and maintenance commands, start with the
-[scenario coverage guide](../../../docs/testing/README.md).
+For the reusable prompt and process for comparing app functionality with test
+assertions, start with the [AI-assisted functionality audit guide](../../../docs/testing/README.md).
 
 The `behavior/` suite describes observable application behavior across states and
 transitions. It runs the actual React application, API, PostgreSQL persistence,
@@ -95,20 +95,18 @@ available for diagnosis. `npm run test:all` does not run Playwright.
 
 New commits invalidate the recorded result and checkbox. Return the MR to Draft
 and trigger a fresh full CI run when the updated candidate is ready, including
-after incorporating target-branch changes. Update tests and scenario mappings
-for changed behavior, regenerate the coverage docs, and run
-`npm run test:playwright:scenarios:complete` before acceptance. See
+after incorporating target-branch changes. Review changed functionality against
+the test fixtures and assertions, update affected tests, and record the scope and
+remaining gaps using the [functionality audit guide](../../../docs/testing/README.md). See
 [Before Finishing a Merge Request](../../../CLAUDE.md#before-finishing-a-merge-request).
 
 ## Coverage by capability
 
-The [tracked scenario inventory and coverage report](../../../docs/testing/README.md)
-expand this overview into stable scenario IDs, explicit expected outcomes,
-exact test mappings, partial evidence and gaps across the whole application.
-Run `npm run test:playwright:scenarios` to validate the report against current
-discovery, or `npm run docs:playwright-scenarios` after updating its catalog.
-The report measures scenario-to-test mapping; actual browser results remain a
-separate acceptance requirement.
+The tests are the executable scenario baseline. This table gives representative
+entry points, not an exhaustive functionality inventory. Use the
+[functionality audit](../../../docs/testing/README.md) to inspect implementation
+sources independently and identify missing or partially verified behavior.
+Browser execution and functional completeness review are separate evidence.
 
 | Capability                         | Contract examples                                                                                                                                                          | Specification                      |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
@@ -197,13 +195,11 @@ time spanning multiple clock ticks before checking that the value stayed fixed.
   `MarkerLabels`'s `useRexPetTime` call should fail the stopped-execution
   scenario even if the hook's unit tests still pass.
 
-Keep the scenario catalog and generated coverage documentation current when
-adding a new capability. The reviewed inventory has 253/253 eligible scenarios
-mapped at the 2026-10-25 checkpoint, including server restart, distinct-user
-permissions, execution, report and GIS contracts. Test counts and mapping
-coverage do not establish exhaustive state coverage. Review new capabilities
-and material state boundaries with explicit expected outcomes and fixtures;
-do not limit the inventory to preserve its percentage.
+For each new capability, use the AI-assisted audit prompt to compare the
+implementation with existing assertions and add missing scenarios directly to
+the tests. Review material state boundaries with explicit expected outcomes and
+fixtures. Record the reviewed scope, unresolved expectations and remaining gaps
+in the MR description; test counts alone do not establish functional completeness.
 
 The reconnect contract takes one browser context offline, verifies that editing
 cannot be enabled and that a server-persisted peer edit has not arrived, then
