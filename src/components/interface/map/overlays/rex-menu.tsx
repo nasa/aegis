@@ -50,13 +50,29 @@ function getRexMenuFloatingBounds(mapBounds: {
   };
 }
 
+// Bounds last applied to the widget via createRexMenuPanels, keyed by nothing but the module
+// since only one mission layout is ever mounted at a time (matches REX_MENU_PANEL_IDS' same
+// assumption). repositionRexMenuPanel compares against this instead of the widget's rendered
+// DOM boundingBox: dockview's floating-group positioning (clamping in Overlay.setBounds /
+// addFloatingGroup's Math.max(x, 0) floor) doesn't always settle to exactly the x/y/width/height
+// that was requested, so a rendered-bounds comparison can permanently fail to match the naively
+// computed desired bounds. Since createRexMenuPanels is itself called from inside
+// repositionRexMenuPanel, and removePanel/addPanel re-fire onDidLayoutChange (which calls
+// repositionRexMenuPanel again), a comparison that never converges reopens the widget forever —
+// each recreation retriggers the layout-change event, hanging the tab. Comparing against the
+// last bounds we *requested* (a pure function of mapBounds) instead guarantees the check matches
+// as soon as mapBounds itself stops changing, regardless of how dockview rendered it.
+let lastAppliedRexMenuBounds: { x: number; y: number; width: number; height: number } | null = null;
+
 // Creates the two floating panels (Positions anchor + Assets tab) at the given bounds.
 // `activeTabId` restores whichever tab was active before a reposition tore the widget down.
-function createRexMenuPanels(
+// Exported only so tests can seed an already-open widget through the real code path instead of
+// duplicating these addPanel calls.
+export function createRexMenuPanels(
   api: DockviewApi,
   bounds: { x: number; y: number; width: number; height: number },
   activeTabId?: string
-) {
+): ReturnType<DockviewApi["addPanel"]> {
   const positionsPanel = api.addPanel({
     id: "positions",
     component: "positions",
@@ -72,6 +88,7 @@ function createRexMenuPanels(
     position: { referencePanel: positionsPanel, direction: "within" },
     inactive: activeTabId !== "assets",
   });
+  lastAppliedRexMenuBounds = bounds;
   return positionsPanel;
 }
 
@@ -87,14 +104,13 @@ export function repositionRexMenuPanel(
   if (!positionsPanel) return;
 
   const desired = getRexMenuFloatingBounds(mapBounds);
-  const current = positionsPanel.group.api.boundingBox;
   const EPSILON = 1;
   if (
-    current &&
-    Math.abs(current.left - desired.x) < EPSILON &&
-    Math.abs(current.top - desired.y) < EPSILON &&
-    Math.abs(current.width - desired.width) < EPSILON &&
-    Math.abs(current.height - desired.height) < EPSILON
+    lastAppliedRexMenuBounds &&
+    Math.abs(lastAppliedRexMenuBounds.x - desired.x) < EPSILON &&
+    Math.abs(lastAppliedRexMenuBounds.y - desired.y) < EPSILON &&
+    Math.abs(lastAppliedRexMenuBounds.width - desired.width) < EPSILON &&
+    Math.abs(lastAppliedRexMenuBounds.height - desired.height) < EPSILON
   ) {
     return;
   }
@@ -180,6 +196,7 @@ export function useRexMenuDockviewPanel(api: DockviewApi | null): void {
     );
     if (!showRexMenu) {
       for (const panel of existingPanels) api.removePanel(panel);
+      lastAppliedRexMenuBounds = null;
       return;
     }
     if (existingPanels.length > 0) return;

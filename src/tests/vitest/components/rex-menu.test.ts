@@ -6,7 +6,10 @@
  * fake DockviewApi rather than a real dockview instance.
  */
 import type { DockviewApi } from "dockview-react";
-import { repositionRexMenuPanel } from "components/interface/map/overlays/rex-menu";
+import {
+  repositionRexMenuPanel,
+  createRexMenuPanels,
+} from "components/interface/map/overlays/rex-menu";
 
 type AddPanelOptions = Parameters<DockviewApi["addPanel"]>[0];
 
@@ -62,18 +65,14 @@ function createFakeApi() {
 
 const MAP_BOUNDS_WIDE = { left: 0, top: 0, width: 1000, height: 800 };
 
-// Mirrors the two addPanel calls the real widget creation makes (see createRexMenuPanels in
-// rex-menu.tsx), so each test can seed an already-open widget before exercising a reposition.
+// Seeds an already-open widget through the real createRexMenuPanels, so each test starts from
+// the same state production code would leave behind (including the last-applied-bounds tracking
+// repositionRexMenuPanel relies on) before exercising a reposition.
 function seedInitialPanels(
   api: DockviewApi,
   bounds: { x: number; y: number; width: number; height: number }
 ) {
-  api.addPanel({
-    id: "positions",
-    component: "positions",
-    floating: { ...bounds, dragHandle: "tabbar" },
-  });
-  api.addPanel({ id: "assets", component: "assets", inactive: true });
+  createRexMenuPanels(api, bounds);
 }
 
 describe("repositionRexMenuPanel", () => {
@@ -133,5 +132,32 @@ describe("repositionRexMenuPanel", () => {
     const recreatedGroup = panels.get("positions")!.group;
     expect(recreatedGroup.api.isVisible).toBe(false);
     expect(recreatedGroup.activePanel?.id).toBe("assets");
+  });
+
+  // Regression test for a hang on REX selection: dockview's real floating-group positioning can
+  // render a boundingBox that never exactly matches the bounds we requested (its own internal
+  // clamping). repositionRexMenuPanel used to compare against that rendered boundingBox, so a
+  // persistent mismatch meant every call recreated the panels, which re-fires the layout-change
+  // event that calls repositionRexMenuPanel again — forever. It must instead compare against the
+  // bounds it last *requested*, so a second call with the same mapBounds is always a no-op
+  // regardless of how the fake (or dockview) chooses to render the result.
+  test("does not recreate the widget on a second call with unchanged map bounds, even when the rendered boundingBox never matches the requested bounds", () => {
+    const { api, panels, removePanel, addPanel } = createFakeApi();
+    seedInitialPanels(api, { x: 606, y: 10, width: 384, height: 320 });
+
+    // Simulate dockview's own clamping always rendering a fixed box regardless of what was
+    // requested, i.e. a boundingBox that can never match our computed "desired" bounds.
+    const clampedBox = { left: 0, top: 900, width: 100, height: 72 };
+    panels.get("positions")!.group.api.boundingBox = clampedBox;
+
+    const mapBounds = { left: 0, top: 0, width: 520, height: 800 };
+    repositionRexMenuPanel(api, mapBounds);
+    addPanel.mockClear();
+    removePanel.mockClear();
+    panels.get("positions")!.group.api.boundingBox = clampedBox;
+
+    repositionRexMenuPanel(api, mapBounds);
+    expect(removePanel).not.toHaveBeenCalled();
+    expect(addPanel).not.toHaveBeenCalled();
   });
 });

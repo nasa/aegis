@@ -428,7 +428,13 @@ right panel opens/closes, which happens automatically on REX selection) via
 `repositionRexMenuPanel`, called from `MissionDockviewLayout`'s layout-change watcher alongside
 `setMapMenuSize`. Dockview has no public API to move a floating group's x/y in place, so this
 removes and recreates the two panels at the new bounds, preserving which tab was active and
-whether the widget was minimized. Without this, the widget's position is only computed once at
+whether the widget was minimized. The no-op check compares the new bounds against the bounds it
+last *requested* (a module-level `lastAppliedRexMenuBounds`, pure function of the map bounds), not
+against the widget's rendered DOM `boundingBox` — dockview's own floating-group clamping doesn't
+always render exactly what was requested, so a rendered-bounds comparison can permanently fail to
+match and recreate the widget on every layout event forever (removePanel/addPanel re-fire
+`onDidLayoutChange`, which calls this function again), hanging the tab the moment a REX is
+selected. Without this, the widget's position is only computed once at
 creation time, and (since the right panel's own resize effect runs in a separate React effect
 that fires after the widget's creation effect) it ends up anchored assuming the map is wider
 than it will actually be once the right panel finishes opening — landing on top of the right
