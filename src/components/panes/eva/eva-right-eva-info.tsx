@@ -691,6 +691,20 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
           </div>
           <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faGlobe}>Newton Planning</SubpanelHeading>
+            </div>
+            <div className={`${paneStyles.panelSectionRow} ${paneStyles.sectionButtonRow}`}>
+              <Button
+                onClick={() => quickMapLinkState && openQuickMap(quickMapLinkState)}
+                label="Make Traverse Path"
+                toolTip="Ask the Newton API for a traverse path"
+                style={{ width: "200px" }}
+                enabled={quickMapLinkState != null}
+              />
+            </div>
+          </div>
+          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSection2Column}>
               <div className={paneStyles.panelColumnTable}>
                 <div className={paneStyles.panelColumnTableRow}>

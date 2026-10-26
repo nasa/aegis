@@ -11,3 +11,103 @@
   background-position: center;
   background-image: url("/images/icon_status_loading.svg");
 }
+
+.pathOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.pathOptionsHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.pathOptionsMock {
+  font-size: 0.65em;
+  font-weight: 600;
+  padding: 0 4px;
+  border-radius: var(--radius);
+  color: var(--grey0);
+  background-color: var(--warning);
+}
+
+.pathOption {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: var(--radius);
+  font-size: 0.8em;
+  color: white;
+}
+
+.pathOptionHighlighted {
+  background-color: var(--grey2);
+}
+
+.pathOptionSwatch,
+.pathOptionSwatchActive {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 0;
+  margin-top: 0.6em;
+}
+
+.pathOptionSwatch {
+  border-top: 3px dashed;
+}
+
+.pathOptionSwatchActive {
+  border-top: 3px solid var(--eva);
+}
+
+.pathOptionBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pathOptionRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.pathOptionName {
+  flex: 1 1 auto;
+}
+
+.pathOptionStatus {
+  color: var(--grey5);
+}
+
+.pathOptionStatus[data-status="succeeded"] {
+  color: var(--station);
+}
+
+.pathOptionStatus[data-status="failed"] {
+  color: var(--error);
+}
+
+.pathOptionDetail,
+.pathOptionNote {
+  font-size: 0.9em;
+  color: var(--grey5);
+}
+
+.pathOptionNote {
+  font-size: 0.8em;
+  padding-left: 4px;
+}
+
+.pathOptionError {
+  font-size: 0.9em;
+  color: var(--error);
+}

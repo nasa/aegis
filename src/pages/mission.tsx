@@ -11,6 +11,7 @@ import { NavGutter } from "components/interface/side-controls";
 import SocketClient from "components/page/socketClient";
 import { MissionDockviewLayout } from "components/interface/dockview/MissionDockviewLayout";
 import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
+import { TraversePathsProvider } from "components/interface/traversePaths/TraversePathsProvider";
 import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
@@ -255,10 +256,12 @@ const Main: React.FunctionComponent = () => {
                   </div>
                 </div>
               ) : (
-                <MapMenuProvider>
-                  {/* Context is shared by the map and its separate floating Dockview menu panel. */}
-                  <MissionDockviewLayout />
-                </MapMenuProvider>
+                <TraversePathsProvider missionId={intMissionId}>
+                  <MapMenuProvider>
+                    {/* Context is shared by the map and its separate floating Dockview menu panel. */}
+                    <MissionDockviewLayout />
+                  </MapMenuProvider>
+                </TraversePathsProvider>
               )}
             </div>
           )}

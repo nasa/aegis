@@ -15,6 +15,7 @@ import { StationMarkers } from "./behaviors/StationMarkers";
 import { PoiMarkers } from "./behaviors/PoiMarkers";
 import { ActionMarkers } from "./behaviors/ActionMarkers";
 import { TraverseLines } from "./behaviors/TraverseLines";
+import { TraversePathCandidates } from "./behaviors/TraversePathCandidates";
 import { WalkbackLines } from "./behaviors/WalkbackLines";
 import { MeasurementLines } from "./behaviors/MeasurementLines";
 import { InteractionManager } from "./behaviors/InteractionManager";
@@ -36,6 +37,7 @@ export function AegisMapEditor({ className }: AegisMapEditorProps): JSX.Element 
         <TileLayers />
         <Grid />
         <Circles />
+        <TraversePathCandidates />
         <TraverseLines />
         <WalkbackLines />
         <MeasurementLines />

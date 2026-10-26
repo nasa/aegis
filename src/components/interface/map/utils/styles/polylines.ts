@@ -463,3 +463,43 @@ export function buildMeasurementStyleFunction(
     return styles;
   };
 }
+
+// ---------------------------------------------------------------------------
+// Traverse path candidate style (dashed, under the active traverse)
+// ---------------------------------------------------------------------------
+
+export interface TraversePathCandidateStyleOptions {
+  weight: number;
+  /** Per-feature color resolver (read at call time, not bake time). */
+  getColor: (feature: FeatureLike) => string;
+  /** Per-feature highlight resolver (read at call time, not bake time). */
+  getIsHighlighted: (feature: FeatureLike) => boolean;
+}
+
+const candidateStyleCache = new Map<string, Style[]>();
+
+export function buildTraversePathCandidateStyleFunction(
+  opts: TraversePathCandidateStyleOptions
+): (feature: FeatureLike) => Style[] {
+  return (feature: FeatureLike): Style[] => {
+    const color = opts.getColor(feature);
+    const highlighted = opts.getIsHighlighted(feature);
+    const key = `${color}|${opts.weight}|${highlighted ? 1 : 0}`;
+    const cached = candidateStyleCache.get(key);
+    if (cached) return cached;
+
+    const width = Math.max(1, highlighted ? opts.weight + 1 : opts.weight - 1);
+    const styles: Style[] = [
+      new Style({ stroke: new Stroke({ color: "rgba(0, 0, 0, 0.6)", width: width + 2 }) }),
+      new Style({
+        stroke: new Stroke({
+          color: highlighted ? lightenColor(color, 0.4) : color,
+          width,
+          lineDash: highlighted ? undefined : [8, 6],
+        }),
+      }),
+    ];
+    candidateStyleCache.set(key, styles);
+    return styles;
+  };
+}

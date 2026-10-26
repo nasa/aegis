@@ -29,6 +29,9 @@ export const Z_INDEX = {
   /** Grid labels */
   GRID_LABELS: 8,
 
+  /** Inactive traverse path options (manual + Newton), under the active path */
+  TRAVERSE_PATH_CANDIDATES: 9,
+
   /** Traverse / walkback / measurement polylines */
   POLYLINES: 10,
 

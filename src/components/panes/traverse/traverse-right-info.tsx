@@ -31,6 +31,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 import CalculatedDwell from "../calculated-dwell";
+import PathOptions from "./traverse-right-path-options";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const Info_Panel: FunctionComponent<{
@@ -506,6 +507,7 @@ const Info_Panel: FunctionComponent<{
                 </div>
               </div>
             </div>
+            <PathOptions traverseUuid={selectedTraverse.uuid} />
           </div>
 
           <div className={paneStyles.panelSection}>
