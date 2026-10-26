@@ -230,12 +230,8 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
         </div>
       </section>
       {editComponent && (
-        <div className={adminCommon.modalOverlay} onClick={closeEditModal}>
-          <div
-            className={adminCommon.modal}
-            style={{ maxWidth: "1300px", maxHeight: "92vh" }}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className={adminCommon.modalOverlay}>
+          <div className={adminCommon.modal} style={{ maxWidth: "1300px", maxHeight: "92vh" }}>
             <div className={adminCommon.modalHeader}>
               <h2 className={adminCommon.modalTitle}>{editModalTitle}</h2>
               <button

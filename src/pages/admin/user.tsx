@@ -179,8 +179,8 @@ const User: React.FunctionComponent = () => {
   const renderModal = () => {
     if (!editMode && !createMode) return null;
     return (
-      <div className={adminCommon.modalOverlay} onClick={closeModal}>
-        <div className={adminCommon.modal} onClick={(e) => e.stopPropagation()}>
+      <div className={adminCommon.modalOverlay}>
+        <div className={adminCommon.modal}>
           <div className={adminCommon.modalHeader}>
             <h2 className={adminCommon.modalTitle}>{createMode ? "Create User" : "Edit User"}</h2>
             <button className={adminCommon.modalClose} onClick={closeModal} title="Close">
