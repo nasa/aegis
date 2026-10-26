@@ -179,10 +179,13 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
 
   // The default source selection depends on the REX's source uuids, so it can't be part of
   // DEFAULT_SETTINGS. It is applied once, only when the cookie had no saved selection.
+
+  // sourceUuidsSettledRef tracks whether the cookie already has a saved selection for source UUIDs.
   const sourceUuidsSettledRef = useRef(Array.isArray(savedCookie?.submenuPos?.sourceUuids));
   const applyDefaultSourceUuids = useCallback((sourceUuids: string[]) => {
     if (sourceUuidsSettledRef.current) return;
     sourceUuidsSettledRef.current = true;
+    // Only apply defaults when there was nothing in the cookie
     setSubmenuPos((current) => ({ ...current, sourceUuids }));
   }, []);
 

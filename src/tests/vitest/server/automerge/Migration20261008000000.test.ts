@@ -1,11 +1,11 @@
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
-import { Migration20261008000000 } from "server/automerge/migrations/Migration20261008000000";
+import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 import type { AutomergeMigrationContext } from "server/automerge/migrations/types";
 import { generateBlankRex } from "store/storeUtils/rex";
 
 beforeAll(() => setMissionAutomergeDocHandle(null));
 
-describe("Migration20261008000000 add-pos-source-path-color", () => {
+describe("Migration20261026000000 add-pos-source-path-color", () => {
   test("backfills default colors by source name, white for custom sources, keeps existing", async () => {
     const rex = generateBlankRex({ evaUuid: "eva-migration-test" });
     const legacyPosSources = [
@@ -21,7 +21,7 @@ describe("Migration20261008000000 add-pos-source-path-color", () => {
       m.rexes[rex.uuid] = { ...rex, posSources: legacyPosSources as PosSource[] };
     });
 
-    await Migration20261008000000.migrate(missionDocHandle, {} as AutomergeMigrationContext);
+    await Migration20261026000000.migrate(missionDocHandle, {} as AutomergeMigrationContext);
 
     const colors = missionDocHandle
       .doc()

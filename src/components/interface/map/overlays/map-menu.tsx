@@ -45,9 +45,10 @@ export const MapMenuPosSourceSync: FunctionComponent = () => {
 
   useEffect(() => {
     if (!selectedRexPosSources) return;
+    // Get default source uuids to pass to the provider in-case they need it
+    // The provider ignores this when settings were restored from the cookie.
     const taskPosSourceUuid = selectedRexPosSources.find((source) => source.abbr === "T")?.uuid;
     const crewPosSourceUuid = selectedRexPosSources.find((source) => source.abbr === "C")?.uuid;
-    // The provider ignores this when settings were restored from the cookie.
     applyDefaultSourceUuids(
       [taskPosSourceUuid, crewPosSourceUuid].filter((uuid) => uuid !== undefined)
     );

@@ -7,8 +7,8 @@ const DEFAULT_POS_SOURCE_PATH_COLORS: { [name: string]: string } = {
 };
 
 /** Backfill `pathColor` on every REX position source; custom sources default to white. */
-export const Migration20261008000000: AutomergeMigration = {
-  version: 20261008000000,
+export const Migration20261026000000: AutomergeMigration = {
+  version: 20261026000000,
   name: "add-pos-source-path-color",
   migrate: async (docHandle) => {
     docHandle.change((mission: Mission) => {
