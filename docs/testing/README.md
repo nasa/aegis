@@ -1,162 +1,125 @@
-# AEGIS tracked scenarios and Playwright coverage
+# AEGIS functionality audits
 
-Start with the [coverage report](coverage.md). It links every scenario family,
-shows the percentage with a complete reviewed Playwright mapping, and lists every
-discovered browser test and registered UI/HTTP surface. The machine-readable
-[summary](coverage-summary.json) contains the same counts for dashboards or CI.
+Playwright tests are the executable scenario baseline. Use AI to compare the
+application's supported functionality with the test fixtures and assertions,
+then add or strengthen tests for missing behavior. Record the review scope and
+remaining gaps in the MR description.
 
-The [scenario catalog](scenario-catalog.json) is the editable source of truth.
-Generated scenario chapters live in [scenarios/](scenarios). The existing
-[browser behavior guide](../../src/tests/playwright/README.md) explains fixtures,
-assertions and how to run the application tests.
+The [browser behavior guide](../../src/tests/playwright/README.md) explains
+fixtures, independent expectations, local execution and the full CI procedure.
 
-## What the percentage means
+## AI-assisted functionality audit
 
-**Scenario mapping coverage = mapped scenarios / Playwright-eligible scenarios.**
-Each scenario counts once, regardless of how many tests, assertions, retries or
-browsers implement it. P0 coverage uses the same formula restricted to critical
-scenarios. This is an unweighted inventory metric, not JavaScript line coverage,
-a test pass rate, or a probability that the application has no defects.
+The main review question is whether the tests describe the application's
+supported functionality and meaningful state boundaries. Passing tests show
+that their assertions succeeded for a particular run. They cannot establish
+that every supported capability has been identified.
 
-| Status   | Meaning                                                                                                                                                         | Percentage credit                                    |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Mapped   | Reviewed test assertions implement this row's bounded action and expected outcome; exact test references resolve in Chromium discovery.                         | One scenario                                         |
-| Partial  | There is related Playwright evidence, but some required outcome, fixture, state or boundary is missing. The row explains the limitation.                        | Zero                                                 |
-| Gap      | No complete Playwright implementation is assigned.                                                                                                              | Zero                                                 |
-| External | An operational drill or diagnostic classification requires separate evidence outside browser scenario acceptance. Only the operations area can use this status. | Shown separately; outside the Playwright denominator |
+An AI audit must first inventory functionality from application sources, then
+compare that inventory with test fixtures and assertions. Starting only from
+the tests or a previous audit risks overlooking the same missing capabilities
+again. A lightweight audit record retains source areas inspected, identified
+gaps, unresolved expectations, deliberate exclusions and browser-run evidence.
+Covered behavior can link directly to tests without another prose description.
 
-“Mapped” requires a human review of assertions and fixture setup. The checker
-validates test identity, discovery, static skip/fixme/fail status, catalog shape
-and generated-file freshness. It cannot determine whether an assertion proves
-the intended behavior, detect a helper that returns early at runtime, or replace
-an executed browser run. Changing a test body without changing its title still
-requires reviewing the mapping. Unit and Vitest browser tests are listed as
-supporting evidence and receive no Playwright scenario credit.
+Use this prompt for a full audit. For a feature MR, replace the scope with its
+base/head commits and changed capabilities, including their shared consumers.
+A focused review must not be reported as a whole-application audit.
 
-The inventory is intentionally broader than the current test suite. It includes
-normal operation, invalid input, Save/Cancel/confirmation, empty and missing data,
-scope and identity, reload, multiple clients, concurrency, disconnect/reconnect,
-permissions, version variants and operational recovery. A composite scenario is
-mapped only when **all** of its stated checks are implemented. Keep scenarios at
-a useful bounded contract size; split a row when the state matrix needs separate
-tests and review, rather than padding the numerator with individual assertions.
+```text
+Audit AEGIS's functional scenario completeness and its Playwright verification.
 
-P0 means a failure can corrupt/lose mission data, violate access/identity/scope,
-misrepresent critical execution/science/calculation results, or prevent a core
-workflow. P1 covers significant user behavior and validation; P2 covers secondary
-presentation and preferences. Priorities are reviewable product judgments.
+Read the repository instructions and src/tests/playwright/README.md. Record the
+reviewed commit and whether this is a full application audit or a scoped change.
 
-## Scope and provenance
+1. Before using tests or a previous audit as a checklist, inspect the application
+   implementation and build a capability inventory. Follow routes, panes and
+   controls into shared operations, calculations, persistence, permissions,
+   sockets and external integrations. Include behavior that route discovery
+   cannot see. Record source evidence and any areas not inspected.
 
-The first review was on **2026-10-24** against this working tree, including the
-recent action, comparison-report and collaboration tests. The report discovers
-the checked-out tests rather than claiming results for a historical commit.
-Rebuilding the report does not advance the semantic review date. Record the
-reviewed commit alongside runtime results when accepting a release.
+2. For each capability, identify its supported actions and meaningful boundaries:
+   creation/edit/deletion, validation, Save/Cancel where offered, empty/missing
+   data, identity/ownership, planned/running/historical state, permissions,
+   persistence/reload, peer updates, concurrency and failure/recovery. Select
+   applicable boundaries; do not invent a Cartesian product or new requirements.
+   Separate observed implementation from confirmed intended behavior. Flag
+   ambiguous expectations for product review instead of treating current bugs
+   as the specification.
 
-The structure follows the recent sibling MaestroPlus review:
+3. Discover Playwright tests and read their actual fixtures, actions and
+   assertions, including helpers and runtime branches. Compare them against the
+   independently derived inventory. A matching title, visible canvas or passing
+   test is insufficient if the required outcome is not asserted. Identify
+   missing capabilities and partially verified boundaries, skipped/conditional
+   work, weak or circular expected values, and missing browser parity where
+   relevant. Revisit unresolved findings from previous audits without assuming
+   they exhaust the app's functionality.
 
-- [Whole-app review coverage map](../../../maestroplus/docs/verification/reference/27-review-coverage-map.md)
-  supplies the application-family checklist and distinction between registration
-  accounting and acceptance.
-- [Preservation scenarios](../../../maestroplus/docs/verification/reference/12-preservation-scenarios.md)
-  supplies additional map, calculation, document and integration boundaries.
-- [AEGIS sequence and lifecycle review](../../../maestroplus/docs/11-aegis-planning-entities.md),
-  [execution policies](../../../maestroplus/docs/14-aegis-execution.md), and
-  [data and administration](../../../maestroplus/docs/16-aegis-data-and-administration.md)
-  informed the missing workflow families.
+4. Add or strengthen tests for clear supported contracts using isolated data,
+   real user actions and independently known expectations. Verify persistence
+   and peer behavior when required by the contract. Retain defect reproducers
+   and demonstrate that their targeted regression causes failure when feasible.
+   Do not change product behavior merely to satisfy an unsupported expectation,
+   weaken assertions to obtain green results, or hide missing coverage with skips.
+   Record unresolved contracts as explicit gaps.
 
-Those sibling documents are historical research inputs, not proof of this
-checkout's behavior. The local catalog records current implementation sources
-for every area. The latest semantic sweep is **2026-10-25**. Source-derived
-behavior and research suggestions are not automatically approved product
-requirements. Before implementing a gap, establish its supported contract and
-oracle; correct an unsupported catalog assumption with a recorded rationale.
-Sibling links require both repositories to be
-checked out side by side; the AEGIS catalog/report work independently.
+5. Run the affected tests and follow the repository's required validation rules
+   for code changes. Report the tested commit, configuration, commands, passes,
+   failures, retries and skips. Distinguish assertion review from browser
+   execution. Follow the full CI acceptance procedure before claiming merge
+   readiness.
 
-The surface appendix inspects current TypeScript registrations: all UI routes,
-mission-pane selectors, and mounted literal HTTP routes. Each is assigned to a
-scenario family, including administration and diagnostics. Assignment is an
-accounting check, not test coverage. Sockets, conditionally rendered controls,
-GIS tools and operational scripts are represented by the broader family review;
-the registration scanner does not exhaust their possible behavior. A family can
-have complete registration accounting and zero mapped scenarios.
-
-The catalog is a finite, extensible denominator. New supported capabilities and
-material state boundaries need scenario review even if that lowers the percentage.
-Keep stable IDs and record why a contract changes: a product decision, a supported
-implementation boundary, or correction of an unsupported assumption. A catalog
-correction does not require a product change. Never change scope solely to raise
-the score, or classify browser work as external to hide missing tests.
-
-Existing Automerge sockets may continue writing after grant removal. Subsequent
-HTTP requests refresh persisted grants; initial transport authorization remains
-a separate contract. Tests must distinguish those boundaries. Draft Save/Cancel
-requirements apply only to controls that offer drafts. Deterministic injected
-service responses can establish browser failure/recovery behavior; a real process
-outage is required only when process recovery is the contract under test.
-
-## Maintain and regenerate
-
-```sh
-# Validate catalog, current discovery and checked-in generated artifacts.
-npm run test:playwright:scenarios
-
-# Rebuild the report, per-area chapters and machine-readable summary.
-npm run docs:playwright-scenarios
-
-# Completeness gate: requires every eligible row to have a complete mapping.
-npm run test:playwright:scenarios:complete
+6. Produce a concise audit record: reviewed scope/commit, source areas inspected,
+   gaps found and addressed with test links, remaining partial/missing scenarios,
+   unresolved expectations, exclusions with reasons, and execution evidence.
+   Use test references for covered behavior instead of copying every test into
+   another scenario catalog. For a scoped audit, update the affected findings
+   and preserve unresolved findings outside its scope. Never infer functional
+   completeness from a percentage or test count. State limitations explicitly.
 ```
 
-These commands run `playwright --list`, not browser execution, global setup or
-the application/database. They use the installed project dependencies and need
-no operational mission data. Normal validation succeeds with honestly recorded
-gaps; the completeness gate requires every eligible row to be mapped and passed
-at the 2026-10-25 checkpoint (253/253). Run it before MR acceptance. It is not
-currently wired into CI and does not replace the manually triggered full browser
-suite described in the [browser behavior guide](../../src/tests/playwright/README.md#before-merging).
+For ongoing feature work, run a scoped audit in the same MR. Use full audits when
+reassessing the baseline or before a significant release. AI produces the review
+and proposed changes; maintainers assess its scope, product assumptions and
+assertions. A new gap is useful evidence and must remain visible until resolved.
 
-To add or close a scenario:
+## Recording an audit
 
-1. Edit `scenario-catalog.json`. Preserve existing IDs; allocate the next unused
-   ID under the appropriate area. Do not renumber rows when inserting one.
-2. Specify fixture, user action and independently checkable expected outcomes.
-   Add a per-scenario `fixture` when a case needs a more specific setup than its
-   area's default. Describe relevant state boundaries in the action/expectation.
-   Name finite supported combinations and permission policies. Do not assume a
-   full Cartesian product, distributed serialization, or a new UX transaction
-   merely because a broad inventory row suggests one.
-3. Add exact test-relative `file` and expanded `title` references. Parameterized
-   titles must match actual `--list` discovery. The checker rejects missing,
-   ambiguous, excluded or statically skipped complete mappings.
-4. Review the real assertions and setup. Keep a row Partial if a related test only
-   checks visibility, download filename, imported optional data or one state of
-   a larger contract. Explain the unproved boundary in `note`.
-5. Generate docs and validate. Run the actual affected browser tests separately,
-   preserving result files and recording the reviewed commit/configuration.
+Include this concise record in the MR description. Link to tests for covered
+behavior rather than maintaining a second description of every scenario. Do not
+mark a source area reviewed until it has actually been inspected. Carry unresolved
+findings into follow-up issues or the next audit, with a link from the MR.
 
-Source paths in `sources` and `supporting` are checked for existence. Add new
-route/pane or mounted-handler assignments to `surfaceAssignments` when required.
-Every existing route in a handler belongs to its assigned family, but a newly
-added endpoint still needs a semantic scenario review even if that family was
-already assigned. Generated discovery includes supporting tests that have no
-complete scenario mapping, so they remain visible without inflating the score.
+```text
+Reviewed commit or base/head commits:
+Scope: full application or named changed capabilities
+Implementation areas inspected and source references:
+Gaps addressed and test references:
+Remaining missing/partial scenarios and follow-up links:
+Unresolved intended behavior:
+Deliberate exclusions and rationale:
+Executed validation: commit, configuration, commands, results, retries/skips
+Areas not inspected or other limitations:
+```
 
-## Before claiming complete coverage
+Review both assertions and fixture setup. Use bounded contracts with independently
+checkable outcomes, and distinguish supported product requirements from current
+implementation behavior. Unit/component tests can supply additional evidence;
+real browser execution establishes that the application pieces work together.
 
-The mapping gate must pass with no Partial or Gap rows. Then execute all required
-browser projects against the reviewed commit with explicit fixtures, and retain
-results showing which cases passed, failed, skipped or retried. Current Firefox
-and WebKit configuration covers smoke and selected parity workflows, including
-editing, accessibility, raster/layer behavior and presence. Chromium runs the
-full regression suite. The 100% scenario mapping figure does not imply that
-every scenario executes in every browser.
+Operational work such as backup/restore, migrations, deployment, GIS conversion
+and load/long-session drills may need separate evidence. Describe those boundaries
+when they affect the reviewed capability rather than treating browser passes as
+operational acceptance.
 
-Check that tests fail when their targeted behavior is broken. Review the
-denominator again for missing supported capabilities and states. External restore,
-migration, deployment, GIS and load drills have their own evidence and acceptance
-decisions; they are not prerequisites for 100% Playwright scenario mapping.
-Release acceptance also follows the repository's merge-readiness CI regression rules.
-A generated percentage or a green test count alone does not establish acceptance.
+Discover current configured tests without running browsers:
+
+```sh
+node node_modules/@playwright/test/cli.js test --config=src/tests/playwright/playwright.config.ts --list
+```
+
+Discovery supplies test identities and configured projects; it does not evaluate
+assertion sufficiency or establish runtime results. Run affected tests during
+development and all eight CI shards for the candidate commit before merge, as
+described in the browser behavior guide.

@@ -69,13 +69,13 @@ Format every changed file with the root `.prettierrc.json` before the full check
 Run affected Playwright tests locally during development. When you think an MR is ready to merge, manually trigger the full suite in GitLab. Keep the MR in Draft until all eight CI shards and the other required checks pass for the latest MR commit:
 
 1. Run the standard checks above.
-2. Update affected tests and the scenario catalog for changed behavior, regenerate the coverage documentation, and run `npm run test:playwright:scenarios:complete`. Review the assertions as well as the mapping; the catalog check does not execute browsers.
+2. Review changed functionality and relevant state boundaries against the actual Playwright fixtures and assertions using the [AI-assisted functionality audit](docs/testing/README.md). Update affected tests and record the reviewed scope, source evidence, unresolved expectations and remaining gaps in the MR description. Playwright tests are the executable scenario baseline; a passing test count does not establish functional completeness.
 3. Push the final changes, then click Play once on `test-playwright:start` in that commit's GitLab pipeline. It automatically releases all eight `test-playwright` shards, covering the full configured suite: authentication setup, Chromium regression tests, and Firefox/WebKit smoke and selected parity workflows. Wait for every shard and the rest of the required pipeline to pass before marking the MR Ready.
 4. Record the tested commit, successful CI pipeline link, and any retries or skipped tests in the MR description. Check the full Playwright suite checkbox only after all eight shards pass. Investigate failures and retries; do not present a partial or filtered run as full regression validation.
 
 A duplicate full local Playwright run is optional; use `npm run test:playwright` without filters or sharding when needed for diagnosis. `npm run test:all` does not run Playwright. Full Playwright execution is manually triggered at merge readiness, not on every development push. Any new commit after validation invalidates the checkbox: return the MR to Draft and rerun all eight CI shards when the updated candidate is ready. Refresh validation after incorporating target-branch changes as well.
 
-`test-playwright:start` is a manual blocking job (`allow_failure: false`), and all eight shards run automatically after it succeeds and their setup dependencies finish. An unstarted gate or a failing shard prevents pipeline success and, with the project's required-pipeline setting, prevents merging. Use the [MR template](.gitlab/merge_request_templates/Default.md) to record the evidence; the checkbox does not replace the required pipeline.
+`test-playwright:start` is an optional manual launch (`allow_failure: true`), and all eight shards run automatically after it succeeds and their setup dependencies finish. Pipelines can pass without launching Playwright; when launched, a failing shard fails the pipeline. Require all eight shards to pass before marking an MR Ready and use the [MR template](.gitlab/merge_request_templates/Default.md) to record the evidence.
 
 ## Map / OpenLayers
 
