@@ -18,6 +18,10 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 
 const REX_MENU_WIDTH = 384;
 const REX_MENU_HEIGHT = 320;
+// The widget cannot be dragged/resized smaller than this (enforced in CSS on the floating
+// resize container, see missionDockviewLayout.module.css).
+const REX_MENU_MIN_WIDTH = 325;
+const REX_MENU_MIN_HEIGHT = 318;
 const REX_MENU_TOP_OFFSET = 10;
 const REX_MENU_RIGHT_OFFSET = 10;
 // Panels that live in the floating Rex Menu widget (Positions + Assets tabs). Their tabs cannot
@@ -26,6 +30,83 @@ export const REX_MENU_PANEL_IDS = ["positions", "assets"];
 
 function getMapBounds(api: DockviewApi) {
   return api.getPanel("map")?.group.api.boundingBox;
+}
+
+// Anchors the widget to the top-right of the current map bounds, clamped so it never exceeds
+// the map area nor drops below the enforced minimum size.
+function getRexMenuFloatingBounds(mapBounds: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}) {
+  const width = Math.max(REX_MENU_MIN_WIDTH, Math.min(REX_MENU_WIDTH, mapBounds.width));
+  const height = Math.max(REX_MENU_MIN_HEIGHT, Math.min(REX_MENU_HEIGHT, mapBounds.height));
+  return {
+    x: mapBounds.left + Math.max(0, mapBounds.width - width - REX_MENU_RIGHT_OFFSET),
+    y: mapBounds.top + Math.min(REX_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
+    width,
+    height,
+  };
+}
+
+// Creates the two floating panels (Positions anchor + Assets tab) at the given bounds.
+// `activeTabId` restores whichever tab was active before a reposition tore the widget down.
+function createRexMenuPanels(
+  api: DockviewApi,
+  bounds: { x: number; y: number; width: number; height: number },
+  activeTabId?: string
+) {
+  const positionsPanel = api.addPanel({
+    id: "positions",
+    component: "positions",
+    tabComponent: "nonClosable",
+    title: "Positions",
+    floating: { ...bounds, dragHandle: "tabbar" },
+  });
+  api.addPanel({
+    id: "assets",
+    component: "assets",
+    tabComponent: "nonClosable",
+    title: "Assets",
+    position: { referencePanel: positionsPanel, direction: "within" },
+    inactive: activeTabId !== "assets",
+  });
+  return positionsPanel;
+}
+
+// Re-anchors the already-created widget to the current map bounds, e.g. after the right panel
+// opens/closes and shrinks/grows the map area. Dockview has no public API to move a floating
+// group's x/y in place, so this removes and recreates the two panels, preserving which tab was
+// active and whether the widget was minimized.
+export function repositionRexMenuPanel(
+  api: DockviewApi,
+  mapBounds: { left: number; top: number; width: number; height: number }
+): void {
+  const positionsPanel = api.getPanel("positions");
+  if (!positionsPanel) return;
+
+  const desired = getRexMenuFloatingBounds(mapBounds);
+  const current = positionsPanel.group.api.boundingBox;
+  const EPSILON = 1;
+  if (
+    current &&
+    Math.abs(current.left - desired.x) < EPSILON &&
+    Math.abs(current.top - desired.y) < EPSILON &&
+    Math.abs(current.width - desired.width) < EPSILON &&
+    Math.abs(current.height - desired.height) < EPSILON
+  ) {
+    return;
+  }
+
+  const wasVisible = positionsPanel.group.api.isVisible;
+  const activeTabId = positionsPanel.group.activePanel?.id;
+  for (const id of REX_MENU_PANEL_IDS) {
+    const panel = api.getPanel(id);
+    if (panel) api.removePanel(panel);
+  }
+  const recreatedPositionsPanel = createRexMenuPanels(api, desired, activeTabId);
+  recreatedPositionsPanel.group.api.setVisible(wasVisible);
 }
 
 const PositionsDockviewPanel: FunctionComponent = () => (
@@ -105,29 +186,7 @@ export function useRexMenuDockviewPanel(api: DockviewApi | null): void {
 
     const mapBounds = getMapBounds(api);
     if (!mapBounds) return;
-    const width = Math.min(REX_MENU_WIDTH, mapBounds.width);
-    const height = Math.min(REX_MENU_HEIGHT, mapBounds.height);
-    const positionsPanel = api.addPanel({
-      id: "positions",
-      component: "positions",
-      tabComponent: "nonClosable",
-      title: "Positions",
-      floating: {
-        x: mapBounds.left + Math.max(0, mapBounds.width - width - REX_MENU_RIGHT_OFFSET),
-        y: mapBounds.top + Math.min(REX_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
-        width,
-        height,
-        dragHandle: "tabbar",
-      },
-    });
-    api.addPanel({
-      id: "assets",
-      component: "assets",
-      tabComponent: "nonClosable",
-      title: "Assets",
-      position: { referencePanel: positionsPanel, direction: "within" },
-      inactive: true,
-    });
+    createRexMenuPanels(api, getRexMenuFloatingBounds(mapBounds));
   }, [api, showRexMenu]);
 
   useEffect(() => {

@@ -116,6 +116,12 @@
   pointer-events: none;
 }
 
+/* The Rex Menu widget (Positions + Assets tabs) cannot be dragged/resized smaller than this. */
+.container :global(.dv-resize-container:has([data-testid="positions-floating-panel"])) {
+  min-width: 325px;
+  min-height: 318px;
+}
+
 /* Floating groups mount outside .dv-dockview, so their tab colors are set on the overlay host. */
 .container :global(.dv-floating-overlay-host) {
   --dv-tabs-and-actions-container-height: 26px;

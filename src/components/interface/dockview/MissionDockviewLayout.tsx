@@ -34,6 +34,7 @@ import {
   rexMenuTabComponents,
   RexMenuHeaderActions,
   useRexMenuDockviewPanel,
+  repositionRexMenuPanel,
   REX_MENU_PANEL_IDS,
 } from "components/interface/map/overlays/rex-menu";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
@@ -207,6 +208,7 @@ export function MissionDockviewLayout(): JSX.Element {
       const mapBounds = getMapBounds(api);
       const menuPanel = api.getPanel("map-menu");
       if (mapBounds && menuPanel) setMapMenuSize(menuPanel, mapBounds);
+      if (mapBounds) repositionRexMenuPanel(api, mapBounds);
     };
 
     const layoutDisposable = api.onDidLayoutChange(updateLayout);
