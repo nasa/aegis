@@ -34,24 +34,33 @@ export function getCompatibleGridLabelInterval(
 }
 
 export const MapMenuPosSourceSync: FunctionComponent = () => {
-  const { setSubmenuPos } = useMapMenuSetters();
+  const { applyDefaultSourceUuids } = useMapMenuSetters();
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const selectedRexPosSources = useMissionDocSelector((mission) => {
+  const activeRexPosSourceUuids = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return undefined;
     const selectedRex = mission.rexes[selectedRexUuid];
     const runningRex = Object.values(mission.rexes).find((rex) => rex.isRunning);
-    return selectedRex?.posSources || runningRex?.posSources;
+    const rex = selectedRex || runningRex;
+    return rex && { uuid: rex.uuid, posSources: rex.posSources };
   }, deepEqual);
 
   useEffect(() => {
-    if (!selectedRexPosSources) return;
-    const taskPosSourceUuid = selectedRexPosSources.find((source) => source.abbr === "T")?.uuid;
-    const crewPosSourceUuid = selectedRexPosSources.find((source) => source.abbr === "C")?.uuid;
-    setSubmenuPos((current) => ({
-      ...current,
-      sourceUuids: [taskPosSourceUuid, crewPosSourceUuid].filter((uuid) => uuid !== undefined),
-    }));
-  }, [selectedRexPosSources, setSubmenuPos]);
+    if (!activeRexPosSourceUuids) return;
+    // Get default source uuids to pass to the provider in-case they need it.
+    // The provider only applies this when activeRex.uuid differs from the last REX it defaulted
+    // for, so switching REXes always re-applies Task + Crew, while a same-REX refresh keeps the
+    // cookie's saved selection.
+    const taskPosSourceUuid = activeRexPosSourceUuids.posSources.find(
+      (source) => source.abbr === "T"
+    )?.uuid;
+    const crewPosSourceUuid = activeRexPosSourceUuids.posSources.find(
+      (source) => source.abbr === "C"
+    )?.uuid;
+    applyDefaultSourceUuids(
+      activeRexPosSourceUuids.uuid,
+      [taskPosSourceUuid, crewPosSourceUuid].filter((uuid) => uuid !== undefined)
+    );
+  }, [activeRexPosSourceUuids, applyDefaultSourceUuids]);
 
   return null;
 };
@@ -385,6 +394,35 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                     </div>
                   );
                 })}
+              </div>
+              <div
+                className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle} ${styles.menuItemContent}`}
+              >
+                Paths
+                <div
+                  className={`${styles.toggleLeft} ${styles.center} ${
+                    mapDisplayPos.pathMode === "merged" && styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPos({ ...mapDisplayPos, pathMode: "merged" });
+                  }}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-content="One path per position type across all shown sources"
+                >
+                  Merged
+                </div>
+                <div
+                  className={`${styles.toggleRight} ${styles.center} ${
+                    mapDisplayPos.pathMode === "separate" && styles.toggleSelected
+                  }`}
+                  onClick={() => {
+                    setMapDisplayPos({ ...mapDisplayPos, pathMode: "separate" });
+                  }}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-content="One path per position type for each source, colored by source"
+                >
+                  Separate
+                </div>
               </div>
               <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
                 Markers

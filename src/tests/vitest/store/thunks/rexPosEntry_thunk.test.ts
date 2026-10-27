@@ -74,6 +74,45 @@ describe("Thunk Position Entry Tests", () => {
       expect(store.getState().rex.selectedPosEntryUuid).toEqual(posEntryInEdit.uuid);
     });
 
+    test("creates a new entry whose fields came from an entry read out of the doc", async () => {
+      // Editing an existing entry puts the doc's entry into posEntryInEdit, so its nested
+      // posTypeUuids array is an Automerge object. A new entry reusing that array must not
+      // throw "Cannot create a reference to an existing document object".
+      const eva = generateBlankEVA({ name: "Vitest EVA" });
+      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
+      const existingEntry = generateBlankPosEntry({
+        posTypeUuids: [rex.posTypes[0].uuid],
+        posSourceUuid: rex.posSources[0].uuid,
+        location: { lat: 1, lng: 1 },
+      });
+      rex.posEntries = [existingEntry];
+      getMissionDocHandle().change((m) => {
+        m.evas[eva.uuid] = eva;
+        m.rexes[rex.uuid] = rex;
+      });
+
+      const docEntry = getMission().rexes[rex.uuid].posEntries[0];
+      const newEntry = generateBlankPosEntry({
+        posTypeUuids: docEntry.posTypeUuids,
+        posSourceUuid: rex.posSources[1].uuid,
+      });
+      const store = createCustomTestStore({
+        rex: { ...rexInitialState, selectedRexUuid: rex.uuid, posEntryInEdit: newEntry },
+      });
+
+      const result = await store.dispatch(
+        thunkDocUpdatePosEntryWithLocation({
+          location: { lat: 2, lng: 2 },
+          posEntryUuid: newEntry.uuid,
+        })
+      );
+
+      expect(result.meta.requestStatus).toBe("fulfilled");
+      const posEntries = getMission().rexes[rex.uuid].posEntries;
+      expect(posEntries).toHaveLength(2);
+      expect(posEntries[1].posTypeUuids).toEqual([rex.posTypes[0].uuid]);
+    });
+
     test("updates an existing pos entry's location on automerge", async () => {
       const eva = generateBlankEVA({ name: "Vitest EVA" });
       const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
