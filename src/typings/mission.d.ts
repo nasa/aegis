@@ -242,3 +242,9 @@ interface MissionCopyOptions {
   nameSuffix: string;
   copyAssets?: boolean;
 }
+
+type MissionDuplicationProgress = {
+  type: "progress";
+  message: string;
+  elapsedSeconds: number;
+};

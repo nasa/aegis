@@ -23,11 +23,19 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
   const missionName = missionDoc?.name;
 
   const onDuplicateMission = async (missionId: number) => {
-    const response = await duplicateMission(missionId);
-    if (response.status !== "success") {
-      throw new Error(response.message || "Error duplicating mission");
+    setStatus("Starting duplication...");
+    try {
+      const response = await duplicateMission(missionId, (progress) => {
+        setStatus(`${progress.message} (${progress.elapsedSeconds}s elapsed)`);
+      });
+      if (response.status !== "success") {
+        throw new Error(response.message || "Error duplicating mission");
+      }
+      setStatus(response.message);
+    } catch (error) {
+      setStatus("Duplication was not confirmed. Check the mission list before retrying.");
+      throw error;
     }
-    setStatus(response.message);
   };
 
   return (
