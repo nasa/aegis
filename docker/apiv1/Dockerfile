@@ -57,6 +57,7 @@ COPY --from=build /app/.local/schemas /app/.local/schemas
 
 # Run node with production config
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size-percentage=75"
 
 # Install runtime dependencies only, omit the devDependencies
 # Reuse the npm cache from the build stage to avoid re-downloading packages.
