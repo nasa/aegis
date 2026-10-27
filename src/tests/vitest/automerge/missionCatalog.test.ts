@@ -181,7 +181,7 @@ test("persisted edits update names, archives, EVA membership and the small REX c
   }
 });
 
-test("an edit saved during projection queues another update", async () => {
+test("an edit saved during summary creation queues another update", async () => {
   const handle = await createMission();
   const originalFlush = repo.flush.bind(repo);
   const runtime = startMissionCatalogRuntime(repo, storage);
@@ -205,7 +205,7 @@ test("an edit saved during projection queues another update", async () => {
   }
 });
 
-test("projection never publishes an edit made after its document flush", async () => {
+test("summary creation never publishes an edit made after its document flush", async () => {
   // Prevent the repo's background save timer from hiding an unsaved concurrent edit.
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const reader = new Repo({ storage });
@@ -227,7 +227,7 @@ test("projection never publishes an edit made after its document flush", async (
     expect(persisted.doc().name).toBe("Persisted edit");
     expect((await getMissionSummaries(ids))[0].name).toBe(persisted.doc().name);
 
-    // A later save must still recognize the concurrent edit as needing projection.
+    // A later save must still recognize the concurrent edit as needing summary creation.
     await refreshMissionCatalog(repo, handle);
     expect((await getMissionSummaries(ids))[0].name).toBe("Not persisted yet");
   } finally {
@@ -336,7 +336,7 @@ test("unrelated local and remote edits, including timestamp changes, perform no 
   }
 });
 
-test("a failed projection is not remembered as indexed and retries on the next save", async () => {
+test("a failed summary creation is not remembered as indexed and retries on the next save", async () => {
   const handle = await createMission();
   const runtime = startMissionCatalogRuntime(repo, storage);
   try {
@@ -396,7 +396,7 @@ test("one-time population resumes missing summaries and repeated startup loads n
   first.change((m) => {
     m.name = "Persisted before crash";
   });
-  await repo.flush(); // Simulate dying before the projector ran.
+  await repo.flush(); // Simulate dying before summary creation ran.
   await globalValues.orm.em
     .fork()
     .execute("delete from mission_catalog_db where mission_id = ?", [ids[1]]);
@@ -426,7 +426,7 @@ test("one-time population resumes missing summaries and repeated startup loads n
   }
 });
 
-test("deleting a listing removes both indexes and a late projector cannot recreate them", async () => {
+test("deleting a listing removes both indexes and late summary creation cannot recreate them", async () => {
   const eva = generateBlankEVA();
   const handle = await createMission({ evas: { [eva.uuid]: eva } });
   await globalValues.orm.em

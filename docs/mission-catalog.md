@@ -23,7 +23,7 @@ edits, remote sync and imports. Sync-state writes do not queue checks. An in-mem
 coalesces repeated notifications and processes documents sequentially, outside the save call.
 Each document's check waits for three seconds without another save/load notification; a new
 notification restarts only that document's delay, including checks queued behind other documents.
-Edits saved during a projection schedule another debounced check. Explicit runtime refreshes,
+Edits saved during summary creation schedule another debounced check. Explicit runtime refreshes,
 idle eviction and shutdown process pending updates without waiting for the debounce. The
 once-per-minute housekeeping sweep does not shorten the debounce for active documents.
 There is no index polling, database trigger or persistent pending queue. The summary and EVA
@@ -37,13 +37,13 @@ remains in the full document but is not stored in the catalog or shown in the ad
 list, so timestamp-only changes do not trigger indexing. No full Automerge
 document is copied or retained for comparison; the small cached values expire with the handle.
 
-Creation and admin archive/unarchive wait for projection before responding. Other synchronized
+Creation and admin archive/unarchive wait for summary creation before responding. Other synchronized
 edits become visible after the storage save, debounce and queued update. Continuous edits can
 defer the update until they pause. The homepage polls
 the summary endpoint every five seconds; its PET clock continues ticking locally.
 
 For this rollout, the temporary `populateMissionCatalogOnce` startup function builds missing
-catalog entries before the API listens. It loads, projects, flushes and releases one document
+catalog entries before the API listens. It loads, creates a summary, flushes and releases one document
 at a time. The persisted catalog rows record progress: subsequent starts load no documents
 for population, and an interrupted run resumes the missing entries. Remove the function and
 its startup import/call in the next MR after rollout. Normal startup then preloads only
@@ -76,7 +76,7 @@ memory housekeeping timer checks loaded documents; it does not query the catalog
 Eviction retains missions with a running REX, Aegis visitors, or Maestro/DUST visitors or
 retained handles. When the last such consumer disappears, a new four-hour grace period starts.
 Any in-flight HTTP request pauses eviction. Connected Automerge peers alone do not prevent
-eviction. Eligible documents are flushed and projected before release; activity during that
+eviction. Eligible documents are flushed and their summaries created before release; activity during that
 work cancels eviction. There is no hard memory cap for retained missions. Opening a large individual mission can still
 be expensive. Cache release uses the installed Repo's experimental `removeFromCache` API through
 `releaseMissionDocument`, after flushing the real document. The helper skips the unload

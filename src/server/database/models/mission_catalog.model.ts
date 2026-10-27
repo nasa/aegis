@@ -1,7 +1,7 @@
 import { defineEntity, p } from "@mikro-orm/postgresql";
 import { Doc_Listing_db } from "./doc_listing.model";
 
-// These are derived read models. Only the catalog projector writes them.
+// These are derived read models. Only mission summary creation writes them.
 export const Mission_Catalog_dbSchema = defineEntity({
   name: "Mission_Catalog_db",
   properties: {

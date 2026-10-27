@@ -8,10 +8,10 @@ export const MISSION_CATALOG_VERSION = 1;
 // handles have no entry and are refreshed once; released handles can be garbage collected normally.
 const indexedValues = new WeakMap<DocHandle<Mission>, string>();
 
-function catalogKey(projected: ReturnType<typeof summarizeMission>): string {
+function catalogKey(catalogEntry: ReturnType<typeof summarizeMission>): string {
   return JSON.stringify({
-    summary: projected.summary,
-    evas: [...projected.evas].sort((a, b) => a.evaUuid.localeCompare(b.evaUuid)),
+    summary: catalogEntry.summary,
+    evas: [...catalogEntry.evas].sort((a, b) => a.evaUuid.localeCompare(b.evaUuid)),
   });
 }
 
@@ -93,7 +93,7 @@ export async function getUnindexedMissionListings(
     `select d.mission_id as "missionId", d.automerge_url as "automergeUrl"
      from doc_listing_db d
      left join mission_catalog_db c using (mission_id)
-     where c.mission_id is null or c.projection_version <> ?
+     where c.mission_id is null or c.summary_version <> ?
      order by d.mission_id`,
     [MISSION_CATALOG_VERSION]
   );
@@ -111,10 +111,10 @@ export async function getRunningMissionListings(): Promise<AutomergeDocListing[]
 
 /**
  * Compare only the indexed fields in memory before doing any database work. The save
- * notification queues another check if more changes arrive during projection.
- * Returns true when a projection was written, false when no index work was needed.
+ * notification queues another check if more changes arrive during summary creation.
+ * Returns true when a summary was written, false when no index work was needed.
  */
-export async function projectMission(
+export async function createMissionSummary(
   repo: Repo,
   handle: DocHandle<Mission>,
   em?: EntityManager,
@@ -135,26 +135,26 @@ export async function projectMission(
       [handle.url]
     );
     if (!listings.length) return; // Deleted, or a newly created doc not yet registered.
-    // Read after taking the listing lock so concurrent explicit and queued projections
+    // Read after taking the listing lock so concurrent explicit and queued summary creation
     // cannot overwrite a newer summary with a previously captured document.
-    const projected = summarizeMission(handle.doc());
-    const key = catalogKey(projected);
+    const catalogEntry = summarizeMission(handle.doc());
+    const key = catalogKey(catalogEntry);
     if (!force && indexedValues.get(handle) === key) return;
 
     // Capture the summary under the listing lock, then persist that document before
     // publishing it. Reading the handle after an await could include a later, unsaved edit
     // and incorrectly remember that edit as indexed. Its save notification will instead
-    // queue a separate projection.
+    // queue a separate summary creation.
     await repo.flush([handle.documentId]);
 
     for (const { missionId } of listings) {
-      const summary = { ...projected.summary, id: missionId };
+      const summary = { ...catalogEntry.summary, id: missionId };
       await tx.execute(
-        `insert into mission_catalog_db(mission_id, summary, projection_version) values (?, ?::jsonb, ?)
+        `insert into mission_catalog_db(mission_id, summary, summary_version) values (?, ?::jsonb, ?)
          on conflict (mission_id) do update set summary = excluded.summary,
-           projection_version = excluded.projection_version
+           summary_version = excluded.summary_version
          where mission_catalog_db.summary is distinct from excluded.summary
-            or mission_catalog_db.projection_version <> excluded.projection_version`,
+            or mission_catalog_db.summary_version <> excluded.summary_version`,
         [missionId, JSON.stringify(summary), MISSION_CATALOG_VERSION]
       );
       // Synchronize only changed EVA rows. High-frequency position changes should not rewrite
@@ -162,9 +162,9 @@ export async function projectMission(
       await tx.execute(
         `delete from mission_eva_catalog_db where mission_id = ?
          and not (eva_uuid = any(array[?]::text[]))`,
-        [missionId, projected.evas.map((eva) => eva.evaUuid)]
+        [missionId, catalogEntry.evas.map((eva) => eva.evaUuid)]
       );
-      if (projected.evas.length) {
+      if (catalogEntry.evas.length) {
         await tx.execute(
           `insert into mission_eva_catalog_db(mission_id, eva_uuid, name, is_as_planned)
            select ?, e."evaUuid", e.name, e."isAsPlanned"
@@ -173,7 +173,7 @@ export async function projectMission(
              is_as_planned = excluded.is_as_planned
            where (mission_eva_catalog_db.name, mission_eva_catalog_db.is_as_planned)
              is distinct from (excluded.name, excluded.is_as_planned)`,
-          [missionId, JSON.stringify(projected.evas)]
+          [missionId, JSON.stringify(catalogEntry.evas)]
         );
       }
     }

@@ -11,7 +11,7 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
-import { projectMission } from "server/automerge/missionCatalog";
+import { createMissionSummary } from "server/automerge/missionCatalog";
 import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
 
 /**
@@ -20,7 +20,7 @@ import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
 
 const router = express.Router();
 
-// Await persistence and projection so an immediate admin-list refresh sees the archive change.
+// Await persistence and summary creation so an immediate admin-list refresh sees the archive change.
 router.post("/archive", async (req: Request, res: Response) => {
   const { missionId, archive } = req.body ?? {};
   if (!Number.isInteger(missionId) || missionId <= 0 || typeof archive !== "boolean") {
@@ -437,7 +437,7 @@ export async function createAutomergeMission(
   });
 
   // Use the caller's entity manager: duplication can create the listing inside a transaction.
-  await projectMission(globalValues.automergeRepo, missionDocHandle, em);
+  await createMissionSummary(globalValues.automergeRepo, missionDocHandle, em);
   return dbReference as AutomergeDocListing;
 }
 

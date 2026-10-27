@@ -1,5 +1,5 @@
 import type { AutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
-import { getUnindexedMissionListings, projectMission } from "./missionCatalog";
+import { getUnindexedMissionListings, createMissionSummary } from "./missionCatalog";
 import { releaseMissionDocument } from "./releaseMissionDocument";
 import { serverLogger } from "utils/logging/serverLogger";
 
@@ -17,7 +17,7 @@ export async function populateMissionCatalogOnce(repo: Repo, missionIds?: number
   });
   for (const listing of pending) {
     const handle = await repo.find<Mission>(listing.automergeUrl as AutomergeUrl);
-    await projectMission(repo, handle, undefined, true);
+    await createMissionSummary(repo, handle, undefined, true);
     await releaseMissionDocument(repo, handle.documentId);
   }
   serverLogger.info({

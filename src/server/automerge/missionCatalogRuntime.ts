@@ -1,12 +1,12 @@
 import type { AutomergeUrl, DocHandle, DocumentId, Repo } from "@automerge/automerge-repo/slim";
-import { getRunningMissionListings, projectMission } from "./missionCatalog";
+import { getRunningMissionListings, createMissionSummary } from "./missionCatalog";
 import { releaseMissionDocument } from "./releaseMissionDocument";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { LazyMissionRepo } from "./lazyMissionRepo";
 import type { PostgresStorageAdapter } from "./automerge-storage-adapter-postgres";
 
-export const refreshMissionCatalog = projectMission;
+export const refreshMissionCatalog = createMissionSummary;
 export const MISSION_IDLE_MS = 4 * 60 * 60 * 1000;
 export const MISSION_CATALOG_DEBOUNCE_MS = 3_000;
 
@@ -30,7 +30,7 @@ export function retainMissionDocuments(): () => void {
 /**
  * Save/open notifications debounce checks of each document's indexed fields. Unrelated edits
  * never reach the database. No database polling or durable queue.
- * Queue work outside storage.save(): projection flushes the repo and must not block its own save.
+ * Queue work outside storage.save(): summary creation flushes the repo and must not block its own save.
  */
 export function startMissionCatalogRuntime(
   repo: LazyMissionRepo,
@@ -109,7 +109,7 @@ export function startMissionCatalogRuntime(
     const handle = repo.handles[id];
     if (handle?.isReady() && inUse(handle)) pinned.add(id);
     clearTimeout(catalogDebounces.get(id));
-    // A new save also postpones work queued behind another document's projection.
+    // A new save also postpones work queued behind another document's summary creation.
     pendingCatalogWrites.delete(id);
     const debounce = setTimeout(() => {
       catalogDebounces.delete(id);
@@ -144,7 +144,7 @@ export function startMissionCatalogRuntime(
       const lastUsed = Math.max(lastSeen.get(id), repo.lastAccess.get(id) ?? 0);
       if (Date.now() - lastUsed < idleMs || activeRequests > 0) continue;
       const document = handle.doc();
-      // Unrelated edits skip projection, but their source document still needs saving.
+      // Unrelated edits skip summary creation, but their source document still needs saving.
       await repo.flush([handle.documentId]);
       await refreshMissionCatalog(repo, handle);
       if (inUse(handle)) {
@@ -180,7 +180,7 @@ export function startMissionCatalogRuntime(
       });
     return maintenance;
   };
-  // Memory housekeeping only. No index queries or projection unless a handle is being evicted.
+  // Memory housekeeping only. No index queries or summary creation unless a handle is being evicted.
   const timer = setInterval(() => {
     refresh(false).catch((error) => {
       serverLogger.error(
