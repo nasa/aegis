@@ -8,6 +8,7 @@ import type { PostgresStorageAdapter } from "./automerge-storage-adapter-postgre
 
 export const refreshMissionCatalog = projectMission;
 export const MISSION_IDLE_MS = 4 * 60 * 60 * 1000;
+export const MISSION_CATALOG_DEBOUNCE_MS = 3_000;
 
 export async function loadRunningMissionDocuments(repo: Repo): Promise<void> {
   for (const listing of await getRunningMissionListings()) {
@@ -27,7 +28,7 @@ export function retainMissionDocuments(): () => void {
 }
 
 /**
- * Save/open notifications check only the affected document's indexed fields. Unrelated edits
+ * Save/open notifications debounce checks of each document's indexed fields. Unrelated edits
  * never reach the database. No database polling or durable queue.
  * Queue work outside storage.save(): projection flushes the repo and must not block its own save.
  */
@@ -44,6 +45,7 @@ export function startMissionCatalogRuntime(
   let stopped = false;
   // Document IDs awaiting a catalog update; repeated save notifications share one entry.
   const pendingCatalogWrites = new Set<DocumentId>();
+  const catalogDebounces = new Map<DocumentId, ReturnType<typeof setTimeout>>();
   const lastSeen = new Map<DocumentId, number>();
   const pinned = new Set<DocumentId>();
   const inUse = (handle: DocHandle<Mission>) => {
@@ -106,8 +108,23 @@ export function startMissionCatalogRuntime(
     if (!lastSeen.has(id)) lastSeen.set(id, repo.lastAccess.get(id) ?? Date.now());
     const handle = repo.handles[id];
     if (handle?.isReady() && inUse(handle)) pinned.add(id);
-    pendingCatalogWrites.add(id);
-    if (!maintenance) processPendingCatalogWrites();
+    clearTimeout(catalogDebounces.get(id));
+    // A new save also postpones work queued behind another document's projection.
+    pendingCatalogWrites.delete(id);
+    const debounce = setTimeout(() => {
+      catalogDebounces.delete(id);
+      pendingCatalogWrites.add(id);
+      if (!maintenance) processPendingCatalogWrites();
+    }, MISSION_CATALOG_DEBOUNCE_MS);
+    debounce.unref();
+    catalogDebounces.set(id, debounce);
+  };
+  const flushCatalogDebounces = () => {
+    for (const [id, debounce] of catalogDebounces) {
+      clearTimeout(debounce);
+      pendingCatalogWrites.add(id);
+    }
+    catalogDebounces.clear();
   };
   storage.onDocumentSaved = markCatalogWritePending;
   repo.onDocumentLoaded = markCatalogWritePending;
@@ -153,7 +170,8 @@ export function startMissionCatalogRuntime(
       }
     }
   };
-  const refresh = () => {
+  const refresh = (flushPending = true) => {
+    if (flushPending) flushCatalogDebounces();
     maintenance ??= processPendingCatalogWrites()
       .then(evictIdle)
       .finally(() => {
@@ -164,7 +182,7 @@ export function startMissionCatalogRuntime(
   };
   // Memory housekeeping only. No index queries or projection unless a handle is being evicted.
   const timer = setInterval(() => {
-    refresh().catch((error) => {
+    refresh(false).catch((error) => {
       serverLogger.error(
         { logId: "mission-catalog", logValue: "Idle document housekeeping failed" },
         error instanceof Error ? error : new Error(String(error))
@@ -173,12 +191,13 @@ export function startMissionCatalogRuntime(
   }, 60_000);
   timer.unref();
   return {
-    refresh,
+    refresh: () => refresh(),
     stop: async () => {
       clearInterval(timer);
       stopped = true;
       storage.onDocumentSaved = undefined;
       repo.onDocumentLoaded = undefined;
+      flushCatalogDebounces();
       await maintenance;
       await running;
       // The caller stops network writers and flushes the repo before processing pending writes.

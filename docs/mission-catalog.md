@@ -21,6 +21,11 @@ summary against the last successfully indexed values. Unrelated edits perform no
 queries or writes, and do not cause an extra document flush. This covers user edits, admin
 edits, remote sync and imports. Sync-state writes do not queue checks. An in-memory set
 coalesces repeated notifications and processes documents sequentially, outside the save call.
+Each document's check waits for three seconds without another save/load notification; a new
+notification restarts only that document's delay, including checks queued behind other documents.
+Edits saved during a projection schedule another debounced check. Explicit runtime refreshes,
+idle eviction and shutdown process pending updates without waiting for the debounce. The
+once-per-minute housekeeping sweep does not shorten the debounce for active documents.
 There is no index polling, database trigger or persistent pending queue. The summary and EVA
 rows update in one transaction; unchanged rows are not rewritten. Deleting a document listing
 cascades through both indexes. Loading an unloaded mission also refreshes its entry.
@@ -33,7 +38,8 @@ list, so timestamp-only changes do not trigger indexing. No full Automerge
 document is copied or retained for comparison; the small cached values expire with the handle.
 
 Creation and admin archive/unarchive wait for projection before responding. Other synchronized
-edits become visible after the storage save and its queued update. The homepage polls
+edits become visible after the storage save, debounce and queued update. Continuous edits can
+defer the update until they pause. The homepage polls
 the summary endpoint every five seconds; its PET clock continues ticking locally.
 
 For this rollout, the temporary `populateMissionCatalogOnce` startup function builds missing

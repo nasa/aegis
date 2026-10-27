@@ -134,7 +134,7 @@ test("persisted edits update names, archives, EVA membership and the small REX c
       m.rexes[rex.uuid] = rex;
     });
     await repo.flush();
-    await vi.waitFor(async () => expect((await getMissionSummaries(ids))[0].name).toBe("Renamed"));
+    await runtime.refresh();
     const [summary] = await getMissionSummaries(ids);
     expect(summary.name).toBe("Renamed");
     expect(summary.runningRex).toMatchObject({ uuid: rex.uuid, petRunning: true });
@@ -172,7 +172,8 @@ test("persisted edits update names, archives, EVA membership and the small REX c
       delete m.evas[eva.uuid];
     });
     await repo.flush();
-    await vi.waitFor(async () => expect(await getMissionSummaries(ids)).toEqual([]));
+    await runtime.refresh();
+    expect(await getMissionSummaries(ids)).toEqual([]);
     expect((await getMissionSummaries(ids, true))[0].runningRex).toBeNull();
     expect(await getMissionIdsForEva(eva.uuid)).toEqual([]);
   } finally {
@@ -195,8 +196,9 @@ test("an edit saved during projection queues another update", async () => {
       m.name = "First edit";
     });
     await originalFlush();
-    await vi.waitFor(async () =>
-      expect((await getMissionSummaries(ids))[0].name).toBe("Second edit")
+    await vi.waitFor(
+      async () => expect((await getMissionSummaries(ids))[0].name).toBe("Second edit"),
+      { timeout: 8_000 }
     );
   } finally {
     await runtime.stop();
@@ -243,8 +245,9 @@ test("merged remote edits are indexed through storage, without an HTTP mutation"
     });
     repo.import(Automerge.save(remote), { docId: handle.documentId });
     await repo.flush();
-    await vi.waitFor(async () =>
-      expect((await getMissionSummaries(ids))[0].name).toBe("Remote rename")
+    await vi.waitFor(
+      async () => expect((await getMissionSummaries(ids))[0].name).toBe("Remote rename"),
+      { timeout: 5_000 }
     );
   } finally {
     await runtime.stop();
@@ -415,9 +418,8 @@ test("one-time population resumes missing summaries and repeated startup loads n
   const runtime = startMissionCatalogRuntime(repo, storage);
   try {
     await repo.find(first.url);
-    await vi.waitFor(async () =>
-      expect((await getMissionSummaries([ids[0]]))[0].name).toBe("Persisted before crash")
-    );
+    await runtime.refresh();
+    expect((await getMissionSummaries([ids[0]]))[0].name).toBe("Persisted before crash");
     expect(find.mock.calls.map(([url]) => url)).toEqual([first.url]);
   } finally {
     await runtime.stop();
