@@ -56,11 +56,15 @@ export async function createMission(
   return response;
 }
 
-export async function duplicateMission(missionId: number): Promise<WrappedResponse<number>> {
+export async function duplicateMission(
+  missionId: number,
+  onProgress?: (progress: MissionDuplicationProgress) => void
+): Promise<WrappedResponse<number>> {
   const res = await fetch(`/api/v1/missionDup`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Accept: "application/x-ndjson",
     },
     body: JSON.stringify({ missionId }),
   });
@@ -72,13 +76,43 @@ export async function duplicateMission(missionId: number): Promise<WrappedRespon
     } catch {
       /* response body is not JSON */
     }
-    alert(
-      `Error duplicating mission. Please let the AEGIS developers know. Status ${errorMessage}`
-    );
     return { status: "error", message: errorMessage };
   }
-  const response: WrappedResponse<null> = await res.json();
-  return response;
+
+  // Support JSON responses from servers running the previous API version.
+  if (!res.body || !res.headers.get("content-type")?.includes("application/x-ndjson")) {
+    return (await res.json()) as WrappedResponse<number>;
+  }
+
+  const decoder = new TextDecoder();
+  let buffered = "";
+  let response: WrappedResponse<number> | null = null;
+  const processLine = (line: string) => {
+    if (!line.trim()) return;
+    const event = JSON.parse(line) as MissionDuplicationProgress | WrappedResponse<number>;
+    if ("type" in event && event.type === "progress") {
+      onProgress?.(event);
+    } else if ("status" in event) {
+      response = event;
+    }
+  };
+
+  for await (const chunk of res.body) {
+    buffered += decoder.decode(chunk, { stream: true });
+    const lines = buffered.split("\n");
+    buffered = lines.pop() ?? "";
+    lines.forEach(processLine);
+  }
+  buffered += decoder.decode();
+  processLine(buffered);
+
+  return (
+    response ?? {
+      status: "error",
+      message:
+        "Connection ended before duplication was confirmed. Check the mission list before retrying.",
+    }
+  );
 }
 
 export async function deleteMissions(missionIds: number[]): Promise<WrappedResponse<number[]>> {

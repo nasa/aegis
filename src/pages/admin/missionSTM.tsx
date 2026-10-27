@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAdminMission } from "components/admin/useAdminMission";
 import { Link, useParams } from "react-router";
 import MissionSTM from "components/admin/missionSTM";
 import MissionPriorityImportExport from "components/admin/missionPriorityImportExport";
 import adminCommon from "./adminCommon.module.css";
-import { getAutomergeDocListing } from "http-client/docListing";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { isValidAutomergeUrl } from "@automerge/automerge-repo";
-import { useDocument } from "@automerge/automerge-repo-react-hooks";
 
 type RouteParams = {
   id: string;
@@ -17,15 +14,8 @@ const MissionSTMPage: React.FunctionComponent = () => {
   const slug = params.id;
   const intMissionId = parseInt(slug);
 
-  const [automergeUrl, setAutomergeUrl] = useState<AutomergeUrl>();
-  useEffect(() => {
-    getAutomergeDocListing(intMissionId).then((res) => {
-      if (res.data?.[0] && isValidAutomergeUrl(res.data[0].automergeUrl)) {
-        setAutomergeUrl(res.data[0].automergeUrl as AutomergeUrl);
-      }
-    });
-  }, [intMissionId]);
-  const [missionDoc] = useDocument<Mission>(automergeUrl);
+  const mission = useAdminMission(intMissionId);
+  const { automergeUrl, mission: missionDoc } = mission;
   const missionName = missionDoc?.name;
 
   return (
@@ -35,16 +25,19 @@ const MissionSTMPage: React.FunctionComponent = () => {
           ← Missions
         </Link>
         <h1 className={adminCommon.pageTitle}>Mission STM</h1>
+        <AsyncStatus {...mission} />
         {missionName && (
           <div className={adminCommon.missionSubheader}>
             <span className={adminCommon.missionSubheaderLabel}>Mission</span>
             <span className={adminCommon.missionSubheaderName}>{missionName}</span>
           </div>
         )}
-        <section className={adminCommon.section}>
-          <MissionSTM missionId={intMissionId} />
-        </section>
-        {automergeUrl && (
+        {automergeUrl && !mission.pending && !mission.error && (
+          <section className={adminCommon.section}>
+            <MissionSTM missionId={intMissionId} automergeUrl={automergeUrl} />
+          </section>
+        )}
+        {automergeUrl && !mission.pending && !mission.error && (
           <section className={adminCommon.section}>
             <MissionPriorityImportExport automergeUrl={automergeUrl} />
           </section>

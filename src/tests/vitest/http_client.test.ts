@@ -1,6 +1,7 @@
 import type { Mock } from "vitest";
 import { isLoggedIn, login, logout } from "http-client/login";
 import { boxDownloadFile } from "http-client/box";
+import { duplicateMission } from "http-client/mission";
 import { getElevationSinglePoint, getTerrainProfile } from "http-client/terrainProfile";
 import { deleteLayers, upsertLayers } from "http-client/layer";
 import { deleteSublayers, upsertSublayers } from "http-client/sublayer";
@@ -175,6 +176,74 @@ describe("Box download", () => {
       stage: "extracting",
       elapsedSeconds: 20,
       fileName: "large.zip",
+    });
+  });
+});
+
+describe("Mission duplication", () => {
+  test("reads progress across chunks and waits for the final mission ID", async () => {
+    mockBoxDownloadResponse([
+      '{"type":"progress","message":"Copying GIS ',
+      'files...","elapsedSeconds":10}\n\n{"status":"success",',
+      '"message":"Mission duplicated","data":51}',
+    ]);
+    const onProgress = vi.fn();
+
+    const response = await duplicateMission(50, onProgress);
+
+    expect(response).toEqual({ status: "success", message: "Mission duplicated", data: 51 });
+    expect(onProgress).toHaveBeenCalledWith({
+      type: "progress",
+      message: "Copying GIS files...",
+      elapsedSeconds: 10,
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/v1/missionDup",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Accept: "application/x-ndjson" }),
+        body: JSON.stringify({ missionId: 50 }),
+      })
+    );
+  });
+
+  test("returns copy failures sent after streaming has started", async () => {
+    mockBoxDownloadResponse([
+      '{"type":"progress","message":"Copying GIS files...","elapsedSeconds":0}\n',
+      '{"status":"error","message":"rsync exited with code 23"}\n',
+    ]);
+
+    await expect(duplicateMission(50)).resolves.toEqual({
+      status: "error",
+      message: "rsync exited with code 23",
+    });
+  });
+
+  test("does not report success when the stream ends without confirmation", async () => {
+    mockBoxDownloadResponse([
+      '{"type":"progress","message":"Copying GIS files...","elapsedSeconds":0}\n',
+    ]);
+
+    await expect(duplicateMission(50)).resolves.toMatchObject({
+      status: "error",
+      message: expect.stringContaining("Check the mission list before retrying"),
+    });
+  });
+
+  test("accepts the previous JSON response format", async () => {
+    mockFetchResponse({ status: "success", data: 51 });
+    await expect(duplicateMission(50)).resolves.toEqual({ status: "success", data: 51 });
+  });
+
+  test("returns non-JSON gateway errors for the page to display", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      status: 504,
+      statusText: "Gateway Time-out",
+      json: () => Promise.reject(new SyntaxError("Not JSON")),
+    });
+
+    await expect(duplicateMission(50)).resolves.toEqual({
+      status: "error",
+      message: "504 Gateway Time-out",
     });
   });
 });
