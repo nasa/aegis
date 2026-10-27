@@ -48,10 +48,6 @@
   cursor: help;
 }
 
-.sunEarthContainerDashboard .sourceButton {
-  font-size: 1.65em;
-}
-
 .sourceButton:focus-visible {
   outline: 2px solid var(--base);
   outline-offset: -2px;

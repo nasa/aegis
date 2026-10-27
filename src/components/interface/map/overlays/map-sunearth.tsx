@@ -25,15 +25,13 @@ export const SunEarth: FunctionComponent<{
   return (
     <div
       className={`${type === "editor" ? styles.sunEarthContainerEditor : styles.sunEarthContainerDashboard} ${!azimuths.available ? styles.unavailable : ""}`}
-      style={{ height: "205px" }}
+      style={{ height: type === "editor" ? "205px" : "180px" }}
     >
-      <Tooltip
-        id={tooltipId}
-        place={type === "editor" ? "right" : "left"}
-        className={styles.sourceTooltip}
-      >
-        {info}
-      </Tooltip>
+      {type === "editor" && (
+        <Tooltip id={tooltipId} place="right" className={styles.sourceTooltip}>
+          {info}
+        </Tooltip>
+      )}
       <AzimuthIndicator
         sunEarth="sun"
         azimuth={azimuths.available ? azimuths.sunAzimuth : null}
@@ -44,15 +42,17 @@ export const SunEarth: FunctionComponent<{
         azimuth={azimuths.available ? azimuths.earthAzimuth : null}
         dashboard={type === "dashboard"}
       />
-      <button
-        type="button"
-        className={styles.sourceButton}
-        aria-label={`Sun/${isLunar ? "Earth" : "Moon"} value source`}
-        aria-description={info}
-        data-tooltip-id={tooltipId}
-      >
-        <FontAwesomeIcon icon={faCircleInfo} />
-      </button>
+      {type === "editor" && (
+        <button
+          type="button"
+          className={styles.sourceButton}
+          aria-label={`Sun/${isLunar ? "Earth" : "Moon"} value source`}
+          aria-description={info}
+          data-tooltip-id={tooltipId}
+        >
+          <FontAwesomeIcon icon={faCircleInfo} />
+        </button>
+      )}
     </div>
   );
 };
