@@ -1,3 +1,6 @@
+/** Dashed color for the doc path while a Newton option is previewed. */
+export const MANUAL_PATH_COLOR = "#c8c8c8";
+
 const OPTION_COLORS = ["#ff9f1c", "#e056fd", "#2ed573", "#ff4757", "#1e90ff"];
 
 /** Color for the Nth path option of a traverse, shared by the map and the pane. */

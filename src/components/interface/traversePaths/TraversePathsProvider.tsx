@@ -6,6 +6,10 @@
  * the backend is being built (see `getTraversePathSource`). Polling runs only
  * while a row that applies is unfinished, or briefly after endpoints change so
  * rows created by the server watcher are picked up.
+ *
+ * Also holds which option is active per traverse. This is a client-side
+ * preview only: the doc's `traverse.path` is unchanged, and a preview is
+ * dropped when its row stops applying (e.g. a station moved).
  */
 
 import {
@@ -25,6 +29,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import {
   TRAVERSE_PATH_MIN_LENGTH_M,
   TRAVERSE_PATH_POLL_MS,
+  buildTraversePathPreview,
   getTraversePathSource,
   isLocated,
   isRowFinished,
@@ -135,6 +140,31 @@ export function TraversePathsProvider({
     []
   );
 
+  const [activeRowByTraverseUuid, setActiveRowByTraverseUuid] = useState<Record<string, string>>(
+    {}
+  );
+  const setActivePath = useCallback((traverseUuid: string, rowUuid: string | null) => {
+    setActiveRowByTraverseUuid((prev) => {
+      const next = { ...prev };
+      if (rowUuid) next[traverseUuid] = rowUuid;
+      else delete next[traverseUuid];
+      return next;
+    });
+  }, []);
+
+  const previewByTraverseUuid = useMemo(() => {
+    const previews: Record<string, TraversePathPreview> = {};
+    for (const target of targets) {
+      const rowUuid = activeRowByTraverseUuid[target.traverseUuid];
+      if (!rowUuid) continue;
+      const { applying } = splitRowsForTarget(rowsByRefUuid[target.refUuid], target);
+      const row = applying.find((r) => r.uuid === rowUuid);
+      const preview = row ? buildTraversePathPreview(row, target, planetRadius) : null;
+      if (preview) previews[target.traverseUuid] = preview;
+    }
+    return previews;
+  }, [targets, activeRowByTraverseUuid, rowsByRefUuid, planetRadius]);
+
   useEffect(() => {
     if (!fetcher || missionId == null || targets.length === 0) {
       setRowsByRefUuid({});
@@ -192,6 +222,8 @@ export function TraversePathsProvider({
       isPolling,
       highlightedPathUuid,
       setHighlightedPathUuid,
+      previewByTraverseUuid,
+      setActivePath,
     }),
     [
       source,
@@ -201,6 +233,8 @@ export function TraversePathsProvider({
       isPolling,
       highlightedPathUuid,
       setHighlightedPathUuid,
+      previewByTraverseUuid,
+      setActivePath,
     ]
   );
 

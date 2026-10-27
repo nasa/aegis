@@ -20,6 +20,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { setHoverUuidsForSequence, clearMapItemHover } from "store/hover";
 import { getDistanceBetweenTwoCoordinates, getSegmentBearing } from "utils/mapping/geoMath";
+import { useTraversePathsContext } from "components/interface/traversePaths/TraversePathsProvider";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -37,6 +38,8 @@ export function TraverseLines(): null {
   const { traverseSource } = useFeatureSourcesContext();
   const { showArrows, showBearings, showDistances } = useMapMenuContext();
   const { toMapCoord } = useCoordConverters();
+  // Client-side Newton path previews; absent outside the mission editor.
+  const previewByTraverseUuid = useTraversePathsContext()?.previewByTraverseUuid;
 
   // --- Redux UI state ---
   const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
@@ -137,8 +140,9 @@ export function TraverseLines(): null {
 
   useEffect(() => {
     const mapper = (traverse: Traverse): FeatureDescriptor | null => {
-      if (!traverse.path || traverse.path.length < 2) return null;
-      const validPath = traverse.path.filter((p) => p.lat != null && p.lng != null);
+      const path = previewByTraverseUuid?.[traverse.uuid]?.path ?? traverse.path;
+      if (!path || path.length < 2) return null;
+      const validPath = path.filter((p) => p.lat != null && p.lng != null);
       const coords = validPath.map((p) => toMapCoord(p));
       if (coords.length < 2) return null;
 
@@ -190,6 +194,7 @@ export function TraverseLines(): null {
     mapDirective?.uuid,
     planetRadius,
     usingLGRSCoordinates,
+    previewByTraverseUuid,
   ]);
 
   // --- Style function ---

@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  applyTraversePathPreview,
+  buildTraversePathPreview,
   groupRowsByHash,
   isRowFinished,
   lineStringToPoints,
@@ -7,6 +9,7 @@ import {
   rowApplies,
   rowErrorMessage,
   rowToCandidate,
+  simplifyPathToEndpoints,
   splitRowsForTarget,
 } from "utils/traversePath";
 import { getMockTraversePathRows, resetMockTraversePathRows } from "utils/traversePathMock";
@@ -175,5 +178,39 @@ describe("traverse path mock", () => {
     expect(row.requestHash).toBe(recorded.requestHash);
     expect(row.path).toEqual(recorded.path);
     expect(rowApplies(row, recordedTarget)).toBe(true);
+  });
+});
+
+describe("traverse path preview", () => {
+  const R = 1737400;
+
+  it("simplifies collinear vertices and snaps endpoints to the stations", () => {
+    const mid = { lat: (A.lat + C.lat) / 2, lng: (A.lng + C.lng) / 2 };
+    const offStart = { lat: A.lat + 1e-6, lng: A.lng + 1e-6 };
+    const path = simplifyPathToEndpoints([offStart, mid, C], 0.5, R, A, C);
+    expect(path).toEqual([A, C]);
+  });
+
+  it("keeps vertices that deviate more than the tolerance", () => {
+    const bend = { lat: (A.lat + C.lat) / 2 + 0.001, lng: (A.lng + C.lng) / 2 };
+    expect(simplifyPathToEndpoints([A, bend, C], 0.5, R, A, C)).toHaveLength(3);
+  });
+
+  it("builds a preview only for succeeded rows and overlays it on the traverse", () => {
+    expect(buildTraversePathPreview(makeRow({ status: "failed" }), target, R)).toBeNull();
+    const preview = buildTraversePathPreview(makeRow(), target, R);
+    expect(preview.path).toEqual([A, C]);
+    expect(preview.segmentDistances).toHaveLength(1);
+
+    const traverse = {
+      uuid: "t-1",
+      path: [A, C],
+      pathSegmentDistances: [1],
+      pathSegmentElevations: [[1, 2]],
+    } as unknown as Traverse;
+    const shown = applyTraversePathPreview(traverse, preview);
+    expect(shown.pathSegmentDistances).toEqual(preview.segmentDistances);
+    expect(shown.pathSegmentElevations).toBeNull();
+    expect(applyTraversePathPreview(traverse, undefined)).toBe(traverse);
   });
 });

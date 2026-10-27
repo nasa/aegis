@@ -69,6 +69,15 @@ type TraversePathRowsForTraverse = {
   staleCount: number;
 };
 
+/** A Newton path shown as a traverse's active path, client-side only. */
+type TraversePathPreview = {
+  rowUuid: string;
+  /** Simplified, with endpoints snapped to the stations. */
+  path: AEGISPoint[];
+  segmentDistances: number[];
+  rawVertexCount: number;
+};
+
 type TraversePathsContextValue = {
   source: TraversePathSource;
   /** Traverses of the selected EVA, with their current endpoints. */
@@ -78,6 +87,10 @@ type TraversePathsContextValue = {
   isPolling: boolean;
   highlightedPathUuid: string | null;
   setHighlightedPathUuid: (uuid: string | null) => void;
+  /** Previewed Newton paths by traverse uuid; absent means the doc path is active. */
+  previewByTraverseUuid: Record<string, TraversePathPreview>;
+  /** Make a row the active path for a traverse, or `null` for the doc path. Not saved. */
+  setActivePath: (traverseUuid: string, rowUuid: string | null) => void;
 };
 
 /** A recorded Newton result replayed by the in-browser mock. */

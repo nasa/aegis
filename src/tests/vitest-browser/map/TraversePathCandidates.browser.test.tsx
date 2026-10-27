@@ -7,23 +7,37 @@
  *  - rows planned for other endpoints are hidden and counted as stale
  *  - polling stops once every applying row has finished
  *  - a failed row shows its error without the ArgumentError prefix
+ *  - clicking an option previews it as the active path (doc unchanged) and
+ *    turns the doc path into a candidate; clicking "Current path" restores it
+ *  - a preview is dropped once its row no longer applies
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Provider } from "react-redux";
+import { CookiesProvider } from "react-cookie";
 import { configureStore } from "@reduxjs/toolkit";
 import Map from "ol/Map";
 import View from "ol/View";
 import type VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
+import type { LineString } from "ol/geom";
 
 import { MapContext } from "components/interface/map/MapProvider";
+import { FeatureSourcesProvider } from "components/interface/map/FeatureSourcesProvider";
+import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
 import { TraversePathCandidates } from "components/interface/map/behaviors/TraversePathCandidates";
 import { TraversePathsProvider } from "components/interface/traversePaths/TraversePathsProvider";
 import PathOptions from "components/panes/traverse/traverse-right-path-options";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { evaSlice } from "store/eva";
 import { interfaceSlice } from "store/interface";
+import { mapSlice } from "store/map";
+import { traverseSlice } from "store/traverse";
+import { stationSlice } from "store/station";
+import { poiSlice } from "store/poi";
+import { rexSlice } from "store/rex";
+import { measureSlice } from "store/measure";
+import { TraverseLines } from "components/interface/map/behaviors/TraverseLines";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
@@ -102,7 +116,16 @@ function makeRow(overrides: Partial<TraversePathRow>): TraversePathRow {
 
 function makeStore(selectedTraverse: string | null = TRAVERSE_UUID) {
   return configureStore({
-    reducer: { eva: evaSlice.reducer, interface: interfaceSlice.reducer },
+    reducer: {
+      eva: evaSlice.reducer,
+      interface: interfaceSlice.reducer,
+      map: mapSlice.reducer,
+      traverse: traverseSlice.reducer,
+      station: stationSlice.reducer,
+      poi: poiSlice.reducer,
+      rex: rexSlice.reducer,
+      measure: measureSlice.reducer,
+    },
     preloadedState: {
       eva: {
         ...evaSlice.getInitialState(),
@@ -118,16 +141,26 @@ let harness: ReactHarness;
 let map: Map;
 let mapContainer: HTMLDivElement;
 
+let store: ReturnType<typeof makeStore>;
+
 function render(fetcher: Parameters<typeof TraversePathsProvider>[0]["fetcher"], pollMs = 20) {
+  store ??= makeStore();
   harness.render(
-    <Provider store={makeStore()}>
-      <TraversePathsProvider missionId={1} source="api" fetcher={fetcher} pollMs={pollMs}>
-        <MapContext.Provider value={{ map, mode: "editor" }}>
-          <TraversePathCandidates />
-        </MapContext.Provider>
-        <PathOptions traverseUuid={TRAVERSE_UUID} />
-      </TraversePathsProvider>
-    </Provider>
+    <CookiesProvider>
+      <Provider store={store}>
+        <FeatureSourcesProvider>
+          <MapMenuProvider>
+            <TraversePathsProvider missionId={1} source="api" fetcher={fetcher} pollMs={pollMs}>
+              <MapContext.Provider value={{ map, mode: "editor" }}>
+                <TraversePathCandidates />
+                <TraverseLines />
+              </MapContext.Provider>
+              <PathOptions traverseUuid={TRAVERSE_UUID} />
+            </TraversePathsProvider>
+          </MapMenuProvider>
+        </FeatureSourcesProvider>
+      </Provider>
+    </CookiesProvider>
   );
 }
 
@@ -146,6 +179,25 @@ function candidateFeatureIds(): string[] {
   );
 }
 
+function activeLineCoordinateCount(): number {
+  const layer = map
+    .getLayers()
+    .getArray()
+    .find((l) => l.getZIndex() === Z_INDEX.POLYLINES) as VectorLayer<VectorSource> | undefined;
+  const feature = layer?.getSource()?.getFeatureById(TRAVERSE_UUID);
+  return (feature?.getGeometry() as LineString | undefined)?.getCoordinates().length;
+}
+
+function click(testId: string, index = 0) {
+  const el = harness.container.querySelectorAll<HTMLElement>(`[data-testid='${testId}']`)[index];
+  el.click();
+}
+
+function isActive(testId: string, index = 0): boolean {
+  const el = harness.container.querySelectorAll<HTMLElement>(`[data-testid='${testId}']`)[index];
+  return el?.dataset.active === "true";
+}
+
 function optionStatuses(): string[] {
   return [
     ...harness.container.querySelectorAll<HTMLElement>("[data-testid='traverse-path-option']"),
@@ -155,6 +207,7 @@ function optionStatuses(): string[] {
 beforeEach(() => {
   Object.keys(mockMissionDoc).forEach((k) => delete (mockMissionDoc as Record<string, unknown>)[k]);
   seedDoc();
+  store = undefined;
   harness = createReactHarness();
   mapContainer = document.createElement("div");
   mapContainer.style.width = "400px";
@@ -238,5 +291,64 @@ describe("TraversePathCandidates", () => {
     const error = harness.container.querySelector("[data-testid='traverse-path-error']");
     expect(error?.textContent).toBe("no traversable path between waypoint 1 and waypoint 2");
     expect(candidateFeatureIds()).toEqual([]);
+  });
+
+  it("previews a clicked option as the active path without changing the doc", async () => {
+    const docPathBefore = JSON.stringify(mockMissionDoc.traverses[TRAVERSE_UUID].path);
+    const fetcher = vi.fn(async () => ({
+      status: "success" as const,
+      message: "",
+      data: [makeRow({ uuid: "ok" })],
+    }));
+    render(fetcher);
+
+    await vi.waitFor(() => expect(candidateFeatureIds()).toEqual(["ok"]));
+    expect(activeLineCoordinateCount()).toBe(2);
+    expect(isActive("traverse-path-option-current")).toBe(true);
+
+    click("traverse-path-option");
+    await vi.waitFor(() => expect(candidateFeatureIds()).toEqual([`manual-${TRAVERSE_UUID}`]));
+    expect(isActive("traverse-path-option")).toBe(true);
+    expect(isActive("traverse-path-option-current")).toBe(false);
+    expect(activeLineCoordinateCount()).toBe(3);
+    expect(
+      harness.container.querySelector("[data-testid='traverse-path-preview-note']")
+    ).not.toBeNull();
+    expect(JSON.stringify(mockMissionDoc.traverses[TRAVERSE_UUID].path)).toBe(docPathBefore);
+
+    click("traverse-path-option-current");
+    await vi.waitFor(() => expect(candidateFeatureIds()).toEqual(["ok"]));
+    expect(activeLineCoordinateCount()).toBe(2);
+    expect(isActive("traverse-path-option-current")).toBe(true);
+  });
+
+  it("drops the preview once the row no longer applies", async () => {
+    let endPoint = C;
+    const fetcher = vi.fn(async () => ({
+      status: "success" as const,
+      message: "",
+      data: [makeRow({ uuid: "ok", endPoint })],
+    }));
+    render(fetcher, 10_000);
+
+    await vi.waitFor(() => expect(candidateFeatureIds()).toEqual(["ok"]));
+    click("traverse-path-option");
+    await vi.waitFor(() => expect(activeLineCoordinateCount()).toBe(3));
+
+    // The station moves: the row no longer matches and the doc path is active again.
+    endPoint = ELSEWHERE;
+    mockMissionDoc.stations = {
+      ...mockMissionDoc.stations,
+      "st-c": { uuid: "st-c", name: "C", location: ELSEWHERE },
+    } as unknown as Mission["stations"];
+    mockMissionDoc.traverses = {
+      [TRAVERSE_UUID]: { uuid: TRAVERSE_UUID, refUuid: REF_UUID, path: [A, ELSEWHERE] },
+    } as unknown as Mission["traverses"];
+    // Re-render in place so the provider keeps its preview state.
+    render(fetcher, 10_000);
+
+    await vi.waitFor(() => expect(activeLineCoordinateCount()).toBe(2));
+    expect(candidateFeatureIds()).toEqual([]);
+    expect(isActive("traverse-path-option-current")).toBe(true);
   });
 });

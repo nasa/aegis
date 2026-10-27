@@ -32,6 +32,8 @@ import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 import CalculatedDwell from "../calculated-dwell";
 import PathOptions from "./traverse-right-path-options";
+import { useTraversePathsContext } from "components/interface/traversePaths/TraversePathsProvider";
+import { applyTraversePathPreview } from "utils/traversePath";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const Info_Panel: FunctionComponent<{
@@ -61,6 +63,14 @@ const Info_Panel: FunctionComponent<{
   const selectedTraverse = useMemo(
     () => docMaps?.traverses[selectedEvaSequenceItemUuid],
     [docMaps, selectedEvaSequenceItemUuid]
+  );
+  const traversePaths = useTraversePathsContext();
+  const pathPreview = traversePaths?.previewByTraverseUuid[selectedEvaSequenceItemUuid];
+  const clearPathPreview = () => traversePaths?.setActivePath(selectedEvaSequenceItemUuid, null);
+  // Path figures follow the previewed Newton path; the doc is unchanged.
+  const displayedTraverse = useMemo(
+    () => applyTraversePathPreview(selectedTraverse, pathPreview),
+    [selectedTraverse, pathPreview]
   );
   const quickMapLinkState = useMissionDocSelector((mission) => {
     const traverse = mission.traverses[selectedEvaSequenceItemUuid];
@@ -111,7 +121,7 @@ const Info_Panel: FunctionComponent<{
       (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
     return getCalcFieldsForTraverse({
-      traverse: selectedTraverse,
+      traverse: displayedTraverse,
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,
       traverseActions,
@@ -120,6 +130,7 @@ const Info_Panel: FunctionComponent<{
   }, [
     docMaps,
     selectedTraverse,
+    displayedTraverse,
     missionTraverseRate,
     traverseEvaTraverseRate,
     usingLGRSCoordinates,
@@ -139,6 +150,8 @@ const Info_Panel: FunctionComponent<{
   }
 
   const handlePathEdit = async () => {
+    // Edits apply to the saved path, so leave the preview first.
+    clearPathPreview();
     dispatch(
       thunkUpdateMapDirective({
         uuid: selectedTraverse.uuid,
@@ -174,6 +187,7 @@ const Info_Panel: FunctionComponent<{
 
   const handlePathReset = async () => {
     //reset path to stations endpoints
+    clearPathPreview();
     dispatch(setOriginalPoints([]));
     dispatch(thunkDocResetTraverse({ traverseUuid: selectedTraverse.uuid }));
   };
@@ -462,7 +476,9 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.ascentDescent.totalMetersClimbed.toFixed(0)}
+                        {pathPreview
+                          ? "—"
+                          : calculatedFields.ascentDescent.totalMetersClimbed.toFixed(0)}
                       </div>
                     </div>
                   </div>
@@ -478,7 +494,9 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.ascentDescent.totalMetersDescended.toFixed(0)}
+                        {pathPreview
+                          ? "—"
+                          : calculatedFields.ascentDescent.totalMetersDescended.toFixed(0)}
                       </div>
                     </div>
                   </div>

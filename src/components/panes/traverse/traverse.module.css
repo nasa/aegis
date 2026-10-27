@@ -46,8 +46,28 @@
   color: white;
 }
 
+.pathOptionSelectable {
+  cursor: pointer;
+}
+
+.pathOptionSelectable:focus-visible {
+  outline: 1px solid var(--grey5);
+}
+
+.pathOptionActive {
+  background-color: var(--grey1);
+}
+
 .pathOptionHighlighted {
   background-color: var(--grey2);
+}
+
+.pathOptionPreview {
+  font-size: 0.75em;
+  padding: 3px 4px;
+  border-radius: var(--radius);
+  color: var(--grey0);
+  background-color: var(--warning);
 }
 
 .pathOptionSwatch,
