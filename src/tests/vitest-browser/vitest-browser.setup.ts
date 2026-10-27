@@ -18,3 +18,13 @@ const LUNAR_SOUTH_POLE_PROJ4 =
 // Register once when the setup file loads
 proj4.defs(LUNAR_PROJ_CODE, LUNAR_SOUTH_POLE_PROJ4);
 register(proj4);
+
+// Clear cookies between tests. Components such as MapMenuProvider persist settings to
+// document.cookie, which would otherwise carry over into the next test in the same file.
+beforeEach(() => {
+  document.cookie.split(";").forEach((cookie) => {
+    const eq = cookie.indexOf("=");
+    const name = (eq > -1 ? cookie.substring(0, eq) : cookie).trim();
+    if (name) document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+  });
+});
