@@ -918,8 +918,9 @@ export function useMapMenuDockviewPanel(api: DockviewApi | null): void {
       component: "map-menu",
       title: "Map Item Visibility",
       floating: {
-        x: mapBounds.left + Math.min(MAP_MENU_LEFT_OFFSET, Math.max(0, mapBounds.width - width)),
-        y: mapBounds.top + Math.min(MAP_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
+        // Relative to the map's top-left corner; the floating overlay host is pinned to the map.
+        x: Math.min(MAP_MENU_LEFT_OFFSET, Math.max(0, mapBounds.width - width)),
+        y: Math.min(MAP_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
         width,
         height,
         dragHandle: "titlebar",

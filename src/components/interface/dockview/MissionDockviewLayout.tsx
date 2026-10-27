@@ -6,12 +6,7 @@ import {
   useState,
   type FunctionComponent,
 } from "react";
-import {
-  DockviewReact,
-  type DockviewApi,
-  type DockviewReadyEvent,
-  type FloatingGroupDragContext,
-} from "dockview-react";
+import { DockviewReact, type DockviewApi, type DockviewReadyEvent } from "dockview-react";
 import "dockview-react/dist/styles/dockview.css";
 
 import {
@@ -35,7 +30,6 @@ import {
   RexMenuHeaderActions,
   useRexMenuDockviewPanel,
   repositionRexMenuPanel,
-  REX_MENU_PANEL_IDS,
 } from "components/interface/map/overlays/rex-menu";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 
@@ -205,6 +199,27 @@ export function MissionDockviewLayout(): JSX.Element {
         }
       }
 
+      // Confine the floating overlay host (which dockview sizes to the whole layout) to the map
+      // panel, so dockview's own drag and resize clamping keeps floating widgets over the map.
+      const mapPanel = container?.querySelector<HTMLElement>("[data-testid='mission-panel-map']");
+      const floatingOverlayHostParent = container?.querySelector<HTMLElement>(
+        ".dv-floating-overlay-host"
+      )?.parentElement;
+      if (container && mapPanel && floatingOverlayHostParent) {
+        const mapRect = mapPanel.getBoundingClientRect();
+        const hostParentRect = floatingOverlayHostParent.getBoundingClientRect();
+        container.style.setProperty(
+          "--floating-overlay-host-left",
+          `${mapRect.left - hostParentRect.left}px`
+        );
+        container.style.setProperty(
+          "--floating-overlay-host-top",
+          `${mapRect.top - hostParentRect.top}px`
+        );
+        container.style.setProperty("--floating-overlay-host-width", `${mapRect.width}px`);
+        container.style.setProperty("--floating-overlay-host-height", `${mapRect.height}px`);
+      }
+
       const mapBounds = getMapBounds(api);
       const menuPanel = api.getPanel("map-menu");
       if (mapBounds && menuPanel) setMapMenuSize(menuPanel, mapBounds);
@@ -225,28 +240,6 @@ export function MissionDockviewLayout(): JSX.Element {
     };
   }, [api]);
 
-  const transformFloatingGroupDrag = useCallback(
-    ({ group, proposed }: FloatingGroupDragContext) => {
-      const isMapWidget = group.panels.some(
-        (panel) => panel.id === "map-menu" || REX_MENU_PANEL_IDS.includes(panel.id)
-      );
-      if (!api || !isMapWidget) return;
-      const mapBounds = getMapBounds(api);
-      if (!mapBounds) return;
-      return {
-        left: Math.max(
-          mapBounds.left,
-          Math.min(proposed.left, mapBounds.left + mapBounds.width - proposed.width)
-        ),
-        top: Math.max(
-          mapBounds.top,
-          Math.min(proposed.top, mapBounds.top + mapBounds.height - proposed.height)
-        ),
-      };
-    },
-    [api]
-  );
-
   return (
     <div ref={containerRef} className={styles.container} data-testid="mission-dockview">
       <DockviewReact
@@ -258,7 +251,6 @@ export function MissionDockviewLayout(): JSX.Element {
         disableDnd={true}
         floatingGroupBounds="boundedWithinViewport"
         floatingGroupDragHandle="titlebar"
-        transformFloatingGroupDrag={transformFloatingGroupDrag}
       />
       <div ref={leftDrawerRef} className={styles.leftDrawer} data-testid="mission-drawer-left">
         <LeftDrawerTab />

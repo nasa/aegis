@@ -33,18 +33,14 @@ function getMapBounds(api: DockviewApi) {
 }
 
 // Anchors the widget to the top-right of the current map bounds, clamped so it never exceeds
-// the map area nor drops below the enforced minimum size.
-function getRexMenuFloatingBounds(mapBounds: {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}) {
+// the map area nor drops below the enforced minimum size. x/y are relative to the map's top-left
+// corner because the floating overlay host is pinned to the map panel.
+function getRexMenuFloatingBounds(mapBounds: { width: number; height: number }) {
   const width = Math.max(REX_MENU_MIN_WIDTH, Math.min(REX_MENU_WIDTH, mapBounds.width));
   const height = Math.max(REX_MENU_MIN_HEIGHT, Math.min(REX_MENU_HEIGHT, mapBounds.height));
   return {
-    x: mapBounds.left + Math.max(0, mapBounds.width - width - REX_MENU_RIGHT_OFFSET),
-    y: mapBounds.top + Math.min(REX_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
+    x: Math.max(0, mapBounds.width - width - REX_MENU_RIGHT_OFFSET),
+    y: Math.min(REX_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
     width,
     height,
   };
@@ -98,7 +94,7 @@ export function createRexMenuPanels(
 // active and whether the widget was minimized.
 export function repositionRexMenuPanel(
   api: DockviewApi,
-  mapBounds: { left: number; top: number; width: number; height: number }
+  mapBounds: { width: number; height: number }
 ): void {
   const positionsPanel = api.getPanel("positions");
   if (!positionsPanel) return;

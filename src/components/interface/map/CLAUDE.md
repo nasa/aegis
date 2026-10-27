@@ -409,8 +409,14 @@ non-closable tabs:
 - **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`): placeholder ("Asset Management Coming
   Soon"). Add asset management components here.
 
-Dockview owns drag (via the tab bar's empty space, clamped to the map by
-`transformFloatingGroupDrag`) and resize. A minimize button in the group's header actions
+Dockview owns drag (via the tab bar's empty space) and resize. Dockview clamps floating-group
+drag and resize only to its `.dv-floating-overlay-host` element, which it sizes (inline styles) to
+the whole layout, including the left/right/bottom panels; dockview-core has no resize hook to
+intercept. `MissionDockviewLayout`'s layout-change watcher therefore writes the map panel's rect
+into `--floating-overlay-host-*` CSS variables, and `missionDockviewLayout.module.css` applies
+them to the host with `!important`. That confines every floating widget (Rex Menu and Map Item
+Visibility) to the map for both drag and resize. Floating `x`/`y` values are therefore relative to
+the map's top-left corner, not the dockview root. A minimize button in the group's header actions
 (`RexMenuHeaderActions`, also in `rex-menu.tsx`) sets `state.interface.rexMenuIsMinimized`, which
 hides the group with `group.api.setVisible(false)` (content stays mounted, so in-progress state
 survives) and shows `RexMenuLauncher` in `MapOverlays`; clicking the launcher restores it. The
@@ -429,7 +435,7 @@ right panel opens/closes, which happens automatically on REX selection) via
 `setMapMenuSize`. Dockview has no public API to move a floating group's x/y in place, so this
 removes and recreates the two panels at the new bounds, preserving which tab was active and
 whether the widget was minimized. The no-op check compares the new bounds against the bounds it
-last *requested* (a module-level `lastAppliedRexMenuBounds`, pure function of the map bounds), not
+last _requested_ (a module-level `lastAppliedRexMenuBounds`, pure function of the map bounds), not
 against the widget's rendered DOM `boundingBox` — dockview's own floating-group clamping doesn't
 always render exactly what was requested, so a rendered-bounds comparison can permanently fail to
 match and recreate the widget on every layout event forever (removePanel/addPanel re-fire
