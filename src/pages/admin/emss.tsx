@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
@@ -5,12 +7,15 @@ import React from "react";
 import adminCommon from "./adminCommon.module.css";
 
 const Emss: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Loading EMSS API status...");
+  const { run: runLoad } = loading;
   const navigate = useNavigate();
+  const action = useAsyncStatus();
   const [isEmssApiEnabled, setIsEmssApiEnabled] = useState<boolean>(null);
 
   //on load check login
   useEffect(() => {
-    (async () => {
+    runLoad("Loading EMSS API status...", async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         const user = response.data;
@@ -22,30 +27,29 @@ const Emss: React.FunctionComponent = () => {
       }
       // Fetch initial EMSS API status
       const emssRes = await fetch(`/api/v1/emss/enableEmssApi`);
+      if (!emssRes.ok) throw new Error(`Unable to read API status (${emssRes.status})`);
       const emssData = await emssRes.json();
       setIsEmssApiEnabled(emssData.data);
-    })();
-  }, [navigate]);
+    });
+  }, [navigate, runLoad]);
 
   const toggleEmssApi = async () => {
-    try {
-      if (isEmssApiEnabled) {
-        const response = confirm("Are you sure you want to turn off the EMSS API?");
-        if (!response) return;
-      }
-      await fetch(`/api/v1/emss/enableEmssApi`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ enable: !isEmssApiEnabled }),
-      });
-      // Fetch updated status
-      const emssRes = await fetch(`/api/v1/emss/enableEmssApi`);
-      setIsEmssApiEnabled((await emssRes.json()).data);
-    } catch (error) {
-      console.error("Error toggling EMSS API status:", error);
+    if (isEmssApiEnabled) {
+      const response = confirm("Are you sure you want to turn off the EMSS API?");
+      if (!response) return;
     }
+    const updateRes = await fetch(`/api/v1/emss/enableEmssApi`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ enable: !isEmssApiEnabled }),
+    });
+    if (!updateRes.ok) throw new Error(`Unable to update API status (${updateRes.status})`);
+    // Fetch updated status
+    const emssRes = await fetch(`/api/v1/emss/enableEmssApi`);
+    if (!emssRes.ok) throw new Error(`Unable to read API status (${emssRes.status})`);
+    setIsEmssApiEnabled((await emssRes.json()).data);
   };
 
   return (
@@ -55,6 +59,8 @@ const Emss: React.FunctionComponent = () => {
           ← Admin
         </Link>
         <h1 className={adminCommon.pageTitle}>EMSS </h1>
+        <AsyncStatus {...loading} />
+        <AsyncStatus {...action} />
 
         <section className={adminCommon.section}>
           <h2>EMSS API Controls</h2>
@@ -70,7 +76,7 @@ const Emss: React.FunctionComponent = () => {
                         : adminCommon.statusDisconnected
                     }
                   >
-                    {isEmssApiEnabled ? "Yes" : "No"}
+                    {isEmssApiEnabled === null ? "Loading..." : isEmssApiEnabled ? "Yes" : "No"}
                   </span>
                 </dd>
               </div>
@@ -82,7 +88,13 @@ const Emss: React.FunctionComponent = () => {
             <div className={adminCommon.formActions}>
               <button
                 className={isEmssApiEnabled ? adminCommon.buttonDanger : adminCommon.buttonSuccess}
-                onClick={toggleEmssApi}
+                disabled={
+                  !!loading.pending ||
+                  !!loading.error ||
+                  !!action.pending ||
+                  isEmssApiEnabled === null
+                }
+                onClick={() => action.run("Updating EMSS API status...", toggleEmssApi)}
               >
                 {isEmssApiEnabled ? "Turn Off" : "Turn On"}
               </button>

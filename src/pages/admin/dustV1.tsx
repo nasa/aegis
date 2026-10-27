@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -63,6 +65,9 @@ const EmitCard: FunctionComponent<{
 // ─── Main page component ──────────────────────────────────────────────────────
 
 const DustV1: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Loading missions...");
+  const { run: runLoad } = loading;
+  const action = useAsyncStatus();
   const navigate = useNavigate();
 
   // Inspector socket (default namespace on the /api/socket server).
@@ -102,7 +107,10 @@ const DustV1: React.FunctionComponent = () => {
 
   const requestEverything = () => {
     if (!dustSocket.current?.connected || !joinMissionId) return;
-    dustSocket.current.emit("getEverything", Number(joinMissionId), (response) => {
+    action.run("Loading mission data...", async () => {
+      const response = await dustSocket.current
+        .timeout(15000)
+        .emitWithAck("getEverything", Number(joinMissionId));
       setEverythingMessage(`${response.status}: ${response.message}`);
       setEverything(response.status === "success" ? response.data : null);
     });
@@ -110,7 +118,8 @@ const DustV1: React.FunctionComponent = () => {
 
   const refreshDebugInfo = () => {
     if (!dustSocket.current?.connected) return;
-    dustSocket.current.emit("getDebugInfo", (data) => {
+    action.run("Loading debug information...", async () => {
+      const data = await dustSocket.current.timeout(15000).emitWithAck("getDebugInfo");
       setDebugInfo(data);
     });
   };
@@ -138,7 +147,7 @@ const DustV1: React.FunctionComponent = () => {
       setLastUpdatedAt(new Date().toISOString());
     });
 
-    (async () => {
+    runLoad("Loading missions...", async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         if (!response.data.isSuperAdmin) {
@@ -154,7 +163,7 @@ const DustV1: React.FunctionComponent = () => {
         missionsRes.data.forEach((m) => nameMap.set(m.id, m.name));
         setMissionNames(nameMap);
       }
-    })();
+    });
 
     return () => {
       socket.off("connect");
@@ -169,7 +178,7 @@ const DustV1: React.FunctionComponent = () => {
         dustSocket.current = null;
       }
     };
-  }, [navigate]);
+  }, [navigate, runLoad]);
 
   // ── DUST socket lifecycle ──────────────────────────────────────────────────
 
@@ -194,11 +203,16 @@ const DustV1: React.FunctionComponent = () => {
         name: joinVisitorName.trim() || "DUST Monitor Page",
         connectedAt: Date.now(),
       };
-      sock.emit("missionJoin", missionId, dustVisitor, (response) => {
+      action.run("Joining mission...", async () => {
+        const response = await sock
+          .timeout(15000)
+          .emitWithAck("missionJoin", missionId, dustVisitor);
         setJoinResponseMessage(`${response.status}: ${response.message}`);
       });
       // Populate the debug table now that we have an authenticated socket.
-      sock.emit("getDebugInfo", (data) => setDebugInfo(data));
+      action.run("Loading debug information...", async () => {
+        setDebugInfo(await sock.timeout(15000).emitWithAck("getDebugInfo"));
+      });
     });
 
     sock.on("posEntriesUpdate", (payload) => {
@@ -248,6 +262,8 @@ const DustV1: React.FunctionComponent = () => {
           ← Admin
         </Link>
         <h1 className={adminCommon.pageTitle}>DUST Monitor</h1>
+        <AsyncStatus {...loading} />
+        <AsyncStatus {...action} />
         <p style={{ color: "#94a3b8", marginTop: "-8px", fontSize: "0.9rem" }}>
           Current DUST traffic on <code>/api/socket</code> namespace <code>/dust</code>.
         </p>
@@ -286,7 +302,7 @@ const DustV1: React.FunctionComponent = () => {
             <button
               className={adminCommon.button}
               onClick={refreshDebugInfo}
-              disabled={!isDustConnected}
+              disabled={!!action.pending || !isDustConnected}
               title={
                 isDustConnected ? "Refresh" : "Connect to the dust namespace to enable refresh"
               }
@@ -295,7 +311,9 @@ const DustV1: React.FunctionComponent = () => {
             </button>
           </div>
           <div className={adminCommon.details}>
-            {!debugInfo?.visitors || Object.keys(debugInfo.visitors).length === 0 ? (
+            {!debugInfo && action.pending ? (
+              <AsyncStatus pending="Loading visitor information..." />
+            ) : !debugInfo?.visitors || Object.keys(debugInfo.visitors).length === 0 ? (
               <div className={adminCommon.emptyState}>
                 {isDustConnected
                   ? "No DUST visitors connected."
@@ -371,6 +389,15 @@ const DustV1: React.FunctionComponent = () => {
           >
             {/* missionJoin */}
             <EmitCard title="missionJoin">
+              <AsyncStatus
+                pending={
+                  dustConnectionStatus === "connecting"
+                    ? "Connecting..."
+                    : action.pending === "Joining mission..."
+                      ? action.pending
+                      : null
+                }
+              />
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ color: "#94a3b8", fontSize: "0.85em" }}>Status:</span>
                 <span
@@ -452,6 +479,9 @@ const DustV1: React.FunctionComponent = () => {
 
             {/* getEverything */}
             <EmitCard title="getEverything" fullWidth>
+              <AsyncStatus
+                pending={action.pending === "Loading mission data..." ? action.pending : null}
+              />
               <div style={{ color: "#94a3b8", fontSize: "0.85em" }}>
                 Requests the current state of every rex on the joined mission — running or not —
                 each in the same shape as a <code>posEntriesUpdate</code> payload.
@@ -462,7 +492,7 @@ const DustV1: React.FunctionComponent = () => {
               <button
                 className={adminCommon.buttonPrimary}
                 onClick={requestEverything}
-                disabled={!isDustConnected || !joinMissionId}
+                disabled={!!action.pending || !isDustConnected || !joinMissionId}
                 style={{ alignSelf: "flex-start" }}
               >
                 Get Everything

@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
@@ -13,13 +15,15 @@ import { faUsers } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
 
 const User: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Loading users and mission permissions...");
+  const { run: runLoad } = loading;
   const navigate = useNavigate();
+  const action = useAsyncStatus();
   const automergeRepo = useRepo();
   const [userList, setUserList] = useState<AppUser[]>([]);
   const [user, setUser] = useState<AppUser>();
   const [editMode, setEditMode] = useState<boolean>(false);
   const [infoMessage, setInfoMessage] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>("");
   const [createMode, setCreateMode] = useState<boolean>(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
   const [automergeDocList, setAutomergeDocList] = useState<AutomergeDocListing[]>([]);
@@ -55,12 +59,11 @@ const User: React.FunctionComponent = () => {
         navigate("/");
       }
     }
-    adminCheck().catch(() => {
-      // Something went wrong. Eventually would like a logger here.
-    });
-  }, [automergeRepo, navigate]);
+    runLoad("Loading users and mission permissions...", adminCheck);
+  }, [automergeRepo, navigate, runLoad]);
 
   const handleEdit = (user: AppUser) => {
+    action.clearError();
     let permissionList: Permission[];
 
     // if superadmin, give all permissions
@@ -90,20 +93,17 @@ const User: React.FunctionComponent = () => {
 
   const handleDelete = async (user: AppUser) => {
     const deleteRes = await deleteAppUsers([user.id]);
-    if (deleteRes.status === "success") {
-      setUserList(userList.filter((u) => u.id !== user.id));
-      setDeleteTarget(null);
-    } else {
-      alert("There was an error deleting user");
-      setDeleteTarget(null);
+    if (deleteRes.status !== "success") {
+      throw new Error(deleteRes.message || "There was an error deleting user");
     }
+    setUserList(userList.filter((u) => u.id !== user.id));
+    setDeleteTarget(null);
   };
 
   const handleSubmit = async () => {
     //validate
     if (user.username.length < 3 || user.password.length < 3) {
-      setErrorMessage("Username and password must be at least 3 characters long");
-      return;
+      throw new Error("Username and password must be at least 3 characters long");
     }
 
     //only save missions a users has perms to
@@ -121,21 +121,20 @@ const User: React.FunctionComponent = () => {
         updatedAt: getAccurateNow().toISOString(),
       },
     ]);
-    if (updatedUser.status === "success") {
-      setErrorMessage("");
-      if (createMode) {
-        setCreateMode(!createMode);
-        handleEdit(updatedUser.data[0]);
-        setInfoMessage("User created successfully");
-      } else {
-        setInfoMessage("User updated successfully");
-      }
+    if (updatedUser.status !== "success") {
+      throw new Error(updatedUser.message || "Error updating user");
+    }
+    if (createMode) {
+      setCreateMode(!createMode);
+      handleEdit(updatedUser.data[0]);
+      setInfoMessage("User created successfully");
     } else {
-      setErrorMessage("Error updating user");
+      setInfoMessage("User updated successfully");
     }
   };
 
   const handleCreate = () => {
+    action.clearError();
     setCreateMode(!createMode);
 
     const permissionList = automergeDocList.map((amRecord) => {
@@ -154,12 +153,15 @@ const User: React.FunctionComponent = () => {
   };
 
   const closeModal = () => {
+    if (action.pending) return;
+    action.clearError();
     setEditMode(false);
     setCreateMode(false);
     setUser(undefined);
     setInfoMessage("");
-    setErrorMessage("");
-    getAppUsers().then((users) => {
+    runLoad("Refreshing users...", async () => {
+      const users = await getAppUsers();
+      if (!users.data) throw new Error(users.message || "Unable to load users");
       setUserList(users.data.sort((a, b) => a.id - b.id));
     });
   };
@@ -177,8 +179,8 @@ const User: React.FunctionComponent = () => {
   const renderModal = () => {
     if (!editMode && !createMode) return null;
     return (
-      <div className={adminCommon.modalOverlay} onClick={closeModal}>
-        <div className={adminCommon.modal} onClick={(e) => e.stopPropagation()}>
+      <div className={adminCommon.modalOverlay}>
+        <div className={adminCommon.modal}>
           <div className={adminCommon.modalHeader}>
             <h2 className={adminCommon.modalTitle}>{createMode ? "Create User" : "Edit User"}</h2>
             <button className={adminCommon.modalClose} onClick={closeModal} title="Close">
@@ -186,6 +188,7 @@ const User: React.FunctionComponent = () => {
             </button>
           </div>
           <div className={adminCommon.modalBody}>
+            <AsyncStatus {...action} />
             <div className={adminCommon.form}>
               <div className={adminCommon.formGroup}>
                 <label className={adminCommon.formLabel} htmlFor="username">
@@ -340,14 +343,18 @@ const User: React.FunctionComponent = () => {
               </div>
             </div>
 
-            {errorMessage && <p className={adminCommon.statusDisconnected}>{errorMessage}</p>}
             {infoMessage && <p className={adminCommon.statusConnected}>{infoMessage}</p>}
           </div>
           <div className={adminCommon.modalFooter}>
             <button className={adminCommon.buttonCancel} type="button" onClick={closeModal}>
               Cancel
             </button>
-            <button className={adminCommon.buttonPrimary} type="button" onClick={handleSubmit}>
+            <button
+              className={adminCommon.buttonPrimary}
+              type="button"
+              disabled={!!action.pending || !!loading.pending || !!loading.error}
+              onClick={() => action.run("Saving user...", handleSubmit)}
+            >
               {createMode ? "Create" : "Save"}
             </button>
           </div>
@@ -355,6 +362,16 @@ const User: React.FunctionComponent = () => {
       </div>
     );
   };
+
+  if (!isSuperAdmin) {
+    return (
+      <main className={adminCommon.page}>
+        <div className={adminCommon.container}>
+          <AsyncStatus {...loading} />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <>
@@ -365,56 +382,66 @@ const User: React.FunctionComponent = () => {
               ← Admin
             </Link>
             <h1 className={adminCommon.pageTitle}>User Management</h1>
+            <AsyncStatus {...loading} />
+            <AsyncStatus {...action} />
 
-            <section className={adminCommon.section}>
-              <h2>
-                <FontAwesomeIcon icon={faUsers} className={adminCommon.mutedIcon} />
-                Users
-              </h2>
-              <div className={adminCommon.details}>
-                <div className={adminCommon.formActions} style={{ marginBottom: 12 }}>
-                  <button className={adminCommon.buttonPrimary} onClick={() => handleCreate()}>
-                    + Add User
-                  </button>
-                </div>
-                <table className={`${adminCommon.table} ${adminCommon.tableCompact}`}>
-                  <thead>
-                    <tr>
-                      <th scope="col">ID</th>
-                      <th scope="col">Name</th>
-                      <th scope="col">Created</th>
-                      <th scope="col">Updated</th>
-                      <th scope="col">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {userList.map((u) => (
-                      <tr key={u.id}>
-                        <td>{u.id}</td>
-                        <td style={{ color: "#f1f5f9", fontWeight: 600 }}>{u.username}</td>
-                        <td>{formatDate(u.createdAt)}</td>
-                        <td>{formatDate(u.updatedAt)}</td>
-                        <td>
-                          <div className={adminCommon.formActions}>
-                            <button className={adminCommon.button} onClick={() => handleEdit(u)}>
-                              Edit
-                            </button>
-                            {u.id !== 1 && u.id !== 2 && (
-                              <button
-                                className={adminCommon.buttonDanger}
-                                onClick={() => setDeleteTarget(u)}
-                              >
-                                Delete
-                              </button>
-                            )}
-                          </div>
-                        </td>
+            <fieldset
+              disabled={!!loading.pending || !!loading.error || !!action.pending}
+              style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
+            >
+              <section className={adminCommon.section}>
+                <h2>
+                  <FontAwesomeIcon icon={faUsers} className={adminCommon.mutedIcon} />
+                  Users
+                </h2>
+                <div className={adminCommon.details}>
+                  <div className={adminCommon.formActions} style={{ marginBottom: 12 }}>
+                    <button className={adminCommon.buttonPrimary} onClick={() => handleCreate()}>
+                      + Add User
+                    </button>
+                  </div>
+                  <table className={`${adminCommon.table} ${adminCommon.tableCompact}`}>
+                    <thead>
+                      <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Created</th>
+                        <th scope="col">Updated</th>
+                        <th scope="col">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                    </thead>
+                    <tbody>
+                      {userList.map((u) => (
+                        <tr key={u.id}>
+                          <td>{u.id}</td>
+                          <td style={{ color: "#f1f5f9", fontWeight: 600 }}>{u.username}</td>
+                          <td>{formatDate(u.createdAt)}</td>
+                          <td>{formatDate(u.updatedAt)}</td>
+                          <td>
+                            <div className={adminCommon.formActions}>
+                              <button className={adminCommon.button} onClick={() => handleEdit(u)}>
+                                Edit
+                              </button>
+                              {u.id !== 1 && u.id !== 2 && (
+                                <button
+                                  className={adminCommon.buttonDanger}
+                                  onClick={() => {
+                                    action.clearError();
+                                    setDeleteTarget(u);
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </fieldset>
           </div>
 
           {renderModal()}
@@ -427,16 +454,22 @@ const User: React.FunctionComponent = () => {
                   Are you sure you want to delete <strong>{deleteTarget.username}</strong>? This
                   action cannot be undone.
                 </p>
+                <AsyncStatus {...action} />
                 <div className={adminCommon.confirmActions}>
                   <button
                     className={adminCommon.buttonCancel}
-                    onClick={() => setDeleteTarget(null)}
+                    disabled={!!action.pending}
+                    onClick={() => {
+                      action.clearError();
+                      setDeleteTarget(null);
+                    }}
                   >
                     Cancel
                   </button>
                   <button
                     className={adminCommon.buttonDanger}
-                    onClick={() => handleDelete(deleteTarget)}
+                    disabled={!!action.pending}
+                    onClick={() => action.run("Deleting user...", () => handleDelete(deleteTarget))}
                     style={{ padding: "10px 24px", fontSize: "0.95rem" }}
                   >
                     Delete
