@@ -6,7 +6,7 @@
 # # # # # # # #
 
 ### Build the React client
-FROM node:24.11.1-alpine3.23 AS build
+FROM node:24.22.1-alpine AS build
 
 WORKDIR /clientsrc
 

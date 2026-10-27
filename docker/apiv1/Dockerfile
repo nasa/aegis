@@ -1,6 +1,6 @@
 # When building via Buildah in CI, the dependency proxy caches images from Docker Hub.
 # For local builds, Docker pulls directly from Docker Hub
-FROM node:24.11.1-alpine3.23 AS base
+FROM node:24.22.1-alpine AS base
 
 # Set the working directory. It will create if doesn't exist
 WORKDIR /app
