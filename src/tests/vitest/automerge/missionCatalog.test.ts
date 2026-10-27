@@ -7,7 +7,6 @@ import supertest from "supertest";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import app from "server/express/restApi";
-import { LazyMissionRepo } from "server/automerge/lazyMissionRepo";
 import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
 import { getMissionSummaries, getMissionIdsForEva } from "server/automerge/missionCatalog";
 import * as missionCatalog from "server/automerge/missionCatalog";
@@ -26,7 +25,7 @@ import { getRexesByEva } from "server/maestro/v2/routes/getRexesByEva";
 import * as Automerge from "@automerge/automerge";
 import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
 
-let repo: LazyMissionRepo;
+let repo: Repo;
 let pool: pg.Pool;
 let storage: PostgresStorageAdapter;
 let handles: DocHandle<Mission>[];
@@ -45,7 +44,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  repo = new LazyMissionRepo({ storage });
+  repo = new Repo({ storage });
   globalValues.automergeRepo = repo;
   handles = [];
   ids = [];
@@ -85,7 +84,7 @@ test("restart and homepage/admin/Maestro discovery load zero documents", async (
   await createMission({ evas: { [eva.uuid]: eva } });
   await createMission({ archivedAt: 123, name: "Archived" });
   await repo.shutdown();
-  repo = new LazyMissionRepo({ storage });
+  repo = new Repo({ storage });
   globalValues.automergeRepo = repo;
   const find = vi.spyOn(repo, "find");
   await populateMissionCatalogOnce(repo, ids);
@@ -401,7 +400,7 @@ test("one-time population resumes missing summaries and repeated startup loads n
     .fork()
     .execute("delete from mission_catalog_db where mission_id = ?", [ids[1]]);
   await repo.shutdown();
-  repo = new LazyMissionRepo({ storage });
+  repo = new Repo({ storage });
   globalValues.automergeRepo = repo;
   const find = vi.spyOn(repo, "find");
   await populateMissionCatalogOnce(repo, ids);
@@ -478,7 +477,7 @@ test.each(["name", "description"] as const)(
   }
 );
 
-test("missions expire four hours after their own last read or edit", async () => {
+test("reads, edits and saves do not extend an unused mission's four-hour grace period", async () => {
   const first = await createMission();
   const second = await createMission();
   let now = Date.now();
@@ -490,21 +489,18 @@ test("missions expire four hours after their own last read or edit", async () =>
     now += MISSION_IDLE_MS - 1;
     await runtime.refresh();
     expect(Object.keys(repo.handles)).toHaveLength(2);
-    await repo.find(first.url); // A one-off mission request extends only this mission's lifetime.
-    now += 2;
-    await runtime.refresh();
-    expect(repo.handles[first.documentId]).toBe(first);
-    expect(repo.handles[second.documentId]).toBeUndefined();
-
-    now += MISSION_IDLE_MS - 2;
+    await repo.find(first.url);
     first.change((m) => {
       m.description = "Recent edit";
     });
+    await repo.flush([first.documentId]);
     await runtime.refresh();
     expect(repo.handles[first.documentId]).toBe(first);
-    now += MISSION_IDLE_MS;
+    expect(repo.handles[second.documentId]).toBe(second);
+    now += 1;
     await runtime.refresh();
     expect(repo.handles[first.documentId]).toBeUndefined();
+    expect(repo.handles[second.documentId]).toBeUndefined();
     expect((await repo.find<Mission>(first.url)).doc().description).toBe("Recent edit");
   } finally {
     await runtime.stop();
@@ -602,38 +598,40 @@ test("startup preloads running REX missions, including paused PET clocks, from t
   // Restrict the preload to this test's fixtures when running against a populated local DB.
   vi.spyOn(missionCatalog, "getRunningMissionListings").mockResolvedValue(runningListings);
   await repo.shutdown();
-  repo = new LazyMissionRepo({ storage });
+  repo = new Repo({ storage });
   globalValues.automergeRepo = repo;
   await loadRunningMissionDocuments(repo);
   expect(repo.handles[active.documentId]?.isReady()).toBe(true);
   expect(repo.handles[idle.documentId]).toBeUndefined();
 });
 
-test.each(["read", "edit"] as const)("a concurrent %s cancels idle eviction", async (activity) => {
-  const handle = await createMission();
-  let now = Date.now();
-  vi.spyOn(Date, "now").mockImplementation(() => now);
-  const runtime = startMissionCatalogRuntime(repo, storage);
-  const flush = repo.flush.bind(repo);
-  vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
-    await flush(documents);
-    if (activity === "read") await repo.find(handle.url);
-    else
-      handle.change((m) => {
-        m.description = "Edited during eviction";
-      });
-  });
-  try {
-    now += MISSION_IDLE_MS + 1;
-    await runtime.refresh();
-    expect(repo.handles[handle.documentId]).toBe(handle);
-    now += MISSION_IDLE_MS - 1;
-    await runtime.refresh();
-    expect(repo.handles[handle.documentId]).toBe(handle);
-    now += 1;
-    await runtime.refresh();
-    expect(repo.handles[handle.documentId]).toBeUndefined();
-  } finally {
-    await runtime.stop();
+test.each(["request", "edit"] as const)(
+  "a concurrent %s defers idle eviction",
+  async (activity) => {
+    const handle = await createMission();
+    let now = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const runtime = startMissionCatalogRuntime(repo, storage);
+    const flush = repo.flush.bind(repo);
+    let release: (() => void) | undefined;
+    vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
+      await flush(documents);
+      if (activity === "request") release = retainMissionDocuments();
+      else
+        handle.change((m) => {
+          m.description = "Edited during eviction";
+        });
+    });
+    try {
+      now += MISSION_IDLE_MS + 1;
+      await runtime.refresh();
+      expect(repo.handles[handle.documentId]).toBe(handle);
+      release?.();
+      await runtime.refresh();
+      expect(repo.handles[handle.documentId]).toBeUndefined();
+    } finally {
+      release?.();
+      await runtime.stop();
+    }
   }
-});
+);

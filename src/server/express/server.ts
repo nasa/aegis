@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
-import { LazyMissionRepo } from "server/automerge/lazyMissionRepo";
+import { Repo } from "@automerge/automerge-repo/slim";
 import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
 import {
   loadRunningMissionDocuments,
@@ -158,7 +158,7 @@ initializeBase64Wasm(automergeWasmBase64);
   const networkAdapter = new NodeWSServerAdapter(wss);
   const storageAdapter = new PostgresStorageAdapter("automerge_native_db", dbConfig);
   // store the automerge repo in global so we can access it later on the server
-  const missionRepo = new LazyMissionRepo({
+  const missionRepo = new Repo({
     network: [networkAdapter],
     storage: storageAdapter,
     /** @ts-expect-error @type {(import("@automerge/automerge-repo").PeerId)}  */

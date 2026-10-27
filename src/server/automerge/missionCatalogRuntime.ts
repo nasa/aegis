@@ -1,9 +1,14 @@
-import type { AutomergeUrl, DocHandle, DocumentId, Repo } from "@automerge/automerge-repo/slim";
+import type {
+  AutomergeUrl,
+  DocHandle,
+  DocumentId,
+  Repo,
+  RepoEvents,
+} from "@automerge/automerge-repo/slim";
 import { getRunningMissionListings, createMissionSummary } from "./missionCatalog";
 import { releaseMissionDocument } from "./releaseMissionDocument";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
-import type { LazyMissionRepo } from "./lazyMissionRepo";
 import type { PostgresStorageAdapter } from "./automerge-storage-adapter-postgres";
 
 export const refreshMissionCatalog = createMissionSummary;
@@ -33,7 +38,7 @@ export function retainMissionDocuments(): () => void {
  * Queue work outside storage.save(): summary creation flushes the repo and must not block its own save.
  */
 export function startMissionCatalogRuntime(
-  repo: LazyMissionRepo,
+  repo: Repo,
   storage: PostgresStorageAdapter,
   idleMs = MISSION_IDLE_MS
 ): {
@@ -46,8 +51,9 @@ export function startMissionCatalogRuntime(
   // Document IDs awaiting a catalog update; repeated save notifications share one entry.
   const pendingCatalogWrites = new Set<DocumentId>();
   const catalogDebounces = new Map<DocumentId, ReturnType<typeof setTimeout>>();
-  const lastSeen = new Map<DocumentId, number>();
-  const pinned = new Set<DocumentId>();
+  // Start a grace period when a mission is first observed unused. Reads, edits and saves
+  // do not extend it; a connected consumer or running REX keeps the mission loaded.
+  const unusedSince = new Map<DocumentId, number>();
   const inUse = (handle: DocHandle<Mission>) => {
     const mission = handle.doc();
     return (
@@ -64,8 +70,7 @@ export function startMissionCatalogRuntime(
     );
   };
   for (const handle of Object.values(repo.handles)) {
-    lastSeen.set(handle.documentId, repo.lastAccess.get(handle.documentId) ?? Date.now());
-    if (handle.isReady() && inUse(handle)) pinned.add(handle.documentId);
+    if (handle.isReady() && !inUse(handle)) unusedSince.set(handle.documentId, Date.now());
   }
 
   const reportError = (error: unknown, documentId?: DocumentId) => {
@@ -103,11 +108,11 @@ export function startMissionCatalogRuntime(
   };
   const markCatalogWritePending = (id: DocumentId) => {
     if (stopped) return;
-    // Persistence (including our own eviction flush) is not new user activity.
-    // LazyMissionRepo records actual reads and changes independently of saves.
-    if (!lastSeen.has(id)) lastSeen.set(id, repo.lastAccess.get(id) ?? Date.now());
     const handle = repo.handles[id];
-    if (handle?.isReady() && inUse(handle)) pinned.add(id);
+    if (handle?.isReady()) {
+      if (inUse(handle)) unusedSince.delete(id);
+      else if (!unusedSince.has(id)) unusedSince.set(id, Date.now());
+    }
     clearTimeout(catalogDebounces.get(id));
     // A new save also postpones work queued behind another document's summary creation.
     pendingCatalogWrites.delete(id);
@@ -126,48 +131,40 @@ export function startMissionCatalogRuntime(
     }
     catalogDebounces.clear();
   };
+  const onDocMetrics: RepoEvents["doc-metrics"] = (event) => {
+    if (event.type === "doc-loaded") markCatalogWritePending(event.documentId);
+  };
   storage.onDocumentSaved = markCatalogWritePending;
-  repo.onDocumentLoaded = markCatalogWritePending;
+  repo.on("doc-metrics", onDocMetrics);
 
   const evictIdle = async () => {
     for (const [idString, handle] of Object.entries(repo.handles)) {
       const id = idString as DocumentId;
       if (!handle.isReady()) continue;
       if (inUse(handle)) {
-        pinned.add(id);
+        unusedSince.delete(id);
         continue;
       }
-      // Start a full grace period when the last pin disappears. Detecting the transition
-      // on this minute's sweep errs on the side of keeping the document a little longer.
-      if (pinned.delete(id)) lastSeen.set(id, Date.now());
-      if (!lastSeen.has(id)) lastSeen.set(id, repo.lastAccess.get(id) ?? Date.now());
-      const lastUsed = Math.max(lastSeen.get(id), repo.lastAccess.get(id) ?? 0);
-      if (Date.now() - lastUsed < idleMs || activeRequests > 0) continue;
+      // Detecting the last consumer's departure on this minute's sweep errs on the
+      // side of keeping the document a little longer.
+      if (!unusedSince.has(id)) unusedSince.set(id, Date.now());
+      const idleStarted = unusedSince.get(id);
+      if (Date.now() - idleStarted < idleMs || activeRequests > 0) continue;
       const document = handle.doc();
       // Unrelated edits skip summary creation, but their source document still needs saving.
       await repo.flush([handle.documentId]);
       await refreshMissionCatalog(repo, handle);
       if (inUse(handle)) {
-        pinned.add(id);
+        unusedSince.delete(id);
         continue;
       }
-      if (
-        activeRequests > 0 ||
-        handle.doc() !== document ||
-        Math.max(lastSeen.get(id), repo.lastAccess.get(id) ?? 0) > lastUsed
-      )
+      if (activeRequests > 0 || handle.doc() !== document || unusedSince.get(id) !== idleStarted)
         continue;
       await releaseMissionDocument(repo, id);
-      lastSeen.delete(id);
-      repo.lastAccess.delete(id);
-      pinned.delete(id);
+      unusedSince.delete(id);
     }
-    for (const id of lastSeen.keys()) {
-      if (!repo.handles[id]) {
-        lastSeen.delete(id);
-        repo.lastAccess.delete(id);
-        pinned.delete(id);
-      }
+    for (const id of unusedSince.keys()) {
+      if (!repo.handles[id]) unusedSince.delete(id);
     }
   };
   const refresh = (flushPending = true) => {
@@ -196,7 +193,7 @@ export function startMissionCatalogRuntime(
       clearInterval(timer);
       stopped = true;
       storage.onDocumentSaved = undefined;
-      repo.onDocumentLoaded = undefined;
+      repo.off("doc-metrics", onDocMetrics);
       flushCatalogDebounces();
       await maintenance;
       await running;
