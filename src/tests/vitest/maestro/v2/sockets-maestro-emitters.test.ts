@@ -124,7 +124,7 @@ beforeEach(() => {
 
 // ─── cleanupSocketRoom ────────────────────────────────────────────────────────
 
-test("leaving during a cold load does not retain an orphaned Maestro subscription", async () => {
+test("leaving while a document is loading does not retain an orphaned Maestro subscription", async () => {
   let resolveFind: (handle: unknown) => void;
   vi.mocked(globalValues.automergeRepo.find).mockImplementationOnce(
     () =>

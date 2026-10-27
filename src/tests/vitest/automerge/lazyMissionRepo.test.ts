@@ -26,14 +26,14 @@ class MemoryStorage implements StorageAdapterInterface {
   }
 }
 
-test("serializes cold loads, coalesces duplicate requests, and lets warm reads proceed", async () => {
+test("loads unloaded documents sequentially and reads loaded documents immediately", async () => {
   const storage = new MemoryStorage();
   const writer = new Repo({ storage });
   const first = writer.create({ name: "first" });
   const second = writer.create({ name: "second" });
   await writer.shutdown();
   const reader = new LazyMissionRepo({ storage });
-  const warm = reader.create({ name: "warm" });
+  const loadedMission = reader.create({ name: "loaded mission" });
   let unblock: () => void;
   const blocked = new Promise<void>((resolve) => {
     unblock = resolve;
@@ -51,7 +51,7 @@ test("serializes cold loads, coalesces duplicate requests, and lets warm reads p
   await vi.waitFor(() => expect(loaded).toEqual([first.documentId]));
   const pendingSecond = reader.find(second.url);
   const duplicateFirst = reader.find(first.url);
-  expect(await reader.find(warm.url)).toBe(warm);
+  expect(await reader.find(loadedMission.url)).toBe(loadedMission);
   expect(loaded).toEqual([first.documentId]);
   unblock();
   const [one, two, duplicate] = await Promise.all([pendingFirst, pendingSecond, duplicateFirst]);

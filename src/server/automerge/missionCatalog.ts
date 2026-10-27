@@ -4,8 +4,8 @@ import { globalValues } from "server/express/global";
 
 export const MISSION_CATALOG_VERSION = 1;
 
-// Retain only the small indexed values, never an Automerge document. New/cold handles have
-// no entry and are refreshed once; released handles can be garbage collected normally.
+// Retain only the small indexed values, never an Automerge document. Newly created or loaded
+// handles have no entry and are refreshed once; released handles can be garbage collected normally.
 const indexedValues = new WeakMap<DocHandle<Mission>, string>();
 
 function catalogKey(projected: ReturnType<typeof summarizeMission>): string {

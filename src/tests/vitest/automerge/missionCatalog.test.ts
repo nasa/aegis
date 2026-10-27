@@ -80,7 +80,7 @@ afterAll(async () => {
   await globalValues.orm.close(true);
 });
 
-test("cold restart and homepage/admin/Maestro discovery load zero documents", async () => {
+test("restart and homepage/admin/Maestro discovery load zero documents", async () => {
   const eva = generateBlankEVA({ name: "Planned EVA" });
   await createMission({ evas: { [eva.uuid]: eva } });
   await createMission({ archivedAt: 123, name: "Archived" });
@@ -567,7 +567,7 @@ test.each(["user", "maestro", "dust", "rex"] as const)(
   }
 );
 
-test("a mission joined while eviction is flushing stays resident", async () => {
+test("a mission joined while eviction is flushing stays loaded", async () => {
   const handle = await createMission();
   let now = Date.now();
   vi.spyOn(Date, "now").mockImplementation(() => now);

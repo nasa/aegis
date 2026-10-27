@@ -391,7 +391,7 @@ export async function getAutomergeMissionHandle(
 /**
  * Get automerge document for mission ids.
  * This will query the automerge doc listing to find the URLs for the docs and
- * then request the documents from the repo (the server bounds cold-load concurrency).
+ * then request the documents from the repo (the server loads unloaded documents one at a time).
  * @param missionIds Ids for the missions. If no id is provided it will return all missions
  */
 export async function getAutomergeMissions(missionIds?: number[]): Promise<Mission[]> {

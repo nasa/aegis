@@ -2,11 +2,11 @@ import { Repo, interpretAsDocumentId } from "@automerge/automerge-repo/slim";
 import type { AnyDocumentId, DocHandle, DocumentId } from "@automerge/automerge-repo/slim";
 import { serverLogger } from "utils/logging/serverLogger";
 
-/** Bound cold-load concurrency on small servers; warm missions never wait behind cold ones. */
+/** Load unloaded missions one at a time; reads of loaded missions proceed immediately. */
 export class LazyMissionRepo extends Repo {
   readonly lastAccess = new Map<DocumentId, number>();
   onDocumentLoaded?: (documentId: DocumentId) => void;
-  private coldLoads: Promise<unknown> = Promise.resolve();
+  private pendingDocumentLoads: Promise<unknown> = Promise.resolve();
   private readonly watched = new WeakSet<DocHandle<unknown>>();
 
   private watch<T>(handle: DocHandle<T>): DocHandle<T> {
@@ -45,10 +45,10 @@ export class LazyMissionRepo extends Repo {
         return handle;
       });
     }
-    // Repo itself coalesces requests for the same document. Serialize cold calls (including
-    // network requests) without delaying reads of already resident documents.
+    // Repo itself coalesces requests for the same document. Serialize loads of unloaded
+    // documents (including network requests) without delaying reads of loaded documents.
     const queuedAt = Date.now();
-    const load = this.coldLoads.then(async () => {
+    const load = this.pendingDocumentLoads.then(async () => {
       const started = Date.now();
       try {
         const handle = await super.find<T>(id, options);
@@ -77,7 +77,7 @@ export class LazyMissionRepo extends Repo {
         throw error;
       }
     });
-    this.coldLoads = load.catch(() => {});
+    this.pendingDocumentLoads = load.catch(() => {});
     return load;
   }
 }

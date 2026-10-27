@@ -175,7 +175,7 @@ initializeBase64Wasm(automergeWasmBase64);
       logId: "server",
       logValue: "Server listening on port 4001",
       startupMs: Date.now() - bootStarted,
-      residentDocuments: Object.keys(missionRepo.handles).length,
+      loadedDocuments: Object.keys(missionRepo.handles).length,
       rssBytes: process.memoryUsage.rss(),
     });
   });

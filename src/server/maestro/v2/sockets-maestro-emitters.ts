@@ -49,7 +49,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
       automergeListing.automergeUrl as DocumentId
     );
 
-    // A leave/disconnect can cancel this join while the cold load is awaiting. Don't
+    // A leave/disconnect can cancel this join while the document is loading. Don't
     // install an orphaned subscription (or overwrite a subsequent join's reservation).
     if (globalValues.maestroV2.docListeners.get(missionId) !== reservation) return;
 

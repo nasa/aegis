@@ -42,7 +42,8 @@ export function startMissionCatalogRuntime(
   let running: Promise<void> | undefined;
   let maintenance: Promise<void> | undefined;
   let stopped = false;
-  const queued = new Set<DocumentId>();
+  // Document IDs awaiting a catalog update; repeated save notifications share one entry.
+  const pendingCatalogWrites = new Set<DocumentId>();
   const lastSeen = new Map<DocumentId, number>();
   const pinned = new Set<DocumentId>();
   const inUse = (handle: DocHandle<Mission>) => {
@@ -75,13 +76,13 @@ export function startMissionCatalogRuntime(
       error instanceof Error ? error : new Error(String(error))
     );
   };
-  const drain = (): Promise<void> => {
+  const processPendingCatalogWrites = (): Promise<void> => {
     if (running) return running;
     running = Promise.resolve()
       .then(async () => {
-        while (queued.size) {
-          const id = queued.values().next().value;
-          queued.delete(id);
+        while (pendingCatalogWrites.size) {
+          const id = pendingCatalogWrites.values().next().value;
+          pendingCatalogWrites.delete(id);
           const handle = repo.handles[id] as DocHandle<Mission> | undefined;
           if (handle?.isReady()) {
             try {
@@ -94,22 +95,22 @@ export function startMissionCatalogRuntime(
       })
       .finally(() => {
         running = undefined;
-        if (queued.size && !stopped && !maintenance) drain();
+        if (pendingCatalogWrites.size && !stopped && !maintenance) processPendingCatalogWrites();
       });
     return running;
   };
-  const enqueue = (id: DocumentId) => {
+  const markCatalogWritePending = (id: DocumentId) => {
     if (stopped) return;
     // Persistence (including our own eviction flush) is not new user activity.
     // LazyMissionRepo records actual reads and changes independently of saves.
     if (!lastSeen.has(id)) lastSeen.set(id, repo.lastAccess.get(id) ?? Date.now());
     const handle = repo.handles[id];
     if (handle?.isReady() && inUse(handle)) pinned.add(id);
-    queued.add(id);
-    if (!maintenance) drain();
+    pendingCatalogWrites.add(id);
+    if (!maintenance) processPendingCatalogWrites();
   };
-  storage.onDocumentSaved = enqueue;
-  repo.onDocumentLoaded = enqueue;
+  storage.onDocumentSaved = markCatalogWritePending;
+  repo.onDocumentLoaded = markCatalogWritePending;
 
   const evictIdle = async () => {
     for (const [idString, handle] of Object.entries(repo.handles)) {
@@ -153,11 +154,11 @@ export function startMissionCatalogRuntime(
     }
   };
   const refresh = () => {
-    maintenance ??= drain()
+    maintenance ??= processPendingCatalogWrites()
       .then(evictIdle)
       .finally(() => {
         maintenance = undefined;
-        if (queued.size && !stopped) drain();
+        if (pendingCatalogWrites.size && !stopped) processPendingCatalogWrites();
       });
     return maintenance;
   };
@@ -180,8 +181,8 @@ export function startMissionCatalogRuntime(
       repo.onDocumentLoaded = undefined;
       await maintenance;
       await running;
-      // The caller stops network writers and flushes the repo before draining the queue.
-      await drain();
+      // The caller stops network writers and flushes the repo before processing pending writes.
+      await processPendingCatalogWrites();
     },
   };
 }
