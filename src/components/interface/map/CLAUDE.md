@@ -462,8 +462,9 @@ Overlay gotchas:
      equality — **known inconsistency**).
    - Pos-entry ordering: `FollowMode` sorts newest-first; `AutoFitBounds` does **not** (candidate
      stale-tracking bug).
-8. **"First running REX" assumption** in `FollowModeProvider`, `useRexPetTime`, `MapFollowMenu`,
-   `map-menu` — mismatches with "selected REX" used elsewhere.
+8. **"First running REX" assumption** in `FollowModeProvider`, `MapFollowMenu`, `map-menu` —
+   mismatches with "selected REX" used elsewhere. `useRexPetTime` takes an optional `rexUuid`;
+   `MarkerLabels` passes the selected REX so POS label ages work for stopped REXes.
 9. **Effects that reset user state** on REX/source change: `map-menu` sourceUuids reset,
    `map-menu-pos` `posEntryInEdit` reset, `FollowModeProvider` option rebuild — can clobber
    in-progress edits/selections.
