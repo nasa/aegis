@@ -1,5 +1,6 @@
 import { toJS } from "@automerge/automerge/slim";
 import type { AutomergeMigration } from "server/automerge/migrations/types";
+import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 import { missionValidator } from "utils/validateSchemaServer";
@@ -7,7 +8,7 @@ import { missionValidator } from "utils/validateSchemaServer";
 export const Migration20261028000000: AutomergeMigration = {
   version: 20261028000000,
   name: "clear-document-history",
-  migrate: async (docHandle, { docListing, orm }) => {
+  migrate: (docHandle, { docListing, orm }) => {
     const repo = globalValues.automergeRepo;
     if (!repo) throw new Error("Automerge repository is not initialized");
 
@@ -24,46 +25,28 @@ export const Migration20261028000000: AutomergeMigration = {
 
     const oldUrl = docListing.automergeUrl;
     const replacement = repo.create<Mission>(mission);
-    // Persist the new baseline before changing the listing. Flush the old handle too so its
-    // pending throttled saves have no remaining changes to write after the old ID is removed.
-    await repo.flush([docHandle.documentId, replacement.documentId]);
-    // Shutdown must not flush the old document back into storage after its rows are deleted.
-    await repo.removeFromCache(docHandle.documentId);
-
-    const pool = await orm.em.fork().getConnection().getNativeClient();
-    const client = await pool.connect();
-    try {
-      await client.query("begin");
-      try {
-        const result = await client.query(
-          `update "doc_listing_db"
-           set "automerge_url" = $1, "version" = "version" + 1
-           where "mission_id" = $2 and "automerge_url" = $3`,
-          [replacement.url, docListing.missionId, oldUrl]
-        );
-        if (result.rowCount !== 1) {
+    // Persist the replacement before switching the listing and deleting the old document.
+    return repo
+      .flush([docHandle.documentId, replacement.documentId])
+      .then(() =>
+        orm.em
+          .fork()
+          .nativeUpdate(
+            Doc_Listing_db,
+            { missionId: docListing.missionId, automergeUrl: oldUrl },
+            { automergeUrl: replacement.url }
+          )
+      )
+      .then((updated) => {
+        if (updated !== 1) {
           throw new Error(`Document listing changed for mission ${docListing.missionId}`);
         }
-        // Delete every chunk under the old ID, including snapshots, incrementals, and sync
-        // state, in the same transaction as the listing change, before migrating the next doc.
-        await client.query('delete from "automerge_native_db" where "key"[1] = $1', [
-          Buffer.from(docHandle.documentId, "utf8"),
-        ]);
-        await client.query("commit");
-      } catch (error) {
-        await client.query("rollback");
-        throw error;
-      }
-    } finally {
-      client.release();
-    }
-
-    // If a later document fails, the next run loads this committed URL and can rebuild it
-    // again. The migration ledger is recorded only after every document succeeds.
-    docListing.automergeUrl = replacement.url;
-    serverLogger.info({
-      logId: "automerge-migration",
-      logValue: `Mission ${docListing.missionId}: replaced ${oldUrl} with ${replacement.url} and deleted the old document's storage.`,
-    });
+        docListing.automergeUrl = replacement.url;
+        repo.delete(docHandle.url);
+        serverLogger.info({
+          logId: "automerge-migration",
+          logValue: `Mission ${docListing.missionId}: replaced ${oldUrl} with ${replacement.url} and requested deletion of the old document.`,
+        });
+      });
   },
 };
