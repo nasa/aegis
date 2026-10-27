@@ -1,0 +1,35 @@
+export const identities = {
+  superadmin: {
+    id: "1234",
+    auid: "narmstra",
+    givenname: "Neil",
+    surname: "Armstrong",
+    displayName: "Armstrong, Neil A. (JSC-CB611)",
+    email: "neil.armstrong@nasa.gov",
+    roles: [
+      "AEGIS-Editor",
+      "AEGIS-Superuser",
+      "CODA-Superuser",
+      "Maestro-Superuser",
+      "EMSS-Superuser",
+    ],
+  },
+  user: {
+    id: "1235",
+    auid: "baldrin",
+    givenname: "Buzz",
+    surname: "Aldrin",
+    displayName: "Aldrin, Buzz",
+    email: "buzz.aldrin@nasa.gov",
+    roles: ["AEGIS-Editor"],
+  },
+  guest: {
+    id: "1236",
+    auid: "mcollins",
+    givenname: "Michael",
+    surname: "Collins",
+    displayName: "Collins, Michael",
+    email: "michael.collins@nasa.gov",
+    roles: [],
+  },
+};

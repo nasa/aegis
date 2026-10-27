@@ -58,76 +58,71 @@ AEGIS includes a GIS data processing pipeline that can generate the full set of 
 
 ## Setup Outside of NASA
 
-> **Note:** The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions below assume access to NASA's internal infrastructure (EMSS dev servers, the AEGIS Box asset source, prod database dumps, and internal package registries). The steps in this section provide a self-contained path to run AEGIS with the Apollo 14 demo mission outside of that environment.
+The public demo uses four containers: AEGIS, nginx, a mock JWT gateway, and the application's
+PostgreSQL database. It has no identity database and requires no NASA npm registry access.
 
-### Prerequisites
+### Start the demo
 
-1. Clone this repo.
-2. Install JavaScript dependencies **without the private packages**: `npm run setup:public`
-   (equivalent to `npm install --omit=optional`). AEGIS depends on a few private
-   `@emss/*` packages hosted on NASA's internal registry; they are declared as
-   optional and are only needed at build time. `setup:public` skips them and then
-   substitutes the local stand-ins in [`emss-fallback/`](emss-fallback/README.md).
-   (AEGIS developers with NASA registry access run plain `npm i` and get the real
-   packages — see [First-Time Setup within NASA](#first-time-setup-within-nasa).)
-3. Create your `.env` file by copying the template: `cp .env.template .env`. The
-   placeholder values let the app run locally; Box.com and EMSS/Maestro integrations
-   will not work with them, but local development (including the Apollo 14 demo) does
-   not need them.
-4. Start PostgreSQL: `npm run docker:services:public`.
+Install Node.js 24 and Docker with Docker Compose. From the cloned repository root, run:
 
-### Step 1: Seed the database
-
-Instead of importing a NASA prod database dump, populate your fresh local database with a
-self-contained **Apollo 14** demo mission (a handful of POIs, stations, and an EVA with its
-traverses, plus a few map layers):
-
-```bash
-npm run seed:demo
+```sh
+npm run setup:public
+npm run dev:public
 ```
 
-This runs, in order:
+No host `npm install`, private `make-dotenv` tool, native `.env`, Bash shell, or production database
+import is needed. Setup creates `.env.public` with random secrets and the static asset directory;
+repeating it preserves your settings. The start command builds the public images, runs migrations,
+seeds Apollo 14 when the database is empty, and waits for the services to be healthy.
 
-1. `migration:fresh` -- drops and recreates the relational schema.
-2. `automerge:seed:build` + `automerge:seed` -- creates the Apollo 14 mission **Automerge document**
-   (all collaborative entity data lives in Automerge, not the relational tables) plus its map layers.
+Open [https://localhost:8443](https://localhost:8443), accept the local self-signed certificate, and
+choose **Superadmin / Neil Armstrong** to see Apollo 14 and access administration. **User / Buzz
+Aldrin** uses mission grants and groups; **Guest / Michael Collins** uses the Public viewer
+baseline. Sign in as Neil to assign those permissions when comparing the other personas. Visit
+`/logout` to switch identities. There are no usernames or passwords to enter.
 
-> **Note:** The demo mission references NAC ortho / hillshade tile layers and vector layers by path.
-> The layer records are created, but the tiles themselves are separate GIS assets -- see
-> [Step 2: Download map assets](#step-2-download-map-assets) below for obtaining and installing them.
-> Without them the map renders the mission geometry over an empty basemap.
->
-> Re-running `automerge:seed` on its own is safe: it detects an existing "Apollo 14" mission and exits
-> without creating a duplicate.
+### Everyday commands
 
-### Step 2: Download map assets
-
-The seeded Apollo 14 mission references GIS map products (tile layers, vector layers, and a DEM) that must be present on disk for the map to render. Download the pre-packaged asset bundle and extract it into your static assets folder.
-
-1. Create the static assets folder next to the repo (the default location configured in `.env` for local dev):
-   ```bash
-   mkdir ../aegis_static
-   ```
-2. Download the Apollo 14 GIS demo data bundle:
-   ```bash
-   curl -L -o AEGIS_Apollo_14_GIS_demo_data.zip \
-     https://ares-aegis.s3.us-gov-west-1.amazonaws.com/AEGIS_Apollo_14_GIS_demo_data.zip
-   ```
-3. Extract it into the `missionFiles` subdirectory of the static folder:
-   ```bash
-   unzip AEGIS_Apollo_14_GIS_demo_data.zip -d ../aegis_static/missionFiles
-   ```
-   The zip unpacks into the expected directory structure that AEGIS layer paths reference, so no further reorganisation is needed.
-
-> **Note:** The `STATIC_DIR` environment variable (set to `../aegis_static` by default for local dev in `env.config.ts`) controls where AEGIS looks for these files. If you configured a different path, extract the zip there instead.
-
-### Step 3: Run the app
-
-```bash
-npm run dev
+```sh
+npm run docker:public:status
+npm run docker:public:logs
+npm run docker:public:stop
+npm run dev:public
 ```
 
-Open [http://localhost:4000](http://localhost:4000) and log in as `admin` / `admin`. The Apollo 14 mission should open with the map layers rendering correctly.
+`npm run docker:public:down` removes the demo containers and network while preserving the database
+and TLS volumes. `npm run seed:demo` adds Apollo 14 without dropping the database and skips an
+existing Apollo 14 mission. `npm run migration:public` applies compiled migrations in the running
+API; startup already applies them automatically.
+
+The [public container guide](docker/public/README.md) lists the complete command set, configuration,
+optional host development tools, and browser integration checks. The normal `dev`, `docker:services`,
+`docker:preview`, and private `make-dotenv` workflows remain separate. `docker:services:public` is a
+compatibility alias for the complete public demo.
+
+### Download the Apollo 14 assets
+
+The seeded mission contains geometry and layer records. Its imagery, terrain, and vector files
+are a separate download. Extract the bundle into the `missionFiles` directory under `STATIC_DIR`
+in `.env.public` (default `../aegis_static/missionFiles`, created by setup).
+
+In Bash:
+
+```sh
+curl -L -o AEGIS_Apollo_14_GIS_demo_data.zip \
+  https://ares-aegis.s3.us-gov-west-1.amazonaws.com/AEGIS_Apollo_14_GIS_demo_data.zip
+unzip AEGIS_Apollo_14_GIS_demo_data.zip -d ../aegis_static/missionFiles
+```
+
+In PowerShell:
+
+```powershell
+Invoke-WebRequest -Uri 'https://ares-aegis.s3.us-gov-west-1.amazonaws.com/AEGIS_Apollo_14_GIS_demo_data.zip' -OutFile 'AEGIS_Apollo_14_GIS_demo_data.zip'
+Expand-Archive -LiteralPath 'AEGIS_Apollo_14_GIS_demo_data.zip' -DestinationPath '../aegis_static/missionFiles'
+```
+
+Use your configured directory if you changed `STATIC_DIR`. No database reseeding is required after
+installing the files. Without them, the mission geometry can load but its imagery and terrain do not.
 
 ## First-Time Setup within NASA
 

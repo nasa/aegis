@@ -6,6 +6,10 @@ if [ "${1}" = 'services' ]; then
     docker compose -f docker-compose.yml -f docker-compose.services.yml "${@:2}"
 elif [ "${1}" = "preview" ]; then # override the default compose file with preview
     docker compose -f docker-compose.yml -f docker-compose.preview.yml "${@:2}"
+elif [ "${1}" = "public" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    node "${SCRIPT_DIR}/docker/public/compose.mjs" "${@:2}"
 else
-    echo "Must specify 'services' or 'preview'"
+    echo "Must specify 'services', 'preview', or 'public'"
+    exit 1
 fi

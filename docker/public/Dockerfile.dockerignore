@@ -1,0 +1,14 @@
+**/node_modules
+**/.env*
+**/.npmrc*
+**/.git
+**/.local
+**/.claude
+**/env.secret.ts
+**/dist
+**/coverage
+**/missionFiles
+**/.pixi
+**/.venv
+**/test-results
+**/playwright-report

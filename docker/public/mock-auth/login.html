@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Choose a demo identity · AEGIS</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        background: #101823;
+        color: #edf3fa;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      main {
+        width: min(100%, 780px);
+      }
+      .brand {
+        color: #8fbcec;
+        letter-spacing: 0.18em;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      h1 {
+        font-size: clamp(28px, 5vw, 40px);
+        letter-spacing: -0.03em;
+        margin-bottom: 12px;
+      }
+      p {
+        color: #acb9cb;
+        line-height: 1.6;
+      }
+      form {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin: 32px 0;
+      }
+      button {
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        border: 1px solid #354861;
+        background: #192638;
+        border-radius: 12px;
+        padding: 24px;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: #91c9ff;
+        background: #21354e;
+      }
+      button:focus-visible {
+        outline: 3px solid #91c9ff;
+        outline-offset: 4px;
+      }
+      strong,
+      span {
+        display: block;
+      }
+      strong {
+        font-size: 20px;
+        margin-bottom: 16px;
+      }
+      .name {
+        color: #b7d8fa;
+        margin-bottom: 8px;
+      }
+      .description {
+        color: #acb9cb;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      footer {
+        color: #8293a9;
+        font-size: 13px;
+      }
+      @media (max-width: 600px) {
+        form {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand">AEGIS · LOCAL DEMO</div>
+      <h1>Choose a demo identity</h1>
+      <p>No username or password needed. Choose who you want to explore as.</p>
+      <form action="/oauth2/sign_in" method="post">
+        <input type="hidden" name="rd" value="{{redirect}}" />
+        <button name="persona" value="superadmin" type="submit">
+          <strong>Superadmin</strong>
+          <span class="name">Neil Armstrong</span>
+          <span class="description">All missions and administration.</span>
+        </button>
+        <button name="persona" value="user" type="submit">
+          <strong>User</strong>
+          <span class="name">Buzz Aldrin</span>
+          <span class="description">Access through mission and group grants.</span>
+        </button>
+        <button name="persona" value="guest" type="submit">
+          <strong>Guest</strong>
+          <span class="name">Michael Collins</span>
+          <span class="description">Public mission access. No elevated roles.</span>
+        </button>
+      </form>
+      <footer>This is a mock sign-in. Anyone using this demo can choose any identity.</footer>
+    </main>
+  </body>
+</html>
