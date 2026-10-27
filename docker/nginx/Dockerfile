@@ -35,7 +35,7 @@ RUN npm run vite:build
 # # # # # # # #
 # PROD image  #
 # # # # # # # #
-FROM nginx:1.29.0-alpine AS prod
+FROM nginx:1.30.5-alpine AS prod
 
 # Clear out the default nginx static files
 RUN rm -rf /usr/share/nginx/html/*
