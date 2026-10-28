@@ -28,7 +28,9 @@ vi.mock("server/express/global", () => ({
     dustV1: { visitorData: {}, docHandles: new Map() },
   },
 }));
-vi.mock("utils/logging/serverLogger", () => ({ serverLogger: { error: vi.fn() } }));
+vi.mock("utils/logging/serverLogger", () => ({
+  serverLogger: { error: vi.fn(), debug: vi.fn() },
+}));
 
 let repo: Repo;
 let storage: PostgresStorageAdapter;

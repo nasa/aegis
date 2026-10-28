@@ -6,7 +6,9 @@ import { generateBlankMission } from "store/storeUtils/mission";
 import { serverLogger } from "utils/logging/serverLogger";
 
 vi.unmock("@automerge/automerge-repo");
-vi.mock("utils/logging/serverLogger", () => ({ serverLogger: { info: vi.fn() } }));
+vi.mock("utils/logging/serverLogger", () => ({
+  serverLogger: { info: vi.fn(), debug: vi.fn() },
+}));
 
 const createStorage = (): StorageAdapterInterface => {
   const chunks = new Map<string, Uint8Array>();

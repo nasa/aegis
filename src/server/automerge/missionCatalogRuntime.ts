@@ -132,7 +132,15 @@ export function startMissionCatalogRuntime(
     catalogDebounces.clear();
   };
   const onDocMetrics: RepoEvents["doc-metrics"] = (event) => {
-    if (event.type === "doc-loaded") markCatalogWritePending(event.documentId);
+    if (event.type === "doc-loaded") {
+      serverLogger.debug({
+        logId: "mission-load",
+        logValue: "Loaded mission document into memory",
+        documentId: event.documentId,
+        durationMs: event.durationMillis,
+      });
+      markCatalogWritePending(event.documentId);
+    }
   };
   storage.onDocumentSaved = markCatalogWritePending;
   repo.on("doc-metrics", onDocMetrics);
