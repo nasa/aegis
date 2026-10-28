@@ -17,7 +17,7 @@
 }
 
 .note {
-  color: var(--warning);
+  color: var(--grey4);
   font-size: 0.8em;
   padding: 4px 0 4px 18px;
 }
