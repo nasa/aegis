@@ -1,17 +1,22 @@
 // @vitest-environment node
 import * as Automerge from "@automerge/automerge";
 import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
-import type { DocHandle } from "@automerge/automerge-repo/slim";
+import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo/slim";
 import { MikroORM } from "@mikro-orm/postgresql";
 import type pg from "pg";
 import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
+import { migrateDocuments } from "server/automerge/migrateDocuments";
 import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
 import { Migration20261015000000 } from "server/automerge/migrations/Migration20261015000000";
+import { Migration20261022000000 } from "server/automerge/migrations/Migration20261022000000";
+import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 import { Migration20261028000000 } from "server/automerge/migrations/Migration20261028000000";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import { globalValues } from "server/express/global";
+import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankRex } from "store/storeUtils/rex";
 
 describe("clear Automerge document history", () => {
   let pool: pg.Pool;
@@ -105,6 +110,74 @@ describe("clear Automerge document history", () => {
 
   it("is registered after the existing document migrations", () => {
     expect(AUTOMERGE_MIGRATIONS.at(-1)).toBe(Migration20261028000000);
+  });
+
+  it("runs after schema migrations and passes replacement handles to later migrations and release", async () => {
+    const repo = makeRepo();
+    const first = await makeDocument(repo);
+    const second = await makeDocument(repo, 43);
+    first.handle.change((mission) => {
+      mission.evas.eva = generateBlankEVA({ uuid: "eva" });
+      for (const field of ["sunEarthFromDate", "sunAzimuth", "earthAzimuth"] as const) {
+        delete (mission.evas.eva as Partial<Eva>)[field];
+      }
+      mission.rexes.rex = generateBlankRex({ uuid: "rex", evaUuid: "eva" });
+      for (const source of mission.rexes.rex.posSources) {
+        delete (source as Partial<PosSource>).pathColor;
+      }
+    });
+    const listings = [first.listing, second.listing];
+    const oldUrls = listings.map(({ automergeUrl }) => automergeUrl);
+    const schemaMigrations = AUTOMERGE_MIGRATIONS.filter(
+      ({ version }) => version >= Migration20261022000000.version
+    );
+    expect(schemaMigrations).toEqual([
+      Migration20261022000000,
+      Migration20261026000000,
+      Migration20261028000000,
+    ]);
+    globalValues.automergeRepo = repo;
+
+    await migrateDocuments(
+      repo,
+      listings,
+      [
+        ...schemaMigrations,
+        {
+          version: 20261029000000,
+          name: "edit-replacement",
+          migrate: async (handle, { docListing }) => {
+            expect(handle.url).toBe(docListing.automergeUrl);
+            expect(oldUrls).not.toContain(handle.url);
+            handle.change((mission) => {
+              mission.description = "Edited after replacement";
+            });
+          },
+        },
+      ],
+      orm
+    );
+
+    expect(Object.keys(repo.handles)).toEqual([]);
+    const reader = makeRepo();
+    for (const listing of listings) {
+      const reloaded = await reader.find<Mission>(listing.automergeUrl as AutomergeUrl);
+      expect(reloaded.doc().description).toBe("Edited after replacement");
+      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(2);
+    }
+    const mission = (await reader.find<Mission>(first.listing.automergeUrl as AutomergeUrl)).doc();
+    expect(mission.evas.eva.sunEarthFromDate).toBe(true);
+    expect(mission.evas.eva.sunAzimuth).toBe(0);
+    expect(mission.evas.eva.earthAzimuth).toBe(0);
+    expect(mission.rexes.rex.posSources.map(({ pathColor }) => pathColor)).toEqual([
+      "#ff0000",
+      "#009CE0",
+      "#68BC00",
+    ]);
+    await vi.waitFor(async () => {
+      expect(await storage.loadRange([first.handle.documentId])).toEqual([]);
+      expect(await storage.loadRange([second.handle.documentId])).toEqual([]);
+    });
   });
 
   it("ordinary migrations preserve the document ID", async () => {

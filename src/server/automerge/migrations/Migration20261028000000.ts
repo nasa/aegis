@@ -42,6 +42,10 @@ export const Migration20261028000000: AutomergeMigration = {
           throw new Error(`Document listing changed for mission ${docListing.missionId}`);
         }
         docListing.automergeUrl = replacement.url;
+        // Repo 2.5.6 emits changes for its empty deletion placeholder before detaching
+        // storage and sync. Prevent those callbacks from recreating the old document.
+        docHandle.removeAllListeners("heads-changed");
+        docHandle.removeAllListeners("change");
         repo.delete(docHandle.url);
         serverLogger.info({
           logId: "automerge-migration",
