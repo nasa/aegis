@@ -23,12 +23,6 @@ export const generateBlankPreset = (partialPreset?: Partial<Preset>): Preset => 
       labelsVisible: false,
       style: { ...defaultGridStyle },
     },
-    sunAzimuth: 0,
-    sunEnabled: false,
-    earthAzimuth: 0,
-    earthEnabled: false,
-    earthAsMoon: false,
-    sunEarthFromDate: false,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

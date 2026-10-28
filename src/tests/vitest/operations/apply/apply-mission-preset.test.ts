@@ -57,9 +57,13 @@ beforeEach(() => {
 describe("apply-mission-preset", () => {
   it("applyUpdatePresetByField() updates a field and the updatedAt time", () => {
     withMissionChange((m) =>
-      applyUpdatePresetByField(m, { presetUuid: presetB.uuid, fieldName: "sunAzimuth", value: 90 })
+      applyUpdatePresetByField(m, {
+        presetUuid: presetB.uuid,
+        fieldName: "name",
+        value: "Updated preset",
+      })
     );
-    expect(getMission().presets[presetB.uuid].sunAzimuth).toBe(90);
+    expect(getMission().presets[presetB.uuid].name).toBe("Updated preset");
   });
 
   it("applySetMissionDefaultPreset() keeps exactly one default", () => {

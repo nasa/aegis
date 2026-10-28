@@ -391,20 +391,20 @@ export async function getAutomergeMissionHandle(
 /**
  * Get automerge document for mission ids.
  * This will query the automerge doc listing to find the URLs for the docs and
- * then request the documents from the repo (the server loads unloaded documents one at a time).
+ * then load the documents from the repo sequentially within this request.
  * @param missionIds Ids for the missions. If no id is provided it will return all missions
  */
 export async function getAutomergeMissions(missionIds?: number[]): Promise<Mission[]> {
   const automergeListings = await getAutomergeDocListing(missionIds);
-  const missionPromises = automergeListings.map(async (listing) => {
-    const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
+  const missionsToReturn: Mission[] = [];
+  for (const listing of automergeListings) {
+    const handle = await globalValues.automergeRepo.find<Mission>(
       listing.automergeUrl as AutomergeUrl
     );
-    await missionDocHandle.whenReady();
-    return missionDocHandle.doc();
-  });
+    await handle.whenReady();
+    missionsToReturn.push(handle.doc());
+  }
 
-  const missionsToReturn = await Promise.all(missionPromises);
   return missionsToReturn;
 }
 

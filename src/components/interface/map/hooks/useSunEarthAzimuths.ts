@@ -1,24 +1,20 @@
-/**
- * useSunEarthAzimuths — sun/earth compass azimuths for the selected preset.
- *
- * With `preset.sunEarthFromDate` on and an active map datetime, azimuths are computed from
- * the lander location and rotated into map-up degrees. Otherwise the preset's manual
- * azimuths are returned unchanged.
- */
-
 import { useMemo } from "react";
 import proj4 from "proj4";
 
-import { refEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getLunarSunEarthPositions, getMapAzimuthFromTrueAzimuth } from "utils/mapping/lunarSky";
-import { useMapDateTimeWithSource } from "./useMapDateTime";
 import { useCoordConverters } from "./useCoordConverters";
 
 const DEFAULT_LUNAR_RADIUS_METERS = 1737400;
 
-export function useSunEarthAzimuths(preset: Preset | null | undefined): SunEarthAzimuths {
-  const mapDateTime = useMapDateTimeWithSource();
+export function useSunEarthAzimuths(followTimelineHover = false): SunEarthAzimuths {
+  const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
+  const timelineTime = useAppSelector(
+    (s) => (followTimelineHover ? s.hover.timelineTime : null),
+    deepEqual
+  );
+  const eva = useMissionDocSelector((m) => m.evas?.[selectedEvaUuid], deepEqual);
   const { toMapCoord } = useCoordConverters();
   const landerLocation = useMissionDocSelector((m) => m.landerLocation, deepEqual);
   const landerElevationMeters = useMissionDocSelector((m) => m.landerElevationMeters, refEqual);
@@ -28,9 +24,9 @@ export function useSunEarthAzimuths(preset: Preset | null | undefined): SunEarth
     refEqual
   );
 
-  const manualSun = preset?.sunAzimuth ?? 0;
-  const manualEarth = preset?.earthAzimuth ?? 0;
-  const fromDate = preset?.sunEarthFromDate ?? false;
+  const manualSun = eva?.sunAzimuth ?? 0;
+  const manualEarth = eva?.earthAzimuth ?? 0;
+  const fromDate = eva?.sunEarthFromDate ?? true;
 
   return useMemo<SunEarthAzimuths>(() => {
     const manual: SunEarthAzimuths = {
@@ -40,26 +36,32 @@ export function useSunEarthAzimuths(preset: Preset | null | undefined): SunEarth
       datetime: null,
       datetimeSourceLabel: null,
       statusLabel: "Manual",
-      warning: [
-        "Manual preset values; not calculated from a date.",
-        mapDateTime.datetime ? mapDateTime.evaWarning : mapDateTime.warning,
-      ]
-        .filter(Boolean)
-        .join(" "),
+      warning: null,
+      available: true,
     };
-    if (!fromDate || !mapDateTime.datetime) return manual;
-    if (!Number.isFinite(landerLocation?.lat) || !Number.isFinite(landerLocation?.lng)) {
-      return {
-        ...manual,
-        warning: `Lander location is unavailable; using manual azimuths. ${manual.warning}`,
-      };
-    }
-    const epochMs = new Date(mapDateTime.datetime).getTime();
-    if (!Number.isFinite(epochMs))
-      return {
-        ...manual,
-        warning: `The map date is invalid; using manual azimuths. ${manual.warning}`,
-      };
+    const unavailable = (warning: string): SunEarthAzimuths => ({
+      ...manual,
+      available: false,
+      warning,
+    });
+    if (!eva) return unavailable("No EVA selected.");
+    if (!fromDate) return manual;
+    if (planetRadius !== DEFAULT_LUNAR_RADIUS_METERS)
+      return unavailable(
+        "Calculated values are unavailable because this mission is not on the Moon."
+      );
+    if (eva.datetime == null || !Number.isFinite(new Date(eva.datetime).getTime()))
+      return unavailable("The selected EVA has no valid start date.");
+    if (!Number.isFinite(landerLocation?.lat) || !Number.isFinite(landerLocation?.lng))
+      return unavailable("Lander location is unavailable.");
+    const hoverDatetime =
+      timelineTime?.evaUuid === selectedEvaUuid &&
+      Number.isFinite(timelineTime.elapsedSeconds) &&
+      timelineTime.elapsedSeconds >= 0
+        ? eva.datetime + timelineTime.elapsedSeconds * 1000
+        : NaN;
+    const isTimelineHover = Number.isFinite(new Date(hoverDatetime).getTime());
+    const epochMs = isTimelineHover ? hoverDatetime : eva.datetime;
 
     const { sun, earth } = getLunarSunEarthPositions(
       landerLocation,
@@ -68,7 +70,7 @@ export function useSunEarthAzimuths(preset: Preset | null | undefined): SunEarth
       epochMs
     );
     const toMapAzimuth = (trueAzimuth: number) => {
-      // The preset panel can render before MapProvider registers the mission projection.
+      // The EVA panel can render before MapProvider registers the mission projection.
       const project = customProjection
         ? (point: AEGISPoint) => proj4("EPSG:4326", customProjection, [point.lng, point.lat])
         : toMapCoord;
@@ -86,26 +88,21 @@ export function useSunEarthAzimuths(preset: Preset | null | undefined): SunEarth
         earthAzimuth: toMapAzimuth(earth.azimuth),
         source: "date",
         datetime: epochMs,
-        datetimeSourceLabel: mapDateTime.sourceLabel,
-        statusLabel:
-          mapDateTime.source === "preset-preview"
-            ? "Preview"
-            : mapDateTime.source === "layer"
-              ? "Fallback"
-              : "Calculated",
-        warning: mapDateTime.warning,
+        datetimeSourceLabel: `${isTimelineHover ? "Timeline hover" : "EVA start"}: ${eva.name || eva.uuid}`,
+        statusLabel: "Calculated",
+        warning: null,
+        available: true,
       };
     } catch {
-      return {
-        ...manual,
-        warning: `Map projection is unavailable; using manual azimuths. ${manual.warning}`,
-      };
+      return unavailable("Map projection is unavailable.");
     }
   }, [
     manualSun,
     manualEarth,
     fromDate,
-    mapDateTime,
+    eva,
+    selectedEvaUuid,
+    timelineTime,
     landerLocation,
     landerElevationMeters,
     planetRadius,

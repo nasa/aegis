@@ -27,38 +27,16 @@
   display: flex;
   flex-direction: column;
   transform: scale(0.8);
+  cursor: help;
 }
 
 .azimuthIndicatorContainer {
   flex: 0 0 90px;
 }
 
-.sourceButton {
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: 0;
-  background: transparent;
-  color: var(--grey5);
-  font-size: 1.25em;
-  cursor: help;
-}
-
-.sunEarthContainerDashboard .sourceButton {
-  font-size: 1.65em;
-}
-
-.sourceButton:focus-visible {
+.sunEarthContainerEditor:focus-visible {
   outline: 2px solid var(--base);
   outline-offset: -2px;
-}
-
-.hasWarning .sourceButton {
-  color: var(--warning);
 }
 
 .sourceTooltip {
@@ -104,18 +82,21 @@
 }
 
 .azimuthTextContainer {
-  position: relative;
-  top: 20px;
+  position: absolute;
+  top: 0;
   left: 0;
-  width: 0;
-  height: 0;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .azimuthText {
   width: 60px;
-  margin: 0 0 0 2px;
+  margin: 0;
   text-align: center;
-  font-size: 1.1rem;
+  font-size: var(--azimuth-value-font-size, 1.1rem);
   color: var(--grey5);
 }
 
@@ -147,4 +128,9 @@
   width: 0;
   height: 0;
   font-size: 2em;
+}
+
+.unavailable .sunEarthIconContainer,
+.unavailable .sunEarthIconContainerDashboard {
+  display: none;
 }
