@@ -2,7 +2,11 @@ import type { Mock } from "vitest";
 import { isLoggedIn, login, logout } from "http-client/login";
 import { boxDownloadFile } from "http-client/box";
 import { duplicateMission } from "http-client/mission";
-import { getElevationSinglePoint, getTerrainProfile } from "http-client/terrainProfile";
+import {
+  getElevationSinglePoint,
+  getTerrainProfile,
+  getTerrainProfiles,
+} from "http-client/terrainProfile";
 import { deleteLayers, upsertLayers } from "http-client/layer";
 import { deleteSublayers, upsertSublayers } from "http-client/sublayer";
 import { generateBlankLayer } from "store/storeUtils/layer";
@@ -249,6 +253,63 @@ describe("Mission duplication", () => {
 });
 
 describe("Terrain profile client", () => {
+  test("fetches a batch in one HTTP request and preserves per-profile errors", async () => {
+    const results: TerrainProfileResponse[] = [
+      {
+        status: "success",
+        message: "ok",
+        data: { elevationsMeters: [[1, 2]], terrainSlopesDegrees: [[1, 2]] },
+      },
+      { status: "error", message: "busy", httpStatus: 503 },
+    ];
+    mockFetchResponse({ status: "success", data: results });
+    const profiles = ["a", "b"].map((entityKey) => ({
+      entityKey,
+      path: [
+        { lat: 0, lng: 0 },
+        { lat: 1, lng: 1 },
+      ],
+      pathSegmentDistances: [10],
+    }));
+    await expect(getTerrainProfiles(42, profiles)).resolves.toEqual(results);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/v1/terrain-profile/batch?missionId=42",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ profiles }) })
+    );
+  });
+
+  test("propagates a batch-level HTTP error to each profile", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue({ status: 401, json: async () => ({ message: "Unauthorized" }) });
+    const request = {
+      path: [
+        { lat: 0, lng: 0 },
+        { lat: 1, lng: 1 },
+      ],
+      pathSegmentDistances: [10],
+    };
+    await expect(getTerrainProfiles(42, [request, request])).resolves.toEqual([
+      { status: "error", message: "Unauthorized", httpStatus: 401 },
+      { status: "error", message: "Unauthorized", httpStatus: 401 },
+    ]);
+  });
+
+  test("rejects a batch response with missing profiles", async () => {
+    mockFetchResponse({ status: "success", data: [] });
+    await expect(
+      getTerrainProfiles(42, [
+        {
+          path: [
+            { lat: 0, lng: 0 },
+            { lat: 1, lng: 1 },
+          ],
+          pathSegmentDistances: [10],
+        },
+      ])
+    ).rejects.toThrow("Invalid terrain profile batch response");
+  });
   test("returns the combined terrain response", async () => {
     mockFetchResponse({
       status: "success",

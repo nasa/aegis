@@ -1,5 +1,39 @@
 import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 
+/** Fetch a mission's pending profiles in one request; each result has its own error status. */
+export async function getTerrainProfiles(
+  missionId: number,
+  profiles: TerrainProfilePostData[]
+): Promise<TerrainProfileResponse[]> {
+  const response = await clientFetchWithTimeout(
+    `/api/v1/terrain-profile/batch?missionId=${missionId}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profiles } satisfies TerrainProfileBatchPostData),
+    },
+    120_000
+  );
+  if (response.status !== 200) {
+    let message = `${response.status} ${response.statusText}`;
+    try {
+      const body = await response.json();
+      if (body?.message) message = body.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return profiles.map(() => ({ status: "error", message, httpStatus: response.status }));
+  }
+  const body = (await response.json()) as WrappedResponse<TerrainProfileResponse[]>;
+  if (
+    body.status !== "success" ||
+    !Array.isArray(body.data) ||
+    body.data.length !== profiles.length
+  )
+    throw new Error("Invalid terrain profile batch response");
+  return body.data;
+}
+
 /** Validate that all derived arrays describe the same path revision. */
 export function normalizeTerrainProfile(
   profile: TerrainProfile | undefined,
@@ -50,7 +84,7 @@ export async function getTerrainProfile({
   entityKey?: string;
   getElevationOnly?: boolean;
   preview?: boolean;
-}): Promise<WrappedResponse<TerrainProfile> & { httpStatus?: number }> {
+}): Promise<TerrainProfileResponse> {
   const postData: TerrainProfilePostData = {
     path,
     pathSegmentDistances,

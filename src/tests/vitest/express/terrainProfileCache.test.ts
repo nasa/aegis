@@ -44,7 +44,8 @@ const args = () => ({
 });
 
 it("reuses disk results, invalidates geometry and DEM changes, and keeps one file", async () => {
-  const request = args();
+  const onCacheStatus = vi.fn();
+  const request = { ...args(), onCacheStatus };
   await cachedTerrainProfile(request);
   await cachedTerrainProfile(request);
   expect(request.compute).toHaveBeenCalledTimes(1);
@@ -54,6 +55,12 @@ it("reuses disk results, invalidates geometry and DEM changes, and keeps one fil
   await cachedTerrainProfile({ ...request, inputs: [2] });
   expect(request.compute).toHaveBeenCalledTimes(3);
   expect(await fs.readdir(terrainCacheDirectory(42))).toEqual(["traverse-1.json"]);
+  expect(onCacheStatus.mock.calls.map(([status]) => status)).toEqual([
+    "miss",
+    "hit",
+    "miss",
+    "miss",
+  ]);
 });
 it("repairs corrupt files and shares simultaneous requests", async () => {
   const request = args();
