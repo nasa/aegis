@@ -66,7 +66,10 @@ const rejectedActionLogger: Middleware<{}, RootState> = () => (next) => (action)
   if (isRejected(action)) {
     const reason = action.payload ?? action.error?.message ?? action.error?.name ?? "Unknown error";
     clientLogger.error(
-      { logId: "redux", logValue: `Rejected action: ${action.type} — ${reason}` },
+      {
+        logId: "redux:rejectedActionLogger:asyncThunkActionRejected",
+        logValue: `Rejected action: ${action.type} — ${reason}`,
+      },
       new Error(action.error?.message ?? "Rejected async thunk")
     );
   }

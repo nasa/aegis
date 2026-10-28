@@ -262,7 +262,8 @@ export function onChangeListener(missionId: number, missionDocHandle: DocHandle<
         emitDataAllToMaestro(missionId).catch((error) => {
           serverLogger.error(
             {
-              logId: "socket-maestro-v2",
+              logId:
+                "socket-maestro-v2:onChangeListener:failedToEmitDataAllToMaestroAfterDocChange",
               logValue: `onChangeListener - Error in emitToMaestroNamespace for mission ${missionId}`,
               missionId,
             },
@@ -274,7 +275,7 @@ export function onChangeListener(missionId: number, missionDocHandle: DocHandle<
   } catch (error) {
     serverLogger.error(
       {
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:onChangeListener:unhandledErrorInThrottledDocChangeListener",
         logValue: `onChangeListener - Error in throttled listener for mission ${missionId}`,
         missionId,
       },
@@ -303,7 +304,7 @@ const emitDataAllToMaestro = async (missionId: number): Promise<void> => {
   } catch (error) {
     serverLogger.error(
       {
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:emitDataAllToMaestro:failedToEmitDataAllToMaestroNamespaceRoom",
         logValue: `emitToMaestroNamespace - Error emitting to maestro namespace for mission ${missionId}`,
       },
       error instanceof Error ? error : new Error(String(error))

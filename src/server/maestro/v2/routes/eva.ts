@@ -45,6 +45,7 @@ export async function getReadableEvaData(params: ReadableEvaParams): Promise<Exp
     } catch (e) {
       // Something went wrong with fetching grids. Report an error but continue without grid data
       serverLogger.apiRoute({
+        logId: "api-route:readable/eva:GET:failedToGetGridFromFileContinuingWithoutGridData",
         logLevel: "error",
         httpMethod: "GET",
         responseStatus: null,
@@ -84,6 +85,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:readable/eva:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -98,6 +100,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   //check for required mission id is valid
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:readable/eva:GET:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -118,6 +121,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({ status: "success", message: "readable evas retrieved", data });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:readable/eva:GET:failedToGetReadableEvas",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

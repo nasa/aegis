@@ -464,6 +464,7 @@ describe("ConsoleLogger", () => {
     test("logs at info level with correct logId and logValue", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "info",
         httpMethod: "GET",
         responseStatus: 200,
@@ -472,13 +473,14 @@ describe("ConsoleLogger", () => {
       const infoCalls = logSpy.mock.calls.filter((call) => (call[0] as string).includes("[INFO]"));
       expect(infoCalls).toHaveLength(1);
       const logEntry = infoCalls[0][1] as { logId: string; logValue: string };
-      expect(logEntry.logId).toBe("API Route");
+      expect(logEntry.logId).toBe("api-route:test");
       expect(logEntry.logValue).toBe("GET 200 /api/test");
     });
 
     test("appends message to logValue when provided", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "info",
         httpMethod: "POST",
         responseStatus: 201,
@@ -493,6 +495,7 @@ describe("ConsoleLogger", () => {
     test("omits message from logValue when not provided (no trailing space)", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "info",
         httpMethod: "GET",
         responseStatus: 200,
@@ -506,6 +509,7 @@ describe("ConsoleLogger", () => {
     test("includes appUsername in the loggable", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "notice",
         httpMethod: "GET",
         responseStatus: 200,
@@ -522,6 +526,7 @@ describe("ConsoleLogger", () => {
     test("includes missionId in the loggable", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "info",
         httpMethod: "GET",
         responseStatus: 200,
@@ -536,6 +541,7 @@ describe("ConsoleLogger", () => {
     test("includes uuids in the loggable", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "info",
         httpMethod: "DELETE",
         responseStatus: 204,
@@ -551,6 +557,7 @@ describe("ConsoleLogger", () => {
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const err = new Error("request failed");
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -563,7 +570,7 @@ describe("ConsoleLogger", () => {
       expect(errorCalls).toHaveLength(1);
       expect(errorCalls[0][1]).toBe(err);
       const logEntry = errorCalls[0][2] as { logId: string; logValue: string };
-      expect(logEntry.logId).toBe("API Route");
+      expect(logEntry.logId).toBe("api-route:test");
       expect(logEntry.logValue).toBe("POST 500 /api/fail");
     });
 
@@ -571,6 +578,7 @@ describe("ConsoleLogger", () => {
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const err = new Error("critical failure");
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "critical",
         httpMethod: "GET",
         responseStatus: 500,
@@ -583,13 +591,14 @@ describe("ConsoleLogger", () => {
       expect(criticalCalls).toHaveLength(1);
       expect(criticalCalls[0][1]).toBe(err);
       const logEntry = criticalCalls[0][2] as { logId: string; logValue: string };
-      expect(logEntry.logId).toBe("API Route");
+      expect(logEntry.logId).toBe("api-route:test");
       expect(logEntry.logValue).toBe("GET 500 /api/critical");
     });
 
     test("logs at warning level using console.warn", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "warning",
         httpMethod: "GET",
         responseStatus: 400,
@@ -599,13 +608,14 @@ describe("ConsoleLogger", () => {
       const firstArg = warnSpy.mock.calls[0][0] as string;
       expect(firstArg).toContain("[WARNING]");
       const logEntry = warnSpy.mock.calls[0][1] as { logId: string; logValue: string };
-      expect(logEntry.logId).toBe("API Route");
+      expect(logEntry.logId).toBe("api-route:test");
       expect(logEntry.logValue).toBe("GET 400 /api/badrequest");
     });
 
     test("logs at debug level using console.debug", () => {
       const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
       ConsoleLogger.apiRoute({
+        logId: "api-route:test",
         logLevel: "debug",
         httpMethod: "GET",
         responseStatus: 200,
@@ -615,7 +625,7 @@ describe("ConsoleLogger", () => {
       const firstArg = debugSpy.mock.calls[0][0] as string;
       expect(firstArg).toContain("[DEBUG]");
       const logEntry = debugSpy.mock.calls[0][1] as { logId: string; logValue: string };
-      expect(logEntry.logId).toBe("API Route");
+      expect(logEntry.logId).toBe("api-route:test");
     });
   });
 

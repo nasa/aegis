@@ -285,7 +285,7 @@ export const Migration20260416000000: AutomergeMigration = {
     });
 
     serverLogger.debug({
-      logId: "automerge-migration",
+      logId: "automerge-migration:Migration20260416000000:legacyEntityMigrationAppliedToMission",
       logValue: `Mission ${docListing.missionId} legacy entity migration applied`,
     });
   },

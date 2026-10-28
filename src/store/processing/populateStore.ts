@@ -172,7 +172,10 @@ const generateFoldersInterfaceStates = (params: {
     foldersInterfaceCookie = JSON.parse(Cookies.get("AEGIS_Folders_Interface") || "{}");
   } catch (error) {
     clientLogger.error(
-      { logId: "populateStore", logValue: "Error parsing folder interfaces from cookie" },
+      {
+        logId: "populateStore:foldersInterface:failedToParseFoldersInterfaceCookie",
+        logValue: "Error parsing folder interfaces from cookie",
+      },
       error instanceof Error ? error : new Error(String(error))
     );
   }

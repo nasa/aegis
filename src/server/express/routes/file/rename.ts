@@ -30,6 +30,7 @@ router.get("/", async (req: Request, res: Response) => {
   });
   if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
     serverLogger.apiRoute({
+      logId: "api-route:file/rename:GET:unauthorizedRequestRequiresEditPermissionAndAdmin",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -54,6 +55,7 @@ router.get("/", async (req: Request, res: Response) => {
     res.status(200).json("Success");
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:file/rename:GET:failedToRenameFile",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

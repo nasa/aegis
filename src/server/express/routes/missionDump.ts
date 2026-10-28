@@ -23,6 +23,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (!req.session?.appUser?.isSuperAdmin) {
     serverLogger.apiRoute({
+      logId: "api-route:missionDump:GET:unauthorizedRequestNotSuperAdmin",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -37,6 +38,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (!queryObj.missionId) {
     serverLogger.apiRoute({
+      logId: "api-route:missionDump:GET:rejectedMissingMissionId",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -60,6 +62,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:missionDump:GET:failedToExportMission",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

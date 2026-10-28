@@ -38,6 +38,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -52,6 +53,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:GET:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -74,6 +76,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:GET:failedToRetrieveLayers",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -101,6 +104,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:POST:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -115,6 +119,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!missionId || isNaN(missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:POST:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -131,6 +136,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // validate
     if (!layers || layers.length === 0) {
       serverLogger.apiRoute({
+        logId: "api-route:layer:POST:rejectedNoLayersProvidedInRequestBody",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -148,6 +154,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
       serverLogger.apiRoute({
+        logId: "api-route:layer:POST:upsertLayersReturnedNoLayers",
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -173,6 +180,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:POST:unexpectedErrorUpsertingLayers",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -200,6 +208,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:DELETE:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
@@ -214,6 +223,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!missionId || isNaN(missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:DELETE:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "DELETE",
       responseStatus: 400,
@@ -236,6 +246,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     } else {
       serverLogger.apiRoute({
+        logId: "api-route:layer:DELETE:layerRecordNotFoundNothingDeleted",
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 404,
@@ -252,6 +263,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     }
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:layer:DELETE:unexpectedErrorDeletingLayers",
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,

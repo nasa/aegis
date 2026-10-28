@@ -11,6 +11,7 @@ const router = express.Router();
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   if (!req.session?.appUser?.isSuperAdmin) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/enableEmssApi:GET:unauthorizedRequestNotSuperAdmin",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -31,6 +32,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/enableEmssApi:GET:failedToReadEmssApiEnabledFlag",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -46,6 +48,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 router.post("/", async (req: Request, res: Response): Promise<void> => {
   if (!req.session?.appUser?.isSuperAdmin) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/enableEmssApi:POST:unauthorizedRequestNotSuperAdmin",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -61,6 +64,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     const { enable } = req.body;
     if (typeof enable !== "boolean") {
       serverLogger.apiRoute({
+        logId: "api-route:emss/enableEmssApi:POST:rejectedEnableValueNotBoolean",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -79,6 +83,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/enableEmssApi:POST:failedToSetEmssApiEnabledFlag",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

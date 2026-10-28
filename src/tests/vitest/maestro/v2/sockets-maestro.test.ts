@@ -142,7 +142,12 @@ describe("maestro namespace socket handlers", () => {
     join: ReturnType<typeof vi.fn>;
     leave: ReturnType<typeof vi.fn>;
     id: string;
-    handshake: { auth: { token: string } };
+    recovered: boolean;
+    handshake: {
+      auth: { token: string };
+      address: string;
+      headers: Record<string, string>;
+    };
     on: ReturnType<typeof vi.fn>;
     _handlers: Record<string, (...args: unknown[]) => void>;
   };
@@ -160,7 +165,12 @@ describe("maestro namespace socket handlers", () => {
       join: vi.fn(),
       leave: vi.fn(),
       id: `socket-${uuidv4()}`,
-      handshake: { auth: { token: "validToken" } },
+      recovered: false,
+      handshake: {
+        auth: { token: "validToken" },
+        address: "127.0.0.1",
+        headers: { "user-agent": "vitest-maestro-client" },
+      },
       on: vi.fn(),
       _handlers: {},
     };
@@ -560,6 +570,79 @@ describe("maestro namespace socket handlers", () => {
       expect(removeListenerFn).not.toHaveBeenCalled();
       expect(globalValues.maestroV2.visitorData[MISSION_ID]).toHaveLength(1);
       expect(globalValues.maestroV2.visitorData[MISSION_ID][0].socketId).toBe("other-socket-id");
+    });
+
+    it("logs an info entry with the maestro name and missions for a client-initiated disconnect", () => {
+      const infoSpy = vi.spyOn(serverLogger, "info").mockImplementation(() => {});
+      mockSocket._handlers["missionJoin"](MISSION_ID, {
+        socketId: mockSocket.id,
+        name: "Vitest TestMaestro",
+        connectedAt: Date.now(),
+      });
+
+      mockSocket._handlers["disconnect"]("client namespace disconnect");
+
+      expect(infoSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          logId: "socket-maestro-v2:disconnect:maestroClientDisconnectedIntentionally",
+          socketId: mockSocket.id,
+          maestroName: "Vitest TestMaestro",
+          joinedMissionIds: [MISSION_ID],
+          disconnectReason: "client namespace disconnect",
+        })
+      );
+      infoSpy.mockRestore();
+    });
+
+    it("logs a warning with the error message when the connection is lost", () => {
+      const warningSpy = vi.spyOn(serverLogger, "warning").mockImplementation(() => {});
+
+      mockSocket._handlers["disconnect"]("transport error", new Error("socket hang up"));
+
+      expect(warningSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          logId: "socket-maestro-v2:disconnect:maestroClientConnectionLostUnexpectedly",
+          maestroName: "unknown",
+          joinedMissionIds: [],
+          disconnectReason: "transport error",
+          disconnectDescription: "socket hang up",
+        })
+      );
+      warningSpy.mockRestore();
+    });
+  });
+
+  describe("connection", () => {
+    it("logs a new session when the connection state was not recovered", () => {
+      const infoSpy = vi.spyOn(serverLogger, "info").mockImplementation(() => {});
+
+      connectionHandler(mockSocket);
+
+      expect(infoSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          logId: "socket-maestro-v2:connection:maestroClientConnectedOrReconnected",
+          socketId: mockSocket.id,
+          connectionStateRecovered: false,
+          remoteAddress: "127.0.0.1",
+          userAgent: "vitest-maestro-client",
+        })
+      );
+      infoSpy.mockRestore();
+    });
+
+    it("logs a recovered session when Socket.IO restored the previous connection state", () => {
+      const infoSpy = vi.spyOn(serverLogger, "info").mockImplementation(() => {});
+
+      connectionHandler({ ...mockSocket, recovered: true });
+
+      expect(infoSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          logId: "socket-maestro-v2:connection:maestroClientConnectedOrReconnected",
+          connectionStateRecovered: true,
+          logValue: "Maestro client reconnected and its previous session was recovered",
+        })
+      );
+      infoSpy.mockRestore();
     });
   });
 

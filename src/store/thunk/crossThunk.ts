@@ -78,14 +78,14 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(evaRefUuid) || !uuidRegex.test(actionRefUuid)) {
     clientLogger.warning({
-      logId: "deepLink",
+      logId: "deepLink:validateDeepLink:invalidEvaOrActionUuidFormat",
       logValue: "Invalid UUID format provided for EVA or action",
     });
     return;
   }
   if (rexUuid && !uuidRegex.test(rexUuid)) {
     clientLogger.warning({
-      logId: "deepLink",
+      logId: "deepLink:validateDeepLink:invalidRexUuidFormat",
       logValue: "Invalid UUID format provided for REX",
     });
     return;
@@ -101,7 +101,7 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
   const evaExists = allEvas.some((eva) => eva.refUuid === evaRefUuid);
   if (!evaExists) {
     clientLogger.warning({
-      logId: "deepLink",
+      logId: "deepLink:validateDeepLink:evaRefUuidNotFoundInMission",
       logValue: `EVA with refUUID ${evaRefUuid} not found`,
     });
     return;
@@ -112,7 +112,7 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
   );
   if (!actionExists) {
     clientLogger.warning({
-      logId: "deepLink",
+      logId: "deepLink:validateDeepLink:actionRefUuidNotFoundInMission",
       logValue: `Action with refUUID ${actionRefUuid} not found`,
     });
     return;
@@ -122,7 +122,7 @@ export const thunkSelectEvaAction = appCreateAsyncThunk<{
     const rexExists = allRexes.some((rex) => rex.uuid === rexUuid);
     if (!rexExists) {
       clientLogger.warning({
-        logId: "deepLink",
+        logId: "deepLink:validateDeepLink:rexUuidNotFoundInMission",
         logValue: `REX with UUID ${rexUuid} not found`,
       });
       return;

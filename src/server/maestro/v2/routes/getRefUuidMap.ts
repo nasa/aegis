@@ -31,6 +31,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (!viewPermissions) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/getRefUuidMap:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -50,6 +51,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/getRefUuidMap:GET:failedToGetRefUuidMaps",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

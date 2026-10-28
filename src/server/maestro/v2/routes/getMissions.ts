@@ -30,6 +30,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (!viewPermissions) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/getMissions:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -49,6 +50,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/getMissions:GET:failedToGetMissionsAndTheirEvas",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

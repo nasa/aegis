@@ -19,6 +19,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssTokenIsValid(emssToken);
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:missionHomepageItems:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -50,6 +51,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:missionHomepageItems:GET:failedToRetrieveHomepageItems",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

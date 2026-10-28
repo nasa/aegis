@@ -7,7 +7,7 @@
  */
 import { serverLogger } from "utils/logging/serverLogger";
 import remove from "lodash/remove";
-import type { DefaultEventsMap, Server, Socket } from "socket.io";
+import type { DefaultEventsMap, DisconnectReason, Server, Socket } from "socket.io";
 import { RequestContext } from "@mikro-orm/postgresql";
 import { globalValues } from "../../express/global";
 import {
@@ -28,6 +28,14 @@ import type {
   MaestroVisitor,
 } from "./types/socketioMaestro";
 import type { MDAU } from "./types/mdau";
+
+// Disconnects that were requested by the client or the server. Every other reason
+// (ping timeout, transport close/error, etc.) means the connection was lost.
+const MAESTRO_EXPECTED_DISCONNECT_REASONS = new Set<DisconnectReason>([
+  "client namespace disconnect",
+  "server namespace disconnect",
+  "server shutting down",
+]);
 
 /**
  * Resolves the Maestro visitor `name` for a socket
@@ -65,7 +73,7 @@ export const setupMaestroNamespace = (
     const token = socket.handshake.auth?.token as string | undefined;
     if (!emssTokenIsValid(token)) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:authMiddleware:rejectedConnectionInvalidEmssToken",
         logValue: "Maestro v2 namespace: rejected connection, invalid emssToken",
       });
       next(new Error("Unauthorized"));
@@ -80,12 +88,25 @@ export const setupMaestroNamespace = (
     (
       socket: Socket<MaestroClientToServerEvents, MaestroServerToClientEvents, DefaultEventsMap, {}>
     ) => {
+      // `socket.recovered` is true only when Socket.IO connection state recovery restored a
+      // previous session. Without recovery, a client reconnect arrives as a new socket id.
+      serverLogger.info({
+        logId: "socket-maestro-v2:connection:maestroClientConnectedOrReconnected",
+        logValue: socket.recovered
+          ? "Maestro client reconnected and its previous session was recovered"
+          : "Maestro client connected with a new session",
+        socketId: socket.id,
+        connectionStateRecovered: socket.recovered,
+        remoteAddress: socket.handshake.address,
+        userAgent: socket.handshake.headers["user-agent"],
+      });
+
       socket.on(
         "missionJoin",
         async (missionId: number, maestroVisitor: MaestroVisitor, callback) => {
           if (!missionId || isNaN(missionId)) {
             serverLogger.warning({
-              logId: "socket-maestro-v2",
+              logId: "socket-maestro-v2:missionJoin:rejectedInvalidMissionId",
               maestroName: maestroVisitor?.name || "unknown",
               logValue: `missionJoin - invalid missionId ${missionId}`,
             });
@@ -125,7 +146,7 @@ export const setupMaestroNamespace = (
       socket.on("missionLeave", (missionId: number) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
-            logId: "socket-maestro-v2",
+            logId: "socket-maestro-v2:missionLeave:rejectedInvalidMissionId",
             logValue: `missionLeave - invalid missionId ${missionId}`,
           });
           return;
@@ -154,7 +175,7 @@ export const setupMaestroNamespace = (
       socket.on("subscribeToEva", async (missionId: number, evaUuid: string, callback) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
-            logId: "socket-maestro-v2",
+            logId: "socket-maestro-v2:subscribeToEva:rejectedInvalidMissionId",
             logValue: `subscribeToEva - invalid missionId ${missionId}`,
           });
           return;
@@ -170,7 +191,7 @@ export const setupMaestroNamespace = (
         if (!mission.evas[evaUuid]) {
           callback?.({ status: "error", message: "Eva not found in mission" });
           serverLogger.warning({
-            logId: "socket-maestro-v2",
+            logId: "socket-maestro-v2:subscribeToEva:evaNotFoundInMission",
             maestroName: getMaestroName(socket.id, missionId),
             logValue: `subscribeToEva - Eva ${evaUuid} not found in missionId ${missionId}`,
           });
@@ -189,7 +210,7 @@ export const setupMaestroNamespace = (
       socket.on("unsubscribeToEva", (missionId: number, evaUuid: string) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
-            logId: "socket-maestro-v2",
+            logId: "socket-maestro-v2:unsubscribeToEva:rejectedInvalidMissionId",
             logValue: `unsubscribeToEva - invalid missionId ${missionId}`,
           });
           return;
@@ -200,7 +221,7 @@ export const setupMaestroNamespace = (
       socket.on("getEverything", async (missionId: number, callback) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
-            logId: "socket-maestro-v2",
+            logId: "socket-maestro-v2:getEverything:rejectedInvalidMissionId",
             logValue: `getEverything - invalid missionId ${missionId}`,
           });
           callback({ status: "error", message: "Invalid mission ID" });
@@ -214,7 +235,7 @@ export const setupMaestroNamespace = (
         } catch (error) {
           serverLogger.error(
             {
-              logId: "socket-maestro-v2",
+              logId: "socket-maestro-v2:getEverything:failedToBuildAegisSliceForMission",
               maestroName: getMaestroName(socket.id, missionId),
               logValue: "SocketIO - getEverything",
             },
@@ -227,7 +248,7 @@ export const setupMaestroNamespace = (
       socket.on("sendMDAU", (missionId: number, mdau: MDAU.MaestroDataAegisUses, callback?) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
-            logId: "socket-maestro-v2",
+            logId: "socket-maestro-v2:sendMDAU:rejectedInvalidMissionId",
             maestroName: getMaestroName(socket.id),
             logValue: `sendMDAU - invalid missionId ${missionId}`,
           });
@@ -247,7 +268,7 @@ export const setupMaestroNamespace = (
             const validationError = JSON.stringify(mdauSchemaValidator.errors);
             serverLogger.error(
               {
-                logId: "socket-maestro-v2",
+                logId: "socket-maestro-v2:sendMDAU:rejectedPayloadFailedSchemaValidation",
                 maestroName: getMaestroName(socket.id, missionId),
                 logValue: `sendMDAU - invalid schema on schema on MDAU payload for mission ${missionId}`,
               },
@@ -264,7 +285,7 @@ export const setupMaestroNamespace = (
           const docHandle = globalValues.maestroV2.docHandles.get(missionId);
           if (!docHandle) {
             serverLogger.warning({
-              logId: "socket-maestro-v2",
+              logId: "socket-maestro-v2:sendMDAU:noCachedDocHandleForMission",
               maestroName: getMaestroName(socket.id, missionId),
               logValue: `sendMDAU - no doc handle available for mission ${missionId}`,
             });
@@ -281,7 +302,7 @@ export const setupMaestroNamespace = (
             const validationError = JSON.stringify(dataErrors);
             serverLogger.error(
               {
-                logId: "socket-maestro-v2",
+                logId: "socket-maestro-v2:sendMDAU:rejectedPayloadFailedDataValidation",
                 logValue: `sendMDAU - invalid data on MDAU payload for mission ${missionId}`,
               },
               new Error(validationError)
@@ -301,7 +322,7 @@ export const setupMaestroNamespace = (
         } catch (error) {
           serverLogger.error(
             {
-              logId: "socket-maestro-v2",
+              logId: "socket-maestro-v2:sendMDAU:unhandledErrorWhileProcessingPayload",
               maestroName: getMaestroName(socket.id, missionId),
               logValue: "SocketIO - sendMDAU",
             },
@@ -314,7 +335,7 @@ export const setupMaestroNamespace = (
       socket.on("getExecuteUuids", (missionId: number, rexUuid: string, callback) => {
         if (!missionId || isNaN(missionId)) {
           serverLogger.warning({
-            logId: "socket-maestro-v2",
+            logId: "socket-maestro-v2:getExecuteUuids:rejectedInvalidMissionId",
             logValue: `getExecuteUuids - invalid missionId ${missionId}`,
           });
           return;
@@ -325,7 +346,10 @@ export const setupMaestroNamespace = (
           callback?.({ status: "success", executeUuidMap });
         } catch (error) {
           serverLogger.error(
-            { logId: "socket-maestro-v2", logValue: "SocketIO - getExecuteUuids" },
+            {
+              logId: "socket-maestro-v2:getExecuteUuids:failedToBuildExecuteUuidMap",
+              logValue: "SocketIO - getExecuteUuids",
+            },
             error instanceof Error ? error : new Error(String(error))
           );
           callback?.({ status: "error", message: `Error processing getExecuteUuids: ${error}` });
@@ -337,16 +361,48 @@ export const setupMaestroNamespace = (
         callback(buildDebugInfo());
       });
 
-      socket.on("disconnect", () => {
+      socket.on("disconnect", (reason, description) => {
+        // Read the name before the visitor entries are removed below
+        const maestroName = getMaestroName(socket.id);
+        const joinedMissionIds: number[] = [];
+
         // Remove this socket from any maestro mission rooms they happened to be in
         for (const missionId in globalValues.maestroV2.visitorData) {
           const visitors = globalValues.maestroV2.visitorData[missionId];
           const removed = remove(visitors, (item) => item.socketId === socket.id);
+          if (removed.length > 0) joinedMissionIds.push(+missionId);
           // If we removed the last visitor and the room is now empty, delete the key and cleanup
           if (removed.length > 0 && visitors.length === 0) {
             delete globalValues.maestroV2.visitorData[missionId];
             if (missionId != null) cleanupMaestro(+missionId);
           }
+        }
+
+        const disconnectLogFields = {
+          socketId: socket.id,
+          maestroName,
+          joinedMissionIds,
+          disconnectReason: reason,
+          // Transport errors pass an Error; other reasons may pass a plain object or nothing
+          disconnectDescription:
+            description instanceof Error
+              ? description.message
+              : description != null
+                ? JSON.stringify(description)
+                : undefined,
+        };
+        if (MAESTRO_EXPECTED_DISCONNECT_REASONS.has(reason)) {
+          serverLogger.info({
+            logId: "socket-maestro-v2:disconnect:maestroClientDisconnectedIntentionally",
+            logValue: `Maestro client disconnected (${reason})`,
+            ...disconnectLogFields,
+          });
+        } else {
+          serverLogger.warning({
+            logId: "socket-maestro-v2:disconnect:maestroClientConnectionLostUnexpectedly",
+            logValue: `Maestro client connection lost (${reason})`,
+            ...disconnectLogFields,
+          });
         }
 
         // Update the inspector room on the default namespace

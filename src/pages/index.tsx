@@ -248,7 +248,7 @@ const Left: FunctionComponent = () => {
         );
         // log user info
         clientLogger.info({
-          logId: "appLogin",
+          logId: "appLogin:homePage:appUserLoggedIn",
           appUsername: response.data.username,
           missionId: null,
           page: "home",

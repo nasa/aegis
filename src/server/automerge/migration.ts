@@ -48,14 +48,14 @@ const runMigration = async () => {
     );
     if (pendingMigrations.length === 0) {
       serverLogger.info({
-        logId: "automerge-migration",
+        logId: "automerge-migration:runMigration:noPendingMigrationsExitingWithoutLoadingDocuments",
         logValue: "No pending automerge migrations. Exiting without loading documents.",
       });
       return;
     }
 
     serverLogger.info({
-      logId: "automerge-migration",
+      logId: "automerge-migration:runMigration:listOfPendingMigrations",
       logValue: `Pending automerge migrations: ${pendingMigrations
         .map(({ version, name }) => `${version}-${name}`)
         .join(", ")}`,
@@ -76,7 +76,7 @@ const runMigration = async () => {
     automergeRepo = new Repo({ storage: storageAdapter });
 
     serverLogger.info({
-      logId: "automerge-migration",
+      logId: "automerge-migration:runMigration:startingAutomergeMigrationScript",
       logValue: "Starting automerge migration script...",
     });
     const allDocListings: AutomergeDocListing[] = await getAutomergeDocListing();
@@ -87,7 +87,10 @@ const runMigration = async () => {
       if (!isValidAutomergeUrl(docListing.automergeUrl)) {
         const errorMessage = `Invalid automerge URL in doc listing. MissionId: ${docListing.missionId} AutomergeUrl: ${docListing.automergeUrl}`;
         serverLogger.error(
-          { logId: "automerge-migration", logValue: errorMessage },
+          {
+            logId: "automerge-migration:runMigration:invalidAutomergeUrlInDocListing",
+            logValue: errorMessage,
+          },
           new Error(errorMessage)
         );
         throw new Error(errorMessage);
@@ -107,7 +110,7 @@ const runMigration = async () => {
     // of the negative number simply reflects how long it took to get from "Repo registered
     // the handle" to "the first change event fired on it" (≈ doc load time).)
     serverLogger.debug({
-      logId: "automerge-migration",
+      logId: "automerge-migration:runMigration:loadingAllAutomergeDocumentsInParallel",
       logValue: `Loading ${allDocListings.length} automerge document(s) in parallel...`,
     });
     const loadStartMs = Date.now();
@@ -127,7 +130,7 @@ const runMigration = async () => {
         // Log progress every 10 docs so the user can see forward progress on large DBs.
         if (loadedCount % 10 === 0 || loadedCount === allDocListings.length) {
           serverLogger.debug({
-            logId: "automerge-migration",
+            logId: "automerge-migration:runMigration:documentLoadProgress",
             logValue: `  loaded ${loadedCount}/${allDocListings.length} doc(s)`,
           });
         }
@@ -135,14 +138,17 @@ const runMigration = async () => {
       })
     );
     serverLogger.debug({
-      logId: "automerge-migration",
+      logId: "automerge-migration:runMigration:allDocumentHandlesLoaded",
       logValue: `Loaded ${allDocHandles.length} doc handle(s) in ${Date.now() - loadStartMs} ms`,
     });
 
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Starting migrations..." });
+    serverLogger.debug({
+      logId: "automerge-migration:runMigration:startingMigrations",
+      logValue: "Starting migrations...",
+    });
     for (const migration of pendingMigrations) {
       serverLogger.debug({
-        logId: "automerge-migration",
+        logId: "automerge-migration:runMigration:runningSingleMigrationAcrossAllDocuments",
         logValue: `Running automerge migration ${migration.version}-${migration.name}`,
       });
       for (let index = 0; index < allDocHandles.length; index += 1) {
@@ -152,11 +158,17 @@ const runMigration = async () => {
         });
       }
     }
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Migrations complete." });
+    serverLogger.debug({
+      logId: "automerge-migration:runMigration:allMigrationsComplete",
+      logValue: "Migrations complete.",
+    });
 
     // Migrations are done.
     // Validate schema against all automerge docs
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Running validator" });
+    serverLogger.debug({
+      logId: "automerge-migration:runMigration:runningPostMigrationSchemaValidator",
+      logValue: "Running validator",
+    });
     for (const docHandle of allDocHandles) {
       const mission = docHandle.doc();
       // Use structuredClone instead of cloneDeep so we don't need an extra dependency
@@ -164,18 +176,24 @@ const runMigration = async () => {
       const isValid = missionValidator(structuredClone(mission));
       if (!isValid && missionValidator.errors?.length > 0) {
         serverLogger.error(
-          { logId: "automerge-migration", logValue: JSON.stringify(missionValidator.errors) },
+          {
+            logId: "automerge-migration:runMigration:missionFailedPostMigrationSchemaValidation",
+            logValue: JSON.stringify(missionValidator.errors),
+          },
           new Error(`${mission.id} - ${mission.name} is invalid`)
         );
         throw new Error(`${mission.id} - ${mission.name} is invalid`);
       } else {
         serverLogger.debug({
-          logId: "automerge-migration",
+          logId: "automerge-migration:runMigration:missionPassedPostMigrationSchemaValidation",
           logValue: `${mission.id} - ${mission.name} is valid`,
         });
       }
     }
-    serverLogger.debug({ logId: "automerge-migration", logValue: "Validation complete." });
+    serverLogger.debug({
+      logId: "automerge-migration:runMigration:postMigrationSchemaValidationComplete",
+      logValue: "Validation complete.",
+    });
     // Flush all Automerge documents to the storage adapter before proceeding.
     // After docHandle.change(), the Repo schedules saves via a debounced/throttled timer
     // (saveDebounceRate) rather than writing synchronously. Calling process.exit() before
@@ -194,7 +212,7 @@ const runMigration = async () => {
     );
 
     serverLogger.info({
-      logId: "automerge-migration",
+      logId: "automerge-migration:runMigration:allProcessesCompleteExiting",
       logValue: "All processes complete. Exiting.",
     });
   } finally {
@@ -213,7 +231,10 @@ runMigration()
   })
   .catch(async (err: unknown) => {
     serverLogger.error(
-      { logId: "automerge-migration", logValue: "Unhandled error in migration" },
+      {
+        logId: "automerge-migration:runMigration:unhandledErrorInMigrationScript",
+        logValue: "Unhandled error in migration",
+      },
       err instanceof Error ? err : new Error(String(err))
     );
     process.exitCode = 1;

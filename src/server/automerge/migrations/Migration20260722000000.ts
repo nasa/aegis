@@ -75,7 +75,8 @@ export const Migration20260722000000: AutomergeMigration = {
       outcome = "grid_db already dropped — metadata unrecoverable, cleared";
       serverLogger.error(
         {
-          logId: "automerge-migration",
+          logId:
+            "automerge-migration:Migration20260722000000:gridMetadataUnrecoverableBecauseGridDbTableIsGone",
           logValue: `Mission ${missionId} had activeGridUuid ${legacyActiveUuid} but grid_db is gone; grid cleared`,
         },
         new Error(`Grid metadata unrecoverable for mission ${missionId}`)
@@ -91,7 +92,7 @@ export const Migration20260722000000: AutomergeMigration = {
     });
 
     serverLogger.debug({
-      logId: "automerge-migration",
+      logId: "automerge-migration:Migration20260722000000:gridMigrationOutcomeForMission",
       logValue: `Mission ${missionId} grid migration: ${outcome}`,
     });
   },

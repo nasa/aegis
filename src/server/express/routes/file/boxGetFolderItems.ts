@@ -30,6 +30,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:file/boxGetFolderItems:GET:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -74,6 +75,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({ data: { ...folderItems, entries: entriesWithSize } });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:file/boxGetFolderItems:GET:failedToGetBoxFolderItems",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

@@ -31,6 +31,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:all:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -44,6 +45,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:all:GET:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -64,6 +66,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:all:GET:failedToGetEverythingForMission",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

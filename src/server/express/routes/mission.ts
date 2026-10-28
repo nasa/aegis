@@ -20,7 +20,10 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.error(
-      { logId: "mission", logValue: "Error retrieving schema" },
+      {
+        logId: "mission:schema:failedToRetrieveMissionJsonSchema",
+        logValue: "Error retrieving schema",
+      },
       e instanceof Error ? e : new Error(String(e))
     );
     res.status(500).json({

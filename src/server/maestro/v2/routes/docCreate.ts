@@ -24,6 +24,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:maestro/doc/create:POST:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -39,6 +40,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const emssToken = process.env.EMSS_TOKEN;
   if (!emssToken) {
     serverLogger.apiRoute({
+      logId: "api-route:maestro/doc/create:POST:emssTokenEnvironmentVariableNotConfigured",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -66,6 +68,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       : null;
     if (!maestroServer) {
       serverLogger.apiRoute({
+        logId: "api-route:maestro/doc/create:POST:maestroServerUrlNotConfigured",
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -90,6 +93,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     const responseBody = await maestroRes.json();
 
     serverLogger.apiRoute({
+      logId: "api-route:maestro/doc/create:POST:forwardedMaestroDocCreateResponse",
       logLevel: maestroRes.ok ? "info" : "warning",
       httpMethod: "POST",
       responseStatus: maestroRes.status,
@@ -103,6 +107,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   } catch (err) {
     const error = asError(err);
     serverLogger.apiRoute({
+      logId: "api-route:maestro/doc/create:POST:failedToContactMaestroServer",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

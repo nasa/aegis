@@ -93,7 +93,7 @@ const Main: React.FunctionComponent = () => {
       dispatch(setAppUser({ isLoggedIn: true, user: response.data, missionPerms: missionPerms }));
       // log user info
       clientLogger.info({
-        logId: "appLogin",
+        logId: "appLogin:missionPage:appUserLoggedIn",
         appUsername: response.data.username,
         missionId: intMissionId,
         page: "mission",
@@ -222,7 +222,8 @@ const Main: React.FunctionComponent = () => {
                       if (Array.isArray(parsed)) info = parsed as LastEditedInfoLine[];
                     } catch (err) {
                       clientLogger.warning({
-                        logId: "lastEditedTooltip:parseError",
+                        logId:
+                          "lastEditedTooltip:missionPage:failedToParseLastEditedTooltipInfoJson",
                         message: "Failed to parse data-tooltip-le-info",
                         error: err instanceof Error ? err.message : String(err),
                       });

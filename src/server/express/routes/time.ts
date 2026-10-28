@@ -11,6 +11,7 @@ router.get("/", (req: Request, res: Response) => {
     res.json({ time: currentTime });
   } catch (error) {
     serverLogger.apiRoute({
+      logId: "api-route:time:GET:failedToGetServerTime",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

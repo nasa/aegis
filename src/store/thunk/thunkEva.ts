@@ -320,7 +320,7 @@ export const thunkDocDeleteStationFromEva = appCreateAsyncThunk<{
   // Step 2: Apply everything in a single .change()
   if (adjacentTraverseUpdate && !areTraverseProfileUpdatesCurrent([adjacentTraverseUpdate])) {
     clientLogger.debug({
-      logId: "thunk-eva",
+      logId: "thunk-eva:thunkDocDeleteStationFromEva:supersededTraverseProfileSkippingApply",
       logValue: `thunkDocDeleteStationFromEva: superseded traverse profile for eva ${evaUuid}, skipping apply`,
     });
     return;
@@ -433,7 +433,7 @@ export const thunkDocChangeStationInEva = appCreateAsyncThunk<{
     // Step 2: Apply everything in a single .change()
     if (!areTraverseProfileUpdatesCurrent(validTraverseUpdates)) {
       clientLogger.debug({
-        logId: "thunk-eva",
+        logId: "thunk-eva:thunkDocChangeStationInEva:supersededTraverseProfileSkippingApply",
         logValue: `thunkDocChangeStationInEva: superseded traverse profile for eva ${evaUuid}, skipping apply`,
       });
       return;
@@ -542,7 +542,7 @@ export const thunkDocReorderStationInEva = appCreateAsyncThunk<{
   // Step 2: Apply sequence swap + all traverse updates in a single .change()
   if (!areTraverseProfileUpdatesCurrent(validTraverseUpdates)) {
     clientLogger.debug({
-      logId: "thunk-eva",
+      logId: "thunk-eva:thunkDocReorderStationInEva:supersededTraverseProfileSkippingApply",
       logValue: `thunkDocReorderStationInEva: superseded traverse profile for eva ${evaUuid}, skipping apply`,
     });
     return;
@@ -615,7 +615,7 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
     // Step 2: Apply everything in a single .change()
     if (stagedTraverseData && !areTraverseProfileUpdatesCurrent([stagedTraverseData])) {
       clientLogger.debug({
-        logId: "thunk-eva",
+        logId: "thunk-eva:thunkDocChangeIngressEgress:supersededTraverseProfileSkippingApply",
         logValue: `thunkDocChangeIngressEgress: superseded traverse profile for eva ${evaUuid}, skipping apply`,
       });
       return;

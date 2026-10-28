@@ -22,14 +22,14 @@ export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
   const stage = await stageLanderLocationUpdate(mission, dispatch, location);
   if (locationRevision !== latestIssuedLanderLocationRevision) {
     clientLogger.debug({
-      logId: "thunk-mission",
+      logId: "thunk-mission:thunkDocUpdateLanderLocation:staleLocationRequestSkippingApply",
       logValue: "thunkDocUpdateLanderLocation: stale request, skipping apply",
     });
     return;
   }
   if (!areTraverseProfileUpdatesCurrent(stage.traverseUpdates)) {
     clientLogger.debug({
-      logId: "thunk-mission",
+      logId: "thunk-mission:thunkDocUpdateLanderLocation:supersededTraverseProfileSkippingApply",
       logValue: "thunkDocUpdateLanderLocation: superseded traverse profile, skipping apply",
     });
     return;

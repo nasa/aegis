@@ -85,7 +85,8 @@ export const Migration20260806000000: AutomergeMigration = {
           if (mission.stations?.[locationUuid]) return locationUuid;
 
           serverLogger.warning({
-            logId: "automerge-migration",
+            logId:
+              "automerge-migration:Migration20260806000000:skippedXgressStationInsertionBecauseStationNotFound",
             logValue: `Mission ${mission.id} EVA ${eva.uuid} xgress station ${locationUuid} not found; skipping xgress station insertion`,
           });
           return null;
@@ -125,7 +126,8 @@ export const Migration20260806000000: AutomergeMigration = {
             const stationUuid = uuidByRole[role];
             if (!stationUuid) {
               serverLogger.warning({
-                logId: "automerge-migration",
+                logId:
+                  "automerge-migration:Migration20260806000000:droppedRexXgressEntryThatCouldNotResolveToStation",
                 logValue: `Mission ${mission.id} REX ${rex.uuid} could not resolve xgress entry "${role}" to a station; dropping it`,
               });
               continue;

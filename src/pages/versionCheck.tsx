@@ -52,7 +52,7 @@ const VersionCheck: React.FunctionComponent = () => {
       }
     } catch (error) {
       clientLogger.warning({
-        logId: "versionCheck",
+        logId: "versionCheck:decodeReturnUrl:invalidReturnUrlParameter",
         logValue: `Invalid returnUrl parameter: ${url}`,
       });
     }
@@ -73,7 +73,10 @@ const VersionCheck: React.FunctionComponent = () => {
         setServerVersion(version);
       } catch (error) {
         clientLogger.error(
-          { logId: "versionCheck", logValue: "Failed to fetch server version" },
+          {
+            logId: "versionCheck:fetchServerVersion:failedToFetchServerVersion",
+            logValue: "Failed to fetch server version",
+          },
           error instanceof Error ? error : new Error(String(error))
         );
       } finally {

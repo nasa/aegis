@@ -190,6 +190,7 @@ describe("terrain profile route", () => {
     await supertest(app).post("/api/v1/terrain-profile?missionId=42junk").send(validBody);
 
     expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logId: "api-route:terrain-profile:POST:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -215,6 +216,7 @@ describe("terrain profile route", () => {
     expect(response.status).toBe(401);
     expect(mocks.getAutomergeMissionHandle).not.toHaveBeenCalled();
     expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logId: "api-route:terrain-profile:POST:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -234,6 +236,7 @@ describe("terrain profile route", () => {
 
     expect(response.status).toBe(404);
     expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logId: "api-route:terrain-profile:POST:missionDocumentNotFound",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 404,

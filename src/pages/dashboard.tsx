@@ -90,7 +90,7 @@ const Main = (): JSX.Element => {
       console.log("AEGIS Username:", response.data.username);
       // Log user
       clientLogger.info({
-        logId: "appLogin",
+        logId: "appLogin:dashboardPage:appUserLoggedIn",
         appUsername: response.data.username,
         missionId: intMissionId,
         page: "dashboard",

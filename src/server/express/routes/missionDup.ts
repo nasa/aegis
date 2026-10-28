@@ -22,6 +22,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   if (!req.session?.appUser?.isSuperAdmin && !emssTokenIsValid(emssToken)) {
     serverLogger.apiRoute({
+      logId: "api-route:missionDup:POST:unauthorizedRequestNotSuperAdminOrEmssToken",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -41,6 +42,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     parsedMissionId <= 0
   ) {
     serverLogger.apiRoute({
+      logId: "api-route:missionDup:POST:rejectedMissionIdNotPositiveInteger",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -98,6 +100,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // Check response
     if (newMissionId === null || newMissionId === undefined) {
       serverLogger.apiRoute({
+        logId: "api-route:missionDup:POST:failedToDuplicateMissionAfterOptimisticLockingRetries",
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -124,6 +127,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:missionDup:POST:unexpectedErrorDuplicatingMission",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -245,7 +249,7 @@ export const fetchMissionSourceData = async (
 const copyMissionAssets = async (fromMissionId: number, toMissionId: number): Promise<void> => {
   try {
     serverLogger.info({
-      logId: "duplicate",
+      logId: "duplicate:copyMissionAssets:startedCopyingMissionAssets",
       logValue: `Copying assets from mission ${fromMissionId} to mission ${toMissionId}`,
     });
 
@@ -253,7 +257,7 @@ const copyMissionAssets = async (fromMissionId: number, toMissionId: number): Pr
     await copyDirectoryContents(fromMissionId, toMissionId);
 
     serverLogger.info({
-      logId: "duplicate",
+      logId: "duplicate:copyMissionAssets:finishedCopyingMissionAssets",
       logValue: `Successfully copied mission assets from ${fromMissionId} to ${toMissionId}`,
     });
   } catch (error) {

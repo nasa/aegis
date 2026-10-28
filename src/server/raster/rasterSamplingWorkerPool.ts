@@ -309,7 +309,8 @@ export class RasterSamplingWorkerPool {
     this.started = false;
     serverLogger.error(
       {
-        logId: "raster",
+        logId:
+          "raster:rasterSamplingWorkerPool:workersRepeatedlyFailedToStartElevationSamplingTemporarilyDisabled",
         logValue: `${this.unavailableReason}. Elevation sampling is disabled for ${Math.round(
           this.unavailableRetryAfterMs / 1000
         )}s.`,

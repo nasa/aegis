@@ -57,7 +57,7 @@ const getORM = async () => {
 getORM()
   .then(async () => {
     serverLogger.info({
-      logId: "automerge-integrity",
+      logId: "automerge-integrity:integrityCheckRunner:startingForeignKeyIntegrityCheck",
       logValue: "Starting FK integrity check...",
     });
 
@@ -74,7 +74,7 @@ getORM()
       if (!doc) {
         serverLogger.error(
           {
-            logId: "automerge-integrity",
+            logId: "automerge-integrity:integrityCheckRunner:couldNotLoadMissionDocument",
             logValue: `Could not load doc for mission ${docListing.missionId}`,
           },
           new Error(`Could not load doc for mission ${docListing.missionId}`)
@@ -87,7 +87,7 @@ getORM()
       for (const finding of findings) {
         allFindings.push(finding);
         serverLogger.warning({
-          logId: "automerge-integrity",
+          logId: "automerge-integrity:integrityCheckRunner:orphanedForeignKeyFound",
           logValue:
             `Mission ${finding.missionId}: orphaned FK — ` +
             `${finding.entity}[${finding.entityUuid}].${finding.field} = "${finding.orphanedUuid}"`,
@@ -96,7 +96,7 @@ getORM()
 
       if (findings.length > 0) {
         serverLogger.info({
-          logId: "automerge-integrity",
+          logId: "automerge-integrity:integrityCheckRunner:missionFindingCountSummary",
           logValue: `Mission ${docListing.missionId} (${doc.name}): ${findings.length} finding(s)`,
         });
       }
@@ -115,7 +115,7 @@ getORM()
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf8");
 
     serverLogger.info({
-      logId: "automerge-integrity",
+      logId: "automerge-integrity:integrityCheckRunner:integrityCheckCompleteWithReportPath",
       logValue:
         `Integrity check complete. ${allFindings.length} finding(s) across ` +
         `${allDocListings.length} mission(s). Report: ${reportPath}`,
@@ -126,7 +126,10 @@ getORM()
   })
   .catch((err: unknown) => {
     serverLogger.error(
-      { logId: "automerge-integrity", logValue: "Unhandled error in integrity check runner" },
+      {
+        logId: "automerge-integrity:integrityCheckRunner:unhandledErrorInIntegrityCheckRunner",
+        logValue: "Unhandled error in integrity check runner",
+      },
       err instanceof Error ? err : new Error(String(err))
     );
     process.exitCode = 1;

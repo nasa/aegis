@@ -20,6 +20,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     // only super admin can see socket info
     if (!req.session?.appUser?.isSuperAdmin) {
       serverLogger.apiRoute({
+        logId: "api-route:socket/serverSocketStatus:GET:unauthorizedRequestNotSuperAdmin",
         logLevel: "warning",
         httpMethod: "GET",
         responseStatus: 401,
@@ -34,6 +35,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:socket/serverSocketStatus:GET:failedToReadServerSocketStatus",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

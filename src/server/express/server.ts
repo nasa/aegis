@@ -58,7 +58,7 @@ initializeBase64Wasm(automergeWasmBase64);
     serverEpochUuid,
   };
   serverLogger.info({
-    logId: "server",
+    logId: "server:startServer:serverEpochUuidGeneratedForThisServerLifetime",
     logValue: `Server epoch: ${serverEpochUuid}`,
   });
 
@@ -70,7 +70,10 @@ initializeBase64Wasm(automergeWasmBase64);
   const server: NetServer = createServer();
 
   // Socket.IO server on /api/socket for all AEGIS internal traffic and Maegistro v2.
-  serverLogger.debug({ logId: "server", logValue: "Starting Socket.IO on /api/socket" });
+  serverLogger.debug({
+    logId: "server:startServer:startingSocketIoServerOnApiSocketPath",
+    logValue: "Starting Socket.IO on /api/socket",
+  });
   globalValues.socketio = new SocketServer<
     ClientToServerEvents,
     ServerToClientEvents,
@@ -96,7 +99,10 @@ initializeBase64Wasm(automergeWasmBase64);
   server.on("request", app);
 
   server.listen(4001, () => {
-    serverLogger.info({ logId: "server", logValue: "Server listening on port 4001" });
+    serverLogger.info({
+      logId: "server:httpServerListen:serverListeningOnPort4001",
+      logValue: "Server listening on port 4001",
+    });
   });
 
   // ==========================================================================
@@ -134,7 +140,8 @@ initializeBase64Wasm(automergeWasmBase64);
         request.socket.remoteAddress ??
         "(unknown)";
       serverLogger.warning({
-        logId: "server",
+        logId:
+          "server:automergeUpgradeHandler:rejectedAutomergeWebSocketUpgradeDueToServerEpochMismatchOrMissingEpoch",
         logValue: `Rejected automerge upgrade (${
           clientEpoch ? "epoch mismatch" : "no epoch supplied"
         }). client epoch: ${clientEpoch ?? "(missing)"}, server epoch: ${serverEpochUuid}, client ip: ${clientIp}.`,
@@ -171,19 +178,22 @@ initializeBase64Wasm(automergeWasmBase64);
   // clg peers as they come and go
   globalValues.automergeRepo.networkSubsystem.on("peer", (peerPayload) => {
     serverLogger.debug({
-      logId: "server",
+      logId: "server:automergeNetworkSubsystem:automergePeerConnected",
       logValue: "automerge peer connected: " + peerPayload.peerId,
     });
   });
   globalValues.automergeRepo.networkSubsystem.on("peer-disconnected", (peerPayload) => {
     serverLogger.debug({
-      logId: "server",
+      logId: "server:automergeNetworkSubsystem:automergePeerDisconnected",
       logValue: "automerge peer disconnected: " + peerPayload.peerId,
     });
   });
 
   const gracefulShutdown = async () => {
-    serverLogger.info({ logId: "server", logValue: "Gracefully shutting down server..." });
+    serverLogger.info({
+      logId: "server:gracefulShutdown:startingGracefulShutdown",
+      logValue: "Gracefully shutting down server...",
+    });
 
     let hasErrors = false;
 
@@ -191,7 +201,7 @@ initializeBase64Wasm(automergeWasmBase64);
     const shutdownTimeout = setTimeout(() => {
       serverLogger.critical(
         {
-          logId: "server",
+          logId: "server:gracefulShutdown:shutdownTimeoutExceeded30Seconds",
           logValue: "Shutdown timeout exceeded 30s",
         },
         new Error("Shutdown timeout - forcing exit")
@@ -204,10 +214,16 @@ initializeBase64Wasm(automergeWasmBase64);
     if (globalValues.automergeRepo) {
       try {
         await globalValues.automergeRepo.shutdown();
-        serverLogger.debug({ logId: "server", logValue: "Automerge repo shut down" });
+        serverLogger.debug({
+          logId: "server:gracefulShutdown:automergeRepoShutDownSuccessfully",
+          logValue: "Automerge repo shut down",
+        });
       } catch (err) {
         serverLogger.error(
-          { logId: "server", logValue: "Error shutting down automerge repo" },
+          {
+            logId: "server:gracefulShutdown:failedToShutDownAutomergeRepo",
+            logValue: "Error shutting down automerge repo",
+          },
           err instanceof Error ? err : new Error(String(err))
         );
         hasErrors = true;
@@ -218,7 +234,10 @@ initializeBase64Wasm(automergeWasmBase64);
     if (globalValues.socketInterval) {
       clearInterval(globalValues.socketInterval);
       globalValues.socketInterval = null;
-      serverLogger.debug({ logId: "server", logValue: "Global socket status interval stopped" });
+      serverLogger.debug({
+        logId: "server:gracefulShutdown:globalSocketStatusIntervalStopped",
+        logValue: "Global socket status interval stopped",
+      });
     }
 
     // Close Socket.IO connections
@@ -226,13 +245,19 @@ initializeBase64Wasm(automergeWasmBase64);
       try {
         await new Promise<void>((resolve) => {
           globalValues.socketio.close(() => {
-            serverLogger.debug({ logId: "server", logValue: "Socket.IO server closed" });
+            serverLogger.debug({
+              logId: "server:gracefulShutdown:socketIoServerClosedSuccessfully",
+              logValue: "Socket.IO server closed",
+            });
             resolve();
           });
         });
       } catch (err) {
         serverLogger.error(
-          { logId: "server", logValue: "Error closing Socket.IO" },
+          {
+            logId: "server:gracefulShutdown:failedToCloseSocketIoServer",
+            logValue: "Error closing Socket.IO",
+          },
           err instanceof Error ? err : new Error(String(err))
         );
         hasErrors = true;
@@ -241,38 +266,53 @@ initializeBase64Wasm(automergeWasmBase64);
 
     // Close HTTP server (if Socket.IO didn't already close it)
     if (server.listening) {
-      serverLogger.debug({ logId: "server", logValue: "Closing HTTP server..." });
+      serverLogger.debug({
+        logId: "server:gracefulShutdown:closingHttpServer",
+        logValue: "Closing HTTP server...",
+      });
       try {
         await new Promise<void>((resolve, reject) => {
           server.close((err) => {
             if (err) {
               reject(err);
             } else {
-              serverLogger.debug({ logId: "server", logValue: "HTTP server closed" });
+              serverLogger.debug({
+                logId: "server:gracefulShutdown:httpServerClosedSuccessfully",
+                logValue: "HTTP server closed",
+              });
               resolve();
             }
           });
         });
       } catch (err) {
         serverLogger.error(
-          { logId: "server", logValue: "Error closing HTTP server" },
+          {
+            logId: "server:gracefulShutdown:failedToCloseHttpServer",
+            logValue: "Error closing HTTP server",
+          },
           err instanceof Error ? err : new Error(String(err))
         );
         hasErrors = true;
       }
     } else {
       serverLogger.debug({
-        logId: "server",
+        logId: "server:gracefulShutdown:httpServerAlreadyClosedBySocketIo",
         logValue: "HTTP server already closed (by Socket.IO)",
       });
     }
 
     try {
       await closeRasterSamplingWorkerPool();
-      serverLogger.debug({ logId: "server", logValue: "Raster sampling worker pool closed" });
+      serverLogger.debug({
+        logId: "server:gracefulShutdown:rasterSamplingWorkerPoolClosedSuccessfully",
+        logValue: "Raster sampling worker pool closed",
+      });
     } catch (err) {
       serverLogger.error(
-        { logId: "server", logValue: "Error closing raster sampling worker pool" },
+        {
+          logId: "server:gracefulShutdown:failedToCloseRasterSamplingWorkerPool",
+          logValue: "Error closing raster sampling worker pool",
+        },
         err instanceof Error ? err : new Error(String(err))
       );
       hasErrors = true;
@@ -282,18 +322,27 @@ initializeBase64Wasm(automergeWasmBase64);
     try {
       if (globalValues.orm) {
         await globalValues.orm.close();
-        serverLogger.debug({ logId: "server", logValue: "Database connections closed" });
+        serverLogger.debug({
+          logId: "server:gracefulShutdown:databaseConnectionsClosedSuccessfully",
+          logValue: "Database connections closed",
+        });
       }
     } catch (err) {
       serverLogger.error(
-        { logId: "server", logValue: "Error closing database connection" },
+        {
+          logId: "server:gracefulShutdown:failedToCloseDatabaseConnections",
+          logValue: "Error closing database connection",
+        },
         err instanceof Error ? err : new Error(String(err))
       );
       hasErrors = true;
     }
 
     clearTimeout(shutdownTimeout);
-    serverLogger.info({ logId: "server", logValue: "Shutdown complete" });
+    serverLogger.info({
+      logId: "server:gracefulShutdown:gracefulShutdownComplete",
+      logValue: "Shutdown complete",
+    });
     process.exit(hasErrors ? 1 : 0);
   };
 
@@ -303,7 +352,10 @@ initializeBase64Wasm(automergeWasmBase64);
       if (msg === "shutdown") {
         gracefulShutdown().catch((err) =>
           serverLogger.error(
-            { logId: "server", logValue: "Error during shutdown" },
+            {
+              logId: "server:processShutdownMessage:unhandledErrorDuringGracefulShutdown",
+              logValue: "Error during shutdown",
+            },
             err instanceof Error ? err : new Error(String(err))
           )
         );

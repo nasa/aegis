@@ -13,7 +13,13 @@ export const getCurrentUser = async (): Promise<LaunchpadUser | Error> => {
   try {
     const json = await fetchJsonWithAuth<{ user: LaunchpadUser }>("/api/v1/user/current");
     if (json instanceof Error) {
-      clientLogger.error({ logId: "launchpadLogin", logValue: "Unable to get current user" }, json);
+      clientLogger.error(
+        {
+          logId: "launchpadLogin:getCurrentUser:failedToFetchCurrentLaunchpadUser",
+          logValue: "Unable to get current user",
+        },
+        json
+      );
       return json;
     }
     if (!json.user) {

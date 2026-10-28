@@ -102,7 +102,7 @@ const respondWithRasterRouteError = (
 
   if (error instanceof RasterSamplingWorkerPoolSupersededError) {
     serverLogger.debug({
-      logId: "API Route",
+      logId: "api-route:terrain-profile:POST:samplingRequestSupersededByNewerRequest",
       logValue: `POST 409 ${routeName} ${message}`,
       missionId,
     });
@@ -119,6 +119,7 @@ const respondWithRasterRouteError = (
     message.includes("contain");
   const responseStatus = workerUnavailable ? 503 : clientError ? 400 : 500;
   serverLogger.apiRoute({
+    logId: "api-route:terrain-profile:POST:terrainProfileSamplingFailed",
     logLevel: responseStatus === 400 ? "notice" : responseStatus === 503 ? "warning" : "error",
     httpMethod: "POST",
     responseStatus,
@@ -135,6 +136,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   const missionId = missionIdFromRequest(req);
   if (!missionId) {
     serverLogger.apiRoute({
+      logId: "api-route:terrain-profile:POST:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -154,6 +156,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!permitted) {
     serverLogger.apiRoute({
+      logId: "api-route:terrain-profile:POST:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -171,6 +174,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     const missionHandle = await getAutomergeMissionHandle(missionId);
     if (!missionHandle) {
       serverLogger.apiRoute({
+        logId: "api-route:terrain-profile:POST:missionDocumentNotFound",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 404,
@@ -205,7 +209,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     );
     const totalRouteDurationMs = performance.now() - routeStartedAt;
     serverLogger.debug({
-      logId: "terrain-profile",
+      logId: "terrain-profile:sampling:completedWorkerSamplingWithTimings",
       logValue: `Worker ${result.workerId} sampled ${result.centerSamples} centers (${result.uniqueDemPixels} unique DEM pixels) from ${result.blocksRead} blocks in ${result.executionDurationMs.toFixed(1)} ms after ${result.queueDurationMs.toFixed(1)} ms queued (${totalRouteDurationMs.toFixed(1)} ms total)`,
       missionId,
     });

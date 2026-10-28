@@ -162,6 +162,7 @@ export class ConsoleLogger {
 
   /** Server-only convenience method for structured API route logging. */
   static apiRoute<T extends LogLevel>({
+    logId,
     logLevel,
     httpMethod,
     responseStatus,
@@ -172,6 +173,8 @@ export class ConsoleLogger {
     uuids,
     error,
   }: {
+    /** Unique per call site, e.g. "api-route:appUsers:GET:unauthorizedRequest". */
+    logId: string;
     logLevel: T;
     httpMethod: "GET" | "POST" | "DELETE";
     responseStatus: number;
@@ -182,7 +185,7 @@ export class ConsoleLogger {
     message?: string;
   } & (T extends "error" | "critical" ? { error: Error } : { error?: never })): void {
     const logEntry: Loggable = {
-      logId: "API Route",
+      logId,
       logValue: `${httpMethod} ${responseStatus} ${routeName}${message ? ` ${message}` : ""}`,
       appUsername,
       missionId,

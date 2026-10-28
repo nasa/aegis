@@ -127,7 +127,7 @@ export function onDustChangeListener(
   } catch (error) {
     serverLogger.error(
       {
-        logId: "socket-dust-v1",
+        logId: "socket-dust-v1:onDustChangeListener:unhandledErrorInThrottledDocChangeListener",
         logValue: `onDustChangeListener - Error in throttled listener for mission ${missionId}`,
         missionId,
       },
@@ -185,7 +185,8 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
     if (!((globalValues.dustV1.visitorData[missionId]?.length ?? 0) > 0)) {
       discardDustSetupState(missionId);
       serverLogger.debug({
-        logId: "socket-dust-v1",
+        logId:
+          "socket-dust-v1:addDustDocListenerForMission:abandonedListenerSetupBecauseNoDustVisitorsRemain",
         logValue: `addDustDocListenerForMission - Abandoned dust doc listener setup for mission ${missionId}, no visitors remain`,
       });
       return;
@@ -219,14 +220,15 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
     });
 
     serverLogger.debug({
-      logId: "socket-dust-v1",
+      logId: "socket-dust-v1:addDustDocListenerForMission:addedDustAutomergeDocChangeListener",
       logValue: `addDustDocListenerForMission - Added dust automerge doc listener for mission ${missionId}`,
     });
   } catch (error) {
     discardDustSetupState(missionId);
     serverLogger.error(
       {
-        logId: "socket-dust-v1",
+        logId:
+          "socket-dust-v1:addDustDocListenerForMission:failedToAddDustAutomergeDocChangeListener",
         logValue: `addDustDocListenerForMission - Error adding dust doc listener for mission ${missionId}`,
       },
       error instanceof Error ? error : new Error(String(error))
@@ -244,7 +246,7 @@ export const cleanupDust = (missionId: number): void => {
   const removeListenerFn = globalValues.dustV1.docListeners.get(missionId);
   if (!removeListenerFn) {
     serverLogger.warning({
-      logId: "socket-dust-v1",
+      logId: "socket-dust-v1:cleanupDust:noDocChangeListenerFoundToRemove",
       logValue: `cleanupDust - No listener function found to remove for mission ${missionId}`,
     });
   } else {
@@ -259,14 +261,14 @@ export const cleanupDust = (missionId: number): void => {
   const docHandleRemoved = globalValues.dustV1.docHandles.delete(missionId);
   if (!docHandleRemoved) {
     serverLogger.warning({
-      logId: "socket-dust-v1",
+      logId: "socket-dust-v1:cleanupDust:noDocHandleFoundToRemove",
       logValue: `cleanupDust - No docHandle found to remove for mission ${missionId}`,
     });
   }
 
   // All cleanup done
   serverLogger.debug({
-    logId: "socket-dust-v1",
+    logId: "socket-dust-v1:cleanupDust:cleanedUpListenerDocHandleAndSnapshot",
     logValue: `cleanupDust - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
   });
 };

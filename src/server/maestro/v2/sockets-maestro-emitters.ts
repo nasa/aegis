@@ -74,13 +74,15 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
     });
 
     serverLogger.debug({
-      logId: "socket-maestro-v2",
+      logId:
+        "socket-maestro-v2:addMaestroDocListenerForMission:addedMaestroAutomergeDocChangeListener",
       logValue: `addMaestroDocListenerForMission - Added maestro automerge doc listener for mission ${missionId}`,
     });
   } catch (error) {
     serverLogger.error(
       {
-        logId: "socket-maestro-v2",
+        logId:
+          "socket-maestro-v2:addMaestroDocListenerForMission:failedToAddMaestroAutomergeDocChangeListener",
         logValue: `addMaestroDocListenerForMission - Error adding maestro doc listener for mission ${missionId}`,
       },
       error instanceof Error ? error : new Error(String(error))
@@ -98,7 +100,7 @@ export const cleanupMaestro = (missionId: number): void => {
   const removeListenerFn = globalValues.maestroV2.docListeners.get(missionId);
   if (!removeListenerFn) {
     serverLogger.warning({
-      logId: "socket-maestro-v2",
+      logId: "socket-maestro-v2:cleanupMaestro:noDocChangeListenerFoundToRemove",
       logValue: `cleanupMaestro - No listener function found to remove for mission ${missionId}`,
     });
   } else {
@@ -113,14 +115,14 @@ export const cleanupMaestro = (missionId: number): void => {
   const docHandleRemoved = globalValues.maestroV2.docHandles.delete(missionId);
   if (!docHandleRemoved) {
     serverLogger.warning({
-      logId: "socket-maestro-v2",
+      logId: "socket-maestro-v2:cleanupMaestro:noDocHandleFoundToRemove",
       logValue: `cleanupMaestro - No docHandle found to remove for mission ${missionId}`,
     });
   }
 
   // All cleanup done
   serverLogger.debug({
-    logId: "socket-maestro-v2",
+    logId: "socket-maestro-v2:cleanupMaestro:cleanedUpListenerDocHandleAndSnapshot",
     logValue: `cleanupMaestro - Cleaned up listener, docHandle, and snapshot for mission ${missionId}`,
   });
 };
@@ -154,7 +156,7 @@ export const getExecuteUuids = (missionId: number, rexUuid: string): ExecuteUuid
   const docHandle = globalValues.maestroV2.docHandles.get(missionId);
   if (!docHandle) {
     serverLogger.warning({
-      logId: "socket-maestro-v2",
+      logId: "socket-maestro-v2:getExecuteUuids:noDocHandleAvailableForMission",
       logValue: `getExecuteUuids - no doc handle available for mission ${missionId}`,
     });
     throw new Error(`No doc handle available for mission ${missionId}`);
