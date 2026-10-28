@@ -44,6 +44,7 @@ type STMRule = {
   verbUuids: string[];
   nounUuids: string[];
   adjectiveUuids: string[];
+  /** Any flags ignore that dimension, including null or missing values. */
   verbAny: boolean;
   nounAny: boolean;
   adjectiveAny: boolean;
