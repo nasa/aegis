@@ -142,16 +142,28 @@ const MissionSelect = ({ appUser }: { appUser: AppUser }) => {
   const [missionHomepageItems, setMissionHomepageItems] = useState<MissionHomepageItem[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
     async function populateData() {
       if (!appUser) return;
-
-      const missionHomepageItemsRes = await getMissionHomepageItems();
-      setMissionHomepageItems(missionHomepageItemsRes.data);
+      try {
+        const response = await getMissionHomepageItems();
+        if (!cancelled && response.status === "success") setMissionHomepageItems(response.data);
+      } finally {
+        if (!cancelled)
+          timer = setTimeout(() => {
+            populateData().catch(() => {});
+          }, 5000);
+      }
     }
 
     populateData().catch(() => {
       // Something went wrong. Eventually would like a logger here.
     });
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [appUser]);
 
   return (

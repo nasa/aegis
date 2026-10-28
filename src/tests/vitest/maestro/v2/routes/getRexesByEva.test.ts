@@ -6,6 +6,7 @@ import DocListingFactory from "../../../fixtures/entityFactories/DocListingFacto
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../../../helpers/mockAutomergeRepo";
+import { seedMissionCatalog } from "../../../helpers/seedMissionCatalog";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
@@ -56,6 +57,7 @@ beforeAll(async () => {
   ];
 
   globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
+  await seedMissionCatalog(testAutomergeDocListings);
 });
 
 describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
