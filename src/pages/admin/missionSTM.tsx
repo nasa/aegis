@@ -3,6 +3,7 @@ import { useAdminMission } from "components/admin/useAdminMission";
 import { Link, useParams } from "react-router";
 import MissionSTM from "components/admin/missionSTM";
 import MissionPriorityImportExport from "components/admin/missionPriorityImportExport";
+import MissionRulesImportExport from "components/admin/missionRulesImportExport";
 import adminCommon from "./adminCommon.module.css";
 
 type RouteParams = {
@@ -38,6 +39,11 @@ const MissionSTMPage: React.FunctionComponent = () => {
           </section>
         )}
         {automergeUrl && !mission.pending && !mission.error && (
+          <section className={adminCommon.section}>
+            <MissionRulesImportExport key={automergeUrl} automergeUrl={automergeUrl} />
+          </section>
+        )}
+        {automergeUrl && (
           <section className={adminCommon.section}>
             <MissionPriorityImportExport automergeUrl={automergeUrl} />
           </section>
