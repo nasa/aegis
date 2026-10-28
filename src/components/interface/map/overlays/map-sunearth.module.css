@@ -39,14 +39,6 @@
   outline-offset: -2px;
 }
 
-.unavailable {
-  filter: grayscale(1);
-}
-
-.unavailable .azimuthIndicatorContainer {
-  opacity: 0.4;
-}
-
 .sourceTooltip {
   z-index: 900;
   max-width: 320px;
@@ -136,4 +128,9 @@
   width: 0;
   height: 0;
   font-size: 2em;
+}
+
+.unavailable .sunEarthIconContainer,
+.unavailable .sunEarthIconContainerDashboard {
+  display: none;
 }

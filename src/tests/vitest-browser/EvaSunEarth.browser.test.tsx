@@ -160,12 +160,20 @@ describe("EVA Sun/Earth", () => {
     expect(harness.container.querySelectorAll('[data-icon="earth-americas"]')).toHaveLength(2);
     expect(harness.container.querySelectorAll('[data-icon="moon"]')).toHaveLength(0);
   });
-  it("greys out with an explanation when no EVA is selected", () => {
+  it("keeps normal colors and hides direction icons with an explanation when no EVA is selected", async () => {
     store.dispatch(setSelectedEvaUuid(null));
     render();
     expect(info()).toBe("No EVA selected.");
     const overlay = harness.container.querySelector('[aria-label="Sun/Earth value source"]');
-    expect(getComputedStyle(overlay).filter).toBe("grayscale(1)");
+    expect(getComputedStyle(overlay).filter).toBe("none");
+    const icons = overlay.querySelectorAll("svg[data-icon]");
+    expect(icons).toHaveLength(2);
+    icons.forEach((icon) => expect(icon.checkVisibility()).toBe(false));
+
+    store.dispatch(setSelectedEvaUuid("eva-1"));
+    await vi.waitFor(() => {
+      icons.forEach((icon) => expect(icon.checkVisibility()).toBe(true));
+    });
   });
   it("does not substitute a layer date for a missing EVA date", () => {
     mission.evas["eva-1"].datetime = null;
