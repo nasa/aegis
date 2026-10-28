@@ -73,7 +73,7 @@
   top: 10px;
   left: 45px;
   z-index: 100;
-  width: 285px;
+  width: 295px;
   max-height: calc(100% - 20px);
   overflow: auto;
   background-color: var(--grey2);

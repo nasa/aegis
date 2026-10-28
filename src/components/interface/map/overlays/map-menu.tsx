@@ -748,7 +748,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
               collapsible={false}
             />
             <MenuItem
-              title="Mouse Lat/Lon"
+              title="Mouse Coordinates"
               selected={showMouseLatLon}
               setSelected={() => {
                 setShowMouseLatLon(!showMouseLatLon);

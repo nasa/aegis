@@ -167,13 +167,13 @@ test.describe("Mission 22 — Eyeball Menu", () => {
     await expect(menuPanel.getByText("Positions")).toBeVisible();
   });
 
-  test("eyeball menu shows Scale Bar and Mouse Lat/Lon toggles", async ({ page }) => {
+  test("eyeball menu shows Scale Bar and Mouse Coordinates toggles", async ({ page }) => {
     await openMissionMap(page);
     await openEyeballMenu(page);
 
     const menuPanel = page.getByTestId("map-menu-floating-panel");
     await expect(menuPanel.getByText("Scale Bar")).toBeVisible();
-    await expect(menuPanel.getByText("Mouse Lat/Lon")).toBeVisible();
+    await expect(menuPanel.getByText("Mouse Coordinates")).toBeVisible();
   });
 
   test("eyeball menu shows Stations sub-toggles: Labels, Walkbacks, Circles", async ({ page }) => {
