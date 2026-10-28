@@ -58,9 +58,9 @@ For one STM level-3 item within one EVA column:
   would rarely filter anything: with many columns, almost every row differs
   somewhere.
 
-Engine caveat (asserted in unit tests): an action missing an
-`actionDefinition` dimension never matches, including `*Any` wildcard rules —
-json-logic `!!` on a missing var is false.
+An `*Any` flag ignores that `actionDefinition` dimension, including null,
+empty, or missing values. Explicit selections in other dimensions still apply.
+When all three flags are enabled, even a null `actionDefinition` matches.
 
 ## Architecture
 

@@ -20,11 +20,8 @@ const getActionDefRuleLogic = ({
       ruleLogics.push(rule);
     }
   } else {
-    // handle any
-    const rule: RulesLogic = {
-      "!!": { var: `actionDefinition.${typeSingular}Uuid` },
-    };
-    ruleLogics.push(rule);
+    // Any removes this dimension's constraint, including null or missing values.
+    ruleLogics.push(true);
   }
   return ruleLogics;
 };
