@@ -7,7 +7,7 @@ export class Migration20261021000000 extends Migration {
       create table mission_catalog_db (
         mission_id integer primary key,
         summary jsonb not null,
-        summary_version integer not null,
+        version integer not null default 1,
         constraint mission_catalog_db_mission_id_foreign foreign key (mission_id)
           references doc_listing_db(mission_id) on update cascade on delete cascade
       );

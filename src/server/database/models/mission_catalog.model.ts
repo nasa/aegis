@@ -12,7 +12,7 @@ export const Mission_Catalog_dbSchema = defineEntity({
       .primary()
       .deleteRule("cascade"),
     summary: p.json<MissionSummary>(),
-    projectionVersion: p.integer(),
+    version: p.integer().version(),
   },
 });
 
@@ -33,3 +33,6 @@ export const Mission_Eva_Catalog_dbSchema = defineEntity({
     isAsPlanned: p.boolean(),
   },
 });
+
+export class Mission_Eva_Catalog_db extends Mission_Eva_Catalog_dbSchema.class {}
+Mission_Eva_Catalog_dbSchema.setClass(Mission_Eva_Catalog_db);

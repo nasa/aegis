@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { MikroORM } from "@mikro-orm/postgresql";
+import { MikroORM, OptimisticLockError } from "@mikro-orm/postgresql";
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo/slim";
 import { Repo } from "@automerge/automerge-repo/slim";
 import pg from "pg";
@@ -24,6 +24,11 @@ import { generateBlankRex, generateBlankPosEntry } from "store/storeUtils/rex";
 import { getRexesByEva } from "server/maestro/v2/routes/getRexesByEva";
 import * as Automerge from "@automerge/automerge";
 import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
+import {
+  Doc_Listing_db,
+  Mission_Catalog_db,
+  Mission_Eva_Catalog_db,
+} from "server/database/models/_allModels";
 
 let repo: Repo;
 let pool: pg.Pool;
@@ -67,7 +72,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await repo.shutdown();
   const em = globalValues.orm.em.fork();
-  for (const id of ids) await em.execute("delete from doc_listing_db where mission_id = ?", [id]);
+  await em.nativeDelete(Doc_Listing_db, { missionId: { $in: ids } });
   for (const handle of handles) {
     await storage.removeRange([handle.documentId]);
   }
@@ -160,11 +165,8 @@ test("persisted edits update names, archives, EVA membership and the small REX c
     expect(
       await globalValues.orm.em
         .fork()
-        .execute("select name from mission_eva_catalog_db where mission_id = ? and eva_uuid = ?", [
-          ids[0],
-          eva.uuid,
-        ])
-    ).toEqual([{ name: "Renamed EVA" }]);
+        .findOne(Mission_Eva_Catalog_db, { missionId: ids[0], evaUuid: eva.uuid })
+    ).toMatchObject({ name: "Renamed EVA" });
     handle.change((m) => {
       m.archivedAt = 123;
       m.rexes[rex.uuid].isRunning = false;
@@ -277,6 +279,38 @@ test("unrelated changes and sync-state saves do not rewrite catalog rows", async
   } finally {
     storage.onDocumentSaved = undefined;
   }
+});
+
+test("summary versions increment only for changed summaries and reject stale ORM updates", async () => {
+  const eva = generateBlankEVA();
+  const handle = await createMission({ evas: { [eva.uuid]: eva } });
+  const first = globalValues.orm.em.fork();
+  const stale = await first.findOneOrFail(Mission_Catalog_db, { missionId: ids[0] });
+  expect(stale.version).toBe(1);
+
+  // A forced refresh compares managed values rather than rewriting identical rows.
+  await missionCatalog.createMissionSummary(repo, handle, undefined, true);
+  handle.change((m) => {
+    m.evas[eva.uuid].name = "EVA-only rename";
+  });
+  await refreshMissionCatalog(repo, handle);
+  const read = () =>
+    globalValues.orm.em.fork().findOneOrFail(Mission_Catalog_db, { missionId: ids[0] });
+  expect((await read()).version).toBe(1);
+
+  handle.change((m) => {
+    m.name = "Updated summary";
+  });
+  await refreshMissionCatalog(repo, handle);
+  expect((await read()).version).toBe(2);
+  // A revision above 1 still counts as indexed during subsequent startup population.
+  expect(
+    (await missionCatalog.getUnindexedMissionListings()).map((entry) => entry.missionId)
+  ).not.toContain(ids[0]);
+
+  stale.summary = { ...stale.summary, name: "Stale summary" };
+  await expect(first.flush()).rejects.toBeInstanceOf(OptimisticLockError);
+  expect((await read()).summary.name).toBe("Updated summary");
 });
 
 test("unrelated local and remote edits, including timestamp changes, perform no catalog queries", async () => {
@@ -396,9 +430,7 @@ test("one-time population resumes missing summaries and repeated startup loads n
     m.name = "Persisted before crash";
   });
   await repo.flush(); // Simulate dying before summary creation ran.
-  await globalValues.orm.em
-    .fork()
-    .execute("delete from mission_catalog_db where mission_id = ?", [ids[1]]);
+  await globalValues.orm.em.fork().nativeDelete(Mission_Catalog_db, { missionId: ids[1] });
   await repo.shutdown();
   repo = new Repo({ storage });
   globalValues.automergeRepo = repo;
@@ -428,9 +460,7 @@ test("one-time population resumes missing summaries and repeated startup loads n
 test("deleting a listing removes both indexes and late summary creation cannot recreate them", async () => {
   const eva = generateBlankEVA();
   const handle = await createMission({ evas: { [eva.uuid]: eva } });
-  await globalValues.orm.em
-    .fork()
-    .execute("delete from doc_listing_db where mission_id = ?", [ids[0]]);
+  await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId: ids[0] });
   await refreshMissionCatalog(repo, handle);
   expect(await getMissionSummaries(ids, true)).toEqual([]);
   expect(await getMissionIdsForEva(eva.uuid)).toEqual([]);

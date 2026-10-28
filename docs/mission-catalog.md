@@ -29,6 +29,9 @@ once-per-minute housekeeping sweep does not shorten the debounce for active docu
 There is no index polling, database trigger or persistent pending queue. The summary and EVA
 rows update in one transaction; unchanged rows are not rewritten. Deleting a document listing
 cascades through both indexes. Loading an unloaded mission also refreshes its entry.
+Catalog reads and writes use MikroORM entities. The summary's `version` is managed by
+MikroORM for optimistic locking and increments when the summary changes; it is not a
+summary format version. Initial population selects only listings without a summary.
 
 Index updates are triggered by mission ID/name/archive status/action-system version/creation
 time, EVA UUID/name/as-planned membership, and the running REX's UUID/name/PET clock fields.
