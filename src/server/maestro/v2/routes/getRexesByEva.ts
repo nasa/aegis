@@ -20,9 +20,10 @@ export type RefRex = {
 const router = express.Router();
 
 const parseQuery = (query: Query) => {
-  const { evaUuid } = query;
+  const { evaUuid, missionId } = query;
   const queryObj = {
     evaUuid: evaUuid ? (evaUuid as string) : undefined,
+    missionId: missionId ? parseInt(missionId as string) : undefined,
   };
   return queryObj;
 };
@@ -61,8 +62,20 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  if (!queryObj.missionId || isNaN(queryObj.missionId)) {
+    serverLogger.apiRoute({
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName: "emss/getRexesByEva",
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
+    return;
+  }
+
   try {
-    const refRexes = await getRexesByEva(queryObj.evaUuid);
+    const refRexes = await getRexesByEva(queryObj.evaUuid, queryObj.missionId);
     res.status(200).json({
       status: "success",
       message: `Rexes retrieved`,
@@ -86,19 +99,22 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
  * Find every REX for a given as-planned EVA.
  * Filter out rexes that have a maestroEventId.
  */
-export async function getRexesByEva(asPlannedEvaUuid: string): Promise<RefRex[]> {
-  const allMissions = await getAutomergeMissions();
+export async function getRexesByEva(
+  asPlannedEvaUuid: string,
+  missionId: number
+): Promise<RefRex[]> {
+  const mission = (await getAutomergeMissions([missionId]))[0];
 
-  const matchingRexes = allMissions.flatMap((mission) => {
-    const asPlannedEva = mission.evas?.[asPlannedEvaUuid];
-    if (!asPlannedEva) return [];
-    const relatedEvaUuids = Object.values(mission.evas || {})
-      .filter((e) => e.refUuid === asPlannedEva.refUuid)
-      .map((e) => e.uuid);
-    return Object.values(mission.rexes || {}).filter(
-      (r) => relatedEvaUuids.includes(r.evaUuid) && !r.maestroEventId
-    );
-  });
+  const asPlannedEva = mission.evas?.[asPlannedEvaUuid];
+  if (!asPlannedEva) return [];
+
+  const relatedEvaUuids = Object.values(mission.evas || {})
+    .filter((e) => e.refUuid === asPlannedEva.refUuid)
+    .map((e) => e.uuid);
+
+  const matchingRexes = Object.values(mission.rexes || {}).filter(
+    (r) => relatedEvaUuids.includes(r.evaUuid) && !r.maestroEventId
+  );
 
   return matchingRexes.map((rex) => ({
     uuid: rex.uuid,
