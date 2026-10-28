@@ -1,17 +1,19 @@
-/* eslint-disable no-restricted-syntax -- TODO (Phase 2): Migrate automergeRepo.find().change() pattern to withMissionChange */
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { createMission, deleteMissions, getMissions } from "http-client/mission";
+import {
+  createMission,
+  deleteMissions,
+  getMissionSummaries,
+  setMissionArchived,
+} from "http-client/mission";
 import { isLoggedIn } from "http-client/login";
 import { Tooltip } from "react-tooltip";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { initialState as wholeStoreInitialState } from "store/index";
 import { setAllSliceStores } from "store/crossActions";
 import { getAutomergeDocListing } from "http-client/docListing";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faRocket } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -23,18 +25,17 @@ const Missions: React.FunctionComponent = () => {
   const action = useAsyncStatus();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [missions, setMissions] = useState<Mission[]>([]);
+  const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [automergeDocListings, setAutomergeDocListings] = useState<AutomergeDocListing[]>([]);
   const [user, setUser] = useState<AppUser | null>(null);
 
   const loadMissions = useCallback(
     () =>
       runLoad("Loading missions...", async () => {
-        // Load doc listings and missions in parallel.
-        // Read missions from the server to avoid replaying their documents on the client.
+        // Both requests read SQL metadata; listing historical missions never loads their CRDTs.
         const [docListingsRes, missionsRes] = await Promise.all([
           getAutomergeDocListing(),
-          getMissions(),
+          getMissionSummaries(),
         ]);
 
         if (!docListingsRes.data) {
@@ -197,14 +198,13 @@ const MissionList = ({
   isLoading,
   loadError,
 }: {
-  missions: Mission[];
+  missions: MissionSummary[];
   automergeDocListings: AutomergeDocListing[];
   user: AppUser | null;
   loadMissions: Function;
   isLoading: boolean;
   loadError: boolean;
 }) => {
-  const automergeRepo = useRepo();
   const navigate = useNavigate();
   const permissionList = user?.permissionList;
   const action = useAsyncStatus();
@@ -225,27 +225,12 @@ const MissionList = ({
   }
 
   async function archiveMission({ id, archive }: { id: number; archive: boolean }) {
-    const mission = missions.find((m) => m.id === id);
-    if (mission) {
-      // get automerge URL
-      const automergeUrl = automergeDocListings.find(
-        (listing) => listing.missionId === id
-      )?.automergeUrl;
-      if (!automergeUrl) {
-        throw new Error("No automerge URL found for mission " + id);
-      }
-      const missionDocHandle = await automergeRepo.find<Mission>(automergeUrl as AutomergeUrl);
-      if (missionDocHandle) {
-        missionDocHandle.change((mission: Mission) => {
-          mission.archivedAt = archive ? new Date().getTime() : null;
-        });
-      }
-      await loadMissions();
-    }
+    await setMissionArchived(id, archive);
+    await loadMissions();
   }
 
-  const listedMissionRows = (missionType: Mission[], archivedAtTable = false) => {
-    return missionType.map((mission: Mission) => {
+  const listedMissionRows = (missionType: MissionSummary[], archivedAtTable = false) => {
+    return missionType.map((mission) => {
       if (
         user?.isSuperAdmin ||
         permissionList?.some((p) => p.missionId === mission.id && p.permissions.edit === true)
@@ -261,9 +246,6 @@ const MissionList = ({
               </span>
             </td>
             <td style={{ textAlign: "center" }}>{mission.actionSystemVersion ?? "—"}</td>
-            <td style={{ whiteSpace: "nowrap" }}>
-              {mission.updatedAt ? new Date(mission.updatedAt).toLocaleString() : "—"}
-            </td>
             <td style={{ whiteSpace: "nowrap" }}>
               {mission.createdAt ? new Date(mission.createdAt).toLocaleString() : "—"}
             </td>
@@ -379,7 +361,7 @@ const MissionList = ({
       } else {
         return (
           <tr key={mission.id}>
-            <td colSpan={archivedAtTable ? 7 : 6}>
+            <td colSpan={archivedAtTable ? 7 : 5}>
               <span style={{ color: "#64748b", fontStyle: "italic", fontSize: "0.9rem" }}>
                 {mission.name} [No Edit Permissions]
               </span>
@@ -390,10 +372,8 @@ const MissionList = ({
     });
   };
 
-  const visibleMissions = missions?.filter(
-    (mission: Mission) => mission.archivedAt == undefined || mission.archivedAt == null
-  );
-  const archivedMissions = missions?.filter((missions: Mission) => missions.archivedAt !== null);
+  const visibleMissions = missions?.filter((mission) => mission.archivedAt == null);
+  const archivedMissions = missions?.filter((mission) => mission.archivedAt != null);
 
   if (missions.length > 0) {
     return (
@@ -415,7 +395,6 @@ const MissionList = ({
                 <col />
                 <col className={styles.colVersion} />
                 <col className={styles.colDate} />
-                <col className={styles.colDate} />
                 <col className={styles.colActions} />
               </colgroup>
               <thead>
@@ -423,7 +402,6 @@ const MissionList = ({
                   <th>ID</th>
                   <th>Mission</th>
                   <th style={{ textAlign: "center" }}>Version</th>
-                  <th>Updated At</th>
                   <th>Created At</th>
                   <th>Actions</th>
                 </tr>
@@ -437,7 +415,6 @@ const MissionList = ({
                   <col className={styles.colId} />
                   <col />
                   <col className={styles.colVersion} />
-                  <col className={styles.colDate} />
                   <col className={styles.colDate} />
                   <col className={styles.colActions} />
                 </colgroup>
@@ -469,7 +446,6 @@ const MissionList = ({
                   <col className={styles.colVersion} />
                   <col className={styles.colDate} />
                   <col className={styles.colDate} />
-                  <col className={styles.colDate} />
                   <col className={styles.colActions} />
                   <col className={styles.colDelete} />
                 </colgroup>
@@ -478,7 +454,6 @@ const MissionList = ({
                     <th>ID</th>
                     <th>Mission</th>
                     <th style={{ textAlign: "center" }}>Version</th>
-                    <th>Updated At</th>
                     <th>Created At</th>
                     <th>Archived At</th>
                     <th>Actions</th>
@@ -494,7 +469,6 @@ const MissionList = ({
                     <col className={styles.colId} />
                     <col />
                     <col className={styles.colVersion} />
-                    <col className={styles.colDate} />
                     <col className={styles.colDate} />
                     <col className={styles.colDate} />
                     <col className={styles.colActions} />

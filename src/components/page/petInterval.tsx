@@ -11,7 +11,7 @@ import { calculatePetValue } from "utils/formatting";
  * @returns Nothin'
  */
 const PetInterval: FunctionComponent<{
-  runningRex: Rex;
+  runningRex: RunningRexSummary;
   rexPetTime: string;
   setRexPetTime: Function;
 }> = ({ runningRex, rexPetTime, setRexPetTime }) => {
