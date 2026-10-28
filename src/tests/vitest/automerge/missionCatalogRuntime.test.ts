@@ -42,6 +42,7 @@ function addDocument(id: string, missionId = 1) {
   const handle = {
     documentId,
     isReady: () => true,
+    whenReady: vi.fn().mockResolvedValue(undefined),
     doc: vi.fn(() => document),
   } as unknown as DocHandle<Mission>;
   repo.handles[documentId] = handle;
@@ -52,6 +53,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.mocked(createMissionSummary).mockReset().mockResolvedValue(false);
   vi.mocked(serverLogger.error).mockClear();
+  vi.mocked(serverLogger.debug).mockClear();
   globalValues.serverSocketStatus.visitorsData = [];
   globalValues.maestroV2.visitorData = {};
   globalValues.dustV1.visitorData = {};
@@ -233,6 +235,14 @@ test("loading a persisted mission schedules a catalog check without a save", asy
     expect(createMissionSummary).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(MISSION_CATALOG_DEBOUNCE_MS);
     expect(createMissionSummary).toHaveBeenCalledExactlyOnceWith(repo, handle);
+    expect(repo.listenerCount("doc-metrics")).toBe(1);
+    expect(serverLogger.debug).toHaveBeenCalledExactlyOnceWith({
+      logId: "mission-load",
+      logValue: "Loaded mission document into memory",
+      missionId: 1,
+      documentId: source.documentId,
+      durationMs: expect.any(Number),
+    });
     expect(adapter.save).not.toHaveBeenCalledWith(
       expect.arrayContaining([source.documentId]),
       expect.anything()

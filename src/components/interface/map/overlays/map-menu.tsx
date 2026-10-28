@@ -123,11 +123,6 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   onClose,
 }) => {
   const [showMenu, setShowMenu] = useState(floating);
-  const selectedPresetUuid = useAppSelector((state) => state.preset.selectedPresetUuid, refEqual);
-  const selectedPreset = useMissionDocSelector(
-    (mission) => mission.presets?.[selectedPresetUuid],
-    deepEqual
-  );
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
   const selectedRexPosSources = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return undefined;
@@ -135,8 +130,6 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
     const runningRex = Object.values(mission.rexes).find((r) => r.isRunning);
     return selectedRex?.posSources || runningRex?.posSources;
   }, deepEqual);
-  const earthMoonName = selectedPreset?.earthAsMoon ? "Moon" : "Earth";
-  const sunEarthEnabled: boolean = selectedPreset?.sunEnabled || selectedPreset?.earthEnabled;
 
   // Base grid spacing (metres) drives which fixed-spacing options are selectable.
   // Derived from the loaded grid geometry so it always matches what's drawn.
@@ -762,16 +755,14 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
               }}
               collapsible={false}
             />
-            {sunEarthEnabled && (
-              <MenuItem
-                title={`Sun/${earthMoonName} Directions`}
-                selected={showSunEarth}
-                setSelected={() => {
-                  setShowSunEarth(!showSunEarth);
-                }}
-                collapsible={false}
-              />
-            )}
+            <MenuItem
+              title={`Sun/${planetRadius === 1737400 ? "Earth" : "Moon"} Directions`}
+              selected={showSunEarth}
+              setSelected={() => {
+                setShowSunEarth(!showSunEarth);
+              }}
+              collapsible={false}
+            />
           </div>
         </div>
       </div>

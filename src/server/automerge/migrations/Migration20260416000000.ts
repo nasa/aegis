@@ -19,7 +19,9 @@ type LegacyAction = Action & { missionId: number | null };
 type LegacyStation = Station & { missionId: number };
 type LegacyTraverse = Traverse & { missionId: number };
 
-type LegacyEva = Eva & {
+// Sun/Earth settings were added by Migration20261022000000.
+type EvaBeforeSunEarth = Omit<Eva, "sunEarthFromDate" | "sunAzimuth" | "earthAzimuth">;
+type LegacyEva = EvaBeforeSunEarth & {
   missionId: number;
   egressDuration?: number | null;
   ingressDuration?: number | null;
@@ -275,14 +277,16 @@ export const Migration20260416000000: AutomergeMigration = {
       }
     }
 
-    docHandle.change((mission: Mission) => {
-      if (poisRecord !== undefined) mission.pois = poisRecord;
-      if (actionsRecord !== undefined) mission.actions = actionsRecord;
-      if (stationsRecord !== undefined) mission.stations = stationsRecord;
-      if (traversesRecord !== undefined) mission.traverses = traversesRecord;
-      if (evasRecord !== undefined) mission.evas = evasRecord;
-      if (rexesRecord !== undefined) mission.rexes = rexesRecord;
-    });
+    docHandle.change(
+      (mission: Omit<Mission, "evas"> & { evas: Record<string, EvaBeforeSunEarth> }) => {
+        if (poisRecord !== undefined) mission.pois = poisRecord;
+        if (actionsRecord !== undefined) mission.actions = actionsRecord;
+        if (stationsRecord !== undefined) mission.stations = stationsRecord;
+        if (traversesRecord !== undefined) mission.traverses = traversesRecord;
+        if (evasRecord !== undefined) mission.evas = evasRecord;
+        if (rexesRecord !== undefined) mission.rexes = rexesRecord;
+      }
+    );
 
     serverLogger.debug({
       logId: "automerge-migration",

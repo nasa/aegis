@@ -73,12 +73,13 @@ function makeStore(partial: Partial<RootState> = {}) {
 let captured: string | null | undefined;
 let capturedWithSource: MapDateTimeWithSource | null;
 let capturedAzimuths: SunEarthAzimuths;
-const datePreset = generateBlankPreset({ sunEarthFromDate: true });
+let capturedEvaInfoAzimuths: SunEarthAzimuths;
 
 function Probe(): null {
   captured = useMapDateTime();
   capturedWithSource = useMapDateTimeWithSource();
-  capturedAzimuths = useSunEarthAzimuths(datePreset);
+  capturedAzimuths = useSunEarthAzimuths(true);
+  capturedEvaInfoAzimuths = useSunEarthAzimuths();
   return null;
 }
 
@@ -91,6 +92,8 @@ beforeEach(() => {
   for (const key of Object.keys(docState)) {
     delete (docState as Record<string, unknown>)[key];
   }
+  docState.planetRadius = 1737400;
+  docState.landerLocation = { lat: -84.2, lng: 33.5 };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -112,10 +115,11 @@ function render(store: ReturnType<typeof makeStore>) {
 }
 
 describe("useMapDateTime", () => {
-  it("recalculates sun/earth directions at EVA start plus hover time and restores them on leave", () => {
+  it("updates sun/earth and layer dates with timeline hover and restores them on leave", () => {
     const datetime = Date.parse("2026-04-15T23:30:00Z");
     docState.evas = { "eva-1": { uuid: "eva-1", datetime } as Eva };
     docState.landerLocation = { lat: -89, lng: 45 };
+    docState.planetRadius = 1737400;
     const store = makeStore({ eva: { ...evaInit, selectedEvaUuid: "eva-1" } });
     render(store);
     const startAzimuths = capturedAzimuths;
@@ -139,11 +143,37 @@ describe("useMapDateTime", () => {
     expect(capturedAzimuths.datetime).toBe(datetime + 6 * 3600 * 1000);
     expect(capturedAzimuths.source).toBe("date");
     expect(capturedAzimuths.sunAzimuth).not.toBe(startAzimuths.sunAzimuth);
-    expect(capturedAzimuths.datetimeSourceLabel).toContain("+21600 s");
+    expect(capturedAzimuths.earthAzimuth).not.toBe(startAzimuths.earthAzimuth);
+    expect(capturedAzimuths.datetimeSourceLabel).toBe("Timeline hover: eva-1");
+    expect(capturedEvaInfoAzimuths).toEqual(startAzimuths);
     expect(docState.evas["eva-1"].datetime).toBe(datetime);
 
     flushSync(() => store.dispatch(clearMapItemHover()));
     expect(capturedAzimuths).toEqual(startAzimuths);
+  });
+
+  it("keeps manual sun/earth directions fixed during timeline hover", () => {
+    docState.evas = {
+      "eva-1": {
+        uuid: "eva-1",
+        datetime: Date.parse("2026-04-15T23:30:00Z"),
+        sunEarthFromDate: false,
+        sunAzimuth: 123,
+        earthAzimuth: 234,
+      } as Eva,
+    };
+    render(
+      makeStore({
+        eva: { ...evaInit, selectedEvaUuid: "eva-1" },
+        hover: { ...hoverInit, timelineTime: { evaUuid: "eva-1", elapsedSeconds: 21600 } },
+      })
+    );
+    expect(capturedAzimuths).toMatchObject({
+      source: "manual",
+      datetime: null,
+      sunAzimuth: 123,
+      earthAzimuth: 234,
+    });
   });
 
   it.each([NaN, Infinity, -1, 1e20])("ignores invalid hover offset %s", (elapsedSeconds) => {
@@ -156,6 +186,8 @@ describe("useMapDateTime", () => {
     );
     expect(captured).toBe("1970-01-01T00:00:00.000Z");
     expect(capturedWithSource.source).toBe("eva");
+    expect(capturedAzimuths.datetime).toBe(0);
+    expect(capturedAzimuths.datetimeSourceLabel).toBe("EVA start: eva-1");
   });
 
   it("ignores hover time from a different EVA", () => {
@@ -168,6 +200,8 @@ describe("useMapDateTime", () => {
     );
     expect(captured).toBe("1970-01-01T00:00:00.000Z");
     expect(capturedWithSource.source).toBe("eva");
+    expect(capturedAzimuths.datetime).toBe(0);
+    expect(capturedAzimuths.datetimeSourceLabel).toBe("EVA start: eva-2");
   });
 
   it("returns null when no time sources are present", () => {
@@ -350,6 +384,8 @@ describe("useMapDateTime", () => {
       docState.sublayers = { [sublayer.uuid]: sublayer };
       const store = makeStore({ eva: { ...evaInit, selectedEvaUuid: "eva-1" } });
       render(store);
+      expect(capturedAzimuths.available).toBe(false);
+      expect(capturedAzimuths.datetime).toBeNull();
       expect(capturedWithSource.source).toBe("layer");
       expect(capturedWithSource.warning).toContain("Selected EVA EVA 1 has no valid date");
       expect(capturedWithSource.warning).toContain("time-based layer initial date");
@@ -371,6 +407,8 @@ describe("useMapDateTime", () => {
     );
     expect(capturedWithSource.source).toBe("preset-preview");
     expect(capturedWithSource.warning).toBe("Selected EVA EVA 1 has no valid date.");
+    expect(capturedAzimuths.available).toBe(false);
+    expect(capturedAzimuths.datetime).toBeNull();
   });
 
   it("preset preview time takes priority over EVA datetime", () => {
@@ -385,6 +423,7 @@ describe("useMapDateTime", () => {
     });
     render(store);
     expect(captured).toBe("2026-05-01T12:00:00Z");
+    expect(capturedAzimuths.datetime).toBe(docState.evas[evaUuid].datetime);
   });
 
   it("EVA datetime takes priority over time-based sublayer manifest", () => {

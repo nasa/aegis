@@ -1,3 +1,4 @@
+import EvaSunEarth from "./eva-sun-earth";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import {
   ValidatedTextArea,
@@ -222,40 +223,6 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
           </div>
 
           <div className={paneStyles.panelSection}>
-            <div className={paneStyles.panelSectionTitle}>
-              <SubpanelHeading icon={faRoute}>Path</SubpanelHeading>
-            </div>
-            <div className={paneStyles.panelSection2Column}>
-              <div className={paneStyles.panelColumnTable}>
-                <div className={paneStyles.panelColumnTableRow}>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.displayFieldLabel}>Traverse Color:</div>
-                  </div>
-                  <div className={paneStyles.panelColumnTableCell}>
-                    <div className={paneStyles.displayFieldValue}>
-                      <PathColorPickerMenu
-                        key={selectedEva.uuid}
-                        currentColor={selectedEva.traverseColor || "#03adfc"}
-                        editMode={editMode}
-                        updateColor={(val) => {
-                          withMissionChange((m) =>
-                            applyUpdateEvaByField(m, {
-                              evaUuid: selectedEvaUuid,
-                              fieldName: "traverseColor",
-                              value: val,
-                            })
-                          );
-                        }}
-                        styleContainer={{ padding: "0px 5px 0px 5px" }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
               <SubpanelHeading icon={faClock}>EVA Start Time</SubpanelHeading>
             </div>
@@ -263,7 +230,9 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
               <div className={paneStyles.panelSection2Column}>
                 <div className={paneStyles.panelColumnTable} onSubmit={handleDatetimeSubmit}>
                   <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}></div>
+                    <div className={paneStyles.panelColumnTableCell}>
+                      <div className={paneStyles.inputFieldLabel}>YYYY-MM-DD:</div>
+                    </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
                         <ValidatedInputField
@@ -281,7 +250,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                       </div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>YYYY-MM-DD</div>
+                      <div className={paneStyles.inputFieldLabel}>HH:MM:SS (UTC):</div>
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldValue}>
@@ -299,14 +268,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         />
                       </div>
                     </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.inputFieldLabel}>HH:MM:SS (UTC)</div>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <EvaSunEarth eva={selectedEva} editMode={editMode} />
 
           <div className={paneStyles.panelSection}>
             <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "3px" }}>
@@ -671,6 +639,40 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                         </div>
                       </div>
                     ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={paneStyles.panelSection}>
+            <div className={paneStyles.panelSectionTitle}>
+              <SubpanelHeading icon={faRoute}>Path</SubpanelHeading>
+            </div>
+            <div className={paneStyles.panelSection2Column}>
+              <div className={paneStyles.panelColumnTable}>
+                <div className={paneStyles.panelColumnTableRow}>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldLabel}>Traverse Color:</div>
+                  </div>
+                  <div className={paneStyles.panelColumnTableCell}>
+                    <div className={paneStyles.displayFieldValue}>
+                      <PathColorPickerMenu
+                        key={selectedEva.uuid}
+                        currentColor={selectedEva.traverseColor || "#03adfc"}
+                        editMode={editMode}
+                        updateColor={(val) => {
+                          withMissionChange((m) =>
+                            applyUpdateEvaByField(m, {
+                              evaUuid: selectedEvaUuid,
+                              fieldName: "traverseColor",
+                              value: val,
+                            })
+                          );
+                        }}
+                        styleContainer={{ padding: "0px 5px 0px 5px" }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -2,102 +2,69 @@ import type { FunctionComponent } from "react";
 import { useEffect, useId, useRef } from "react";
 import styles from "./map-sunearth.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEarthAmerica, faMoon, faSun, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { faEarthAmerica, faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from "react-tooltip";
-import { numericDatetimeToISO } from "utils/formatting";
+import { longDateFromDateNumeric } from "utils/formatting";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useSunEarthAzimuths } from "../hooks/useSunEarthAzimuths";
 
 export const SunEarth: FunctionComponent<{
   type: "editor" | "dashboard";
-  selectedPreset: Preset;
-}> = ({ type, selectedPreset }) => {
-  const azimuths = useSunEarthAzimuths(selectedPreset);
+}> = ({ type }) => {
+  const azimuths = useSunEarthAzimuths(true);
+  const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
+  const evaStartTime = useMissionDocSelector((m) => m.evas?.[selectedEvaUuid]?.datetime, refEqual);
+  const isLunar = useMissionDocSelector((m) => m.planetRadius === 1737400, refEqual);
   const tooltipId = useId();
-  if (!selectedPreset) return null;
-
-  let height = 180;
-  if (
-    (selectedPreset.earthEnabled && !selectedPreset.sunEnabled) ||
-    (!selectedPreset.earthEnabled && selectedPreset.sunEnabled)
-  ) {
-    height = 90;
-  }
-
-  if (selectedPreset.sunEnabled || selectedPreset.earthEnabled) {
-    return (
-      <div
-        className={`${type === "editor" ? styles.sunEarthContainerEditor : styles.sunEarthContainerDashboard} ${azimuths.warning ? styles.hasWarning : ""}`}
-        style={{ height: `${height + 40}px` }}
-      >
-        <Tooltip
-          id={tooltipId}
-          place={type === "editor" ? "right" : "left"}
-          className={styles.sourceTooltip}
-        >
-          {azimuths.source === "date" ? (
-            <>
-              <div>Date (UTC): {numericDatetimeToISO(azimuths.datetime)}</div>
-              <div>
-                Date Source:{" "}
-                {azimuths.datetimeSourceLabel?.replace(/ \(fallback\)$/, " (initial date)")}
-              </div>
-            </>
-          ) : (
-            <>
-              <div>Date (UTC): unavailable</div>
-              <div>Date Source: manual preset azimuths</div>
-            </>
-          )}
+  const info =
+    azimuths.warning ||
+    (azimuths.source === "date"
+      ? `Calculated at EVA start: ${longDateFromDateNumeric(evaStartTime)} (UTC)`
+      : "Manual EVA directions");
+  return (
+    <div
+      className={`${type === "editor" ? styles.sunEarthContainerEditor : styles.sunEarthContainerDashboard} ${!azimuths.available ? styles.unavailable : ""}`}
+      role="group"
+      aria-label={`Sun/${isLunar ? "Earth" : "Moon"} value source`}
+      aria-description={type === "editor" ? info : undefined}
+      data-tooltip-id={type === "editor" ? tooltipId : undefined}
+      tabIndex={type === "editor" ? 0 : undefined}
+    >
+      {type === "editor" && (
+        <Tooltip id={tooltipId} place="right" className={styles.sourceTooltip}>
+          {info}
         </Tooltip>
-        {selectedPreset.sunEnabled && (
-          <AzimuthIndicator
-            sunEarth="sun"
-            earthAsMoon={selectedPreset?.earthAsMoon}
-            azimuth={azimuths.sunAzimuth}
-            dashboard={type === "dashboard"}
-          />
-        )}
-        {selectedPreset.earthEnabled && (
-          <AzimuthIndicator
-            sunEarth="earth"
-            earthAsMoon={selectedPreset?.earthAsMoon}
-            azimuth={azimuths.earthAzimuth}
-            dashboard={type === "dashboard"}
-          />
-        )}
-        <button
-          type="button"
-          className={styles.sourceButton}
-          aria-label="Sun/Earth value source"
-          aria-description={azimuths.warning || azimuths.statusLabel}
-          data-status={azimuths.statusLabel}
-          data-warning={Boolean(azimuths.warning)}
-          data-tooltip-id={tooltipId}
-        >
-          <FontAwesomeIcon icon={faCircleInfo} />
-        </button>
-      </div>
-    );
-  }
-  // If neither sun nor earth is enabled, return an empty div
-  return null;
+      )}
+      <AzimuthIndicator
+        sunEarth="sun"
+        azimuth={azimuths.available ? azimuths.sunAzimuth : null}
+        dashboard={type === "dashboard"}
+      />
+      <AzimuthIndicator
+        sunEarth="earth"
+        azimuth={azimuths.available ? azimuths.earthAzimuth : null}
+        dashboard={type === "dashboard"}
+      />
+    </div>
+  );
 };
 
 export default SunEarth;
 
-const AzimuthIndicator: FunctionComponent<{
+export const AzimuthIndicator: FunctionComponent<{
   sunEarth: "sun" | "earth";
-  earthAsMoon: boolean;
-  azimuth: number;
+  azimuth: number | null;
   dashboard: boolean;
-}> = ({ sunEarth, earthAsMoon, azimuth, dashboard }) => {
+}> = ({ sunEarth, azimuth, dashboard }) => {
+  const isLunar = useMissionDocSelector((m) => m.planetRadius === 1737400, refEqual);
   const sunEarthRef = useRef(null);
   useEffect(() => {
     if (!sunEarthRef.current) return;
     const sunEarthIcon = sunEarthRef.current;
 
     const radius = 30; // Half of the circle's diameter
-    const radians = (azimuth - 90) * (Math.PI / 180); // Convert degrees to radians and adjust by -90 degrees
+    const radians = ((azimuth ?? 0) - 90) * (Math.PI / 180); // Convert degrees to radians and adjust by -90 degrees
     const x = radius * Math.cos(radians); // Calculate the x position
     const y = radius * Math.sin(radians); // Calculate the y position
 
@@ -117,7 +84,9 @@ const AzimuthIndicator: FunctionComponent<{
         </div>
         {!dashboard && (
           <div className={styles.azimuthTextContainer}>
-            <div className={styles.azimuthText}>{Math.round(azimuth) % 360}°</div>
+            <div className={styles.azimuthText}>
+              {azimuth == null ? "—" : `${Math.round(azimuth) % 360}°`}
+            </div>
           </div>
         )}
         <div
@@ -133,7 +102,7 @@ const AzimuthIndicator: FunctionComponent<{
             }}
           >
             <FontAwesomeIcon
-              icon={sunEarth === "sun" ? faSun : earthAsMoon ? faMoon : faEarthAmerica}
+              icon={sunEarth === "sun" ? faSun : isLunar ? faEarthAmerica : faMoon}
             />
           </div>
         </div>

@@ -167,9 +167,10 @@ initializeBase64Wasm(automergeWasmBase64);
   });
   globalValues.automergeRepo = missionRepo;
 
+  // Observe storage loads before catalog population and running missions load documents.
+  const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
   await populateMissionCatalogOnce(missionRepo);
   await loadRunningMissionDocuments(missionRepo);
-  const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
   server.listen(4001, () => {
     serverLogger.info({
       logId: "server",
