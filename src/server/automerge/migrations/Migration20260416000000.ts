@@ -11,9 +11,7 @@ import {
 import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
 import { serverLogger } from "utils/logging/serverLogger";
 
-// This migration predates the removal of `missionId` from the Automerge entity types, and it
-// must stay byte-for-byte as it originally ran. These local variants re-add the `missionId`
-// field it writes so the historical code still type-checks against the current entity types.
+// Historical entity shapes include mission IDs and stored terrain profiles.
 type LegacyPoi = POI & { missionId: number };
 type LegacyAction = Action & { missionId: number | null };
 type LegacyStation = Station & {

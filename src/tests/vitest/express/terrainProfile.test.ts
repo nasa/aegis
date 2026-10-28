@@ -113,6 +113,7 @@ describe("terrain profile route", () => {
       "42:traverse_abc-123",
       false
     );
+    expect(mocks.debug).not.toHaveBeenCalled();
   });
 
   it("retains both coincident endpoints for a zero-length segment", async () => {
@@ -127,6 +128,90 @@ describe("terrain profile route", () => {
       "42:traverse_abc-123",
       false
     );
+  });
+
+  it("serves 40 profiles in one HTTP call with bounded sampling and one debug summary", async () => {
+    const profiles = Array.from({ length: 40 }, (_, i) => ({
+      ...validBody,
+      entityKey: `traverse-${i}`,
+      path: [
+        { lat: i, lng: 0 },
+        { lat: i, lng: 1 },
+      ],
+    }));
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
+      doc: () => ({
+        demFilePath: "dem.tif",
+        demResolution: 5,
+        traverses: Object.fromEntries(profiles.map(({ entityKey }) => [entityKey, {}])),
+      }),
+    });
+    vi.mocked(cachedTerrainProfile).mockImplementation(({ compute, onCacheStatus }) => {
+      onCacheStatus?.("miss");
+      return compute();
+    });
+    let active = 0;
+    let peak = 0;
+    mocks.readTerrainProfileInWorker.mockImplementation(async (_descriptor, path) => {
+      peak = Math.max(peak, ++active);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      active--;
+      return { elevationsMeters: [[path[0].lat, path[0].lat + 1]], terrainSlopesDegrees: [[1, 2]] };
+    });
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({ profiles });
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(40);
+    response.body.data.forEach((result: TerrainProfileResponse, index: number) => {
+      expect(result.status).toBe("success");
+      expect(result.data.elevationsMeters).toEqual([[index, index + 1]]);
+    });
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(4);
+    expect(mocks.debug).toHaveBeenCalledTimes(1);
+    expect(mocks.debug).toHaveBeenCalledWith({
+      logId: "terrain-profile",
+      missionId: 42,
+      batchId: expect.any(String),
+      logValue: expect.stringMatching(
+        /^Batch 40 profiles > disk-cache hit=0 miss=40 bypass=0 errors=0 in [\d.]+ ms$/
+      ),
+    });
+  });
+
+  it("returns successful profiles alongside validation failures in a batch", async () => {
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({
+        profiles: [validBody, { ...validBody, path: [{ lat: 91, lng: 0 }, validBody.path[1]] }],
+      });
+    expect(response.status).toBe(200);
+    expect(response.body.data[0].status).toBe("success");
+    expect(response.body.data[1]).toMatchObject({ status: "error", httpStatus: 400 });
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(1);
+    expect(mocks.debug).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([null, {}, { profiles: [] }, { profiles: "invalid" }])(
+    "rejects an invalid batch body: %j",
+    async (body) => {
+      const response = await supertest(app)
+        .post("/api/v1/terrain-profile/batch?missionId=42")
+        .send(body);
+      expect(response.status).toBe(400);
+      expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
+    }
+  );
+
+  it("checks mission permission before sampling a batch", async () => {
+    mocks.hasPerms.mockReturnValue(false);
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({ profiles: [validBody] });
+    expect(response.status).toBe(401);
+    expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
   });
 
   it("allows requests without a coalescing entity key", async () => {
@@ -266,6 +351,7 @@ it("returns an owned entity's disk-cached profile without sampling the DEM", asy
   const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
   mocks.hasPerms.mockReturnValue(true);
   mocks.readTerrainProfileInWorker.mockClear();
+  mocks.debug.mockClear();
   mocks.getAutomergeMissionHandle.mockResolvedValue({
     isDeleted: () => false,
     doc: () => ({
@@ -274,9 +360,9 @@ it("returns an owned entity's disk-cached profile without sampling the DEM", asy
       traverses: { [validBody.entityKey]: {} },
     }),
   });
-  vi.mocked(cachedTerrainProfile).mockResolvedValue({
-    elevationsMeters: [[10, 20]],
-    terrainSlopesDegrees: [[1, 2]],
+  vi.mocked(cachedTerrainProfile).mockImplementation(async ({ onCacheStatus }) => {
+    onCacheStatus?.("hit");
+    return { elevationsMeters: [[10, 20]], terrainSlopesDegrees: [[1, 2]] };
   });
   const response = await supertest(app)
     .post("/api/v1/terrain-profile?missionId=42")
@@ -286,6 +372,7 @@ it("returns an owned entity's disk-cached profile without sampling the DEM", asy
     expect.objectContaining({ missionId: 42, entity: validBody.entityKey })
   );
   expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
+  expect(mocks.debug).not.toHaveBeenCalled();
 });
 
 it("samples drag previews without the disk cache under a separate coalescing key", async () => {
@@ -355,7 +442,10 @@ describe("mission terrain profile batches", () => {
       traverses: { traverse },
     });
     handle = { doc: () => mission, isDeleted: () => false } as unknown as DocHandle<Mission>;
-    vi.mocked(cachedTerrainProfile).mockImplementation(({ compute }) => compute());
+    vi.mocked(cachedTerrainProfile).mockImplementation(({ compute, onCacheStatus }) => {
+      onCacheStatus?.("miss");
+      return compute();
+    });
     mocks.readTerrainProfileInWorker.mockReset().mockResolvedValue(profile);
   });
 
@@ -385,6 +475,15 @@ describe("mission terrain profile batches", () => {
     expect(peak).toBeGreaterThan(1);
     expect(peak).toBeLessThanOrEqual(4);
     expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(40);
+    expect(mocks.debug).toHaveBeenCalledTimes(1);
+    expect(mocks.debug).toHaveBeenCalledWith({
+      logId: "terrain-profile",
+      missionId: 42,
+      batchId: expect.any(String),
+      logValue: expect.stringMatching(
+        /^Batch 40 profiles > disk-cache hit=0 miss=40 bypass=0 errors=0 in [\d.]+ ms$/
+      ),
+    });
     for (const entry of Object.values(profiles)) {
       expect(entry.status).toBe("ready");
       expect(entry.profile).toEqual(profile);

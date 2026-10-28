@@ -41,6 +41,7 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
   inputs: unknown;
   isCurrent: () => boolean;
   compute: () => Promise<T>;
+  onCacheStatus?: (status: "hit" | "miss") => void;
 }): Promise<TerrainProfile> {
   const file = cacheFile(args.missionId, args.entity);
   const requested = JSON.stringify(args.inputs);
@@ -56,22 +57,14 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
     try {
       const stored = JSON.parse(await fs.readFile(file, "utf8"));
       if (stored?.fingerprint === fingerprint && validProfile(stored.profile)) {
-        serverLogger.debug({
-          logId: "terrain-cache",
-          logValue: `Hit ${args.entity}`,
-          missionId: args.missionId,
-        });
+        args.onCacheStatus?.("hit");
         return stored.profile;
       }
     } catch (error) {
       if (!(error instanceof SyntaxError) && (error as NodeJS.ErrnoException).code !== "ENOENT")
         throw error;
     }
-    serverLogger.debug({
-      logId: "terrain-cache",
-      logValue: `Miss ${args.entity}`,
-      missionId: args.missionId,
-    });
+    args.onCacheStatus?.("miss");
     const result = await args.compute();
     const profile = {
       elevationsMeters: result.elevationsMeters,

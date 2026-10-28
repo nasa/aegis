@@ -17,3 +17,9 @@ type TerrainProfile = {
   elevationsMeters: number[][];
   terrainSlopesDegrees: (number | null)[][];
 };
+
+type TerrainProfileResponse = WrappedResponse<TerrainProfile> & { httpStatus?: number };
+
+type TerrainProfileBatchPostData = {
+  profiles: TerrainProfilePostData[];
+};

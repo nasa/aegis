@@ -1,6 +1,10 @@
 import type { DocHandle } from "@automerge/automerge-repo";
 import type { StoreType } from "store";
-import { getTerrainProfile, normalizeTerrainProfile } from "http-client/terrainProfile";
+import {
+  getTerrainProfile,
+  getTerrainProfiles,
+  normalizeTerrainProfile,
+} from "http-client/terrainProfile";
 import {
   reconcileTerrainProfiles,
   terrainFingerprint,
@@ -8,7 +12,6 @@ import {
   removeMissionTerrain,
 } from "store/terrainProfiles";
 
-const MAX_CONCURRENT_LOADS = 4;
 const RETRY_BASE_MS = 2_000;
 const RETRY_MAX_MS = 60_000;
 
@@ -56,11 +59,11 @@ function startCoordinator(
 ): () => void {
   const missionId = handle.doc().id;
   let stopped = false;
-  let running = 0;
   // Keys are uuid + fingerprint, so a geometry change starts a fresh request and retry count.
   const queued = new Set<string>();
   const attempts = new Map<string, number>();
   const retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  let retryPump: ReturnType<typeof setTimeout> | undefined;
   const queue: { uuid: string; entry: TerrainProfileEntry }[] = [];
   const currentEntry = (uuid: string) =>
     store.getState().terrainProfiles.missions[missionId]?.profiles[uuid];
@@ -76,21 +79,25 @@ function startCoordinator(
         if (stopped || currentEntry(uuid)?.fingerprint !== entry.fingerprint) return;
         queued.add(key);
         queue.push({ uuid, entry });
-        pump();
+        // Retry timers that expire together share one HTTP batch.
+        retryPump ??= setTimeout(() => {
+          retryPump = undefined;
+          pump();
+        }, 0);
       }, delay)
     );
   };
 
-  const load = async (uuid: string, entry: TerrainProfileEntry, key: string) => {
+  const load = async (
+    uuid: string,
+    entry: TerrainProfileEntry,
+    key: string,
+    responsePromise: Promise<TerrainProfileResponse>
+  ) => {
     let profile: TerrainProfile | null = null;
     let error: TerrainProfileLoadError | null = null;
     try {
-      const response = await getTerrainProfile({
-        missionId,
-        entityKey: uuid,
-        path: entry.path,
-        pathSegmentDistances: entry.distances,
-      });
+      const response = await responsePromise;
       if (response.status !== "success")
         throw new TerrainProfileLoadError(
           response.message || "Terrain profile unavailable",
@@ -107,7 +114,6 @@ function startCoordinator(
               true
             );
     }
-    running--;
     queued.delete(key);
     if (stopped) return;
     store.dispatch(
@@ -127,7 +133,8 @@ function startCoordinator(
 
   const pump = () => {
     if (stopped) return;
-    while (running < MAX_CONCURRENT_LOADS && queue.length) {
+    const batch: typeof queue = [];
+    while (queue.length) {
       const { uuid, entry } = queue.shift();
       const key = uuid + entry.fingerprint;
       if (currentEntry(uuid)?.fingerprint !== entry.fingerprint) {
@@ -135,9 +142,25 @@ function startCoordinator(
         attempts.delete(key);
         continue;
       }
-      running++;
-      load(uuid, entry, key);
+      batch.push({ uuid, entry });
     }
+    if (!batch.length) return;
+    const response = getTerrainProfiles(
+      missionId,
+      batch.map(({ uuid, entry }) => ({
+        entityKey: uuid,
+        path: entry.path,
+        pathSegmentDistances: entry.distances,
+      }))
+    );
+    batch.forEach(({ uuid, entry }, index) => {
+      load(
+        uuid,
+        entry,
+        uuid + entry.fingerprint,
+        response.then((profiles) => profiles[index])
+      );
+    });
   };
 
   const update = () => {
@@ -206,6 +229,7 @@ function startCoordinator(
     queue.length = 0;
     retryTimers.forEach((timer) => clearTimeout(timer));
     retryTimers.clear();
+    if (retryPump !== undefined) clearTimeout(retryPump);
     handle.off("change", update);
     store.dispatch(removeMissionTerrain(missionId));
   };

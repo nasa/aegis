@@ -5,6 +5,7 @@ describe("ConsoleLogger", () => {
   beforeEach(() => {
     // Reset state before each test
     ConsoleLogger.setConsoleLogLevel("off");
+    ConsoleLogger.setRemoteLogLevel("off");
     vi.restoreAllMocks();
   });
 
@@ -17,6 +18,39 @@ describe("ConsoleLogger", () => {
       ConsoleLogger.setConsoleLogLevel("debug");
       expect(ConsoleLogger.getConsoleLogLevel()).toBe("debug");
     });
+  });
+
+  test("console and remote logging preserve structured entries", () => {
+    ConsoleLogger.setConsoleLogLevel("debug");
+    ConsoleLogger.setRemoteLogLevel("debug");
+    const remoteDebug = vi.fn();
+    ConsoleLogger.setRemoteLogger({ debug: remoteDebug } as unknown as RemoteLogger);
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const entry: Loggable = {
+      logId: "terrain-profile",
+      missionId: 50,
+      uuids: ["entity-1"],
+      unused: undefined,
+      logValue: "POST 200 > disk-cache hit\n3.0 ms",
+    };
+
+    ConsoleLogger.debug(entry);
+
+    expect(debugSpy.mock.calls[0][1]).toBe(entry);
+    expect(remoteDebug).toHaveBeenCalledWith(entry);
+    ConsoleLogger.setRemoteLogLevel("off");
+  });
+
+  test("error logs preserve the Error and structured entry", () => {
+    ConsoleLogger.setConsoleLogLevel("error");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("sampling failed");
+
+    const entry: Loggable = { logId: "terrain-profile", missionId: 50, logValue: "failed" };
+    ConsoleLogger.error(entry, error);
+
+    expect(errorSpy.mock.calls[0][1]).toBe(error);
+    expect(errorSpy.mock.calls[0][2]).toBe(entry);
   });
 
   describe("log level filtering", () => {
