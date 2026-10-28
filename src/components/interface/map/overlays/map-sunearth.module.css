@@ -27,28 +27,14 @@
   display: flex;
   flex-direction: column;
   transform: scale(0.8);
+  cursor: help;
 }
 
 .azimuthIndicatorContainer {
   flex: 0 0 90px;
 }
 
-.sourceButton {
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: 0;
-  background: transparent;
-  color: var(--grey5);
-  font-size: 1.25em;
-  cursor: help;
-}
-
-.sourceButton:focus-visible {
+.sunEarthContainerEditor:focus-visible {
   outline: 2px solid var(--base);
   outline-offset: -2px;
 }

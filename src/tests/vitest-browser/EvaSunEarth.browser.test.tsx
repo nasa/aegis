@@ -164,9 +164,7 @@ describe("EVA Sun/Earth", () => {
     store.dispatch(setSelectedEvaUuid(null));
     render();
     expect(info()).toBe("No EVA selected.");
-    const overlay = harness.container.querySelector(
-      '[aria-label="Sun/Earth value source"]'
-    ).parentElement;
+    const overlay = harness.container.querySelector('[aria-label="Sun/Earth value source"]');
     expect(getComputedStyle(overlay).filter).toBe("grayscale(1)");
   });
   it("does not substitute a layer date for a missing EVA date", () => {

@@ -11,7 +11,6 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
-import { loadMissionForList } from "server/automerge/loadMissionForList";
 import { createMissionSummary } from "server/automerge/missionCatalog";
 import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
 
@@ -392,16 +391,18 @@ export async function getAutomergeMissionHandle(
 /**
  * Get automerge document for mission ids.
  * This will query the automerge doc listing to find the URLs for the docs and
- * then request the documents from the repo (the server loads unloaded documents one at a time).
+ * then load the documents from the repo sequentially within this request.
  * @param missionIds Ids for the missions. If no id is provided it will return all missions
  */
 export async function getAutomergeMissions(missionIds?: number[]): Promise<Mission[]> {
   const automergeListings = await getAutomergeDocListing(missionIds);
   const missionsToReturn: Mission[] = [];
   for (const listing of automergeListings) {
-    missionsToReturn.push(
-      await loadMissionForList(globalValues.automergeRepo, listing.automergeUrl as AutomergeUrl)
+    const handle = await globalValues.automergeRepo.find<Mission>(
+      listing.automergeUrl as AutomergeUrl
     );
+    await handle.whenReady();
+    missionsToReturn.push(handle.doc());
   }
 
   return missionsToReturn;

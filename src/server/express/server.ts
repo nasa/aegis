@@ -26,7 +26,6 @@ import pg from "pg";
 import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
-import { getRuntimeMemory } from "server/automerge/runtimeLoadDiagnostics";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
 
 // this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
@@ -178,18 +177,6 @@ initializeBase64Wasm(automergeWasmBase64);
       startupMs: Date.now() - bootStarted,
       loadedDocuments: Object.keys(missionRepo.handles).length,
       rssBytes: process.memoryUsage.rss(),
-    });
-  });
-
-  // Storage reconstruction timings include documents requested through WebSocket sync.
-  globalValues.automergeRepo.on("doc-metrics", (event) => {
-    if (event.type !== "doc-loaded") return;
-    serverLogger.info({
-      logId: "mission-storage-load",
-      logValue: "Document reconstructed from storage",
-      documentId: event.documentId,
-      durationMs: Math.round(event.durationMillis),
-      ...getRuntimeMemory(),
     });
   });
 

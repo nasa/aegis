@@ -2,7 +2,7 @@ import type { FunctionComponent } from "react";
 import { useEffect, useId, useRef } from "react";
 import styles from "./map-sunearth.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEarthAmerica, faMoon, faSun, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
+import { faEarthAmerica, faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from "react-tooltip";
 import { longDateFromDateNumeric } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -25,7 +25,11 @@ export const SunEarth: FunctionComponent<{
   return (
     <div
       className={`${type === "editor" ? styles.sunEarthContainerEditor : styles.sunEarthContainerDashboard} ${!azimuths.available ? styles.unavailable : ""}`}
-      style={{ height: type === "editor" ? "205px" : "180px" }}
+      role="group"
+      aria-label={`Sun/${isLunar ? "Earth" : "Moon"} value source`}
+      aria-description={type === "editor" ? info : undefined}
+      data-tooltip-id={type === "editor" ? tooltipId : undefined}
+      tabIndex={type === "editor" ? 0 : undefined}
     >
       {type === "editor" && (
         <Tooltip id={tooltipId} place="right" className={styles.sourceTooltip}>
@@ -42,17 +46,6 @@ export const SunEarth: FunctionComponent<{
         azimuth={azimuths.available ? azimuths.earthAzimuth : null}
         dashboard={type === "dashboard"}
       />
-      {type === "editor" && (
-        <button
-          type="button"
-          className={styles.sourceButton}
-          aria-label={`Sun/${isLunar ? "Earth" : "Moon"} value source`}
-          aria-description={info}
-          data-tooltip-id={tooltipId}
-        >
-          <FontAwesomeIcon icon={faCircleInfo} />
-        </button>
-      )}
     </div>
   );
 };

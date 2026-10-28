@@ -401,7 +401,7 @@ at the EVA start time. The compass tooltip always shows the EVA start time, incl
 timeline hover. Layer dates and preset preview times do not change these directions.
 Manual mode uses the EVA's
 `sunAzimuth`/`earthAzimuth`. Both bodies are always present; unavailable values are greyed
-out and the info button explains why.
+out and hovering or focusing the compass explains why.
 
 Distinct from these, `ol/Overlay` (a real DOM node anchored to a coordinate) is used for the
 **timeline astronaut** (`TimelineAstronaut`). POS markers are **not** overlays — they are vector
