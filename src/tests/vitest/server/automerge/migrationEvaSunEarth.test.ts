@@ -4,6 +4,7 @@ import { Migration20261022000000 } from "server/automerge/migrations/Migration20
 import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankPreset } from "store/storeUtils/preset";
 import { missionValidator } from "utils/validateSchemaServer";
 
 const fields = ["sunEarthFromDate", "sunAzimuth", "earthAzimuth"] as const;
@@ -32,8 +33,27 @@ describe("EVA Sun/Earth migration", () => {
         sunAzimuth: 0,
         earthAzimuth: 234,
       });
+      const preset = generateBlankPreset({ uuid: "legacy-preset", missionDefault: true });
+      const partialPreset = generateBlankPreset({ uuid: "partial-preset" });
+      const cleanPreset = generateBlankPreset({ uuid: "clean-preset" });
       let doc = Automerge.from({
-        ...generateBlankMission({ planetRadius, evas: { legacy, partial, manual } }),
+        ...generateBlankMission({
+          planetRadius,
+          evas: { legacy, partial, manual },
+        }),
+        presets: {
+          [preset.uuid]: {
+            ...preset,
+            sunAzimuth: 123,
+            sunEnabled: true,
+            earthAzimuth: 234,
+            earthEnabled: false,
+            earthAsMoon: true,
+            sunEarthFromDate: false,
+          },
+          [partialPreset.uuid]: { ...partialPreset, sunEnabled: false },
+          [cleanPreset.uuid]: cleanPreset,
+        },
       });
       const before = Automerge.toJS(doc);
       expect(missionValidator(before)).toBe(false);
@@ -59,10 +79,15 @@ describe("EVA Sun/Earth migration", () => {
       });
       expect(doc.evas.partial).toEqual({ ...before.evas.partial, earthAzimuth: 0 });
       expect(doc.evas.manual).toEqual(before.evas.manual);
+      expect(doc.presets).toEqual({
+        [preset.uuid]: preset,
+        [partialPreset.uuid]: partialPreset,
+        [cleanPreset.uuid]: cleanPreset,
+      });
       const heads = Automerge.getHeads(doc);
       await Migration20261022000000.migrate(handle, null);
       expect(Automerge.getHeads(doc)).toEqual(heads);
-      expect(Automerge.load<Mission>(Automerge.save(doc)).evas).toEqual(doc.evas);
+      expect(Automerge.load<Mission>(Automerge.save(doc))).toEqual(Automerge.toJS(doc));
     }
   );
 

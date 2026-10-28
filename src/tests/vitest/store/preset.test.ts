@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  generateBlankPreset,
   migrateLegacyCircleControlHaloStyles,
   migrateLegacyHaloStyle,
 } from "store/storeUtils/preset";
-import * as Automerge from "@automerge/automerge";
 import { defaultGridStyle, defaultSublayerStyle } from "store/storeUtils/sublayer";
 
 type LegacyHaloStyle = MapSublayerStyle & {
@@ -13,26 +11,6 @@ type LegacyHaloStyle = MapSublayerStyle & {
   labelStrokeOpacity?: number;
   labelStrokeWidth?: number;
 };
-
-describe("preset date calculation persistence", () => {
-  it.each([false, true])("round-trips date mode %s without changing manual azimuths", (enabled) => {
-    const preset = generateBlankPreset({
-      sunEarthFromDate: enabled,
-      sunAzimuth: 123,
-      earthAzimuth: 234,
-    });
-    const doc = Automerge.from({ preset });
-    expect(Automerge.load<{ preset: Preset }>(Automerge.save(doc)).preset).toMatchObject({
-      sunEarthFromDate: enabled,
-      sunAzimuth: 123,
-      earthAzimuth: 234,
-    });
-  });
-
-  it("defaults new presets to manual mode", () => {
-    expect(generateBlankPreset().sunEarthFromDate).toBe(false);
-  });
-});
 
 describe("migrateLegacyHaloStyle", () => {
   it("maps legacy label stroke properties to halo properties idempotently", () => {

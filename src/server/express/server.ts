@@ -167,6 +167,17 @@ initializeBase64Wasm(automergeWasmBase64);
   });
   globalValues.automergeRepo = missionRepo;
 
+  // Observe storage loads before catalog population and running missions load documents.
+  missionRepo.on("doc-metrics", (event) => {
+    if (event.type !== "doc-loaded") return;
+    serverLogger.debug({
+      logId: "mission-load",
+      logValue: "Loaded mission document into memory",
+      documentId: event.documentId,
+      durationMs: event.durationMillis,
+    });
+  });
+
   await populateMissionCatalogOnce(missionRepo);
   await loadRunningMissionDocuments(missionRepo);
   const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);

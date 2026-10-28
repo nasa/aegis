@@ -86,13 +86,6 @@ type Preset = {
   mapCircleControls: MapCircleControls;
   mapGridControl: MapGridControl;
   layerOrder: PresetLayerOrder[];
-  sunAzimuth: number;
-  sunEnabled: boolean;
-  earthAzimuth: number;
-  earthEnabled: boolean;
-  earthAsMoon: boolean;
-  /** Compute sun/earth azimuths from the lander location and active map datetime. */
-  sunEarthFromDate?: boolean;
   createdAt: number;
   updatedAt: number;
 };
