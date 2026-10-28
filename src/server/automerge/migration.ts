@@ -48,14 +48,14 @@ const runMigration = async () => {
     );
     if (pendingMigrations.length === 0) {
       serverLogger.info({
-        logId: "automerge-migration",
+        logId: "automerge-migration:runMigration:noPendingMigrationsExitingWithoutLoadingDocuments",
         logValue: "No pending automerge migrations. Exiting without loading documents.",
       });
       return;
     }
 
     serverLogger.info({
-      logId: "automerge-migration",
+      logId: "automerge-migration:runMigration:listOfPendingMigrations",
       logValue: `Pending automerge migrations: ${pendingMigrations
         .map(({ version, name }) => `${version}-${name}`)
         .join(", ")}`,
@@ -77,7 +77,7 @@ const runMigration = async () => {
     globalValues.automergeRepo = automergeRepo;
 
     serverLogger.info({
-      logId: "automerge-migration",
+      logId: "automerge-migration:runMigration:startingAutomergeMigrationScript",
       logValue: "Starting automerge migration script...",
     });
     const allDocListings: AutomergeDocListing[] = await getAutomergeDocListing();
@@ -88,7 +88,10 @@ const runMigration = async () => {
       if (!isValidAutomergeUrl(docListing.automergeUrl)) {
         const errorMessage = `Invalid automerge URL in doc listing. MissionId: ${docListing.missionId} AutomergeUrl: ${docListing.automergeUrl}`;
         serverLogger.error(
-          { logId: "automerge-migration", logValue: errorMessage },
+          {
+            logId: "automerge-migration:runMigration:invalidAutomergeUrlInDocListing",
+            logValue: errorMessage,
+          },
           new Error(errorMessage)
         );
         throw new Error(errorMessage);
@@ -105,7 +108,7 @@ const runMigration = async () => {
     );
 
     serverLogger.info({
-      logId: "automerge-migration",
+      logId: "automerge-migration:runMigration:allProcessesCompleteExiting",
       logValue: "All processes complete. Exiting.",
     });
   } finally {
@@ -124,7 +127,10 @@ runMigration()
   })
   .catch(async (err: unknown) => {
     serverLogger.error(
-      { logId: "automerge-migration", logValue: "Unhandled error in migration" },
+      {
+        logId: "automerge-migration:runMigration:unhandledErrorInMigrationScript",
+        logValue: "Unhandled error in migration",
+      },
       err instanceof Error ? err : new Error(String(err))
     );
     process.exitCode = 1;

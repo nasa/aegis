@@ -183,7 +183,8 @@ describe("terrain profile route", () => {
     for (const [args] of vi.mocked(cachedTerrainProfile).mock.calls) expect(args.cache).toBe(cache);
     expect(mocks.debug).toHaveBeenCalledTimes(1);
     expect(mocks.debug).toHaveBeenCalledWith({
-      logId: "terrain-profile",
+      logId:
+        "terrain-profile:sampleMissionTerrainProfiles:batchSamplingCompletedWithCacheStatistics",
       missionId: 42,
       batchId: expect.any(String),
       logValue: expect.stringMatching(
@@ -326,6 +327,7 @@ describe("terrain profile route", () => {
     await supertest(app).post("/api/v1/terrain-profile?missionId=42junk").send(validBody);
 
     expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logId: "api-route:terrain-profile:POST:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -351,6 +353,7 @@ describe("terrain profile route", () => {
     expect(response.status).toBe(401);
     expect(mocks.getAutomergeMissionHandle).not.toHaveBeenCalled();
     expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logId: "api-route:terrain-profile:POST:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -370,6 +373,7 @@ describe("terrain profile route", () => {
 
     expect(response.status).toBe(404);
     expect(mocks.apiRoute).toHaveBeenCalledWith({
+      logId: "api-route:terrain-profile:POST:missionDocumentNotFound",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 404,
@@ -512,7 +516,8 @@ describe("mission terrain profile batches", () => {
     expect(loadMissionTerrainProfileCache).toHaveBeenCalledExactlyOnceWith(42);
     expect(mocks.debug).toHaveBeenCalledTimes(1);
     expect(mocks.debug).toHaveBeenCalledWith({
-      logId: "terrain-profile",
+      logId:
+        "terrain-profile:sampleMissionTerrainProfiles:batchSamplingCompletedWithCacheStatistics",
       missionId: 42,
       batchId: expect.any(String),
       logValue: expect.stringMatching(

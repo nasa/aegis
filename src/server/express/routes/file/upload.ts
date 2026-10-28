@@ -33,6 +33,7 @@ router.use(async (req: Request, res: Response, next): Promise<void> => {
   });
   if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
     serverLogger.apiRoute({
+      logId: "api-route:file/upload:POST:unauthorizedRequestRequiresEditPermissionAndAdmin",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -55,7 +56,10 @@ const upload = multer({
       cb(null, file.originalname);
       filename = file.originalname;
       req.on("aborted", () => {
-        serverLogger.info({ logId: "file", logValue: `Client aborted upload` });
+        serverLogger.info({
+          logId: "file:upload:clientAbortedUpload",
+          logValue: `Client aborted upload`,
+        });
         deleteFile(filename);
       });
     },
@@ -82,6 +86,7 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
       res.status(201).json(statusMessage);
     } else {
       serverLogger.apiRoute({
+        logId: "api-route:file/upload:POST:rejectedNoFileProvidedInRequestBody",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -94,6 +99,7 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
     }
   } catch (error) {
     serverLogger.apiRoute({
+      logId: "api-route:file/upload:POST:failedToUploadFile",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

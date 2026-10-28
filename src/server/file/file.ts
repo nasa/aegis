@@ -37,7 +37,7 @@ export async function unzip(
 
     //unzip the file. contents will overwrite if they already exist in location
     serverLogger.info({
-      logId: "file",
+      logId: "file:unzip:startingUnzipWithOverwrite",
       logValue: `Unzipping with overwrite: ${destRoot}/${filename}`,
     });
     const zip = new StreamZip.async({ file: `${destRoot}/${filename}` });
@@ -48,7 +48,7 @@ export async function unzip(
     await deleteFile(filename);
 
     serverLogger.info({
-      logId: "file",
+      logId: "file:unzip:unzipSucceededAndZipDeleted",
       logValue: `File unzip success. Extracted ${numFiles} files. Deleted .zip`,
     });
   } catch (e) {
@@ -85,7 +85,10 @@ export async function moveFile(
   const srcPath = `${destRoot}/${filename}`;
   const destPath = `${destination}/${filename}`;
 
-  serverLogger.info({ logId: "file", logValue: `Moving: ${srcPath} to ${destPath}` });
+  serverLogger.info({
+    logId: "file:moveFile:movingFileToDestination",
+    logValue: `Moving: ${srcPath} to ${destPath}`,
+  });
   await rename(srcPath, destPath);
 }
 
@@ -98,13 +101,19 @@ export async function deleteFile(path: string): Promise<boolean> {
   try {
     if (fs.existsSync(`${destRoot}/${path}`)) {
       await rm(`${destRoot}/${path}`, { recursive: true }); //delete file or folder
-      serverLogger.info({ logId: "file", logValue: `File/directory deleted ${destRoot}/${path}` });
+      serverLogger.info({
+        logId: "file:deleteFile:fileOrDirectoryDeleted",
+        logValue: `File/directory deleted ${destRoot}/${path}`,
+      });
       return true;
     } else {
       throw new Error(`File/directory does not exist ${destRoot}/${path}`);
     }
   } catch (e) {
-    serverLogger.warning({ logId: "file", logValue: `Error in deleteFile: ${e}` });
+    serverLogger.warning({
+      logId: "file:deleteFile:failedToDeleteFileOrDirectory",
+      logValue: `Error in deleteFile: ${e}`,
+    });
     return false;
   }
 }
@@ -141,7 +150,10 @@ export async function listFiles(path: string): Promise<GISfile[]> {
       throw new Error(`Path does not exist: ${destRoot}/${path}`);
     }
   } catch (e) {
-    serverLogger.warning({ logId: "file", logValue: `Error in listfiles: ${e}` });
+    serverLogger.warning({
+      logId: "file:listFiles:failedToListFiles",
+      logValue: `Error in listfiles: ${e}`,
+    });
     return null;
   }
 }
@@ -199,12 +211,15 @@ export async function renameFile(path: string, oldName: string, newName: string)
   try {
     await rename(`${destRoot}/${path}/${oldName}`, `${destRoot}/${path}/${newName}`);
     serverLogger.info({
-      logId: "file",
+      logId: "file:renameFile:pathRenamedSuccessfully",
       logValue: `Path renamed in ${destRoot}/${path} from ${oldName} to ${newName}`,
     });
     return true;
   } catch (e) {
-    serverLogger.warning({ logId: "file", logValue: `Error in renameFile: ${e}` });
+    serverLogger.warning({
+      logId: "file:renameFile:failedToRenamePath",
+      logValue: `Error in renameFile: ${e}`,
+    });
     return false;
   }
 }
@@ -222,7 +237,7 @@ export async function copyDirectoryContents(
 
   if (!fs.existsSync(fullSourcePath)) {
     serverLogger.info({
-      logId: "file",
+      logId: "file:copyDirectoryContents:noAssetsToCopySourceDoesNotExist",
       logValue: `No assets to copy: ${sourcePath} does not exist`,
     });
     return;
@@ -246,20 +261,20 @@ export async function copyDirectoryContents(
           acceptableExitCodes: [0, 1, 2, 3, 4, 5, 6, 7],
         });
         serverLogger.info({
-          logId: "file",
+          logId: "file:copyDirectoryContents:directoryCopiedWithRobocopy",
           logValue: `Directory recursively copied using robocopy from ${sourcePath} to ${targetPath}`,
         });
         return;
       } catch (error) {
         serverLogger.warning({
-          logId: "file",
+          logId: "file:copyDirectoryContents:robocopyFailedFallingBackToXcopy",
           logValue: `robocopy failed, falling back to xcopy: ${error instanceof Error ? error.message : String(error)}`,
         });
         // Fallback to xcopy if robocopy fails or is not available
         // /E ensures recursive copying (includes empty subdirectories)
         await executeCommand("xcopy", [fullSourcePath, fullTargetPath, "/E", "/I", "/H", "/Y"]);
         serverLogger.info({
-          logId: "file",
+          logId: "file:copyDirectoryContents:directoryCopiedWithXcopy",
           logValue: `Directory recursively copied using xcopy from ${sourcePath} to ${targetPath}`,
         });
         return;
@@ -269,7 +284,7 @@ export async function copyDirectoryContents(
       // -a (archive) ensures recursive copying with permissions preservation
       await executeCommand("rsync", ["-a", `${fullSourcePath}/`, fullTargetPath]);
       serverLogger.info({
-        logId: "file",
+        logId: "file:copyDirectoryContents:directoryCopiedWithRsync",
         logValue: `Directory recursively copied using rsync from ${sourcePath} to ${targetPath}`,
       });
       return;
@@ -280,7 +295,10 @@ export async function copyDirectoryContents(
     }
   } catch (error) {
     serverLogger.error(
-      { logId: "file", logValue: "System copy command failed" },
+      {
+        logId: "file:copyDirectoryContents:systemCopyCommandFailed",
+        logValue: "System copy command failed",
+      },
       error instanceof Error ? error : new Error(String(error))
     );
     throw error;

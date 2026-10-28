@@ -81,6 +81,15 @@ Run `npm run test:all` before committing, opening or updating a merge request, o
 
 Fix failures in the required checks before committing or handing changes off for review. Include lint checks for changed code during development; this project has non-standard CSS and JS/TS lint rules. If lint fails, read the error output carefully and fix exactly what it reports rather than guessing at the rule.
 
+## Logging
+
+Log through `clientLogger` (`utils/logging/clientLogger`) in browser code and `serverLogger` (`utils/logging/serverLogger`) in server code; both wrap `ConsoleLogger`.
+
+- **Every `logId` must be unique across the project** so a log entry in the logging server traces back to exactly one call site. The custom ESLint rule `aegis-logging/unique-log-id` (defined inline in `eslint.config.mjs`) enforces this for every `serverLogger` / `clientLogger` / `ConsoleLogger` / `rawServerLogger` call outside `src/tests/**`. The first argument must be an object literal and `logId` must be a string literal (no variables or template substitutions, no string-only shorthand). Uniqueness is checked across all files linted in one ESLint process, so `npm run lint` catches cross-file duplicates; an editor only compares against files it has already linted.
+- **Format:** `<category>:<function or handler>:<verbose camelCase description of the event>`, e.g. `socket-maestro-v2:sendMDAU:rejectedPayloadFailedSchemaValidation`. The first segment is the area of code (`server`, `automerge-migration`, `thunk-eva`, `socket-dust-v1`, ...), so you can still filter by area with a prefix query.
+- **`serverLogger.apiRoute()`** requires a `logId` in the form `api-route:<routeName>:<HTTP METHOD>:<description>`, e.g. `api-route:appUsers:GET:unauthorizedRequest`.
+- **Maestro v2 socket connection logs:** the `/maestro/v2` namespace logs every connection (`socket-maestro-v2:connection:maestroClientConnectedOrReconnected`, with `connectionStateRecovered` = Socket.IO's `socket.recovered`) and every disconnect, as `info` for client- or server-requested reasons and `warning` for lost connections (ping timeout, transport close/error). The disconnect log includes the Socket.IO `reason`, `description`, Maestro name, and joined mission ids. Connection state recovery is not enabled on the Socket.IO server, so `socket.recovered` is currently always `false`, and a reconnecting client arrives as a new socket id.
+
 ## Map / OpenLayers
 
 Any prompt that mentions "map", "OpenLayers", "OL", "ol", tiles, markers, layers, or the map implementation must first read `src/components/interface/map/CLAUDE.md` for full architecture context before doing any work.

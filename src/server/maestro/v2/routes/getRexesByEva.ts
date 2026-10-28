@@ -38,6 +38,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (!viewPermissions) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/getRexesByEva:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -52,6 +53,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   // validate inputs
   if (!queryObj.evaUuid) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/getRexesByEva:GET:rejectedMissingEvaUuid",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -71,6 +73,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/getRexesByEva:GET:failedToGetRexesByEva",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

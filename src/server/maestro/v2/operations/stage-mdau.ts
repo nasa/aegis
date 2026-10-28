@@ -89,7 +89,7 @@ const isEntitySubscribed = (
     }
   }
   serverLogger.warning({
-    logId: "socket-maestro-v2",
+    logId: "socket-maestro-v2:stageMdau:isEntitySubscribed:ignoredEntityDataForUnsubscribedEva",
     logValue:
       `stageMdau - received ${entityKind} data (uuid ${uuid}) for an EVA that Maestro ` +
       `is not subscribed to. Ignoring.`,
@@ -128,7 +128,8 @@ const stageActionOrder = (
   // A Set automatically removes duplicates. Use this for a quick way to check.
   if (new Set(incomingActionOrderUuids).size !== incomingActionOrderUuids.length) {
     serverLogger.warning({
-      logId: "socket-maestro-v2",
+      logId:
+        "socket-maestro-v2:stageMdau:stageActionOrder:skippedActionOrderBecauseIncomingUuidsContainDuplicates",
       logValue:
         `stageMdau - ${parentLabel}: incoming actionOrderUuids contains duplicate uuids. ` +
         `Skipping actionOrder update.`,
@@ -150,7 +151,8 @@ const stageActionOrder = (
       continue;
     }
     serverLogger.warning({
-      logId: "socket-maestro-v2",
+      logId:
+        "socket-maestro-v2:stageMdau:stageActionOrder:skippedActionOrderBecauseIncomingUuidIsNotExistingOrNewAction",
       logValue:
         `stageMdau - ${parentLabel}: incoming actionOrderUuids contains uuid ` +
         `${actionUuid} that is not an existing action or a new action from aegisAction. ` +
@@ -162,7 +164,8 @@ const stageActionOrder = (
   // Every existing action that was not deleted must still be listed.
   if (incomingActionOrderUuids.length - newActionUuids.length !== keptExistingUuids.length) {
     serverLogger.warning({
-      logId: "socket-maestro-v2",
+      logId:
+        "socket-maestro-v2:stageMdau:stageActionOrder:skippedActionOrderBecauseExistingUndeletedActionsAreMissing",
       logValue:
         `stageMdau - ${parentLabel}: incoming actionOrderUuids is missing existing actions ` +
         `that were not deleted. Skipping actionOrder update.`,
@@ -246,14 +249,14 @@ const stageStations = (
     const station = mission.stations[uuid];
     if (!station) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:stageMdau:stageStations:ignoredStationUuidNotFoundInMission",
         logValue: `stageStations - could not find station uuid ${uuid}`,
       });
       continue;
     }
     if (!isEntitySubscribed(evaUuidsByUuid, subscribedEvaUuids, uuid, "station")) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:stageMdau:stageStations:ignoredStationNotPartOfSubscribedEva",
         logValue: `stageStations - station ${uuid} is not part of a subscribed eva`,
       });
       continue;
@@ -294,14 +297,14 @@ const stageTraverses = (
     const traverse = mission.traverses[uuid];
     if (!traverse) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:stageMdau:stageTraverses:ignoredTraverseUuidNotFoundInMission",
         logValue: `stageMdau - could not find traverse uuid ${uuid}`,
       });
       continue;
     }
     if (!isEntitySubscribed(evaUuidsByUuid, subscribedEvaUuids, uuid, "traverse")) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:stageMdau:stageTraverses:ignoredTraverseNotPartOfSubscribedEva",
         logValue: `stageTraverses - traverse ${uuid} is not part of a subscribed eva`,
       });
       continue;
@@ -341,14 +344,14 @@ const stageEvas = (
     const eva = mission.evas[uuid];
     if (!eva) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:stageMdau:stageEvas:ignoredEvaUuidNotFoundInMission",
         logValue: `stageMdau - could not find eva uuid ${uuid}`,
       });
       continue;
     }
     if (!isEntitySubscribed(evaUuidsByUuid, subscribedEvaUuids, uuid, "eva")) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:stageMdau:stageEvas:ignoredEvaNotSubscribed",
         logValue: `stageEvas - eva ${uuid} is not part of a subscribed eva`,
       });
       continue;
@@ -400,7 +403,8 @@ const stageActions = (
       const parent = actionAddDeleteContext.addedActionUuidAndParentByUuid.get(aegisActionUuid);
       if (!parent) {
         serverLogger.warning({
-          logId: "socket-maestro-v2",
+          logId:
+            "socket-maestro-v2:stageMdau:stageActions:ignoredNewActionNotListedInAnyActionOrderUuids",
           logValue:
             `stageMdau - new action uuid ${aegisActionUuid} is not listed in the actionOrderUuids ` +
             `of any station or traverse in the payload. Ignoring.`,
@@ -428,7 +432,7 @@ const stageActions = (
     }
     if (!isEntitySubscribed(evaUuidsByUuid, subscribedEvaUuids, aegisActionUuid, "action")) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:stageMdau:stageActions:ignoredActionNotPartOfSubscribedEva",
         logValue: `stateActions - action ${aegisActionUuid} is not part of a subscribed eva`,
       });
       continue;
@@ -494,7 +498,7 @@ const stageRexes = (
     const rex = mission.rexes?.[rexUuid];
     if (!rex) {
       serverLogger.warning({
-        logId: "socket-maestro-v2",
+        logId: "socket-maestro-v2:stageMdau:stageRexes:ignoredRexUuidNotFoundInMission",
         logValue: `stageMdau - could not resolve rex uuid ${rexUuid}`,
       });
       continue;
@@ -506,7 +510,8 @@ const stageRexes = (
     for (const uuid in mdau.stationEntries) {
       if (!mission.stations[uuid] && !mission.traverses[uuid]) {
         serverLogger.warning({
-          logId: "socket-maestro-v2",
+          logId:
+            "socket-maestro-v2:stageMdau:stageRexes:ignoredRexStationEntryUuidNotFoundInMission",
           logValue: `stageMdau - rex ${rexUuid}: could not find station entry uuid ${uuid}`,
         });
         continue;
@@ -519,7 +524,8 @@ const stageRexes = (
     for (const uuid in mdau.traverseEntries) {
       if (!mission.stations[uuid] && !mission.traverses[uuid]) {
         serverLogger.warning({
-          logId: "socket-maestro-v2",
+          logId:
+            "socket-maestro-v2:stageMdau:stageRexes:ignoredRexTraverseEntryUuidNotFoundInMission",
           logValue: `stageMdau - rex ${rexUuid}: could not find traverse entry uuid ${uuid}`,
         });
         continue;
@@ -533,7 +539,8 @@ const stageRexes = (
       const actionExists = !!mission.actions[uuid] || newActionUuids.has(uuid);
       if (!actionExists || deletedActionUuids.has(uuid)) {
         serverLogger.warning({
-          logId: "socket-maestro-v2",
+          logId:
+            "socket-maestro-v2:stageMdau:stageRexes:ignoredRexActionEntryUuidNotFoundOrDeleted",
           logValue: `stageMdau - rex ${rexUuid}: could not find action entry uuid ${uuid}`,
         });
         continue;
