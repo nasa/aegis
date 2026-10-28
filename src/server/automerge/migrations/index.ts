@@ -1,4 +1,3 @@
-import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { Migration20260416000000 } from "server/automerge/migrations/Migration20260416000000";
 import { Migration20260528000000 } from "server/automerge/migrations/Migration20260528000000";
 import { Migration20260717000000 } from "server/automerge/migrations/Migration20260717000000";
@@ -15,8 +14,9 @@ import { Migration20261001000000 } from "server/automerge/migrations/Migration20
 import { Migration20261007000000 } from "server/automerge/migrations/Migration20261007000000";
 import { Migration20261009000000 } from "server/automerge/migrations/Migration20261009000000";
 import { Migration20261014000000 } from "server/automerge/migrations/Migration20261014000000";
-import { Migration20261022000000 } from "server/automerge/migrations/Migration20261022000000";
 import { Migration20261015000000 } from "server/automerge/migrations/Migration20261015000000";
+import { Migration20261022000000 } from "server/automerge/migrations/Migration20261022000000";
+import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 
 import type {
@@ -43,8 +43,8 @@ export const AUTOMERGE_MIGRATIONS: readonly AutomergeMigration[] = [
   Migration20261014000000,
   Migration20261015000000,
   Migration20261022000000,
-  Migration20261026000000,
   Migration20261022010000,
+  Migration20261026000000,
 ];
 
 export const getPendingAutomergeMigrations = (
