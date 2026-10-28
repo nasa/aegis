@@ -5,6 +5,7 @@ import { serverLogger } from "utils/logging/serverLogger";
 export async function releaseMissionDocument(repo: Repo, documentId: DocumentId): Promise<void> {
   const handle = repo.handles[documentId];
   if (!handle) return;
+  const missionId = handle.isReady() ? (handle.doc() as Mission).id : undefined;
 
   // Repo 2.5.6 unloads before detaching storage and sync. The empty A.init() placeholder
   // emits heads-changed/change: it can overwrite storage and leave pending sync callbacks
@@ -20,6 +21,7 @@ export async function releaseMissionDocument(repo: Repo, documentId: DocumentId)
   serverLogger.debug({
     logId: "mission-release",
     logValue: "Released mission document from memory",
+    missionId,
     documentId,
   });
 }

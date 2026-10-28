@@ -168,11 +168,28 @@ initializeBase64Wasm(automergeWasmBase64);
   globalValues.automergeRepo = missionRepo;
 
   // Observe storage loads before catalog population and running missions load documents.
-  missionRepo.on("doc-metrics", (event) => {
+  missionRepo.on("doc-metrics", async (event) => {
     if (event.type !== "doc-loaded") return;
+    const handle = missionRepo.handles[event.documentId];
+    if (!handle) return;
+    // Storage emits its metrics before the repo has updated the document handle.
+    try {
+      await handle.whenReady();
+    } catch (error) {
+      serverLogger.error(
+        {
+          logId: "mission-load",
+          logValue: "Mission document did not become ready after loading",
+          documentId: event.documentId,
+        },
+        error instanceof Error ? error : new Error(String(error))
+      );
+      return;
+    }
     serverLogger.debug({
       logId: "mission-load",
       logValue: "Loaded mission document into memory",
+      missionId: (handle.doc() as Mission).id,
       documentId: event.documentId,
       durationMs: event.durationMillis,
     });
