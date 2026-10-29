@@ -12,7 +12,8 @@ import { initialState } from "store";
 import { setAllSliceStores } from "store/crossActions";
 import { thunkObliterateMissionSpecificData } from "store/thunk/crossThunk";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { obliterateState, setTerrainPreview, terrainFingerprint } from "store/terrainProfiles";
+import { obliterateState, setTerrainPreview } from "store/terrainProfiles";
+import { profileInputSignature } from "utils/terrainProfileInputs";
 import { createCustomTestStore } from "tests/vitest/fixtures/store";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
@@ -211,7 +212,7 @@ it("adopts a ready preview on commit and caches the released geometry", () => {
     setTerrainPreview({
       uuid: traverse.uuid,
       entry: {
-        fingerprint: terrainFingerprint(handle.doc(), path, [10]),
+        inputSignature: profileInputSignature(handle.doc(), path, [10]),
         path,
         distances: [10],
         status: "ready",
@@ -253,7 +254,7 @@ it("drops a preview when different geometry is committed", () => {
     setTerrainPreview({
       uuid: traverse.uuid,
       entry: {
-        fingerprint: terrainFingerprint(handle.doc(), path, [10]),
+        inputSignature: profileInputSignature(handle.doc(), path, [10]),
         path,
         distances: [10],
         status: "ready",

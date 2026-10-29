@@ -1,4 +1,5 @@
-import { setTerrainPreview, clearTerrainPreview, terrainFingerprint } from "store/terrainProfiles";
+import { setTerrainPreview, clearTerrainPreview } from "store/terrainProfiles";
+import { profileInputSignature } from "utils/terrainProfileInputs";
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
 import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
@@ -79,12 +80,12 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
       const sourceTraverse = mission.traverses[traverseUuid];
       if (
         preview &&
-        terrainFingerprint(
+        profileInputSignature(
           currentMission,
           currentTraverse.path ?? [],
           currentTraverse.pathSegmentDistances ?? []
         ) !==
-          terrainFingerprint(
+          profileInputSignature(
             mission,
             sourceTraverse.path ?? [],
             sourceTraverse.pathSegmentDistances ?? []
@@ -101,7 +102,7 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
           setTerrainPreview({
             uuid: traverseUuid,
             entry: {
-              fingerprint: terrainFingerprint(
+              inputSignature: profileInputSignature(
                 mission,
                 stageData.newPath,
                 stageData.newPathSegmentDistances

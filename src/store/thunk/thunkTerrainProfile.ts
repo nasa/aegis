@@ -105,7 +105,7 @@ export function syncMissionTerrainProfiles(
   if (!handle) return () => {};
   const missionId = handle.doc().id;
   let stopped = false;
-  // Keys are uuid + fingerprint, so a geometry change starts a fresh request and retry count.
+  // Keys are uuid + inputSignature, so a geometry change starts a fresh request and retry count.
   const queued = new Set<string>();
   const attempts = new Map<string, number>();
   const retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -121,7 +121,7 @@ export function syncMissionTerrainProfiles(
       key,
       setTimeout(() => {
         retryTimers.delete(key);
-        if (stopped || currentEntry(uuid)?.fingerprint !== entry.fingerprint) return;
+        if (stopped || currentEntry(uuid)?.inputSignature !== entry.inputSignature) return;
         queued.add(key);
         queue.push({ uuid, entry });
         // Retry timers that expire together share one HTTP batch.
@@ -145,11 +145,11 @@ export function syncMissionTerrainProfiles(
     store.dispatch(
       terrainProfileReceived({
         uuid,
-        fingerprint: entry.fingerprint,
+        inputSignature: entry.inputSignature,
         ...result,
       })
     );
-    if (result.retryable && currentEntry(uuid)?.fingerprint === entry.fingerprint)
+    if (result.retryable && currentEntry(uuid)?.inputSignature === entry.inputSignature)
       scheduleRetry(uuid, entry, key);
     else attempts.delete(key);
     pump();
@@ -160,8 +160,8 @@ export function syncMissionTerrainProfiles(
     const batch: typeof queue = [];
     while (queue.length) {
       const { uuid, entry } = queue.shift();
-      const key = uuid + entry.fingerprint;
-      if (currentEntry(uuid)?.fingerprint !== entry.fingerprint) {
+      const key = uuid + entry.inputSignature;
+      if (currentEntry(uuid)?.inputSignature !== entry.inputSignature) {
         queued.delete(key);
         attempts.delete(key);
         continue;
@@ -182,7 +182,7 @@ export function syncMissionTerrainProfiles(
       load(
         uuid,
         entry,
-        uuid + entry.fingerprint,
+        uuid + entry.inputSignature,
         response.then((profiles) => profiles[index])
       );
     });
@@ -199,8 +199,8 @@ export function syncMissionTerrainProfiles(
       // request the committed geometry once to cache it.
       const preview = previews[uuid];
       if (
-        previous[uuid]?.fingerprint !== entry.fingerprint &&
-        preview?.fingerprint === entry.fingerprint &&
+        previous[uuid]?.inputSignature !== entry.inputSignature &&
+        preview?.inputSignature === entry.inputSignature &&
         preview.status === "ready"
       )
         getTerrainProfile({
@@ -212,7 +212,7 @@ export function syncMissionTerrainProfiles(
     }
     for (const [uuid, entry] of Object.entries(profiles)) {
       // Failed entries are retried only by their backoff timer.
-      const key = uuid + entry.fingerprint;
+      const key = uuid + entry.inputSignature;
       if (queued.has(key) || retryTimers.has(key)) continue;
       if (entry.status === "error" && entry.retryable) {
         scheduleRetry(uuid, entry, key);
