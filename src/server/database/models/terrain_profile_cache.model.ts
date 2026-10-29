@@ -11,7 +11,7 @@ export const Terrain_Profile_Cache_dbSchema = defineEntity({
       .primary()
       .deleteRule("cascade"),
     entityUuid: p.text().fieldName("entity_uuid").primary(),
-    fingerprint: p.text(),
+    inputSignature: p.text().fieldName("input_signature"),
     profile: p.json<TerrainProfile>(),
   },
 });

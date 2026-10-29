@@ -1,6 +1,6 @@
 /** Transient Redux data, separate from persisted mission entities. */
 type TerrainProfileEntry = {
-  fingerprint: string;
+  inputSignature: string;
   path: AEGISPoint[];
   distances: number[];
   /** "idle" is pending: queued or in flight. */
@@ -18,5 +18,5 @@ type TerrainProfilesState = {
 /** Request-scoped database snapshot for a mission's committed profiles. */
 type MissionTerrainProfileCache = {
   missionId: number;
-  profiles: Map<string, { fingerprint: string; profile: TerrainProfile }>;
+  profiles: Map<string, { inputSignature: string; profile: TerrainProfile }>;
 };

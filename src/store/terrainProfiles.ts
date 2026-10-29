@@ -1,19 +1,8 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { setAllSliceStores } from "store/crossActions";
+import { profileInputSignature } from "utils/terrainProfileInputs";
 
 export const initialState: TerrainProfilesState = { profiles: {}, previews: {} };
-export const terrainFingerprint = (
-  mission: Pick<Mission, "id" | "demFilePath" | "demResolution">,
-  path: AEGISPoint[],
-  distances: number[]
-): string =>
-  JSON.stringify([
-    mission.id,
-    mission.demFilePath,
-    mission.demResolution,
-    path.map((point) => [point.lat, point.lng]),
-    distances,
-  ]);
 
 /** Build entries for current geometry, preserving profiles that are already loaded. */
 export function buildTerrainProfiles(
@@ -30,12 +19,12 @@ export function buildTerrainProfiles(
       distances.length !== path.length - 1
     )
       return;
-    const fingerprint = terrainFingerprint(mission, path, distances);
+    const inputSignature = profileInputSignature(mission, path, distances);
     entries[uuid] =
-      previous[uuid]?.fingerprint === fingerprint
+      previous[uuid]?.inputSignature === inputSignature
         ? previous[uuid]
         : {
-            fingerprint,
+            inputSignature,
             path: JSON.parse(JSON.stringify(path)),
             distances: [...distances],
             status: "idle",
@@ -59,14 +48,14 @@ export const terrainProfilesSlice = createSlice({
       for (const uuid of Object.keys(state.profiles))
         if (!entries[uuid]) delete state.profiles[uuid];
       for (const [uuid, entry] of Object.entries(entries)) {
-        if (state.profiles[uuid]?.fingerprint === entry.fingerprint) continue;
+        if (state.profiles[uuid]?.inputSignature === entry.inputSignature) continue;
         state.profiles[uuid] = entry;
         changed.add(uuid);
       }
       // A preview ends once the committed geometry catches up with it or moves past it.
       for (const [uuid, preview] of Object.entries(state.previews)) {
         const committed = state.profiles[uuid];
-        if (committed?.fingerprint === preview.fingerprint) {
+        if (committed?.inputSignature === preview.inputSignature) {
           if (committed.status !== "ready" && preview.status === "ready") {
             committed.profile = preview.profile;
             committed.status = "ready";
@@ -84,14 +73,14 @@ export const terrainProfilesSlice = createSlice({
         payload,
       }: PayloadAction<{
         uuid: string;
-        fingerprint: string;
+        inputSignature: string;
         profile: TerrainProfile | null;
         error: string | null;
         retryable: boolean;
       }>
     ) {
       const entry = state.profiles[payload.uuid];
-      if (entry?.fingerprint !== payload.fingerprint) return;
+      if (entry?.inputSignature !== payload.inputSignature) return;
       entry.profile = payload.profile;
       entry.error = payload.error;
       entry.retryable = payload.retryable;

@@ -21,7 +21,7 @@ import {
   RasterSamplingWorkerPoolSupersededError,
   RasterSamplingWorkerPoolUnavailableError,
 } from "server/raster/rasterSamplingWorkerPool";
-import { terrainFingerprint } from "store/terrainProfiles";
+import { profileInputSignature } from "utils/terrainProfileInputs";
 import { serverLogger } from "utils/logging/serverLogger";
 import { hasPerms } from "utils/permissions";
 
@@ -45,6 +45,7 @@ export const validateTerrainProfileRequest = (
   resolutionMeters: number
 ): {
   path: { lat: number; lng: number }[];
+  pathSegmentDistances: number[];
   samplesPerSegment: number[];
   entityUuid?: string;
   getElevationOnly: boolean;
@@ -99,6 +100,7 @@ export const validateTerrainProfileRequest = (
   }
   return {
     path: postData.path,
+    pathSegmentDistances: postData.pathSegmentDistances,
     samplesPerSegment,
     entityUuid: postData.entityUuid,
     getElevationOnly: postData.getElevationOnly ?? false,
@@ -145,8 +147,7 @@ export async function sampleMissionTerrainProfile(
     ? await cachedTerrainProfile({
         missionId,
         entityUuid,
-        rasterPath,
-        inputs: [profilePath, samplesPerSegment, mission.demResolution ?? 10],
+        inputSignature: profileInputSignature(mission, profilePath, request.pathSegmentDistances),
         isCurrent,
         compute,
         onCacheStatus,
@@ -248,7 +249,7 @@ export async function getMissionTerrainProfiles(
     if (!entityPath || entityPath.length < 2 || distances?.length !== entityPath.length - 1)
       continue;
     profiles[uuid] = {
-      fingerprint: terrainFingerprint(mission, entityPath, distances),
+      inputSignature: profileInputSignature(mission, entityPath, distances),
       path: entityPath,
       distances,
       status: "ready",

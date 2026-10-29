@@ -49,6 +49,7 @@ import {
 } from "server/raster/rasterSamplingWorkerPool";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { buildTerrainProfiles } from "store/terrainProfiles";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
 
 const app = express();
@@ -542,6 +543,11 @@ describe("mission terrain profile batches", () => {
       },
     };
     const profiles = await getMissionTerrainProfiles(42, handle, snapshot, ["traverse"]);
+    const clientEntry = buildTerrainProfiles(snapshot).traverse;
+    expect(profiles.traverse.inputSignature).toBe(clientEntry.inputSignature);
+    expect(cachedTerrainProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ inputSignature: clientEntry.inputSignature })
+    );
     expect(profiles.traverse.path).toEqual(snapshot.traverses.traverse.path);
     expect(profiles.traverse.distances).toEqual([20]);
     expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(

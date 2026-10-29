@@ -1,4 +1,5 @@
-import { setTerrainPreview, clearTerrainPreview, terrainFingerprint } from "store/terrainProfiles";
+import { setTerrainPreview, clearTerrainPreview } from "store/terrainProfiles";
+import { profileInputSignature } from "utils/terrainProfileInputs";
 import appCreateAsyncThunk from "./thunkUtil";
 import {
   setSelectedStationUuid,
@@ -300,12 +301,12 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
   const currentStation = currentMission?.stations?.[stationUuid];
   if (getMissionDocHandle() !== missionDocHandle || !currentStation) return;
   if (
-    terrainFingerprint(
+    profileInputSignature(
       currentMission,
       currentStation.walkbackPath ?? [],
       currentStation.walkbackPathSegmentDistances ?? []
     ) !==
-    terrainFingerprint(
+    profileInputSignature(
       mission,
       station?.walkbackPath ?? [],
       station?.walkbackPathSegmentDistances ?? []
@@ -321,7 +322,7 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     setTerrainPreview({
       uuid: stationUuid,
       entry: {
-        fingerprint: terrainFingerprint(mission, newPath, pathSegmentDistances),
+        inputSignature: profileInputSignature(mission, newPath, pathSegmentDistances),
         status: profile ? "ready" : "error",
         error: profile ? null : "Terrain profile unavailable",
         path: JSON.parse(JSON.stringify(newPath)),

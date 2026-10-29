@@ -37,7 +37,7 @@ describe("rasterCache", () => {
     expect(third).toBe(first);
   });
 
-  it("invalidates a changed file", async () => {
+  it("reuses an open raster after its timestamps change", async () => {
     const rasterPath = path.join(temporaryDirectory, "a.tif");
     await copyFile(fixturePath, rasterPath);
     const first = await getCachedRaster(rasterPath);
@@ -46,7 +46,20 @@ describe("rasterCache", () => {
 
     const second = await getCachedRaster(rasterPath);
 
+    expect(second).toBe(first);
+  });
+
+  it("opens a distinct raster for a new filepath", async () => {
+    const rasterPath = path.join(temporaryDirectory, "a.tif");
+    const versionedPath = path.join(temporaryDirectory, "a-v2.tif");
+    await copyFile(fixturePath, rasterPath);
+    await copyFile(fixturePath, versionedPath);
+
+    const first = await getCachedRaster(rasterPath);
+    const second = await getCachedRaster(versionedPath);
+
     expect(second).not.toBe(first);
+    expect(await getCachedRaster(versionedPath)).toBe(second);
   });
 
   it("uses least-recently-used eviction with an eight-handle bound", async () => {
