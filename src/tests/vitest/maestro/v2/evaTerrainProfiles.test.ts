@@ -16,6 +16,10 @@ vi.mock("server/terrain/readTerrainProfile", () => ({
 }));
 vi.mock("server/terrain/terrainProfileCache", () => ({
   watchTerrainCache: vi.fn(),
+  loadMissionTerrainProfileCache: vi.fn(async (missionId: number) => ({
+    missionId,
+    profiles: new Map(),
+  })),
   cachedTerrainProfile: ({ compute }: { compute: () => Promise<TerrainProfile> }) => compute(),
 }));
 

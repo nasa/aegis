@@ -1,4 +1,8 @@
-import { cachedTerrainProfile, watchTerrainCache } from "server/terrain/terrainProfileCache";
+import {
+  cachedTerrainProfile,
+  loadMissionTerrainProfileCache,
+  watchTerrainCache,
+} from "server/terrain/terrainProfileCache";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
@@ -108,7 +112,8 @@ export async function sampleMissionTerrainProfile(
   missionHandle: DocHandle<Mission>,
   request: ReturnType<typeof validateTerrainProfileRequest>,
   mission: Mission = missionHandle.doc(),
-  onCacheStatus?: (status: TerrainCacheStatus) => void
+  onCacheStatus?: (status: TerrainCacheStatus) => void,
+  getCache?: () => Promise<MissionTerrainProfileCache>
 ): Promise<TerrainProfile> {
   if (!mission.demFilePath) throw new Error("Mission does not have a DEM configured");
   const { path: profilePath, samplesPerSegment, entityKey, getElevationOnly, preview } = request;
@@ -148,6 +153,7 @@ export async function sampleMissionTerrainProfile(
         isCurrent,
         compute,
         onCacheStatus,
+        cache: await getCache?.(),
       })
     : await compute();
   return {
@@ -174,6 +180,8 @@ async function sampleMissionTerrainProfiles(
   const results: TerrainProfileResponse[] = new Array(requests.length);
   const cacheCounts: Record<TerrainCacheStatus, number> = { hit: 0, miss: 0, bypass: 0 };
   const recordCacheStatus = (status: TerrainCacheStatus) => cacheCounts[status]++;
+  let cache: Promise<MissionTerrainProfileCache> | undefined;
+  const getCache = () => (cache ??= loadMissionTerrainProfileCache(missionId));
   const jobs = requests.entries();
   // Leave queue capacity for interactive requests, even for large exports.
   const loadProfiles = async () => {
@@ -187,7 +195,8 @@ async function sampleMissionTerrainProfiles(
               missionHandle,
               request,
               mission,
-              recordCacheStatus
+              recordCacheStatus,
+              getCache
             );
             results[index] = {
               status: "success",

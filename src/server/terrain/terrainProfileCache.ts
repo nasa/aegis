@@ -27,6 +27,13 @@ const cacheKey = (missionId: number, entity: string): string => {
   return `${missionId}:${entity}`;
 };
 
+export async function loadMissionTerrainProfileCache(
+  missionId: number
+): Promise<MissionTerrainProfileCache> {
+  const rows = await globalValues.orm.em.fork().find(Terrain_Profile_Cache_db, { missionId });
+  return { missionId, profiles: new Map(rows.map((row) => [row.entity, row])) };
+}
+
 export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
   missionId: number;
   entity: string;
@@ -35,10 +42,15 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
   isCurrent: () => boolean;
   compute: () => Promise<T>;
   onCacheStatus?: (status: "hit" | "miss") => void;
+  cache?: MissionTerrainProfileCache;
 }): Promise<TerrainProfile> {
   const key = cacheKey(args.missionId, args.entity);
+  if (args.cache && args.cache.missionId !== args.missionId)
+    throw new Error("Invalid terrain profile cache mission ID");
   const owner = { missionId: args.missionId, entity: args.entity };
   const requested = JSON.stringify(args.inputs);
+  // A queued request must see the preceding writer's result rather than its older snapshot.
+  const refresh = pending.has(key);
   latestInputs.set(key, requested);
   return exclusive(key, async () => {
     if (latestInputs.get(key) !== requested) throw new RasterSamplingWorkerPoolSupersededError();
@@ -49,8 +61,12 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
       )
       .digest("hex");
     const em = globalValues.orm.em.fork();
-    const stored = await em.findOne(Terrain_Profile_Cache_db, owner);
+    const stored =
+      args.cache && !refresh
+        ? args.cache.profiles.get(args.entity)
+        : await em.findOne(Terrain_Profile_Cache_db, owner);
     if (stored?.fingerprint === fingerprint && validProfile(stored.profile)) {
+      args.cache?.profiles.set(args.entity, stored);
       args.onCacheStatus?.("hit");
       return stored.profile;
     }
@@ -61,7 +77,7 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
       terrainSlopesDegrees: result.terrainSlopesDegrees,
     };
     if (args.isCurrent() && latestInputs.get(key) === requested) {
-      await em.transactional(async (tx) => {
+      const published = await em.transactional(async (tx) => {
         // Lock only while publishing, so mission deletion can proceed during sampling.
         // A deleted listing must never be recreated by a late cache write.
         const listing = await tx.findOne(
@@ -69,9 +85,13 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
           { missionId: args.missionId },
           { lockMode: LockMode.PESSIMISTIC_WRITE }
         );
-        if (listing && args.isCurrent() && latestInputs.get(key) === requested)
+        if (listing && args.isCurrent() && latestInputs.get(key) === requested) {
           await tx.upsert(Terrain_Profile_Cache_db, { ...owner, fingerprint, profile });
+          return true;
+        }
+        return false;
       });
+      if (published) args.cache?.profiles.set(args.entity, { fingerprint, profile });
     }
     return profile;
   }).finally(() => {

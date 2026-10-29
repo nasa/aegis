@@ -1,6 +1,10 @@
 vi.mock("server/terrain/terrainProfileCache", () => ({
   watchTerrainCache: vi.fn(),
   cachedTerrainProfile: vi.fn(),
+  loadMissionTerrainProfileCache: vi.fn(async (missionId: number) => ({
+    missionId,
+    profiles: new Map(),
+  })),
 }));
 const mocks = vi.hoisted(() => ({
   getAutomergeMissionHandle: vi.fn(),
@@ -35,7 +39,10 @@ import terrainProfileRouter, {
   getMissionTerrainProfiles,
 } from "server/express/routes/terrainProfile";
 import { MAX_RASTER_PROFILE_SAMPLES } from "server/terrain/readTerrainProfile";
-import { cachedTerrainProfile } from "server/terrain/terrainProfileCache";
+import {
+  cachedTerrainProfile,
+  loadMissionTerrainProfileCache,
+} from "server/terrain/terrainProfileCache";
 import {
   RasterSamplingWorkerPoolSupersededError,
   RasterSamplingWorkerPoolUnavailableError,
@@ -170,6 +177,9 @@ describe("terrain profile route", () => {
     });
     expect(peak).toBeGreaterThan(1);
     expect(peak).toBeLessThanOrEqual(4);
+    expect(loadMissionTerrainProfileCache).toHaveBeenCalledExactlyOnceWith(42);
+    const cache = await vi.mocked(loadMissionTerrainProfileCache).mock.results[0].value;
+    for (const [args] of vi.mocked(cachedTerrainProfile).mock.calls) expect(args.cache).toBe(cache);
     expect(mocks.debug).toHaveBeenCalledTimes(1);
     expect(mocks.debug).toHaveBeenCalledWith({
       logId: "terrain-profile",
@@ -192,6 +202,29 @@ describe("terrain profile route", () => {
     expect(response.body.data[1]).toMatchObject({ status: "error", httpStatus: 400 });
     expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(1);
     expect(mocks.debug).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips the mission cache query for a batch of previews and elevation-only requests", async () => {
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
+      doc: () => ({
+        demFilePath: "dem.tif",
+        traverses: { [validBody.entityKey]: {} },
+      }),
+    });
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({
+        profiles: [
+          { ...validBody, preview: true },
+          { ...validBody, getElevationOnly: true },
+        ],
+      });
+    expect(
+      response.body.data.every((result: TerrainProfileResponse) => result.status === "success")
+    ).toBe(true);
+    expect(loadMissionTerrainProfileCache).not.toHaveBeenCalled();
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(2);
   });
 
   it.each([null, {}, { profiles: [] }, { profiles: "invalid" }])(
@@ -475,6 +508,7 @@ describe("mission terrain profile batches", () => {
     expect(peak).toBeGreaterThan(1);
     expect(peak).toBeLessThanOrEqual(4);
     expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(40);
+    expect(loadMissionTerrainProfileCache).toHaveBeenCalledExactlyOnceWith(42);
     expect(mocks.debug).toHaveBeenCalledTimes(1);
     expect(mocks.debug).toHaveBeenCalledWith({
       logId: "terrain-profile",
@@ -535,6 +569,7 @@ describe("mission terrain profile batches", () => {
     expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(2);
     expect(profiles.traverse.status).toBe("ready");
     expect(profiles.traverse.profile).toEqual(profile);
+    expect(loadMissionTerrainProfileCache).toHaveBeenCalledExactlyOnceWith(42);
   });
 
   it.each([

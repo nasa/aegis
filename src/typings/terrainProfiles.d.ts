@@ -14,3 +14,9 @@ type TerrainProfilesState = {
   profiles: TerrainProfiles;
   previews: TerrainProfiles;
 };
+
+/** Request-scoped database snapshot for a mission's committed profiles. */
+type MissionTerrainProfileCache = {
+  missionId: number;
+  profiles: Map<string, { fingerprint: string; profile: TerrainProfile }>;
+};
