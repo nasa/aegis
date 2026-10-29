@@ -19,11 +19,7 @@ import {
   RightControlPanel,
 } from "components/interface/side-controls";
 import { AegisMapEditor } from "components/interface/map/AegisMapEditor";
-import {
-  MapMenuDockviewPanel,
-  useMapMenuDockviewPanel,
-  setMapMenuSize,
-} from "components/interface/map/overlays/map-menu";
+import { MapMenuPanel } from "components/interface/map/overlays/map-menu";
 import {
   rexMenuComponents,
   rexMenuTabComponents,
@@ -54,11 +50,20 @@ const LeftPanel: FunctionComponent = () => {
   );
 };
 
-const MapPanel: FunctionComponent = () => (
-  <div className={styles.mapPanel} data-testid="mission-panel-map">
-    <AegisMapEditor />
-  </div>
-);
+const MapPanel: FunctionComponent = () => {
+  const mapMenuIsOpen = useAppSelector((state) => state.interface.mapMenuIsOpen, refEqual);
+
+  return (
+    <div className={styles.mapPanel} data-testid="mission-panel-map">
+      <AegisMapEditor />
+      {mapMenuIsOpen && (
+        <div className={styles.mapMenuPanel} data-testid="map-menu-floating-panel">
+          <MapMenuPanel />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const BottomPanel: FunctionComponent = () => (
   <div className={styles.bottomPanel} data-testid="mission-panel-bottom">
@@ -77,7 +82,6 @@ const components = {
   map: MapPanel,
   bottom: BottomPanel,
   right: RightPanel,
-  "map-menu": MapMenuDockviewPanel,
   ...rexMenuComponents,
 };
 
@@ -107,7 +111,6 @@ export function MissionDockviewLayout(): JSX.Element {
   const bottomPanelIsOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
   const rightPanelIsOpen = useAppSelector((state) => state.interface.rightPanelIsOpen, refEqual);
 
-  useMapMenuDockviewPanel(api);
   useRexMenuDockviewPanel(api);
 
   const onReady = useCallback((event: DockviewReadyEvent) => {
@@ -221,8 +224,6 @@ export function MissionDockviewLayout(): JSX.Element {
       }
 
       const mapBounds = getMapBounds(api);
-      const menuPanel = api.getPanel("map-menu");
-      if (mapBounds && menuPanel) setMapMenuSize(menuPanel, mapBounds);
       if (mapBounds) repositionRexMenuPanel(api, mapBounds);
     };
 

@@ -431,8 +431,7 @@ tab's content. The same 325×318 is baked into the initial/reposition bounds mat
 
 It is re-anchored to the top-right of the map whenever the map area's bounds change (e.g. the
 right panel opens/closes, which happens automatically on REX selection) via
-`repositionRexMenuPanel`, called from `MissionDockviewLayout`'s layout-change watcher alongside
-`setMapMenuSize`. Dockview has no public API to move a floating group's x/y in place, so this
+`repositionRexMenuPanel`, called from `MissionDockviewLayout`'s layout-change watcher. Dockview has no public API to move a floating group's x/y in place, so this
 removes and recreates the two panels at the new bounds, preserving which tab was active and
 whether the widget was minimized. The no-op check compares the new bounds against the bounds it
 last _requested_ (a module-level `lastAppliedRexMenuBounds`, pure function of the map bounds), not
