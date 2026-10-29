@@ -1,11 +1,10 @@
-import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import type { FunctionComponent, MutableRefObject } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   getCalcFieldsForStation,
   getCalcFieldsForTraverse,
 } from "store/processing/calculatedFields";
-import { deepEqual } from "utils/useAppSelector";
+import { deepEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { processEvaDataFromStore } from "../../interface/timeline/common-timeline";
 import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import styles from "./dashTimeline.module.css";
@@ -16,7 +15,10 @@ import Activities from "./activities";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
 const DashTimeline: FunctionComponent = () => {
-  const terrainProfiles = useMissionTerrainProfiles();
+  const terrainProfiles = useAppSelector(
+    (state) => ({ ...state.terrainProfiles.profiles, ...state.terrainProfiles.previews }),
+    shallowEqual
+  );
 
   const runningRex = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return null;

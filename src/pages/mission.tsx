@@ -1,4 +1,3 @@
-import { useMissionTerrainSync } from "utils/useTerrainProfiles";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams, useSearchParams } from "react-router";
@@ -15,6 +14,8 @@ import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
 import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
+import store from "store";
+import { syncMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
@@ -31,7 +32,6 @@ type RouteParams = {
 };
 
 const Main: React.FunctionComponent = () => {
-  useMissionTerrainSync();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const automergeRepo = useRepo();
@@ -130,6 +130,7 @@ const Main: React.FunctionComponent = () => {
 
       // Dispatch a single action to populate the stores across all slices using the wholeStoreState
       dispatch(setAllSliceStores(wholeStoreState));
+      syncMissionTerrainProfiles(store);
 
       // If evaRefUuid, actionRefUuid are present in the URL, set the selected action using thunk
       if (evaRefUuid && actionRefUuid) {

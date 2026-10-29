@@ -1,8 +1,7 @@
-import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import paper from "paper";
 import type { FunctionComponent, MutableRefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual, deepEqual, shallowEqual } from "utils/useAppSelector";
 
 import styles from "./timeline.module.css";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
@@ -31,7 +30,10 @@ import { useMapMenuContext } from "../map/MapMenuProvider";
  * Renders the navigation timeline presented at the bottom of the window
  */
 const NavTimeline: FunctionComponent = () => {
-  const terrainProfiles = useMissionTerrainProfiles();
+  const terrainProfiles = useAppSelector(
+    (state) => ({ ...state.terrainProfiles.profiles, ...state.terrainProfiles.previews }),
+    shallowEqual
+  );
 
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(

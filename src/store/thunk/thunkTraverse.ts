@@ -99,7 +99,6 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
             : null;
         dispatch(
           setTerrainPreview({
-            missionId: mission.id,
             uuid: traverseUuid,
             entry: {
               fingerprint: terrainFingerprint(
@@ -123,7 +122,7 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
       return stageData.newPath;
     } finally {
       // A final update ends the drag whether or not it committed.
-      if (!preview) dispatch(clearTerrainPreview({ missionId: mission.id, uuid: traverseUuid }));
+      if (!preview) dispatch(clearTerrainPreview({ uuid: traverseUuid }));
     }
   }
 );

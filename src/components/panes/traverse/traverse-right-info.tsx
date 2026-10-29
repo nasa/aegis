@@ -1,4 +1,3 @@
-import { useTerrainProfilesFor } from "utils/useTerrainProfiles";
 import {
   faCalculator,
   faFloppyDisk,
@@ -54,7 +53,12 @@ const Info_Panel: FunctionComponent<{
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const terrainProfiles = useTerrainProfilesFor([selectedEvaSequenceItemUuid]);
+  const terrainProfiles = useAppSelector((state) => {
+    const entry =
+      state.terrainProfiles.previews[selectedEvaSequenceItemUuid] ??
+      state.terrainProfiles.profiles[selectedEvaSequenceItemUuid];
+    return entry ? { [selectedEvaSequenceItemUuid]: entry } : {};
+  }, shallowEqual);
   const docMaps = useMissionDocSelector(
     (mission) => ({ traverses: mission.traverses, actions: mission.actions }),
     shallowEqual

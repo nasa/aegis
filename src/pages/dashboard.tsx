@@ -1,4 +1,7 @@
-import { useMissionTerrainSync } from "utils/useTerrainProfiles";
+import { populateStore } from "store/processing/populateStore";
+import { setAllSliceStores } from "store/crossActions";
+import store from "store";
+import { syncMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useParams } from "react-router";
@@ -12,8 +15,6 @@ import { useNavigate } from "react-router";
 
 import DashboardHeader from "components/dashboard/header";
 import SocketClient from "components/page/socketClient";
-import { setAllSliceStores } from "store/crossActions";
-import { populateStore } from "store/processing/populateStore";
 import DashTimeline from "components/dashboard/timeline/dashTimeline";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { FeatureSourcesProvider } from "components/interface/map/FeatureSourcesProvider";
@@ -35,7 +36,6 @@ type RouteParams = {
 };
 
 const Main = (): JSX.Element => {
-  useMissionTerrainSync();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
@@ -113,9 +113,8 @@ const Main = (): JSX.Element => {
         runAudit: false,
         automergeRepo,
       });
-
-      // Dispatch a single action to populate the stores across all slices using the wholeStoreState
       dispatch(setAllSliceStores(wholeStoreState));
+      syncMissionTerrainProfiles(store);
 
       setStoreIsPopulated(true);
     })();

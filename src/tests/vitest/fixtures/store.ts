@@ -37,7 +37,7 @@ export const createTestStoreWithAutomergeMission = (): StoreType => {
   const presetCirclesUIStates = presetUuid ? { [presetUuid]: {} } : {};
 
   const testState: RootState = {
-    terrainProfiles: { activeMissionId: null, missions: {} },
+    terrainProfiles: { profiles: {}, previews: {} },
     hover: { ...hoverInitialState },
     mission: { ...missionInitialState },
     user: {

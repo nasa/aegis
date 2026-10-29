@@ -1,4 +1,5 @@
 import appCreateAsyncThunk from "./thunkUtil";
+import { stopMissionTerrainProfiles } from "./thunkTerrainProfile";
 import type { RootState } from "store";
 import {
   evaSlice,
@@ -9,6 +10,7 @@ import {
 import { rexSlice } from "store/rex";
 import { stationSlice } from "store/station";
 
+import { obliterateState as terrainProfilesObliterateState } from "store/terrainProfiles";
 import { obliterateState as actionObliterateState } from "store/action";
 import { obliterateState as evaObliterateState } from "store/eva";
 import { obliterateState as hoverObliterateState } from "store/hover";
@@ -49,6 +51,8 @@ export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
 export const thunkObliterateMissionSpecificData = appCreateAsyncThunk<void>(
   "cross/obliterateMissionSpecificData",
   async (__, { dispatch }) => {
+    stopMissionTerrainProfiles();
+    dispatch(terrainProfilesObliterateState());
     dispatch(actionObliterateState());
     dispatch(evaObliterateState());
     dispatch(hoverObliterateState());

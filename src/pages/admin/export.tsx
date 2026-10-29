@@ -1,16 +1,16 @@
+import { populateStore } from "store/processing/populateStore";
+import { setAllSliceStores } from "store/crossActions";
+import { syncMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
-import { getTerrainProfiles } from "store/terrainProfileSelectors";
-import { useMissionTerrainSettled, useMissionTerrainSync } from "utils/useTerrainProfiles";
-import { populateStore } from "store/processing/populateStore";
+import store from "store";
 import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
-import { refEqual } from "utils/useAppSelector";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 
 import { isLoggedIn } from "http-client/login";
 import { dumpMission } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { setAllSliceStores } from "store/crossActions";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import adminCommon from "./adminCommon.module.css";
@@ -24,7 +24,6 @@ const ExportPage: React.FunctionComponent = () => {
   const loading = useAsyncStatus("Loading mission for export...");
   const { run: runLoad } = loading;
   const action = useAsyncStatus();
-  useMissionTerrainSync();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const automergeRepo = useRepo();
@@ -35,7 +34,11 @@ const ExportPage: React.FunctionComponent = () => {
 
   const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
   const mission = useMissionDocSelector((mission) => mission, refEqual);
-  const terrainSettled = useMissionTerrainSettled();
+  const terrainSettled = useAppSelector(
+    (state) =>
+      Object.values(state.terrainProfiles.profiles).every((entry) => entry.status !== "idle"),
+    refEqual
+  );
 
   const [selectedOutput, setSelectedOutput] = useState("");
   const [selectEvas, setSelectEvas] = useState(true);
@@ -62,6 +65,7 @@ const ExportPage: React.FunctionComponent = () => {
         automergeRepo,
       });
       dispatch(setAllSliceStores(wholeStoreState));
+      syncMissionTerrainProfiles(store);
     });
   }, [intMissionId, automergeRepo, dispatch, navigate, runLoad]);
 
@@ -161,7 +165,7 @@ const ExportPage: React.FunctionComponent = () => {
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
-                      terrainProfiles: getTerrainProfiles(),
+                      terrainProfiles: store.getState().terrainProfiles.profiles,
                       mission,
                       selectEvas,
                       selectMission,
@@ -192,7 +196,7 @@ const ExportPage: React.FunctionComponent = () => {
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
-                      terrainProfiles: getTerrainProfiles(),
+                      terrainProfiles: store.getState().terrainProfiles.profiles,
                       mission,
                       selectEvas,
                       selectMission,

@@ -1,4 +1,3 @@
-import { useTerrainProfilesFor } from "utils/useTerrainProfiles";
 import type { FunctionComponent } from "react";
 import { useCallback } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
@@ -19,7 +18,11 @@ const SequenceItemTraverse: FunctionComponent<{
   traverseUuid: string;
   isRexRunning: boolean;
 }> = ({ evaUuid, traverseUuid }) => {
-  const terrainProfiles = useTerrainProfilesFor([traverseUuid]);
+  const terrainProfiles = useAppSelector((state) => {
+    const entry =
+      state.terrainProfiles.previews[traverseUuid] ?? state.terrainProfiles.profiles[traverseUuid];
+    return entry ? { [traverseUuid]: entry } : {};
+  }, shallowEqual);
   const dispatch = useAppDispatch();
   const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
 
