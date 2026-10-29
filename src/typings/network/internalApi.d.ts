@@ -9,7 +9,7 @@ type TerrainProfilePostData = {
   pathSegmentDistances: number[];
   entityKey?: string;
   getElevationOnly?: boolean;
-  /** Drag previews skip the disk cache. */
+  /** Drag previews skip the database cache. */
   preview?: boolean;
 };
 

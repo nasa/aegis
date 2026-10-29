@@ -176,7 +176,7 @@ describe("terrain profile route", () => {
       missionId: 42,
       batchId: expect.any(String),
       logValue: expect.stringMatching(
-        /^Batch 40 profiles > disk-cache hit=0 miss=40 bypass=0 errors=0 in [\d.]+ ms$/
+        /^Batch 40 profiles > db-cache hit=0 miss=40 bypass=0 errors=0 in [\d.]+ ms$/
       ),
     });
   });
@@ -347,7 +347,7 @@ describe("terrain profile route", () => {
   });
 });
 
-it("returns an owned entity's disk-cached profile without sampling the DEM", async () => {
+it("returns an owned entity's db-cached profile without sampling the DEM", async () => {
   const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
   mocks.hasPerms.mockReturnValue(true);
   mocks.readTerrainProfileInWorker.mockClear();
@@ -375,7 +375,7 @@ it("returns an owned entity's disk-cached profile without sampling the DEM", asy
   expect(mocks.debug).not.toHaveBeenCalled();
 });
 
-it("samples drag previews without the disk cache under a separate coalescing key", async () => {
+it("samples drag previews without the database cache under a separate coalescing key", async () => {
   const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
   mocks.hasPerms.mockReturnValue(true);
   vi.mocked(cachedTerrainProfile).mockClear();
@@ -481,7 +481,7 @@ describe("mission terrain profile batches", () => {
       missionId: 42,
       batchId: expect.any(String),
       logValue: expect.stringMatching(
-        /^Batch 40 profiles > disk-cache hit=0 miss=40 bypass=0 errors=0 in [\d.]+ ms$/
+        /^Batch 40 profiles > db-cache hit=0 miss=40 bypass=0 errors=0 in [\d.]+ ms$/
       ),
     });
     for (const entry of Object.values(profiles)) {

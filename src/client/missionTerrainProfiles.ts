@@ -197,7 +197,7 @@ function startCoordinator(
     store.dispatch(reconcileTerrainProfiles({ missionId, entries }));
     const profiles = store.getState().terrainProfiles.missions[missionId].profiles;
     for (const [uuid, entry] of Object.entries(entries)) {
-      // A drag release adopts its preview profile; previews skip the disk cache, so
+      // A drag release adopts its preview profile; previews skip the database cache, so
       // request the committed geometry once to cache it.
       const preview = previews[uuid];
       if (

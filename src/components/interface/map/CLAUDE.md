@@ -194,7 +194,7 @@ Key behaviors:
   walkback thunks use `preview: true` to update client-only geometry and terrain profiles.
   Measurements compute distances/bearings synchronously into `upsertMeasurement`.
   `modifyend` cancels the trailing throttle tick and commits the final geometry to Automerge.
-  Elevation/slope arrays stay outside Automerge and are fetched from the server disk cache.
+  Elevation/slope arrays stay outside Automerge and are fetched from the server database cache.
 - **Cancel restores the pre-edit path, it does not reset it.** Because completed drags are committed on release, `cancelEditPolyline` must write the path back. The pre-edit snapshot lives in
   `state.map.originalPoints`, captured by the panel that starts the edit (traverse `path` /
   station `walkbackPath`) immediately **after** dispatching `thunkUpdateMapDirective`, since that
