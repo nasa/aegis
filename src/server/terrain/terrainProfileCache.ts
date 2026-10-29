@@ -21,22 +21,22 @@ async function exclusive<T>(key: string, work: () => Promise<T>): Promise<T> {
   }
 }
 
-const cacheKey = (missionId: number, entity: string): string => {
+const cacheKey = (missionId: number, entityUuid: string): string => {
   if (!Number.isSafeInteger(missionId) || missionId <= 0) throw new Error("Invalid mission ID");
-  if (!/^[A-Za-z0-9_-]{1,64}$/.test(entity)) throw new Error("Invalid cache entity");
-  return `${missionId}:${entity}`;
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(entityUuid)) throw new Error("Invalid cache entity uuid");
+  return `${missionId}:${entityUuid}`;
 };
 
 export async function loadMissionTerrainProfileCache(
   missionId: number
 ): Promise<MissionTerrainProfileCache> {
   const rows = await globalValues.orm.em.fork().find(Terrain_Profile_Cache_db, { missionId });
-  return { missionId, profiles: new Map(rows.map((row) => [row.entity, row])) };
+  return { missionId, profiles: new Map(rows.map((row) => [row.entityUuid, row])) };
 }
 
 export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
   missionId: number;
-  entity: string;
+  entityUuid: string;
   rasterPath: string;
   inputs: unknown;
   isCurrent: () => boolean;
@@ -44,10 +44,10 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
   onCacheStatus?: (status: "hit" | "miss") => void;
   cache?: MissionTerrainProfileCache;
 }): Promise<TerrainProfile> {
-  const key = cacheKey(args.missionId, args.entity);
+  const key = cacheKey(args.missionId, args.entityUuid);
   if (args.cache && args.cache.missionId !== args.missionId)
     throw new Error("Invalid terrain profile cache mission ID");
-  const owner = { missionId: args.missionId, entity: args.entity };
+  const owner = { missionId: args.missionId, entityUuid: args.entityUuid };
   const requested = JSON.stringify(args.inputs);
   // A queued request must see the preceding writer's result rather than its older snapshot.
   const refresh = pending.has(key);
@@ -63,10 +63,10 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
     const em = globalValues.orm.em.fork();
     const stored =
       args.cache && !refresh
-        ? args.cache.profiles.get(args.entity)
+        ? args.cache.profiles.get(args.entityUuid)
         : await em.findOne(Terrain_Profile_Cache_db, owner);
-    if (stored?.fingerprint === fingerprint && validProfile(stored.profile)) {
-      args.cache?.profiles.set(args.entity, stored);
+    if (stored?.fingerprint === fingerprint && isValidProfile(stored.profile)) {
+      args.cache?.profiles.set(args.entityUuid, stored);
       args.onCacheStatus?.("hit");
       return stored.profile;
     }
@@ -91,7 +91,7 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
         }
         return false;
       });
-      if (published) args.cache?.profiles.set(args.entity, { fingerprint, profile });
+      if (published) args.cache?.profiles.set(args.entityUuid, { fingerprint, profile });
     }
     return profile;
   }).finally(() => {
@@ -99,7 +99,7 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
   });
 }
 
-function validProfile(profile: TerrainProfile): boolean {
+function isValidProfile(profile: TerrainProfile): boolean {
   return (
     !!profile &&
     Array.isArray(profile.elevationsMeters) &&
@@ -118,23 +118,23 @@ function validProfile(profile: TerrainProfile): boolean {
   );
 }
 
-export async function pruneTerrainProfiles(
+export async function deleteTerrainProfileFromDb(
   mission: Mission,
   current: () => Mission = () => mission
 ): Promise<void> {
   const rows = await globalValues.orm.em
     .fork()
-    .find(Terrain_Profile_Cache_db, { missionId: mission.id }, { fields: ["entity"] });
+    .find(Terrain_Profile_Cache_db, { missionId: mission.id }, { fields: ["entityUuid"] });
   await Promise.all(
-    rows.map(async ({ entity }) => {
-      if (mission.traverses?.[entity] || mission.stations?.[entity]) return;
-      const target = cacheKey(mission.id, entity);
+    rows.map(async ({ entityUuid }) => {
+      if (mission.traverses?.[entityUuid] || mission.stations?.[entityUuid]) return;
+      const target = cacheKey(mission.id, entityUuid);
       await exclusive(target, async () => {
         const latest = current();
-        if (!latest?.traverses?.[entity] && !latest?.stations?.[entity])
+        if (!latest?.traverses?.[entityUuid] && !latest?.stations?.[entityUuid])
           await globalValues.orm.em
             .fork()
-            .nativeDelete(Terrain_Profile_Cache_db, { missionId: mission.id, entity });
+            .nativeDelete(Terrain_Profile_Cache_db, { missionId: mission.id, entityUuid });
       });
     })
   );
@@ -145,7 +145,7 @@ export function watchTerrainCache(handle: DocHandle<Mission>): void {
   if (watched.has(handle)) return;
   watched.add(handle);
   let previous: Set<string> | undefined;
-  const reconcile = () => {
+  const checkForDeletedEntities = () => {
     const mission = handle.doc();
     if (!mission?.id) return;
     const current = new Set([
@@ -155,22 +155,22 @@ export function watchTerrainCache(handle: DocHandle<Mission>): void {
     const removed = !previous || [...previous].some((key) => !current.has(key));
     previous = current;
     if (removed)
-      pruneTerrainProfiles(mission, () => handle.doc()).catch((error) =>
+      deleteTerrainProfileFromDb(mission, () => handle.doc()).catch((error) =>
         serverLogger.error(
           {
             logId: "terrain-cache",
-            logValue: "Could not clean terrain profiles",
+            logValue: "Could not delete terrain profiles",
             missionId: mission.id,
           },
           error
         )
       );
   };
-  handle.on("change", reconcile);
-  handle.on("delete", () => handle.off("change", reconcile));
+  handle.on("change", checkForDeletedEntities);
+  handle.on("delete", () => handle.off("change", checkForDeletedEntities));
   handle
     .whenReady()
-    .then(reconcile)
+    .then(checkForDeletedEntities)
     .catch(() => {});
 }
 

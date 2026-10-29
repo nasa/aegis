@@ -74,7 +74,7 @@ export async function populateTerrainProfiles(
     const response = getTerrainProfiles(
       mission.id,
       entries.map(([uuid, entry]) => ({
-        entityKey: uuid,
+        entityUuid: uuid,
         path: entry.path,
         pathSegmentDistances: entry.distances,
       })),
@@ -172,7 +172,7 @@ export function syncMissionTerrainProfiles(
     const response = getTerrainProfiles(
       missionId,
       batch.map(({ uuid, entry }) => ({
-        entityKey: uuid,
+        entityUuid: uuid,
         path: entry.path,
         pathSegmentDistances: entry.distances,
       })),
@@ -205,7 +205,7 @@ export function syncMissionTerrainProfiles(
       )
         getTerrainProfile({
           missionId,
-          entityKey: uuid,
+          entityUuid: uuid,
           path: entry.path,
           pathSegmentDistances: entry.distances,
         }).catch(() => {});
@@ -274,7 +274,7 @@ export const thunkFetchTerrainProfile = appCreateAsyncThunk<
         missionId: mission.id,
         path,
         pathSegmentDistances,
-        entityKey: uuid,
+        entityUuid: uuid,
         preview: true,
       });
       if (response.status !== "success") throw new Error("API terrain profile returned failure");

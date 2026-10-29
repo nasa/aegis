@@ -28,7 +28,7 @@ import { hasPerms } from "utils/permissions";
 import { getAutomergeMissionHandle } from "./missionAutomerge";
 
 const router = express.Router();
-const ENTITY_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const ENTITY_UUID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 type TerrainCacheStatus = "hit" | "miss" | "bypass";
 const samplesForDistance = (distance: number, resolutionMeters: number): number =>
   Math.max(2, Math.ceil(distance / resolutionMeters) + 1);
@@ -46,7 +46,7 @@ export const validateTerrainProfileRequest = (
 ): {
   path: { lat: number; lng: number }[];
   samplesPerSegment: number[];
-  entityKey?: string;
+  entityUuid?: string;
   getElevationOnly: boolean;
   preview: boolean;
 } => {
@@ -78,10 +78,10 @@ export const validateTerrainProfileRequest = (
     throw new Error("Mission DEM resolution must be positive");
   }
   if (
-    postData.entityKey !== undefined &&
-    (typeof postData.entityKey !== "string" || !ENTITY_KEY_PATTERN.test(postData.entityKey))
+    postData.entityUuid !== undefined &&
+    (typeof postData.entityUuid !== "string" || !ENTITY_UUID_PATTERN.test(postData.entityUuid))
   ) {
-    throw new Error("Terrain profile entity key must be 1-64 safe characters");
+    throw new Error("Terrain profile entity uuid must be 1-64 safe characters");
   }
   if (postData.getElevationOnly !== undefined && typeof postData.getElevationOnly !== "boolean") {
     throw new Error("Terrain profile elevation-only flag must be a boolean");
@@ -100,7 +100,7 @@ export const validateTerrainProfileRequest = (
   return {
     path: postData.path,
     samplesPerSegment,
-    entityKey: postData.entityKey,
+    entityUuid: postData.entityUuid,
     getElevationOnly: postData.getElevationOnly ?? false,
     preview: postData.preview ?? false,
   };
@@ -116,7 +116,7 @@ export async function sampleMissionTerrainProfile(
   getCache?: () => Promise<MissionTerrainProfileCache>
 ): Promise<TerrainProfile> {
   if (!mission.demFilePath) throw new Error("Mission does not have a DEM configured");
-  const { path: profilePath, samplesPerSegment, entityKey, getElevationOnly, preview } = request;
+  const { path: profilePath, samplesPerSegment, entityUuid, getElevationOnly, preview } = request;
   const rasterPath = path.resolve(
     process.env.STATIC_DIR ?? "",
     "missionFiles",
@@ -125,8 +125,8 @@ export async function sampleMissionTerrainProfile(
   );
   watchTerrainCache(missionHandle);
   // Previews coalesce separately so a drag never supersedes a committed profile request.
-  const coalescingKey = entityKey
-    ? `${missionId}:${entityKey}${preview ? ":preview" : ""}`
+  const coalescingKey = entityUuid
+    ? `${missionId}:${entityUuid}${preview ? ":preview" : ""}`
     : undefined;
   const compute = () =>
     readTerrainProfileInWorker(
@@ -136,18 +136,15 @@ export async function sampleMissionTerrainProfile(
       coalescingKey,
       getElevationOnly
     );
-  const cacheEntity = entityKey?.replace(/_walkback$/, "");
   const isCurrent = () =>
     !missionHandle.isDeleted() &&
-    !!(
-      missionHandle.doc()?.traverses?.[cacheEntity] || missionHandle.doc()?.stations?.[cacheEntity]
-    );
-  const useCache = cacheEntity && !getElevationOnly && !preview && isCurrent();
+    !!(missionHandle.doc()?.traverses?.[entityUuid] || missionHandle.doc()?.stations?.[entityUuid]);
+  const useCache = entityUuid && !getElevationOnly && !preview && isCurrent();
   if (!useCache) onCacheStatus?.("bypass");
   const result = useCache
     ? await cachedTerrainProfile({
         missionId,
-        entity: cacheEntity,
+        entityUuid,
         rasterPath,
         inputs: [profilePath, samplesPerSegment, mission.demResolution ?? 10],
         isCurrent,
@@ -258,11 +255,11 @@ export async function getMissionTerrainProfiles(
       profile: null,
       error: null,
     };
-    requests.push({ path: entityPath, pathSegmentDistances: distances, entityKey: uuid });
+    requests.push({ path: entityPath, pathSegmentDistances: distances, entityUuid: uuid });
   }
   const results = await sampleMissionTerrainProfiles(missionId, missionHandle, mission, requests);
   results.forEach((result, index) => {
-    const entry = profiles[requests[index].entityKey];
+    const entry = profiles[requests[index].entityUuid];
     entry.profile = result.data ?? null;
     if (result.status !== "success") {
       entry.status = "error";

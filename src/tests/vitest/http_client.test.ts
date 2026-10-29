@@ -263,8 +263,8 @@ describe("Terrain profile client", () => {
       { status: "error", message: "busy", httpStatus: 503 },
     ];
     mockFetchResponse({ status: "success", data: results });
-    const profiles = ["a", "b"].map((entityKey) => ({
-      entityKey,
+    const profiles = ["a", "b"].map((entityUuid) => ({
+      entityUuid,
       path: [
         { lat: 0, lng: 0 },
         { lat: 1, lng: 1 },
