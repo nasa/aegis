@@ -102,10 +102,9 @@ it("keeps successes and retries only failed profiles together in one batch", asy
   expect(store.getState().terrainProfiles.profiles[traverse.uuid].status).toBe("ready");
   await vi.advanceTimersByTimeAsync(2_001);
   expect(getTerrainProfiles).toHaveBeenCalledTimes(2);
-  expect(vi.mocked(getTerrainProfiles).mock.calls[1][1].map(({ entityKey }) => entityKey)).toEqual([
-    "second",
-    "third",
-  ]);
+  expect(
+    vi.mocked(getTerrainProfiles).mock.calls[1][1].map(({ entityUuid }) => entityUuid)
+  ).toEqual(["second", "third"]);
   expect(
     Object.values(store.getState().terrainProfiles.profiles).every(
       (entry) => entry.status === "ready"
@@ -233,7 +232,7 @@ it("adopts a ready preview on commit and caches the released geometry", () => {
   expect(getTerrainProfile).toHaveBeenCalledTimes(1);
   expect(getTerrainProfile).toHaveBeenCalledWith({
     missionId: 42,
-    entityKey: traverse.uuid,
+    entityUuid: traverse.uuid,
     path,
     pathSegmentDistances: [10],
   });
@@ -378,9 +377,9 @@ it("retries transient population failures and preserves permanent failures", asy
   syncMissionTerrainProfiles(store);
   await vi.advanceTimersByTimeAsync(2_001);
   expect(getTerrainProfiles).toHaveBeenCalledTimes(2);
-  expect(vi.mocked(getTerrainProfiles).mock.calls[1][1].map(({ entityKey }) => entityKey)).toEqual([
-    traverse.uuid,
-  ]);
+  expect(
+    vi.mocked(getTerrainProfiles).mock.calls[1][1].map(({ entityUuid }) => entityUuid)
+  ).toEqual([traverse.uuid]);
   expect(store.getState().terrainProfiles.profiles[traverse.uuid].profile).toEqual(profile);
   expect(store.getState().terrainProfiles.profiles["traverse-1"].error).toBe("outside DEM");
   await store.dispatch(thunkObliterateMissionSpecificData());

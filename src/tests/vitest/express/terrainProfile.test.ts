@@ -72,7 +72,7 @@ const validBody = {
     { lat: -85.1, lng: 10.1 },
   ],
   pathSegmentDistances: [20],
-  entityKey: "traverse_abc-123",
+  entityUuid: "traverse_abc-123",
 };
 
 describe("terrain profile route", () => {
@@ -140,7 +140,7 @@ describe("terrain profile route", () => {
   it("serves 40 profiles in one HTTP call with bounded sampling and one debug summary", async () => {
     const profiles = Array.from({ length: 40 }, (_, i) => ({
       ...validBody,
-      entityKey: `traverse-${i}`,
+      entityUuid: `traverse-${i}`,
       path: [
         { lat: i, lng: 0 },
         { lat: i, lng: 1 },
@@ -151,7 +151,7 @@ describe("terrain profile route", () => {
       doc: () => ({
         demFilePath: "dem.tif",
         demResolution: 5,
-        traverses: Object.fromEntries(profiles.map(({ entityKey }) => [entityKey, {}])),
+        traverses: Object.fromEntries(profiles.map(({ entityUuid }) => [entityUuid, {}])),
       }),
     });
     vi.mocked(cachedTerrainProfile).mockImplementation(({ compute, onCacheStatus }) => {
@@ -209,7 +209,7 @@ describe("terrain profile route", () => {
       isDeleted: () => false,
       doc: () => ({
         demFilePath: "dem.tif",
-        traverses: { [validBody.entityKey]: {} },
+        traverses: { [validBody.entityUuid]: {} },
       }),
     });
     const response = await supertest(app)
@@ -247,8 +247,8 @@ describe("terrain profile route", () => {
     expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
   });
 
-  it("allows requests without a coalescing entity key", async () => {
-    const { entityKey: _, ...body } = validBody;
+  it("allows requests without a coalescing entity uuid", async () => {
+    const { entityUuid: _, ...body } = validBody;
     await supertest(app).post("/api/v1/terrain-profile?missionId=42").send(body);
 
     expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(
@@ -301,14 +301,14 @@ describe("terrain profile route", () => {
       { ...validBody, pathSegmentDistances: [-1] },
     ],
     [
-      "invalid entity key",
+      "invalid entity uuid",
       "/api/v1/terrain-profile?missionId=42",
-      { ...validBody, entityKey: "unsafe:key" },
+      { ...validBody, entityUuid: "unsafe:key" },
     ],
     [
-      "oversized entity key",
+      "oversized entity uuid",
       "/api/v1/terrain-profile?missionId=42",
-      { ...validBody, entityKey: "a".repeat(65) },
+      { ...validBody, entityUuid: "a".repeat(65) },
     ],
     [
       "invalid elevation-only flag",
@@ -390,7 +390,7 @@ it("returns an owned entity's db-cached profile without sampling the DEM", async
     doc: () => ({
       demFilePath: "Data/trusted.tif",
       demResolution: 5,
-      traverses: { [validBody.entityKey]: {} },
+      traverses: { [validBody.entityUuid]: {} },
     }),
   });
   vi.mocked(cachedTerrainProfile).mockImplementation(async ({ onCacheStatus }) => {
@@ -402,7 +402,7 @@ it("returns an owned entity's db-cached profile without sampling the DEM", async
     .send(validBody);
   expect(response.status).toBe(200);
   expect(cachedTerrainProfile).toHaveBeenCalledWith(
-    expect.objectContaining({ missionId: 42, entity: validBody.entityKey })
+    expect.objectContaining({ missionId: 42, entityUuid: validBody.entityUuid })
   );
   expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
   expect(mocks.debug).not.toHaveBeenCalled();
@@ -417,7 +417,7 @@ it("samples drag previews without the database cache under a separate coalescing
     doc: () => ({
       demFilePath: "Data/trusted.tif",
       demResolution: 5,
-      traverses: { [validBody.entityKey]: {} },
+      traverses: { [validBody.entityUuid]: {} },
     }),
   });
   mocks.readTerrainProfileInWorker.mockResolvedValue({
@@ -446,10 +446,10 @@ it("maps validation errors to 400 regardless of message case", async () => {
     doc: () => ({
       demFilePath: "Data/trusted.tif",
       demResolution: 5,
-      traverses: { [validBody.entityKey]: {} },
+      traverses: { [validBody.entityUuid]: {} },
     }),
   });
-  vi.mocked(cachedTerrainProfile).mockRejectedValue(new Error("Invalid cache entity"));
+  vi.mocked(cachedTerrainProfile).mockRejectedValue(new Error("Invalid cache entity uuid"));
   const response = await supertest(app)
     .post("/api/v1/terrain-profile?missionId=42")
     .send(validBody);

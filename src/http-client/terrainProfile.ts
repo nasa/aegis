@@ -78,21 +78,21 @@ export async function getTerrainProfile({
   missionId,
   path,
   pathSegmentDistances,
-  entityKey,
+  entityUuid,
   getElevationOnly = false,
   preview = false,
 }: {
   missionId: number;
   path: AEGISPoint[];
   pathSegmentDistances: number[];
-  entityKey?: string;
+  entityUuid?: string;
   getElevationOnly?: boolean;
   preview?: boolean;
 }): Promise<TerrainProfileResponse> {
   const postData: TerrainProfilePostData = {
     path,
     pathSegmentDistances,
-    entityKey,
+    entityUuid,
     getElevationOnly,
     preview,
   };

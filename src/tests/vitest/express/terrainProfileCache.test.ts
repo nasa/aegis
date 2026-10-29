@@ -20,7 +20,7 @@ import path from "node:path";
 import {
   cachedTerrainProfile,
   loadMissionTerrainProfileCache,
-  pruneTerrainProfiles,
+  deleteTerrainProfileFromDb,
 } from "server/terrain/terrainProfileCache";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
@@ -73,7 +73,7 @@ afterEach(async () => {
 });
 const args = () => ({
   missionId,
-  entity: "traverse-1",
+  entityUuid: "traverse-1",
   rasterPath: path.join(root, "dem.tif"),
   inputs: [1],
   isCurrent: () => true,
@@ -83,7 +83,7 @@ const args = () => ({
 it("loads a whole cached mission with one query and no sampling", async () => {
   const requests = Array.from({ length: 40 }, (_, index) => ({
     ...args(),
-    entity: `traverse-${index}`,
+    entityUuid: `traverse-${index}`,
   }));
   await Promise.all(requests.map(cachedTerrainProfile));
   requests.forEach((request) => request.compute.mockClear());
@@ -102,16 +102,16 @@ it("loads a whole cached mission with one query and no sampling", async () => {
 });
 
 it("samples only missing, stale, or invalid profiles from the mission snapshot", async () => {
-  const requests = ["cached", "stale", "invalid", "missing"].map((entity) => ({
+  const requests = ["cached", "stale", "invalid", "missing"].map((entityUuid) => ({
     ...args(),
-    entity,
+    entityUuid,
   }));
   await Promise.all(requests.slice(0, 3).map(cachedTerrainProfile));
   await globalValues.orm.em
     .fork()
     .nativeUpdate(
       Terrain_Profile_Cache_db,
-      { missionId, entity: "invalid" },
+      { missionId, entityUuid: "invalid" },
       { profile: { elevationsMeters: [], terrainSlopesDegrees: [] } }
     );
   requests.forEach((request) => request.compute.mockClear());
@@ -172,7 +172,7 @@ it("reuses database results, invalidates geometry and DEM changes, and keeps one
   await fs.appendFile(request.rasterPath, "changed");
   await cachedTerrainProfile({ ...request, inputs: [2] });
   expect(request.compute).toHaveBeenCalledTimes(3);
-  expect(await rows()).toMatchObject([{ missionId, entity: "traverse-1", profile }]);
+  expect(await rows()).toMatchObject([{ missionId, entityUuid: "traverse-1", profile }]);
   expect(onCacheStatus.mock.calls.map(([status]) => status)).toEqual([
     "miss",
     "hit",
@@ -204,12 +204,12 @@ it("repairs invalid profiles and shares simultaneous requests", async () => {
 });
 it("removes deleted entity rows while retaining live entities", async () => {
   await cachedTerrainProfile(args());
-  await cachedTerrainProfile({ ...args(), entity: "traverse-2" });
+  await cachedTerrainProfile({ ...args(), entityUuid: "traverse-2" });
   const traverse = generateBlankTraverse({ uuid: "traverse-2" });
-  await pruneTerrainProfiles(
+  await deleteTerrainProfileFromDb(
     generateBlankMission({ id: missionId, traverses: { [traverse.uuid]: traverse } })
   );
-  expect(await rows()).toMatchObject([{ entity: "traverse-2" }]);
+  expect(await rows()).toMatchObject([{ entityUuid: "traverse-2" }]);
 });
 it.each([false, true])(
   "does not recreate a deleted entity with a mission snapshot: %s",

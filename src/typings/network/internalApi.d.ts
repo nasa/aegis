@@ -7,7 +7,7 @@ interface WrappedResponse<T> {
 type TerrainProfilePostData = {
   path: AEGISPoint[];
   pathSegmentDistances: number[];
-  entityKey?: string;
+  entityUuid?: string;
   getElevationOnly?: boolean;
   /** Drag previews skip the database cache. */
   preview?: boolean;

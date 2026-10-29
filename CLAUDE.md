@@ -130,6 +130,9 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 - **Elevation sampling** runs natively in the API through `src/server/raster/` and
   `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
   there is no separate GDAL/Python runtime service.
+- **Terrain profile cache** — committed traverse and station walkback profiles are cached in the
+  `terrain_profile_cache_db` table, keyed by `(mission_id, entity_uuid)`. `entity_uuid` is the
+  traverse or station uuid, sent by the client as `entityUuid` on terrain profile requests.
 - **MikroORM 6** with PostgreSQL. Entity models live in `src/server/database/models/`. Legacy ORM definitions for entities that moved into the mission doc live in `_legacyModels.ts` and are used only by Automerge migrations; the folder, layer, sublayer, preset, and STM tables are read with raw SQL by `Migration20261009000000` and then dropped. Every request runs inside a `RequestContext` middleware for ORM isolation.
 - **Socket.io** runs on a single Socket.IO server instance mounted at path `/api/socket`, hosting multiple namespaces:
   - **Default namespace** (`/`) — handles AEGIS web-client connections: visitor presence, and heartbeats (`statusFromServer` every 10s). Handlers are in `src/server/express/sockets.ts`.
