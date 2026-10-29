@@ -17,7 +17,11 @@ import type { DocHandle } from "@automerge/automerge-repo/slim";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { cachedTerrainProfile, pruneTerrainProfiles } from "server/terrain/terrainProfileCache";
+import {
+  cachedTerrainProfile,
+  loadMissionTerrainProfileCache,
+  pruneTerrainProfiles,
+} from "server/terrain/terrainProfileCache";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
@@ -58,6 +62,7 @@ beforeEach(async () => {
   await fs.writeFile(path.join(root, "dem.tif"), "raster fixture");
 });
 afterEach(async () => {
+  vi.restoreAllMocks();
   await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId });
   if (
     path.dirname(root) !== path.resolve(os.tmpdir()) ||
@@ -73,6 +78,87 @@ const args = () => ({
   inputs: [1],
   isCurrent: () => true,
   compute: vi.fn(async () => profile),
+});
+
+it("loads a whole cached mission with one query and no sampling", async () => {
+  const requests = Array.from({ length: 40 }, (_, index) => ({
+    ...args(),
+    entity: `traverse-${index}`,
+  }));
+  await Promise.all(requests.map(cachedTerrainProfile));
+  requests.forEach((request) => request.compute.mockClear());
+  const driver = globalValues.orm.em.getDriver();
+  const find = vi.spyOn(driver, "find");
+  const findOne = vi.spyOn(driver, "findOne");
+  const cache = await loadMissionTerrainProfileCache(missionId);
+  expect(cache.profiles.size).toBe(40);
+  const results = await Promise.all(
+    requests.map((request) => cachedTerrainProfile({ ...request, cache }))
+  );
+  expect(results).toEqual(requests.map(() => profile));
+  requests.forEach((request) => expect(request.compute).not.toHaveBeenCalled());
+  expect(find).toHaveBeenCalledTimes(1);
+  expect(findOne).not.toHaveBeenCalled();
+});
+
+it("samples only missing, stale, or invalid profiles from the mission snapshot", async () => {
+  const requests = ["cached", "stale", "invalid", "missing"].map((entity) => ({
+    ...args(),
+    entity,
+  }));
+  await Promise.all(requests.slice(0, 3).map(cachedTerrainProfile));
+  await globalValues.orm.em
+    .fork()
+    .nativeUpdate(
+      Terrain_Profile_Cache_db,
+      { missionId, entity: "invalid" },
+      { profile: { elevationsMeters: [], terrainSlopesDegrees: [] } }
+    );
+  requests.forEach((request) => request.compute.mockClear());
+  requests[1].inputs = [2];
+  const driver = globalValues.orm.em.getDriver();
+  const find = vi.spyOn(driver, "find");
+  const findOne = vi.spyOn(driver, "findOne");
+  const cache = await loadMissionTerrainProfileCache(missionId);
+  await Promise.all(requests.map((request) => cachedTerrainProfile({ ...request, cache })));
+  expect(requests[0].compute).not.toHaveBeenCalled();
+  requests.slice(1).forEach((request) => expect(request.compute).toHaveBeenCalledTimes(1));
+  expect(find.mock.calls.filter(([entity]) => entity === Terrain_Profile_Cache_db)).toHaveLength(1);
+  expect(findOne).toHaveBeenCalledTimes(3);
+  for (const [entity] of findOne.mock.calls) expect(entity).toBe(Doc_Listing_db);
+  requests.forEach((request) => request.compute.mockClear());
+  await Promise.all(requests.map((request) => cachedTerrainProfile({ ...request, cache })));
+  requests.forEach((request) => expect(request.compute).not.toHaveBeenCalled());
+});
+
+it("refreshes a queued snapshot request after an in-flight writer publishes", async () => {
+  const cache = await loadMissionTerrainProfileCache(missionId);
+  const request = args();
+  let finish: (value: TerrainProfile) => void;
+  request.compute.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  const first = cachedTerrainProfile(request);
+  await vi.waitFor(() => expect(request.compute).toHaveBeenCalled());
+  const second = cachedTerrainProfile({ ...request, cache });
+  finish(profile);
+  await expect(Promise.all([first, second])).resolves.toEqual([profile, profile]);
+  expect(request.compute).toHaveBeenCalledTimes(1);
+});
+
+it("invalidates a loaded snapshot when the DEM changes", async () => {
+  const request = args();
+  await cachedTerrainProfile(request);
+  const cache = await loadMissionTerrainProfileCache(missionId);
+  await fs.appendFile(request.rasterPath, "changed");
+  await cachedTerrainProfile({ ...request, cache });
+  expect(request.compute).toHaveBeenCalledTimes(2);
+  await cachedTerrainProfile({ ...request, cache });
+  expect(request.compute).toHaveBeenCalledTimes(2);
+  expect(await rows()).toHaveLength(1);
 });
 
 it("reuses database results, invalidates geometry and DEM changes, and keeps one row", async () => {
@@ -125,22 +211,27 @@ it("removes deleted entity rows while retaining live entities", async () => {
   );
   expect(await rows()).toMatchObject([{ entity: "traverse-2" }]);
 });
-it("does not recreate a profile when its owner is deleted during sampling", async () => {
-  let current = true;
-  let finish: (value: TerrainProfile) => void;
-  const compute = vi.fn(
-    () =>
-      new Promise<TerrainProfile>((resolve) => {
-        finish = resolve;
-      })
-  );
-  const result = cachedTerrainProfile({ ...args(), compute, isCurrent: () => current });
-  await vi.waitFor(() => expect(compute).toHaveBeenCalled());
-  current = false;
-  finish(profile);
-  await result;
-  expect(await rows()).toEqual([]);
-});
+it.each([false, true])(
+  "does not recreate a deleted entity with a mission snapshot: %s",
+  async (useSnapshot) => {
+    const cache = useSnapshot ? await loadMissionTerrainProfileCache(missionId) : undefined;
+    let current = true;
+    let finish: (value: TerrainProfile) => void;
+    const compute = vi.fn(
+      () =>
+        new Promise<TerrainProfile>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const result = cachedTerrainProfile({ ...args(), compute, isCurrent: () => current, cache });
+    await vi.waitFor(() => expect(compute).toHaveBeenCalled());
+    current = false;
+    finish(profile);
+    await result;
+    expect(await rows()).toEqual([]);
+    if (cache) expect(cache.profiles.size).toBe(0);
+  }
+);
 
 it("cleans a deleted REX's profiles through the server document observer", async () => {
   const traverse = generateBlankTraverse({ uuid: "traverse-1" });
@@ -190,18 +281,23 @@ it("isolates the same entity in different missions and cascades mission deletion
   }
 });
 
-it("does not publish a late result after its mission listing is deleted", async () => {
-  let finish: (value: TerrainProfile) => void;
-  const compute = vi.fn(
-    () =>
-      new Promise<TerrainProfile>((resolve) => {
-        finish = resolve;
-      })
-  );
-  const result = cachedTerrainProfile({ ...args(), compute });
-  await vi.waitFor(() => expect(compute).toHaveBeenCalled());
-  await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId });
-  finish(profile);
-  await expect(result).resolves.toEqual(profile);
-  expect(await rows()).toEqual([]);
-});
+it.each([false, true])(
+  "does not publish a deleted mission with a mission snapshot: %s",
+  async (useSnapshot) => {
+    const cache = useSnapshot ? await loadMissionTerrainProfileCache(missionId) : undefined;
+    let finish: (value: TerrainProfile) => void;
+    const compute = vi.fn(
+      () =>
+        new Promise<TerrainProfile>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const result = cachedTerrainProfile({ ...args(), compute, cache });
+    await vi.waitFor(() => expect(compute).toHaveBeenCalled());
+    await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId });
+    finish(profile);
+    await expect(result).resolves.toEqual(profile);
+    expect(await rows()).toEqual([]);
+    if (cache) expect(cache.profiles.size).toBe(0);
+  }
+);
