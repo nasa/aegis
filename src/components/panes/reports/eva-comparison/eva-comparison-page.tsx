@@ -1,4 +1,3 @@
-import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import type { CSSProperties, FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
 import styles from "../shared/report-grid.module.css";
@@ -79,7 +78,10 @@ const memberColumn = (
  * differing only in the left axis and cell body (a metric value / numeric Δ).
  */
 const EvaComparisonPage: FunctionComponent = () => {
-  const terrainProfiles = useMissionTerrainProfiles();
+  const terrainProfiles = useAppSelector(
+    (state) => ({ ...state.terrainProfiles.profiles, ...state.terrainProfiles.previews }),
+    shallowEqual
+  );
 
   const dispatch = useAppDispatch();
   const mission = useMissionDocSelector((m) => m, refEqual);

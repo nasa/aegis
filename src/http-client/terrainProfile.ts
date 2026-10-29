@@ -3,13 +3,17 @@ import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 /** Fetch a mission's pending profiles in one request; each result has its own error status. */
 export async function getTerrainProfiles(
   missionId: number,
-  profiles: TerrainProfilePostData[]
+  profiles: TerrainProfilePostData[],
+  loadTestOptions?: { serverURL?: string; cookies?: string }
 ): Promise<TerrainProfileResponse[]> {
   const response = await clientFetchWithTimeout(
-    `/api/v1/terrain-profile/batch?missionId=${missionId}`,
+    `${loadTestOptions?.serverURL ?? ""}/api/v1/terrain-profile/batch?missionId=${missionId}`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(loadTestOptions?.cookies ? { Cookie: loadTestOptions.cookies } : {}),
+      },
       body: JSON.stringify({ profiles } satisfies TerrainProfileBatchPostData),
     },
     120_000

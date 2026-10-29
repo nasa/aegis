@@ -1,4 +1,3 @@
-import { useTerrainProfilesFor } from "utils/useTerrainProfiles";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
@@ -78,7 +77,12 @@ const Info_Panel: FunctionComponent<{
     (state) => state.station.selectedStationUuid,
     refEqual
   );
-  const terrainProfiles = useTerrainProfilesFor([selectedStationUuid]);
+  const terrainProfiles = useAppSelector((state) => {
+    const entry =
+      state.terrainProfiles.previews[selectedStationUuid] ??
+      state.terrainProfiles.profiles[selectedStationUuid];
+    return entry ? { [selectedStationUuid]: entry } : {};
+  }, shallowEqual);
   const docMaps = useMissionDocSelector(
     (mission) => ({
       stations: mission.stations,

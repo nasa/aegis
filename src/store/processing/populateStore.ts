@@ -1,3 +1,4 @@
+import { populateTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import { initialState as wholeStoreInitialState } from "store/index";
 import { getAll } from "http-client/all";
 import cloneDeep from "lodash/cloneDeep";
@@ -101,6 +102,8 @@ export const populateStore = async (params: {
       `Something went wrong in the audit function. Invalid mission schema: ${JSON.stringify(validationErrors)}`
     );
   }
+
+  wholeStoreState.terrainProfiles = await populateTerrainProfiles(updatedMission, loadTestOptions);
 
   return wholeStoreState;
 };

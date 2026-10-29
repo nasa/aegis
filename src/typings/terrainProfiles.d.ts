@@ -7,9 +7,10 @@ type TerrainProfileEntry = {
   status: "idle" | "ready" | "error";
   profile: TerrainProfile | null;
   error: string | null;
+  retryable?: boolean;
 };
 type TerrainProfiles = Record<string, TerrainProfileEntry>;
 type TerrainProfilesState = {
-  activeMissionId: number | null;
-  missions: Record<number, { profiles: TerrainProfiles; previews: TerrainProfiles }>;
+  profiles: TerrainProfiles;
+  previews: TerrainProfiles;
 };

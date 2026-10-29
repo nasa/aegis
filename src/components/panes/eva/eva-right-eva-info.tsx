@@ -1,5 +1,4 @@
 import EvaSunEarth from "./eva-sun-earth";
-import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import {
   ValidatedTextArea,
@@ -42,7 +41,10 @@ import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
-  const terrainProfiles = useMissionTerrainProfiles();
+  const terrainProfiles = useAppSelector(
+    (state) => ({ ...state.terrainProfiles.profiles, ...state.terrainProfiles.previews }),
+    shallowEqual
+  );
 
   const partialMission = useMissionDocSelector(
     (mission) => ({

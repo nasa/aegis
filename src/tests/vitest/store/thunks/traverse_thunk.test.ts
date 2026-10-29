@@ -70,13 +70,9 @@ describe("Thunk Traverse Tests", () => {
       thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path, preview: true })
     );
     expect(getHeads(handle.doc())).toEqual(heads);
-    expect(
-      store.getState().terrainProfiles.missions[handle.doc().id].previews[traverse.uuid].path
-    ).toEqual(path);
+    expect(store.getState().terrainProfiles.previews[traverse.uuid].path).toEqual(path);
     await store.dispatch(thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path }));
-    expect(
-      store.getState().terrainProfiles.missions[handle.doc().id].previews[traverse.uuid]
-    ).toBeUndefined();
+    expect(store.getState().terrainProfiles.previews[traverse.uuid]).toBeUndefined();
     expect(handle.doc().traverses[traverse.uuid].path).toEqual(path);
     expect(getObjectId(handle.doc().traverses[traverse.uuid])).toEqual(objectId);
     expect(handle.doc().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
@@ -127,9 +123,7 @@ describe("Thunk Traverse Tests", () => {
     await olderOperation;
 
     expect(getMission().traverses[traverse.uuid].path).toEqual(newerPath);
-    expect(
-      store.getState().terrainProfiles.missions[getMission().id]?.previews[traverse.uuid]
-    ).toBeUndefined();
+    expect(store.getState().terrainProfiles.previews[traverse.uuid]).toBeUndefined();
     expect(getMission().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
   });
 
@@ -181,8 +175,7 @@ describe("Thunk Traverse Tests", () => {
       release();
       await operation;
       expect(handle.doc()).toBe(committed);
-      const preview =
-        store.getState().terrainProfiles.missions[committed.id]?.previews[traverse.uuid];
+      const preview = store.getState().terrainProfiles.previews[traverse.uuid];
       if (change === "name") expect(preview?.status).toBe("ready");
       else expect(preview).toBeUndefined();
     }

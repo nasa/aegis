@@ -160,8 +160,7 @@ describe("Thunk Station Tests", () => {
         release();
         await operation;
         expect(handle.doc()).toBe(committed);
-        const preview =
-          store.getState().terrainProfiles.missions[committed.id]?.previews[station.uuid];
+        const preview = store.getState().terrainProfiles.previews[station.uuid];
         if (change === "name") expect(preview?.status).toBe("ready");
         else expect(preview).toBeUndefined();
       }
@@ -245,8 +244,7 @@ describe("Thunk Station Tests", () => {
 
       expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
       expect(getMission().stations[station.uuid].walkbackPath).toBeNull();
-      const preview =
-        store.getState().terrainProfiles.missions[getMission().id].previews[station.uuid];
+      const preview = store.getState().terrainProfiles.previews[station.uuid];
       expect(preview.status).toBe("ready");
       expect(preview.profile).toEqual(profile);
     });

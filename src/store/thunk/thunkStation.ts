@@ -274,7 +274,7 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
       s.walkbackPath = cloneDeep(newPath);
       s.walkbackPathSegmentDistances = pathSegmentDistances;
     });
-    dispatch(clearTerrainPreview({ missionId: mission.id, uuid: stationUuid }));
+    dispatch(clearTerrainPreview({ uuid: stationUuid }));
 
     // No Step 3: this thunk has no UI side-effects of its own.
     return newPath;
@@ -319,7 +319,6 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
       : null;
   dispatch(
     setTerrainPreview({
-      missionId: mission.id,
       uuid: stationUuid,
       entry: {
         fingerprint: terrainFingerprint(mission, newPath, pathSegmentDistances),
@@ -369,7 +368,7 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
     s.walkbackPath = newPath;
     s.walkbackPathSegmentDistances = newPathSegmentDistances;
   });
-  dispatch(clearTerrainPreview({ missionId: mission.id, uuid: stationUuid }));
+  dispatch(clearTerrainPreview({ uuid: stationUuid }));
 
   // No Step 3: this thunk has no UI side-effects of its own.
 });

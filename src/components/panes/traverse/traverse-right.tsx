@@ -1,4 +1,3 @@
-import { useTerrainProfilesFor } from "utils/useTerrainProfiles";
 import {
   faCheck,
   faCircleInfo,
@@ -7,7 +6,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import type { FunctionComponent } from "react";
 import { setSelectedTraverseRightNavItem } from "store/traverse";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
+import { deepEqual, refEqual, useAppSelector, shallowEqual } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
 import Info_Panel from "./traverse-right-info";
 import Report_Panel from "../report";
@@ -32,7 +31,12 @@ const TraverseEditorRight: FunctionComponent = () => {
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
-  const terrainProfiles = useTerrainProfilesFor([selectedEvaSequenceItemUuid]);
+  const terrainProfiles = useAppSelector((state) => {
+    const entry =
+      state.terrainProfiles.previews[selectedEvaSequenceItemUuid] ??
+      state.terrainProfiles.profiles[selectedEvaSequenceItemUuid];
+    return entry ? { [selectedEvaSequenceItemUuid]: entry } : {};
+  }, shallowEqual);
   const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
   const selectedTraverseName = useMissionDocSelector(
     (mission) => mission.traverses[selectedEvaSequenceItemUuid]?.name,

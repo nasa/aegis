@@ -1,4 +1,3 @@
-import { useMissionTerrainProfiles } from "utils/useTerrainProfiles";
 import paneStyles from "../global-pane-styles.module.css";
 import evaStyles from "./eva.module.css";
 import type { FunctionComponent } from "react";
@@ -48,7 +47,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 
 const EvaRightEva: FunctionComponent = () => {
-  const terrainProfiles = useMissionTerrainProfiles();
+  const terrainProfiles = useAppSelector(
+    (state) => ({ ...state.terrainProfiles.profiles, ...state.terrainProfiles.previews }),
+    shallowEqual
+  );
 
   const dispatch = useAppDispatch();
   const partialMission = useMissionDocSelector(
