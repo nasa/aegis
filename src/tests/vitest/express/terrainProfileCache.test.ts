@@ -1,32 +1,64 @@
+// @vitest-environment node
+import { MikroORM } from "@mikro-orm/postgresql";
+import { randomUUID } from "node:crypto";
+import config from "server/database/mikro-orm.config";
+import { Migration20261029000000 } from "server/database/migrations/Migration20261029000000-terrain-profile-cache";
+import { globalValues } from "server/express/global";
+import { Doc_Listing_db, Doc_Listing_dbSchema } from "server/database/models/doc_listing.model";
+import {
+  Terrain_Profile_Cache_db,
+  Terrain_Profile_Cache_dbSchema,
+} from "server/database/models/terrain_profile_cache.model";
 import { applyDeleteRexStage } from "operations/apply/apply-rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { watchTerrainCache } from "server/terrain/terrainProfileCache";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
-// @vitest-environment node
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import {
-  cachedTerrainProfile,
-  pruneTerrainProfiles,
-  terrainCacheDirectory,
-} from "server/terrain/terrainProfileCache";
+import { cachedTerrainProfile, pruneTerrainProfiles } from "server/terrain/terrainProfileCache";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 
 let root: string;
-let oldStaticDir: string | undefined;
+let missionId: number;
+const schema = "vitest_terrain_cache_" + randomUUID().replaceAll("-", "");
+beforeAll(async () => {
+  globalValues.orm = await MikroORM.init({
+    ...config,
+    schema,
+    entities: [Doc_Listing_dbSchema, Terrain_Profile_Cache_dbSchema],
+    entitiesTs: [Doc_Listing_dbSchema, Terrain_Profile_Cache_dbSchema],
+  });
+  await globalValues.orm.schema.create();
+  // Exercise the shipped migration rather than relying on schema generation for the cache.
+  await globalValues.orm.em.fork().transactional(async (tx) => {
+    await tx.execute(`set local search_path to "${schema}"`);
+    const migration = new Migration20261029000000(tx.getDriver(), globalValues.orm.config);
+    migration.down();
+    migration.up();
+    for (const query of migration.getQueries()) await tx.execute(query as string);
+  });
+});
+afterAll(async () => {
+  if (!globalValues.orm) return;
+  await globalValues.orm.schema.drop({ dropMigrationsTable: true, dropDb: false });
+  await globalValues.orm.em.getConnection().execute('drop schema if exists "' + schema + '"');
+  await globalValues.orm.close();
+});
+const rows = () => globalValues.orm.em.fork().find(Terrain_Profile_Cache_db, { missionId });
 const profile = { elevationsMeters: [[1, 2]], terrainSlopesDegrees: [[3, null]] };
 beforeEach(async () => {
-  oldStaticDir = process.env.STATIC_DIR;
+  const em = globalValues.orm.em.fork();
+  const listing = em.create(Doc_Listing_db, { automergeUrl: "Vitest Terrain Cache" });
+  await em.flush();
+  missionId = listing.missionId;
   root = await fs.mkdtemp(path.join(os.tmpdir(), "aegis-terrain-cache-"));
-  process.env.STATIC_DIR = root;
   await fs.writeFile(path.join(root, "dem.tif"), "raster fixture");
 });
 afterEach(async () => {
-  if (oldStaticDir === undefined) delete process.env.STATIC_DIR;
-  else process.env.STATIC_DIR = oldStaticDir;
+  await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId });
   if (
     path.dirname(root) !== path.resolve(os.tmpdir()) ||
     !path.basename(root).startsWith("aegis-terrain-cache-")
@@ -35,7 +67,7 @@ afterEach(async () => {
   await fs.rm(root, { recursive: true, force: true });
 });
 const args = () => ({
-  missionId: 42,
+  missionId,
   entity: "traverse-1",
   rasterPath: path.join(root, "dem.tif"),
   inputs: [1],
@@ -43,7 +75,7 @@ const args = () => ({
   compute: vi.fn(async () => profile),
 });
 
-it("reuses disk results, invalidates geometry and DEM changes, and keeps one file", async () => {
+it("reuses database results, invalidates geometry and DEM changes, and keeps one row", async () => {
   const onCacheStatus = vi.fn();
   const request = { ...args(), onCacheStatus };
   await cachedTerrainProfile(request);
@@ -54,7 +86,7 @@ it("reuses disk results, invalidates geometry and DEM changes, and keeps one fil
   await fs.appendFile(request.rasterPath, "changed");
   await cachedTerrainProfile({ ...request, inputs: [2] });
   expect(request.compute).toHaveBeenCalledTimes(3);
-  expect(await fs.readdir(terrainCacheDirectory(42))).toEqual(["traverse-1.json"]);
+  expect(await rows()).toMatchObject([{ missionId, entity: "traverse-1", profile }]);
   expect(onCacheStatus.mock.calls.map(([status]) => status)).toEqual([
     "miss",
     "hit",
@@ -62,24 +94,36 @@ it("reuses disk results, invalidates geometry and DEM changes, and keeps one fil
     "miss",
   ]);
 });
-it("repairs corrupt files and shares simultaneous requests", async () => {
+it("repairs invalid profiles and shares simultaneous requests", async () => {
   const request = args();
   await cachedTerrainProfile(request);
-  await fs.writeFile(path.join(terrainCacheDirectory(42), "traverse-1.json"), "broken");
+  await globalValues.orm.em
+    .fork()
+    .nativeUpdate(
+      Terrain_Profile_Cache_db,
+      { missionId },
+      { profile: { elevationsMeters: [], terrainSlopesDegrees: [] } }
+    );
   await Promise.all([cachedTerrainProfile(request), cachedTerrainProfile(request)]);
   expect(request.compute).toHaveBeenCalledTimes(2);
-  await fs.writeFile(path.join(terrainCacheDirectory(42), "traverse-1.json"), "null");
+  await globalValues.orm.em
+    .fork()
+    .nativeUpdate(
+      Terrain_Profile_Cache_db,
+      { missionId },
+      { profile: { elevationsMeters: [[1, 2]], terrainSlopesDegrees: [[3]] } }
+    );
   await cachedTerrainProfile(request);
   expect(request.compute).toHaveBeenCalledTimes(3);
 });
-it("removes deleted entity files while retaining live entities", async () => {
+it("removes deleted entity rows while retaining live entities", async () => {
   await cachedTerrainProfile(args());
   await cachedTerrainProfile({ ...args(), entity: "traverse-2" });
   const traverse = generateBlankTraverse({ uuid: "traverse-2" });
   await pruneTerrainProfiles(
-    generateBlankMission({ id: 42, traverses: { [traverse.uuid]: traverse } })
+    generateBlankMission({ id: missionId, traverses: { [traverse.uuid]: traverse } })
   );
-  expect(await fs.readdir(terrainCacheDirectory(42))).toEqual(["traverse-2.json"]);
+  expect(await rows()).toMatchObject([{ entity: "traverse-2" }]);
 });
 it("does not recreate a profile when its owner is deleted during sampling", async () => {
   let current = true;
@@ -95,7 +139,7 @@ it("does not recreate a profile when its owner is deleted during sampling", asyn
   current = false;
   finish(profile);
   await result;
-  await expect(fs.readdir(terrainCacheDirectory(42))).rejects.toMatchObject({ code: "ENOENT" });
+  expect(await rows()).toEqual([]);
 });
 
 it("cleans a deleted REX's profiles through the server document observer", async () => {
@@ -103,7 +147,7 @@ it("cleans a deleted REX's profiles through the server document observer", async
   const eva = generateBlankEVA({ sequence: [{ type: "traverse", uuid: traverse.uuid }] });
   const rex = generateBlankRex({ evaUuid: eva.uuid });
   const mission = generateBlankMission({
-    id: 42,
+    id: missionId,
     traverses: { [traverse.uuid]: traverse },
     evas: { [eva.uuid]: eva },
     rexes: { [rex.uuid]: rex },
@@ -126,5 +170,38 @@ it("cleans a deleted REX's profiles through the server document observer", async
     actionUuids: [],
   });
   callbacks.get("change")();
-  await vi.waitFor(async () => expect(await fs.readdir(terrainCacheDirectory(42))).toEqual([]));
+  await vi.waitFor(async () => expect(await rows()).toEqual([]));
+});
+
+it("isolates the same entity in different missions and cascades mission deletion", async () => {
+  const em = globalValues.orm.em.fork();
+  const other = em.create(Doc_Listing_db, { automergeUrl: "Vitest Other Terrain Cache" });
+  await em.flush();
+  try {
+    const request = args();
+    await cachedTerrainProfile(request);
+    await cachedTerrainProfile({ ...request, missionId: other.missionId });
+    expect(request.compute).toHaveBeenCalledTimes(2);
+    await em.nativeDelete(Doc_Listing_db, { missionId });
+    expect(await rows()).toEqual([]);
+    expect(await em.count(Terrain_Profile_Cache_db, { missionId: other.missionId })).toBe(1);
+  } finally {
+    await em.nativeDelete(Doc_Listing_db, { missionId: other.missionId });
+  }
+});
+
+it("does not publish a late result after its mission listing is deleted", async () => {
+  let finish: (value: TerrainProfile) => void;
+  const compute = vi.fn(
+    () =>
+      new Promise<TerrainProfile>((resolve) => {
+        finish = resolve;
+      })
+  );
+  const result = cachedTerrainProfile({ ...args(), compute });
+  await vi.waitFor(() => expect(compute).toHaveBeenCalled());
+  await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId });
+  finish(profile);
+  await expect(result).resolves.toEqual(profile);
+  expect(await rows()).toEqual([]);
 });

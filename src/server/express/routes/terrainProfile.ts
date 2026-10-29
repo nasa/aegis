@@ -102,7 +102,7 @@ export const validateTerrainProfileRequest = (
   };
 };
 
-/** Sample a validated request; committed entity profiles go through the disk cache. */
+/** Sample a validated request; committed entity profiles go through the database cache. */
 export async function sampleMissionTerrainProfile(
   missionId: number,
   missionHandle: DocHandle<Mission>,
@@ -219,12 +219,12 @@ async function sampleMissionTerrainProfiles(
     logId: "terrain-profile",
     missionId,
     batchId,
-    logValue: `Batch ${results.length} profiles > disk-cache hit=${cacheCounts.hit} miss=${cacheCounts.miss} bypass=${cacheCounts.bypass} errors=${results.filter((result) => result.status !== "success").length} in ${(performance.now() - startedAt).toFixed(1)} ms`,
+    logValue: `Batch ${results.length} profiles > db-cache hit=${cacheCounts.hit} miss=${cacheCounts.miss} bypass=${cacheCounts.bypass} errors=${results.filter((result) => result.status !== "success").length} in ${(performance.now() - startedAt).toFixed(1)} ms`,
   });
   return results;
 }
 
-/** Committed profiles for the given traverses and station walkbacks, read through the disk cache. */
+/** Committed profiles for the given traverses and station walkbacks, read through the database cache. */
 export async function getMissionTerrainProfiles(
   missionId: number,
   missionHandle: DocHandle<Mission>,

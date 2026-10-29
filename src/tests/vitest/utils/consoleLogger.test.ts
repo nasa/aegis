@@ -31,7 +31,7 @@ describe("ConsoleLogger", () => {
       missionId: 50,
       uuids: ["entity-1"],
       unused: undefined,
-      logValue: "POST 200 > disk-cache hit\n3.0 ms",
+      logValue: "POST 200 > db-cache hit\n3.0 ms",
     };
 
     ConsoleLogger.debug(entry);

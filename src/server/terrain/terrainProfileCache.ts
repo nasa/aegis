@@ -1,12 +1,13 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
-import path from "node:path";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
+import { LockMode } from "@mikro-orm/postgresql";
+import { Doc_Listing_db, Terrain_Profile_Cache_db } from "server/database/models/_allModels";
+import { globalValues } from "server/express/global";
 import { RasterSamplingWorkerPoolSupersededError } from "server/raster/rasterSamplingWorkerPool";
 import { serverLogger } from "utils/logging/serverLogger";
-import { TERRAIN_CACHE_DIRECTORY_NAME } from "server/file/file";
 
-// Only pending work is held in memory. Completed profiles live exclusively on disk.
+// Only pending work is held in memory. Completed profiles live in the database.
 const pending = new Map<string, Promise<unknown>>();
 const latestInputs = new Map<string, string>();
 async function exclusive<T>(key: string, work: () => Promise<T>): Promise<T> {
@@ -20,18 +21,10 @@ async function exclusive<T>(key: string, work: () => Promise<T>): Promise<T> {
   }
 }
 
-export const terrainCacheDirectory = (missionId: number): string => {
+const cacheKey = (missionId: number, entity: string): string => {
   if (!Number.isSafeInteger(missionId) || missionId <= 0) throw new Error("Invalid mission ID");
-  return path.resolve(
-    process.env.STATIC_DIR ?? "",
-    "missionFiles",
-    String(missionId),
-    TERRAIN_CACHE_DIRECTORY_NAME
-  );
-};
-const cacheFile = (missionId: number, entity: string): string => {
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(entity)) throw new Error("Invalid cache entity");
-  return path.join(terrainCacheDirectory(missionId), `${entity}.json`);
+  return `${missionId}:${entity}`;
 };
 
 export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
@@ -43,26 +36,23 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
   compute: () => Promise<T>;
   onCacheStatus?: (status: "hit" | "miss") => void;
 }): Promise<TerrainProfile> {
-  const file = cacheFile(args.missionId, args.entity);
+  const key = cacheKey(args.missionId, args.entity);
+  const owner = { missionId: args.missionId, entity: args.entity };
   const requested = JSON.stringify(args.inputs);
-  latestInputs.set(file, requested);
-  return exclusive(file, async () => {
-    if (latestInputs.get(file) !== requested) throw new RasterSamplingWorkerPoolSupersededError();
+  latestInputs.set(key, requested);
+  return exclusive(key, async () => {
+    if (latestInputs.get(key) !== requested) throw new RasterSamplingWorkerPoolSupersededError();
     const stat = await fs.stat(args.rasterPath);
     const fingerprint = createHash("sha256")
       .update(
         JSON.stringify([1, args.rasterPath, stat.size, stat.mtimeMs, stat.ctimeMs, args.inputs])
       )
       .digest("hex");
-    try {
-      const stored = JSON.parse(await fs.readFile(file, "utf8"));
-      if (stored?.fingerprint === fingerprint && validProfile(stored.profile)) {
-        args.onCacheStatus?.("hit");
-        return stored.profile;
-      }
-    } catch (error) {
-      if (!(error instanceof SyntaxError) && (error as NodeJS.ErrnoException).code !== "ENOENT")
-        throw error;
+    const em = globalValues.orm.em.fork();
+    const stored = await em.findOne(Terrain_Profile_Cache_db, owner);
+    if (stored?.fingerprint === fingerprint && validProfile(stored.profile)) {
+      args.onCacheStatus?.("hit");
+      return stored.profile;
     }
     args.onCacheStatus?.("miss");
     const result = await args.compute();
@@ -70,20 +60,22 @@ export async function cachedTerrainProfile<T extends TerrainProfile>(args: {
       elevationsMeters: result.elevationsMeters,
       terrainSlopesDegrees: result.terrainSlopesDegrees,
     };
-    if (args.isCurrent() && latestInputs.get(file) === requested) {
-      await fs.mkdir(path.dirname(file), { recursive: true });
-      const temporary = `${file}.${randomUUID()}.tmp`;
-      try {
-        await fs.writeFile(temporary, JSON.stringify({ fingerprint, profile }) + "\n", "utf8");
-        if (args.isCurrent() && latestInputs.get(file) === requested)
-          await fs.rename(temporary, file);
-      } finally {
-        await fs.rm(temporary, { force: true });
-      }
+    if (args.isCurrent() && latestInputs.get(key) === requested) {
+      await em.transactional(async (tx) => {
+        // Lock only while publishing, so mission deletion can proceed during sampling.
+        // A deleted listing must never be recreated by a late cache write.
+        const listing = await tx.findOne(
+          Doc_Listing_db,
+          { missionId: args.missionId },
+          { lockMode: LockMode.PESSIMISTIC_WRITE }
+        );
+        if (listing && args.isCurrent() && latestInputs.get(key) === requested)
+          await tx.upsert(Terrain_Profile_Cache_db, { ...owner, fingerprint, profile });
+      });
     }
     return profile;
   }).finally(() => {
-    if (!pending.has(file)) latestInputs.delete(file);
+    if (!pending.has(key)) latestInputs.delete(key);
   });
 }
 
@@ -110,27 +102,21 @@ export async function pruneTerrainProfiles(
   mission: Mission,
   current: () => Mission = () => mission
 ): Promise<void> {
-  const directory = terrainCacheDirectory(mission.id);
-  let files: string[];
-  try {
-    files = await fs.readdir(directory);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw error;
-  }
+  const rows = await globalValues.orm.em
+    .fork()
+    .find(Terrain_Profile_Cache_db, { missionId: mission.id }, { fields: ["entity"] });
   await Promise.all(
-    files
-      .filter((file) => file.endsWith(".json"))
-      .map(async (file) => {
-        const entity = file.slice(0, -5);
-        if (mission.traverses?.[entity] || mission.stations?.[entity]) return;
-        const target = cacheFile(mission.id, entity);
-        await exclusive(target, async () => {
-          const latest = current();
-          if (!latest?.traverses?.[entity] && !latest?.stations?.[entity])
-            await fs.rm(target, { force: true });
-        });
-      })
+    rows.map(async ({ entity }) => {
+      if (mission.traverses?.[entity] || mission.stations?.[entity]) return;
+      const target = cacheKey(mission.id, entity);
+      await exclusive(target, async () => {
+        const latest = current();
+        if (!latest?.traverses?.[entity] && !latest?.stations?.[entity])
+          await globalValues.orm.em
+            .fork()
+            .nativeDelete(Terrain_Profile_Cache_db, { missionId: mission.id, entity });
+      });
+    })
   );
 }
 
@@ -168,10 +154,10 @@ export function watchTerrainCache(handle: DocHandle<Mission>): void {
     .catch(() => {});
 }
 
-/** Called after deleting the handle, before removing the mission directory. */
+/** Let in-flight sampling finish before removing the mission's raster files. */
 export async function waitForTerrainCache(missionId: number): Promise<void> {
-  const prefix = terrainCacheDirectory(missionId) + path.sep;
+  const prefix = `${missionId}:`;
   await Promise.allSettled(
-    [...pending].filter(([file]) => file.startsWith(prefix)).map(([, work]) => work)
+    [...pending].filter(([key]) => key.startsWith(prefix)).map(([, work]) => work)
   );
 }
