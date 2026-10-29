@@ -36,8 +36,7 @@
 .leftPanel,
 .mapPanel,
 .bottomPanel,
-.rightPanel,
-.mapMenuPanel {
+.rightPanel {
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -67,11 +66,6 @@
   overflow: hidden;
   background: black;
   border-left: 1px solid var(--grey1);
-}
-
-.mapMenuPanel {
-  overflow: auto;
-  background-color: var(--grey2);
 }
 
 /* stylelint-disable selector-class-pattern */
@@ -118,7 +112,37 @@
   border-bottom: 1px solid var(--grey3);
 }
 
-.container :global(.dv-resize-container .dv-tab) {
+.container :global(.dv-resize-container-with-titlebar .dv-tab) {
   pointer-events: none;
+}
+
+/* The Rex Menu widget (Positions + Assets tabs) cannot be dragged/resized smaller than this. */
+.container :global(.dv-resize-container:has([data-testid="positions-floating-panel"])) {
+  min-width: 325px;
+  min-height: 318px;
+}
+
+/* Floating groups mount outside .dv-dockview, so their tab colors are set on the overlay host.
+   The host is pinned to the map panel's rect (variables set by the layout component), overriding
+   the inline full-layout bounds dockview writes, so floating widgets cannot be dragged or resized
+   past the map. */
+.container :global(.dv-floating-overlay-host) {
+  top: var(--floating-overlay-host-top) !important;
+  left: var(--floating-overlay-host-left) !important;
+  width: var(--floating-overlay-host-width) !important;
+  height: var(--floating-overlay-host-height) !important;
+
+  --dv-tabs-and-actions-container-height: 26px;
+  --dv-tabs-and-actions-container-font-size: 0.8rem;
+  --dv-tabs-and-actions-container-background-color: var(--grey2);
+  --dv-group-view-background-color: var(--grey2);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--grey3);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--grey3);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--grey2);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--grey2);
+  --dv-activegroup-visiblepanel-tab-color: var(--grey5);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--grey5);
+  --dv-activegroup-hiddenpanel-tab-color: var(--grey4);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--grey4);
 }
 /* stylelint-enable selector-class-pattern */

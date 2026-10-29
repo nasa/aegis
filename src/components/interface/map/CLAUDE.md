@@ -389,8 +389,67 @@ POI and Action markers **reuse the `station` config** (iconSize, clickable, hove
 
 `overlays/MapOverlays.tsx` is a React UI subtree positioned over the canvas (**not** `ol/Overlay`):
 eyeball menu (`map-menu.tsx`), preset selector (`map-menu-preset.tsx`), follow menu (dashboard),
-`ScaleBar`, `MouseCoordinateDisplay`, sun/earth compass (`map-sunearth.tsx`), POS menu
-(`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`).
+`ScaleBar`, `MouseCoordinateDisplay`, sun/earth compass (`map-sunearth.tsx`), and the Rex Menu
+launcher (crosshair icon, shown only while the Rex Menu widget is minimized).
+
+**Rex Menu (editor only) is a dockview floating group, not a map overlay.** Its dockview wiring
+(panel components, tab/header-action components, and the `useRexMenuDockviewPanel` hook that
+creates/removes/shows/hides it) lives in `overlays/rex-menu.tsx`, not in `MissionDockviewLayout`.
+`MissionDockviewLayout` (`src/components/interface/dockview/`) just calls the hook and spreads
+`rexMenuComponents`/`rexMenuTabComponents` into its own dockview config. The widget is created
+when the EVA section is active and a REX is selected, and removed otherwise. It holds two
+non-closable tabs:
+
+- **Positions** — `MapPositionMenu` (`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`): pos-type /
+  source toggles, New/Edit Pos., and the position table. The widget's removal is driven by a
+  `useEffect` in `useRexMenuDockviewPanel`, so `MapPositionMenu` can still render for a tick with
+  `selectedRexUuid` set but no matching REX in the mission doc (e.g. the EVA dropdown just
+  switched from this REX back to As Planned) — guard on `!selectedRex` and return `null` before
+  dereferencing anything off it, rather than relying on the parent to unmount it first.
+- **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`): placeholder ("Asset Management Coming
+  Soon"). Add asset management components here.
+
+Dockview owns drag (via the tab bar's empty space) and resize. Dockview clamps floating-group
+drag and resize only to its `.dv-floating-overlay-host` element, which it sizes (inline styles) to
+the whole layout, including the left/right/bottom panels; dockview-core has no resize hook to
+intercept. `MissionDockviewLayout`'s layout-change watcher therefore writes the map panel's rect
+into `--floating-overlay-host-*` CSS variables, and `missionDockviewLayout.module.css` applies
+them to the host with `!important`. That confines every floating widget (Rex Menu and Map Item
+Visibility) to the map for both drag and resize. Floating `x`/`y` values are therefore relative to
+the map's top-left corner, not the dockview root. A minimize button in the group's header actions
+(`RexMenuHeaderActions`, also in `rex-menu.tsx`) sets `state.interface.rexMenuIsMinimized`, which
+hides the group with `group.api.setVisible(false)` (content stays mounted, so in-progress state
+survives) and shows `RexMenuLauncher` in `MapOverlays`; clicking the launcher restores it. The
+tabs use a custom `nonClosable` tab component.
+
+The widget cannot be dragged/resized below 325×318 — `setConstraints` only affects docked
+panels, not a floating group's interactive resize handles (those are hardcoded in dockview-core
+to a 20px minimum), so the floor is enforced in CSS (`:global(.dv-resize-container:has(...))`
+in `missionDockviewLayout.module.css`) targeting the resize container that wraps the Positions
+tab's content. The same 325×318 is baked into the initial/reposition bounds math in
+`rex-menu.tsx` so the widget never computes an x/y assuming it's smaller than its enforced floor.
+
+It is re-anchored to the top-right of the map whenever the map area's bounds change (e.g. the
+right panel opens/closes, which happens automatically on REX selection) via
+`repositionRexMenuPanel`, called from `MissionDockviewLayout`'s layout-change watcher alongside
+`setMapMenuSize`. Dockview has no public API to move a floating group's x/y in place, so this
+removes and recreates the two panels at the new bounds, preserving which tab was active and
+whether the widget was minimized. The no-op check compares the new bounds against the bounds it
+last _requested_ (a module-level `lastAppliedRexMenuBounds`, pure function of the map bounds), not
+against the widget's rendered DOM `boundingBox` — dockview's own floating-group clamping doesn't
+always render exactly what was requested, so a rendered-bounds comparison can permanently fail to
+match and recreate the widget on every layout event forever (removePanel/addPanel re-fire
+`onDidLayoutChange`, which calls this function again), hanging the tab the moment a REX is
+selected. Without this, the widget's position is only computed once at
+creation time, and (since the right panel's own resize effect runs in a separate React effect
+that fires after the widget's creation effect) it ends up anchored assuming the map is wider
+than it will actually be once the right panel finishes opening — landing on top of the right
+panel instead of to its left. The "Map Item Visibility" floating panel
+(`map-menu`) follows the same split — its dockview wrapper, sizing, and open/close hook
+(`useMapMenuDockviewPanel`) live in `map-menu.tsx` alongside `MapMenuPanel`/`MapMenuLauncher`.
+Floating groups mount in `.dv-floating-overlay-host` (outside `.dv-dockview`), so their tab theme
+variables are set on that element. Docking into other areas still requires removing the layout's
+`disableDnd`/`locked` settings and the main panels' `no-drop-target` locks.
 
 The sun/earth compass azimuths come from `useSunEarthAzimuths()`. Settings belong to
 the selected EVA and are edited below EVA Start Time in its info panel. Calculation is
