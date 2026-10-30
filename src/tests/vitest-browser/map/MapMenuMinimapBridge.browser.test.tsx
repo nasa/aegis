@@ -117,3 +117,39 @@ describe("MinimapMenuSubscriber", () => {
     expect(menu!.showArrows).toBe(false);
   });
 });
+
+describe("asset visibility bridge", () => {
+  it("mirrors the dashboard's Assets toggle into the minimap's own provider", async () => {
+    let dashboardSetters: MapMenuSetters | null = null;
+    let minimapMenu: MapMenuSettings | null = null;
+
+    function DashboardProbe(): null {
+      dashboardSetters = useMapMenuSetters();
+      return null;
+    }
+    function MinimapProbe(): null {
+      minimapMenu = useMapMenuContext();
+      return null;
+    }
+
+    harness.render(
+      <CookiesProvider cookies={cookies}>
+        <DashboardBoundsProvider>
+          <MapMenuProvider>
+            <DashboardMenuPublisher />
+            <DashboardProbe />
+          </MapMenuProvider>
+          <MapMenuProvider>
+            <MinimapMenuSubscriber />
+            <MinimapProbe />
+          </MapMenuProvider>
+        </DashboardBoundsProvider>
+      </CookiesProvider>
+    );
+
+    expect(minimapMenu!.submenuAssets.show).toBe(true);
+    flushSync(() => dashboardSetters!.setSubmenuAssets({ show: false, showLabels: true }));
+    await flushEffects();
+    expect(minimapMenu!.submenuAssets.show).toBe(false);
+  });
+});

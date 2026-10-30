@@ -17,7 +17,7 @@
  *
  * ## Priority
  *
- * Lander = 0 (highest), Station = 1, POI = 2, Action = 3.
+ * Lander = 0 (highest), Station = 1, POI = 2, Action = 3, Pos = 4, Asset = 5.
  * Higher-priority labels render on top and at full opacity.
  *
  * Returns null — headless behavior component.
@@ -37,6 +37,7 @@ import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
+import { getVisibleMapAssets } from "utils/assets";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -62,6 +63,7 @@ const PRIORITY_STATION = 1;
 const PRIORITY_POI = 2;
 const PRIORITY_ACTION = 3;
 const PRIORITY_POS = 4;
+const PRIORITY_ASSET = 5;
 
 // ---------------------------------------------------------------------------
 // POS entry helpers (mirror logic from PosEntries.tsx)
@@ -98,7 +100,7 @@ function getLatestPosEntryByType(allPosEntries: PosEntry[]): Record<string, PosE
 interface LabelInfo {
   id: string;
   name: string;
-  labelType: "lander" | "station" | "poi" | "action" | "pos";
+  labelType: "lander" | "station" | "poi" | "action" | "pos" | "asset";
   anchorCoord: [number, number]; // projected map coordinate
   priority: number;
   /** Transient hover tooltip — always renders at full opacity, never draggable */
@@ -114,6 +116,7 @@ export function MarkerLabels(): null {
     submenuPois: mapDisplayPois,
     submenuActions: mapDisplayActions,
     submenuPos: mapDisplayPos,
+    submenuAssets: mapDisplayAssets,
   } = useMapMenuContext();
   const { toMapCoord } = useCoordConverters();
 
@@ -132,6 +135,8 @@ export function MarkerLabels(): null {
   const hoverMapItemUuid = useAppSelector((s) => s.hover.mapItemUuid, refEqual);
   const hoverMapItemType = useAppSelector((s) => s.hover.mapItemType, refEqual);
   const selectedRexUuid = useAppSelector((s) => s.rex.selectedRexUuid, refEqual);
+  // The draft preview belongs to the editor; other maps draw the saved asset.
+  const assetDraft = useAppSelector((s) => (mode === "editor" ? s.asset.draft : null), refEqual);
 
   // --- Automerge doc state ---
   const selectedEva = useMissionDocSelector((m) => {
@@ -145,6 +150,7 @@ export function MarkerLabels(): null {
   const asPlannedStationsFromDoc = useMissionDocSelector(selectAsPlannedStations, deepEqual);
   const poisFromDoc = useMissionDocSelector((m) => Object.values(m.pois ?? {}), deepEqual);
   const actionsFromDoc = useMissionDocSelector((m) => Object.values(m.actions ?? {}), deepEqual);
+  const assetsFromDoc = useMissionDocSelector((m) => Object.values(m.assets ?? {}), deepEqual);
 
   // Naming inputs for STM (v2) actions, whose label is built from the
   // verb/noun/adjective definition joined by the mission's custom conjunctions.
@@ -426,7 +432,6 @@ export function MarkerLabels(): null {
     // POS entry labels
     const showPosLabels =
       mapDisplayPos.show &&
-      sectionSelected === "evas" &&
       !!selectedRex &&
       (mapDisplayPos.showAllLabels || mapDisplayPos.showLatestLabels);
 
@@ -500,6 +505,25 @@ export function MarkerLabels(): null {
       }
     }
 
+    // Asset labels — same visibility rule as AssetMarkers, plus the label toggle
+    const visibleAssets = getVisibleMapAssets({
+      assets: assetsFromDoc ?? [],
+      folders,
+      draft: assetDraft,
+      showAssets: mapDisplayAssets.show,
+    });
+    if (config.asset.labelsEnabled && mapDisplayAssets.showLabels) {
+      for (const asset of visibleAssets) {
+        infos.push({
+          id: `asset-${asset.uuid}`,
+          name: asset.name,
+          labelType: "asset",
+          anchorCoord: toMapCoord(asset.location) as [number, number],
+          priority: PRIORITY_ASSET,
+        });
+      }
+    }
+
     // Hover tooltip — show label for hovered marker even when showLabels is off
     if (hoverMapItemUuid && hoverMapItemType) {
       // Hovering a lander copy resolves to the lander itself
@@ -516,7 +540,9 @@ export function MarkerLabels(): null {
               ? `poi-${hoverMapItemUuid}`
               : hoverMapItemType === "action"
                 ? `action-${hoverMapItemUuid}`
-                : null;
+                : hoverMapItemType === "asset"
+                  ? `asset-${hoverMapItemUuid}`
+                  : null;
 
       if (hoverLabelId && !infos.some((i) => i.id === hoverLabelId)) {
         if (hoverMapItemType === "lander" || hoveredIsLanderXgress) {
@@ -560,6 +586,18 @@ export function MarkerLabels(): null {
               isHover: true,
             });
           }
+        } else if (hoverMapItemType === "asset" && config.asset.labelsEnabled) {
+          const asset = visibleAssets.find((a) => a.uuid === hoverMapItemUuid);
+          if (asset) {
+            infos.push({
+              id: hoverLabelId,
+              name: asset.name,
+              labelType: "asset",
+              anchorCoord: toMapCoord(asset.location) as [number, number],
+              priority: PRIORITY_ASSET,
+              isHover: true,
+            });
+          }
         } else if (hoverMapItemType === "action" && mapDisplayActions.show) {
           const action = actions.find((a) => a.uuid === hoverMapItemUuid);
           if (action?.location?.lat != null && action?.location?.lng != null) {
@@ -584,6 +622,10 @@ export function MarkerLabels(): null {
     mapDisplayStations,
     mapDisplayPois,
     mapDisplayActions,
+    mapDisplayAssets,
+    config.asset.labelsEnabled,
+    assetsFromDoc,
+    assetDraft,
     selectedEva,
     allStationsFromDoc,
     asPlannedStationsFromDoc,

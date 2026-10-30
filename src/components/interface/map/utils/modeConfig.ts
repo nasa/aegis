@@ -63,6 +63,15 @@ export interface ModeConfig {
     limitToRunningEva: boolean;
   };
 
+  // Asset markers
+  asset: {
+    iconSize: number;
+    clickable: boolean;
+    hoverable: boolean;
+    /** Whether this mode draws asset name labels at all. */
+    labelsEnabled: boolean;
+  };
+
   // Proximity circles
   circle: {
     /** Minimum stroke width (px) for proximity circles, regardless of data `weight`. */
@@ -154,6 +163,12 @@ const EDITOR_CONFIG: ModeConfig = {
     zIndexOffset: 2000,
     limitToRunningEva: false,
   },
+  asset: {
+    iconSize: 20,
+    clickable: true,
+    hoverable: true,
+    labelsEnabled: true,
+  },
   circle: {
     minWidth: 1.5,
     labelFontSize: 14,
@@ -220,6 +235,12 @@ const DASHBOARD_CONFIG: ModeConfig = {
     zIndexOffset: 0,
     limitToRunningEva: false,
   },
+  asset: {
+    iconSize: 34,
+    clickable: false,
+    hoverable: false,
+    labelsEnabled: true,
+  },
   circle: {
     minWidth: 3,
     labelFontSize: 20,
@@ -285,6 +306,12 @@ const MINIMAP_CONFIG: ModeConfig = {
     hoverable: false,
     zIndexOffset: 0,
     limitToRunningEva: true,
+  },
+  asset: {
+    iconSize: 20,
+    clickable: false,
+    hoverable: false,
+    labelsEnabled: false,
   },
   circle: {
     minWidth: 1.5,

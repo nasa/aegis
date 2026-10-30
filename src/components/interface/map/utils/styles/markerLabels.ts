@@ -56,6 +56,11 @@ const LABEL_COLORS: Record<string, { text: string; bg: string; connector: string
     bg: "rgba(0,0,0,0.9)",
     connector: "rgba(180,255,200,0.45)",
   },
+  asset: {
+    text: "rgba(255,236,170,0.95)",
+    bg: "rgba(0,0,0,0.5)",
+    connector: "rgba(255,236,170,0.45)",
+  },
 };
 
 const DEFAULT_COLORS = LABEL_COLORS.station;
@@ -69,7 +74,7 @@ if (_measureCtx) _measureCtx.font = LABEL_FONT;
  *
  * Each label feature must have properties:
  * - `name` (string) — label text
- * - `labelType` ('lander' | 'station' | 'poi' | 'action')
+ * - `labelType` ('lander' | 'station' | 'poi' | 'action' | 'pos' | 'asset')
  * - `anchorCoord` ([number, number]) — projected map coordinate of the marker
  *
  * The feature's geometry is a Point at the label position (may differ from

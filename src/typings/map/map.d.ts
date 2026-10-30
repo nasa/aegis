@@ -21,7 +21,7 @@ type MapAction =
   | "refreshLocation"
   | "delete";
 
-type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action" | "posEntry";
+type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action" | "posEntry" | "asset";
 type MapPolylineType = "traverse" | "walkback" | "hover" | "posPath" | "measurement";
 type MapCircleType = "stationCircle" | "landerCircle";
 
@@ -87,6 +87,7 @@ type MapMenuCookie = {
   submenuPois: MapSubmenuMarkers;
   submenuActions: MapSubmenuMarkers;
   submenuPos: MapSubmenuPos;
+  submenuAssets: MapSubmenuMarkers;
   showArrows: boolean;
   showBearings: boolean;
   showDistances: boolean;
@@ -134,3 +135,17 @@ type MissionSelectProperties = Pick<
   | "gridRenderMode"
   | "actionDefinitions"
 >;
+
+/** The mission's coordinate presentation, for formatting and parsing typed coordinates. */
+type CoordinateEntryContext = {
+  usingLGRSCoordinates: boolean;
+  /** LGRS labels carry their 25 km area prefix (dynamic LGRS grid). */
+  dynamicLgrs: boolean;
+  serverGrid: MissionGridPoint[][] | null;
+  planetRadius: number | null;
+  /** Resolves condensed LGRS labels, which omit their 25 km area. */
+  landerLocation: AEGISPoint | null;
+};
+
+type CoordinateEntryResult =
+  { location: AEGISPoint; error: null } | { location: null; error: string };

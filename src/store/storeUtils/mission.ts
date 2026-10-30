@@ -54,6 +54,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     evas: {},
     rexes: {},
     folders: {},
+    assets: {},
     layers: {},
     sublayers: {},
     presets: {},

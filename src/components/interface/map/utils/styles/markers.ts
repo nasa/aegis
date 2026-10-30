@@ -1,5 +1,5 @@
 /**
- * Marker Styles — style functions for station, POI, action, lander markers.
+ * Marker Styles — style functions for station, POI, action, asset, lander markers.
  *
  * Each builder returns an OL `StyleFunction` parameterized by the mode config
  * and current display state. Style caching is internal. The style functions
@@ -11,10 +11,11 @@
  * `MarkerLabels` behavior component on a dedicated label layer with:
  * - Auto-layout collision avoidance (greedy pixel-based algorithm)
  * - Draggable labels with connector lines back to markers
- * - Priority: lander > station > POI > action
+ * - Priority: lander > station > POI > action > pos > asset
  */
 
-import { Style, Stroke, Icon, Circle as CircleStyle } from "ol/style";
+import { Style, Stroke, Fill, Icon, Circle as CircleStyle } from "ol/style";
+import { withAlpha } from "../layers/layerFactory";
 import type { FeatureLike } from "ol/Feature";
 import type { ModeConfig } from "../modeConfig";
 import { renderEmojiToCanvas } from "../emojiRenderer";
@@ -139,6 +140,71 @@ export function buildActionStyleFunction(
 
     // Marker icon
     const canvas = renderEmojiToCanvas(emoji || "2754", iconSize);
+    styles.push(
+      new Style({
+        image: new Icon({
+          img: canvas,
+          width: iconSize,
+          height: iconSize,
+          anchor: [0.5, 0.5],
+          anchorXUnits: "fraction",
+          anchorYUnits: "fraction",
+        }),
+        zIndex: baseZIndex,
+      })
+    );
+
+    cache.set(cacheKey, styles);
+    return styles;
+  };
+}
+
+/**
+ * Asset markers: the emoji over an optional 50%-opaque disc in the asset's color, and a white
+ * ring while selected. Missing icons fall back to ❔ like stations. Cache key: emoji + color +
+ * selection (iconSize is captured at builder creation).
+ */
+export function buildAssetStyleFunction(
+  selectedAssetUuid: string | null,
+  iconSize = 20
+): (feature: FeatureLike, resolution: number) => Style[] {
+  const cache = new Map<string, Style[]>();
+
+  return (feature: FeatureLike, _resolution: number): Style[] => {
+    const uuid = feature.getId() as string;
+    const emoji = (feature.get("emoji") as string) || "2754";
+    const color = (feature.get("color") as string | null) ?? null;
+    const isSelected = uuid === selectedAssetUuid;
+
+    const cacheKey = `asset-${emoji}-${color}-${isSelected}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+
+    const styles: Style[] = [];
+    const baseZIndex = isSelected ? 9999 : 0;
+    if (color) {
+      styles.push(
+        new Style({
+          image: new CircleStyle({
+            radius: iconSize / 2 + 5,
+            fill: new Fill({ color: withAlpha(color, 0.5) }),
+          }),
+          zIndex: baseZIndex,
+        })
+      );
+    }
+    if (isSelected) {
+      styles.push(
+        new Style({
+          image: new CircleStyle({
+            radius: iconSize / 2 + 7,
+            stroke: new Stroke({ color: "#ffffff", width: 2 }),
+          }),
+          zIndex: baseZIndex,
+        })
+      );
+    }
+    const canvas = renderEmojiToCanvas(emoji, iconSize);
     styles.push(
       new Style({
         image: new Icon({
