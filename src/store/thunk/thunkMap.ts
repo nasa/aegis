@@ -9,6 +9,7 @@ import { setSelectedPosEntryUuid } from "store/rex";
 import { setSelectedMeasurementUuid } from "store/measure";
 import { setSelectedEvaSequenceItemUuid } from "store/eva";
 import { getMissionDocHandle } from "client/automergeDocHandles";
+import { thunkRevealAsset } from "./thunkAsset";
 
 export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<void>(
   "mapCancelMarkerMapDirective",
@@ -42,6 +43,16 @@ export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<void>(
   }
 );
 
+// The delayed start of the most recent thunkUpdateMapDirective call, if it has not fired yet.
+let pendingDirectiveTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Drop a directive that thunkUpdateMapDirective has scheduled but not yet applied. */
+export function cancelPendingMapDirective(): void {
+  if (pendingDirectiveTimer === null) return;
+  clearTimeout(pendingDirectiveTimer);
+  pendingDirectiveTimer = null;
+}
+
 export const thunkUpdateMapDirective = appCreateAsyncThunk<MapDirective, void, false>(
   "updateMapDirective",
   async (mapDirective, { dispatch, getState }) => {
@@ -56,7 +67,17 @@ export const thunkUpdateMapDirective = appCreateAsyncThunk<MapDirective, void, f
       dispatch(updateMapDirective(null));
     }
 
-    setTimeout(() => {
+    // A newer request replaces one that has not started yet.
+    cancelPendingMapDirective();
+    pendingDirectiveTimer = setTimeout(() => {
+      pendingDirectiveTimer = null;
+      // An asset gesture only starts if its draft is still open.
+      if (
+        mapDirective?.mapItemType === "asset" &&
+        getState().asset.draft?.uuid !== mapDirective.uuid
+      ) {
+        return;
+      }
       dispatch(updateMapDirective(mapDirective));
     }, 200);
   }
@@ -96,6 +117,9 @@ export const thunkMarkerOnClick = appCreateAsyncThunk<{
     dispatch(setSectionSelected("poi"));
     dispatch(setSelectedPoiUuid(markerUuid));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
+  } else if (mapItemType === "asset") {
+    // Assets are section-agnostic: reveal the row in the floating widget, keep the section.
+    await dispatch(thunkRevealAsset({ assetUuid: markerUuid }));
   }
 });
 

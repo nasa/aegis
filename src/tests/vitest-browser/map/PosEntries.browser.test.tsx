@@ -317,17 +317,27 @@ describe("PosEntries", () => {
     expect(markerCount()).toBe(0);
   });
 
-  it("renders no marker features when sectionSelected is not 'evas'", () => {
-    const e1 = makePosEntry("e1", 10, 20, [POSTYPE_A_UUID], SOURCE_A_UUID, "2026-01-01T00:00:00Z");
-    const rex = makeRex({
-      posEntries: [e1],
-      posTypes: [makePosType(POSTYPE_A_UUID)],
-      posSources: [makePosSource(SOURCE_A_UUID)],
-    });
-    store = makeStore(preloaded({ rex, sectionSelectedLabel: "preset" }));
-    renderPosEntries();
-    expect(markerCount()).toBe(0);
-  });
+  it.each(["preset", "poi", "station"])(
+    "renders marker features in the %s section while a REX is selected",
+    (sectionSelectedLabel) => {
+      const e1 = makePosEntry(
+        "e1",
+        10,
+        20,
+        [POSTYPE_A_UUID],
+        SOURCE_A_UUID,
+        "2026-01-01T00:00:00Z"
+      );
+      const rex = makeRex({
+        posEntries: [e1],
+        posTypes: [makePosType(POSTYPE_A_UUID)],
+        posSources: [makePosSource(SOURCE_A_UUID)],
+      });
+      store = makeStore(preloaded({ rex, sectionSelectedLabel }));
+      renderPosEntries();
+      expect(markerCount()).toBe(1);
+    }
+  );
 
   it("creates a marker feature for each visible POS entry (editor mode)", () => {
     const e1 = makePosEntry("e1", 10, 20, [POSTYPE_A_UUID], SOURCE_A_UUID, "2026-01-01T00:00:00Z");

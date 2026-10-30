@@ -32,11 +32,11 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
 
 ### The three entry points
 
-| File                    | `mode`        | Notes                                                                                                                                                                                                      |
-| ----------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AegisMapEditor.tsx`    | `"editor"`    | Full feature set. Self-wraps `FeatureSourcesProvider`. Only editor has POI/measurement/interaction/highlight/timeline behaviors and zoom controls.                                                         |
-| `AegisMapDashboard.tsx` | `"dashboard"` | Adds `FollowModeProvider` + `FollowMode` behavior. No editing behaviors.                                                                                                                                   |
-| `AegisMapMinimap.tsx`   | `"minimap"`   | Stripped down. Adds `BigMapBoundsBox` + `AutoFitBounds`. Non-interactive. Has no eyeball menu, but mirrors the dashboard menu's scale-bar + traverse-arrow toggles via `DashboardBoundsProvider` (see §2). |
+| File                    | `mode`        | Notes                                                                                                                                                                                                                 |
+| ----------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AegisMapEditor.tsx`    | `"editor"`    | Full feature set. Self-wraps `FeatureSourcesProvider`. Only editor has POI/measurement/interaction/highlight/timeline behaviors and zoom controls.                                                                    |
+| `AegisMapDashboard.tsx` | `"dashboard"` | Adds `FollowModeProvider` + `FollowMode` behavior. No editing behaviors.                                                                                                                                              |
+| `AegisMapMinimap.tsx`   | `"minimap"`   | Stripped down. Adds `BigMapBoundsBox` + `AutoFitBounds`. Non-interactive. Has no eyeball menu, but mirrors the dashboard menu's scale-bar, traverse-arrow, and Assets toggles via `DashboardBoundsProvider` (see §2). |
 
 `MapMode` is defined in `src/typings/map/ol.d.ts` (`"editor" | "dashboard" | "minimap"`).
 
@@ -66,11 +66,16 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
   on setter reference. Persists to the `AEGIS_Map_Menu_Settings` cookie. Each map has its own
   provider (separate state trees) but they **share the cookie** — a change on one map persists
   and loads into the other on next mount; live changes are not synced. **Exception:** the minimap
-  has no menu of its own and mirrors the dashboard menu's `showScaleBar` + `showArrows` **live**
-  via `DashboardBoundsProvider` — see the bridge components in `MapMenuMinimapBridge.tsx`
-  (`DashboardMenuPublisher` pushes those two values from the dashboard menu into the shared
-  context; `MinimapMenuSubscriber` copies `showArrows` back into the minimap's own provider so
-  `TraverseLines` reads it; the minimap's `ScaleBar` is gated on the shared `showScaleBar`).
+  has no menu of its own and mirrors the dashboard menu's `showScaleBar`, `showArrows`, and
+  `submenuAssets.show` **live** via `DashboardBoundsProvider` — see the bridge components in
+  `MapMenuMinimapBridge.tsx` (`DashboardMenuPublisher` pushes those values from the dashboard menu
+  into the shared context; `MinimapMenuSubscriber` copies `showArrows` and the Assets toggle back
+  into the minimap's own provider so `TraverseLines` and the asset behaviors read them; the
+  minimap's `ScaleBar` is gated on the shared `showScaleBar`). The minimap draws no labels, so
+  Asset Labels is not mirrored.
+- **The editor's provider wraps the whole mission dockview layout** (`pages/mission.tsx`), so the
+  floating widgets (Map Item Visibility and the Rex Menu's Assets tab) read and set the editor's
+  toggles directly — e.g. Place on Map / Edit Pos. turns Assets + Asset Labels back on.
 - **`FollowModeProvider`** (dashboard only) — `followMode` toggle + per-item `followModeOptions`
   keyed `"stations"`, `"traverses"`, and each running-REX pos-type uuid. Rebuilds pos-type
   options when the running REX's `posTypes` change.
@@ -150,8 +155,8 @@ Traps that cause real bugs:
 ## 5. Shared feature sources
 
 `FeatureSourcesProvider` creates one `VectorSource` per type:
-`stationSource, traverseSource, posSource, posPathSource, circleSource, poiSource, actionSource,
-walkbackSource, measurementSource, highlightSource, labelSource`.
+`stationSource, traverseSource, posSource, posPathSource, circleSource, poiSource, assetSource,
+actionSource, walkbackSource, measurementSource, highlightSource, labelSource`.
 
 - One instance per page, **shared across dashboard + minimap**. Each map builds its own
   `VectorLayer` (with per-mode styles) over the shared source. A feature mutation redraws on
@@ -159,12 +164,12 @@ walkbackSource, measurementSource, highlightSource, labelSource`.
 - **Consequence:** per-map visual differences must live in the **per-layer style function**, not
   in feature geometry/props. Reconciling a shared source in one mode's component mutates the
   features every map sees.
-- **All marker labels** (lander/station/poi/action/pos) live on the single shared `labelSource`,
+- **All marker labels** (lander/station/poi/action/pos/asset) live on the single shared `labelSource`,
   not on the marker layers — this enables one overlap-dimming pass and the drag-to-reposition
   system (`MarkerLabels` + `ol/interaction/Translate`). See §8 MarkerLabels.
 
 Some behaviors deliberately use their **own** (non-shared) sources: `Grid`, `Circles`,
-`HoverHighlight`, `SelectionHighlight`, `BigMapBoundsBox`.
+`AssetUncertainty`, `HoverHighlight`, `SelectionHighlight`, `BigMapBoundsBox`.
 
 ---
 
@@ -184,7 +189,15 @@ Key behaviors:
   `selectionKey` (section + selected poi/station/seq-item/measurement). If that key later changes,
   it dispatches `updateMapDirective(null)`. This prevents a stale `Modify`/`Translate` surviving a
   context switch — the bug it fixes let you "drag when not in edit mode" and crashed on the next
-  edit. posEntry edits are excluded from this watcher.
+  edit. posEntry edits are excluded from this watcher. Asset directives are section-agnostic:
+  their key is the selected asset uuid only, so section/EVA/REX/POI/station changes keep them.
+- **Asset locations go to the draft, not the doc.** The `"asset"` branch of `saveItemPosition`
+  (used by the `createMarker` click, `editMarker` click, and `translateend`) dispatches
+  `thunkSetAssetDraftLocation`; the asset is written on Save from the black editor. The asset
+  marker's feature id is the asset uuid, and `AssetMarkers` draws the open draft under that same id.
+- **`thunkUpdateMapDirective`'s 200 ms delayed start is cancellable** (`cancelPendingMapDirective`),
+  a newer request replaces an unfired one, and an asset directive only fires if its draft is still
+  open.
 - **Endpoint pinning** (traverse/walkback): first/last coords are pinned to the neighbouring
   station/lander. `Modify` `condition`/`deleteCondition` block grabbing/deleting endpoint vertices
   within `ENDPOINT_PIXEL_TOLERANCE` (10px, matches OL default); the vertex style hides the
@@ -293,8 +306,8 @@ All OL `Style`/`StyleFunction` objects live in `utils/styles/` — **never inlin
 outside. The style builders each keep a `Map` cache; know its **key**, because a bug often means
 a cache key omits a varying input:
 
-- `markers.ts` (`buildStation/Poi/Action/LanderStyleFunction`): keyed by emoji + selection
-  (+ in-progress). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
+- `markers.ts` (`buildStation/Poi/Action/Asset/LanderStyleFunction`): keyed by emoji + selection
+  (+ in-progress; + color for assets). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
   size change requires rebuilding the whole builder, not re-calling it. Selected marker →
   `zIndex 9999`; dashboard in-progress stations get a green ring (triggered by
   `config.station.hoverable === false`).
@@ -320,8 +333,8 @@ a cache key omits a varying input:
   **blank** canvas permanently (sticky failure until cache clears).
 
 `utils/labelLayout.ts` computes overlap-based opacity for the shared label layer. Priority:
-lander 0 > station 1 > poi 2 > action 3 > pos 4 (lower = higher priority, always opaque, drawn on
-top, dims lower-priority overlaps via point-sampled union coverage).
+lander 0 > station 1 > poi 2 > action 3 > pos 4 > asset 5 (lower = higher priority, always opaque,
+drawn on top, dims lower-priority overlaps via point-sampled union coverage).
 
 ---
 
@@ -341,15 +354,16 @@ LANDER            : 11
 ACTIONS           : 12
 STATIONS          : 14
 POIS              : 15
+ASSETS            : 16   (asset markers; uncertainty rings use CIRCLES)
 HOVER             : 18
 SELECTION         : 19   (also BigMapBoundsBox)
-PLACE_LABELS      : 20   (MarkerLabels)
-POS_ENTRIES       : 22   (POS paths)
+POS_ENTRIES       : 20   (POS paths)
+PLACE_LABELS      : 21   (MarkerLabels)
 POS_MARKERS       : 23   (POS markers, above paths + labels)
 TIMELINE_ASTRONAUT: 28
 ```
 
-Gaps (4–5, 9, 13, 16–17, 21, 24–27) are intentional insertion room. The `ol/Overlay` DOM node
+Gaps (4–5, 9, 13, 17, 22, 24–27) are intentional insertion room. The `ol/Overlay` DOM node
 for the timeline astronaut renders above all vector layers regardless.
 
 ---
@@ -358,7 +372,7 @@ for the timeline astronaut renders above all vector layers regardless.
 
 `utils/modeConfig.ts` → `MODE_CONFIGS[mode]` (mode from `useMapContext()`). Same rendering
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
-branching on mode. Sections: `map`, `lander`, `station`, `circle`, `traverse`, `markerLabel`,
+branching on mode. Sections: `map`, `lander`, `station`, `asset`, `circle`, `traverse`, `markerLabel`,
 `pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
 
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
@@ -397,17 +411,23 @@ launcher (crosshair icon, shown only while the Rex Menu widget is minimized).
 creates/removes/shows/hides it) lives in `overlays/rex-menu.tsx`, not in `MissionDockviewLayout`.
 `MissionDockviewLayout` (`src/components/interface/dockview/`) just calls the hook and spreads
 `rexMenuComponents`/`rexMenuTabComponents` into its own dockview config. The widget is created
-when the EVA section is active and a REX is selected, and removed otherwise. It holds two
-non-closable tabs:
+once a mission is loaded and stays available in every section, with or without a selected REX.
+It holds two non-closable tabs:
 
 - **Positions** — `MapPositionMenu` (`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`): pos-type /
-  source toggles, New/Edit Pos., and the position table. The widget's removal is driven by a
-  `useEffect` in `useRexMenuDockviewPanel`, so `MapPositionMenu` can still render for a tick with
-  `selectedRexUuid` set but no matching REX in the mission doc (e.g. the EVA dropdown just
-  switched from this REX back to As Planned) — guard on `!selectedRex` and return `null` before
-  dereferencing anything off it, rather than relying on the parent to unmount it first.
-- **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`): placeholder ("Asset Management Coming
-  Soon"). Add asset management components here.
+  source toggles, New/Edit Pos., and the position table. With no REX selected, or a selected REX
+  missing from the mission doc (e.g. the EVA dropdown just switched back to As Planned), it shows
+  "Select a REX to see positions." — guard on `!selectedRex` before dereferencing anything off it.
+- **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`, with `map-menu-assets-editor.tsx` and
+  `map-menu-assets-table.tsx`): Add Asset / Add Folder toolbar, the black editor (one Redux draft
+  in `state.asset.draft`, written to `mission.assets` in one change on Save), and one
+  folder-aware table (`colgroup`, folder header rows over their own `tbody` drop targets, root
+  rows last). Mutations need mission edit permission only, not the global Edit toggle. An asset
+  marker click (`thunkRevealAsset`) restores the widget, asks for this tab via
+  `state.asset.assetsTabRequestId`, expands the folder, and selects the row without changing the
+  section. `AssetEditGuard` (editor) ends an asset gesture when Assets is off, the asset or its
+  folder is hidden, the widget is minimized, or permission/connection is lost, and discards the
+  draft when the editor unmounts.
 
 Dockview owns drag (via the tab bar's empty space) and resize. Dockview clamps floating-group
 drag and resize only to its `.dv-floating-overlay-host` element, which it sizes (inline styles) to
@@ -491,7 +511,10 @@ Overlay gotchas:
 | `ActionMarkers`      | shared `actionSource`                                  | all         | ✅                           | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`)    |
 | `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                   |
 | `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
-| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | only when section=="evas" & selectedRex; epsilon egress skip; keeps edited entry visible                                                        |
+| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                          |
+| `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); editor draws the draft under the asset's id; click → `thunkRevealAsset`   |
+| `AssetUncertainty`   | own circle layers                                      | all         | **full rebuild** each change | `createCircleLayer` like `Circles`, radius = `uncertaintyMeters`, no ids, not interactive; zero draws nothing                                   |
+| `AssetEditGuard`     | —                                                      | editor      | —                            | ends stale asset gestures; discards the draft on unmount                                                                                        |
 | `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                              |
 | `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                     |
 | `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                        |

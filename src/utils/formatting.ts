@@ -298,16 +298,32 @@ export const calculatePetValue = ({
   petStartStopTimestamp: string;
   petValueAtStartStop: string;
 }): string => {
-  const accurateNow = getAccurateNow().getTime();
-  const datePetStartStopTimestamp = Date.parse(petStartStopTimestamp) || 0;
-  const petSecondsAtStartStop = secondsFromhhmmss(petValueAtStartStop);
-
-  let newPetSeconds = accurateNow - datePetStartStopTimestamp;
-  newPetSeconds = newPetSeconds + petSecondsAtStartStop * 1000;
-  newPetSeconds = Math.ceil(newPetSeconds / 1000);
-
-  return hhmmssFromSeconds(newPetSeconds);
+  // Callers check `petRunning` themselves; an unparseable timestamp counts from epoch 0.
+  const anchorMs = Date.parse(petStartStopTimestamp) || 0;
+  const petSeconds = petSecondsAt(
+    {
+      petValueAtStartStop,
+      petStartStopTimestamp: new Date(anchorMs).toISOString(),
+      petRunning: true,
+    },
+    getAccurateNow().getTime()
+  );
+  return hhmmssFromSeconds(petSeconds ?? NaN);
 };
+
+/**
+ * PET in seconds at a given instant for a PET clock snapshot. Never reads the current clock.
+ * @returns null when the clock values cannot be parsed. A paused clock needs no valid timestamp.
+ */
+export function petSecondsAt(clock: AssetPetClockSnapshot | null, atMs: number): number | null {
+  if (!clock || typeof clock.petValueAtStartStop !== "string") return null;
+  const base = secondsFromhhmmss(clock.petValueAtStartStop);
+  if (!Number.isFinite(base)) return null;
+  if (!clock.petRunning) return base;
+  const anchorMs = Date.parse(clock.petStartStopTimestamp ?? "");
+  if (Number.isNaN(anchorMs) || !Number.isFinite(atMs)) return null;
+  return Math.ceil(base + (atMs - anchorMs) / 1000);
+}
 
 /**
  * Abbreviate a string to a certain length and add ellipsis if necessary

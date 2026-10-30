@@ -131,9 +131,16 @@ export const MapPositionMenu: FunctionComponent = () => {
     ? posMenuStyles.rexMenuDisplayExecuting
     : posMenuStyles.rexMenuDisplay;
 
-  // The Rex Menu widget is removed in an effect, so this can still render for a tick after the
-  // EVA dropdown switches away from the REX (e.g. back to As Planned) with no REX selected yet.
-  if (!selectedRex) return null;
+  // The widget is available without a REX, e.g. during planning or with a deleted REX selected.
+  if (!selectedRex) {
+    return (
+      <div className={`${posMenuStyles.rexMenuDisplay} ${posMenuStyles.menuOpen}`}>
+        <div className={posMenuStyles.noRexPlaceholder} data-testid="positions-no-rex">
+          Select a REX to see positions.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${posMapClass} ${posMenuStyles.menuOpen}`} data-testid="positions-menu">

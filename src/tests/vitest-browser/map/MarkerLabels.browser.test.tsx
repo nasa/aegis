@@ -25,6 +25,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
+import { assetSlice } from "store/asset";
 import Map from "ol/Map";
 import View from "ol/View";
 import { flushSync } from "react-dom";
@@ -144,6 +145,7 @@ function makeStore(preloadedState: PartialPreloadedState = {}) {
       measure: measureSlice.reducer,
       action: actionSlice.reducer,
       hover: hoverSlice.reducer,
+      asset: assetSlice.reducer,
     },
     preloadedState,
   });

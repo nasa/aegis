@@ -1,6 +1,7 @@
 import { generateBlankAction } from "store/storeUtils/action";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
@@ -319,6 +320,32 @@ export const generateFullMission = (): Mission => {
     mission.folders[folder.uuid] = folder;
   }
 
+  // ====== ASSETS (one placed in a folder, one unplaced at the root) ======
+  const placedAsset = generateBlankAsset({
+    name: "Vitest Placed Asset",
+    icon: "1F9F0",
+    location: { lat: 1.5, lng: 2.5 },
+    elevation: 10,
+    uncertaintyMeters: 5,
+    placement: {
+      locationSetAt: 1_700_000_000_000,
+      runningRexUuid: null,
+      runningRexName: null,
+      runningEvaUuid: null,
+      runningEvaName: null,
+      petClock: null,
+    },
+  });
+  const unplacedAsset = generateBlankAsset({ name: "Vitest Unplaced Asset" });
+  mission.assets[placedAsset.uuid] = placedAsset;
+  mission.assets[unplacedAsset.uuid] = unplacedAsset;
+  const assetFolder = generateBlankFolder({
+    name: "Vitest Asset Folder",
+    type: "asset",
+    items: [placedAsset.uuid],
+  });
+  mission.folders[assetFolder.uuid] = assetFolder;
+
   return mission;
 };
 
@@ -341,6 +368,7 @@ export const writeMissionDataToAutomergeDocHandle = (
     for (const eva of Object.values(mission.evas)) doc.evas[eva.uuid] = cloneDeep(eva);
     for (const rex of Object.values(mission.rexes)) doc.rexes[rex.uuid] = cloneDeep(rex);
     const collections = [
+      "assets",
       "folders",
       "layers",
       "sublayers",

@@ -1,6 +1,7 @@
 # Asset tracking implementation plan
 
-Status: proposed execution plan. Planning only; no feature code is included in this change.
+Status: implemented on this branch (October 30, 2026). Unchecked boxes below are the remaining
+verification steps.
 Prepared October 30, 2026 against the current feature branch and the screenshots supplied with the request.
 
 ## Outcome and scope
@@ -86,7 +87,7 @@ Paths are relative to the repository root.
 | `src/components/interface/map/behaviors/InteractionManager.tsx`                                          | The `createMarker` click, `editMarker` click, and `translateend` handlers each call `saveItemPosition`, which dispatches a document thunk immediately. `editMarker` resolves its target with `findFeatureOnMap` and clears the directive if none is found. The auto-cancel watcher's `selectionKey` covers section, POI, station, sequence item, and measurement; posEntry is excluded. |
 | `src/store/thunk/thunkMap.ts`, `src/typings/map/map.d.ts`                                                | `thunkUpdateMapDirective` applies the directive after a non-cancellable 200 ms `setTimeout`. `thunkMarkerOnClick` handles only station and POI; add an asset case that leaves the section unchanged (D19). Add `"asset"` to the marker item types.                                                                                                                                      |
 | `src/utils/formatting.ts`                                                                                | `calculatePetValue` reads the current clock, ignores `petRunning`, and treats an unparseable timestamp as epoch 0 (`Date.parse(...) \|\| 0`). `secondsFromhhmmss` handles signed values.                                                                                                                                                                                                |
-| `src/components/interface/map/MapMenuProvider.tsx`, `src/components/interface/map/overlays/map-menu.tsx` | Add Assets / Asset Labels via `MapSubmenuMarkers`, setters, and the existing cookie defaults/backfill. The floating widget is not inside this provider, so it needs a small bridge to read and set the editor's Assets / Asset Labels toggles (for D18).                                                                                                                                |
+| `src/components/interface/map/MapMenuProvider.tsx`, `src/components/interface/map/overlays/map-menu.tsx` | Add Assets / Asset Labels via `MapSubmenuMarkers`, setters, and the existing cookie defaults/backfill. The editor's `MapMenuProvider` wraps the whole mission dockview layout (`pages/mission.tsx`), so the floating widget reads and sets the editor's Assets / Asset Labels toggles directly (for D18); no extra bridge is needed.                                                    |
 | `src/components/interface/map/MapMenuMinimapBridge.tsx`, `DashboardBoundsProvider.tsx`                   | Mirror dashboard asset visibility into the minimap; honor minimap label policy.                                                                                                                                                                                                                                                                                                         |
 | `src/components/interface/map/FeatureSourcesProvider.tsx`, `behaviors/MarkerLabels.tsx`                  | Add an `assetSource` and asset name labels on the shared `labelSource` with `PRIORITY_ASSET = 5` next to the existing `PRIORITY_LANDER`…`PRIORITY_POS` (0–4). The editor self-wraps its own `FeatureSourcesProvider`; the dashboard page shares one between dashboard and minimap.                                                                                                      |
 | `src/components/interface/map/behaviors/Circles.tsx`, `utils/layers/circleLayer.ts`                      | Proximity circles call `createCircleLayer(center, radiusMeters, options)`, which builds a projected circle with `fromCircle(new Circle(...))` on its own layer and source, rebuilt in full on change. Asset rings use the same factory and approach (D9).                                                                                                                               |
@@ -265,9 +266,10 @@ through expansion, scrolling, rename, and resize.
 - All mutation controls follow D2: enabled with edit permission, regardless of the Edit toggle.
 - Clicking an asset marker follows D19.
 - Empty state: **"No assets added yet. Click Add Asset to add one."**
-- The toolbar and editor sit above a scrolling table. Review the 384 × 320 default and 325 × 318
-  minimum widget sizes; editor fields wrap rather than shrink until unreadable. Keep dockview
-  bounds behavior.
+- The toolbar and editor sit above a scrolling table. The default widget size is now 420 × 360
+  (was 384 × 320) to fit the editor and table; the 325 × 318 minimum is unchanged and now also
+  applies while the Assets tab is active. Editor fields wrap rather than shrink until unreadable.
+  Keep dockview bounds behavior.
 
 ### Black editor
 
@@ -328,8 +330,8 @@ Add **Assets** and **Asset Labels** using `submenuAssets: MapSubmenuMarkers` (`s
 `showLabels`), provider setters, and the existing cookie defaults/backfill. Both default to on
 (D12). Viewers can change these without edit permission. Mirror dashboard Assets visibility into
 the minimap through the existing bridge, honoring minimap label policy. The floating widget is
-outside `MapMenuProvider`, so it reads and sets the editor's two toggles through a small bridge
-to apply D18.
+inside the editor's `MapMenuProvider` (it wraps the mission dockview layout), so it sets the
+editor's two toggles directly to apply D18.
 
 ### Interaction lifecycle
 
@@ -403,15 +405,15 @@ check boxes track work still to do.
 
 ### 1. Data model
 
-- [ ] Asset, placement, and clock types; `Mission.assets` defaults, fixtures, seeds; new
+- [x] Asset, placement, and clock types; `Mission.assets` defaults, fixtures, seeds; new
       registered migration.
-- [ ] `"asset"` in `FolderType`, both target maps, the visibility toggle guard, and integrity
+- [x] `"asset"` in `FolderType`, both target maps, the visibility toggle guard, and integrity
       checks, including null-location assets.
-- [ ] Validated atomic asset create (at root), edit, delete, and folder moves.
-- [ ] Pure `petSecondsAt` and placement-context capture; refactor `calculatePetValue` onto it.
-- [ ] Rename `copyAssets` → `copyGISAssets` and `copyMissionAssets` → `copyMissionGISAssets`,
+- [x] Validated atomic asset create (at root), edit, delete, and folder moves.
+- [x] Pure `petSecondsAt` and placement-context capture; refactor `calculatePetValue` onto it.
+- [x] Rename `copyAssets` → `copyGISAssets` and `copyMissionAssets` → `copyMissionGISAssets`,
       with comments, log text, and test mocks.
-- [ ] Tests: migration rerun, wrong/missing folder targets, concurrent clients, origin REX/EVA
+- [x] Tests: migration rerun, wrong/missing folder targets, concurrent clients, origin REX/EVA
       deletion, paused/negative/invalid clocks, multiple running REXes, and mission copy/dump
       carrying assets, folders, null locations, elevation, and placement context.
 
@@ -419,26 +421,26 @@ Exit: assets persist, placed or unplaced, with the existing folder model and no 
 
 ### 2. Editor, map rendering, and display toggles
 
-- [ ] Widget/launcher availability in every section without a REX, and the Positions placeholder.
-- [ ] Crew positions on the map in every section: drop the section check in `PosEntries` and
+- [x] Widget/launcher availability in every section without a REX, and the Positions placeholder.
+- [x] Crew positions on the map in every section: drop the section check in `PosEntries` and
       `MarkerLabels` (D20); test markers, paths, and labels in station/POI sections, with
       Positions off, and with no REX selected.
-- [ ] Assets / Asset Labels in provider, cookie, and menu; dashboard-to-minimap bridging; widget
-      read/write bridge to the editor's two toggles.
-- [ ] Minimal flat asset table, plus the black editor for Add/Edit with every field and D2
+- [x] Assets / Asset Labels in provider, cookie, and menu; dashboard-to-minimap bridging; widget
+      reads and writes the editor's two toggles through the shared provider.
+- [x] Minimal flat asset table, plus the black editor for Add/Edit with every field and D2
       permission gating.
-- [ ] Draft state, Place on Map / Edit Pos. / Cancel Pos. with D18 toggle handling, draft routing
+- [x] Draft state, Place on Map / Edit Pos. / Cancel Pos. with D18 toggle handling, draft routing
       in `InteractionManager`, asset-only auto-cancel key, cancellable delayed directive start.
-- [ ] `AssetMarkers`, `AssetUncertainty` (via `createCircleLayer`), styles, z-index, mode
+- [x] `AssetMarkers`, `AssetUncertainty` (via `createCircleLayer`), styles, z-index, mode
       config, `PRIORITY_ASSET` labels, and the shared visibility helper; mounting in every editor
       section, dashboard, and minimap.
-- [ ] Asset case in `thunkMarkerOnClick`: restore widget, select Assets tab, expand folder, select
+- [x] Asset case in `thunkMarkerOnClick`: restore widget, select Assets tab, expand folder, select
       and highlight the row, no section change (D19).
-- [ ] Elevation fetch on location change, with stale-result handling and Save waiting on a
+- [x] Elevation fetch on location change, with stale-result handling and Save waiting on a
       pending fetch.
-- [ ] Coordinate entry with grid inverse conversion.
-- [ ] Name/emoji prefill from the most recently created asset.
-- [ ] Tests: save unplaced then place later, click/relocate/drag, coordinate round trips,
+- [x] Coordinate entry with grid inverse conversion.
+- [x] Name/emoji prefill from the most recently created asset.
+- [x] Tests: save unplaced then place later, click/relocate/drag, coordinate round trips,
       zero/invalid uncertainty, gesture versus editor cancel, running versus selected REX,
       delayed Save, metadata-only edits keep context, elevation success/failure/no-DEM and
       superseded fetches, ring radius and center matching a proximity circle of the same size,
@@ -451,11 +453,11 @@ toggle assets and labels on the map.
 
 ### 3. Folders and aligned table
 
-- [ ] Single-header table with full-width folder rows, aligned child rows, root rows last.
-- [ ] Folder sorting, state, and helpers adapted to table rows; drag/drop on valid row markup.
-- [ ] Folder actions (add, rename, delete, show/hide), row visibility, selection, hover, empty
+- [x] Single-header table with full-width folder rows, aligned child rows, root rows last.
+- [x] Folder sorting, state, and helpers adapted to table rows; drag/drop on valid row markup.
+- [x] Folder actions (add, rename, delete, show/hide), row visibility, selection, hover, empty
       states.
-- [ ] Tests: alignment through expand/rename/drag/resize/scroll, new assets at root, drag
+- [x] Tests: alignment through expand/rename/drag/resize/scroll, new assets at root, drag
       between folders and root, empty folders, collapse independent of the map, hidden
       folder/item restore, moves between gates, shared flags versus local toggles, dockview
       recreation.
@@ -465,12 +467,13 @@ Exit: users can organize assets without column drift.
 ### 4. Verification
 
 - [ ] Acceptance scenarios with two clients, reload, and reconnect.
-- [ ] Review widget sizes, column alignment, keyboard/focus, errors, and visibility states.
-- [ ] Extend folder apply/thunk tests, `rex-menu.test.ts`, `MapPositionMenu.browser.test.tsx`,
+- [x] Review widget sizes, column alignment, keyboard/focus, errors, and visibility states.
+- [x] Extend folder apply/thunk tests, `rex-menu.test.ts`, `MapPositionMenu.browser.test.tsx`,
       `InteractionManager.browser.test.tsx`, `MapMenuProvider.browser.test.tsx`,
       `MapMenuMinimapBridge.browser.test.tsx`, and `MarkerLabels.browser.test.tsx`.
-- [ ] A focused cross-EVA Playwright workflow covering folders and both toggles.
-- [ ] Update `src/components/interface/map/CLAUDE.md` once implementation is final, including the
+- [ ] A focused cross-EVA Playwright workflow covering folders and both toggles
+      (`src/tests/playwright/map/mapOlAssets.spec.ts` is written; run it against the e2e DB).
+- [x] Update `src/components/interface/map/CLAUDE.md` once implementation is final, including the
       Rex Menu creation rule and the `PosEntries` row ("only when section=='evas' & selectedRex").
 - [ ] Format and lint changed code and run targeted tests throughout; run `npm run test:all`
       before committing or handing off for review.

@@ -13,7 +13,7 @@ import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
 import { seedDatabaseAndGenerateAutomergeMission } from "../fixtures/database";
 import type * as FileModule from "server/file/file";
 
-// These tests copy documents with copyAssets:false. Their cleanup must not touch the
+// These tests copy documents with copyGISAssets:false. Their cleanup must not touch the
 // configured static asset directory (test database IDs can overlap real mission IDs).
 vi.mock("server/file/file", async (importOriginal) => ({
   ...(await importOriginal<typeof FileModule>()),
@@ -147,7 +147,7 @@ describe("Mission Duplication Tests", () => {
       // Create a duplicate mission
       duplicatedMissionId = await createMissionCopy(sourceData, {
         nameSuffix: "Vitest Test Copy",
-        copyAssets: false, // We're just testing the document copy, not file operations
+        copyGISAssets: false, // We're just testing the document copy, not file operations
       });
 
       // Verify the duplicated mission exists
@@ -215,6 +215,20 @@ describe("Mission Duplication Tests", () => {
         expect(duplicatedStation).toBeDefined();
         expect(duplicatedStation.actionOrderUuids).toEqual(originalStation.actionOrderUuids);
       }
+    });
+  });
+
+  describe("Asset Duplication", () => {
+    test("Duplicated mission keeps assets, asset folders, null locations, and placement", async () => {
+      const originalAssets = sourceData.mission.assets ?? {};
+      expect(Object.values(originalAssets).some((asset) => asset.location === null)).toBe(true);
+      expect(Object.values(originalAssets).some((asset) => asset.placement !== null)).toBe(true);
+
+      const duplicatedMission = await getDuplicatedMission();
+      expect(duplicatedMission.assets).toEqual(originalAssets);
+      const assetFolders = (mission: Mission) =>
+        Object.values(mission.folders ?? {}).filter((folder) => folder.type === "asset");
+      expect(assetFolders(duplicatedMission)).toEqual(assetFolders(sourceData.mission));
     });
   });
 

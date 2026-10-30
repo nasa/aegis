@@ -30,6 +30,7 @@ export interface MapMenuSettings {
   submenuPois: MapSubmenuMarkers;
   submenuActions: MapSubmenuMarkers;
   submenuPos: MapSubmenuPos;
+  submenuAssets: MapSubmenuMarkers;
   showArrows: boolean;
   showBearings: boolean;
   showDistances: boolean;
@@ -45,6 +46,7 @@ export interface MapMenuSetters {
   setSubmenuPois: Dispatch<SetStateAction<MapSubmenuMarkers>>;
   setSubmenuActions: Dispatch<SetStateAction<MapSubmenuMarkers>>;
   setSubmenuPos: Dispatch<SetStateAction<MapSubmenuPos>>;
+  setSubmenuAssets: Dispatch<SetStateAction<MapSubmenuMarkers>>;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
   setShowBearings: Dispatch<SetStateAction<boolean>>;
   setShowDistances: Dispatch<SetStateAction<boolean>>;
@@ -78,6 +80,7 @@ const DEFAULT_SETTINGS: MapMenuSettings = {
     sourceUuids: [],
     pathMode: "merged",
   },
+  submenuAssets: { show: true, showLabels: true },
   showArrows: true,
   showBearings: true,
   showDistances: true,
@@ -168,6 +171,9 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
     initialSettings.submenuActions
   );
   const [submenuPos, setSubmenuPos] = useState<MapSubmenuPos>(initialSettings.submenuPos);
+  const [submenuAssets, setSubmenuAssets] = useState<MapSubmenuMarkers>(
+    initialSettings.submenuAssets
+  );
   const [showArrows, setShowArrows] = useState(initialSettings.showArrows);
   const [showBearings, setShowBearings] = useState(initialSettings.showBearings);
   const [showDistances, setShowDistances] = useState(initialSettings.showDistances);
@@ -201,6 +207,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
         submenuStations,
         submenuActions,
         submenuPos,
+        submenuAssets,
         showArrows,
         showBearings,
         showDistances,
@@ -223,6 +230,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
     submenuStations,
     submenuActions,
     submenuPos,
+    submenuAssets,
     showArrows,
     showBearings,
     showDistances,
@@ -240,6 +248,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       submenuPois,
       submenuActions,
       submenuPos,
+      submenuAssets,
       showArrows,
       showBearings,
       showDistances,
@@ -254,6 +263,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       submenuPois,
       submenuActions,
       submenuPos,
+      submenuAssets,
       showArrows,
       showBearings,
       showDistances,
@@ -271,6 +281,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       setSubmenuPois,
       setSubmenuActions,
       setSubmenuPos,
+      setSubmenuAssets,
       setShowArrows,
       setShowBearings,
       setShowDistances,

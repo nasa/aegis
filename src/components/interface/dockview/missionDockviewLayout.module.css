@@ -128,7 +128,13 @@
 }
 
 /* The Rex Menu widget (Positions + Assets tabs) cannot be dragged/resized smaller than this. */
-.container :global(.dv-resize-container:has([data-testid="positions-floating-panel"])) {
+.container
+  :global(
+    .dv-resize-container:has(
+      [data-testid="positions-floating-panel"],
+      [data-testid="assets-floating-panel"]
+    )
+  ) {
   min-width: 325px;
   min-height: 318px;
 }

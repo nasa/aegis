@@ -1,11 +1,15 @@
 import {
+  SURF_NAV_LGRS_ACC,
+  SURF_NAV_LPS_E25K,
   SURF_NAV_LPS_FALSE_EAST,
   SURF_NAV_LPS_FALSE_NORTH,
+  SURF_NAV_LPS_N25K,
   SURF_NAV_MOON_K0,
   SURF_NAV_MOON_MEAN_RADIUS,
 } from "utils/consts";
 import {
   formatSouthLpsCoordinate,
+  isSupportedSouthLpsCoordinate,
   type LgrsPrecision,
   type LpsCoordinate,
   type SouthLpsLabel,
@@ -95,4 +99,86 @@ export function getSouthLpsDisplayCoordinate(
   return `${gridZone} ${coordinateDigits.slice(0, eastingLength)} ${coordinateDigits.slice(
     eastingLength
   )}`;
+}
+
+/** Inverse of `latLonToSouthLps`: canonical south LPS easting/northing to lat/lng. */
+export function southLpsToLatLon([easting, northing]: LpsCoordinate): AEGISPoint | null {
+  if (!isSupportedSouthLpsCoordinate([easting, northing])) return null;
+  const x = easting - SURF_NAV_LPS_FALSE_EAST;
+  const y = northing - SURF_NAV_LPS_FALSE_NORTH;
+  const rho = Math.hypot(x, y);
+  const latitude =
+    2 * Math.atan(rho / (2 * SURF_NAV_MOON_MEAN_RADIUS * SURF_NAV_MOON_K0)) - Math.PI / 2;
+  const longitude = rho === 0 ? 0 : Math.atan2(x, y);
+  return { lat: (latitude * 180) / Math.PI, lng: (longitude * 180) / Math.PI };
+}
+
+const LGRS_LETTER = "[A-HJ-NP-Z-]";
+const FULL_LGRS_PATTERN = new RegExp(
+  `^([AB])([A-HJ-NP-Z])([A-HJ-NP-Z+-])(${LGRS_LETTER})(\\d{0,3})(${LGRS_LETTER})(\\d{0,3})$`
+);
+const CONDENSED_LGRS_PATTERN = new RegExp(`^(${LGRS_LETTER})(\\d{0,3})(${LGRS_LETTER})(\\d{0,3})$`);
+const LGRS_AREA_METERS = 25000;
+
+/** Offset of a cell centre within its 25 km area, from a 1 km letter and residual digits. */
+function withinAreaCenter(letter: string, digits: string): number | null {
+  const kilometre = SURF_NAV_LGRS_ACC.indexOf(letter);
+  if (kilometre < 0) return null;
+  const precision = 10 ** (3 - digits.length);
+  return kilometre * 1000 + (digits ? parseInt(digits, 10) : 0) * precision + precision / 2;
+}
+
+/**
+ * Parse an LGRS label as shown by `getSouthLpsDisplayCoordinate` into the lat/lng of the
+ * centre of the cell it names. Accepts the full form with its 25 km area prefix (e.g.
+ * "BKL K12 L34") and the condensed form without it (e.g. "K12 L34"), whose area is the one
+ * nearest `reference`. Spacing and case are ignored; easting and northing must have the same
+ * number of digits (0–3, i.e. 1 km to 1 m precision).
+ * @returns null when the text is not a valid label inside the south LPS domain.
+ */
+export function parseSouthLpsLabel(text: string, reference?: AEGISPoint | null): AEGISPoint | null {
+  const compact = text.replace(/\s+/g, "").toUpperCase();
+  const full = FULL_LGRS_PATTERN.exec(compact);
+  const condensed = full ? null : CONDENSED_LGRS_PATTERN.exec(compact);
+  const parts = full ? full.slice(4) : condensed?.slice(1);
+  if (!parts) return null;
+  const [eastingLetter, eastingDigits, northingLetter, northingDigits] = parts;
+  if (eastingDigits.length !== northingDigits.length) return null;
+  const withinEasting = withinAreaCenter(eastingLetter, eastingDigits);
+  const withinNorthing = withinAreaCenter(northingLetter, northingDigits);
+  if (withinEasting === null || withinNorthing === null) return null;
+  if (withinEasting >= LGRS_AREA_METERS || withinNorthing >= LGRS_AREA_METERS) return null;
+
+  // Offsets from the pole are (area index * 25 km + within-area offset) on both halves.
+  let eastingArea: number;
+  let northingArea: number;
+  if (full) {
+    const [band, eastingLetterArea, northingLetterArea] = full.slice(1, 4);
+    const eastingIndex = SURF_NAV_LPS_E25K.indexOf(eastingLetterArea);
+    const northingIndex = SURF_NAV_LPS_N25K.indexOf(northingLetterArea);
+    if (eastingIndex < 0 || northingIndex < 0) return null;
+    eastingArea = band === "A" ? eastingIndex - 24 : eastingIndex;
+    northingArea = northingIndex - 13;
+  } else {
+    const referenceLps = reference ? latLonToSouthLps(reference) : null;
+    if (!referenceLps) return null;
+    const referenceEasting = referenceLps[0] - SURF_NAV_LPS_FALSE_EAST;
+    const referenceNorthing = referenceLps[1] - SURF_NAV_LPS_FALSE_NORTH;
+    const nearestArea = (referenceOffset: number, within: number) => {
+      const area = Math.floor(referenceOffset / LGRS_AREA_METERS);
+      return [area - 1, area, area + 1].reduce((best, candidate) =>
+        Math.abs(candidate * LGRS_AREA_METERS + within - referenceOffset) <
+        Math.abs(best * LGRS_AREA_METERS + within - referenceOffset)
+          ? candidate
+          : best
+      );
+    };
+    eastingArea = nearestArea(referenceEasting, withinEasting);
+    northingArea = nearestArea(referenceNorthing, withinNorthing);
+  }
+
+  return southLpsToLatLon([
+    eastingArea * LGRS_AREA_METERS + withinEasting + SURF_NAV_LPS_FALSE_EAST,
+    northingArea * LGRS_AREA_METERS + withinNorthing + SURF_NAV_LPS_FALSE_NORTH,
+  ]);
 }
