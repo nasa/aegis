@@ -5,450 +5,515 @@ Prepared October 30, 2026 against the current feature branch and the screenshots
 
 ## Outcome and scope
 
-Users can place and edit point assets during EVA planning and REX execution. Assets persist
-as mission data: a marker placed in EVA1 REX appears in EVA2 planning and REX without copying.
-Assets have a name and emoji; there is no asset type field, selector, or Type column. New asset
-drafts prepopulate name and emoji from the last asset placed.
+Users can create and edit point assets during EVA planning and REX execution. Assets are mission
+data, not EVA/REX data: an asset saved in EVA1 REX appears in EVA2 planning and REX without
+copying. The asset system is section-agnostic: assets render and drafts survive regardless of the
+selected left-panel section, EVA, or REX.
 
-Assets can be put into folders, replacing sets and their dropdown. Folders appear first in the
-asset list, sorted alphabetically, with root assets below. Show/hide controls apply to folders
-and individual assets. The Map Item Visibility menu also provides Assets and Asset Labels toggles.
+An asset has a name (required, not necessarily unique) and an optional emoji (shown as the app's
+usual ❔ fallback when none is chosen);
+there is no asset type field, selector, or Type column. New asset drafts prefill name and emoji
+from the most recently created asset in the mission.
 
-Creation and edits both use the black area above the table. It contains asset fields, Place on
-Map / Edit Pos., Cancel Pos., and Save / Cancel, using current position-system click-to-place,
+An asset may exist without a location. A new record has none until the user enters grid
+coordinates or places it on the map, and it can be saved in that state. Unplaced assets appear in
+the list but not on the map.
+
+New assets are always created at the root. Users drag them into folders afterwards; folders
+replace the earlier set model and its dropdown. Folders appear first in the asset list, with root
+assets below. Show/hide controls apply to folders and individual assets. The Map Item Visibility
+menu gains Assets and Asset Labels toggles.
+
+Creation and editing both use the black area above the table: asset fields, Place on Map /
+Edit Pos., Cancel Pos., and Save / Cancel, using the current position-system click-to-place,
 click-to-relocate, and marker-drag interactions. No action requires right-click. A numeric
 uncertainty radius in meters draws a circle around the emoji; zero draws just the emoji.
-No circle-drawing, polyline, or polygon tools are included.
 
-The Positions/Assets floating widget and minimized launcher remain available in the EVA section
-without a selected EVA/REX once a mission is loaded. Positions displays **"Select a REX to see
-positions."** for missing/unset REX. Preserve the concurrent crew-position redesign's scope.
+The Positions/Assets floating widget and its minimized launcher are available in every section
+once a mission is loaded, without a selected EVA/REX. Positions shows **"Select a REX to see
+positions."** when no REX is selected or the selected REX is missing. Crew positions also become
+section-agnostic: they render on the map in every section whenever a REX is selected and
+Positions is on in Map Item Visibility (D20).
 
 Out of scope: crew-position redesign, movement history/replay, telemetry, inventory quantities,
-attachments, dedicated reports, external integration changes, and nested folders.
+attachments, dedicated reports, external integration changes, nested folders, folder
+duplication, and circle, polyline, or polygon drawing tools.
 
-## Proposed defaults to review
+## Decisions
 
-These choices fill remaining gaps. The requested folders replace the earlier set model; there
-is no mandatory default folder or separate asset-set collection.
+All decisions below are confirmed. If one changes during implementation, update the affected
+sections and acceptance scenarios with it.
 
-| Topic                | Proposed behavior                                                                                                                                                                                                                                                                                                                                                                |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Name                 | Required nonblank name plus emoji, optional color/notes; required name is a proposed validation default. No asset type.                                                                                                                                                                                                                                                          |
-| Last placed          | This viewer's last successfully saved new asset placement in this mission supplies name/emoji. Persist the pair across reload and EVA/REX changes in user/mission-scoped browser preferences. Canceled/failed drafts, duplication, remote placements, and edits of existing assets do not change it. First use starts with blank name and the existing default emoji convention. |
-| Membership           | Zero or one folder via existing `Folder.items`; root assets are allowed. No duplicate `asset.folderUuid` representation.                                                                                                                                                                                                                                                         |
-| Folder actions       | Add, rename, duplicate, and delete empty folders. Move assets into/between folders or to root. Reuse existing empty-folder deletion policy; no last-folder restriction.                                                                                                                                                                                                          |
-| Visibility ownership | Proposed default follows existing folder code: shared `Folder.visible` and matching shared `Asset.visible`, requiring edit permission. This replaces the earlier proposed personal folder/item hidden-ID lists.                                                                                                                                                                  |
-| Map preferences      | Viewer-local Assets/Asset Labels toggles in existing `MapMenuProvider` cookie settings. Defaults: Assets on, labels off. Viewers can toggle these without mission edit permission.                                                                                                                                                                                               |
-| Expansion            | Existing local folder expansion state/cookie; collapse does not hide contents on the map.                                                                                                                                                                                                                                                                                        |
-| Save                 | Draft/preview until Save; one document change for asset and membership. Cancel discards draft.                                                                                                                                                                                                                                                                                   |
-| PET                  | Placement wall-clock time plus running REX identity and its copied PET clock definition; derive PET from saved values.                                                                                                                                                                                                                                                           |
-| Coverage             | Edit on editor map; saved assets on editor/dashboard/minimap. No new follow/fit behavior.                                                                                                                                                                                                                                                                                        |
+| #   | Topic                | Status    | Decision                                                                                                                                                                                                                                                     |
+| --- | -------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1  | Delivery             | Confirmed | One merge request containing all the work in this plan.                                                                                                                                                                                                      |
+| D2  | Permissions          | Confirmed | Mission edit permission only, matching crew positions; the global Edit toggle is not required. Applies to the whole Assets tab: create, edit, delete, move, folder actions, and show/hide.                                                                   |
+| D3  | Folder visibility    | Confirmed | `Folder.visible` is stored in the mission document, so hiding a folder hides its assets on every viewer's maps.                                                                                                                                              |
+| D4  | New asset placement  | Confirmed | New assets are created at the root. Moving into or between folders is by drag and drop only; the editor has no folder selector.                                                                                                                              |
+| D5  | Map coverage         | Confirmed | Placed assets render on the editor (every section), dashboard, and minimap whenever the Assets toggle is on and the shared item/folder flags allow. Editing happens on the editor map only.                                                                  |
+| D6  | Section-agnostic     | Confirmed | The widget, rendering, drafts, selection, and map gestures do not depend on the left-panel section or the selected EVA/REX. The widget and launcher are available in every section.                                                                          |
+| D7  | Remembered defaults  | Confirmed | Add Asset prefills name and emoji from the most recently created asset in the mission document (`createdAt`, UUID tie-breaker). No browser storage. With no assets, the name is blank and no emoji is chosen.                                                |
+| D8  | Folder actions       | Confirmed | Add, rename, delete, and show/hide. Deletion reuses `opDeleteFolder`: populated folders cannot be deleted; no mandatory folder. No folder duplication.                                                                                                       |
+| D9  | Uncertainty ring     | Confirmed | Drawn like the lander/station proximity circles: `createCircleLayer`, rebuilt in full on change as `Circles` does. Missions have at most about 30 assets; optimize only if a performance problem is measured.                                                |
+| D10 | Elevation            | Confirmed | Store `elevation` for placed assets, fetched like POI and station elevation.                                                                                                                                                                                 |
+| D11 | Naming               | Confirmed | The field is `mission.assets`. Rename mission copy's `copyAssets` option to `copyGISAssets`, along with its helper and log text, so "assets" means only these records.                                                                                       |
+| D12 | Map display toggles  | Confirmed | Viewer-local Assets / Asset Labels toggles in `MapMenuProvider` cookie settings. Defaults: both on.                                                                                                                                                          |
+| D13 | Sort order           | Confirmed | Folders and assets (within each folder and at root) sort alphabetically by name, case-insensitive with `localeCompare`, UUID tie-breaker for identical names.                                                                                                |
+| D14 | Label priority       | Confirmed | `PRIORITY_ASSET = 5`, below crew positions, so asset labels dim under every other marker label.                                                                                                                                                              |
+| D15 | Required fields      | Confirmed | Nonblank trimmed name, not required to be unique. Emoji is optional, following stations: `icon: null` is stored and every renderer falls back to `"2754"` (❔), as `StationMarkers` and `EmojiRenderer` callers do. Location, color, and notes are optional. |
+| D16 | Item visibility      | Confirmed | New shared `Asset.visible` flag alongside `Folder.visible`, with the same document storage and D2 permission. POIs and stations have no per-item flag today, so the item flag is new.                                                                        |
+| D17 | Save model           | Confirmed | Draft until Save, one document change per Save. This differs from crew positions, which save live on each click/drag.                                                                                                                                        |
+| D18 | Placing while hidden | Confirmed | Starting Place on Map / Edit Pos. turns on the viewer's Assets and Asset Labels toggles in Map Item Visibility. Shared item/folder flags are never changed implicitly (see the Visibility section for hidden existing assets).                               |
+| D19 | Marker click         | Confirmed | Clicking an asset marker on the editor, from any section, restores the widget if minimized, selects its Assets tab, expands the asset's folder, and selects and highlights the asset's row. The section does not change.                                     |
+| D20 | Crew positions       | Confirmed | Crew position markers, paths, and labels render in every section whenever a REX is selected and Positions is on in Map Item Visibility. The Positions tab shows the selected REX's positions in every section, or the placeholder when none is selected.     |
 
 ## Current implementation and integration points
 
-Paths below are relative to the repository root.
+Paths are relative to the repository root.
 
-| Existing area                                                                                                              | Finding and integration                                                                                                                                                                                                                                    |
-| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/components/interface/map/overlays/map-menu-assets.tsx`                                                                | Replace placeholder with toolbar, black editor, folder-aware table.                                                                                                                                                                                        |
-| `src/components/interface/map/overlays/rex-menu.tsx`, `MapOverlays.tsx`, `map-menu-pos.tsx`                                | Remove widget/launcher REX requirement together; add safe Positions placeholder. Retain floating bounds/minimize behavior.                                                                                                                                 |
-| `src/components/interface/folders.tsx`                                                                                     | `FolderOrganizer` already sorts folders with case-insensitive `localeCompare`, puts folders before root items, and supports drag/drop/expansion. Its div-based child wrappers cannot directly wrap table rows; adapt rendering while reusing the behavior. |
-| `src/typings/folders.d.ts`, `src/store/storeUtils/folder.ts`                                                               | Add `"asset"` to `FolderType`; reuse existing Folder (`items`, `visible`, timestamps) and factory.                                                                                                                                                         |
-| `src/store/selectors.ts`, `src/components/panes/poi/poi.tsx`, `src/components/panes/station/station.tsx`                   | Reuse `selectFoldersByType` and derived item-to-folder mapping, avoiding a second membership representation.                                                                                                                                               |
-| `src/operations/apply/apply-mission-folder.ts`                                                                             | Reuse upsert/rename/move/removal/delete helpers; extend the current POI/station visibility guard for assets. Validate destination before membership removal.                                                                                               |
-| `src/store/thunk/thunkFolder.ts`, `src/store/interface.ts`                                                                 | Reuse folder create/rename/open state and interface cookie plumbing.                                                                                                                                                                                       |
-| `src/operations/op-folder.ts`, `src/server/automerge/checkMissionIntegrity.ts`                                             | Extend FolderType target maps for assets and test membership/deletion handling.                                                                                                                                                                            |
-| `src/typings/mission.d.ts`, `src/store/storeUtils/mission.ts`                                                              | Add only `mission.assets`; asset folders use existing `mission.folders`.                                                                                                                                                                                   |
-| `src/components/interface/map/behaviors/InteractionManager.tsx`, `src/store/thunk/thunkMap.ts`, `src/typings/map/map.d.ts` | Add asset directive/draft callbacks; preserve one active interaction. Current position callbacks persist immediately.                                                                                                                                      |
-| `src/components/interface/map/MapMenuProvider.tsx`, `src/components/interface/map/overlays/map-menu.tsx`                   | Add Assets/Asset Labels using `MapSubmenuMarkers`, setters, cookie defaults/backfill. Floating tab cannot assume it is inside this provider.                                                                                                               |
-| `src/components/interface/map/MapMenuMinimapBridge.tsx`, `DashboardBoundsProvider.tsx`                                     | Mirror dashboard asset visibility into minimap; honor minimap label-mode policy.                                                                                                                                                                           |
-| `src/components/interface/map/FeatureSourcesProvider.tsx`, `behaviors/MarkerLabels.tsx`                                    | Stable asset sources, name labels, cached styles, shared-label layout/per-map gates.                                                                                                                                                                       |
-| `src/operations/README.md`, `src/server/automerge/migrations/`                                                             | Atomic mutation conventions and a new registered migration; preserve historical migration logic.                                                                                                                                                           |
-| `src/server/express/routes/missionDup.ts`                                                                                  | Mission cloning carries assets/folders; existing `copyAssets` still means GIS files.                                                                                                                                                                       |
+| Existing area                                                                                            | Finding and integration                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/interface/map/overlays/map-menu-assets.tsx`                                              | "Coming Soon" placeholder. Replace with toolbar, black editor, and folder-aware table.                                                                                                                                                                                                                                                                                                  |
+| `src/components/interface/map/overlays/rex-menu.tsx`, `MapOverlays.tsx`, `map-menu-pos.tsx`              | The widget shows only when `sectionSelected === "evas"` and the selected REX exists; the launcher also requires a selected REX. Remove both the section and REX requirements from widget and launcher (D6); add the Positions placeholder. Keep floating bounds/minimize behavior.                                                                                                      |
+| `src/components/interface/map/behaviors/PosEntries.tsx`, `behaviors/MarkerLabels.tsx`                    | Crew positions are gated on `sectionSelected === "evas"` in two places: `shouldShow` in `PosEntries` (markers and paths) and `showPosLabels` in `MarkerLabels`. Remove the section check from both, keeping `mapDisplayPos.show && !!selectedRex` (D20). Switching sections does not clear `selectedRexUuid`, so nothing else is needed.                                                |
+| `src/components/interface/folders.tsx`                                                                   | `FolderOrganizer` sorts folders with `localeCompare` (`sensitivity: "base"`, no tie-breaker), lists folders before root items, and handles drag/drop and expansion. Its `DraggableItem` and `folderContents` wrappers are `div`s and cannot wrap table rows. Its edit check is `permissions.edit && isInEditMode`, so asset folder rows need their own permission-only check (D2).      |
+| `src/typings/folders.d.ts`, `src/store/storeUtils/folder.ts`                                             | `FolderType` is `"poi" \| "station" \| "eva" \| "preset" \| "layer"`. Add `"asset"`; reuse `Folder` (`items`, `visible`, timestamps) and `generateBlankFolder`.                                                                                                                                                                                                                         |
+| `src/operations/op-folder.ts`, `src/server/automerge/checkMissionIntegrity.ts`                           | Both target maps are `Record<FolderType, …>`, so adding `"asset"` requires an entry in each. Also check asset membership and asset fields in the integrity pass.                                                                                                                                                                                                                        |
+| `src/operations/apply/apply-mission-folder.ts`                                                           | `applyToggleFolderVisible` accepts only POI/station folders; extend it to assets. `applyMoveItemToFolder` removes the item from every folder before checking the target exists, so a bad target silently moves the item to root. Asset moves must validate the target first.                                                                                                            |
+| `src/store/thunk/thunkFolder.ts`, `src/store/interface.ts`                                               | Reuse folder create/rename/open state and the `AEGIS_Folders_Interface` cookie.                                                                                                                                                                                                                                                                                                         |
+| `src/store/selectors.ts`, `src/components/panes/poi/poi.tsx`, `src/components/panes/station/station.tsx` | Reuse `selectFoldersByType` and the derived item-to-folder mapping; no second membership field.                                                                                                                                                                                                                                                                                         |
+| `src/typings/mission.d.ts`, `src/store/storeUtils/mission.ts`                                            | Add `assets`. `rexes` is a dictionary keyed by uuid.                                                                                                                                                                                                                                                                                                                                    |
+| `src/components/interface/map/behaviors/InteractionManager.tsx`                                          | The `createMarker` click, `editMarker` click, and `translateend` handlers each call `saveItemPosition`, which dispatches a document thunk immediately. `editMarker` resolves its target with `findFeatureOnMap` and clears the directive if none is found. The auto-cancel watcher's `selectionKey` covers section, POI, station, sequence item, and measurement; posEntry is excluded. |
+| `src/store/thunk/thunkMap.ts`, `src/typings/map/map.d.ts`                                                | `thunkUpdateMapDirective` applies the directive after a non-cancellable 200 ms `setTimeout`. `thunkMarkerOnClick` handles only station and POI; add an asset case that leaves the section unchanged (D19). Add `"asset"` to the marker item types.                                                                                                                                      |
+| `src/utils/formatting.ts`                                                                                | `calculatePetValue` reads the current clock, ignores `petRunning`, and treats an unparseable timestamp as epoch 0 (`Date.parse(...) \|\| 0`). `secondsFromhhmmss` handles signed values.                                                                                                                                                                                                |
+| `src/components/interface/map/MapMenuProvider.tsx`, `src/components/interface/map/overlays/map-menu.tsx` | Add Assets / Asset Labels via `MapSubmenuMarkers`, setters, and the existing cookie defaults/backfill. The floating widget is not inside this provider, so it needs a small bridge to read and set the editor's Assets / Asset Labels toggles (for D18).                                                                                                                                |
+| `src/components/interface/map/MapMenuMinimapBridge.tsx`, `DashboardBoundsProvider.tsx`                   | Mirror dashboard asset visibility into the minimap; honor minimap label policy.                                                                                                                                                                                                                                                                                                         |
+| `src/components/interface/map/FeatureSourcesProvider.tsx`, `behaviors/MarkerLabels.tsx`                  | Add an `assetSource` and asset name labels on the shared `labelSource` with `PRIORITY_ASSET = 5` next to the existing `PRIORITY_LANDER`…`PRIORITY_POS` (0–4). The editor self-wraps its own `FeatureSourcesProvider`; the dashboard page shares one between dashboard and minimap.                                                                                                      |
+| `src/components/interface/map/behaviors/Circles.tsx`, `utils/layers/circleLayer.ts`                      | Proximity circles call `createCircleLayer(center, radiusMeters, options)`, which builds a projected circle with `fromCircle(new Circle(...))` on its own layer and source, rebuilt in full on change. Asset rings use the same factory and approach (D9).                                                                                                                               |
+| `src/store/thunk/thunkPoi.ts`, `src/store/thunk/thunkTerrainProfile.ts`                                  | `thunkDocUpdatePoiLocation` fetches elevation with `thunkFetchPointElevation` (which tracks pending state per uuid) and writes `elevation: number \| null`, null when the fetch fails or the mission has no DEM. Assets follow the same pattern (D10).                                                                                                                                  |
+| `src/operations/README.md`, `src/server/automerge/migrations/`                                           | Atomic mutation conventions; add and register a new Automerge migration in `migrations/index.ts`.                                                                                                                                                                                                                                                                                       |
+| `src/server/express/routes/missionDup.ts`, `missionDump.ts`, `MissionCopyOptions` in `mission.d.ts`      | Mission copy and the superadmin mission dump both copy the whole document, so assets and asset folders come along without code changes; copied missions keep REX UUIDs, so placement provenance still resolves. There is no mission import. Rename `copyAssets` → `copyGISAssets` and `copyMissionAssets` → `copyMissionGISAssets` (D11).                                               |
 
-## Data and persistence design
+## Data and persistence
 
-Add ambient asset types in `src/typings/asset.d.ts` and required
-`Mission.assets: { [uuid: string]: Asset }`. Use existing `Mission.folders` with `type: "asset"`.
+Add ambient types in `src/typings/asset.d.ts` and a required `Mission.assets: { [uuid: string]: Asset }`.
+Asset folders use the existing `Mission.folders` with `type: "asset"`.
 
-| Entity                  | Fields and constraints                                                                                                                                                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Asset`                 | `uuid`, trimmed nonblank name, `icon` (emoji in existing picker format), optional color, `visible`, valid `location: AEGISPoint`, finite nonnegative `uncertaintyMeters`, nullable notes, placement context, created/updated timestamps. No asset type. |
-| Asset folder            | Existing Folder with `type: "asset"`, name, member UUIDs in `items`, `visible`, timestamps. Each item exists in `mission.assets` and belongs to at most one folder.                                                                                     |
-| `AssetPlacementContext` | `locationSetAt` (UTC epoch ms), nullable running REX/EVA UUIDs and name snapshots, nullable `petClock: AssetPetClockSnapshot`.                                                                                                                          |
-| `AssetPetClockSnapshot` | Copied `petValueAtStartStop`, `petStartStopTimestamp`, and `petRunning`; no separately persisted calculated PET.                                                                                                                                        |
-| Editor draft            | Values plus nullable location before placement, desired folder UUID or null, base values, dirty state, mission identity, and captured placement context. Never saved before Save.                                                                       |
-| UI state                | Draft/selection/hover/map gesture plus remembered name/emoji. Existing folder interface state for expansion/rename and existing map menu state for global toggles.                                                                                      |
+| Type                    | Fields and constraints                                                                                                                                                                                                                                                                                                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Asset`                 | `uuid`, trimmed nonblank `name` (not unique), `icon: string \| null` (emoji code point string in the existing picker format, e.g. `"1F534"`; null renders `"2754"`), optional `color`, `visible`, `location: AEGISPoint \| null`, `elevation: number \| null`, finite nonnegative `uncertaintyMeters`, nullable `notes`, `placement: AssetPlacementContext \| null`, `createdAt`, `updatedAt`. |
+| Asset folder            | Existing `Folder` with `type: "asset"`. Each item exists in `mission.assets` and belongs to at most one folder. No `asset.folderUuid`.                                                                                                                                                                                                                                                         |
+| `AssetPlacementContext` | `locationSetAt` (UTC epoch ms), nullable `runningRexUuid`, `runningRexName`, `runningEvaUuid`, `runningEvaName`, nullable `petClock: AssetPetClockSnapshot`.                                                                                                                                                                                                                                   |
+| `AssetPetClockSnapshot` | Copied `petValueAtStartStop`, `petStartStopTimestamp`, `petRunning`. No stored computed PET.                                                                                                                                                                                                                                                                                                   |
 
-### Placement time, running REX, and PET clock definition
+New assets are created with `visible: true` and no folder membership.
 
-Always record a wall-clock `locationSetAt` timestamp (UTC epoch milliseconds) when a location
-is accepted from map placement, completed drag, or valid coordinate entry. At that same instant,
-capture the mission's running REX (`isRunning`), if any, and its PET clock definition. Resolve the running REX
-from mission data independently of the selected REX/EVA: users may place assets in a planning
-view while a different REX is executing. Opening Add Asset is not the placement event, and a
-later Save must not replace the placement timestamp or captured clock with current values,
-or substitute the then-running REX.
+### Unplaced assets
 
-Store this as an `AssetPlacementContext` alongside the location: `locationSetAt`, nullable
-`runningRexUuid`, `runningRexName`, `runningEvaUuid`, `runningEvaName`, and nullable
-`petClock: AssetPetClockSnapshot`. Copy the REX's actual fields into the snapshot:
+`location` is `null` until the user enters valid coordinates or places the asset on the map, and
+an asset can be saved in that state. Use `null` for the whole point rather than an `AEGISPoint`
+with null `lat`/`lng`, so there is no half-set state. A non-null location has finite `lat` and
+`lng`; a valid zero coordinate is not unset.
 
-- `petValueAtStartStop`: PET when the clock last started/stopped (the user's "pet when started").
-- `petStartStopTimestamp`: wall-clock time of that anchor (the user's "time started").
-- `petRunning`: whether the clock was advancing at placement, needed to handle paused clocks.
+- `location` and `placement` are both null or both set. Setting a location captures placement
+  context; there is no action that clears a location once set.
+- Unplaced assets have `elevation: null`.
+- Unplaced assets appear in the table with "Not placed" in the coordinates and PET cells. They
+  have no map feature, ring, label, hover, or selection highlight.
+- Filter out unplaced assets before any map conversion: `toMapCoord` returns `[0, 0]` for null
+  coordinates without an error, which would draw the asset at the projection origin.
+- Uncertainty can be entered and saved before placement; it draws once the asset is placed.
+- Editing an unplaced asset offers **Place on Map**; a placed asset offers **Edit Pos.**
 
-These values are detached copies stored with the asset's placement, not references to the
-current REX clock. PET seconds are derived for display/use and are not a separate persisted
-source of truth.
+### Elevation
 
-The names are snapshots so recorded context remains readable after renaming or deleting the
-REX/EVA. These UUIDs are historical provenance, not ownership or required live foreign keys;
-retain them when the origin is deleted. Display the snapshot with a deleted/unavailable indication
-when it cannot be resolved. No EVA/REX delete cascade or provenance-clearing write is needed.
+Each accepted location change in the draft dispatches `thunkFetchPointElevation` with the asset
+uuid and stores the result in the draft. Failure or a mission without a DEM gives `null`, as for
+POIs.
 
-Use one accurate wall-clock instant from the existing `getAccurateNow()` convention and one
-REX snapshot when capturing context. Derive PET from the saved values with a pure helper
-whose inputs are the saved placement timestamp and clock definition:
+- A later location change supersedes an in-flight fetch: discard a result whose point no longer
+  matches the draft's location.
+- Save waits for a pending fetch to settle, with the pending state shown, then writes location,
+  elevation, and placement context in one change.
+- Metadata edits and folder moves do not refetch.
+- Elevation is shown read-only in the editor and row details.
+
+### Placement context and PET
+
+Each accepted location change (map click, completed drag, or valid coordinate entry) records,
+at one instant from `getAccurateNow()`:
+
+- `locationSetAt`, the wall-clock time;
+- the running REX (`isRunning`) and its EVA, found from mission data regardless of the selected
+  REX/EVA, with name snapshots;
+- a detached copy of that REX's PET clock fields.
+
+Opening the editor is not a placement, and Save keeps the captured context rather than
+re-reading the clock or the currently running REX. Moving an asset replaces location and
+context together on Save. Editing name, emoji, notes, uncertainty, or color, moving it between
+folders, or reformatting coordinates without changing them leaves them unchanged. This is a
+single latest placement record, not a movement history; `createdAt`/`updatedAt` remain record
+timestamps.
+
+Edge cases:
+
+- **No running REX:** REX/EVA fields and `petClock` are null; `locationSetAt` is kept; PET is
+  unavailable.
+- **More than one running REX:** report the context as ambiguous and store none. `rexes` is a
+  dictionary, and its iteration order is not a meaningful tie-break.
+- **Invalid captured clock:** keep the identity, timestamp, and raw clock values; show PET as
+  unavailable.
+- **REX/EVA later renamed or deleted:** the UUIDs are provenance, not foreign keys. Show the name
+  snapshots, marked unavailable when the UUID no longer resolves. No cascade or cleanup write.
+
+Derive PET with a pure helper that never reads the current clock:
 
 ```text
-baseSeconds = secondsFromhhmmss(petClock.petValueAtStartStop)
-if petClock.petRunning:
-    petSeconds = ceil(baseSeconds + (locationSetAt - parseTime(petClock.petStartStopTimestamp)) / 1000)
-else:
-    petSeconds = baseSeconds
+petSecondsAt(clock, atMs):
+    base = secondsFromhhmmss(clock.petValueAtStartStop)        // invalid → unavailable
+    if not clock.petRunning: return base
+    anchor = Date.parse(clock.petStartStopTimestamp)           // invalid → unavailable
+    return ceil(base + (atMs - anchor) / 1000)
 ```
 
-An executing REX (`isRunning`) can have a paused PET (`petRunning === false`); its value stays
-at the captured base. Preserve the existing signed-time and rounding conventions. Do not call
-a helper that reads the current wall clock when rendering an old placement, and do not read
-the REX's latest clock fields to derive historical PET. A paused clock does not need a valid
-start timestamp if its held PET value is valid.
+Called as `petSecondsAt(placement.petClock, placement.locationSetAt)`. Do not reuse
+`calculatePetValue` directly: it reads the current clock, ignores `petRunning`, and turns an
+invalid timestamp into epoch 0. `calculatePetValue` can be rewritten to call the new helper with
+`getAccurateNow()`. A paused clock does not need a valid anchor timestamp. Signed PET and the
+`ceil` rounding match current behavior. Live clock changes after placement, from
+`applyRexPetStartStop` or Maestro, do not affect a stored placement.
 
-If no REX is executing, keep REX/EVA context and `petClock` null while retaining the wall-clock
-timestamp; derived PET is unavailable. If captured clock data is invalid, retain the REX identity,
-timestamp, and original clock values for inspection, show PET as unavailable, and do not invent
-a value. If multiple REXes are marked running, report the ambiguous context instead of choosing
-the first array entry.
+### Mutations
 
-`src/typings/rex.d.ts` contains these clock fields. `applyRexPetStartStop` in
-`src/operations/apply/apply-rex.ts` overwrites the live fields on start/stop, and Maestro can
-also update them. Capturing the definition at placement preserves enough information to infer
-that placement's PET after later pauses, resets, corrections, or REX deletion. No full clock
-history or separately stored calculated PET is required for this placement record.
+Add `apply-asset.ts` helpers composed with the folder helpers. Each operation is one Automerge
+change:
 
-The placement context follows the asset's current location. Moving an existing asset replaces
-location and placement context atomically on Save; editing name/emoji/notes/uncertainty or moving
-between folders preserves it. Cancel restores both the saved location and context; Cancel Pos.
-restores the pre-gesture draft location and context. This is one latest placement record, not a
-movement history. `createdAt` and `updatedAt` remain record lifecycle timestamps and do not stand
-in for `locationSetAt`. Display PET as read-only captured context, with wall-clock time and REX
-identity in accessible row details/tooltip; a full timestamp/REX column is optional for space.
+- create asset at the root;
+- edit changed fields only;
+- move asset into a folder or back to root (drag and drop): validate that the target folder
+  exists and has `type === "asset"` before calling `applyMoveItemToFolder`;
+- delete asset plus `applyRemoveItemsFromAllFolders`.
 
-Implement dedicated asset apply helpers composed with existing folder helpers. Validate folder
-type/existence before calling `applyMoveItemToFolder`, which currently removes previous
-membership before checking its destination. Invalid destinations must not silently unfile assets.
-Use one Automerge change for asset creation plus membership, a move, deletion plus membership
-cleanup, or folder duplication. Reuse `applyRemoveItemsFromAllFolders` on deletion. Update only
-changed fields, and detach values before copying out of/into Automerge snapshots.
+Detach values when copying into or out of Automerge.
 
-Before Save compare edited fields/membership against base/current state. Keep drafts on
-conflicts/deleted targets with a recoverable message. Recheck permissions, connection, mission,
-and destination; never recreate deleted targets. Automerge handles simultaneous writes; client
-checks are not server locks.
+Before Save, compare the draft's base values with the current document. Keep the draft and show a
+recoverable message when the asset was deleted or changed underneath it; never recreate a deleted
+asset. Recheck permission, connection, and mission on Save. Automerge resolves concurrent writes;
+client checks are not locks.
 
-Duplicate Folder copies all members with fresh independent UUIDs and new record timestamps in
-one change. Preserve names/emojis, location, uncertainty, notes, color, visibility, and placement
-context. Use a unique copy name and expand the new folder in the list. Preserve visibility flags;
-do not treat duplication as a new placement for remembered defaults.
+### Migration
 
-Add/register a new Automerge migration initializing missing `assets` dictionaries. No mandatory
-folder or separate set collection is needed. Update blank missions, fixtures/seeds, schema,
-imports, copy/export, folder target maps, and integrity checks. Preserve old folder types/data
-and historical migration logic. This branch has only planned sets; if implementation has since
-introduced them, inspect and migrate explicitly rather than shipping competing group models.
-No new SQL entity table, REST CRUD endpoint, or socket protocol is needed.
+Add and register a new Automerge migration that adds an empty `assets` dictionary where it is
+missing. No default folder or set collection. Also update blank missions, fixtures, seeds, folder
+target maps, and integrity checks. Existing migrations stay untouched. This branch has only
+planned sets; if sets have since been implemented anywhere, migrate them explicitly rather than
+shipping two grouping models. No SQL table, REST CRUD endpoint, or socket protocol change.
 
-## Interface and editing behavior
+## Visibility
 
-### Folder-aware table and aligned columns
-
-Use **one table, one column definition, and one header** for foldered and root assets. Columns:
-row number, PET, emoji, name, coordinates, uncertainty (m), notes, visibility, row actions.
-There is no Type column. Use one `colgroup` or equivalent shared fixed layout so every item row
-aligns with the header during expansion, scrolling, rename, and resize.
-
-Folders render as full-width header rows (`tr`/`td colSpan`) with name, expand/collapse,
-visibility, and menu controls. Expanded child assets render as ordinary rows in that same table
-with the same cell count and widths as root assets. Any indentation belongs **inside the name
-cell only**. Do not indent whole rows, add child-only spacer columns, nest independent tables,
-or wrap table rows in div-based folder contents. This directly addresses the alignment problem.
-
-Folder groups appear first, case-insensitively alphabetized using existing `localeCompare`
-behavior (UUID tie-breaker), with root assets below all folders. Propose creation time descending
-within each folder/root, UUID tie-breaker. Display row numbers are not identity; PETs from
-different REXes do not define a useful global sort.
-
-Reuse folder storage, selectors, move/rename/delete helpers, expansion state, and the existing
-`@dnd-kit` technique. Adapt rendering to actual table rows/cells. Do not insert the existing
-`DraggableItem`/`folderContents` div wrappers into `tbody` or around `tr`. Prefer a small shared
-table adapter where practical; otherwise keep asset-specific rows and reuse folder behavior.
-A drag overlay can render outside the table with a correctly sized preview. Test that dragging
-or a drop does not resize columns or initiate a map gesture.
-
-Toolbar: Add Asset and Add Folder. Folder menu: rename, duplicate, delete, show/hide. Empty-folder
-deletion matches existing code; no last-folder restriction. Move via drag/drop into folders or
-to root, and via an explicit folder/root selector in the black editor for keyboard access.
-The old set dropdown is replaced by folder rows, not merely renamed.
-
-Hidden assets/folders remain in the list with explicit own/inherited hidden status. Collapse
-only affects list children, not the map. Clicking a visible marker opens Assets, expands its
-folder when needed, and selects its row. Selection/hover highlight only visible map features.
-Empty state: **"No assets added yet. Click Add Asset to add one."** Keep toolbar and black editor
-above a scrollable table. Review default 384 x 320/minimum 325 x 318 sizing, wrapping editor
-fields without shrinking controls until unreadable; preserve dockview bounds behavior.
-
-### Last-placement name and emoji defaults
-
-Add Asset initializes only name/emoji from the remembered pair; no type is collected. Do not
-copy location, placement time/clock, uncertainty, notes, folder, or visibility from the old asset.
-Fresh placement captures fresh context. Update the pair only after successful new-asset Save,
-using the final name/emoji. Canceled/failed saves, duplicates, remote changes, and edits of
-existing assets do not change it. Persist detached values in user/mission-scoped browser
-preferences so they survive reload/EVA/REX changes and deletion of the original asset, without
-leaking between missions. The precise meaning/persistence of "last placed" is a proposed default.
-
-### Black area for creation and editing
-
-The black area above the asset table is the single editor for both operations. **Add Asset**
-opens it with a new draft; a row's **Edit** action opens the same area populated with that
-asset's values. Give it an explicit **Add Asset** or **Edit Asset** heading/instruction so
-the current operation is clear. Keep the table visible below it and indicate the row being edited.
-
-Include name, emoji picker, optional color, folder/root selector, coordinates, uncertainty in meters, notes, and
-read-only PET/placement context in this area. Its location controls follow the current position
-toolbar: **Place on Map** (the equivalent of **New Pos.**) for an unplaced draft, **Edit Pos.**
-for a placed asset, and **Cancel Pos.** during a map gesture. Keep coordinate entry and the
-editor's **Save / Cancel** controls in this same area. After initial placement, **Edit Pos.**
-is available for the new draft too. Completing placement updates the editor's coordinates and
-preview while the editor stays open for remaining changes and Save.
-
-### Add and edit
-
-1. Add Asset creates one local draft with remembered name/emoji and opens the black editor. Do not start
-   a second draft. Hidden assets remain editable through their rows without silently changing
-   visibility. Before map placement or Edit Pos., enable the local Assets display toggle and explicitly show
-   the asset and its folder (if assigned) under the normal edit-permission rules so the preview/target is available; explain which visibility gate is blocking
-   the map interaction. Coordinate and metadata editing remain available while hidden.
-2. In the black editor, provide **Place on Map** for a draft without a location and **Edit Pos.**
-   once it has one, using the current position toolbar's placement/cancellation behavior.
-   While map placement is active, show **"Click the map to place the asset, or enter coordinates.
-   Save to keep changes."** For an existing asset, prefill its current values in this same editor.
-3. Enter map-pick mode through the existing directive mechanism. Add uses `createMarker`;
-   Edit Pos. uses `editMarker`. Clicking empty map relocates the point; dragging the selected
-   point also updates it. Finishing the gesture exits map-pick mode but leaves the editor open.
-4. Route asset position callbacks to the draft, not the crew-position save thunk. Show draft
-   icon/uncertainty changes immediately. Avoid rendering both the saved marker and its preview.
-   Direct coordinate entry updates the same draft and preview, after successful validation.
-   Each accepted location change captures wall-clock time, the running REX identity, and its
-   PET clock definition together in the draft. Do not recapture context merely when reformatting coordinates.
-5. Save requires a valid folder/root destination, name, emoji, finite location, and finite nonnegative
-   uncertainty. Commit all new asset fields or the existing asset's changed fields in one
-   Automerge change; then clear the draft and keep the saved asset selected. After a successful new placement,
-   remember its final name and emoji for the next draft.
-6. Cancel discards the draft, removes the preview, and restores the saved geometry locally.
-   No rollback write should be necessary because asset edits were never persisted live.
-   **Cancel Pos.** cancels only the current map gesture, restoring its pre-gesture draft location;
-   the editor's **Cancel** discards the entire asset edit.
-7. Delete is available through the row menu using the app's existing deletion convention.
-   Clear the corresponding selection, hover, draft, interaction, marker, and uncertainty ring.
-
-Coordinate entry must support the mission's configured coordinate presentation, including the
-grid forms used in the mockups and a latitude/longitude fallback when no grid is configured.
-The current position toolbar does not supply the complete coordinate editor shown in the new
-design: audit existing LGRS/server-grid inverse conversion utilities before adding a small
-asset coordinate field. Reuse proven converters where available; implement/test a missing
-inverse conversion rather than interpreting grid labels as longitude/latitude. Document accepted
-syntax in the field, reject out-of-grid/invalid input, and preserve full stored precision when
-formatting for display. A valid zero coordinate must not be treated as unset.
-
-### Map Item Visibility controls
-
-Add **Assets** and **Asset Labels** controls to the existing map visibility menu using
-`submenuAssets: MapSubmenuMarkers` (`show`, `showLabels`), provider setters, and cookie
-backfill/defaults. Viewers can use these local preferences without editing mission data.
-Turning Assets off hides asset emojis, uncertainty rings, labels, hover/selection, and previews;
-it does not alter folder/item flags or membership. Turning labels off hides names only.
+One rule governs every map artifact (emoji, ring, hover, selection, preview, hit testing):
 
 ```text
-assetVisible = mapAssets.show && asset.visible && (folder is absent || folder.visible)
+assetVisible = asset.location != null
+            && mapAssets.show
+            && asset.visible
+            && (no folder || folder.visible)
 labelVisible = assetVisible && mapAssets.showLabels && modeAllowsLabels
 ```
 
-Showing a folder preserves individual visibility choices. Showing an item in a hidden folder
-leaves it hidden until its folder is shown. Root assets have no folder gate. A move preserves
-the item's flag and adopts the destination folder's gate. Collapsing a folder changes the list
-only. Shared folder/item visibility uses existing folder edit permissions; global map preferences
-are local to each viewer. Do not create redundant personal hidden-folder/item lists.
+Implement this once as a pure helper and call it from every asset behavior. The map docs
+already list the station visible-set copied across three behaviors as a known hazard. The rule
+does not depend on the selected section, EVA, or REX (D6).
 
-Asset labels show names and participate in shared marker-label layout in editor/dashboard.
-Mirror dashboard Assets visibility into the minimap through the existing bridge/provider
-technique, honoring minimap label policy. Per-map toggles must not remove shared source geometry
-needed by another map. Dockview editor visibility checks need a small accessible bridge or shared
-selector rather than assuming its content is inside `MapMenuProvider`.
+- `folder.visible` and `asset.visible` are shared document state (D3, D16). Hiding a folder
+  hides every asset in it for all users on every map (editor, dashboard, minimap), and the change
+  syncs to connected clients like any other document edit. Only the Assets / Asset Labels toggles
+  are per viewer.
+- Showing a folder keeps each item's own flag; an item in a hidden folder stays hidden until the
+  folder is shown. Root assets have no folder gate. A moved item keeps its flag and takes on the
+  new folder's gate.
+- Collapsing a folder affects the list only.
+- Turning off Assets hides all asset map artifacts without changing any shared flag or
+  membership. Turning off Asset Labels hides names only.
+- Hidden and unplaced assets stay in the list, with own/inherited hidden status shown.
+- Starting Place on Map / Edit Pos. turns on the viewer's Assets and Asset Labels toggles (D18).
+  New assets are visible and at the root, so nothing else can block them. For an existing asset
+  that is hidden, or in a hidden folder, Edit Pos. is disabled with a tooltip naming the shared
+  flag to turn back on; coordinate entry still works. Shared flags never change implicitly.
+
+## Interface
+
+### Folder-aware table
+
+Use one table, one column definition, and one header for folder and root rows. Columns: row
+number, PET, emoji, name, coordinates, uncertainty (m), notes, visibility, row actions. No Type
+column. A shared `colgroup` (or equivalent fixed layout) keeps every row aligned with the header
+through expansion, scrolling, rename, and resize.
+
+- Folders are full-width header rows (`tr` / `td colSpan`) with name, expand/collapse,
+  visibility, and menu controls. Expanded children are ordinary rows with the same cells and
+  widths as root rows. Indentation lives inside the name cell only. No nested tables, spacer
+  columns, or `div` wrappers around `tr`.
+- Folders sort alphabetically, then root assets after all folders. Assets inside each folder and
+  at root also sort alphabetically by name (D13). Row numbers are display only.
+- Reuse folder storage, selectors, move/rename/delete helpers, expansion state, and the `@dnd-kit`
+  technique, but render with table rows. Prefer a small shared table adapter; otherwise keep
+  asset-specific rows. A drag overlay can render outside the table. Dragging must not resize
+  columns or start a map gesture.
+- Toolbar: Add Asset, Add Folder. Folder menu: rename, delete, show/hide. Drag and drop is the
+  only way to move assets into, between, or out of folders (D4). The set dropdown is removed.
+- All mutation controls follow D2: enabled with edit permission, regardless of the Edit toggle.
+- Clicking an asset marker follows D19.
+- Empty state: **"No assets added yet. Click Add Asset to add one."**
+- The toolbar and editor sit above a scrolling table. Review the 384 × 320 default and 325 × 318
+  minimum widget sizes; editor fields wrap rather than shrink until unreadable. Keep dockview
+  bounds behavior.
+
+### Black editor
+
+The black area above the table is the only editor. **Add Asset** opens it with a new draft; a
+row's **Edit** opens it with that asset's values. A heading reads **Add Asset** or **Edit Asset**,
+and the edited row is marked in the table.
+
+Fields: name, emoji picker, optional color, coordinates, uncertainty (m), notes, read-only
+elevation, and read-only placement context (PET, wall-clock time, REX identity). There is no
+folder field (D4). Location controls follow the position toolbar:
+
+- **Place on Map** when the draft has no location;
+- **Edit Pos.** once it has one, including a new draft after its first placement;
+- **Cancel Pos.** during a map gesture.
+
+Finishing a gesture updates the coordinates and preview and leaves the editor open.
+
+The draft lives in Redux: values, nullable location and placement context, base values for
+conflict checks, dirty state, and mission identity. It is never written to the document before
+Save.
+
+### Add and edit flow
+
+1. **Add Asset** creates one draft with a new UUID, no location, and the name/emoji of the most
+   recently created asset in the mission (D7). It does not start a second draft while one exists.
+   Everything except placement can be edited immediately. Later remote creations do not change an
+   open draft.
+2. **Place on Map** and **Edit Pos.** turn on the Assets and Asset Labels toggles before starting
+   the gesture (D18; see Visibility for hidden existing assets). While a gesture is active, show **"Click the map to place the asset, or enter coordinates.
+   Save to keep changes."**
+3. Map gestures use the existing directives with the asset's UUID: `createMarker` for an unplaced
+   draft, `editMarker` once placed. Clicking empty map relocates; dragging the marker moves it.
+   Row **Edit** sets the asset selection before starting any gesture, so the selection change
+   cannot trip the auto-cancel watcher.
+4. Location results go to the draft, not the document (see Map rendering for the handler change).
+   Valid coordinate entry updates the same draft. Each accepted location change captures fresh
+   placement context and starts an elevation fetch.
+5. **Save** requires D15's fields, finite nonnegative uncertainty, and, if a location is set,
+   finite coordinates. It writes one change, clears the draft, and keeps the asset selected. A new
+   asset is saved at the root. Names need not be unique; no emoji saves `icon: null`.
+6. **Cancel** discards the draft and its preview. Nothing needs rolling back. **Cancel Pos.**
+   ends the gesture and restores the location and context from before it.
+7. **Delete** (row menu, existing deletion convention) clears selection, hover, draft,
+   directive, marker, ring, label, and membership.
+
+### Coordinate entry
+
+Support the mission's configured coordinate presentation, including the grid forms in the mockups,
+with latitude/longitude when no grid is configured. The position toolbar has no full coordinate
+editor, so audit the existing LGRS/server-grid inverse converters first; reuse them, or implement
+and test a missing inverse rather than reading grid labels as lat/lng. Show accepted syntax in the
+field, reject invalid or out-of-grid input, and keep full stored precision. Clearing the field on
+an unplaced draft leaves it unplaced; it does not clear an existing location.
+
+### Map Item Visibility controls
+
+Add **Assets** and **Asset Labels** using `submenuAssets: MapSubmenuMarkers` (`show`,
+`showLabels`), provider setters, and the existing cookie defaults/backfill. Both default to on
+(D12). Viewers can change these without edit permission. Mirror dashboard Assets visibility into
+the minimap through the existing bridge, honoring minimap label policy. The floating widget is
+outside `MapMenuProvider`, so it reads and sets the editor's two toggles through a small bridge
+to apply D18.
 
 ### Interaction lifecycle
 
-- Preserve one active map directive across assets, positions, stations, POIs, and measurements.
-  Starting another tool cancels the asset's map gesture and retains its editor draft.
-- Switching asset/folder/tab with a dirty draft offers Save/Discard/Keep Editing. Keep Editing
-  retains the original context; it must not retarget the draft. Switching EVA/REX in the same
-  mission preserves the draft and its captured placement context, while ending its map gesture.
-  A later intentional location change captures new placement context using the REX then running.
-- Leaving the EVA section, changing mission, or unmounting cancels asset interactions and
-  discards transient drafts. Do not write to the previous mission from a delayed callback.
-  If the existing navigation flow supports dirty-form protection, participate in it.
-- Minimize/reopen and dockview bounds-driven panel recreation preserve the draft in Redux.
-  End the map gesture when the widget is hidden so an invisible editor cannot keep placing assets.
-- On lost edit permission/connection, stop map gestures, retain draft values for review, and
-  disable mutation controls. On reconnect, revalidate against the current document before Save.
-- Guard delayed directive startup in `thunkUpdateMapDirective`: cancel/unmount/navigation can
-  occur during its existing 200 ms delay. A canceled asset edit must not reactivate afterward.
-- Hiding all Assets, the edited asset, or its folder ends its map gesture, retains its draft, and removes the
-  preview/highlight. Showing it again does not restart the gesture automatically.
-- Remove event handlers/interactions on every exit path and suppress unrelated marker selection
-  and dragging while an asset directive is active. Never rely on right-click or native menus.
+- One map directive at a time across assets, positions, stations, POIs, and measurements.
+  Starting another tool ends the asset gesture and keeps the draft.
+- For asset directives, the auto-cancel watcher keys on the selected asset UUID only: selecting
+  another asset ends the gesture, while section, EVA, REX, POI, or station selection changes do
+  not (D6). They never touch the draft or its captured context. A later location change captures
+  context from whichever REX is then running.
+- Switching to another asset with a dirty draft offers Save / Discard / Keep Editing. Keep
+  Editing does not retarget the draft.
+- Changing mission or unmounting the editor ends the gesture and discards the draft; delayed
+  callbacks must not write to the previous mission.
+- Minimize/reopen and dockview bounds-driven panel recreation keep the draft. Hiding the widget
+  ends the gesture.
+- Losing edit permission or connection ends the gesture, keeps the draft for review, and disables
+  mutation controls. On reconnect, revalidate against the current document before Save.
+- Make the directive's 200 ms delayed start cancellable, or check on fire that the directive is
+  still wanted, so a cancelled asset edit cannot start afterward.
+- Hiding all Assets, the edited asset, or its folder ends the gesture and removes preview and
+  highlight; showing it again does not restart the gesture.
+- Remove handlers and interactions on every exit path. While an asset directive is active, block
+  unrelated marker selection and dragging. Never rely on right-click or native menus.
 
 ## Map rendering and uncertainty
 
-Add `AssetMarkers` and `AssetUncertainty` headless behaviors, stable sources, and cached style
-builders following the existing map architecture. Mount saved-data rendering in editor,
-dashboard, and minimap; draft rendering and interactions belong only to the editor.
+Add two headless behaviors, mounted in every editor section and on the dashboard and minimap:
 
-Use the same effective asset visibility rule below for emojis, circles, hover, selection,
-previews, and hit testing; labels also require the Asset Labels toggle and mode support. Hidden folders and individually hidden assets
-must leave no visible or interactive ring/highlight. Feature IDs must be stable
-and distinct for the asset marker and uncertainty geometry; the edit directive must resolve
-the marker Point, never the ring. Circles are noninteractive. Account for shared sources:
-per-map styles/visibility must not remove geometry needed by a sibling map, and minimap
-reconciliation must not overwrite the editor's preview or the dashboard's data.
+- `AssetMarkers`, with a shared `assetSource`, cached style builders in `utils/styles/`, a
+  `MODE_CONFIGS` entry, and a `Z_INDEX` value;
+- `AssetUncertainty`, which draws rings the way `Circles` does (see below).
 
-Add asset mode configuration and z-index constants so rings sit below icons and do not obscure
-crew markers or their selection. Reuse the icon renderer/picker conventions and extend hover,
-selection, and required name-label integration with explicit asset identity. Do not add assets
-to crew position paths or time/source filtering.
+The draft preview and interactions are editor-only. Assets do not join crew position paths or
+time/source filtering.
 
-Treat uncertainty as a **ground-distance radius**, not diameter or screen pixels. Generate a
-geodesic polygon around the canonical point using the mission's planet radius, then project
-its vertices. A projected `Circle` with a numeric meter radius is insufficient where projection
-scale differs from ground distance; the current lander/station circle renderer is not proof of
-geodesic accuracy. Polygon geometry here is an internal rendering detail, not a drawing feature.
-Recompute on location, radius, planet/projection changes; keep stable geometry during unrelated
-updates. Test polar/custom lunar and Earth/Mercator cases. Require a valid positive planet radius
-for positive uncertainty, with a visible explanation when unavailable. Zero uncertainty remains
-usable without a ring. Test pole/seam handling so circles cannot become world-spanning artifacts.
+**Feature identity and the draft preview.** The marker's feature id is the asset UUID. While an
+asset is being edited, `AssetMarkers` renders the draft's values (location, emoji, color) under
+that same feature id, replacing the saved values rather than adding a second feature. That gives
+`editMarker` exactly one target and avoids a duplicate marker. A new draft gets its feature once
+it has a location. Because the editor has its own `FeatureSourcesProvider`, the preview never
+touches the dashboard/minimap sources.
 
-## Ordered implementation work
+**Routing location results.** Today the `createMarker` click, `editMarker` click, and
+`translateend` handlers each call `saveItemPosition`, which writes to the document straight
+away. Add an `"asset"` branch to that path that dispatches a draft-location action instead.
+Every handler that produces a location must take that branch, not just the dispatch switch.
 
-Check boxes track implementation to perform; no feature code is completed by this plan.
+**Uncertainty rings match the proximity circles (D9).** `uncertaintyMeters` is a radius, not a
+diameter or screen pixels. `AssetUncertainty` follows `Circles`:
 
-### 1. Persist assets using existing folders
+- One `createCircleLayer(toMapCoord(asset.location), asset.uncertaintyMeters, options)` per
+  visible placed asset with positive uncertainty, at `Z_INDEX.CIRCLES`, so rings sit below every
+  marker and do not cover crew markers or their selection.
+- No circle label (`label: null`); the asset's name is drawn by the marker label.
+- Stroke color from the asset's color, falling back to a default, with the mode's
+  `circle.minWidth`.
+- Rebuilt in full on change, as `Circles` does. Zero uncertainty draws no ring.
 
-- [ ] Add asset/placement/clock types, `Mission.assets` defaults, fixtures, and a new registered migration.
-- [ ] Extend FolderType, target maps, visibility guards, and membership integrity for assets.
-- [ ] Add validated atomic asset CRUD, membership moves/root assignment, folder duplication/cleanup.
-- [ ] Implement clock capture and pure PET derivation using the saved instant/definition.
-- [ ] Verify export/import/mission copy preserves folders/assets, visibility, and placement context.
-- [ ] Test migration reruns, wrong/missing folder targets, independent-client changes, conflict
-      handling, and origin REX/EVA deletion without losing assets or historical PET context.
+`createCircleLayer` builds each ring on its own layer and source with no feature id, so a ring
+can never match the directive UUID in `findFeatureOnMap`. Rings are not interactive. In the
+editor, the edited asset's ring uses the draft's location and radius.
 
-Exit: assets persist with one existing folder model, independently of EVA/REX ownership.
+Per-map differences live in style functions, never in shared feature geometry or props.
+Labels join the shared `labelSource` layout in editor and dashboard with explicit asset identity
+and `PRIORITY_ASSET` (D14).
 
-### 2. Widget, aligned folder table, and remembered defaults
+## Implementation order
 
-- [ ] Update widget/launcher availability and Positions placeholder together.
-- [ ] Add asset UI/reset plumbing and user/mission-scoped last-placement name/emoji preferences.
-- [ ] Implement one table/header/column definition with full-width alphabetical folder rows,
-      ordinary aligned child rows, and root assets after folders. Remove Type column/set dropdown.
-- [ ] Adapt existing folder sorting/state/helpers and drag/drop to valid table row markup.
-- [ ] Add folder actions, editor folder/root selector, row visibility/selection/hover, and empty states.
-- [ ] Test header alignment on expand/rename/drag/resize/scroll, root moves, empty folders,
-      keyboard assignment, collapse independent of map visibility, and dockview recreation.
-- [ ] Test name/emoji prefilling and overrides, canceled/failed saves, duplicate/remote/edit
-      exclusions, deletion of original asset, reload, EVA/REX changes, and mission isolation.
+All of this ships in one merge request (D1). The steps below are the order of work inside it;
+check boxes track work still to do.
 
-Exit: planning users can organize assets and repeat placement without column alignment drift.
+### 1. Data model
 
-### 3. Assets and Asset Labels map controls
+- [ ] Asset, placement, and clock types; `Mission.assets` defaults, fixtures, seeds; new
+      registered migration.
+- [ ] `"asset"` in `FolderType`, both target maps, the visibility toggle guard, and integrity
+      checks, including null-location assets.
+- [ ] Validated atomic asset create (at root), edit, delete, and folder moves.
+- [ ] Pure `petSecondsAt` and placement-context capture; refactor `calculatePetValue` onto it.
+- [ ] Rename `copyAssets` → `copyGISAssets` and `copyMissionAssets` → `copyMissionGISAssets`,
+      with comments, log text, and test mocks.
+- [ ] Tests: migration rerun, wrong/missing folder targets, concurrent clients, origin REX/EVA
+      deletion, paused/negative/invalid clocks, multiple running REXes, and mission copy/dump
+      carrying assets, folders, null locations, elevation, and placement context.
 
-- [ ] Add provider/cookie/menu Assets and Asset Labels toggles and dashboard/minimap bridging.
-- [ ] Add asset sources, marker/uncertainty behaviors/styles, and required name-label integration.
-- [ ] Compose master/folder/item visibility for every artifact/interaction and label toggle for text.
-- [ ] Test master-off and labels-off separately, hidden folder/item restoration, root/moves,
-      shared folder/item flags versus local map preferences, geodesic radii/projections,
-      and shared dashboard/minimap sources.
+Exit: assets persist, placed or unplaced, with the existing folder model and no EVA/REX ownership.
 
-Exit: users can toggle map assets and labels independently while respecting folder/item gates.
+### 2. Editor, map rendering, and display toggles
 
-### 4. Black editor and map interaction
+- [ ] Widget/launcher availability in every section without a REX, and the Positions placeholder.
+- [ ] Crew positions on the map in every section: drop the section check in `PosEntries` and
+      `MarkerLabels` (D20); test markers, paths, and labels in station/POI sections, with
+      Positions off, and with no REX selected.
+- [ ] Assets / Asset Labels in provider, cookie, and menu; dashboard-to-minimap bridging; widget
+      read/write bridge to the editor's two toggles.
+- [ ] Minimal flat asset table, plus the black editor for Add/Edit with every field and D2
+      permission gating.
+- [ ] Draft state, Place on Map / Edit Pos. / Cancel Pos. with D18 toggle handling, draft routing
+      in `InteractionManager`, asset-only auto-cancel key, cancellable delayed directive start.
+- [ ] `AssetMarkers`, `AssetUncertainty` (via `createCircleLayer`), styles, z-index, mode
+      config, `PRIORITY_ASSET` labels, and the shared visibility helper; mounting in every editor
+      section, dashboard, and minimap.
+- [ ] Asset case in `thunkMarkerOnClick`: restore widget, select Assets tab, expand folder, select
+      and highlight the row, no section change (D19).
+- [ ] Elevation fetch on location change, with stale-result handling and Save waiting on a
+      pending fetch.
+- [ ] Coordinate entry with grid inverse conversion.
+- [ ] Name/emoji prefill from the most recently created asset.
+- [ ] Tests: save unplaced then place later, click/relocate/drag, coordinate round trips,
+      zero/invalid uncertainty, gesture versus editor cancel, running versus selected REX,
+      delayed Save, metadata-only edits keep context, elevation success/failure/no-DEM and
+      superseded fetches, ring radius and center matching a proximity circle of the same size,
+      no `[0, 0]` artifacts for unplaced assets, draft and gesture surviving section/EVA/REX
+      changes, placement turning both toggles on, null icon rendering ❔, duplicate names,
+      Assets and Asset Labels toggles separately, coexistence with position editing.
 
-- [ ] Route Add Asset and row Edit into the same black area with name/emoji, optional color/notes,
-      folder/root, coordinates, uncertainty, and read-only derived PET/context. No asset type.
-- [ ] Add Place on Map / Edit Pos., Cancel Pos., Save/Cancel, and asset draft/preview callbacks.
-- [ ] Capture placement context on location changes; Save asset/membership atomically and update
-      remembered defaults only on successful new placement.
-- [ ] Implement conflict, deleted-target, permission/connection, dirty navigation, and delayed-directive guards.
-- [ ] Test clicks/relocation/drag, coordinate round trips, zero/invalid uncertainty, gesture/editor
-      cancellation, visibility-triggered cleanup, and coexistence with current position editing.
-- [ ] Test running versus selected REX, paused/negative/invalid clock, delayed Save, later clock
-      corrections/deletion/reload, and unchanged context on metadata/membership-only edits.
+Exit: users can create, place, edit, and delete assets during planning and execution, and
+toggle assets and labels on the map.
 
-Exit: complete authoring works in the black editor during planning and execution.
+### 3. Folders and aligned table
 
-### 5. Complete verification
+- [ ] Single-header table with full-width folder rows, aligned child rows, root rows last.
+- [ ] Folder sorting, state, and helpers adapted to table rows; drag/drop on valid row markup.
+- [ ] Folder actions (add, rename, delete, show/hide), row visibility, selection, hover, empty
+      states.
+- [ ] Tests: alignment through expand/rename/drag/resize/scroll, new assets at root, drag
+      between folders and root, empty folders, collapse independent of the map, hidden
+      folder/item restore, moves between gates, shared flags versus local toggles, dockview
+      recreation.
 
-- [ ] Run acceptance scenarios with two clients, reload, and reconnect.
-- [ ] Review default/minimum widget widths, column alignment, keyboard/focus, errors, and visibility states.
+Exit: users can organize assets without column drift.
+
+### 4. Verification
+
+- [ ] Acceptance scenarios with two clients, reload, and reconnect.
+- [ ] Review widget sizes, column alignment, keyboard/focus, errors, and visibility states.
 - [ ] Extend folder apply/thunk tests, `rex-menu.test.ts`, `MapPositionMenu.browser.test.tsx`,
       `InteractionManager.browser.test.tsx`, `MapMenuProvider.browser.test.tsx`,
       `MapMenuMinimapBridge.browser.test.tsx`, and `MarkerLabels.browser.test.tsx`.
-- [ ] Add meaningful asset geometry/editor/table integration tests and a focused cross-EVA
-      Playwright workflow with folders and Assets/Asset Labels controls.
-- [ ] Update map architecture documentation once implementation is final.
-- [ ] Format/lint changed code and run targeted tests during implementation; run
-      `npm run test:all` before committing or handing implementation off for review.
+- [ ] A focused cross-EVA Playwright workflow covering folders and both toggles.
+- [ ] Update `src/components/interface/map/CLAUDE.md` once implementation is final, including the
+      Rex Menu creation rule and the `PosEntries` row ("only when section=='evas' & selectedRex").
+- [ ] Format and lint changed code and run targeted tests throughout; run `npm run test:all`
+      before committing or handing off for review.
 
 ## Acceptance scenarios
 
-| Scenario               | Required result                                                                                                                                                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Planning/no REX        | Widget/launcher work without selected EVA/REX in the EVA section; Positions shows its instruction; Assets can create/edit.                                                                                         |
-| Cross-EVA              | Save in EVA1 REX; select EVA2 planning/REX, reload/reconnect: same asset, folder, location, uncertainty, and clock context.                                                                                        |
-| Name/emoji defaults    | No asset type in data/editor/table. Save Tools with an emoji; the next new draft prefills both and permits changes. Cancel/failure leaves old defaults; defaults survive reload and are isolated per user/mission. |
-| Folder order           | Create Zebra and Alpha in reverse order: Alpha first, both folder groups before root assets, including after rename/reload.                                                                                        |
-| Column alignment       | Shared headers, expanded child rows, and root rows align at every width. Folder rows span all columns; name-cell indentation never moves other cells.                                                              |
-| Membership/actions     | Drag or select to move into/between folders/root with one membership at most. Rename, duplicate with independent UUIDs, delete empty folders. Populated deletion blocked; no mandatory folder.                     |
-| Folder/item visibility | Hide an item, hide/show folder: item stays hidden. Collapse alone never hides map content. Root/moved items apply correct gates.                                                                                   |
-| Assets toggle          | Master-off removes every asset emoji/ring/label/highlight/hit target/preview, preserving list and shared flags. Other marker categories unaffected.                                                                |
-| Asset Labels toggle    | With Assets on, labels-off hides names only; emojis/rings remain. Labels-on restores only visible assets' names.                                                                                                   |
-| Two viewers            | Proposed shared folder/item visibility synchronizes; local Assets/Asset Labels preferences do not change the other viewer's display.                                                                               |
-| Black editor           | Add/Edit use the same black top area with map placement/edit/cancel/save controls. Gestures update coordinates and keep editor open.                                                                               |
-| Placement/PET          | Capture actual running REX identity/clock independent of selected view. No REX means timestamp/null clock. Delayed Save preserves capture; relocation recaptures, metadata/root moves do not.                      |
-| Historical PET         | Paused/negative PET derives correctly; later live-clock changes, REX deletion, reload, and delayed rendering do not alter inferred placement PET.                                                                  |
-| Cancel/failure         | Restore old location/context on Cancel; retain draft on failure. No deleted-target recreation, broken membership, or default changes from failed placement.                                                        |
-| Tool cleanup           | Other tools, global/folder/item hide, minimize, navigation, permission/connection loss leave no stale map gesture.                                                                                                 |
-| Uncertainty/copy       | Ground radius is correct and centered. Delete leaves no ring/label/membership. Folder/mission copy and exports preserve asset/context data.                                                                        |
+| Scenario               | Required result                                                                                                                                                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Planning/no REX        | Widget and launcher work in every section with no EVA/REX selected; Positions shows its instruction; assets can be created and edited.                                                                                            |
+| Crew positions         | Select a REX, then switch to the station or POI section: its crew positions, paths, and labels stay on the map and in the Positions tab. Turning Positions off or clearing the REX hides them in every section.                   |
+| Section-agnostic       | Placed assets show on the editor in every section. The widget stays available, and a draft and any active map gesture survive switching section, EVA, or REX.                                                                     |
+| Name and emoji         | Two assets can share a name; a blank name blocks Save. Saving with no emoji stores `icon: null`, and the table, editor, and every map show ❔ as for stations.                                                                    |
+| Permissions            | With edit permission and the Edit toggle off, a user can create, edit, delete, move, and hide assets and folders. Without edit permission, the tab is read-only.                                                                  |
+| Unplaced asset         | Save with name/emoji only: the row shows "Not placed", nothing draws on any map (including the projection origin). Place later: marker and context appear on Save.                                                                |
+| Cross-EVA              | Save in EVA1 REX; select EVA2 planning/REX, reload, reconnect: same asset, folder, location, uncertainty, and context.                                                                                                            |
+| Name/emoji defaults    | No asset type anywhere. Save "Tools" with an emoji; the next Add Asset, on any client or after reload, prefills both and allows changes. Delete it: the next most recent is used.                                                 |
+| New assets at root     | Every new asset is saved at the root, even when a folder row is selected or expanded. Dragging it into a folder afterwards moves it.                                                                                              |
+| Folder order           | Create Zebra then Alpha: Alpha first, both before root assets, including after rename/reload. Assets in a folder and at root list alphabetically, not by creation time.                                                           |
+| Column alignment       | Header, expanded child rows, and root rows align at every width. Folder rows span all columns; name-cell indentation never shifts other cells.                                                                                    |
+| Membership/actions     | Drag between folders/root, never more than one membership. Rename and delete empty folders; populated deletion is blocked. No duplicate action.                                                                                   |
+| Folder/item visibility | Hide an item, hide then show its folder: the item stays hidden. Collapse never hides map content. Root and moved items take the right gates.                                                                                      |
+| Placing while hidden   | With Assets or Asset Labels off, Place on Map / Edit Pos. turns both on and starts. For a hidden asset or one in a hidden folder, Edit Pos. is disabled and names the flag; coordinate entry still works; no shared flag changes. |
+| Assets toggle          | Defaults on. Off removes every asset emoji, ring, label, highlight, hit target, and preview; list and shared flags unchanged; other marker types unaffected.                                                                      |
+| Asset Labels toggle    | Defaults on. With Assets on, labels off hides names only; on restores names for visible assets only. Asset labels dim under other marker labels.                                                                                  |
+| Two viewers            | Viewer A hides a folder: its assets disappear from viewer B's maps without a reload; same for item flags. Local Assets/Asset Labels toggles do not affect the other viewer.                                                       |
+| Black editor           | Add and Edit use the same area with place/edit/cancel/save controls and no folder field. Gestures update coordinates and keep the editor open.                                                                                    |
+| Marker click           | From any editor section, clicking an asset marker restores the widget, selects the Assets tab, expands its folder, and selects and highlights its row. The section is unchanged.                                                  |
+| Placement/PET          | Context comes from the running REX, not the selected one. No running REX: timestamp only. Delayed Save keeps the capture; relocation recaptures; metadata/folder edits do not.                                                    |
+| Historical PET         | Paused and negative PET derive correctly; later clock changes, REX deletion, reload, and delayed rendering do not change it.                                                                                                      |
+| Cancel/failure         | Cancel restores saved location and context; failure keeps the draft. No deleted-target recreation or broken membership.                                                                                                           |
+| Tool cleanup           | Other tools, hiding (global/folder/item), minimize, selecting another asset, and permission/connection loss leave no stale gesture.                                                                                               |
+| Elevation              | Placing or moving an asset stores its DEM elevation; no DEM or a failed fetch stores null. Metadata edits keep the stored value.                                                                                                  |
+| Uncertainty/copy       | Ring is centered on the asset and drawn like a proximity circle of the same radius. Delete leaves no ring, label, or membership. Mission copy and dump keep all asset data.                                                       |
 
 ## Coordination with the positions redesign
 
-This branch owns Assets, folder/table integration, map display toggles/rendering, and minimal
-widget/launcher/placeholder changes. The concurrent branch owns crew-position editor/table/domain
-changes. The supplied black screenshot sets visual direction; no live Figma design was inspected.
-Asset delivery must not depend on the concurrent redesign merging first.
+This branch owns assets, folder/table integration, map toggles and rendering, the minimal
+widget, launcher, and placeholder changes, and the section-gate removal for crew position
+rendering (D20). The concurrent branch owns crew-position editor,
+table, and domain changes. The supplied black screenshot sets visual direction; no live Figma
+design was inspected. Asset delivery must not depend on the redesign merging first.
 
-Coordinate shared changes in rex-menu, MapOverlays, map-menu-pos, InteractionManager, thunkMap,
-marker typing, folder helpers/components, and marker labels. Extract shared presentation only
-where useful; retain separate asset/crew drafts. Review proposed required-name validation,
-last-placement semantics/persistence, shared folder/item visibility, Save behavior, and folder
-deletion before dependent work. Update acceptance scenarios with revised decisions.
+Shared touch points: `rex-menu.tsx`, `MapOverlays.tsx`, `map-menu-pos.tsx`,
+`InteractionManager.tsx` (especially the `saveItemPosition` path and `selectionKey`),
+`thunkMap.ts`, marker typing, folder helpers/components, `PosEntries`, and `MarkerLabels`. Extract shared
+presentation only where it helps; keep asset and crew drafts separate.
