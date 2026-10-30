@@ -72,6 +72,8 @@ interface MapMenuProps {
   setMapDisplayStations: Dispatch<SetStateAction<MapSubmenuStations>>;
   mapDisplayActions: MapSubmenuMarkers;
   setMapDisplayActions: Dispatch<SetStateAction<MapSubmenuMarkers>>;
+  mapDisplayAssets: MapSubmenuMarkers;
+  setMapDisplayAssets: Dispatch<SetStateAction<MapSubmenuMarkers>>;
   showArrows: boolean;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
   showBearings: boolean;
@@ -101,6 +103,8 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   setMapDisplayStations,
   mapDisplayActions,
   setMapDisplayActions,
+  mapDisplayAssets,
+  setMapDisplayAssets,
   showArrows,
   setShowArrows,
   showBearings,
@@ -324,6 +328,43 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                     show: !mapDisplayActions.show ? true : mapDisplayActions.show,
                   });
                 }}
+              >
+                Labels
+              </div>
+            </div>
+            <div className={styles.menuItemTitleContainer}>
+              <div
+                className={styles.menuEyeIcon}
+                onClick={() => {
+                  setMapDisplayAssets({ ...mapDisplayAssets, show: !mapDisplayAssets.show });
+                }}
+                data-testid="map-menu-assets-toggle"
+              >
+                <FontAwesomeIcon
+                  icon={faEye}
+                  size="sm"
+                  style={{
+                    marginTop: "3px",
+                    width: "15px",
+                    color: mapDisplayAssets.show ? "var(--grey5)" : "var(--grey3)",
+                    outline: "none",
+                  }}
+                  tabIndex={0}
+                />
+              </div>
+              <div className={styles.menuItemTitle}>Assets</div>
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  mapDisplayAssets.showLabels && styles.toggleSelected
+                }`}
+                onClick={() => {
+                  setMapDisplayAssets({
+                    ...mapDisplayAssets,
+                    showLabels: !mapDisplayAssets.showLabels,
+                    show: !mapDisplayAssets.show ? true : mapDisplayAssets.show,
+                  });
+                }}
+                data-testid="map-menu-asset-labels-toggle"
               >
                 Labels
               </div>
@@ -805,6 +846,8 @@ export const MapMenuPanel: FunctionComponent = () => {
       setMapDisplayStations={setters.setSubmenuStations}
       mapDisplayActions={display.submenuActions}
       setMapDisplayActions={setters.setSubmenuActions}
+      mapDisplayAssets={display.submenuAssets}
+      setMapDisplayAssets={setters.setSubmenuAssets}
       showArrows={display.showArrows}
       setShowArrows={setters.setShowArrows}
       showBearings={display.showBearings}

@@ -25,6 +25,7 @@ import { obliterateState as stmObliterateState } from "store/stm";
 import { obliterateState as reportObliterateState } from "store/report";
 import { obliterateState as traverseObliterateState } from "store/traverse";
 import { obliterateState as measurementObliterateState } from "store/measure";
+import { obliterateState as assetObliterateState } from "store/asset";
 import { clientLogger } from "utils/logging/clientLogger";
 
 export const thunkSelectEVASequenceItem = appCreateAsyncThunk<{
@@ -63,6 +64,7 @@ export const thunkObliterateMissionSpecificData = appCreateAsyncThunk<void>(
     dispatch(reportObliterateState());
     dispatch(traverseObliterateState());
     dispatch(measurementObliterateState());
+    dispatch(assetObliterateState());
   }
 );
 

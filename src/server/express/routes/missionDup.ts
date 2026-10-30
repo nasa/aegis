@@ -160,7 +160,7 @@ const duplicateMission = async (
     onProgress("Creating mission copy...");
     const newMissionId = await createMissionCopy(
       sourceData,
-      { nameSuffix: "Copy", copyAssets: true },
+      { nameSuffix: "Copy", copyGISAssets: true },
       onProgress
     );
 
@@ -212,10 +212,10 @@ export const createMissionCopy = async (
       }
     });
 
-    // 2. Copy mission assets (layer tiles, grid coordinate file, etc.) if requested
-    if (options.copyAssets && sourceData.mission.id) {
+    // 2. Copy mission GIS assets (layer tiles, grid coordinate file, etc.) if requested
+    if (options.copyGISAssets && sourceData.mission.id) {
       onProgress?.("Copying GIS files...");
-      await copyMissionAssets(sourceData.mission.id, newMissionId);
+      await copyMissionGISAssets(sourceData.mission.id, newMissionId);
     }
 
     return newMissionId;
@@ -241,12 +241,12 @@ export const fetchMissionSourceData = async (
   return { mission: missionDocHandle.doc() };
 };
 
-// Copy mission assets
-const copyMissionAssets = async (fromMissionId: number, toMissionId: number): Promise<void> => {
+// Copy mission GIS assets
+const copyMissionGISAssets = async (fromMissionId: number, toMissionId: number): Promise<void> => {
   try {
     serverLogger.info({
       logId: "duplicate",
-      logValue: `Copying assets from mission ${fromMissionId} to mission ${toMissionId}`,
+      logValue: `Copying GIS assets from mission ${fromMissionId} to mission ${toMissionId}`,
     });
 
     // Recursively copy directories and files
@@ -254,9 +254,9 @@ const copyMissionAssets = async (fromMissionId: number, toMissionId: number): Pr
 
     serverLogger.info({
       logId: "duplicate",
-      logValue: `Successfully copied mission assets from ${fromMissionId} to ${toMissionId}`,
+      logValue: `Successfully copied mission GIS assets from ${fromMissionId} to ${toMissionId}`,
     });
   } catch (error) {
-    throw new Error(`Failed to copy mission assets: ${error}`);
+    throw new Error(`Failed to copy mission GIS assets: ${error}`);
   }
 };

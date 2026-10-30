@@ -10,11 +10,12 @@ import { serverLogger } from "utils/logging/serverLogger";
 // `missionId`; this migration must stay as it originally ran. `MigratedFolder` pins this
 // migration's folder output shape so that later migrations (which add fields to Folder, e.g.
 // `visible`) do not retroactively change what this migration produced.
+type MigratedFolderType = "poi" | "station" | "eva" | "preset" | "layer";
 type MigratedFolder = {
   uuid: string;
   missionId: number;
   name: string;
-  type: FolderType;
+  type: MigratedFolderType;
   items: string[];
   createdAt: number;
   updatedAt: number;
@@ -356,7 +357,7 @@ export const convertLegacyMissionTableRows = (
     })
   );
 
-  const itemsByFolderType: Record<FolderType, { [uuid: string]: unknown }> = {
+  const itemsByFolderType: Record<MigratedFolderType, { [uuid: string]: unknown }> = {
     poi: mission.pois ?? {},
     station: mission.stations ?? {},
     eva: mission.evas ?? {},

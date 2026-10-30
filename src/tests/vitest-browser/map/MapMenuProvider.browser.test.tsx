@@ -329,6 +329,23 @@ describe("MapMenuProvider — cookie persistence", () => {
     expect(settings!.submenuPos.show).toBe(true);
   });
 
+  it("defaults Assets and Asset Labels on, and backfills them into an older cookie", () => {
+    const savedCookies = new Cookies();
+    savedCookies.set("AEGIS_Map_Menu_Settings", { showArrows: false }, { path: "/" });
+    let settings: MapMenuSettings | null = null;
+    function Probe(): null {
+      settings = useMapMenuContext();
+      return null;
+    }
+    harness.render(withCookies(<Probe />, savedCookies));
+
+    expect(settings!.submenuAssets).toEqual({ show: true, showLabels: true });
+    expect(savedCookies.get("AEGIS_Map_Menu_Settings").submenuAssets).toEqual({
+      show: true,
+      showLabels: true,
+    });
+  });
+
   it("persists submenuPos.pathMode to the cookie", () => {
     let setters: MapMenuSetters | null = null;
     function Probe(): null {

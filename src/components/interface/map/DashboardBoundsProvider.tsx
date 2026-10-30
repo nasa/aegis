@@ -52,6 +52,9 @@ export interface DashboardBoundsContextValue {
   /** Traverse arrow visibility, mirrored from the dashboard eyeball menu */
   showArrows: boolean;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
+  /** Asset visibility, mirrored from the dashboard eyeball menu */
+  showAssets: boolean;
+  setShowAssets: Dispatch<SetStateAction<boolean>>;
   /** Grid spacing the dashboard last drew; null when it drew no grid */
   gridSpacing: GridSpacingMeters | null;
   /** Called by the dashboard map's Grid after each rebuild */
@@ -90,6 +93,7 @@ export function DashboardBoundsProvider({ children }: DashboardBoundsProviderPro
 
   const [showScaleBar, setShowScaleBar] = useState(true);
   const [showArrows, setShowArrows] = useState(true);
+  const [showAssets, setShowAssets] = useState(true);
 
   // The dashboard republishes on every animation frame while panning, so keep the
   // previous object when the numbers are unchanged — otherwise every frame would
@@ -110,10 +114,20 @@ export function DashboardBoundsProvider({ children }: DashboardBoundsProviderPro
       setShowScaleBar,
       showArrows,
       setShowArrows,
+      showAssets,
+      setShowAssets,
       gridSpacing,
       setGridSpacing,
     }),
-    [bigMapExtent, setBigMapExtent, showScaleBar, showArrows, gridSpacing, setGridSpacing]
+    [
+      bigMapExtent,
+      setBigMapExtent,
+      showScaleBar,
+      showArrows,
+      showAssets,
+      gridSpacing,
+      setGridSpacing,
+    ]
   );
 
   return (

@@ -17,6 +17,7 @@ import { initialState as userInitialState } from "store/user";
 import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as connectionInitialState } from "store/connection";
 import { initialState as measureInitialState } from "store/measure";
+import { initialState as assetInitialState } from "store/asset";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import {
@@ -69,6 +70,7 @@ export const createTestStoreWithAutomergeMission = (): StoreType => {
     traverse: { ...traverseInitialState },
     rex: { ...rexInitialState },
     measure: { ...measureInitialState },
+    asset: { ...assetInitialState },
   };
 
   return configureStore({

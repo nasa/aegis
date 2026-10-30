@@ -44,6 +44,9 @@ export const Z_INDEX = {
   /** POI markers */
   POIS: 15,
 
+  /** Asset markers */
+  ASSETS: 16,
+
   /** Hover highlight overlays */
   HOVER: 18,
 

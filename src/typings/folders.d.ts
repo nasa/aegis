@@ -1,4 +1,4 @@
-type FolderType = "poi" | "station" | "eva" | "preset" | "layer";
+type FolderType = "poi" | "station" | "eva" | "preset" | "layer" | "asset";
 
 interface Folder {
   uuid: string;

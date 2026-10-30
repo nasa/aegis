@@ -1,10 +1,9 @@
 /**
  * Browser-mode tests for `MapPositionMenu` (the Positions tab of the floating Rex Menu widget).
  *
- * Regression coverage for: switching the EVA dropdown from a REX back to As Planned clears
- * `selectedRexUuid` (and the mission doc has no entry for it) before the Rex Menu widget's
- * removal effect has run, so the component can render once with `selectedRex === null`. It
- * previously dereferenced `selectedRex.isRunning` unconditionally and crashed.
+ * The widget is available without a REX, so the menu must render a placeholder when no REX is
+ * selected or the selected REX is missing (e.g. the EVA dropdown just switched from a REX back
+ * to As Planned). It previously dereferenced `selectedRex.isRunning` unconditionally and crashed.
  */
 
 import { configureStore } from "@reduxjs/toolkit";
@@ -68,7 +67,7 @@ afterEach(() => {
 });
 
 describe("MapPositionMenu", () => {
-  it("renders nothing (does not throw) when the selected REX no longer exists in the mission doc", () => {
+  it("shows the select-a-REX placeholder (does not throw) when the selected REX no longer exists", () => {
     // Simulates switching the EVA dropdown back to As Planned: selectedRexUuid is still set for
     // one render, but the REX has already been removed from the mission doc.
     mockMissionDoc.rexes = {};
@@ -76,6 +75,9 @@ describe("MapPositionMenu", () => {
 
     expect(() => renderMapPositionMenu(store)).not.toThrow();
     expect(harness.container.querySelector("[data-testid='positions-menu']")).toBeNull();
+    expect(harness.container.querySelector("[data-testid='positions-no-rex']")?.textContent).toBe(
+      "Select a REX to see positions."
+    );
   });
 
   it("renders the positions menu once a matching REX exists", () => {

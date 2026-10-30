@@ -1,17 +1,494 @@
 .assetsMenu {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  row-gap: 5px;
   width: 100%;
   height: 100%;
+  min-height: 0;
   box-sizing: border-box;
   padding: 5px;
   border: 1px solid var(--grey3);
   border-radius: var(--radius);
   background-color: var(--grey2);
+  font-size: 0.8rem;
+  overflow: hidden;
 }
 
-.comingSoon {
+.toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbarButton {
+  height: 1.9em;
+}
+
+.offline {
+  color: var(--warning);
+  margin-left: auto;
+}
+
+/* Black editor area above the table, shared by Add and Edit */
+.editor {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 5px 6px 6px;
+  border-radius: var(--radius);
+  background-color: #000000;
+  color: var(--grey5);
+  font-size: 0.75rem;
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.editorHeading {
+  font-weight: 600;
   font-size: 0.8rem;
+}
+
+/* Label column + control column; every control shares one height */
+.editorForm {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.fieldLabel {
   color: var(--grey4);
+}
+
+.fieldControls {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fieldValueColumn {
+  grid-column: 2;
+  margin-top: -2px;
+}
+
+.fieldNote {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 2px 10px;
+  color: var(--grey4);
+}
+
+.editorInput {
+  height: 22px;
+  min-width: 0;
+  padding: 0 5px;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background-color: var(--grey1);
+  color: var(--grey5);
+  font-size: 0.75rem;
+}
+
+.editorInput:disabled {
+  color: var(--grey4);
+}
+
+.editorInputError {
+  border-color: var(--error);
+}
+
+.growInput {
+  flex: 1 1 110px;
+}
+
+.numberInput {
+  width: 56px;
+}
+
+.fieldError {
+  color: var(--error);
+}
+
+.gestureHint {
+  color: var(--warning);
+}
+
+.editorButton {
+  height: 22px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.saveButton {
+  background-color: var(--alert);
+}
+
+.saveButtonDisabled {
+  background-color: var(--alert-disabled);
+  color: var(--grey4);
+}
+
+.emojiButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background-color: var(--grey1);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.colorField {
+  position: relative;
+}
+
+.colorSwatch {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  background-image: linear-gradient(
+    45deg,
+    transparent 45%,
+    var(--grey4) 45%,
+    var(--grey4) 55%,
+    transparent 55%
+  );
+  cursor: pointer;
+}
+
+.colorPopover {
+  position: absolute;
+  left: 0;
+  z-index: 20;
+}
+
+.colorCover {
+  position: fixed;
+  inset: 0;
+}
+
+.colorMenu {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  row-gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background-color: var(--grey1);
+}
+
+.textButton {
+  border: 0;
+  background: transparent;
+  color: var(--grey5);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.dialogContainer {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+}
+
+.dialogContainer::backdrop {
+  background: transparent;
+}
+
+.pickerMenu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  row-gap: 4px;
+}
+
+.editorNotes {
+  width: 100%;
+  min-height: 22px;
+  padding-top: 3px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.editorMessage {
+  padding: 3px 5px;
+  border-radius: var(--radius);
+  background-color: var(--grey1);
+  color: var(--warning);
+}
+
+.editorActions {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 4px;
+}
+
+.switchPrompt {
+  display: flex;
+  flex-direction: column;
+  row-gap: 4px;
+  color: var(--warning);
+}
+
+/* Scrolling table below the toolbar and editor */
+.tableContainer {
+  flex: 1 1 60px;
+  min-height: 60px;
+  overflow: auto;
+}
+
+.assetTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.assetTable td,
+.assetTable th {
+  padding: 2px 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.colNumber {
+  width: 20px;
+}
+
+.colPet {
+  width: 66px;
+}
+
+.colEmoji {
+  width: 22px;
+}
+
+.colName {
+  width: auto;
+}
+
+.colCoords {
+  width: 98px;
+}
+
+.colUncertainty {
+  width: 34px;
+}
+
+.colNotes {
+  width: 12%;
+}
+
+.colVisible {
+  width: 20px;
+}
+
+.colActions {
+  width: 18px;
+}
+
+.headerRow th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--grey2);
+  color: var(--grey4);
+  font-weight: normal;
+}
+
+.folderRow td {
+  padding: 3px 3px;
+  border-top: 1px solid var(--grey3);
+  background-color: var(--grey1);
+}
+
+.folderCell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.folderToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--grey5);
+  cursor: pointer;
+}
+
+.folderName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folderCount {
+  color: var(--grey4);
+}
+
+.folderHidden .folderName,
+.folderHidden .folderToggle {
+  color: var(--grey4);
+}
+
+.emptyFolderRow td,
+.dropHintRow td {
+  color: var(--grey4);
+  font-style: italic;
+  padding-left: 24px;
+}
+
+.dropTarget {
+  outline: 1px dashed var(--grey5);
+  outline-offset: -1px;
+}
+
+.assetRow {
+  cursor: pointer;
+}
+
+.assetRowHover {
+  background-color: var(--grey1);
+}
+
+.assetRowSelected {
+  background-color: var(--grey5);
+  color: #000000;
+}
+
+.assetRowEditing .nameCell {
+  font-weight: 600;
+}
+
+.assetRowDragging {
+  opacity: 0.4;
+}
+
+.assetRowHidden {
+  color: var(--grey4);
+}
+
+.numberCell {
+  color: var(--grey4);
+}
+
+.emojiCell {
+  text-align: center;
+}
+
+.nameCell .indented {
+  padding-left: 10px;
+}
+
+.editingIcon {
+  margin-right: 3px;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--grey5);
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.inheritedHidden {
+  opacity: 0.4;
+}
+
+.assetRowSelected .iconButton {
+  color: #000000;
+}
+
+.emptyState {
+  padding: 10px 5px;
+  color: var(--grey4);
+  text-align: center;
+}
+
+.dragOverlay {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  background-color: var(--grey1);
+  color: var(--grey5);
+  font-size: 0.8rem;
+  cursor: grabbing;
+}
+
+.menuDialog {
+  position: relative;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+}
+
+.menuDialog::backdrop {
+  background: transparent;
+}
+
+.menu {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  width: 160px;
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  background-color: var(--grey3);
+  color: var(--grey5);
+  font-size: 0.8rem;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  column-gap: 5px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.menuItem:hover,
+.menuItem:focus {
+  background-color: var(--grey2);
+  border-radius: var(--radius);
+}
+
+.menuItem:not(:last-child) {
+  border-bottom: 1px solid var(--grey4);
 }

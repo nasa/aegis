@@ -21,6 +21,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
+import { assetSlice } from "store/asset";
 import Map from "ol/Map";
 import View from "ol/View";
 import VectorLayer from "ol/layer/Vector";
@@ -89,6 +90,10 @@ vi.mock("store/thunk/thunkMeasurement", () => ({
   thunkUpdateMeasurementPath: vi.fn(() => ({ type: "mock/thunkUpdateMeasurementPath" })),
 }));
 
+vi.mock("store/thunk/thunkAsset", () => ({
+  thunkSetAssetDraftLocation: vi.fn(() => ({ type: "mock/thunkSetAssetDraftLocation" })),
+}));
+
 // ---------------------------------------------------------------------------
 // Store factory
 // ---------------------------------------------------------------------------
@@ -105,6 +110,7 @@ function makeStore(preloadedState: PartialPreloadedState = {}) {
       poi: poiSlice.reducer,
       eva: evaSlice.reducer,
       measure: measureSlice.reducer,
+      asset: assetSlice.reducer,
     },
     preloadedState,
   });
@@ -271,6 +277,58 @@ describe("InteractionManager", () => {
     });
 
     // The stale edit is torn down
+    expect(store.getState().map.mapDirective).toBeNull();
+    expect(interactionCount()).toBe(0);
+  });
+
+  it("routes an asset createMarker click to the draft, never to a document thunk", async () => {
+    const { thunkSetAssetDraftLocation } = await import("store/thunk/thunkAsset");
+    const { thunkDocUpdatePoiLocation } = await import("store/thunk/thunkPoi");
+    store = makeStore({
+      map: {
+        ...mapSlice.getInitialState(),
+        mapDirective: { uuid: "asset-1", mapItemType: "asset", mapAction: "createMarker" },
+      },
+    } as PartialPreloadedState);
+    renderInteractionManager();
+    flushSync(() => {
+      dispatchMapClick(map, [10, 10], [50000, 30000]);
+    });
+    expect(vi.mocked(thunkSetAssetDraftLocation)).toHaveBeenCalledWith({
+      uuid: "asset-1",
+      location: { lat: 30, lng: 50 },
+    });
+    expect(vi.mocked(thunkDocUpdatePoiLocation)).not.toHaveBeenCalled();
+    expect(store.getState().map.mapDirective).toBeNull();
+  });
+
+  it("keeps an asset gesture across section and station changes but ends it on another asset", () => {
+    const source = new VectorSource();
+    const feature = new Feature(new Point([0, 0]));
+    feature.setId("asset-1");
+    source.addFeature(feature);
+    map.addLayer(new VectorLayer({ source }));
+    store = makeStore({
+      asset: { ...assetSlice.getInitialState(), selectedAssetUuid: "asset-1" },
+      map: {
+        ...mapSlice.getInitialState(),
+        mapDirective: { uuid: "asset-1", mapItemType: "asset", mapAction: "editMarker" },
+      },
+    } as PartialPreloadedState);
+    renderInteractionManager();
+    expect(interactionCount()).toBe(1);
+
+    flushSync(() => {
+      store.dispatch(interfaceSlice.actions.setSectionSelected("station"));
+      store.dispatch(stationSlice.actions.setSelectedStationUuid("station-7"));
+      store.dispatch(poiSlice.actions.setSelectedPoiUuid("poi-7"));
+    });
+    expect(store.getState().map.mapDirective).not.toBeNull();
+    expect(interactionCount()).toBe(1);
+
+    flushSync(() => {
+      store.dispatch(assetSlice.actions.setSelectedAssetUuid("asset-2"));
+    });
     expect(store.getState().map.mapDirective).toBeNull();
     expect(interactionCount()).toBe(0);
   });

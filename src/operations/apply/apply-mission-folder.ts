@@ -2,6 +2,9 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
 
+/** Folder types whose `visible` flag hides their contents on every viewer's maps. */
+export const SHARED_VISIBILITY_FOLDER_TYPES: readonly FolderType[] = ["poi", "station", "asset"];
+
 /** Insert/replace a folder in the doc. */
 export function applyUpsertFolder(m: Mission, folder: Folder): void {
   m.folders[folder.uuid] = cloneDeep(folder);
@@ -21,7 +24,7 @@ export function applyRenameFolder(
 /** Toggle shared map visibility without replacing the folder or its contents. */
 export function applyToggleFolderVisible(m: Mission, folderUuid: string): void {
   const folder = m.folders[folderUuid];
-  if (!folder || (folder.type !== "poi" && folder.type !== "station")) return;
+  if (!folder || !SHARED_VISIBILITY_FOLDER_TYPES.includes(folder.type)) return;
   folder.visible = !folder.visible;
   folder.updatedAt = getAccurateNow().getTime();
 }

@@ -85,7 +85,7 @@ describe("repositionRexMenuPanel", () => {
 
   test("leaves the widget alone when the map bounds have not moved it", () => {
     const { api, removePanel, addPanel } = createFakeApi();
-    seedInitialPanels(api, { x: 606, y: 10, width: 384, height: 320 });
+    seedInitialPanels(api, { x: 570, y: 10, width: 420, height: 360 });
     addPanel.mockClear();
 
     repositionRexMenuPanel(api, MAP_BOUNDS_WIDE);
@@ -95,7 +95,7 @@ describe("repositionRexMenuPanel", () => {
 
   test("re-anchors to the top-right of the map when the map area shrinks (e.g. right panel opens)", () => {
     const { api, panels } = createFakeApi();
-    seedInitialPanels(api, { x: 606, y: 10, width: 384, height: 320 });
+    seedInitialPanels(api, { x: 570, y: 10, width: 420, height: 360 });
     const initialBounds = panels.get("positions")!.group.api.boundingBox;
 
     // The right panel opening narrows the map by 480px.
@@ -109,7 +109,7 @@ describe("repositionRexMenuPanel", () => {
 
   test("never shrinks the widget below the enforced minimum size, even on a narrow map", () => {
     const { api, panels } = createFakeApi();
-    seedInitialPanels(api, { x: 606, y: 10, width: 384, height: 320 });
+    seedInitialPanels(api, { x: 570, y: 10, width: 420, height: 360 });
 
     const tinyMapBounds = { left: 0, top: 0, width: 200, height: 150 };
     repositionRexMenuPanel(api, tinyMapBounds);
@@ -121,7 +121,7 @@ describe("repositionRexMenuPanel", () => {
 
   test("preserves minimized visibility and the active tab across a reposition", () => {
     const { api, panels } = createFakeApi();
-    seedInitialPanels(api, { x: 606, y: 10, width: 384, height: 320 });
+    seedInitialPanels(api, { x: 570, y: 10, width: 420, height: 360 });
     const group = panels.get("positions")!.group;
     group.api.setVisible(false);
     group.activePanel = panels.get("assets")!;
@@ -143,7 +143,7 @@ describe("repositionRexMenuPanel", () => {
   // regardless of how the fake (or dockview) chooses to render the result.
   test("does not recreate the widget on a second call with unchanged map bounds, even when the rendered boundingBox never matches the requested bounds", () => {
     const { api, panels, removePanel, addPanel } = createFakeApi();
-    seedInitialPanels(api, { x: 606, y: 10, width: 384, height: 320 });
+    seedInitialPanels(api, { x: 570, y: 10, width: 420, height: 360 });
 
     // Simulate dockview's own clamping always rendering a fixed box regardless of what was
     // requested, i.e. a boundingBox that can never match our computed "desired" bounds.

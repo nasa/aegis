@@ -107,7 +107,6 @@ export function PosEntries(): null {
   const { toMapCoord } = useCoordConverters();
 
   // --- Redux UI state ---
-  const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
   const selectedRexUuid = useAppSelector((s) => s.rex.selectedRexUuid, refEqual);
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
 
@@ -161,7 +160,8 @@ export function PosEntries(): null {
   }, [map, posSource, posPathSource]);
 
   // --- Compute which entries to show ---
-  const shouldShow = mapDisplayPos.show && sectionSelected === "evas" && !!selectedRex;
+  // Shown in every section whenever a REX is selected.
+  const shouldShow = mapDisplayPos.show && !!selectedRex;
 
   const filteredEntries = useMemo(() => {
     if (!shouldShow) return [];

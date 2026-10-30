@@ -16,6 +16,7 @@ import { traverseSlice, initialState as traverseInitialState } from "./traverse"
 import { userSlice, initialState as userInitialState } from "./user";
 import { rexSlice, initialState as rexInitialState } from "./rex";
 import { measureSlice, initialState as measureInitialState } from "./measure";
+import { assetSlice, initialState as assetInitialState } from "./asset";
 import { isRejected } from "@reduxjs/toolkit";
 import type { Middleware, Unsubscribe } from "@reduxjs/toolkit";
 import { clientLogger } from "utils/logging/clientLogger";
@@ -37,6 +38,7 @@ export const initialState: WholeStoreState = {
   traverse: traverseInitialState,
   rex: rexInitialState,
   measure: measureInitialState,
+  asset: assetInitialState,
 };
 
 export const sliceReducers = combineReducers({
@@ -56,6 +58,7 @@ export const sliceReducers = combineReducers({
   traverse: traverseSlice.reducer,
   rex: rexSlice.reducer,
   measure: measureSlice.reducer,
+  asset: assetSlice.reducer,
 });
 
 export type RootState = ReturnType<typeof sliceReducers>;

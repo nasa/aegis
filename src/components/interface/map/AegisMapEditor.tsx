@@ -2,7 +2,7 @@
  * AegisMapEditor — OL map wrapper for the mission page.
  *
  * Composes all behavior components for the full editor experience:
- * tiles, markers, polylines, circles, grid, interactions, POS,
+ * tiles, markers, polylines, circles, grid, interactions, POS, assets,
  * hover/selection highlights, timeline astronaut, and UI overlays.
  */
 import { AegisMap } from "./AegisMap";
@@ -24,6 +24,9 @@ import { SelectionHighlight } from "./behaviors/SelectionHighlight";
 import { TimelineAstronaut } from "./behaviors/TimelineAstronaut";
 import { MapOverlays } from "./overlays/MapOverlays";
 import { MarkerLabels } from "./behaviors/MarkerLabels";
+import { AssetMarkers } from "./behaviors/AssetMarkers";
+import { AssetUncertainty } from "./behaviors/AssetUncertainty";
+import { AssetEditGuard } from "./behaviors/AssetEditGuard";
 
 interface AegisMapEditorProps {
   className?: string;
@@ -36,16 +39,19 @@ export function AegisMapEditor({ className }: AegisMapEditorProps): JSX.Element 
         <TileLayers />
         <Grid />
         <Circles />
+        <AssetUncertainty />
         <TraverseLines />
         <WalkbackLines />
         <MeasurementLines />
         <StationMarkers />
         <PoiMarkers />
+        <AssetMarkers />
         <ActionMarkers />
         <LanderMarker />
         <MarkerLabels />
         <PosEntries />
         <InteractionManager />
+        <AssetEditGuard />
         <HoverHighlight />
         <SelectionHighlight />
         <TimelineAstronaut />

@@ -41,10 +41,11 @@ import {
 import Cookies from "js-cookie";
 import { withMissionOp } from "client/automergeDocHandles";
 import { opDeleteFolder } from "operations/op-folder";
+import { SHARED_VISIBILITY_FOLDER_TYPES } from "operations/apply/apply-mission-folder";
 import { clientLogger } from "utils/logging/clientLogger";
 
 /** Delete a folder from the mission doc and remove its saved open state from the cookie. */
-const deleteFolder = (folderUuid: string) => {
+export const deleteFolder = (folderUuid: string): void => {
   let deleted = false;
   const inUseMessage = withMissionOp(opDeleteFolder, folderUuid, () => {
     deleted = window.confirm("Are you sure you want to delete this folder?");
@@ -144,7 +145,7 @@ const FolderMenu: FunctionComponent<{
         }}
       >
         <div ref={menuRef} className={styles.menu}>
-          {(folder.type === "poi" || folder.type === "station") && (
+          {SHARED_VISIBILITY_FOLDER_TYPES.includes(folder.type) && (
             <div
               className={styles.menuItem}
               onClick={(e) => {

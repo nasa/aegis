@@ -43,6 +43,7 @@ import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
 import { thunkDocUpdatePosEntryWithLocation } from "store/thunk/thunkRexPosEntry";
+import { thunkSetAssetDraftLocation } from "store/thunk/thunkAsset";
 
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
@@ -71,7 +72,8 @@ function findFeatureOnMap(map: OLMap, featureId: string): Feature<Geometry> | nu
 }
 
 /**
- * Dispatch the correct save-position thunk based on `mapItemType`.
+ * Dispatch the correct save-position thunk based on `mapItemType`. Assets go to the open
+ * draft, not the document; they are written on Save.
  */
 function saveItemPosition(
   dispatch: ReturnType<typeof useAppDispatch>,
@@ -94,6 +96,9 @@ function saveItemPosition(
       break;
     case "posEntry":
       dispatch(thunkDocUpdatePosEntryWithLocation({ location, posEntryUuid: uuid }));
+      break;
+    case "asset":
+      dispatch(thunkSetAssetDraftLocation({ location, uuid }));
       break;
   }
 }
@@ -154,7 +159,12 @@ export function InteractionManager(): null {
     (s) => s.measure.selectedMeasurementUuid,
     refEqual
   );
-  const selectionKey = `${sectionSelected}|${bottomSectionSelected}|${selectedPoiUuid}|${selectedStationUuid}|${selectedSeqItemUuid}|${selectedMeasurementUuid}`;
+  const selectedAssetUuid = useAppSelector((s) => s.asset.selectedAssetUuid, refEqual);
+  // Asset gestures are section-agnostic: only selecting another asset ends them.
+  const selectionKey =
+    mapDirective?.mapItemType === "asset"
+      ? `asset|${selectedAssetUuid}`
+      : `${sectionSelected}|${bottomSectionSelected}|${selectedPoiUuid}|${selectedStationUuid}|${selectedSeqItemUuid}|${selectedMeasurementUuid}`;
   const selectionKeyAtEditStartRef = useRef<string | null>(null);
 
   // Track the active interaction so we can clean up on directive change
@@ -162,8 +172,9 @@ export function InteractionManager(): null {
 
   // Auto-cancel an in-progress edit when the user navigates away.
   // An active edit implies its target item is selected. If ANY selection
-  // (section, POI, station, EVA sequence item, measurement) then changes, the
-  // user has moved on — so tear the edit down. This prevents a stale OL
+  // (section, POI, station, EVA sequence item, measurement — or, for an asset
+  // gesture, only the selected asset) then changes, the user has moved on — so
+  // tear the edit down. This prevents a stale OL
   // Modify/Translate interaction from surviving a context switch (which lets the
   // user "drag when not in edit mode" and crashes when starting a new edit).
   // A snapshot ref avoids clearing on the initial selection mismatch that exists
