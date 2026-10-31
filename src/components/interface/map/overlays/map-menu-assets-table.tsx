@@ -49,6 +49,7 @@ import {
   thunkToggleFolderVisible,
 } from "store/thunk/thunkFolder";
 import {
+  thunkCancelAssetDraft,
   thunkDeleteAsset,
   thunkMoveAssetToFolder,
   thunkToggleAssetVisible,
@@ -446,6 +447,10 @@ const AssetRow: FunctionComponent<{
 }> = ({ asset, folder, number, canEdit, canMutate, isEditing, coordinateContext, onEdit }) => {
   const dispatch = useAppDispatch();
   const isSelected = useAppSelector((s) => s.asset.selectedAssetUuid === asset.uuid, refEqual);
+  const hasOtherDraft = useAppSelector(
+    (s) => !!s.asset.draft && s.asset.draft.uuid !== asset.uuid,
+    refEqual
+  );
   const isHovered = useAppSelector(
     (s) => s.hover.mapItemType === "asset" && s.hover.mapItemUuid === asset.uuid,
     refEqual
@@ -504,7 +509,14 @@ const AssetRow: FunctionComponent<{
       }}
       onMouseEnter={() => dispatch(setHoverAssetUuid(asset.uuid))}
       onMouseLeave={() => dispatch(setHoverAssetUuid(null))}
-      onClick={() => dispatch(setSelectedAssetUuid(isSelected ? null : asset.uuid))}
+      onClick={() => {
+        if (isSelected) {
+          if (!isEditing) dispatch(setSelectedAssetUuid(null));
+          return;
+        }
+        if (hasOtherDraft) dispatch(thunkCancelAssetDraft());
+        dispatch(setSelectedAssetUuid(asset.uuid));
+      }}
     >
       <td className={styles.numberCell}>{number}</td>
       <td>

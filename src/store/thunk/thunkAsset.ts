@@ -324,6 +324,9 @@ export const thunkRevealAsset = appCreateAsyncThunk<{ assetUuid: string }>(
   async ({ assetUuid }, { dispatch, getState }) => {
     const mission = getMissionDocHandle()?.doc();
     if (!mission?.assets?.[assetUuid]) return;
+    if (getState().asset.draft && getState().asset.draft.uuid !== assetUuid) {
+      await dispatch(thunkCancelAssetDraft());
+    }
     dispatch(setRexMenuIsMinimized(false));
     dispatch(requestAssetsTab());
     const folderUuid = getAssetFolderUuidByItem(Object.values(mission.folders ?? {}))[assetUuid];
