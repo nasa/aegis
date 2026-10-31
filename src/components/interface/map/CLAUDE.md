@@ -444,12 +444,13 @@ It holds two non-closable tabs:
   `map-menu-assets-table.tsx`): Add Asset / Add Folder toolbar, the asset editor (one Redux draft
   in `state.asset.draft`, written to `mission.assets` in one change on Save), and one
   folder-aware table (`colgroup`, folder header rows over their own `tbody` drop targets, root
-  rows last). Mutations need mission edit permission only, not the global Edit toggle. An asset
-  marker click (`thunkRevealAsset`) restores the widget, asks for this tab via
+  rows last). Mutations need mission edit permission, the global Edit toggle, and a live
+  connection; with Edit Mode off the toolbar, visibility buttons, and row menus are removed. An
+  asset marker click (`thunkRevealAsset`) restores the widget, asks for this tab via
   `state.asset.assetsTabRequestId`, expands the folder, and selects the row without changing the
   section. `AssetEditGuard` (editor) ends an asset gesture when Assets is off, the asset or its
-  folder is hidden, the widget is minimized, or permission/connection is lost, and discards the
-  draft when the editor unmounts.
+  folder is hidden, the widget is minimized, or permission, Edit Mode, or the connection is lost,
+  and discards the draft when the editor unmounts.
 
 Dockview owns drag (via the tab bar's empty space) and resize. Dockview clamps floating-group
 drag and resize only to its `.dv-floating-overlay-host` element, which it sizes (inline styles) to
