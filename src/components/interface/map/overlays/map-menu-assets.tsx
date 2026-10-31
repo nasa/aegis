@@ -63,7 +63,12 @@ export const MapAssetsMenu: FunctionComponent = () => {
   const coordinateContext = useCoordinateEntryContext();
 
   // Another asset's Edit was chosen while the draft has unsaved changes.
-  const [pendingEditUuid, setPendingEditUuid] = useState<string | null>(null);
+  const [pendingSwitch, setPendingSwitch] = useState<{
+    fromDraftUuid: string;
+    targetUuid: string;
+  } | null>(null);
+  const pendingEditUuid =
+    draft && pendingSwitch?.fromDraftUuid === draft.uuid ? pendingSwitch.targetUuid : null;
   const draftDirty =
     !!draft &&
     (draft.isNew || Object.keys(getChangedAssetFields(draft.base, draft.values)).length > 0);
@@ -71,7 +76,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
   const editAsset = (assetUuid: string) => {
     if (draft?.uuid === assetUuid) return;
     if (draft && draftDirty) {
-      setPendingEditUuid(assetUuid);
+      setPendingSwitch({ fromDraftUuid: draft.uuid, targetUuid: assetUuid });
       return;
     }
     dispatch(thunkOpenAssetDraftForEdit({ assetUuid }));
@@ -93,7 +98,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
             onClick={async () => {
               const target = pendingEditUuid;
               const saved = await dispatch(thunkSaveAssetDraft()).unwrap();
-              setPendingEditUuid(null);
+              setPendingSwitch(null);
               if (saved) dispatch(thunkOpenAssetDraftForEdit({ assetUuid: target }));
             }}
           />
@@ -102,7 +107,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
             className={assetsMenuStyles.editorButton}
             onClick={async () => {
               const target = pendingEditUuid;
-              setPendingEditUuid(null);
+              setPendingSwitch(null);
               await dispatch(thunkCancelAssetDraft());
               dispatch(thunkOpenAssetDraftForEdit({ assetUuid: target }));
             }}
@@ -110,7 +115,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
           <Button
             label="Keep Editing"
             className={assetsMenuStyles.editorButton}
-            onClick={() => setPendingEditUuid(null)}
+            onClick={() => setPendingSwitch(null)}
           />
         </div>
       </div>

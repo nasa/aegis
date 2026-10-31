@@ -356,8 +356,10 @@ describe("asset gestures and row actions", () => {
         },
       },
     });
+    await store.dispatch(thunkOpenNewAssetDraft());
     await store.dispatch(thunkRevealAsset({ assetUuid: asset.uuid }));
     const state = store.getState();
+    expect(state.asset.draft).toBeNull();
     expect(state.interface.rexMenuIsMinimized).toBe(false);
     expect(state.asset.assetsTabRequestId).toBe(1);
     expect(state.interface.foldersInterface[folder.uuid].isOpen).toBe(true);

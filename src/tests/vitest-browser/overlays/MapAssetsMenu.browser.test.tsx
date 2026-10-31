@@ -35,11 +35,12 @@ vi.mock("utils/useDocSelector", () => ({
 
 const startGesture = vi.fn(() => ({ type: "mock/startGesture" }));
 const openNewDraft = vi.fn(() => ({ type: "mock/openNewDraft" }));
+const cancelDraft = vi.fn(() => ({ type: "mock/cancelDraft" }));
 vi.mock("store/thunk/thunkAsset", () => ({
   thunkStartAssetGesture: () => startGesture(),
   thunkOpenNewAssetDraft: () => openNewDraft(),
   thunkCancelAssetGesture: () => ({ type: "mock/cancelGesture" }),
-  thunkCancelAssetDraft: () => ({ type: "mock/cancelDraft" }),
+  thunkCancelAssetDraft: () => cancelDraft(),
   thunkSaveAssetDraft: () => ({ type: "mock/save" }),
   thunkSetAssetDraftLocation: () => ({ type: "mock/setLocation" }),
   thunkOpenAssetDraftForEdit: () => ({ type: "mock/openEdit" }),
@@ -280,5 +281,57 @@ describe("MapAssetsMenu", () => {
     flushSync(() => editPos.click());
     expect(startGesture).not.toHaveBeenCalled();
     expect(q("[data-testid='asset-editor-coordinates']")?.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("cancels an in-progress edit or add draft when selecting another row", () => {
+    const first = generateBlankAsset({ name: "First" });
+    const second = generateBlankAsset({ name: "Second" });
+    mockMissionDoc.assets = { [first.uuid]: first, [second.uuid]: second };
+    store = makeStore(true);
+    render();
+
+    // Editing 'first': clicking 'first' itself keeps it selected and does not cancel.
+    flushSync(() => {
+      store.dispatch(assetSlice.actions.setSelectedAssetUuid(first.uuid));
+      store.dispatch(
+        openAssetDraft({
+          uuid: first.uuid,
+          isNew: false,
+          missionId: null,
+          values: getAssetDraftValues(first),
+          base: getAssetDraftValues(first),
+          elevationPending: false,
+          message: null,
+        })
+      );
+    });
+    flushSync(() => q(`[data-testid='asset-row-${first.uuid}']`)!.click());
+    expect(cancelDraft).not.toHaveBeenCalled();
+    expect(store.getState().asset.selectedAssetUuid).toBe(first.uuid);
+
+    // Selecting 'second' cancels the edit draft and selects 'second'.
+    flushSync(() => q(`[data-testid='asset-row-${second.uuid}']`)!.click());
+    expect(cancelDraft).toHaveBeenCalledTimes(1);
+    expect(store.getState().asset.selectedAssetUuid).toBe(second.uuid);
+
+    // Adding a new asset: selecting any row cancels the add draft.
+    cancelDraft.mockClear();
+    flushSync(() => {
+      store.dispatch(assetSlice.actions.setSelectedAssetUuid("new-asset"));
+      store.dispatch(
+        openAssetDraft({
+          uuid: "new-asset",
+          isNew: true,
+          missionId: null,
+          values: getAssetDraftValues(generateBlankAsset()),
+          base: null,
+          elevationPending: false,
+          message: null,
+        })
+      );
+    });
+    flushSync(() => q(`[data-testid='asset-row-${first.uuid}']`)!.click());
+    expect(cancelDraft).toHaveBeenCalledTimes(1);
+    expect(store.getState().asset.selectedAssetUuid).toBe(first.uuid);
   });
 });
