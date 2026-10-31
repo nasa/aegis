@@ -409,11 +409,6 @@
   color: var(--grey4);
 }
 
-/* Separates the last folder's contents from root assets */
-.rootDivided {
-  border-top: 1px solid var(--grey3);
-}
-
 .emptyFolderRow td,
 .dropHintRow td {
   color: var(--grey4);
@@ -427,14 +422,11 @@
 }
 
 .assetRow {
-  cursor: pointer;
+  cursor: default;
 }
 
-.assetRowDraggable {
-  cursor: grab;
-}
-
-.assetRowHover {
+.assetRowHover,
+.assetRowExpanded:not(.assetRowSelected) {
   background-color: var(--grey1);
 }
 
@@ -443,11 +435,52 @@
   color: #000000;
 }
 
+/* Enclose the expanded row and its details row in one shared border */
+.assetTable .assetRowExpanded td {
+  padding-top: 1px;
+  border-top: 1px solid var(--grey4, #a9a9a9);
+}
+
+/* Separates the last folder's contents from root assets */
+.rootDivided > tr:first-child > td {
+  border-top: 1px solid var(--grey3);
+}
+
+.assetTable .assetRowExpanded td:first-child {
+  padding-left: 2px;
+  border-left: 1px solid var(--grey4, #a9a9a9);
+  border-top-left-radius: var(--radius);
+}
+
+.assetTable .assetRowExpanded td:last-child {
+  padding-right: 2px;
+  border-right: 1px solid var(--grey4, #a9a9a9);
+  border-top-right-radius: var(--radius);
+}
+
+/* The first root row already has a top border separating it from folders. */
+.rootDivided > .assetRowExpanded:first-child > td {
+  padding-top: 2px;
+}
+
+.assetTable .assetRowEditing.assetRowExpanded td {
+  border-top-color: #ffffff;
+}
+
+.assetTable .assetRowEditing.assetRowExpanded td:first-child {
+  border-left-color: #ffffff;
+}
+
+.assetTable .assetRowEditing.assetRowExpanded td:last-child {
+  border-right-color: #ffffff;
+}
+
 .assetRowEditing .nameCell {
   font-weight: 600;
 }
 
 .assetRowDragging {
+  cursor: grabbing;
   opacity: 0.4;
 }
 
@@ -480,10 +513,26 @@
 }
 
 .assetTable .assetDetailCell {
-  padding: 3px 3px 5px;
+  padding: 0;
+  border-right: 1px solid var(--grey4, #a9a9a9);
+  border-bottom: 1px solid var(--grey4, #a9a9a9);
+  border-left: 1px solid var(--grey4, #a9a9a9);
+  border-bottom-right-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
   overflow: visible;
   white-space: normal;
   text-overflow: clip;
+}
+
+.assetTable .assetDetailRowEditing .assetDetailCell {
+  border-right-color: #ffffff;
+  border-bottom-color: #ffffff;
+  border-left-color: #ffffff;
+}
+
+.assetDetailCell .editor {
+  border: 0;
+  border-radius: 0;
 }
 
 /* Full-height swatch of the asset color behind the emoji, as on the map */

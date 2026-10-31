@@ -513,7 +513,6 @@ const AssetRow: FunctionComponent<{
 
   const rowClass = [
     styles.assetRow,
-    canMutate ? styles.assetRowDraggable : "",
     isSelected ? styles.assetRowSelected : isHovered ? styles.assetRowHover : "",
     isExpanded ? styles.assetRowExpanded : "",
     isEditing ? styles.assetRowEditing : "",

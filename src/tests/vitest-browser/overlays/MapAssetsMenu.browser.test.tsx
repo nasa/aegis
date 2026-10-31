@@ -11,6 +11,8 @@ import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
 import { flushSync } from "react-dom";
 import { CookiesProvider, Cookies } from "react-cookie";
+import "styles/globals.css";
+import "styles/fonts.css";
 
 import { MapAssetsMenu } from "components/interface/map/overlays/map-menu-assets";
 import { MapMenuProvider, useMapMenuContext } from "components/interface/map/MapMenuProvider";
@@ -355,54 +357,81 @@ describe("MapAssetsMenu", () => {
     expect(store.getState().asset.selectedAssetUuid).toBe(first.uuid);
   });
 
-  it("twirls open one row at a time in read-only mode and opens the edit form in the row", () => {
-    const first = generateBlankAsset({ name: "First", notes: "First note" });
-    const second = generateBlankAsset({ name: "Second", notes: "Second note" });
-    mockMissionDoc.assets = { [first.uuid]: first, [second.uuid]: second };
-    store = makeStore(true);
-    render();
+  it.each([false, true])(
+    "twirls open one row at a time and opens the edit form (folders: %s)",
+    async (withFolders) => {
+      const first = generateBlankAsset({ name: "First", notes: "First note", icon: "1f929" });
+      const second = generateBlankAsset({ name: "Second", notes: "Second note" });
+      mockMissionDoc.assets = { [first.uuid]: first, [second.uuid]: second };
+      if (withFolders) {
+        const folder = generateBlankFolder({ type: "asset", name: "Cache" });
+        mockMissionDoc.folders = { [folder.uuid]: folder };
+      }
+      store = makeStore(true);
+      render();
+      await document.fonts.ready;
 
-    // Expanding 'first' opens its read-only details row without form inputs or selecting it.
-    flushSync(() => q(`[data-testid='asset-expand-${first.uuid}']`)!.click());
-    expect(store.getState().asset.selectedAssetUuid).toBeNull();
-    const firstDetail = q(`[data-testid='asset-detail-row-${first.uuid}']`);
-    expect(firstDetail).not.toBeNull();
-    expect(firstDetail?.textContent).toContain("Asset Details");
-    expect(firstDetail?.querySelectorAll("input, textarea")).toHaveLength(0);
-    expect(q("[data-testid='asset-editor-name']")?.textContent).toBe("First");
-    expect(q("[data-testid='asset-editor-notes']")?.textContent).toBe("First note");
+      // Expanding 'first' opens its read-only details row without form inputs or selecting it.
+      const firstRow = q(`[data-testid='asset-row-${first.uuid}']`)!;
+      const collapsedHeight = firstRow.getBoundingClientRect().height;
+      const collapsedToggleTop = firstRow.querySelector("button")!.getBoundingClientRect().top;
+      flushSync(() => q(`[data-testid='asset-expand-${first.uuid}']`)!.click());
+      expect(firstRow.getBoundingClientRect().height).toBe(collapsedHeight);
+      expect(firstRow.querySelector("button")!.getBoundingClientRect().top).toBe(
+        collapsedToggleTop
+      );
+      expect(store.getState().asset.selectedAssetUuid).toBeNull();
+      const firstRowCells = q(`[data-testid='asset-row-${first.uuid}']`)!.querySelectorAll("td");
+      const firstDetail = q(`[data-testid='asset-detail-row-${first.uuid}']`);
+      expect(firstDetail).not.toBeNull();
+      expect(firstDetail?.textContent).toContain("Asset Details");
+      expect(firstDetail?.querySelectorAll("input, textarea")).toHaveLength(0);
+      expect(q("[data-testid='asset-editor-name']")?.textContent).toBe("First");
+      expect(q("[data-testid='asset-editor-notes']")?.textContent).toBe("First note");
+      // The opened row and its details row share one continuous outer border with no inner editor border.
+      const detailCellStyle = getComputedStyle(firstDetail!.querySelector("td")!);
+      expect(getComputedStyle(firstRowCells[0]).borderTopWidth).toBe("1px");
+      expect(getComputedStyle(firstRowCells[0]).borderLeftWidth).toBe("1px");
+      expect(getComputedStyle(firstRowCells[firstRowCells.length - 1]).borderRightWidth).toBe(
+        "1px"
+      );
+      expect(detailCellStyle.borderLeftWidth).toBe("1px");
+      expect(detailCellStyle.borderRightWidth).toBe("1px");
+      expect(detailCellStyle.borderBottomWidth).toBe("1px");
+      expect(getComputedStyle(q("[data-testid='asset-editor']")!).borderTopWidth).toBe("0px");
 
-    // Expanding 'second' collapses 'first' so only one row is expanded at a time.
-    flushSync(() => q(`[data-testid='asset-expand-${second.uuid}']`)!.click());
-    expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)).toBeNull();
-    expect(q(`[data-testid='asset-detail-row-${second.uuid}']`)).not.toBeNull();
+      // Expanding 'second' collapses 'first' so only one row is expanded at a time.
+      flushSync(() => q(`[data-testid='asset-expand-${second.uuid}']`)!.click());
+      expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)).toBeNull();
+      expect(q(`[data-testid='asset-detail-row-${second.uuid}']`)).not.toBeNull();
 
-    // Clicking Edit or Delete inside the expanded panel acts on that asset.
-    flushSync(() => q("[data-testid='asset-editor'] [aria-label='Edit']")!.click());
-    expect(openEditDraft).toHaveBeenCalledWith({ assetUuid: second.uuid });
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-    flushSync(() => q("[data-testid='asset-editor'] [aria-label='Delete']")!.click());
-    expect(deleteAsset).toHaveBeenCalledWith({ assetUuid: second.uuid });
-    confirmSpy.mockRestore();
+      // Clicking Edit or Delete inside the expanded panel acts on that asset.
+      flushSync(() => q("[data-testid='asset-editor'] [aria-label='Edit']")!.click());
+      expect(openEditDraft).toHaveBeenCalledWith({ assetUuid: second.uuid });
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+      flushSync(() => q("[data-testid='asset-editor'] [aria-label='Delete']")!.click());
+      expect(deleteAsset).toHaveBeenCalledWith({ assetUuid: second.uuid });
+      confirmSpy.mockRestore();
 
-    // Opening an edit draft on 'first' expands 'first' in edit mode inside its row.
-    flushSync(() =>
-      store.dispatch(
-        openAssetDraft({
-          uuid: first.uuid,
-          isNew: false,
-          missionId: null,
-          values: getAssetDraftValues(first),
-          base: getAssetDraftValues(first),
-          elevationPending: false,
-          message: null,
-        })
-      )
-    );
-    expect(q(`[data-testid='asset-detail-row-${second.uuid}']`)).toBeNull();
-    expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)?.textContent).toContain(
-      "Edit Asset"
-    );
-    expect(q("[data-testid='asset-editor-name']")?.hasAttribute("disabled")).toBe(false);
-  });
+      // Opening an edit draft on 'first' expands 'first' in edit mode inside its row.
+      flushSync(() =>
+        store.dispatch(
+          openAssetDraft({
+            uuid: first.uuid,
+            isNew: false,
+            missionId: null,
+            values: getAssetDraftValues(first),
+            base: getAssetDraftValues(first),
+            elevationPending: false,
+            message: null,
+          })
+        )
+      );
+      expect(q(`[data-testid='asset-detail-row-${second.uuid}']`)).toBeNull();
+      expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)?.textContent).toContain(
+        "Edit Asset"
+      );
+      expect(q("[data-testid='asset-editor-name']")?.hasAttribute("disabled")).toBe(false);
+    }
+  );
 });
