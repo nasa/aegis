@@ -3,9 +3,11 @@ import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import {
+  DEFAULT_ASSET_RING_COLOR,
   captureAssetPlacement,
   compareByName,
   getAssetDraftValues,
+  getAssetRadiusColor,
   getAssetHiddenReason,
   getAssetPlacementPetSeconds,
   getChangedAssetFields,
@@ -161,6 +163,14 @@ describe("ordering and defaults", () => {
     const c = generateBlankAsset({ uuid: "c", createdAt: 1 });
     expect(getMostRecentAsset([a, c, b])?.uuid).toBe("b");
     expect(getMostRecentAsset([])).toBeNull();
+  });
+
+  test("radius color is the asset color, or the default ring color, only for a positive radius", () => {
+    expect(getAssetRadiusColor({ color: "#ff0000", uncertaintyMeters: 5 })).toBe("#ff0000");
+    expect(getAssetRadiusColor({ color: null, uncertaintyMeters: 5 })).toBe(
+      DEFAULT_ASSET_RING_COLOR
+    );
+    expect(getAssetRadiusColor({ color: "#ff0000", uncertaintyMeters: 0 })).toBeNull();
   });
 });
 

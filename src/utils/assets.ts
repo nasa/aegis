@@ -8,6 +8,16 @@ export const DEFAULT_ASSET_ICON = "2754";
 /** Uncertainty ring color for an asset with no color. */
 export const DEFAULT_ASSET_RING_COLOR = "#ffcc00";
 
+/**
+ * Color of an asset's radius ring, also used for the disc behind its emoji on the map and in
+ * the asset table. Null when the radius is zero, so no ring or disc is drawn.
+ */
+export function getAssetRadiusColor(
+  asset: Pick<Asset, "color" | "uncertaintyMeters">
+): string | null {
+  return asset.uncertaintyMeters > 0 ? asset.color || DEFAULT_ASSET_RING_COLOR : null;
+}
+
 export const ASSET_DRAFT_FIELDS: readonly (keyof AssetDraftValues)[] = [
   "name",
   "icon",

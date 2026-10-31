@@ -7,7 +7,8 @@
   --rt-color-white: black;
   --rt-opacity: 1;
 
-  z-index: 900;
+  /* Above dockview floating widgets (999) and admin modals (1100) */
+  z-index: 1200;
   max-width: min(300px, 100vw - 16px);
 }
 
