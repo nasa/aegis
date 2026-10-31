@@ -93,6 +93,8 @@ export const AssetTable: FunctionComponent<Props> = ({
 }) => {
   const dispatch = useAppDispatch();
   const foldersInterface = useAppSelector((state) => state.interface.foldersInterface, deepEqual);
+  // View mode drops the visibility + actions columns, leaving the room to notes.
+  const columnCount = canEdit ? COLUMN_COUNT : COLUMN_COUNT - 2;
   const [activeDragUuid, setActiveDragUuid] = useState<string | null>(null);
   const [dragChipOffset, setDragChipOffset] = useState(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -165,9 +167,13 @@ export const AssetTable: FunctionComponent<Props> = ({
           <col className={styles.colEmoji} />
           <col className={styles.colName} />
           <col className={styles.colCoords} />
-          <col className={styles.colNotes} />
-          <col className={styles.colVisible} />
-          <col className={styles.colActions} />
+          <col className={canEdit ? styles.colNotes : styles.colNotesView} />
+          {canEdit && (
+            <>
+              <col className={styles.colVisible} />
+              <col className={styles.colActions} />
+            </>
+          )}
         </colgroup>
         <thead>
           <tr className={styles.headerRow}>
@@ -177,8 +183,14 @@ export const AssetTable: FunctionComponent<Props> = ({
             <th>Name</th>
             <th>Coords</th>
             <th>Notes</th>
-            <th aria-label="Visibility">{canEdit && <FontAwesomeIcon icon={faEye} size="xs" />}</th>
-            <th aria-label="Actions" />
+            {canEdit && (
+              <>
+                <th aria-label="Visibility">
+                  <FontAwesomeIcon icon={faEye} size="xs" />
+                </th>
+                <th aria-label="Actions" />
+              </>
+            )}
           </tr>
         </thead>
         {sortedFolders.map((folder) => {
@@ -191,6 +203,7 @@ export const AssetTable: FunctionComponent<Props> = ({
               folders={sortedFolders}
               itemCount={children.length}
               isOpen={isOpen}
+              columnCount={columnCount}
               canEdit={canEdit}
               canMutate={canMutate}
               dragActive={!!activeDragUuid}
@@ -201,6 +214,7 @@ export const AssetTable: FunctionComponent<Props> = ({
         })}
         <RootGroup
           dragActive={!!activeDragUuid}
+          columnCount={columnCount}
           canMutate={canMutate}
           divided={sortedFolders.length > 0}
         >
@@ -230,10 +244,11 @@ export const AssetTable: FunctionComponent<Props> = ({
 
 const RootGroup: FunctionComponent<{
   dragActive: boolean;
+  columnCount: number;
   canMutate: boolean;
   divided: boolean;
   children: ReactNode;
-}> = ({ dragActive, canMutate, divided, children }) => {
+}> = ({ dragActive, columnCount, canMutate, divided, children }) => {
   const { isOver, setNodeRef } = useDroppable({ id: ROOT_DROP_ID, disabled: !canMutate });
   return (
     <tbody
@@ -243,7 +258,7 @@ const RootGroup: FunctionComponent<{
       {children}
       {dragActive && (
         <tr className={styles.dropHintRow}>
-          <td colSpan={COLUMN_COUNT}>Drop here to move to the root</td>
+          <td colSpan={columnCount}>Drop here to move to the root</td>
         </tr>
       )}
     </tbody>
@@ -255,11 +270,22 @@ const FolderGroup: FunctionComponent<{
   folders: Folder[];
   itemCount: number;
   isOpen: boolean;
+  columnCount: number;
   canEdit: boolean;
   canMutate: boolean;
   dragActive: boolean;
   children: ReactNode;
-}> = ({ folder, folders, itemCount, isOpen, canEdit, canMutate, dragActive, children }) => {
+}> = ({
+  folder,
+  folders,
+  itemCount,
+  isOpen,
+  columnCount,
+  canEdit,
+  canMutate,
+  dragActive,
+  children,
+}) => {
   const dispatch = useAppDispatch();
   const folderInterface = useAppSelector(
     (state) => getFolderInterface(state.interface.foldersInterface, folder.uuid),
@@ -288,7 +314,7 @@ const FolderGroup: FunctionComponent<{
       data-testid={`asset-folder-${folder.uuid}`}
     >
       <tr className={styles.folderRow}>
-        <td colSpan={COLUMN_COUNT - 2}>
+        <td colSpan={canEdit ? columnCount - 2 : columnCount}>
           <div className={styles.folderCell}>
             <button
               type="button"
@@ -342,8 +368,8 @@ const FolderGroup: FunctionComponent<{
             )}
           </div>
         </td>
-        <td>
-          {canEdit && (
+        {canEdit && (
+          <td>
             <button
               type="button"
               className={styles.iconButton}
@@ -360,46 +386,48 @@ const FolderGroup: FunctionComponent<{
             >
               <FontAwesomeIcon icon={folder.visible ? faEye : faEyeSlash} size="xs" />
             </button>
-          )}
-        </td>
-        <td>
-          {canMutate && (
-            <RowMenu
-              label="Folder actions"
-              items={[
-                folderInterface.editing
-                  ? { icon: faBan, label: "Cancel Rename", onClick: cancelRename }
-                  : {
-                      icon: faEdit,
-                      label: "Rename Folder",
-                      onClick: () =>
-                        dispatch(
-                          setFolderInterfaceEditing({
-                            folderUuid: folder.uuid,
-                            editing: true,
-                            folderName: folder.name,
-                          })
-                        ),
-                    },
-                {
-                  icon: folder.visible ? faEyeSlash : faEye,
-                  label: folder.visible ? "Hide Folder on Map" : "Show Folder on Map",
-                  onClick: () => dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid })),
-                },
-                {
-                  icon: faTrashAlt,
-                  label: "Delete Folder",
-                  onClick: () => deleteFolder(folder.uuid),
-                },
-              ]}
-            />
-          )}
-        </td>
+          </td>
+        )}
+        {canEdit && (
+          <td>
+            {canMutate && (
+              <RowMenu
+                label="Folder actions"
+                items={[
+                  folderInterface.editing
+                    ? { icon: faBan, label: "Cancel Rename", onClick: cancelRename }
+                    : {
+                        icon: faEdit,
+                        label: "Rename Folder",
+                        onClick: () =>
+                          dispatch(
+                            setFolderInterfaceEditing({
+                              folderUuid: folder.uuid,
+                              editing: true,
+                              folderName: folder.name,
+                            })
+                          ),
+                      },
+                  {
+                    icon: folder.visible ? faEyeSlash : faEye,
+                    label: folder.visible ? "Hide Folder on Map" : "Show Folder on Map",
+                    onClick: () => dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid })),
+                  },
+                  {
+                    icon: faTrashAlt,
+                    label: "Delete Folder",
+                    onClick: () => deleteFolder(folder.uuid),
+                  },
+                ]}
+              />
+            )}
+          </td>
+        )}
       </tr>
       {children}
       {isOpen && itemCount === 0 && (
         <tr className={styles.emptyFolderRow}>
-          <td colSpan={COLUMN_COUNT}>{dragActive ? "Drop here" : "Empty folder"}</td>
+          <td colSpan={columnCount}>{dragActive ? "Drop here" : "Empty folder"}</td>
         </tr>
       )}
     </tbody>
@@ -503,8 +531,8 @@ const AssetRow: FunctionComponent<{
         {placed ? formatCoordinateEntry(asset.location, coordinateContext) : "Not placed"}
       </td>
       <td title={asset.notes ?? undefined}>{asset.notes}</td>
-      <td className={buttonCellClass}>
-        {canEdit && (
+      {canEdit && (
+        <td className={buttonCellClass}>
           <button
             type="button"
             className={`${styles.iconButton} ${inheritedHidden ? styles.inheritedHidden : ""}`}
@@ -526,31 +554,33 @@ const AssetRow: FunctionComponent<{
           >
             <FontAwesomeIcon icon={asset.visible ? faEye : faEyeSlash} size="xs" />
           </button>
-        )}
-      </td>
-      <td className={buttonCellClass} onClick={(e) => e.stopPropagation()}>
-        {canMutate && (
-          <RowMenu
-            label="Asset actions"
-            items={[
-              ...(isEditing
-                ? []
-                : [{ icon: faEdit, label: "Edit", onClick: () => onEdit(asset.uuid) }]),
-              {
-                icon: faTrashAlt,
-                label: "Delete",
-                onClick: () => {
-                  if (
-                    window.confirm(`Are you sure you want to delete the asset "${asset.name}"?`)
-                  ) {
-                    dispatch(thunkDeleteAsset({ assetUuid: asset.uuid }));
-                  }
+        </td>
+      )}
+      {canEdit && (
+        <td className={buttonCellClass} onClick={(e) => e.stopPropagation()}>
+          {canMutate && (
+            <RowMenu
+              label="Asset actions"
+              items={[
+                ...(isEditing
+                  ? []
+                  : [{ icon: faEdit, label: "Edit", onClick: () => onEdit(asset.uuid) }]),
+                {
+                  icon: faTrashAlt,
+                  label: "Delete",
+                  onClick: () => {
+                    if (
+                      window.confirm(`Are you sure you want to delete the asset "${asset.name}"?`)
+                    ) {
+                      dispatch(thunkDeleteAsset({ assetUuid: asset.uuid }));
+                    }
+                  },
                 },
-              },
-            ]}
-          />
-        )}
-      </td>
+              ]}
+            />
+          )}
+        </td>
+      )}
     </tr>
   );
 };

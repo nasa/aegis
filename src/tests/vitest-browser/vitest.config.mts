@@ -43,6 +43,16 @@ export default defineConfig(
         provider: playwright(),
         headless: true,
         instances: [{ browser: "chromium" }],
+        api: {
+          // Vitest's default browser port (63315) sits in the Windows dynamic port range
+          // (49152-65535), chunks of which are permanently reserved by Hyper-V/WSL
+          // (netsh excludedportrange), so the server bind fails with EACCES on machines
+          // whose reservation covers it. Pin a low port outside that range; Vite
+          // increments it if already in use. Loopback only: browser tests never need
+          // network exposure.
+          host: "127.0.0.1",
+          port: 15315,
+        },
       },
       include: [
         "src/tests/vitest-browser/**/*.browser.test.ts",
