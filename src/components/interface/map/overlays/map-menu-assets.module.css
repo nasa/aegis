@@ -31,7 +31,7 @@
   margin-left: auto;
 }
 
-/* Outlined editor area above the table, shared by Add and Edit */
+/* Outlined editor area above the table (Add) or inside an expanded row (View/Edit) */
 .editor {
   flex: 0 1 auto;
   display: flex;
@@ -42,8 +42,13 @@
   padding: 5px 6px 6px;
   border: 1px solid #ffffff;
   border-radius: var(--radius);
+  background-color: var(--grey2);
   color: var(--grey5);
   font-size: 0.75rem;
+}
+
+.editorView {
+  border-color: var(--grey4);
 }
 
 .editorHeader {
@@ -102,6 +107,30 @@
   flex-flow: row wrap;
   gap: 2px 10px;
   color: var(--grey4);
+}
+
+.viewValue {
+  min-width: 0;
+  color: #ffffff;
+  overflow-wrap: anywhere;
+}
+
+.viewNotes {
+  white-space: pre-wrap;
+}
+
+.viewEmoji {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.viewColorSwatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
 }
 
 .editorInput {
@@ -285,7 +314,8 @@
 .assetTable {
   width: 100%;
   table-layout: fixed;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .assetTable td,
@@ -298,7 +328,7 @@
 }
 
 .colNumber {
-  width: 20px;
+  width: 30px;
 }
 
 .colPet {
@@ -429,17 +459,37 @@
   color: var(--grey4);
 }
 
+.assetRowSelected .numberCell {
+  color: #000000;
+}
+
+.rowToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.assetDetailRow {
+  background-color: var(--grey2);
+}
+
+.assetTable .assetDetailCell {
+  padding: 3px 3px 5px;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+
 /* Full-height swatch of the asset color behind the emoji, as on the map */
 .assetTable .emojiCell {
   padding: 0;
   text-align: center;
-  text-overflow: clip;
-}
-
-/* Insets a folder child's visibility and actions buttons 3px from the folder's buttons */
-.assetTable .indentedButtonCell {
-  padding-right: 6px;
-  padding-left: 0;
   text-overflow: clip;
 }
 

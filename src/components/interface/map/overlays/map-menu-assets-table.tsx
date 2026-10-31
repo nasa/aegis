@@ -36,7 +36,7 @@ import { validators } from "components/interface/form/formValidators";
 import { deleteFolder } from "components/interface/folders";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
-import { setSelectedAssetUuid } from "store/asset";
+import { setExpandedAssetUuid, setSelectedAssetUuid } from "store/asset";
 import { setHoverAssetUuid } from "store/hover";
 import {
   getFolderInterface,
@@ -50,7 +50,6 @@ import {
 } from "store/thunk/thunkFolder";
 import {
   thunkCancelAssetDraft,
-  thunkDeleteAsset,
   thunkMoveAssetToFolder,
   thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
@@ -62,7 +61,7 @@ import {
   getAssetPlacementPetSeconds,
 } from "utils/assets";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
-import { formatUtcTime } from "./map-menu-assets-editor";
+import { AssetEditor, formatUtcTime } from "./map-menu-assets-editor";
 import { hhmmssFromSeconds } from "utils/formatting";
 import { withAlpha } from "../utils/layers/layerFactory";
 
@@ -75,7 +74,8 @@ type Props = {
   /** Edit permission with the global Edit toggle on; controls whether the visibility column renders. */
   canEdit: boolean;
   canMutate: boolean;
-  editingAssetUuid: string | null;
+  draft: AssetDraft | null;
+  switchPrompt: JSX.Element | null;
   coordinateContext: CoordinateEntryContext;
   onEdit: (assetUuid: string) => void;
 };
@@ -88,12 +88,15 @@ export const AssetTable: FunctionComponent<Props> = ({
   folders,
   canEdit,
   canMutate,
-  editingAssetUuid,
+  draft,
+  switchPrompt,
   coordinateContext,
   onEdit,
 }) => {
   const dispatch = useAppDispatch();
   const foldersInterface = useAppSelector((state) => state.interface.foldersInterface, deepEqual);
+  const expandedAssetUuid = useAppSelector((state) => state.asset.expandedAssetUuid, refEqual);
+  const editingAssetUuid = draft?.uuid ?? null;
   // View mode drops the visibility + actions columns, leaving the room to notes.
   const columnCount = canEdit ? COLUMN_COUNT : COLUMN_COUNT - 2;
   const [activeDragUuid, setActiveDragUuid] = useState<string | null>(null);
@@ -139,19 +142,27 @@ export const AssetTable: FunctionComponent<Props> = ({
       ...rootAssets,
     ].map((asset, index) => [asset.uuid, index + 1])
   );
-  const renderAssetRow = (asset: Asset, folder: Folder | null) => (
-    <AssetRow
-      key={asset.uuid}
-      asset={asset}
-      folder={folder}
-      number={rowNumbers.get(asset.uuid)}
-      canEdit={canEdit}
-      canMutate={canMutate}
-      isEditing={editingAssetUuid === asset.uuid}
-      coordinateContext={coordinateContext}
-      onEdit={onEdit}
-    />
-  );
+  const renderAssetRow = (asset: Asset, folder: Folder | null) => {
+    const isEditing = editingAssetUuid === asset.uuid;
+    const isExpanded = expandedAssetUuid === asset.uuid || isEditing;
+    return (
+      <AssetRow
+        key={asset.uuid}
+        asset={asset}
+        folder={folder}
+        number={rowNumbers.get(asset.uuid)}
+        columnCount={columnCount}
+        canEdit={canEdit}
+        canMutate={canMutate}
+        isExpanded={isExpanded}
+        isEditing={isEditing}
+        draft={isEditing ? draft : null}
+        switchPrompt={isEditing ? switchPrompt : null}
+        coordinateContext={coordinateContext}
+        onEdit={onEdit}
+      />
+    );
+  };
 
   return (
     <DndContext
@@ -195,8 +206,10 @@ export const AssetTable: FunctionComponent<Props> = ({
           </tr>
         </thead>
         {sortedFolders.map((folder) => {
-          const isOpen = getFolderInterface(foldersInterface, folder.uuid).isOpen;
           const children = sortedAssets.filter((a) => folderUuidByItem[a.uuid] === folder.uuid);
+          const isOpen =
+            getFolderInterface(foldersInterface, folder.uuid).isOpen ||
+            children.some((a) => a.uuid === editingAssetUuid);
           return (
             <FolderGroup
               key={folder.uuid}
@@ -439,12 +452,29 @@ const AssetRow: FunctionComponent<{
   asset: Asset;
   folder: Folder | null;
   number: number;
+  columnCount: number;
   canEdit: boolean;
   canMutate: boolean;
+  isExpanded: boolean;
   isEditing: boolean;
+  draft: AssetDraft | null;
+  switchPrompt: JSX.Element | null;
   coordinateContext: CoordinateEntryContext;
   onEdit: (assetUuid: string) => void;
-}> = ({ asset, folder, number, canEdit, canMutate, isEditing, coordinateContext, onEdit }) => {
+}> = ({
+  asset,
+  folder,
+  number,
+  columnCount,
+  canEdit,
+  canMutate,
+  isExpanded,
+  isEditing,
+  draft,
+  switchPrompt,
+  coordinateContext,
+  onEdit,
+}) => {
   const dispatch = useAppDispatch();
   const isSelected = useAppSelector((s) => s.asset.selectedAssetUuid === asset.uuid, refEqual);
   const hasOtherDraft = useAppSelector(
@@ -485,115 +515,142 @@ const AssetRow: FunctionComponent<{
     styles.assetRow,
     canMutate ? styles.assetRowDraggable : "",
     isSelected ? styles.assetRowSelected : isHovered ? styles.assetRowHover : "",
+    isExpanded ? styles.assetRowExpanded : "",
     isEditing ? styles.assetRowEditing : "",
     isDragging ? styles.assetRowDragging : "",
     !asset.visible || inheritedHidden ? styles.assetRowHidden : "",
   ].join(" ");
-  const buttonCellClass = folder ? styles.indentedButtonCell : undefined;
   const radiusColor = getAssetRadiusColor(asset);
 
   return (
-    <tr
-      ref={(node) => {
-        rowRef.current = node;
-        setNodeRef(node);
-      }}
-      {...(canMutate ? listeners : {})}
-      {...(canMutate ? attributes : {})}
-      className={rowClass}
-      data-testid={`asset-row-${asset.uuid}`}
-      aria-selected={isSelected}
-      onPointerDownCapture={(e) => {
-        // Buttons and menus inside the row must not start a drag.
-        if ((e.target as HTMLElement).closest("button, dialog, input")) e.stopPropagation();
-      }}
-      onMouseEnter={() => dispatch(setHoverAssetUuid(asset.uuid))}
-      onMouseLeave={() => dispatch(setHoverAssetUuid(null))}
-      onClick={() => {
-        if (isSelected) {
-          if (!isEditing) dispatch(setSelectedAssetUuid(null));
-          return;
-        }
-        if (hasOtherDraft) dispatch(thunkCancelAssetDraft());
-        dispatch(setSelectedAssetUuid(asset.uuid));
-      }}
-    >
-      <td className={styles.numberCell}>{number}</td>
-      <td>
-        {!placed ? (
-          "Not placed"
-        ) : petSeconds === null ? (
-          <span title="No PET was recorded when this asset was placed">—</span>
-        ) : (
-          hhmmssFromSeconds(petSeconds)
-        )}
-      </td>
-      <td
-        ref={emojiCellRef}
-        className={styles.emojiCell}
-        style={radiusColor ? { backgroundColor: withAlpha(radiusColor, 0.5) } : undefined}
+    <>
+      <tr
+        ref={(node) => {
+          rowRef.current = node;
+          setNodeRef(node);
+        }}
+        {...(canMutate ? listeners : {})}
+        {...(canMutate ? attributes : {})}
+        className={rowClass}
+        data-testid={`asset-row-${asset.uuid}`}
+        aria-selected={isSelected}
+        onPointerDownCapture={(e) => {
+          // Buttons and menus inside the row must not start a drag.
+          if ((e.target as HTMLElement).closest("button, dialog, input")) e.stopPropagation();
+        }}
+        onMouseEnter={() => dispatch(setHoverAssetUuid(asset.uuid))}
+        onMouseLeave={() => dispatch(setHoverAssetUuid(null))}
+        onClick={() => {
+          if (isSelected) {
+            if (!isEditing) dispatch(setSelectedAssetUuid(null));
+            return;
+          }
+          if (hasOtherDraft) dispatch(thunkCancelAssetDraft());
+          dispatch(setSelectedAssetUuid(asset.uuid));
+        }}
       >
-        <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
-      </td>
-      <td className={styles.nameCell} title={asset.name}>
-        {isEditing && <FontAwesomeIcon icon={faPen} size="xs" className={styles.editingIcon} />}
-        {asset.name}
-      </td>
-      <td title={locationDetails ?? undefined}>
-        {placed ? formatCoordinateEntry(asset.location, coordinateContext) : "Not placed"}
-      </td>
-      <td title={asset.notes ?? undefined}>{asset.notes}</td>
-      {canEdit && (
-        <td className={buttonCellClass}>
+        <td className={styles.numberCell}>
           <button
             type="button"
-            className={`${styles.iconButton} ${inheritedHidden ? styles.inheritedHidden : ""}`}
+            className={styles.rowToggle}
             onClick={(e) => {
               e.stopPropagation();
-              dispatch(thunkToggleAssetVisible({ assetUuid: asset.uuid }));
+              if (isExpanded) {
+                if (isEditing) dispatch(thunkCancelAssetDraft());
+                dispatch(setExpandedAssetUuid(null));
+                return;
+              }
+              if (hasOtherDraft) dispatch(thunkCancelAssetDraft());
+              dispatch(setExpandedAssetUuid(asset.uuid));
             }}
-            disabled={!canMutate}
-            aria-label={asset.visible ? "Hide asset on map" : "Show asset on map"}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-content={
-              !asset.visible
-                ? "Hidden on every map. Click to show."
-                : inheritedHidden
-                  ? `Hidden with folder "${folder.name}"`
-                  : "Shown on every map. Click to hide."
-            }
-            data-testid={`asset-visibility-${asset.uuid}`}
+            aria-label={isExpanded ? "Collapse asset" : "Expand asset"}
+            aria-expanded={isExpanded}
+            data-testid={`asset-expand-${asset.uuid}`}
           >
-            <FontAwesomeIcon icon={asset.visible ? faEye : faEyeSlash} size="xs" />
+            <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="sm" />
+            <span>{number}</span>
           </button>
         </td>
-      )}
-      {canEdit && (
-        <td className={buttonCellClass} onClick={(e) => e.stopPropagation()}>
-          {canMutate && (
-            <RowMenu
-              label="Asset actions"
-              items={[
-                ...(isEditing
-                  ? []
-                  : [{ icon: faEdit, label: "Edit", onClick: () => onEdit(asset.uuid) }]),
-                {
-                  icon: faTrashAlt,
-                  label: "Delete",
-                  onClick: () => {
-                    if (
-                      window.confirm(`Are you sure you want to delete the asset "${asset.name}"?`)
-                    ) {
-                      dispatch(thunkDeleteAsset({ assetUuid: asset.uuid }));
-                    }
-                  },
-                },
-              ]}
-            />
+        <td>
+          {!placed ? (
+            "Not placed"
+          ) : petSeconds === null ? (
+            <span title="No PET was recorded when this asset was placed">—</span>
+          ) : (
+            hhmmssFromSeconds(petSeconds)
           )}
         </td>
+        <td
+          ref={emojiCellRef}
+          className={styles.emojiCell}
+          style={radiusColor ? { backgroundColor: withAlpha(radiusColor, 0.5) } : undefined}
+        >
+          <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
+        </td>
+        <td className={styles.nameCell} title={asset.name}>
+          {isEditing && <FontAwesomeIcon icon={faPen} size="xs" className={styles.editingIcon} />}
+          {asset.name}
+        </td>
+        <td title={locationDetails ?? undefined}>
+          {placed ? formatCoordinateEntry(asset.location, coordinateContext) : "Not placed"}
+        </td>
+        <td title={asset.notes ?? undefined}>{asset.notes}</td>
+        {canEdit && (
+          <>
+            <td>
+              <button
+                type="button"
+                className={`${styles.iconButton} ${inheritedHidden ? styles.inheritedHidden : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch(thunkToggleAssetVisible({ assetUuid: asset.uuid }));
+                }}
+                disabled={!canMutate}
+                aria-label={asset.visible ? "Hide asset on map" : "Show asset on map"}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-content={
+                  !asset.visible
+                    ? "Hidden on every map. Click to show."
+                    : inheritedHidden
+                      ? `Hidden with folder "${folder.name}"`
+                      : "Shown on every map. Click to hide."
+                }
+                data-testid={`asset-visibility-${asset.uuid}`}
+              >
+                <FontAwesomeIcon icon={asset.visible ? faEye : faEyeSlash} size="xs" />
+              </button>
+            </td>
+            <td />
+          </>
+        )}
+      </tr>
+      {isExpanded && (
+        <tr
+          className={`${styles.assetDetailRow} ${isEditing ? styles.assetDetailRowEditing : ""}`}
+          data-testid={`asset-detail-row-${asset.uuid}`}
+        >
+          <td colSpan={columnCount} className={styles.assetDetailCell}>
+            {isEditing && draft ? (
+              <AssetEditor
+                draft={draft}
+                canMutate={canMutate}
+                coordinateContext={coordinateContext}
+                switchPrompt={switchPrompt}
+              />
+            ) : (
+              <AssetEditor
+                mode="view"
+                asset={asset}
+                canEdit={canEdit}
+                canMutate={canMutate}
+                coordinateContext={coordinateContext}
+                onEdit={() => onEdit(asset.uuid)}
+              />
+            )}
+          </td>
+        </tr>
       )}
-    </tr>
+    </>
   );
 };
 

@@ -11,6 +11,7 @@ import {
   setAssetDraftElevation,
   setAssetDraftLocation,
   setAssetDraftMessage,
+  setExpandedAssetUuid,
   setSelectedAssetUuid,
 } from "store/asset";
 import { setHoverAssetUuid } from "store/hover";
@@ -100,14 +101,21 @@ export const thunkOpenNewAssetDraft = appCreateAsyncThunk<void>(
   }
 );
 
-/** Open the editor on an existing asset. Selects it first so a gesture keys on it. */
+/** Open the editor on an existing asset. Selects and expands it first so a gesture keys on it. */
 export const thunkOpenAssetDraftForEdit = appCreateAsyncThunk<{ assetUuid: string }>(
   "asset/openEditDraft",
-  async ({ assetUuid }, { dispatch }) => {
+  async ({ assetUuid }, { dispatch, getState }) => {
     const mission = getMissionDocHandle()?.doc();
     const asset = mission?.assets?.[assetUuid];
     if (!asset) return;
     await dispatch(thunkCancelAssetGesture());
+    const folderUuid = getAssetFolderUuidByItem(Object.values(mission.folders ?? {}))[assetUuid];
+    if (
+      folderUuid &&
+      !getFolderInterface(getState().interface.foldersInterface, folderUuid).isOpen
+    ) {
+      await dispatch(thunkToggleFolderOpen({ folderUuid }));
+    }
     const values = getAssetDraftValues(asset);
     dispatch(setSelectedAssetUuid(assetUuid));
     dispatch(
@@ -290,6 +298,7 @@ export const thunkDeleteAsset = appCreateAsyncThunk<{ assetUuid: string }>(
     if (!state.user.missionPerms?.permissions.edit || !state.mission.isInEditMode) return;
     if (state.asset.draft?.uuid === assetUuid) await dispatch(thunkCancelAssetDraft());
     if (getState().asset.selectedAssetUuid === assetUuid) dispatch(setSelectedAssetUuid(null));
+    if (getState().asset.expandedAssetUuid === assetUuid) dispatch(setExpandedAssetUuid(null));
     if (getState().hover.mapItemUuid === assetUuid) dispatch(setHoverAssetUuid(null));
     getMissionDocHandle()?.change((m: Mission) => applyDeleteAsset(m, assetUuid));
   }

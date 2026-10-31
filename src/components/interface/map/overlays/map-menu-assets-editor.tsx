@@ -1,6 +1,13 @@
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { faBan, faCrosshairs, faFloppyDisk, faXmark } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBan,
+  faCrosshairs,
+  faEdit,
+  faFloppyDisk,
+  faTrashAlt,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import CompactColor from "@uiw/react-color-compact";
 
 import styles from "./map-menu-assets.module.css";
@@ -14,12 +21,14 @@ import { updateAssetDraftValues } from "store/asset";
 import {
   thunkCancelAssetDraft,
   thunkCancelAssetGesture,
+  thunkDeleteAsset,
   thunkSaveAssetDraft,
   thunkSetAssetDraftLocation,
   thunkStartAssetGesture,
 } from "store/thunk/thunkAsset";
 import {
   DEFAULT_ASSET_ICON,
+  getAssetDraftValues,
   getAssetFolderUuidByItem,
   getAssetHiddenReason,
   getAssetPlacementPetSeconds,
@@ -40,28 +49,41 @@ export function formatUtcTime(ms: number): string {
   return `${new Date(ms).toISOString().replace("T", " ").slice(0, 19)} UTC`;
 }
 
-type Props = {
-  draft: AssetDraft;
-  canMutate: boolean;
-  coordinateContext: CoordinateEntryContext;
-  /** Shown instead of the Save/Cancel row while switching to another asset is pending. */
-  switchPrompt: JSX.Element | null;
-};
+type Props =
+  | {
+      mode?: "edit";
+      draft: AssetDraft;
+      canMutate: boolean;
+      coordinateContext: CoordinateEntryContext;
+      /** Shown instead of the Save/Cancel row while switching to another asset is pending. */
+      switchPrompt: JSX.Element | null;
+    }
+  | {
+      mode: "view";
+      asset: Asset;
+      canEdit: boolean;
+      canMutate: boolean;
+      coordinateContext: CoordinateEntryContext;
+      onEdit: () => void;
+    };
 
-// The outlined editor above the asset table, used for both Add Asset and Edit Asset.
-export const AssetEditor: FunctionComponent<Props> = ({
-  draft,
-  canMutate,
-  coordinateContext,
-  switchPrompt,
-}) => {
+// Asset form panel used for Add Asset (above the table) and inside expanded asset rows (view or edit).
+export const AssetEditor: FunctionComponent<Props> = (props) => {
   const dispatch = useAppDispatch();
   const { setSubmenuAssets } = useMapMenuSetters();
-  const values = draft.values;
+  const isView = props.mode === "view";
+  const draft = isView ? null : props.draft;
+  const assetUuid = isView ? props.asset.uuid : props.draft.uuid;
+  const values = isView ? getAssetDraftValues(props.asset) : props.draft.values;
+  const { canMutate, coordinateContext } = props;
+  const editable = !isView && canMutate;
+  const switchPrompt = isView ? null : props.switchPrompt;
 
   const gestureAction = useAppSelector(
     (s) =>
-      s.map.mapDirective?.mapItemType === "asset" && s.map.mapDirective.uuid === draft.uuid
+      !isView &&
+      s.map.mapDirective?.mapItemType === "asset" &&
+      s.map.mapDirective.uuid === assetUuid
         ? s.map.mapDirective.mapAction
         : null,
     refEqual
@@ -70,7 +92,7 @@ export const AssetEditor: FunctionComponent<Props> = ({
 
   // Shared flags of the saved asset that would keep its marker off the map.
   const hidden = useMissionDocSelector((m) => {
-    const asset = m.assets?.[draft.uuid];
+    const asset = m.assets?.[assetUuid];
     if (!asset) return null;
     const folderUuid = getAssetFolderUuidByItem(Object.values(m.folders ?? {}))[asset.uuid];
     const folder = folderUuid ? m.folders[folderUuid] : null;
@@ -86,8 +108,9 @@ export const AssetEditor: FunctionComponent<Props> = ({
     deepEqual
   );
 
-  const dirty = draft.isNew || Object.keys(getChangedAssetFields(draft.base, values)).length > 0;
-  const invalid = validateAssetDraftValues({ ...values, name: values.name.trim() });
+  const dirty =
+    !!draft && (draft.isNew || Object.keys(getChangedAssetFields(draft.base, values)).length > 0);
+  const invalid = draft ? validateAssetDraftValues({ ...values, name: values.name.trim() }) : null;
 
   // --- Text fields kept local so partial input can be typed ---
   const formattedLocation = formatCoordinateEntry(values.location, coordinateContext);
@@ -110,11 +133,12 @@ export const AssetEditor: FunctionComponent<Props> = ({
   })();
 
   const [saving, setSaving] = useState(false);
-  const saveEnabled = canMutate && dirty && !invalid && uncertaintyValid && !saving;
+  const saveEnabled = editable && dirty && !invalid && uncertaintyValid && !saving;
   const emojiDialogRef = useRef<HTMLDialogElement>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const submitCoordinates = () => {
+    if (!draft) return;
     const text = coordinateText.trim();
     // Unchanged or cleared text never moves or clears an existing location.
     if (text === formattedLocation.trim() || !text) {
@@ -161,7 +185,34 @@ export const AssetEditor: FunctionComponent<Props> = ({
         .filter(Boolean)
         .join(" · ");
 
-  const actions = (
+  const actions = isView ? (
+    props.canEdit ? (
+      <div className={styles.editorActions}>
+        <Button
+          onClick={props.onEdit}
+          icon={faEdit}
+          ariaLabel="Edit"
+          toolTip="Edit"
+          className={styles.iconOnlyButton}
+          enabled={canMutate}
+        />
+        <Button
+          onClick={() => {
+            if (
+              window.confirm(`Are you sure you want to delete the asset "${props.asset.name}"?`)
+            ) {
+              dispatch(thunkDeleteAsset({ assetUuid: props.asset.uuid }));
+            }
+          }}
+          icon={faTrashAlt}
+          ariaLabel="Delete"
+          toolTip="Delete"
+          className={styles.iconOnlyButton}
+          enabled={canMutate}
+        />
+      </div>
+    ) : null
+  ) : (
     <div className={styles.editorActions}>
       <Button
         onClick={async () => {
@@ -176,7 +227,7 @@ export const AssetEditor: FunctionComponent<Props> = ({
         ariaLabel="Save"
         toolTip={
           saving
-            ? draft.elevationPending
+            ? draft?.elevationPending
               ? "Waiting for elevation…"
               : "Saving…"
             : (invalid ?? (dirty ? "Save" : "Nothing to save"))
@@ -195,9 +246,14 @@ export const AssetEditor: FunctionComponent<Props> = ({
   );
 
   return (
-    <div className={styles.editor} data-testid="asset-editor">
+    <div
+      className={`${styles.editor} ${isView ? styles.editorView : ""}`}
+      data-testid="asset-editor"
+    >
       <div className={styles.editorHeader}>
-        <div className={styles.editorHeading}>{draft.isNew ? "Add Asset" : "Edit Asset"}</div>
+        <div className={styles.editorHeading}>
+          {isView ? "Asset Details" : draft?.isNew ? "Add Asset" : "Edit Asset"}
+        </div>
         <div
           className={styles.editorPlacement}
           title={
@@ -212,172 +268,211 @@ export const AssetEditor: FunctionComponent<Props> = ({
 
       <div className={styles.editorForm}>
         <span className={styles.fieldLabel}>Name</span>
-        <div className={styles.fieldControls}>
-          <button
-            type="button"
-            className={styles.emojiButton}
-            onClick={() => emojiDialogRef.current?.showModal()}
-            disabled={!canMutate}
-            aria-label="Choose emoji"
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-content="Choose emoji"
-            data-testid="asset-editor-emoji"
-          >
-            <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
-          </button>
-          <dialog
-            ref={emojiDialogRef}
-            className={styles.dialogContainer}
-            onClick={() => emojiDialogRef.current?.close()}
-          >
-            <div className={styles.pickerMenu} onClick={(e) => e.stopPropagation()}>
-              <EmojiPicker
-                emojiButtonSize={30}
-                emojiSize={20}
-                perLine={9}
-                darkMode={true}
-                onEmojiSelect={(e) => {
-                  dispatch(updateAssetDraftValues({ icon: e.unified || e.id || null }));
-                  emojiDialogRef.current?.close();
-                }}
-              />
-              {values.icon && (
-                <button
-                  type="button"
-                  className={styles.textButton}
-                  onClick={() => {
-                    dispatch(updateAssetDraftValues({ icon: null }));
-                    emojiDialogRef.current?.close();
-                  }}
-                >
-                  No emoji
-                </button>
-              )}
-            </div>
-          </dialog>
-          <input
-            className={`${styles.editorInput} ${styles.growInput}`}
-            value={values.name}
-            placeholder="Required"
-            aria-label="Asset name"
-            data-testid="asset-editor-name"
-            disabled={!canMutate}
-            maxLength={80}
-            onChange={(e) => dispatch(updateAssetDraftValues({ name: e.target.value }))}
-          />
-        </div>
-
-        <span className={styles.fieldLabel}>Radius</span>
-        <div className={styles.fieldControls}>
-          <input
-            className={`${styles.editorInput} ${styles.numberInput} ${
-              uncertaintyValid ? "" : styles.editorInputError
-            }`}
-            value={uncertaintyText}
-            inputMode="decimal"
-            aria-label="Radius in meters"
-            data-testid="asset-editor-uncertainty"
-            disabled={!canMutate}
-            onChange={(e) => {
-              setUncertaintyText(e.target.value);
-              const parsed = Number(e.target.value);
-              if (e.target.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0) {
-                dispatch(updateAssetDraftValues({ uncertaintyMeters: parsed }));
-              }
-            }}
-          />
-          <span className={styles.fieldNote}>m</span>
-          <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
-          <div className={styles.colorField}>
+        {isView ? (
+          <div className={styles.fieldControls}>
+            <span className={styles.viewEmoji} data-testid="asset-editor-emoji">
+              <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
+            </span>
+            <span className={styles.viewValue} data-testid="asset-editor-name">
+              {values.name}
+            </span>
+          </div>
+        ) : (
+          <div className={styles.fieldControls}>
             <button
               type="button"
-              className={styles.colorSwatch}
-              style={
-                values.color
-                  ? { backgroundColor: values.color, backgroundImage: "none" }
-                  : undefined
-              }
-              onClick={() => setShowColorPicker(true)}
-              disabled={!canMutate}
-              aria-label="Choose radius color"
-              data-testid="asset-editor-color"
-            />
-            {showColorPicker && (
-              <div className={styles.colorPopover}>
-                <div className={styles.colorCover} onClick={() => setShowColorPicker(false)} />
-                <div className={styles.colorMenu}>
-                  <CompactColor
-                    color={values.color ?? undefined}
-                    colors={COLOR_PALATTE}
-                    onChange={(color) => {
-                      dispatch(updateAssetDraftValues({ color: color.hex }));
-                      setShowColorPicker(false);
+              className={styles.emojiButton}
+              onClick={() => emojiDialogRef.current?.showModal()}
+              disabled={!editable}
+              aria-label="Choose emoji"
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-content="Choose emoji"
+              data-testid="asset-editor-emoji"
+            >
+              <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
+            </button>
+            <dialog
+              ref={emojiDialogRef}
+              className={styles.dialogContainer}
+              onClick={() => emojiDialogRef.current?.close()}
+            >
+              <div className={styles.pickerMenu} onClick={(e) => e.stopPropagation()}>
+                <EmojiPicker
+                  emojiButtonSize={30}
+                  emojiSize={20}
+                  perLine={9}
+                  darkMode={true}
+                  onEmojiSelect={(e) => {
+                    dispatch(updateAssetDraftValues({ icon: e.unified || e.id || null }));
+                    emojiDialogRef.current?.close();
+                  }}
+                />
+                {values.icon && (
+                  <button
+                    type="button"
+                    className={styles.textButton}
+                    onClick={() => {
+                      dispatch(updateAssetDraftValues({ icon: null }));
+                      emojiDialogRef.current?.close();
                     }}
-                  />
-                </div>
+                  >
+                    No emoji
+                  </button>
+                )}
               </div>
+            </dialog>
+            <input
+              className={`${styles.editorInput} ${styles.growInput}`}
+              value={values.name}
+              placeholder="Required"
+              aria-label="Asset name"
+              data-testid="asset-editor-name"
+              disabled={!editable}
+              maxLength={80}
+              onChange={(e) => dispatch(updateAssetDraftValues({ name: e.target.value }))}
+            />
+          </div>
+        )}
+
+        <span className={styles.fieldLabel}>Radius</span>
+        {isView ? (
+          <div className={styles.fieldControls}>
+            <span className={styles.viewValue} data-testid="asset-editor-uncertainty">
+              {values.uncertaintyMeters} m
+            </span>
+            <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
+            {values.color ? (
+              <span
+                className={styles.viewColorSwatch}
+                style={{ backgroundColor: values.color }}
+                data-testid="asset-editor-color"
+              />
+            ) : (
+              <span className={styles.viewValue} data-testid="asset-editor-color">
+                Default
+              </span>
             )}
           </div>
-          {values.color ? (
-            <Button
-              onClick={() => dispatch(updateAssetDraftValues({ color: null }))}
-              icon={faXmark}
-              label="Clear"
-              ariaLabel="Clear radius color"
-              className={styles.editorButton}
-              enabled={canMutate}
+        ) : (
+          <div className={styles.fieldControls}>
+            <input
+              className={`${styles.editorInput} ${styles.numberInput} ${
+                uncertaintyValid ? "" : styles.editorInputError
+              }`}
+              value={uncertaintyText}
+              inputMode="decimal"
+              aria-label="Radius in meters"
+              data-testid="asset-editor-uncertainty"
+              disabled={!editable}
+              onChange={(e) => {
+                setUncertaintyText(e.target.value);
+                const parsed = Number(e.target.value);
+                if (e.target.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0) {
+                  dispatch(updateAssetDraftValues({ uncertaintyMeters: parsed }));
+                }
+              }}
             />
-          ) : (
-            <span className={styles.fieldNote}>Default</span>
-          )}
-        </div>
+            <span className={styles.fieldNote}>m</span>
+            <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
+            <div className={styles.colorField}>
+              <button
+                type="button"
+                className={styles.colorSwatch}
+                style={
+                  values.color
+                    ? { backgroundColor: values.color, backgroundImage: "none" }
+                    : undefined
+                }
+                onClick={() => setShowColorPicker(true)}
+                disabled={!editable}
+                aria-label="Choose radius color"
+                data-testid="asset-editor-color"
+              />
+              {showColorPicker && (
+                <div className={styles.colorPopover}>
+                  <div className={styles.colorCover} onClick={() => setShowColorPicker(false)} />
+                  <div className={styles.colorMenu}>
+                    <CompactColor
+                      color={values.color ?? undefined}
+                      colors={COLOR_PALATTE}
+                      onChange={(color) => {
+                        dispatch(updateAssetDraftValues({ color: color.hex }));
+                        setShowColorPicker(false);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            {values.color ? (
+              <Button
+                onClick={() => dispatch(updateAssetDraftValues({ color: null }))}
+                icon={faXmark}
+                label="Clear"
+                ariaLabel="Clear radius color"
+                className={styles.editorButton}
+                enabled={editable}
+              />
+            ) : (
+              <span className={styles.fieldNote}>Default</span>
+            )}
+          </div>
+        )}
 
         <span className={styles.fieldLabel}>Position</span>
-        <div className={styles.fieldControls}>
-          <input
-            className={`${styles.editorInput} ${styles.growInput} ${
-              coordinateError ? styles.editorInputError : ""
-            }`}
-            value={coordinateText}
-            placeholder={getCoordinateEntryHint(coordinateContext)}
-            aria-label="Asset coordinates"
-            data-testid="asset-editor-coordinates"
-            disabled={!canMutate}
-            onChange={(e) => setCoordinateText(e.target.value)}
-            onBlur={submitCoordinates}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submitCoordinates();
-              if (e.key === "Escape") {
-                setCoordinateText(formattedLocation);
-                setCoordinateError(null);
-              }
-            }}
-          />
-          {gestureActive ? (
-            <Button
-              onClick={() => dispatch(thunkCancelAssetGesture())}
-              icon={faBan}
-              label="Cancel Pos."
-              className={styles.editorButton}
+        {isView ? (
+          <div className={styles.fieldControls}>
+            <span className={styles.viewValue} data-testid="asset-editor-coordinates">
+              {values.location ? formattedLocation : "Not placed"}
+            </span>
+          </div>
+        ) : (
+          <div className={styles.fieldControls}>
+            <input
+              className={`${styles.editorInput} ${styles.growInput} ${
+                coordinateError ? styles.editorInputError : ""
+              }`}
+              value={coordinateText}
+              placeholder={getCoordinateEntryHint(coordinateContext)}
+              aria-label="Asset coordinates"
+              data-testid="asset-editor-coordinates"
+              disabled={!editable}
+              onChange={(e) => setCoordinateText(e.target.value)}
+              onBlur={submitCoordinates}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitCoordinates();
+                if (e.key === "Escape") {
+                  setCoordinateText(formattedLocation);
+                  setCoordinateError(null);
+                }
+              }}
             />
-          ) : (
-            <Button
-              onClick={startGesture}
-              icon={faCrosshairs}
-              label={values.location ? "Edit Pos." : "Place on Map"}
-              toolTip={editPosBlockedReason ?? undefined}
-              className={styles.editorButton}
-              iconStyle={{ marginRight: 2 }}
-              enabled={canMutate && !editPosBlockedReason}
-            />
-          )}
-        </div>
-        {(values.location || draft.elevationPending) && (
+            {gestureActive ? (
+              <Button
+                onClick={() => dispatch(thunkCancelAssetGesture())}
+                icon={faBan}
+                label="Cancel Pos."
+                className={styles.editorButton}
+              />
+            ) : (
+              <Button
+                onClick={startGesture}
+                icon={faCrosshairs}
+                label={values.location ? "Edit Pos." : "Place on Map"}
+                toolTip={editPosBlockedReason ?? undefined}
+                className={styles.editorButton}
+                iconStyle={{ marginRight: 2 }}
+                enabled={editable && !editPosBlockedReason}
+              />
+            )}
+          </div>
+        )}
+        {(values.location || draft?.elevationPending) && (
           <div className={`${styles.fieldNote} ${styles.fieldValueColumn}`}>
             {values.location && <span>{formatLatLng(values.location)}</span>}
             <span data-testid="asset-editor-elevation">
               Elev.{" "}
-              {draft.elevationPending
+              {draft?.elevationPending
                 ? "Fetching…"
                 : values.elevation !== null
                   ? `${values.elevation.toFixed(1)} m`
@@ -398,19 +493,28 @@ export const AssetEditor: FunctionComponent<Props> = ({
         )}
 
         <span className={styles.fieldLabel}>Notes</span>
-        <textarea
-          className={`${styles.editorInput} ${styles.editorNotes}`}
-          value={values.notes ?? ""}
-          placeholder="Optional"
-          aria-label="Asset notes"
-          data-testid="asset-editor-notes"
-          disabled={!canMutate}
-          rows={1}
-          onChange={(e) => dispatch(updateAssetDraftValues({ notes: e.target.value || null }))}
-        />
+        {isView ? (
+          <span
+            className={`${styles.viewValue} ${styles.viewNotes}`}
+            data-testid="asset-editor-notes"
+          >
+            {values.notes || "—"}
+          </span>
+        ) : (
+          <textarea
+            className={`${styles.editorInput} ${styles.editorNotes}`}
+            value={values.notes ?? ""}
+            placeholder="Optional"
+            aria-label="Asset notes"
+            data-testid="asset-editor-notes"
+            disabled={!editable}
+            rows={1}
+            onChange={(e) => dispatch(updateAssetDraftValues({ notes: e.target.value || null }))}
+          />
+        )}
       </div>
 
-      {draft.message && (
+      {draft?.message && (
         <div className={styles.editorMessage} role="alert" data-testid="asset-editor-message">
           {draft.message}
         </div>

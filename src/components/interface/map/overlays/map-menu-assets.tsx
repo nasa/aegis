@@ -121,6 +121,9 @@ export const MapAssetsMenu: FunctionComponent = () => {
       </div>
     ) : null;
 
+  const showTopEditor =
+    !!draft && (draft.isNew || !assets.some((asset) => asset.uuid === draft.uuid));
+
   return (
     <div className={assetsMenuStyles.assetsMenu} data-testid="assets-map-menu">
       {canEdit && (
@@ -143,7 +146,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
           {!connected && <span className={assetsMenuStyles.offline}>Not connected</span>}
         </div>
       )}
-      {draft && (
+      {showTopEditor && (
         <AssetEditor
           draft={draft}
           canMutate={canMutate}
@@ -157,7 +160,8 @@ export const MapAssetsMenu: FunctionComponent = () => {
           folders={assetFolders}
           canEdit={canEdit}
           canMutate={canMutate}
-          editingAssetUuid={draft && !draft.isNew ? draft.uuid : null}
+          draft={draft && !draft.isNew ? draft : null}
+          switchPrompt={switchPrompt}
           coordinateContext={coordinateContext}
           onEdit={editAsset}
         />
