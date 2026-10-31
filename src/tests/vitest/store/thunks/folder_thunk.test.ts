@@ -4,17 +4,19 @@ import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/autome
 import { createCustomTestStore } from "tests/vitest/fixtures/store";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { initialState as userInitialState } from "store/user";
+import { initialState as missionInitialState } from "store/mission";
 import { getFolderInterface } from "store/interface";
 import { thunkToggleFolderOpen, thunkToggleFolderVisible } from "store/thunk/thunkFolder";
 import { applyRenameFolder } from "operations/apply/apply-mission-folder";
 
 const cookieKey = "AEGIS_Folders_Interface";
-const makeStore = (edit = true) =>
+const makeStore = (edit = true, isInEditMode = true) =>
   createCustomTestStore({
     user: {
       ...userInitialState,
       missionPerms: { permissions: { edit } } as Permission,
     },
+    mission: { ...missionInitialState, isInEditMode },
   });
 
 beforeEach(() => {
@@ -63,7 +65,7 @@ describe("shared folder visibility", () => {
     }
   );
 
-  it("does not change shared visibility without edit permission", async () => {
+  it("does not change shared visibility without edit permission or Edit Mode", async () => {
     const folder = generateBlankFolder();
     const handle = getMissionDocHandle();
     handle.change((m) => {
@@ -71,6 +73,10 @@ describe("shared folder visibility", () => {
     });
     const heads = Automerge.getHeads(handle.doc());
     await makeStore(false)
+      .dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }))
+      .unwrap();
+    expect(Automerge.getHeads(handle.doc())).toEqual(heads);
+    await makeStore(true, false)
       .dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }))
       .unwrap();
     expect(Automerge.getHeads(handle.doc())).toEqual(heads);

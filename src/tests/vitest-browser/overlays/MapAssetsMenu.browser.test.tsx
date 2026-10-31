@@ -57,7 +57,7 @@ const connectedState = {
   automergeConnectionStatus: "connected" as ConnectionStatus,
 };
 
-function makeStore(canEdit: boolean) {
+function makeStore(canEdit: boolean, isInEditMode = true) {
   return configureStore({
     reducer: {
       asset: assetSlice.reducer,
@@ -70,8 +70,7 @@ function makeStore(canEdit: boolean) {
     },
     preloadedState: {
       connection: connectedState,
-      // The global Edit toggle stays off: assets need mission edit permission only.
-      mission: { ...missionSlice.getInitialState(), isInEditMode: false },
+      mission: { ...missionSlice.getInitialState(), isInEditMode },
       user: {
         ...userSlice.getInitialState(),
         missionPerms: { missionId: 1, permissions: { view: true, edit: canEdit } } as Permission,
@@ -121,7 +120,7 @@ beforeEach(() => {
 afterEach(() => harness.unmount());
 
 describe("MapAssetsMenu", () => {
-  it("lets an editor add assets with the global Edit toggle off", () => {
+  it("lets an editor add assets with the global Edit toggle on", () => {
     store = makeStore(true);
     render();
     expect(q("[data-testid='asset-table-empty']")?.textContent).toBe(
@@ -138,9 +137,22 @@ describe("MapAssetsMenu", () => {
     render();
     expect(byText("Add Asset")).toBeUndefined();
     expect(q(`[aria-label='Asset actions']`)).toBeNull();
-    expect(q(`[data-testid='asset-visibility-${asset.uuid}']`)?.hasAttribute("disabled")).toBe(
-      true
-    );
+    expect(q(`[data-testid='asset-visibility-${asset.uuid}']`)).toBeNull();
+  });
+
+  it("is read-only with the global Edit toggle off", () => {
+    const asset = generateBlankAsset({ name: "Drill" });
+    const folder = generateBlankFolder({ type: "asset", name: "Cache", items: [asset.uuid] });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    mockMissionDoc.folders = { [folder.uuid]: folder };
+    store = makeStore(true, false);
+    render();
+    expect(byText("Add Asset")).toBeUndefined();
+    expect(byText("Add Folder")).toBeUndefined();
+    expect(q(`[aria-label='Asset actions']`)).toBeNull();
+    expect(q(`[aria-label='Folder actions']`)).toBeNull();
+    expect(q(`[data-testid='asset-visibility-${asset.uuid}']`)).toBeNull();
+    expect(q(`[data-testid='asset-folder-visibility-${folder.uuid}']`)).toBeNull();
   });
 
   it("lists folders alphabetically first, then root assets alphabetically, in aligned rows", () => {

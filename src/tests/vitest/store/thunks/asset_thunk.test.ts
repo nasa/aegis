@@ -1,5 +1,6 @@
 import { createCustomTestStore } from "tests/vitest/fixtures/store";
 import { initialState as connectionInitialState } from "store/connection";
+import { initialState as missionInitialState } from "store/mission";
 import { initialState as userInitialState } from "store/user";
 import type { StoreType } from "store";
 import { updateAssetDraftValues } from "store/asset";
@@ -37,6 +38,8 @@ const editor: UserState = {
   ...userInitialState,
   missionPerms: { permissions: { edit: true } } as Permission,
 };
+// Asset mutations require the global Edit toggle on.
+const editMode = { ...missionInitialState, isInEditMode: true };
 
 let store: StoreType;
 const doc = (): Mission => getMissionDocHandle().doc();
@@ -55,7 +58,7 @@ beforeEach(() => {
     m.evas = {};
     m.demFilePath = "dem.tif";
   });
-  store = createCustomTestStore({ connection: connected, user: editor });
+  store = createCustomTestStore({ connection: connected, user: editor, mission: editMode });
 });
 
 describe("thunkOpenNewAssetDraft", () => {
@@ -283,7 +286,11 @@ describe("thunkSaveAssetDraft", () => {
   });
 
   it("rechecks permission and connection on Save", async () => {
-    store = createCustomTestStore({ connection: connectionInitialState, user: editor });
+    store = createCustomTestStore({
+      connection: connectionInitialState,
+      user: editor,
+      mission: editMode,
+    });
     await store.dispatch(thunkOpenNewAssetDraft());
     store.dispatch(updateAssetDraftValues({ name: "Drill" }));
     expect(await store.dispatch(thunkSaveAssetDraft()).unwrap()).toBe(false);
@@ -335,6 +342,7 @@ describe("asset gestures and row actions", () => {
     store = createCustomTestStore({
       connection: connected,
       user: editor,
+      mission: editMode,
       interface: {
         ...store.getState().interface,
         rexMenuIsMinimized: true,

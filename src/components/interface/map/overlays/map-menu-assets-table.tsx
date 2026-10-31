@@ -71,6 +71,8 @@ const COLUMN_COUNT = 8;
 type Props = {
   assets: Asset[];
   folders: Folder[];
+  /** Edit permission with the global Edit toggle on; controls whether the visibility column renders. */
+  canEdit: boolean;
   canMutate: boolean;
   editingAssetUuid: string | null;
   coordinateContext: CoordinateEntryContext;
@@ -83,6 +85,7 @@ type Props = {
 export const AssetTable: FunctionComponent<Props> = ({
   assets,
   folders,
+  canEdit,
   canMutate,
   editingAssetUuid,
   coordinateContext,
@@ -139,6 +142,7 @@ export const AssetTable: FunctionComponent<Props> = ({
       asset={asset}
       folder={folder}
       number={rowNumbers.get(asset.uuid)}
+      canEdit={canEdit}
       canMutate={canMutate}
       isEditing={editingAssetUuid === asset.uuid}
       coordinateContext={coordinateContext}
@@ -173,9 +177,7 @@ export const AssetTable: FunctionComponent<Props> = ({
             <th>Name</th>
             <th>Coords</th>
             <th>Notes</th>
-            <th aria-label="Visibility">
-              <FontAwesomeIcon icon={faEye} size="xs" />
-            </th>
+            <th aria-label="Visibility">{canEdit && <FontAwesomeIcon icon={faEye} size="xs" />}</th>
             <th aria-label="Actions" />
           </tr>
         </thead>
@@ -189,6 +191,7 @@ export const AssetTable: FunctionComponent<Props> = ({
               folders={sortedFolders}
               itemCount={children.length}
               isOpen={isOpen}
+              canEdit={canEdit}
               canMutate={canMutate}
               dragActive={!!activeDragUuid}
             >
@@ -252,10 +255,11 @@ const FolderGroup: FunctionComponent<{
   folders: Folder[];
   itemCount: number;
   isOpen: boolean;
+  canEdit: boolean;
   canMutate: boolean;
   dragActive: boolean;
   children: ReactNode;
-}> = ({ folder, folders, itemCount, isOpen, canMutate, dragActive, children }) => {
+}> = ({ folder, folders, itemCount, isOpen, canEdit, canMutate, dragActive, children }) => {
   const dispatch = useAppDispatch();
   const folderInterface = useAppSelector(
     (state) => getFolderInterface(state.interface.foldersInterface, folder.uuid),
@@ -339,22 +343,24 @@ const FolderGroup: FunctionComponent<{
           </div>
         </td>
         <td>
-          <button
-            type="button"
-            className={styles.iconButton}
-            onClick={() => dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }))}
-            disabled={!canMutate}
-            aria-label={folder.visible ? "Hide folder on map" : "Show folder on map"}
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-content={
-              folder.visible
-                ? "Hide folder contents on every map"
-                : "Show folder contents on every map"
-            }
-            data-testid={`asset-folder-visibility-${folder.uuid}`}
-          >
-            <FontAwesomeIcon icon={folder.visible ? faEye : faEyeSlash} size="xs" />
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={() => dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }))}
+              disabled={!canMutate}
+              aria-label={folder.visible ? "Hide folder on map" : "Show folder on map"}
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-content={
+                folder.visible
+                  ? "Hide folder contents on every map"
+                  : "Show folder contents on every map"
+              }
+              data-testid={`asset-folder-visibility-${folder.uuid}`}
+            >
+              <FontAwesomeIcon icon={folder.visible ? faEye : faEyeSlash} size="xs" />
+            </button>
+          )}
         </td>
         <td>
           {canMutate && (
@@ -404,11 +410,12 @@ const AssetRow: FunctionComponent<{
   asset: Asset;
   folder: Folder | null;
   number: number;
+  canEdit: boolean;
   canMutate: boolean;
   isEditing: boolean;
   coordinateContext: CoordinateEntryContext;
   onEdit: (assetUuid: string) => void;
-}> = ({ asset, folder, number, canMutate, isEditing, coordinateContext, onEdit }) => {
+}> = ({ asset, folder, number, canEdit, canMutate, isEditing, coordinateContext, onEdit }) => {
   const dispatch = useAppDispatch();
   const isSelected = useAppSelector((s) => s.asset.selectedAssetUuid === asset.uuid, refEqual);
   const isHovered = useAppSelector(
@@ -497,27 +504,29 @@ const AssetRow: FunctionComponent<{
       </td>
       <td title={asset.notes ?? undefined}>{asset.notes}</td>
       <td className={buttonCellClass}>
-        <button
-          type="button"
-          className={`${styles.iconButton} ${inheritedHidden ? styles.inheritedHidden : ""}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            dispatch(thunkToggleAssetVisible({ assetUuid: asset.uuid }));
-          }}
-          disabled={!canMutate}
-          aria-label={asset.visible ? "Hide asset on map" : "Show asset on map"}
-          data-tooltip-id="aegis-tooltip"
-          data-tooltip-content={
-            !asset.visible
-              ? "Hidden on every map. Click to show."
-              : inheritedHidden
-                ? `Hidden with folder "${folder.name}"`
-                : "Shown on every map. Click to hide."
-          }
-          data-testid={`asset-visibility-${asset.uuid}`}
-        >
-          <FontAwesomeIcon icon={asset.visible ? faEye : faEyeSlash} size="xs" />
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            className={`${styles.iconButton} ${inheritedHidden ? styles.inheritedHidden : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatch(thunkToggleAssetVisible({ assetUuid: asset.uuid }));
+            }}
+            disabled={!canMutate}
+            aria-label={asset.visible ? "Hide asset on map" : "Show asset on map"}
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-content={
+              !asset.visible
+                ? "Hidden on every map. Click to show."
+                : inheritedHidden
+                  ? `Hidden with folder "${folder.name}"`
+                  : "Shown on every map. Click to hide."
+            }
+            data-testid={`asset-visibility-${asset.uuid}`}
+          >
+            <FontAwesomeIcon icon={asset.visible ? faEye : faEyeSlash} size="xs" />
+          </button>
+        )}
       </td>
       <td className={buttonCellClass} onClick={(e) => e.stopPropagation()}>
         {canMutate && (

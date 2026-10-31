@@ -139,7 +139,7 @@ export const thunkStartAssetGesture = appCreateAsyncThunk<void>(
   async (__, { dispatch, getState }) => {
     const state = getState();
     const draft = state.asset.draft;
-    if (!draft || !state.user.missionPerms?.permissions.edit) return;
+    if (!draft || !state.user.missionPerms?.permissions.edit || !state.mission.isInEditMode) return;
     await dispatch(
       thunkUpdateMapDirective({
         mapItemType: "asset",
@@ -216,6 +216,10 @@ export const thunkSaveAssetDraft = appCreateAsyncThunk<void, boolean>(
       dispatch(setAssetDraftMessage("You do not have permission to edit assets."));
       return false;
     }
+    if (!state.mission.isInEditMode) {
+      dispatch(setAssetDraftMessage("Turn on Edit Mode to save assets."));
+      return false;
+    }
     if (!isConnected(state)) {
       dispatch(setAssetDraftMessage("Not connected. Save again once the connection returns."));
       return false;
@@ -283,7 +287,7 @@ export const thunkDeleteAsset = appCreateAsyncThunk<{ assetUuid: string }>(
   "asset/delete",
   async ({ assetUuid }, { dispatch, getState }) => {
     const state = getState();
-    if (!state.user.missionPerms?.permissions.edit) return;
+    if (!state.user.missionPerms?.permissions.edit || !state.mission.isInEditMode) return;
     if (state.asset.draft?.uuid === assetUuid) await dispatch(thunkCancelAssetDraft());
     if (getState().asset.selectedAssetUuid === assetUuid) dispatch(setSelectedAssetUuid(null));
     if (getState().hover.mapItemUuid === assetUuid) dispatch(setHoverAssetUuid(null));
@@ -295,7 +299,7 @@ export const thunkDeleteAsset = appCreateAsyncThunk<{ assetUuid: string }>(
 export const thunkToggleAssetVisible = appCreateAsyncThunk<{ assetUuid: string }>(
   "asset/toggleVisible",
   async ({ assetUuid }, { getState }) => {
-    if (!getState().user.missionPerms?.permissions.edit) return;
+    if (!getState().user.missionPerms?.permissions.edit || !getState().mission.isInEditMode) return;
     getMissionDocHandle()?.change((m: Mission) => applyToggleAssetVisible(m, assetUuid));
   }
 );
@@ -305,7 +309,7 @@ export const thunkMoveAssetToFolder = appCreateAsyncThunk<{
   assetUuid: string;
   folderUuid: string | null;
 }>("asset/moveToFolder", async ({ assetUuid, folderUuid }, { getState }) => {
-  if (!getState().user.missionPerms?.permissions.edit) return;
+  if (!getState().user.missionPerms?.permissions.edit || !getState().mission.isInEditMode) return;
   getMissionDocHandle()?.change((m: Mission) =>
     applyMoveAssetToFolder(m, { assetUuid, folderUuid })
   );
