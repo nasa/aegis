@@ -51,7 +51,7 @@ test.describe("Mission 22 — Asset tracking", () => {
     await expect(editor.getByTestId("asset-editor-coordinates")).not.toHaveValue("");
     await expect(editor.getByText("Edit Pos.", { exact: true })).toBeVisible();
     await expect(page.getByTestId("asset-editor-elevation")).not.toHaveText("Fetching…");
-    await editor.getByText("Save", { exact: true }).click();
+    await editor.getByLabel("Save", { exact: true }).click();
     await expect(editor).toBeHidden();
     await expect(assetRow(page)).toBeVisible();
     await expect(assetRow(page)).not.toContainText("Not placed");

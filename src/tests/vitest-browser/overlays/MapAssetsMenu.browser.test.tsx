@@ -3,7 +3,7 @@
 
 /**
  * Browser-mode tests for `MapAssetsMenu` (the Assets tab of the floating Rex Menu widget):
- * permission gating, the folder-aware table, and the black editor's map-placement controls.
+ * permission gating, the folder-aware table, and the asset editor's map-placement controls.
  * Asset thunks are stubbed; the mission doc is a mutable mock.
  */
 
@@ -180,10 +180,25 @@ describe("MapAssetsMenu", () => {
     for (const row of harness.container.querySelectorAll("tr[data-testid^='asset-row-']")) {
       expect(row.querySelectorAll("td").length).toBe(headerCells);
     }
-    for (const cell of harness.container.querySelectorAll("tr td[colspan]")) {
-      expect(cell.getAttribute("colspan")).toBe(String(headerCells));
+    for (const row of harness.container.querySelectorAll("tbody tr")) {
+      const spans = [...row.querySelectorAll("td")].map(
+        (td) => (td as HTMLTableCellElement).colSpan
+      );
+      expect(spans.reduce((sum, span) => sum + span, 0)).toBe(headerCells);
     }
     expect(q(`[data-testid='asset-row-${zed.uuid}']`)?.textContent).toContain("Not placed");
+  });
+
+  it("draws the emoji disc in the radius color only for a positive radius", () => {
+    const ringed = generateBlankAsset({ name: "Ringed", color: "#ff0000", uncertaintyMeters: 5 });
+    const flat = generateBlankAsset({ name: "Flat", color: "#ff0000", uncertaintyMeters: 0 });
+    mockMissionDoc.assets = { [ringed.uuid]: ringed, [flat.uuid]: flat };
+    store = makeStore(true);
+    render();
+    const emojiCell = (uuid: string) =>
+      q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[2] as HTMLElement;
+    expect(emojiCell(ringed.uuid).style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
+    expect(emojiCell(flat.uuid).style.backgroundColor).toBe("");
   });
 
   it("turns the viewer's Assets and Asset Labels back on when placing starts", () => {

@@ -21,7 +21,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { EMPTY_DOC_LIST } from "store/selectors";
 import { setHoverAssetUuid } from "store/hover";
 import { thunkMarkerOnClick } from "store/thunk/thunkMap";
-import { getVisibleMapAssets } from "utils/assets";
+import { getAssetRadiusColor, getVisibleMapAssets } from "utils/assets";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -89,7 +89,7 @@ export function AssetMarkers(): null {
       geometry: new Point(toMapCoord(asset.location)),
       properties: {
         emoji: asset.icon,
-        color: asset.color,
+        hasRadius: getAssetRadiusColor(asset) !== null,
         name: asset.name,
         mapItemType: "asset",
       },

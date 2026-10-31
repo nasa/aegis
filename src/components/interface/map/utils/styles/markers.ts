@@ -14,8 +14,7 @@
  * - Priority: lander > station > POI > action > pos > asset
  */
 
-import { Style, Stroke, Fill, Icon, Circle as CircleStyle } from "ol/style";
-import { withAlpha } from "../layers/layerFactory";
+import { Style, Stroke, Icon, Circle as CircleStyle } from "ol/style";
 import type { FeatureLike } from "ol/Feature";
 import type { ModeConfig } from "../modeConfig";
 import { renderEmojiToCanvas } from "../emojiRenderer";
@@ -160,9 +159,9 @@ export function buildActionStyleFunction(
 }
 
 /**
- * Asset markers: the emoji over an optional 50%-opaque disc in the asset's color, and a white
- * ring while selected. Missing icons fall back to ❔ like stations. Cache key: emoji + color +
- * selection (iconSize is captured at builder creation).
+ * Asset markers: the emoji, plus a white ring while selected when the asset has no radius
+ * circle to highlight (`hasRadius` false). Missing icons fall back to ❔ like stations. Cache
+ * key: emoji + selection ring (iconSize is captured at builder creation).
  */
 export function buildAssetStyleFunction(
   selectedAssetUuid: string | null,
@@ -173,27 +172,16 @@ export function buildAssetStyleFunction(
   return (feature: FeatureLike, _resolution: number): Style[] => {
     const uuid = feature.getId() as string;
     const emoji = (feature.get("emoji") as string) || "2754";
-    const color = (feature.get("color") as string | null) ?? null;
     const isSelected = uuid === selectedAssetUuid;
+    const showRing = isSelected && !feature.get("hasRadius");
 
-    const cacheKey = `asset-${emoji}-${color}-${isSelected}`;
+    const cacheKey = `asset-${emoji}-${isSelected}-${showRing}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
     const styles: Style[] = [];
     const baseZIndex = isSelected ? 9999 : 0;
-    if (color) {
-      styles.push(
-        new Style({
-          image: new CircleStyle({
-            radius: iconSize / 2 + 5,
-            fill: new Fill({ color: withAlpha(color, 0.5) }),
-          }),
-          zIndex: baseZIndex,
-        })
-      );
-    }
-    if (isSelected) {
+    if (showRing) {
       styles.push(
         new Style({
           image: new CircleStyle({

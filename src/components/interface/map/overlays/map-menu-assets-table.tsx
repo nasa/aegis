@@ -1,5 +1,6 @@
 import type { FunctionComponent, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
   DndContext,
@@ -56,14 +57,16 @@ import {
   DEFAULT_ASSET_ICON,
   compareByName,
   getAssetFolderUuidByItem,
+  getAssetRadiusColor,
   getAssetPlacementPetSeconds,
 } from "utils/assets";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { formatUtcTime } from "./map-menu-assets-editor";
 import { hhmmssFromSeconds } from "utils/formatting";
+import { withAlpha } from "../utils/layers/layerFactory";
 
 const ROOT_DROP_ID = "asset-root";
-const COLUMN_COUNT = 9;
+const COLUMN_COUNT = 8;
 
 type Props = {
   assets: Asset[];
@@ -74,8 +77,9 @@ type Props = {
   onEdit: (assetUuid: string) => void;
 };
 
-// One table and one header for folder and root rows. Folders are full-width header rows over
-// their own tbody (the drop target); child rows use the same cells and widths as root rows.
+// One table and one header for folder and root rows. Folders are header rows over their own
+// tbody (the drop target) that share the visibility and actions columns; child rows use the same
+// cells and widths as root rows.
 export const AssetTable: FunctionComponent<Props> = ({
   assets,
   folders,
@@ -87,6 +91,7 @@ export const AssetTable: FunctionComponent<Props> = ({
   const dispatch = useAppDispatch();
   const foldersInterface = useAppSelector((state) => state.interface.foldersInterface, deepEqual);
   const [activeDragUuid, setActiveDragUuid] = useState<string | null>(null);
+  const [dragChipOffset, setDragChipOffset] = useState(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const sortedFolders = [...folders].sort(compareByName);
@@ -95,7 +100,17 @@ export const AssetTable: FunctionComponent<Props> = ({
   const rootAssets = sortedAssets.filter((asset) => !folderUuidByItem[asset.uuid]);
   const activeAsset = activeDragUuid ? assets.find((a) => a.uuid === activeDragUuid) : null;
 
-  const handleDragStart = (event: DragStartEvent) => setActiveDragUuid(event.active.id as string);
+  const handleDragStart = (event: DragStartEvent) => {
+    // Line the chip up with the dragged row's emoji cell.
+    const emojiCell = event.active.data.current?.emojiCellRef?.current as HTMLElement | null;
+    const row = emojiCell?.closest("tr");
+    setDragChipOffset(
+      emojiCell && row
+        ? emojiCell.getBoundingClientRect().left - row.getBoundingClientRect().left
+        : 0
+    );
+    setActiveDragUuid(event.active.id as string);
+  };
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDragUuid(null);
     const assetUuid = event.active.id as string;
@@ -146,7 +161,6 @@ export const AssetTable: FunctionComponent<Props> = ({
           <col className={styles.colEmoji} />
           <col className={styles.colName} />
           <col className={styles.colCoords} />
-          <col className={styles.colUncertainty} />
           <col className={styles.colNotes} />
           <col className={styles.colVisible} />
           <col className={styles.colActions} />
@@ -158,7 +172,6 @@ export const AssetTable: FunctionComponent<Props> = ({
             <th aria-label="Emoji" />
             <th>Name</th>
             <th>Coords</th>
-            <th title="Radius (m)">±m</th>
             <th>Notes</th>
             <th aria-label="Visibility">
               <FontAwesomeIcon icon={faEye} size="xs" />
@@ -183,7 +196,11 @@ export const AssetTable: FunctionComponent<Props> = ({
             </FolderGroup>
           );
         })}
-        <RootGroup dragActive={!!activeDragUuid} canMutate={canMutate}>
+        <RootGroup
+          dragActive={!!activeDragUuid}
+          canMutate={canMutate}
+          divided={sortedFolders.length > 0}
+        >
           {rootAssets.map((asset) => renderAssetRow(asset, null))}
         </RootGroup>
       </table>
@@ -192,14 +209,18 @@ export const AssetTable: FunctionComponent<Props> = ({
           {canMutate ? "No assets added yet. Click Add Asset to add one." : "No assets added yet."}
         </div>
       )}
-      <DragOverlay dropAnimation={null}>
-        {activeAsset ? (
-          <div className={styles.dragOverlay}>
-            <EmojiRenderer iconValue={activeAsset.icon || DEFAULT_ASSET_ICON} />
-            <span>{activeAsset.name}</span>
-          </div>
-        ) : null}
-      </DragOverlay>
+      {/* Portaled so dockview's transformed ancestors don't offset the fixed-position overlay. */}
+      {createPortal(
+        <DragOverlay dropAnimation={null} className={styles.dragOverlayContainer}>
+          {activeAsset ? (
+            <div className={styles.dragOverlay} style={{ marginLeft: dragChipOffset }}>
+              <EmojiRenderer iconValue={activeAsset.icon || DEFAULT_ASSET_ICON} />
+              <span>{activeAsset.name}</span>
+            </div>
+          ) : null}
+        </DragOverlay>,
+        document.body
+      )}
     </DndContext>
   );
 };
@@ -207,11 +228,15 @@ export const AssetTable: FunctionComponent<Props> = ({
 const RootGroup: FunctionComponent<{
   dragActive: boolean;
   canMutate: boolean;
+  divided: boolean;
   children: ReactNode;
-}> = ({ dragActive, canMutate, children }) => {
+}> = ({ dragActive, canMutate, divided, children }) => {
   const { isOver, setNodeRef } = useDroppable({ id: ROOT_DROP_ID, disabled: !canMutate });
   return (
-    <tbody ref={setNodeRef} className={isOver ? styles.dropTarget : ""}>
+    <tbody
+      ref={setNodeRef}
+      className={`${isOver ? styles.dropTarget : ""} ${divided ? styles.rootDivided : ""}`}
+    >
       {children}
       {dragActive && (
         <tr className={styles.dropHintRow}>
@@ -259,7 +284,7 @@ const FolderGroup: FunctionComponent<{
       data-testid={`asset-folder-${folder.uuid}`}
     >
       <tr className={styles.folderRow}>
-        <td colSpan={COLUMN_COUNT}>
+        <td colSpan={COLUMN_COUNT - 2}>
           <div className={styles.folderCell}>
             <button
               type="button"
@@ -301,7 +326,6 @@ const FolderGroup: FunctionComponent<{
                 }
               />
             </div>
-            <span className={styles.folderCount}>{itemCount}</span>
             {folderInterface.editing && canMutate && (
               <button
                 type="button"
@@ -312,54 +336,58 @@ const FolderGroup: FunctionComponent<{
                 <FontAwesomeIcon icon={faFloppyDisk} size="sm" />
               </button>
             )}
-            <button
-              type="button"
-              className={styles.iconButton}
-              onClick={() => dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }))}
-              disabled={!canMutate}
-              aria-label={folder.visible ? "Hide folder on map" : "Show folder on map"}
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-content={
-                folder.visible
-                  ? "Hide folder contents on every map"
-                  : "Show folder contents on every map"
-              }
-              data-testid={`asset-folder-visibility-${folder.uuid}`}
-            >
-              <FontAwesomeIcon icon={folder.visible ? faEye : faEyeSlash} size="sm" />
-            </button>
-            {canMutate && (
-              <RowMenu
-                label="Folder actions"
-                items={[
-                  folderInterface.editing
-                    ? { icon: faBan, label: "Cancel Rename", onClick: cancelRename }
-                    : {
-                        icon: faEdit,
-                        label: "Rename Folder",
-                        onClick: () =>
-                          dispatch(
-                            setFolderInterfaceEditing({
-                              folderUuid: folder.uuid,
-                              editing: true,
-                              folderName: folder.name,
-                            })
-                          ),
-                      },
-                  {
-                    icon: folder.visible ? faEyeSlash : faEye,
-                    label: folder.visible ? "Hide Folder on Map" : "Show Folder on Map",
-                    onClick: () => dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid })),
-                  },
-                  {
-                    icon: faTrashAlt,
-                    label: "Delete Folder",
-                    onClick: () => deleteFolder(folder.uuid),
-                  },
-                ]}
-              />
-            )}
           </div>
+        </td>
+        <td>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }))}
+            disabled={!canMutate}
+            aria-label={folder.visible ? "Hide folder on map" : "Show folder on map"}
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-content={
+              folder.visible
+                ? "Hide folder contents on every map"
+                : "Show folder contents on every map"
+            }
+            data-testid={`asset-folder-visibility-${folder.uuid}`}
+          >
+            <FontAwesomeIcon icon={folder.visible ? faEye : faEyeSlash} size="xs" />
+          </button>
+        </td>
+        <td>
+          {canMutate && (
+            <RowMenu
+              label="Folder actions"
+              items={[
+                folderInterface.editing
+                  ? { icon: faBan, label: "Cancel Rename", onClick: cancelRename }
+                  : {
+                      icon: faEdit,
+                      label: "Rename Folder",
+                      onClick: () =>
+                        dispatch(
+                          setFolderInterfaceEditing({
+                            folderUuid: folder.uuid,
+                            editing: true,
+                            folderName: folder.name,
+                          })
+                        ),
+                    },
+                {
+                  icon: folder.visible ? faEyeSlash : faEye,
+                  label: folder.visible ? "Hide Folder on Map" : "Show Folder on Map",
+                  onClick: () => dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid })),
+                },
+                {
+                  icon: faTrashAlt,
+                  label: "Delete Folder",
+                  onClick: () => deleteFolder(folder.uuid),
+                },
+              ]}
+            />
+          )}
         </td>
       </tr>
       {children}
@@ -387,9 +415,11 @@ const AssetRow: FunctionComponent<{
     (s) => s.hover.mapItemType === "asset" && s.hover.mapItemUuid === asset.uuid,
     refEqual
   );
+  const emojiCellRef = useRef<HTMLTableCellElement | null>(null);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: asset.uuid,
     disabled: !canMutate,
+    data: { emojiCellRef },
   });
   const rowRef = useRef<HTMLTableRowElement | null>(null);
 
@@ -413,11 +443,14 @@ const AssetRow: FunctionComponent<{
 
   const rowClass = [
     styles.assetRow,
+    canMutate ? styles.assetRowDraggable : "",
     isSelected ? styles.assetRowSelected : isHovered ? styles.assetRowHover : "",
     isEditing ? styles.assetRowEditing : "",
     isDragging ? styles.assetRowDragging : "",
     !asset.visible || inheritedHidden ? styles.assetRowHidden : "",
   ].join(" ");
+  const buttonCellClass = folder ? styles.indentedButtonCell : undefined;
+  const radiusColor = getAssetRadiusColor(asset);
 
   return (
     <tr
@@ -448,21 +481,22 @@ const AssetRow: FunctionComponent<{
           hhmmssFromSeconds(petSeconds)
         )}
       </td>
-      <td className={styles.emojiCell}>
+      <td
+        ref={emojiCellRef}
+        className={styles.emojiCell}
+        style={radiusColor ? { backgroundColor: withAlpha(radiusColor, 0.5) } : undefined}
+      >
         <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
       </td>
       <td className={styles.nameCell} title={asset.name}>
-        <span className={folder ? styles.indented : ""}>
-          {isEditing && <FontAwesomeIcon icon={faPen} size="xs" className={styles.editingIcon} />}
-          {asset.name}
-        </span>
+        {isEditing && <FontAwesomeIcon icon={faPen} size="xs" className={styles.editingIcon} />}
+        {asset.name}
       </td>
       <td title={locationDetails ?? undefined}>
         {placed ? formatCoordinateEntry(asset.location, coordinateContext) : "Not placed"}
       </td>
-      <td>{asset.uncertaintyMeters}</td>
       <td title={asset.notes ?? undefined}>{asset.notes}</td>
-      <td>
+      <td className={buttonCellClass}>
         <button
           type="button"
           className={`${styles.iconButton} ${inheritedHidden ? styles.inheritedHidden : ""}`}
@@ -485,7 +519,7 @@ const AssetRow: FunctionComponent<{
           <FontAwesomeIcon icon={asset.visible ? faEye : faEyeSlash} size="xs" />
         </button>
       </td>
-      <td onClick={(e) => e.stopPropagation()}>
+      <td className={buttonCellClass} onClick={(e) => e.stopPropagation()}>
         {canMutate && (
           <RowMenu
             label="Asset actions"

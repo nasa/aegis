@@ -8,13 +8,14 @@ interface Asset {
   name: string;
   /** Emoji code point string from the emoji picker (e.g. "1F534"); null renders "2754" (❔). */
   icon: string | null;
+  /** Radius ring color, also the disc behind the emoji; null uses the default ring color. */
   color: string | null;
   /** Shared map visibility of this asset. */
   visible: boolean;
   /** Null until the asset is placed. Set together with `placement`. */
   location: AEGISPoint | null;
   elevation: number | null;
-  /** Uncertainty radius in meters; zero draws no ring. */
+  /** Uncertainty radius in meters; zero draws no ring or emoji disc. */
   uncertaintyMeters: number;
   notes: string | null;
   /** Context captured when the location was last set. Null exactly when `location` is null. */
@@ -40,7 +41,7 @@ type AssetPetClockSnapshot = Pick<
   "petValueAtStartStop" | "petStartStopTimestamp" | "petRunning"
 >;
 
-/** The asset fields edited in the black editor. */
+/** The asset fields edited in the asset editor. */
 type AssetDraftValues = Pick<
   Asset,
   "name" | "icon" | "color" | "location" | "elevation" | "uncertaintyMeters" | "notes" | "placement"

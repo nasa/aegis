@@ -48,7 +48,7 @@ type Props = {
   switchPrompt: JSX.Element | null;
 };
 
-// The black editor above the asset table, used for both Add Asset and Edit Asset.
+// The outlined editor above the asset table, used for both Add Asset and Edit Asset.
 export const AssetEditor: FunctionComponent<Props> = ({
   draft,
   canMutate,
@@ -147,6 +147,19 @@ export const AssetEditor: FunctionComponent<Props> = ({
 
   const petSeconds = getAssetPlacementPetSeconds(values.placement);
   const placement = values.placement;
+  const placementText = !placement
+    ? "Not placed"
+    : [
+        petSeconds === null ? null : `PET ${hhmmssFromSeconds(petSeconds)}`,
+        formatUtcTime(placement.locationSetAt).slice(11),
+        placement.runningRexUuid
+          ? `${placement.runningEvaName ?? "EVA"}${provenance.evaExists ? "" : " (unavailable)"} / ${
+              placement.runningRexName ?? "REX"
+            }${provenance.rexExists ? "" : " (unavailable)"}`
+          : "No running REX",
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
   const actions = (
     <div className={styles.editorActions}>
@@ -160,16 +173,23 @@ export const AssetEditor: FunctionComponent<Props> = ({
           }
         }}
         icon={faFloppyDisk}
-        label={saving ? (draft.elevationPending ? "Waiting…" : "Saving…") : "Save"}
-        toolTip={invalid ?? (dirty ? undefined : "Nothing to save")}
-        className={`${styles.editorButton} ${saveEnabled ? styles.saveButton : styles.saveButtonDisabled}`}
+        ariaLabel="Save"
+        toolTip={
+          saving
+            ? draft.elevationPending
+              ? "Waiting for elevation…"
+              : "Saving…"
+            : (invalid ?? (dirty ? "Save" : "Nothing to save"))
+        }
+        className={`${styles.iconOnlyButton} ${saveEnabled ? styles.saveButton : styles.saveButtonDisabled}`}
         enabled={saveEnabled}
       />
       <Button
         onClick={() => dispatch(thunkCancelAssetDraft())}
-        icon={faXmark}
-        label="Cancel"
-        className={styles.editorButton}
+        icon={faBan}
+        ariaLabel="Cancel"
+        toolTip="Cancel"
+        className={styles.iconOnlyButton}
       />
     </div>
   );
@@ -178,6 +198,15 @@ export const AssetEditor: FunctionComponent<Props> = ({
     <div className={styles.editor} data-testid="asset-editor">
       <div className={styles.editorHeader}>
         <div className={styles.editorHeading}>{draft.isNew ? "Add Asset" : "Edit Asset"}</div>
+        <div
+          className={styles.editorPlacement}
+          title={
+            placement ? `${placementText} (${formatUtcTime(placement.locationSetAt)})` : undefined
+          }
+          data-testid="asset-editor-placement"
+        >
+          {placementText}
+        </div>
         {!switchPrompt && actions}
       </div>
 
@@ -238,8 +267,27 @@ export const AssetEditor: FunctionComponent<Props> = ({
           />
         </div>
 
-        <span className={styles.fieldLabel}>Marker color</span>
+        <span className={styles.fieldLabel}>Radius</span>
         <div className={styles.fieldControls}>
+          <input
+            className={`${styles.editorInput} ${styles.numberInput} ${
+              uncertaintyValid ? "" : styles.editorInputError
+            }`}
+            value={uncertaintyText}
+            inputMode="decimal"
+            aria-label="Radius in meters"
+            data-testid="asset-editor-uncertainty"
+            disabled={!canMutate}
+            onChange={(e) => {
+              setUncertaintyText(e.target.value);
+              const parsed = Number(e.target.value);
+              if (e.target.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0) {
+                dispatch(updateAssetDraftValues({ uncertaintyMeters: parsed }));
+              }
+            }}
+          />
+          <span className={styles.fieldNote}>m</span>
+          <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
           <div className={styles.colorField}>
             <button
               type="button"
@@ -251,7 +299,7 @@ export const AssetEditor: FunctionComponent<Props> = ({
               }
               onClick={() => setShowColorPicker(true)}
               disabled={!canMutate}
-              aria-label="Choose marker color"
+              aria-label="Choose radius color"
               data-testid="asset-editor-color"
             />
             {showColorPicker && (
@@ -275,12 +323,12 @@ export const AssetEditor: FunctionComponent<Props> = ({
               onClick={() => dispatch(updateAssetDraftValues({ color: null }))}
               icon={faXmark}
               label="Clear"
-              ariaLabel="Clear marker color"
+              ariaLabel="Clear radius color"
               className={styles.editorButton}
               enabled={canMutate}
             />
           ) : (
-            <span className={styles.fieldNote}>None</span>
+            <span className={styles.fieldNote}>Default</span>
           )}
         </div>
 
@@ -319,6 +367,7 @@ export const AssetEditor: FunctionComponent<Props> = ({
               label={values.location ? "Edit Pos." : "Place on Map"}
               toolTip={editPosBlockedReason ?? undefined}
               className={styles.editorButton}
+              iconStyle={{ marginRight: 2 }}
               enabled={canMutate && !editPosBlockedReason}
             />
           )}
@@ -348,28 +397,6 @@ export const AssetEditor: FunctionComponent<Props> = ({
           </div>
         )}
 
-        <span className={styles.fieldLabel}>Radius</span>
-        <div className={styles.fieldControls}>
-          <input
-            className={`${styles.editorInput} ${styles.numberInput} ${
-              uncertaintyValid ? "" : styles.editorInputError
-            }`}
-            value={uncertaintyText}
-            inputMode="decimal"
-            aria-label="Radius in meters"
-            data-testid="asset-editor-uncertainty"
-            disabled={!canMutate}
-            onChange={(e) => {
-              setUncertaintyText(e.target.value);
-              const parsed = Number(e.target.value);
-              if (e.target.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0) {
-                dispatch(updateAssetDraftValues({ uncertaintyMeters: parsed }));
-              }
-            }}
-          />
-          <span className={styles.fieldNote}>m</span>
-        </div>
-
         <span className={styles.fieldLabel}>Notes</span>
         <textarea
           className={`${styles.editorInput} ${styles.editorNotes}`}
@@ -381,27 +408,6 @@ export const AssetEditor: FunctionComponent<Props> = ({
           rows={1}
           onChange={(e) => dispatch(updateAssetDraftValues({ notes: e.target.value || null }))}
         />
-
-        <span className={styles.fieldLabel}>Placed</span>
-        <div className={styles.fieldNote} data-testid="asset-editor-placement">
-          {!placement ? (
-            "Not placed"
-          ) : (
-            <>
-              <span>PET {petSeconds === null ? "unavailable" : hhmmssFromSeconds(petSeconds)}</span>
-              <span title={formatUtcTime(placement.locationSetAt)}>
-                {formatUtcTime(placement.locationSetAt).slice(11)}
-              </span>
-              <span>
-                {placement.runningRexUuid
-                  ? `${placement.runningEvaName ?? "EVA"}${provenance.evaExists ? "" : " (unavailable)"} / ${
-                      placement.runningRexName ?? "REX"
-                    }${provenance.rexExists ? "" : " (unavailable)"}`
-                  : "No running REX"}
-              </span>
-            </>
-          )}
-        </div>
       </div>
 
       {draft.message && (

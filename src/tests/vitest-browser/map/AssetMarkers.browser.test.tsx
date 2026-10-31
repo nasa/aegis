@@ -17,7 +17,8 @@ import View from "ol/View";
 import { flushSync } from "react-dom";
 import type VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
-import type { LineString } from "ol/geom";
+import type { Polygon } from "ol/geom";
+import type Style from "ol/style/Style";
 import { CookiesProvider, Cookies } from "react-cookie";
 
 import { MapContext } from "components/interface/map/MapProvider";
@@ -29,9 +30,8 @@ import { MapMenuProvider, useMapMenuSetters } from "components/interface/map/Map
 import { AssetMarkers } from "components/interface/map/behaviors/AssetMarkers";
 import { AssetUncertainty } from "components/interface/map/behaviors/AssetUncertainty";
 import { MarkerLabels } from "components/interface/map/behaviors/MarkerLabels";
-import { createCircleLayer } from "components/interface/map/utils/layers/circleLayer";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
-import { assetSlice, openAssetDraft } from "store/asset";
+import { assetSlice, openAssetDraft, setSelectedAssetUuid } from "store/asset";
 import { actionSlice } from "store/action";
 import { evaSlice } from "store/eva";
 import { hoverSlice } from "store/hover";
@@ -133,11 +133,14 @@ function render(mode: MapMode = "editor") {
   );
 }
 
-const ringLayers = () =>
+const radiusLayer = () =>
   map
     .getLayers()
     .getArray()
-    .filter((l) => l.getZIndex() === Z_INDEX.CIRCLES) as VectorLayer<VectorSource>[];
+    .find((l) => l.getZIndex() === Z_INDEX.CIRCLES) as VectorLayer<VectorSource>;
+const radiusCircles = () => radiusLayer().getSource().getFeatures();
+const radiusStyle = (feature: ReturnType<typeof radiusCircles>[number]) =>
+  radiusLayer().getStyleFunction()!(feature, 1) as Style;
 const assetLabels = () =>
   (labelSource?.getFeatures() ?? []).filter((f) => f.get("labelType") === "asset");
 
@@ -196,23 +199,40 @@ describe("asset map behaviors", () => {
     expect(assetSource!.getFeatures().map((f) => f.getId())).toEqual([root.uuid]);
     flushSync(() => setters!.setSubmenuAssets({ show: false, showLabels: true }));
     expect(assetSource!.getFeatures()).toHaveLength(0);
-    expect(ringLayers()).toHaveLength(0);
+    expect(radiusCircles()).toHaveLength(0);
     expect(assetLabels()).toHaveLength(0);
   });
 
-  it("draws a ring matching a proximity circle of the same radius, and none for zero", () => {
-    const ringed = placed({ uncertaintyMeters: 12 });
-    const unringed = placed({ uncertaintyMeters: 0, location: { lat: 0.02, lng: 0.02 } });
+  it("fills a radius circle in the asset color with no stroke, and none for zero radius", () => {
+    const ringed = placed({ uncertaintyMeters: 12, color: "#ff0000" });
+    const unringed = placed({
+      uncertaintyMeters: 0,
+      color: "#00ff00",
+      location: { lat: 0.02, lng: 0.02 },
+    });
     mockMissionDoc.assets = { [ringed.uuid]: ringed, [unringed.uuid]: unringed };
     render();
-    const rings = ringLayers();
-    expect(rings).toHaveLength(1);
-    const ring = rings[0].getSource().getFeatures()[0];
-    expect(ring.getId()).toBeUndefined();
-    const reference = createCircleLayer([20, 10], 12).getSource().getFeatures()[0];
-    expect((ring.getGeometry() as LineString).getCoordinates()).toEqual(
-      (reference.getGeometry() as LineString).getCoordinates()
-    );
+    const circles = radiusCircles();
+    expect(circles).toHaveLength(1);
+    const circle = circles[0];
+    expect(circle.getId()).toBeUndefined();
+    const ring = (circle.getGeometry() as Polygon).getCoordinates()[0];
+    expect(ring[0][0]).toBeCloseTo(32);
+    expect(ring[0][1]).toBeCloseTo(10);
+    const style = radiusStyle(circle);
+    expect(style.getFill()!.getColor()).toBe("rgba(255,0,0,0.3)");
+    expect(style.getStroke()).toBeNull();
+    expect(assetSource!.getFeatureById(ringed.uuid).get("hasRadius")).toBe(true);
+    expect(assetSource!.getFeatureById(unringed.uuid).get("hasRadius")).toBe(false);
+  });
+
+  it("strokes the selected asset's radius circle", () => {
+    const asset = placed({ uncertaintyMeters: 12 });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    render();
+    expect(radiusStyle(radiusCircles()[0]).getStroke()).toBeNull();
+    flushSync(() => store.dispatch(setSelectedAssetUuid(asset.uuid)));
+    expect(radiusStyle(radiusCircles()[0]).getStroke()!.getColor()).toBe("#ffffff");
   });
 
   it("labels assets separately from the Assets toggle and dims them below other labels", () => {

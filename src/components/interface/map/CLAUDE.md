@@ -202,9 +202,14 @@ Key behaviors:
   context switch — the bug it fixes let you "drag when not in edit mode" and crashed on the next
   edit. posEntry edits are excluded from this watcher. Asset directives are section-agnostic:
   their key is the selected asset uuid only, so section/EVA/REX/POI/station changes keep them.
+- **Rex Menu edits are staged as Redux drafts** so the map, `InteractionManager`, and thunks can
+  all read them. Crew positions (`state.rex.posEntryInEdit`) draft pos types and source until
+  Save, but a map click or drag writes the location straight to the doc. Assets
+  (`state.asset.draft`) keep the location in the draft too and write everything in one change on
+  Save. Other map-editable items have no draft and save directly.
 - **Asset locations go to the draft, not the doc.** The `"asset"` branch of `saveItemPosition`
   (used by the `createMarker` click, `editMarker` click, and `translateend`) dispatches
-  `thunkSetAssetDraftLocation`; the asset is written on Save from the black editor. The asset
+  `thunkSetAssetDraftLocation`; the asset is written on Save from the asset editor. The asset
   marker's feature id is the asset uuid, and `AssetMarkers` draws the open draft under that same id.
 - **`thunkUpdateMapDirective`'s 200 ms delayed start is cancellable** (`cancelPendingMapDirective`),
   a newer request replaces an unfired one, and an asset directive only fires if its draft is still
@@ -318,7 +323,7 @@ outside. The style builders each keep a `Map` cache; know its **key**, because a
 a cache key omits a varying input:
 
 - `markers.ts` (`buildStation/Poi/Action/Asset/LanderStyleFunction`): keyed by emoji + selection
-  (+ in-progress; + color for assets). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
+  (+ in-progress; assets: + whether the selection ring shows, i.e. selected with no radius). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
   size change requires rebuilding the whole builder, not re-calling it. Selected marker →
   `zIndex 9999`; dashboard in-progress stations get a green ring (triggered by
   `config.station.hoverable === false`).
@@ -329,6 +334,9 @@ a cache key omits a varying input:
   `color|weight|selectedWeight|isSelected`) + `arrowCache` for chevron SVG data-URIs. Selected
   "glow" only pushed when `selectedWeight > 0` (dashboard/minimap set it to 0 = no emphasis).
   Measurement style hardcodes label colors and ignores stale segment arrays while editing.
+- `assetRadius.ts` (`buildAssetRadiusStyleFunction`): asset radius circles, filled in
+  `getAssetRadiusColor` with no stroke; the selected asset gets a white stroke instead of a
+  marker ring. Keyed by color + selection.
 - `posPath.ts`: style cache is **cleared wholesale when size > 500** (crude cap). Has its own
   duplicate `arrowCache`.
 - `gazetteerLabels.ts` (`createGazetteerLabelStyle(style, dataLayer)`): draggable data-layer
@@ -368,7 +376,7 @@ LANDER            : 11
 ACTIONS           : 12
 STATIONS          : 14
 POIS              : 15
-ASSETS            : 16   (asset markers; uncertainty rings use CIRCLES)
+ASSETS            : 16   (asset markers; radius circles use CIRCLES)
 HOVER             : 18
 SELECTION         : 19   (also BigMapBoundsBox)
 POS_ENTRIES       : 20   (POS paths)
@@ -433,7 +441,7 @@ It holds two non-closable tabs:
   missing from the mission doc (e.g. the EVA dropdown just switched back to As Planned), it shows
   "Select a REX to see positions." — guard on `!selectedRex` before dereferencing anything off it.
 - **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`, with `map-menu-assets-editor.tsx` and
-  `map-menu-assets-table.tsx`): Add Asset / Add Folder toolbar, the black editor (one Redux draft
+  `map-menu-assets-table.tsx`): Add Asset / Add Folder toolbar, the asset editor (one Redux draft
   in `state.asset.draft`, written to `mission.assets` in one change on Save), and one
   folder-aware table (`colgroup`, folder header rows over their own `tbody` drop targets, root
   rows last). Mutations need mission edit permission only, not the global Edit toggle. An asset
@@ -529,7 +537,7 @@ Overlay gotchas:
 | `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
 | `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                          |
 | `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); editor draws the draft under the asset's id; click → `thunkRevealAsset`   |
-| `AssetUncertainty`   | own circle layers                                      | all         | **full rebuild** each change | `createCircleLayer` like `Circles`, radius = `uncertaintyMeters`, no ids, not interactive; zero draws nothing                                   |
+| `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; no ids, not interactive; zero radius draws nothing (table row disc too)    |
 | `AssetEditGuard`     | —                                                      | editor      | —                            | ends stale asset gestures; discards the draft on unmount                                                                                        |
 | `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                              |
 | `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                     |
