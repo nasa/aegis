@@ -75,6 +75,7 @@ type AssetHiddenReason = "asset" | "folder" | null;
 
 interface AssetState {
   selectedAssetUuid: string | null;
+  expandedAssetUuid: string | null;
   draft: AssetDraft | null;
   /** Incremented to ask the floating widget to restore and show its Assets tab. */
   assetsTabRequestId: number;

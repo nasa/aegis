@@ -4,6 +4,7 @@ import { setAllSliceStores } from "./crossActions";
 
 export const initialState: AssetState = {
   selectedAssetUuid: null,
+  expandedAssetUuid: null,
   draft: null,
   assetsTabRequestId: 0,
 };
@@ -15,8 +16,12 @@ export const assetSlice = createSlice({
     setSelectedAssetUuid: (state, action: { payload: string | null }) => {
       state.selectedAssetUuid = action.payload;
     },
+    setExpandedAssetUuid: (state, action: { payload: string | null }) => {
+      state.expandedAssetUuid = action.payload;
+    },
     openAssetDraft: (state, action: { payload: AssetDraft }) => {
       state.draft = action.payload;
+      state.expandedAssetUuid = action.payload.isNew ? null : action.payload.uuid;
     },
     /** Update draft fields other than location, elevation, and placement. */
     updateAssetDraftValues: (
@@ -100,6 +105,7 @@ export const assetSlice = createSlice({
 
 export const {
   setSelectedAssetUuid,
+  setExpandedAssetUuid,
   openAssetDraft,
   updateAssetDraftValues,
   setAssetDraftLocation,

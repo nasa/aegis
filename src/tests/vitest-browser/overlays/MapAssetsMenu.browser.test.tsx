@@ -35,6 +35,14 @@ vi.mock("utils/useDocSelector", () => ({
 
 const startGesture = vi.fn(() => ({ type: "mock/startGesture" }));
 const openNewDraft = vi.fn(() => ({ type: "mock/openNewDraft" }));
+const openEditDraft = vi.fn((args: { assetUuid: string }) => ({
+  type: "mock/openEdit",
+  payload: args,
+}));
+const deleteAsset = vi.fn((args: { assetUuid: string }) => ({
+  type: "mock/delete",
+  payload: args,
+}));
 const cancelDraft = vi.fn(() => ({ type: "mock/cancelDraft" }));
 vi.mock("store/thunk/thunkAsset", () => ({
   thunkStartAssetGesture: () => startGesture(),
@@ -43,8 +51,8 @@ vi.mock("store/thunk/thunkAsset", () => ({
   thunkCancelAssetDraft: () => cancelDraft(),
   thunkSaveAssetDraft: () => ({ type: "mock/save" }),
   thunkSetAssetDraftLocation: () => ({ type: "mock/setLocation" }),
-  thunkOpenAssetDraftForEdit: () => ({ type: "mock/openEdit" }),
-  thunkDeleteAsset: () => ({ type: "mock/delete" }),
+  thunkOpenAssetDraftForEdit: (args: { assetUuid: string }) => openEditDraft(args),
+  thunkDeleteAsset: (args: { assetUuid: string }) => deleteAsset(args),
   thunkMoveAssetToFolder: () => ({ type: "mock/move" }),
   thunkToggleAssetVisible: () => ({ type: "mock/toggleVisible" }),
 }));
@@ -199,6 +207,18 @@ describe("MapAssetsMenu", () => {
       );
       expect(spans.reduce((sum, span) => sum + span, 0)).toBe(headerCells);
     }
+    // Visibility eye buttons are aligned horizontally across folders, folder items, and root items.
+    const folderEyeLeft = q(
+      `[data-testid='asset-folder-visibility-${alphaFolder.uuid}']`
+    )!.getBoundingClientRect().left;
+    const inFolderEyeLeft = q(
+      `[data-testid='asset-visibility-${inFolder.uuid}']`
+    )!.getBoundingClientRect().left;
+    const rootEyeLeft = q(`[data-testid='asset-visibility-${alpha.uuid}']`)!.getBoundingClientRect()
+      .left;
+    expect(inFolderEyeLeft).toBe(rootEyeLeft);
+    expect(inFolderEyeLeft).toBe(folderEyeLeft);
+    expect(q(`[aria-label='Asset actions']`)).toBeNull();
     expect(q(`[data-testid='asset-row-${zed.uuid}']`)?.textContent).toContain("Not placed");
   });
 
@@ -333,5 +353,56 @@ describe("MapAssetsMenu", () => {
     flushSync(() => q(`[data-testid='asset-row-${first.uuid}']`)!.click());
     expect(cancelDraft).toHaveBeenCalledTimes(1);
     expect(store.getState().asset.selectedAssetUuid).toBe(first.uuid);
+  });
+
+  it("twirls open one row at a time in read-only mode and opens the edit form in the row", () => {
+    const first = generateBlankAsset({ name: "First", notes: "First note" });
+    const second = generateBlankAsset({ name: "Second", notes: "Second note" });
+    mockMissionDoc.assets = { [first.uuid]: first, [second.uuid]: second };
+    store = makeStore(true);
+    render();
+
+    // Expanding 'first' opens its read-only details row without form inputs or selecting it.
+    flushSync(() => q(`[data-testid='asset-expand-${first.uuid}']`)!.click());
+    expect(store.getState().asset.selectedAssetUuid).toBeNull();
+    const firstDetail = q(`[data-testid='asset-detail-row-${first.uuid}']`);
+    expect(firstDetail).not.toBeNull();
+    expect(firstDetail?.textContent).toContain("Asset Details");
+    expect(firstDetail?.querySelectorAll("input, textarea")).toHaveLength(0);
+    expect(q("[data-testid='asset-editor-name']")?.textContent).toBe("First");
+    expect(q("[data-testid='asset-editor-notes']")?.textContent).toBe("First note");
+
+    // Expanding 'second' collapses 'first' so only one row is expanded at a time.
+    flushSync(() => q(`[data-testid='asset-expand-${second.uuid}']`)!.click());
+    expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)).toBeNull();
+    expect(q(`[data-testid='asset-detail-row-${second.uuid}']`)).not.toBeNull();
+
+    // Clicking Edit or Delete inside the expanded panel acts on that asset.
+    flushSync(() => q("[data-testid='asset-editor'] [aria-label='Edit']")!.click());
+    expect(openEditDraft).toHaveBeenCalledWith({ assetUuid: second.uuid });
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    flushSync(() => q("[data-testid='asset-editor'] [aria-label='Delete']")!.click());
+    expect(deleteAsset).toHaveBeenCalledWith({ assetUuid: second.uuid });
+    confirmSpy.mockRestore();
+
+    // Opening an edit draft on 'first' expands 'first' in edit mode inside its row.
+    flushSync(() =>
+      store.dispatch(
+        openAssetDraft({
+          uuid: first.uuid,
+          isNew: false,
+          missionId: null,
+          values: getAssetDraftValues(first),
+          base: getAssetDraftValues(first),
+          elevationPending: false,
+          message: null,
+        })
+      )
+    );
+    expect(q(`[data-testid='asset-detail-row-${second.uuid}']`)).toBeNull();
+    expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)?.textContent).toContain(
+      "Edit Asset"
+    );
+    expect(q("[data-testid='asset-editor-name']")?.hasAttribute("disabled")).toBe(false);
   });
 });
