@@ -321,6 +321,11 @@
   width: 22%;
 }
 
+/* View mode: the visibility + actions columns are dropped and notes takes the room */
+.colNotesView {
+  width: 32%;
+}
+
 .colVisible {
   width: 20px;
 }
