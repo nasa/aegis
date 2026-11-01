@@ -263,11 +263,11 @@ export const thunkMoveAssetToFolder = appCreateAsyncThunk<{
 });
 
 /**
- * Reveal an asset in the floating widget: restore it, show the Assets tab, expand the asset's
+ * Jump to an asset in the floating widget: restore it, show the Assets tab, expand the asset's
  * folder, and select the row. The left-panel section does not change.
  */
-export const thunkRevealAsset = appCreateAsyncThunk<{ assetUuid: string }>(
-  "asset/reveal",
+export const thunkJumpToAsset = appCreateAsyncThunk<{ assetUuid: string }>(
+  "asset/jumpTo",
   async ({ assetUuid }, { dispatch, getState }) => {
     const mission = getMissionDocHandle()?.doc();
     if (!mission?.assets?.[assetUuid]) return;

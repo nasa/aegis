@@ -437,7 +437,7 @@ It holds two non-closable tabs:
   folder-aware table (`colgroup`, folder header rows over their own `tbody` drop targets, root
   rows last). Mutations need mission edit permission, the global Edit toggle, and a live
   connection; with Edit Mode off the toolbar, visibility buttons, and row menus are removed. An
-  asset marker click (`thunkRevealAsset`) restores the widget, asks for this tab via
+  asset marker click (`thunkJumpToAsset`) restores the widget, asks for this tab via
   `state.asset.assetsTabRequestId`, expands the folder, and selects the row without changing the
   section. `AssetEditGuard` (editor) ends an asset gesture when Assets is off, the asset or its
   folder is hidden, the widget is minimized, or permission, Edit Mode, or the connection is lost,
@@ -526,7 +526,7 @@ Overlay gotchas:
 | `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                   |
 | `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
 | `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                          |
-| `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); editor draws the draft under the asset's id; click → `thunkRevealAsset`   |
+| `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); editor draws the draft under the asset's id; click → `thunkJumpToAsset`   |
 | `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; no ids, not interactive; zero radius draws nothing (table row disc too)    |
 | `AssetEditGuard`     | —                                                      | editor      | —                            | ends stale asset gestures; discards the draft when Edit Mode/permission is lost or on unmount                                                   |
 | `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                              |
