@@ -1,0 +1,252 @@
+/*
+ * Mission Priorities left axis (category headers + trace rows) and drilldown
+ * detail styles. Column headers, dividers, expansion, and diff cells come from
+ * shared/report-grid.module.css.
+ */
+
+.table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.leftHeaderCorner {
+  flex: 0 0 var(--reportPriorityLabelWidth, 260px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 6px 2px 6px;
+  font-size: 0.8em;
+  font-weight: 300;
+}
+
+.categoryHeaderRow {
+  display: flex;
+  flex-direction: row;
+  background-color: var(--grey1);
+  border-bottom: 1px solid var(--grey0);
+}
+
+.categoryHeaderButton {
+  flex: 0 0 var(--reportPriorityLabelWidth, 260px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--grey5);
+  font: inherit;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.categoryHeaderButton:hover {
+  background-color: var(--grey2);
+}
+
+.categoryHeaderButton:focus-visible {
+  outline: 2px solid var(--grey5);
+  outline-offset: -2px;
+}
+
+.categoryTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+  color: var(--grey4);
+}
+
+.categoryCount {
+  flex: 0 0 auto;
+  color: var(--grey4);
+  font-size: 0.9em;
+  font-weight: 400;
+}
+
+.priorityRow {
+  display: flex;
+  flex-direction: row;
+  border-bottom: 1px solid var(--grey1);
+}
+
+.priorityLabel {
+  flex: 0 0 var(--reportPriorityLabelWidth, 260px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 2px 6px 2px 14px;
+  min-height: 22px;
+  font-size: 0.8em;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.priorityLabel:hover {
+  background-color: var(--stmCoverageHover);
+}
+
+.priorityLabelSelected {
+  box-shadow: inset 2px 0 0 0 var(--grey5);
+  background-color: var(--grey1);
+}
+
+.priorityTraceText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--grey5);
+}
+
+.priorityBadges {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.usagePill {
+  padding: 0 5px;
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+  background-color: var(--grey1);
+  color: var(--grey4);
+  font-size: 0.85em;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.usagePillWarning {
+  border-color: #f5b94266;
+  background-color: #f5b9421a;
+  color: #e8c987;
+}
+
+.drilldownSection {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--grey1);
+  border-radius: var(--radius);
+  padding: 6px;
+  gap: 4px;
+}
+
+.drilldownSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--grey4);
+  text-transform: uppercase;
+}
+
+.drilldownSubheading {
+  font-size: 0.8em;
+  font-weight: 600;
+  color: var(--grey4);
+  margin-top: 4px;
+}
+
+.drilldownActionItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: var(--radius);
+  background-color: var(--grey2);
+  font-size: 0.85em;
+}
+
+.drilldownActionMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 6px;
+}
+
+.drilldownActionTitleWrap {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.drilldownActionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 0.85em;
+  color: var(--grey4);
+}
+
+.statusBadge {
+  padding: 0 4px;
+  border: 1px solid currentcolor;
+  border-radius: var(--radius);
+  font-size: 0.85em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.statusComplete {
+  color: #a8e8b6;
+}
+
+.statusInProgress {
+  color: #a5dcec;
+}
+
+.statusPending {
+  color: var(--grey5);
+}
+
+.statusSkipped {
+  color: #f0aeae;
+}
+
+.statusDisabled {
+  color: #e8c987;
+}
+
+.previewButton {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  background: var(--grey1);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.previewButton:hover {
+  background: var(--grey3);
+}
+
+.previewButton:focus-visible {
+  outline: 2px solid var(--grey5);
+  outline-offset: -2px;
+}
+
+.lineageNote {
+  font-size: 0.82em;
+  color: #e8c987;
+}
+
+.missingReasonNote {
+  font-size: 0.82em;
+  color: var(--grey4);
+  font-style: italic;
+}
+

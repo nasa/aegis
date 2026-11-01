@@ -27,12 +27,16 @@ const initialColumnReportState = (): ColumnReportState => ({
   visibleRowIds: null,
   coverageByColumnKey: {},
   metricsByColumnKey: {},
+  priorityCoverageByColumnKey: {},
+  includeDisabledActions: true,
+  collapsedPriorityCategories: [],
 });
 
 export const initialState: ReportState = {
   activeTab: "coverage",
   stmCoverage: initialColumnReportState(),
   comparison: initialColumnReportState(),
+  missionPriorities: initialColumnReportState(),
   poiTrace: {
     selectedPoiUuid: null,
   },
@@ -138,6 +142,27 @@ export const reportSlice = createSlice({
       report.visibleRowIds = data.visibleRowIds;
       if (data.coverageByColumnKey) report.coverageByColumnKey = data.coverageByColumnKey;
       if (data.metricsByColumnKey) report.metricsByColumnKey = data.metricsByColumnKey;
+      if (data.priorityCoverageByColumnKey) {
+        report.priorityCoverageByColumnKey = data.priorityCoverageByColumnKey;
+      }
+    },
+    reportToggleIncludeDisabledActions: (
+      state,
+      action: { payload: { reportId: ColumnReportId } }
+    ) => {
+      const report = state[action.payload.reportId];
+      report.includeDisabledActions = !(report.includeDisabledActions ?? true);
+    },
+    reportTogglePriorityCategoryCollapsed: (
+      state,
+      action: { payload: { reportId: ColumnReportId; category: string } }
+    ) => {
+      const report = state[action.payload.reportId];
+      const list = report.collapsedPriorityCategories ?? [];
+      const index = list.indexOf(action.payload.category);
+      if (index > -1) list.splice(index, 1);
+      else list.push(action.payload.category);
+      report.collapsedPriorityCategories = list;
     },
     // ---- POI Traceability ----
     poiTraceSetSelectedPoi: (state, action: { payload: string | null }) => {
@@ -169,6 +194,8 @@ export const {
   reportToggleDrilldownChangesOnly,
   reportSetCellSelection,
   reportSetColumnDerivedData,
+  reportToggleIncludeDisabledActions,
+  reportTogglePriorityCategoryCollapsed,
   poiTraceSetSelectedPoi,
   obliterateState,
 } = reportSlice.actions;

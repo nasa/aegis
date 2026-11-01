@@ -1,9 +1,9 @@
 import type { FunctionComponent } from "react";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
-import TraceIcon from "./trace-icon";
+import TraceIcon from "../poi-traceability/trace-icon";
 import RightAction from "components/panes/actions-action";
-import styles from "./poi-traceability.module.css";
+import styles from "../poi-traceability/poi-traceability.module.css";
 
 export type ActionPreviewTarget = {
   actionUuid: string;

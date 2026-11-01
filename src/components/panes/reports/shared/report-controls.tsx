@@ -34,13 +34,17 @@ const ReportControls: FunctionComponent<{
   allColumns: EvaReportColumn[];
   baselineKey: string | null;
   help?: ReactNode;
+  extraControls?: ReactNode;
   showRexFilter?: boolean;
+  rexFilterToolTip?: string;
   differencesOnlyToolTip?: string;
 }> = ({
   allColumns,
   baselineKey,
   help,
+  extraControls,
   showRexFilter = true,
+  rexFilterToolTip = "Which REX action statuses count toward rule satisfaction",
   differencesOnlyToolTip = "Only show rows and columns that differ from the baseline",
 }) => {
   const dispatch = useAppDispatch();
@@ -113,7 +117,7 @@ const ReportControls: FunctionComponent<{
             onChange={(value) =>
               dispatch(reportSetRexStatusFilter({ reportId, value: value as RexStatusFilter }))
             }
-            toolTip="Which REX action statuses count toward rule satisfaction"
+            toolTip={rexFilterToolTip}
           >
             {REX_STATUS_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -123,6 +127,7 @@ const ReportControls: FunctionComponent<{
           </Dropdown>
         </div>
       )}
+      {extraControls}
       <ReportColumnPanel allColumns={allColumns} hiddenColumnKeys={hiddenColumns} />
       <ReportCampaignsDialog />
       {help}
