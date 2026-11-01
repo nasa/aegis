@@ -29,32 +29,6 @@ export const ASSET_EDIT_FIELDS: readonly (keyof AssetEditValues)[] = [
   "placement",
 ];
 
-/** Case-insensitive name order with a uuid tie-breaker, for folders and assets alike. */
-export function compareByName(
-  a: { name: string; uuid: string },
-  b: { name: string; uuid: string }
-): number {
-  return (
-    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) ||
-    (a.uuid < b.uuid ? -1 : a.uuid > b.uuid ? 1 : 0)
-  );
-}
-
-/** The most recently created asset (`createdAt`, uuid tie-breaker), or null. */
-export function getMostRecentAsset(assets: Asset[]): Asset | null {
-  let latest: Asset | null = null;
-  for (const asset of assets) {
-    if (
-      !latest ||
-      asset.createdAt > latest.createdAt ||
-      (asset.createdAt === latest.createdAt && asset.uuid > latest.uuid)
-    ) {
-      latest = asset;
-    }
-  }
-  return latest;
-}
-
 /** Map each asset uuid to the uuid of the asset folder holding it. */
 export function getAssetFolderUuidByItem(folders: Folder[]): Record<string, string> {
   const result: Record<string, string> = {};

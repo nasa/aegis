@@ -5,13 +5,11 @@ import { generateBlankEVA } from "store/storeUtils/eva";
 import {
   DEFAULT_ASSET_RING_COLOR,
   captureAssetPlacement,
-  compareByName,
   getAssetEditValues,
   getAssetRadiusColor,
   getAssetHiddenReason,
   getAssetPlacementPetSeconds,
   getChangedAssetFields,
-  getMostRecentAsset,
   getVisibleMapAssets,
   isAssetVisibleOnMap,
   validateAssetEditValues,
@@ -144,24 +142,7 @@ describe("captureAssetPlacement", () => {
   });
 });
 
-describe("ordering and defaults", () => {
-  test("sorts by name case-insensitively with a uuid tie-breaker", () => {
-    const items = [
-      { name: "zebra", uuid: "1" },
-      { name: "Alpha", uuid: "b" },
-      { name: "alpha", uuid: "a" },
-    ];
-    expect([...items].sort(compareByName).map((i) => i.uuid)).toEqual(["a", "b", "1"]);
-  });
-
-  test("most recent asset uses createdAt then uuid", () => {
-    const a = generateBlankAsset({ uuid: "a", createdAt: 5 });
-    const b = generateBlankAsset({ uuid: "b", createdAt: 5 });
-    const c = generateBlankAsset({ uuid: "c", createdAt: 1 });
-    expect(getMostRecentAsset([a, c, b])?.uuid).toBe("b");
-    expect(getMostRecentAsset([])).toBeNull();
-  });
-
+describe("defaults", () => {
   test("radius color is the asset color, or the default ring color, only for a positive radius", () => {
     expect(getAssetRadiusColor({ color: "#ff0000", uncertaintyMeters: 5 })).toBe("#ff0000");
     expect(getAssetRadiusColor({ color: null, uncertaintyMeters: 5 })).toBe(

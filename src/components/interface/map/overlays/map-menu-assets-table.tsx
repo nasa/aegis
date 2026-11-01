@@ -55,7 +55,6 @@ import {
 } from "store/thunk/thunkAsset";
 import {
   DEFAULT_ASSET_ICON,
-  compareByName,
   getAssetFolderUuidByItem,
   getAssetRadiusColor,
   getAssetPlacementPetSeconds,
@@ -67,6 +66,17 @@ import { withAlpha } from "../utils/layers/layerFactory";
 
 const ROOT_DROP_ID = "asset-root";
 const COLUMN_COUNT = 8;
+
+/** Case-insensitive name order with a uuid tie-breaker, for folders and assets alike. */
+export function compareByName(
+  a: { name: string; uuid: string },
+  b: { name: string; uuid: string }
+): number {
+  return (
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) ||
+    (a.uuid < b.uuid ? -1 : a.uuid > b.uuid ? 1 : 0)
+  );
+}
 
 type Props = {
   assets: Asset[];
