@@ -1,20 +1,20 @@
 import { v4 as uuidv4 } from "uuid";
 import {
   captureAssetPlacement,
-  getAssetDraftValues,
+  getAssetEditValues,
   getAssetFolderUuidByItem,
   getChangedAssetFields,
   getMostRecentAsset,
-  validateAssetDraftValues,
+  validateAssetEditValues,
 } from "utils/assets";
 import appCreateAsyncThunk from "./thunkUtil";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import {
-  clearAssetDraft,
-  openAssetDraft,
+  clearAssetInEdit,
   requestAssetsTab,
-  setAssetDraftElevation,
-  setAssetDraftLocation,
+  setAssetInEdit,
+  setAssetInEditElevation,
+  setAssetInEditLocation,
   setExpandedAssetUuid,
   setSelectedAssetUuid,
 } from "store/asset";
@@ -37,7 +37,7 @@ import { getAccurateNow } from "utils/formatting";
 // Elevation fetches still in flight, keyed by asset uuid. Save waits for them to settle.
 const pendingElevationFetches = new Map<string, Promise<void>>();
 
-/** End an active or scheduled asset map gesture without touching the draft. */
+/** End an active or scheduled asset map gesture without touching the in-edit session. */
 export const thunkCancelAssetGesture = appCreateAsyncThunk<void>(
   "asset/cancelGesture",
   async (__, { dispatch, getState }) => {
@@ -48,18 +48,18 @@ export const thunkCancelAssetGesture = appCreateAsyncThunk<void>(
   }
 );
 
-/** Open a new asset draft prefilled from the most recently created asset. */
-export const thunkOpenNewAssetDraft = appCreateAsyncThunk<void>(
-  "asset/openNewDraft",
+/** Open a new-asset edit session prefilled from the most recently created asset. */
+export const thunkAddAsset = appCreateAsyncThunk<void>(
+  "asset/add",
   async (__, { dispatch, getState }) => {
-    if (getState().asset.draft) return;
+    if (getState().asset.inEdit) return;
     const mission = getMissionDocHandle()?.doc();
     if (!mission) return;
     const latest = getMostRecentAsset(Object.values(mission.assets ?? {}));
     const uuid = uuidv4();
     dispatch(setSelectedAssetUuid(uuid));
     dispatch(
-      openAssetDraft({
+      setAssetInEdit({
         uuid,
         isNew: true,
         values: {
@@ -80,8 +80,8 @@ export const thunkOpenNewAssetDraft = appCreateAsyncThunk<void>(
 );
 
 /** Open the editor on an existing asset. Selects and expands it first so a gesture keys on it. */
-export const thunkOpenAssetDraftForEdit = appCreateAsyncThunk<{ assetUuid: string }>(
-  "asset/openEditDraft",
+export const thunkEditAsset = appCreateAsyncThunk<{ assetUuid: string }>(
+  "asset/edit",
   async ({ assetUuid }, { dispatch, getState }) => {
     const mission = getMissionDocHandle()?.doc();
     const asset = mission?.assets?.[assetUuid];
@@ -94,57 +94,57 @@ export const thunkOpenAssetDraftForEdit = appCreateAsyncThunk<{ assetUuid: strin
     ) {
       await dispatch(thunkToggleFolderOpen({ folderUuid }));
     }
-    const values = getAssetDraftValues(asset);
+    const values = getAssetEditValues(asset);
     dispatch(setSelectedAssetUuid(assetUuid));
     dispatch(
-      openAssetDraft({
+      setAssetInEdit({
         uuid: assetUuid,
         isNew: false,
         values,
-        base: getAssetDraftValues(asset),
+        base: getAssetEditValues(asset),
         elevationPending: false,
       })
     );
   }
 );
 
-/** Discard the draft and any gesture. Nothing was written, so nothing is rolled back. */
-export const thunkCancelAssetDraft = appCreateAsyncThunk<void>(
-  "asset/cancelDraft",
+/** Discard the in-edit session and any gesture. Nothing was written, so nothing is rolled back. */
+export const thunkCancelAssetEdit = appCreateAsyncThunk<void>(
+  "asset/cancelEdit",
   async (__, { dispatch }) => {
-    dispatch(clearAssetDraft());
+    dispatch(clearAssetInEdit());
     await dispatch(thunkCancelAssetGesture());
   }
 );
 
-/** Start Place on Map (unplaced draft) or Edit Pos. (placed draft) for the open draft. */
+/** Start Place on Map (unplaced asset) or Edit Pos. (placed asset) for the open session. */
 export const thunkStartAssetGesture = appCreateAsyncThunk<void>(
   "asset/startGesture",
   async (__, { dispatch, getState }) => {
     const state = getState();
-    const draft = state.asset.draft;
-    if (!draft) return;
+    const inEdit = state.asset.inEdit;
+    if (!inEdit) return;
     await dispatch(
       thunkUpdateMapDirective({
         mapItemType: "asset",
-        uuid: draft.uuid,
-        mapAction: draft.values.location ? "editMarker" : "createMarker",
+        uuid: inEdit.uuid,
+        mapAction: inEdit.values.location ? "editMarker" : "createMarker",
       })
     );
   }
 );
 
 /**
- * Accept a new draft location from a map click, a completed drag, or coordinate entry:
+ * Accept a new in-edit location from a map click, a completed drag, or coordinate entry:
  * capture placement context at this instant and fetch the elevation. The document is not
  * touched until Save.
  */
-export const thunkSetAssetDraftLocation = appCreateAsyncThunk<{
+export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
   uuid: string;
   location: AEGISPoint;
-}>("asset/setDraftLocation", async ({ uuid, location }, { dispatch, getState }) => {
-  const draft = getState().asset.draft;
-  if (!draft || draft.uuid !== uuid) return;
+}>("asset/setEditLocation", async ({ uuid, location }, { dispatch, getState }) => {
+  const inEdit = getState().asset.inEdit;
+  if (!inEdit || inEdit.uuid !== uuid) return;
   const mission = getMissionDocHandle()?.doc();
   if (!mission) return;
   if (!Number.isFinite(location?.lat) || !Number.isFinite(location?.lng)) return;
@@ -153,7 +153,7 @@ export const thunkSetAssetDraftLocation = appCreateAsyncThunk<{
   const placement = captureAssetPlacement(mission, getAccurateNow().getTime());
   const hasDem = !!mission.demFilePath;
   dispatch(
-    setAssetDraftLocation({
+    setAssetInEditLocation({
       uuid,
       location: point,
       placement,
@@ -166,7 +166,7 @@ export const thunkSetAssetDraftLocation = appCreateAsyncThunk<{
     const result = await dispatch(thunkFetchPointElevation({ point, uuid }));
     const elevation =
       result.meta.requestStatus === "fulfilled" ? ((result.payload as number) ?? null) : null;
-    dispatch(setAssetDraftElevation({ uuid, location: point, elevation }));
+    dispatch(setAssetInEditElevation({ uuid, location: point, elevation }));
   })();
   pendingElevationFetches.set(uuid, fetchElevation);
   try {
@@ -177,33 +177,33 @@ export const thunkSetAssetDraftLocation = appCreateAsyncThunk<{
 });
 
 /**
- * Save the open draft in one document change. Editability is enforced by the editor's Save
- * button and AssetEditGuard, which cancels the draft when Edit Mode or edit permission is
- * lost. Throws when the draft values are invalid, and cancels the draft when the asset was
+ * Save the open edit session in one document change. Editability is enforced by the editor's
+ * Save button and AssetEditGuard, which cancels the session when Edit Mode or edit permission
+ * is lost. Throws when the values are invalid, and cancels the session when the asset was
  * deleted underneath it.
  * @returns true when saved.
  */
-export const thunkSaveAssetDraft = appCreateAsyncThunk<void, boolean>(
-  "asset/saveDraft",
+export const thunkSaveAssetEdit = appCreateAsyncThunk<void, boolean>(
+  "asset/saveEdit",
   async (__, { dispatch, getState }) => {
-    const uuid = getState().asset.draft?.uuid;
+    const uuid = getState().asset.inEdit?.uuid;
     if (!uuid) return false;
 
     // Wait for the latest elevation fetch; a newer location may start another one meanwhile.
     while (pendingElevationFetches.has(uuid)) await pendingElevationFetches.get(uuid);
 
     const state = getState();
-    const draft = state.asset.draft;
-    if (!draft || draft.uuid !== uuid) return false;
-    const values: AssetDraftValues = { ...draft.values, name: draft.values.name.trim() };
-    const invalid = validateAssetDraftValues(values);
+    const inEdit = state.asset.inEdit;
+    if (!inEdit || inEdit.uuid !== uuid) return false;
+    const values: AssetEditValues = { ...inEdit.values, name: inEdit.values.name.trim() };
+    const invalid = validateAssetEditValues(values);
     if (invalid) throw new Error(invalid);
     const missionDocHandle = getMissionDocHandle();
     const mission = missionDocHandle?.doc();
     if (!missionDocHandle || !mission) return false;
     const current = mission.assets?.[uuid];
 
-    if (draft.isNew) {
+    if (inEdit.isNew) {
       if (!current) {
         const now = getAccurateNow().getTime();
         const asset = generateBlankAsset({ ...values, uuid, createdAt: now, updatedAt: now });
@@ -211,18 +211,18 @@ export const thunkSaveAssetDraft = appCreateAsyncThunk<void, boolean>(
       }
     } else {
       if (!current) {
-        // The asset was deleted underneath the draft; discard the draft.
-        await dispatch(thunkCancelAssetDraft());
+        // The asset was deleted underneath the edit; discard the session.
+        await dispatch(thunkCancelAssetEdit());
         return false;
       }
-      const changes = getChangedAssetFields(draft.base, values);
+      const changes = getChangedAssetFields(inEdit.base, values);
       if (Object.keys(changes).length > 0) {
         missionDocHandle.change((m: Mission) => applyUpdateAsset(m, { assetUuid: uuid, changes }));
       }
     }
 
     await dispatch(thunkCancelAssetGesture());
-    dispatch(clearAssetDraft());
+    dispatch(clearAssetInEdit());
     dispatch(setSelectedAssetUuid(uuid));
     return true;
   }
@@ -234,7 +234,7 @@ export const thunkDeleteAsset = appCreateAsyncThunk<{ assetUuid: string }>(
   async ({ assetUuid }, { dispatch, getState }) => {
     const state = getState();
     if (!state.user.missionPerms?.permissions.edit || !state.mission.isInEditMode) return;
-    if (state.asset.draft?.uuid === assetUuid) await dispatch(thunkCancelAssetDraft());
+    if (state.asset.inEdit?.uuid === assetUuid) await dispatch(thunkCancelAssetEdit());
     if (getState().asset.selectedAssetUuid === assetUuid) dispatch(setSelectedAssetUuid(null));
     if (getState().asset.expandedAssetUuid === assetUuid) dispatch(setExpandedAssetUuid(null));
     if (getState().hover.mapItemUuid === assetUuid) dispatch(setHoverAssetUuid(null));
@@ -271,8 +271,8 @@ export const thunkJumpToAsset = appCreateAsyncThunk<{ assetUuid: string }>(
   async ({ assetUuid }, { dispatch, getState }) => {
     const mission = getMissionDocHandle()?.doc();
     if (!mission?.assets?.[assetUuid]) return;
-    if (getState().asset.draft && getState().asset.draft.uuid !== assetUuid) {
-      await dispatch(thunkCancelAssetDraft());
+    if (getState().asset.inEdit && getState().asset.inEdit.uuid !== assetUuid) {
+      await dispatch(thunkCancelAssetEdit());
     }
     dispatch(setRexMenuIsMinimized(false));
     dispatch(requestAssetsTab());

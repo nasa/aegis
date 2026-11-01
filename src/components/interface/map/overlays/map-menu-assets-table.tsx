@@ -49,7 +49,7 @@ import {
   thunkToggleFolderVisible,
 } from "store/thunk/thunkFolder";
 import {
-  thunkCancelAssetDraft,
+  thunkCancelAssetEdit,
   thunkMoveAssetToFolder,
   thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
@@ -74,7 +74,7 @@ type Props = {
   /** Edit permission with the global Edit toggle on; controls whether the visibility column renders. */
   canEdit: boolean;
   canMutate: boolean;
-  draft: AssetDraft | null;
+  inEdit: AssetInEdit | null;
   coordinateContext: CoordinateEntryContext;
   onEdit: (assetUuid: string) => void;
 };
@@ -87,14 +87,14 @@ export const AssetTable: FunctionComponent<Props> = ({
   folders,
   canEdit,
   canMutate,
-  draft,
+  inEdit,
   coordinateContext,
   onEdit,
 }) => {
   const dispatch = useAppDispatch();
   const foldersInterface = useAppSelector((state) => state.interface.foldersInterface, deepEqual);
   const expandedAssetUuid = useAppSelector((state) => state.asset.expandedAssetUuid, refEqual);
-  const editingAssetUuid = draft?.uuid ?? null;
+  const editingAssetUuid = inEdit?.uuid ?? null;
   // View mode drops the visibility + actions columns, leaving the room to notes.
   const columnCount = canEdit ? COLUMN_COUNT : COLUMN_COUNT - 2;
   const [activeDragUuid, setActiveDragUuid] = useState<string | null>(null);
@@ -154,7 +154,7 @@ export const AssetTable: FunctionComponent<Props> = ({
         canMutate={canMutate}
         isExpanded={isExpanded}
         isEditing={isEditing}
-        draft={isEditing ? draft : null}
+        inEdit={isEditing ? inEdit : null}
         coordinateContext={coordinateContext}
         onEdit={onEdit}
       />
@@ -454,7 +454,7 @@ const AssetRow: FunctionComponent<{
   canMutate: boolean;
   isExpanded: boolean;
   isEditing: boolean;
-  draft: AssetDraft | null;
+  inEdit: AssetInEdit | null;
   coordinateContext: CoordinateEntryContext;
   onEdit: (assetUuid: string) => void;
 }> = ({
@@ -466,14 +466,14 @@ const AssetRow: FunctionComponent<{
   canMutate,
   isExpanded,
   isEditing,
-  draft,
+  inEdit,
   coordinateContext,
   onEdit,
 }) => {
   const dispatch = useAppDispatch();
   const isSelected = useAppSelector((s) => s.asset.selectedAssetUuid === asset.uuid, refEqual);
-  const hasOtherDraft = useAppSelector(
-    (s) => !!s.asset.draft && s.asset.draft.uuid !== asset.uuid,
+  const hasOtherEdit = useAppSelector(
+    (s) => !!s.asset.inEdit && s.asset.inEdit.uuid !== asset.uuid,
     refEqual
   );
   const isHovered = useAppSelector(
@@ -539,8 +539,8 @@ const AssetRow: FunctionComponent<{
             if (!isEditing) dispatch(setSelectedAssetUuid(null));
             return;
           }
-          if (hasOtherDraft) {
-            dispatch(thunkCancelAssetDraft());
+          if (hasOtherEdit) {
+            dispatch(thunkCancelAssetEdit());
             dispatch(setExpandedAssetUuid(null));
           }
           dispatch(setSelectedAssetUuid(asset.uuid));
@@ -553,11 +553,11 @@ const AssetRow: FunctionComponent<{
             onClick={(e) => {
               e.stopPropagation();
               if (isExpanded) {
-                if (isEditing) dispatch(thunkCancelAssetDraft());
+                if (isEditing) dispatch(thunkCancelAssetEdit());
                 dispatch(setExpandedAssetUuid(null));
                 return;
               }
-              if (hasOtherDraft) dispatch(thunkCancelAssetDraft());
+              if (hasOtherEdit) dispatch(thunkCancelAssetEdit());
               dispatch(setExpandedAssetUuid(asset.uuid));
             }}
             aria-label={isExpanded ? "Collapse asset" : "Expand asset"}
@@ -629,9 +629,9 @@ const AssetRow: FunctionComponent<{
           data-testid={`asset-detail-row-${asset.uuid}`}
         >
           <td colSpan={columnCount} className={styles.assetDetailCell}>
-            {isEditing && draft ? (
+            {isEditing && inEdit ? (
               <AssetEditor
-                draft={draft}
+                inEdit={inEdit}
                 canMutate={canMutate}
                 coordinateContext={coordinateContext}
               />

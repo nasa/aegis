@@ -71,10 +71,10 @@ export const thunkUpdateMapDirective = appCreateAsyncThunk<MapDirective, void, f
     cancelPendingMapDirective();
     pendingDirectiveTimer = setTimeout(() => {
       pendingDirectiveTimer = null;
-      // An asset gesture only starts if its draft is still open.
+      // An asset gesture only starts if its edit session is still open.
       if (
         mapDirective?.mapItemType === "asset" &&
-        getState().asset.draft?.uuid !== mapDirective.uuid
+        getState().asset.inEdit?.uuid !== mapDirective.uuid
       ) {
         return;
       }

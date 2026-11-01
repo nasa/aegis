@@ -202,17 +202,17 @@ Key behaviors:
   context switch — the bug it fixes let you "drag when not in edit mode" and crashed on the next
   edit. posEntry edits are excluded from this watcher. Asset directives are section-agnostic:
   their key is the selected asset uuid only, so section/EVA/REX/POI/station changes keep them.
-- **Rex Menu edits are staged as Redux drafts** so the map, `InteractionManager`, and thunks can
+- **Rex Menu and asset edits are staged in Redux** so the map, `InteractionManager`, and thunks can
   all read them. Crew positions (`state.rex.posEntryInEdit`) draft pos types and source until
   Save, but a map click or drag writes the location straight to the doc. Assets
-  (`state.asset.draft`) keep the location in the draft too and write everything in one change on
-  Save. Other map-editable items have no draft and save directly.
-- **Asset locations go to the draft, not the doc.** The `"asset"` branch of `saveItemPosition`
+  (`state.asset.inEdit`) keep the location in the in-edit session too and write everything in one
+  change on Save. Other map-editable items have no staged copy and save directly.
+- **Asset locations go to the in-edit session, not the doc.** The `"asset"` branch of `saveItemPosition`
   (used by the `createMarker` click, `editMarker` click, and `translateend`) dispatches
-  `thunkSetAssetDraftLocation`; the asset is written on Save from the asset editor. The asset
-  marker's feature id is the asset uuid, and `AssetMarkers` draws the open draft under that same id.
+  `thunkSetAssetEditLocation`; the asset is written on Save from the asset editor. The asset
+  marker's feature id is the asset uuid, and `AssetMarkers` draws the open session under that same id.
 - **`thunkUpdateMapDirective`'s 200 ms delayed start is cancellable** (`cancelPendingMapDirective`),
-  a newer request replaces an unfired one, and an asset directive only fires if its draft is still
+  a newer request replaces an unfired one, and an asset directive only fires if its edit session is still
   open.
 - **Endpoint pinning** (traverse/walkback): first/last coords are pinned to the neighbouring
   station/lander. `Modify` `condition`/`deleteCondition` block grabbing/deleting endpoint vertices
@@ -446,8 +446,8 @@ It holds two non-closable tabs:
   missing from the mission doc (e.g. the EVA dropdown just switched back to As Planned), it shows
   "Select a REX to see positions." — guard on `!selectedRex` before dereferencing anything off it.
 - **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`, with `map-menu-assets-editor.tsx` and
-  `map-menu-assets-table.tsx`): Add Asset / Add Folder toolbar, the asset editor (one Redux draft
-  in `state.asset.draft`, written to `mission.assets` in one change on Save), and one
+  `map-menu-assets-table.tsx`): Add Asset / Add Folder toolbar, the asset editor (one Redux edit
+  session in `state.asset.inEdit`, written to `mission.assets` in one change on Save), and one
   folder-aware table (`colgroup`, folder header rows over their own `tbody` drop targets, root
   rows last). Mutations need mission edit permission, the global Edit toggle, and a live
   connection; with Edit Mode off the toolbar, visibility buttons, and row menus are removed. An
@@ -455,7 +455,7 @@ It holds two non-closable tabs:
   `state.asset.assetsTabRequestId`, expands the folder, and selects the row without changing the
   section. `AssetEditGuard` (editor) ends an asset gesture when Assets is off, the asset or its
   folder is hidden, the widget is minimized, or permission, Edit Mode, or the connection is lost,
-  and discards the draft when the editor unmounts.
+  and discards the in-edit session when the editor unmounts.
 
 Dockview owns drag (via the tab bar's empty space) and resize. Dockview clamps floating-group
 drag and resize only to its `.dv-floating-overlay-host` element, which it sizes (inline styles) to
@@ -542,9 +542,9 @@ Overlay gotchas:
 | `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                   |
 | `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
 | `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                          |
-| `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); editor draws the draft under the asset's id; click → `thunkJumpToAsset`   |
+| `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); editor draws the in-edit asset under the asset's id; click → `thunkJumpToAsset`   |
 | `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; no ids, not interactive; zero radius draws nothing (table row disc too)    |
-| `AssetEditGuard`     | —                                                      | editor      | —                            | ends stale asset gestures; discards the draft when Edit Mode/permission is lost or on unmount                                                   |
+| `AssetEditGuard`     | —                                                      | editor      | —                            | ends stale asset gestures; discards the in-edit session when Edit Mode/permission is lost or on unmount                                           |
 | `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                              |
 | `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                     |
 | `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                        |

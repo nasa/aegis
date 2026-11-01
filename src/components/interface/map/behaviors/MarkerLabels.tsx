@@ -138,8 +138,8 @@ export function MarkerLabels(): null {
   const hoverMapItemUuid = useAppSelector((s) => s.hover.mapItemUuid, refEqual);
   const hoverMapItemType = useAppSelector((s) => s.hover.mapItemType, refEqual);
   const selectedRexUuid = useAppSelector((s) => s.rex.selectedRexUuid, refEqual);
-  // The draft preview belongs to the editor; other maps draw the saved asset.
-  const assetDraft = useAppSelector((s) => (mode === "editor" ? s.asset.draft : null), refEqual);
+  // The inEdit preview belongs to the editor; other maps draw the saved asset.
+  const assetInEdit = useAppSelector((s) => (mode === "editor" ? s.asset.inEdit : null), refEqual);
 
   // --- Automerge doc state ---
   const selectedEva = useMissionDocSelector((m) => {
@@ -519,7 +519,7 @@ export function MarkerLabels(): null {
     const visibleAssets = getVisibleMapAssets({
       assets: assetsFromDoc ?? [],
       folders,
-      draft: assetDraft,
+      inEdit: assetInEdit,
       showAssets: mapDisplayAssets.show,
     });
     if (config.asset.labelsEnabled && mapDisplayAssets.showLabels) {
@@ -637,7 +637,7 @@ export function MarkerLabels(): null {
     mapDisplayAssets,
     config.asset.labelsEnabled,
     assetsFromDoc,
-    assetDraft,
+    assetInEdit,
     selectedEva,
     allStationsFromDoc,
     asPlannedStationsFromDoc,

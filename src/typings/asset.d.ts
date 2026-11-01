@@ -42,23 +42,23 @@ type AssetPetClockSnapshot = Pick<
 >;
 
 /** The asset fields edited in the asset editor. */
-type AssetDraftValues = Pick<
+type AssetEditValues = Pick<
   Asset,
   "name" | "icon" | "color" | "location" | "elevation" | "uncertaintyMeters" | "notes" | "placement"
 >;
 
-/** An open Add/Edit Asset draft, held in Redux until Save. */
-interface AssetDraft {
+/** The asset being edited in the editor (added or changed), held in Redux until Save. */
+interface AssetInEdit {
   uuid: string;
   isNew: boolean;
-  values: AssetDraftValues;
-  /** Values when the draft opened; drives the Save dirty check. Null for a new asset. */
-  base: AssetDraftValues | null;
+  values: AssetEditValues;
+  /** Values when the edit opened; drives the Save dirty check. Null for a new asset. */
+  base: AssetEditValues | null;
   /** True while an elevation fetch for `values.location` is in flight. */
   elevationPending: boolean;
 }
 
-/** A placed, visible asset as drawn on a map (the draft's values while it is being edited). */
+/** A placed, visible asset as drawn on a map (the in-edit values while they are being edited). */
 type AssetMapItem = Pick<Asset, "uuid" | "name" | "color" | "uncertaintyMeters"> & {
   icon: string;
   location: AEGISPoint;
@@ -70,7 +70,7 @@ type AssetHiddenReason = "asset" | "folder" | null;
 interface AssetState {
   selectedAssetUuid: string | null;
   expandedAssetUuid: string | null;
-  draft: AssetDraft | null;
+  inEdit: AssetInEdit | null;
   /** Incremented to ask the floating widget to restore and show its Assets tab. */
   assetsTabRequestId: number;
 }
