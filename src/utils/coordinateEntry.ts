@@ -1,7 +1,17 @@
-import { getSouthLpsDisplayCoordinate, parseSouthLpsLabel } from "utils/lgrs/southLps";
-import { findGlobalGridCoordsFromPoint, findGridCellCenterByName } from "utils/mapping/geoMath";
+import {
+  findGridCellCenterByName,
+  findGlobalGridCoordsFromPoint,
+  gridHasCellNamePrefix,
+} from "utils/mapping/geoMath";
+import {
+  getSouthLpsDisplayCoordinate,
+  isPartialSouthLpsLabel,
+  parseSouthLpsLabel,
+} from "utils/lgrs/southLps";
 
 const LAT_LNG_PATTERN = /^\s*([+-]?\d+(?:\.\d+)?)\s*[,\s]\s*([+-]?\d+(?:\.\d+)?)\s*$/;
+/** A "lat, lng" pair so far — only digits, sign, decimal point, and at most one separator. */
+const LAT_LNG_PARTIAL_PATTERN = /^\s*[+-]?\d*\.?\d*(?:\s*[,\s]\s*[+-]?\d*\.?\d*)?\s*$/;
 
 /** "lat, lng" with six decimals. */
 export function formatLatLng(location: AEGISPoint): string {
@@ -51,12 +61,8 @@ export function parseCoordinateEntry(
   if (latLng) {
     const lat = Number(latLng[1]);
     const lng = Number(latLng[2]);
-    if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-      return { location: null, error: "Latitude must be between -90 and 90" };
-    }
-    if (!Number.isFinite(lng) || lng < -360 || lng > 360) {
-      return { location: null, error: "Longitude must be between -360 and 360" };
-    }
+    const rangeError = latLngRangeError(lat, lng);
+    if (rangeError) return { location: null, error: rangeError };
     return { location: { lat, lng }, error: null };
   }
 
@@ -71,4 +77,45 @@ export function parseCoordinateEntry(
     return { location: null, error: `Not a grid cell in this mission or lat, lng: "${trimmed}"` };
   }
   return { location: null, error: "Enter coordinates as lat, lng" };
+}
+
+/** Range violations of a parsed "lat, lng" pair, shared by the submit and live typing checks. */
+function latLngRangeError(lat: number, lng: number): string | null {
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+    return "Latitude must be between -90 and 90";
+  }
+  if (!Number.isFinite(lng) || lng < -360 || lng > 360) {
+    return "Longitude must be between -360 and 360";
+  }
+  return null;
+}
+
+/**
+ * Live validation for keystroke editing: an error only once the text can no longer become a
+ * valid entry — a complete out-of-range "lat, lng" pair, or text that no accepted form (or a
+ * prefix of one) could still match. Half-typed numbers or grid labels stay quiet;
+ * `parseCoordinateEntry` remains the authoritative check when the entry is submitted.
+ */
+export function getLiveCoordinateEntryError(
+  text: string,
+  context: CoordinateEntryContext
+): string | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  const latLng = LAT_LNG_PATTERN.exec(trimmed);
+  if (latLng) return latLngRangeError(Number(latLng[1]), Number(latLng[2]));
+  if (LAT_LNG_PARTIAL_PATTERN.test(trimmed)) return null;
+
+  if (context.usingLGRSCoordinates) {
+    if (parseSouthLpsLabel(trimmed, context.landerLocation)) return null;
+    if (isPartialSouthLpsLabel(trimmed)) return null;
+    return `Not a valid LGRS label or lat, lng: "${trimmed}"`;
+  }
+  if (context.serverGrid) {
+    if (findGridCellCenterByName(context.serverGrid, trimmed, context.planetRadius)) return null;
+    if (gridHasCellNamePrefix(context.serverGrid, trimmed)) return null;
+    return `Not a grid cell in this mission or lat, lng: "${trimmed}"`;
+  }
+  return "Enter coordinates as lat, lng";
 }

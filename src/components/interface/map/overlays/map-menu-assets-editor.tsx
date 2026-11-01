@@ -39,6 +39,7 @@ import {
   formatCoordinateEntry,
   formatLatLng,
   getCoordinateEntryHint,
+  getLiveCoordinateEntryError,
   parseCoordinateEntry,
 } from "utils/coordinateEntry";
 import { hhmmssFromSeconds } from "utils/formatting";
@@ -113,10 +114,10 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
   // --- Text fields kept local so partial input can be typed ---
   const formattedLocation = formatCoordinateEntry(values.location, coordinateContext);
   const [coordinateText, setCoordinateText] = useState(formattedLocation);
-  const [coordinateError, setCoordinateError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   useEffect(() => {
     setCoordinateText(formattedLocation);
-    setCoordinateError(null);
+    setSubmitError(null);
   }, [formattedLocation]);
 
   const [uncertaintyText, setUncertaintyText] = useState(String(values.uncertaintyMeters));
@@ -141,18 +142,24 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     // Unchanged or cleared text never moves or clears an existing location.
     if (text === formattedLocation.trim() || !text) {
       setCoordinateText(formattedLocation);
-      setCoordinateError(null);
+      setSubmitError(null);
       return;
     }
     const result = parseCoordinateEntry(text, coordinateContext);
     if (result.error) {
-      setCoordinateError(result.error);
+      setSubmitError(result.error);
       return;
     }
-    setCoordinateError(null);
+    setSubmitError(null);
     dispatch(thunkCancelAssetGesture());
     dispatch(thunkSetAssetEditLocation({ uuid: inEdit.uuid, location: result.location }));
   };
+
+  // Live validation while typing; the authoritative submit check reports on blur/Enter.
+  const liveCoordinateError = isView
+    ? null
+    : getLiveCoordinateEntryError(coordinateText, coordinateContext);
+  const coordinateError = submitError ?? liveCoordinateError;
 
   const startGesture = () => {
     // Placing turns the viewer's Assets and Asset Labels back on; shared flags never change.
@@ -435,13 +442,16 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
               aria-label="Asset coordinates"
               data-testid="asset-editor-coordinates"
               disabled={!editable}
-              onChange={(e) => setCoordinateText(e.target.value)}
+              onChange={(e) => {
+                setCoordinateText(e.target.value);
+                setSubmitError(null);
+              }}
               onBlur={submitCoordinates}
               onKeyDown={(e) => {
                 if (e.key === "Enter") submitCoordinates();
                 if (e.key === "Escape") {
                   setCoordinateText(formattedLocation);
-                  setCoordinateError(null);
+                  setSubmitError(null);
                 }
               }}
             />
@@ -479,7 +489,12 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
           </div>
         )}
         {coordinateError && (
-          <div className={`${styles.fieldError} ${styles.fieldValueColumn}`}>{coordinateError}</div>
+          <div
+            className={`${styles.fieldError} ${styles.fieldValueColumn}`}
+            data-testid="asset-editor-coordinate-error"
+          >
+            {coordinateError}
+          </div>
         )}
         {gestureActive && (
           <div

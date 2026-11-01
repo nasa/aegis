@@ -260,6 +260,38 @@ describe("MapAssetsMenu", () => {
     expect(startGesture).toHaveBeenCalledTimes(1);
   });
 
+  it("shows coordinate validation errors while typing, without waiting for blur", async () => {
+    store = makeStore(true);
+    render();
+    flushSync(() =>
+      store.dispatch(
+        setAssetInEdit({
+          uuid: "new-asset",
+          isNew: true,
+          values: getAssetEditValues(generateBlankAsset()),
+          base: null,
+          elevationPending: false,
+        })
+      )
+    );
+    const input = q("[data-testid='asset-editor-coordinates']") as HTMLInputElement;
+    // Controlled React input: write through the native value setter so onChange fires.
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const type = (text: string) => {
+      setValue.call(input, text);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+
+    type("-91, 0");
+    await vi.waitFor(() =>
+      expect(q("[data-testid='asset-editor-coordinate-error']")?.textContent).toMatch(/Latitude/)
+    );
+
+    // Correcting the text clears the error without a blur, too.
+    type("-89.5, 45.2");
+    await vi.waitFor(() => expect(q("[data-testid='asset-editor-coordinate-error']")).toBeNull());
+  });
+
   it("disables Edit Pos. for an asset hidden by its folder, naming the folder", () => {
     const asset = generateBlankAsset({
       name: "Drill",
