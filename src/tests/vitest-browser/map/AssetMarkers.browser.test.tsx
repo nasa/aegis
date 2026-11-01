@@ -309,7 +309,7 @@ describe("asset map behaviors", () => {
     expect(assetLabels().map((f) => f.get("name"))).toEqual(["Moved"]);
   });
 
-  it("does not show the editor inEdit on the minimap", () => {
+  it("stays inert on the minimap — mode config asset.show is false", () => {
     const asset = placed();
     mockMissionDoc.assets = { [asset.uuid]: asset };
     render("minimap");
@@ -324,6 +324,37 @@ describe("asset map behaviors", () => {
         })
       )
     );
+    expect(
+      map
+        .getLayers()
+        .getArray()
+        .some((l) => l.getZIndex() === Z_INDEX.ASSETS)
+    ).toBe(false);
+    expect(
+      map
+        .getLayers()
+        .getArray()
+        .some((l) => l.getZIndex() === Z_INDEX.CIRCLES)
+    ).toBe(false);
+    expect(assetSource!.getFeatures()).toHaveLength(0);
+  });
+
+  it("does not show the editor inEdit on the dashboard", () => {
+    const asset = placed();
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    render("dashboard");
+    flushSync(() =>
+      store.dispatch(
+        setAssetInEdit({
+          uuid: asset.uuid,
+          isNew: false,
+          values: { ...getAssetEditValues(asset), location: { lat: 0.05, lng: 0.06 } },
+          base: getAssetEditValues(asset),
+          elevationPending: false,
+        })
+      )
+    );
+    expect(assetSource!.getFeatures()).toHaveLength(1);
     expect(assetSource!.getFeatureById(asset.uuid).getGeometry().getExtent().slice(0, 2)).toEqual([
       20, 10,
     ]);

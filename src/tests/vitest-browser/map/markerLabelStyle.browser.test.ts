@@ -180,6 +180,7 @@ describe("createMarkerLabelStyle", () => {
 
   it("asset config overrides the asset label font size and box colors", () => {
     const fn = createMarkerLabelStyle(14, 1.5, {
+      show: true,
       iconSize: 20,
       clickable: false,
       hoverable: false,
@@ -213,6 +214,7 @@ describe("createMarkerLabelStyle", () => {
 
   it("asset labelAccentBorder: false suppresses the accent border", () => {
     const fn = createMarkerLabelStyle(14, 1.5, {
+      show: true,
       iconSize: 20,
       clickable: false,
       hoverable: false,
@@ -247,6 +249,7 @@ describe("createMarkerLabelStyle", () => {
   it("asset labelAccentBorderWidth widens the accent border", () => {
     const makeFn = (width: number) =>
       createMarkerLabelStyle(14, 1.5, {
+        show: true,
         iconSize: 20,
         clickable: false,
         hoverable: false,
@@ -286,6 +289,7 @@ describe("createMarkerLabelStyle", () => {
   it("asset bold renders a wider text box", () => {
     const makeFn = (fontWeight: string) =>
       createMarkerLabelStyle(14, 1.5, {
+        show: true,
         iconSize: 20,
         clickable: false,
         hoverable: false,

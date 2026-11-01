@@ -63,10 +63,12 @@ export interface ModeConfig {
     limitToRunningEva: boolean;
   };
 
-  // Asset markers and their name labels (MarkerLabels). The label boxes share
-  // the style of other marker labels; these knobs restyle the asset boxes per
-  // mode.
+  // Asset markers, their name labels (MarkerLabels), and their uncertainty
+  // circles. The label boxes share the style of other marker labels; these
+  // knobs restyle the asset boxes per mode.
   asset: {
+    /** Whether this mode draws assets at all (markers + uncertainty circles). */
+    show: boolean;
     iconSize: number;
     clickable: boolean;
     hoverable: boolean;
@@ -178,6 +180,7 @@ const EDITOR_CONFIG: ModeConfig = {
     limitToRunningEva: false,
   },
   asset: {
+    show: true,
     iconSize: 20,
     clickable: true,
     hoverable: true,
@@ -256,6 +259,7 @@ const DASHBOARD_CONFIG: ModeConfig = {
     limitToRunningEva: false,
   },
   asset: {
+    show: true,
     iconSize: 34,
     clickable: false,
     hoverable: false,
@@ -334,6 +338,7 @@ const MINIMAP_CONFIG: ModeConfig = {
     limitToRunningEva: true,
   },
   asset: {
+    show: false,
     iconSize: 20,
     clickable: false,
     hoverable: false,

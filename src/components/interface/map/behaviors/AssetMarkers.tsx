@@ -2,7 +2,9 @@
  * AssetMarkers — behavior component for asset markers on the OL map.
  *
  * Draws every placed, visible asset (see `getVisibleMapAssets`) on the shared assetSource,
- * in every editor section and on the dashboard and minimap. On the editor, an open in-edit
+ * in every editor section and on the dashboard and minimap — gated by
+ * `MODE_CONFIGS[mode].asset.show`, which is false on the minimap so the behaviors stay mounted
+ * but draw nothing there. On the editor, an open in-edit
  * session replaces its saved values under the same feature id, so `editMarker` has exactly
  * one target and there is never a duplicate marker.
  *
@@ -59,6 +61,7 @@ export function AssetMarkers(): null {
   const dispatch = useAppDispatch();
   const { assetSource } = useFeatureSourcesContext();
   const { toMapCoord } = useCoordConverters();
+  const showAssets = config.asset.show;
 
   const visibleAssets = useVisibleMapAssets();
   const selectedAssetUuid = useAppSelector(
@@ -73,6 +76,7 @@ export function AssetMarkers(): null {
 
   // --- Layer setup ---
   useEffect(() => {
+    if (!showAssets) return;
     const layer = new VectorLayer({ source: assetSource, zIndex: Z_INDEX.ASSETS });
     map.addLayer(layer);
     layerRef.current = layer;
@@ -80,10 +84,13 @@ export function AssetMarkers(): null {
       map.removeLayer(layer);
       layerRef.current = null;
     };
-  }, [map, assetSource]);
+  }, [map, assetSource, showAssets]);
 
   // --- Reconcile features ---
   useEffect(() => {
+    // Skipped entirely when hidden: the source is shared across sibling maps, so a
+    // minimap-side reconcile-to-empty would wipe the dashboard's features.
+    if (!showAssets) return;
     const mapper = (asset: AssetMapItem): FeatureDescriptor => ({
       id: asset.uuid,
       geometry: new Point(toMapCoord(asset.location)),
@@ -97,12 +104,13 @@ export function AssetMarkers(): null {
     reconcileFeatures(assetSource, visibleAssets, mapper);
     // Force repaint so property changes (e.g. icon) are picked up by style functions
     assetSource.changed();
-  }, [visibleAssets, assetSource, toMapCoord]);
+  }, [visibleAssets, assetSource, toMapCoord, showAssets]);
 
   // --- Style function ---
   useEffect(() => {
+    if (!showAssets) return;
     layerRef.current?.setStyle(buildAssetStyleFunction(selectedAssetUuid, config.asset.iconSize));
-  }, [selectedAssetUuid, config.asset.iconSize]);
+  }, [selectedAssetUuid, config.asset.iconSize, showAssets]);
 
   // --- Click handler ---
   useEffect(() => {

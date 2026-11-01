@@ -5,7 +5,9 @@
  * asset with a positive radius gets a polygon feature filled in its radius color with no
  * stroke; the selected asset's circle gets a white stroke. Features are rebuilt in full on
  * change, have no ids so they can never be an edit target, and are not interactive. Zero
- * uncertainty draws nothing. On the editor, the edited asset's circle follows the in-edit values.
+ * uncertainty draws nothing. Gated by `MODE_CONFIGS[mode].asset.show` like `AssetMarkers`
+ * (false on the minimap, where the behavior stays mounted but draws nothing). On the editor,
+ * the edited asset's circle follows the in-edit values.
  *
  * Returns null — headless behavior component.
  */
@@ -20,6 +22,7 @@ import VectorSource from "ol/source/Vector";
 import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { getAssetRadiusColor } from "utils/assets";
 import { useMapContext } from "../MapProvider";
+import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { buildAssetRadiusStyleFunction } from "../utils/styles/assetRadius";
 import { Z_INDEX } from "../utils/zIndex";
@@ -31,6 +34,7 @@ export function AssetUncertainty(): null {
   const { map, mode } = useMapContext();
   const { toMapCoord } = useCoordConverters();
   const visibleAssets = useVisibleMapAssets();
+  const showAssets = MODE_CONFIGS[mode].asset.show;
   const selectedAssetUuid = useAppSelector(
     (s) => (mode === "editor" ? s.asset.selectedAssetUuid : null),
     refEqual
@@ -39,6 +43,7 @@ export function AssetUncertainty(): null {
   const layerRef = useRef<VectorLayer<VectorSource> | null>(null);
 
   useEffect(() => {
+    if (!showAssets) return;
     const layer = new VectorLayer({ source: new VectorSource(), zIndex: Z_INDEX.CIRCLES });
     map.addLayer(layer);
     layerRef.current = layer;
@@ -46,9 +51,10 @@ export function AssetUncertainty(): null {
       map.removeLayer(layer);
       layerRef.current = null;
     };
-  }, [map]);
+  }, [map, showAssets]);
 
   useEffect(() => {
+    if (!showAssets) return;
     const source = layerRef.current?.getSource();
     if (!source) return;
     const features: Feature[] = [];
@@ -64,11 +70,12 @@ export function AssetUncertainty(): null {
     }
     source.clear(true);
     source.addFeatures(features);
-  }, [visibleAssets, toMapCoord, map]);
+  }, [visibleAssets, toMapCoord, map, showAssets]);
 
   useEffect(() => {
+    if (!showAssets) return;
     layerRef.current?.setStyle(buildAssetRadiusStyleFunction(selectedAssetUuid));
-  }, [selectedAssetUuid, map]);
+  }, [selectedAssetUuid, map, showAssets]);
 
   return null;
 }
