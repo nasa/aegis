@@ -181,6 +181,7 @@ describe("createMarkerLabelStyle", () => {
   it("assetLabel config overrides the asset label font size and box colors", () => {
     const fn = createMarkerLabelStyle(14, 1.5, {
       fontSize: 24,
+      fontWeight: "normal",
       textColor: "rgba(0,255,0,1)",
       bgColor: "rgba(0,0,255,0.5)",
       accentBorder: true,
@@ -209,6 +210,7 @@ describe("createMarkerLabelStyle", () => {
   it("assetLabel accentBorder: false suppresses the accent border", () => {
     const fn = createMarkerLabelStyle(14, 1.5, {
       fontSize: 14,
+      fontWeight: "normal",
       textColor: "rgba(255,236,170,0.95)",
       bgColor: "rgba(0,0,0,0.5)",
       accentBorder: false,
@@ -238,6 +240,7 @@ describe("createMarkerLabelStyle", () => {
     const makeFn = (width: number) =>
       createMarkerLabelStyle(14, 1.5, {
         fontSize: 14,
+        fontWeight: "normal",
         textColor: "rgba(255,236,170,0.95)",
         bgColor: "rgba(0,0,0,0.5)",
         accentBorder: true,
@@ -266,5 +269,31 @@ describe("createMarkerLabelStyle", () => {
     const narrowPx = Array.from(narrowCanvas.getContext("2d")!.getImageData(2, midY, 1, 1).data);
     expect(widePx).toEqual([255, 0, 0, 255]);
     expect(narrowPx).toEqual([0, 0, 0, 128]);
+  });
+
+  it("assetLabel bold renders a wider text box", () => {
+    const makeFn = (fontWeight: string) =>
+      createMarkerLabelStyle(14, 1.5, {
+        fontSize: 14,
+        fontWeight,
+        textColor: "rgba(255,236,170,0.95)",
+        bgColor: "rgba(0,0,0,0.5)",
+        accentBorder: true,
+        accentBorderWidth: 2,
+      });
+    const plainCanvas = (
+      asArray(
+        makeFn("normal")(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1)
+      )[0].getImage() as Icon
+    ).getImage(1) as HTMLCanvasElement;
+    const boldCanvas = (
+      asArray(
+        makeFn("bold")(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1)
+      )[0].getImage() as Icon
+    ).getImage(1) as HTMLCanvasElement;
+
+    // Bold glyphs are wider, so the box is wider; the height is unchanged
+    expect(boldCanvas.width).toBeGreaterThan(plainCanvas.width);
+    expect(boldCanvas.height).toBe(plainCanvas.height);
   });
 });

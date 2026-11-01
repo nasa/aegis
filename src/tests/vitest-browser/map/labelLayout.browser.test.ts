@@ -26,4 +26,11 @@ describe("measureLabelText (browser)", () => {
     expect(measureLabelText("X", 18)!.height).toBe(18 + 8);
     expect(measureLabelText("X", 24)!.height).toBe(24 + 8);
   });
+
+  it("measures bold text wider than regular text at the same size", () => {
+    const regular = measureLabelText("Station 1", 14)!;
+    const bold = measureLabelText("Station 1", 14, "bold")!;
+    expect(bold.width).toBeGreaterThan(regular.width);
+    expect(bold.height).toBe(regular.height);
+  });
 });

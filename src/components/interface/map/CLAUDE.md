@@ -319,7 +319,7 @@ a cache key omits a varying input:
 - `markerLabels.ts` (`createMarkerLabelStyle`): caches the rendered text-box canvas by
   `name-labelType-fontSize`. Draws a dashed black+white connector from label to anchor (skipped
   when the label is within 2px of the anchor). Opacity applied via `Icon.opacity`, not baked.
-  Asset labels take per-mode colors/font size/accent border (toggle + width) from
+  Asset labels take per-mode colors/font size/weight/accent border (toggle + width) from
   `MODE_CONFIGS[mode].assetLabel` (passed to the builder by `MarkerLabels`); without it they fall
   back to the hard-coded `asset` `LABEL_COLORS` entry. The accent border (the asset's own color)
   is baked into the canvas.

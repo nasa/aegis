@@ -725,7 +725,8 @@ export function MarkerLabels(): null {
     for (const info of labelInfos) {
       const measurement = measureLabelText(
         info.name,
-        info.labelType === "asset" ? config.assetLabel.fontSize : config.markerLabel.fontSize
+        info.labelType === "asset" ? config.assetLabel.fontSize : config.markerLabel.fontSize,
+        info.labelType === "asset" ? config.assetLabel.fontWeight : "normal"
       );
       if (!measurement) continue;
 

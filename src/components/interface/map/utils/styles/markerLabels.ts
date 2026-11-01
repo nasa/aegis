@@ -88,7 +88,6 @@ export function createMarkerLabelStyle(
   connectorWidth: number = 1.5,
   assetLabel?: ModeConfig["assetLabel"]
 ) {
-  const font = `${fontSizePx}px sans-serif`;
   // Scale the dash pattern with the line width so the dashes keep the same
   // visual proportion as the line thickens (short dashes on a thick line read
   // as a muddy solid colour). Base ratio: 4px dash at 1.5px width.
@@ -108,6 +107,8 @@ export function createMarkerLabelStyle(
     // keeps its LABEL_COLORS entry.
     const isAsset = labelType === "asset";
     const fontPx = isAsset && assetLabel ? assetLabel.fontSize : fontSizePx;
+    const fontWeight = isAsset && assetLabel ? assetLabel.fontWeight : "normal";
+    const fontSpec = `${fontWeight} ${fontPx}px sans-serif`;
     const boxColors =
       isAsset && assetLabel
         ? { ...colors, text: assetLabel.textColor, bg: assetLabel.bgColor }
@@ -131,14 +132,14 @@ export function createMarkerLabelStyle(
 
     // Build base label canvas (text box only)
     const accentKey = accentColor ? `${accentColor}-${accentBorderWidth}` : "";
-    const baseCacheKey = `${name}-${labelType}-${fontPx}-${dpr}-${accentKey}`;
+    const baseCacheKey = `${name}-${labelType}-${fontPx}-${fontWeight}-${dpr}-${accentKey}`;
     let baseLabelImg = baseLabelCache.get(baseCacheKey);
     if (!baseLabelImg) {
       baseLabelImg = renderBaseLabelCanvas(
         name,
         boxColors.text,
         boxColors.bg,
-        fontPx === fontSizePx ? font : `${fontPx}px sans-serif`,
+        fontSpec,
         fontPx,
         dpr,
         accentColor,
