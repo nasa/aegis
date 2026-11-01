@@ -63,13 +63,27 @@ export interface ModeConfig {
     limitToRunningEva: boolean;
   };
 
-  // Asset markers
+  // Asset markers and their name labels (MarkerLabels). The label boxes share
+  // the style of other marker labels; these knobs restyle the asset boxes per
+  // mode.
   asset: {
     iconSize: number;
     clickable: boolean;
     hoverable: boolean;
     /** Whether this mode draws asset name labels at all. */
     labelsEnabled: boolean;
+    /** Font size (px) for asset label text. */
+    labelFontSize: number;
+    /** CSS font-weight for asset label text ("normal", "bold", "600", ...). */
+    labelFontWeight: string;
+    /** Label text color inside the box. */
+    labelTextColor: string;
+    /** Rounded-rect background color behind the text. */
+    labelBgColor: string;
+    /** Whether the box gets an accent border in the asset's own color. */
+    labelAccentBorder: boolean;
+    /** Width (px) of the accent border stroke. Only drawn when `labelAccentBorder` is true. */
+    labelAccentBorderWidth: number;
   };
 
   // Proximity circles
@@ -101,23 +115,6 @@ export interface ModeConfig {
     fontSize: number;
     /** Stroke width (px) of the dashed connector line from label to marker. */
     connectorWidth: number;
-  };
-
-  // Asset name labels (MarkerLabels). Same box style as other marker labels;
-  // these knobs restyle the asset boxes per mode.
-  assetLabel: {
-    /** Font size (px) for asset label text. */
-    fontSize: number;
-    /** CSS font-weight for asset label text ("normal", "bold", "600", ...). */
-    fontWeight: string;
-    /** Label text color inside the box. */
-    textColor: string;
-    /** Rounded-rect background color behind the text. */
-    bgColor: string;
-    /** Whether the box gets an accent border in the asset's own color. */
-    accentBorder: boolean;
-    /** Width (px) of the accent border stroke. Only drawn when `accentBorder` is true. */
-    accentBorderWidth: number;
   };
 
   // POS entries
@@ -182,6 +179,12 @@ const EDITOR_CONFIG: ModeConfig = {
     clickable: true,
     hoverable: true,
     labelsEnabled: true,
+    labelFontSize: 13,
+    labelFontWeight: "bold",
+    labelTextColor: "rgba(255,236,170,0.95)",
+    labelBgColor: "rgba(0,0,0,0.5)",
+    labelAccentBorder: true,
+    labelAccentBorderWidth: 1,
   },
   circle: {
     minWidth: 1.5,
@@ -204,14 +207,6 @@ const EDITOR_CONFIG: ModeConfig = {
   markerLabel: {
     fontSize: 14,
     connectorWidth: 1.5,
-  },
-  assetLabel: {
-    fontSize: 14,
-    fontWeight: "normal",
-    textColor: "rgba(255,236,170,0.95)",
-    bgColor: "rgba(0,0,0,0.5)",
-    accentBorder: true,
-    accentBorderWidth: 2,
   },
   pos: {
     evIconSize: 20,
@@ -262,6 +257,12 @@ const DASHBOARD_CONFIG: ModeConfig = {
     clickable: false,
     hoverable: false,
     labelsEnabled: true,
+    labelFontSize: 20,
+    labelFontWeight: "bold",
+    labelTextColor: "rgba(255,236,170,0.95)",
+    labelBgColor: "rgba(0,0,0,0.5)",
+    labelAccentBorder: true,
+    labelAccentBorderWidth: 2,
   },
   circle: {
     minWidth: 3,
@@ -284,14 +285,6 @@ const DASHBOARD_CONFIG: ModeConfig = {
   markerLabel: {
     fontSize: 20,
     connectorWidth: 3,
-  },
-  assetLabel: {
-    fontSize: 20,
-    fontWeight: "bold",
-    textColor: "rgba(255,236,170,0.95)",
-    bgColor: "rgba(0,0,0,0.5)",
-    accentBorder: true,
-    accentBorderWidth: 2,
   },
   pos: {
     evIconSize: 40,
@@ -342,6 +335,12 @@ const MINIMAP_CONFIG: ModeConfig = {
     clickable: false,
     hoverable: false,
     labelsEnabled: false,
+    labelFontSize: 12,
+    labelFontWeight: "normal",
+    labelTextColor: "rgba(255,236,170,0.95)",
+    labelBgColor: "rgba(0,0,0,0.5)",
+    labelAccentBorder: true,
+    labelAccentBorderWidth: 2,
   },
   circle: {
     minWidth: 1.5,
@@ -364,14 +363,6 @@ const MINIMAP_CONFIG: ModeConfig = {
   markerLabel: {
     fontSize: 12,
     connectorWidth: 1.5,
-  },
-  assetLabel: {
-    fontSize: 12,
-    fontWeight: "normal",
-    textColor: "rgba(255,236,170,0.95)",
-    bgColor: "rgba(0,0,0,0.5)",
-    accentBorder: true,
-    accentBorderWidth: 2,
   },
   pos: {
     evIconSize: 20,

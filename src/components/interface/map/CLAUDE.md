@@ -320,7 +320,7 @@ a cache key omits a varying input:
   `name-labelType-fontSize`. Draws a dashed black+white connector from label to anchor (skipped
   when the label is within 2px of the anchor). Opacity applied via `Icon.opacity`, not baked.
   Asset labels take per-mode colors/font size/weight/accent border (toggle + width) from
-  `MODE_CONFIGS[mode].assetLabel` (passed to the builder by `MarkerLabels`); without it they fall
+  `MODE_CONFIGS[mode].asset` (passed to the builder by `MarkerLabels`); without it they fall
   back to the hard-coded `asset` `LABEL_COLORS` entry. The accent border (the asset's own color)
   is baked into the canvas.
 - `polylines.ts`: module-level `baseStyleCache` for traverse lines (keyed
@@ -384,7 +384,8 @@ for the timeline astronaut renders above all vector layers regardless.
 
 `utils/modeConfig.ts` → `MODE_CONFIGS[mode]` (mode from `useMapContext()`). Same rendering
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
-branching on mode. Sections: `map`, `lander`, `station`, `asset`, `assetLabel`, `circle`,
+branching on mode. Sections: `map`, `lander`, `station`, `asset` (markers + label styling),
+`circle`,
 `traverse`, `markerLabel`, `pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
 
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
@@ -394,7 +395,7 @@ branching on mode. Sections: `map`, `lander`, `station`, `asset`, `assetLabel`, 
   `grid.labelsEnabled: false`, `dataLayer.labelsEnabled: false`.
 
 **Every** on-map font size is a mode-config number — `circle.labelFontSize`,
-`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `assetLabel.fontSize`,
+`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `asset.fontSize`,
 `grid.labelFontSize`, `scaleBar.fontSize`, and `dataLayer.gazetteer/featureFontSize`. Don't hardcode
 a `px` size in a style file; add it here instead.
 

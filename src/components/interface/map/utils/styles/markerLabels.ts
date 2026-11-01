@@ -74,11 +74,11 @@ if (_measureCtx) _measureCtx.font = LABEL_FONT;
  * - `labelType` ('lander' | 'station' | 'poi' | 'action' | 'pos' | 'asset')
  * - `anchorCoord` ([number, number]) — projected map coordinate of the marker
  * - `accentColor` (string, optional) — accent border color; asset labels carry
- *   their asset's color, suppressed when `assetLabel.accentBorder` is false
+ *   their asset's color, suppressed when `asset.labelAccentBorder` is false
  *
- * `assetLabel` (optional `ModeConfig["assetLabel"]`) restyles asset labels per
- * mode (font size, text/box colors, accent border). When omitted, asset labels
- * use the hard-coded `LABEL_COLORS.asset` entry.
+ * `asset` (optional `ModeConfig["asset"]`) restyles asset labels per mode
+ * (font size, text/box colors, accent border). When omitted, asset labels use
+ * the hard-coded `LABEL_COLORS.asset` entry.
  *
  * The feature's geometry is a Point at the label position (may differ from
  * anchor if auto-laid-out or dragged).
@@ -86,7 +86,7 @@ if (_measureCtx) _measureCtx.font = LABEL_FONT;
 export function createMarkerLabelStyle(
   fontSizePx: number = DEFAULT_LABEL_FONT_SIZE,
   connectorWidth: number = 1.5,
-  assetLabel?: ModeConfig["assetLabel"]
+  asset?: ModeConfig["asset"]
 ) {
   // Scale the dash pattern with the line width so the dashes keep the same
   // visual proportion as the line thickens (short dashes on a thick line read
@@ -103,22 +103,20 @@ export function createMarkerLabelStyle(
     const colors = LABEL_COLORS[labelType] || DEFAULT_COLORS;
     const opacity = (feature.get("labelOpacity") as number) ?? 1.0;
 
-    // Asset labels are restyled per mode via `assetLabel`; every other type
+    // Asset labels are restyled per mode via `asset`; every other type
     // keeps its LABEL_COLORS entry.
     const isAsset = labelType === "asset";
-    const fontPx = isAsset && assetLabel ? assetLabel.fontSize : fontSizePx;
-    const fontWeight = isAsset && assetLabel ? assetLabel.fontWeight : "normal";
+    const fontPx = isAsset && asset ? asset.labelFontSize : fontSizePx;
+    const fontWeight = isAsset && asset ? asset.labelFontWeight : "normal";
     const fontSpec = `${fontWeight} ${fontPx}px sans-serif`;
     const boxColors =
-      isAsset && assetLabel
-        ? { ...colors, text: assetLabel.textColor, bg: assetLabel.bgColor }
-        : colors;
+      isAsset && asset ? { ...colors, text: asset.labelTextColor, bg: asset.labelBgColor } : colors;
     // Optional accent border (asset labels carry their asset's color)
     const accentColor =
-      assetLabel && !assetLabel.accentBorder
+      asset && !asset.labelAccentBorder
         ? null
         : ((feature.get("accentColor") as string | null | undefined) ?? null);
-    const accentBorderWidth = isAsset && assetLabel ? assetLabel.accentBorderWidth : 2;
+    const accentBorderWidth = isAsset && asset ? asset.labelAccentBorderWidth : 2;
 
     const geom = feature.getGeometry() as Point | undefined;
     if (!geom) return undefined;
