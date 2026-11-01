@@ -175,10 +175,10 @@ export const AssetTable: FunctionComponent<Props> = ({
       <table className={styles.assetTable} data-testid="asset-table">
         <colgroup>
           <col className={styles.colNumber} />
-          <col className={styles.colPet} />
           <col className={styles.colEmoji} />
           <col className={styles.colName} />
           <col className={styles.colCoords} />
+          <col className={styles.colPet} />
           <col className={canEdit ? styles.colNotes : styles.colNotesView} />
           {canEdit && (
             <>
@@ -190,10 +190,10 @@ export const AssetTable: FunctionComponent<Props> = ({
         <thead>
           <tr className={styles.headerRow}>
             <th>#</th>
-            <th>PET</th>
             <th aria-label="Emoji" />
             <th>Name</th>
             <th>Coords</th>
+            <th>PET</th>
             <th>Notes</th>
             {canEdit && (
               <>
@@ -570,15 +570,6 @@ const AssetRow: FunctionComponent<{
             <span>{number}</span>
           </button>
         </td>
-        <td>
-          {!placed ? (
-            "Not placed"
-          ) : petSeconds === null ? (
-            <span title="No PET was recorded when this asset was placed">—</span>
-          ) : (
-            hhmmssFromSeconds(petSeconds)
-          )}
-        </td>
         <td
           ref={emojiCellRef}
           className={styles.emojiCell}
@@ -591,7 +582,18 @@ const AssetRow: FunctionComponent<{
           {asset.name}
         </td>
         <td title={locationDetails ?? undefined}>
-          {placed ? formatCoordinateEntry(asset.location, coordinateContext) : "Not placed"}
+          {placed
+            ? formatCoordinateEntry(asset.location, { ...coordinateContext, dynamicLgrs: false })
+            : "Not placed"}
+        </td>
+        <td>
+          {!placed ? (
+            "Not placed"
+          ) : petSeconds === null ? (
+            <span title="No PET was recorded when this asset was placed">—</span>
+          ) : (
+            hhmmssFromSeconds(petSeconds)
+          )}
         </td>
         <td title={asset.notes ?? undefined}>{asset.notes}</td>
         {canEdit && (
