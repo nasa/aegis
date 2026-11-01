@@ -51,18 +51,12 @@ type AssetDraftValues = Pick<
 interface AssetDraft {
   uuid: string;
   isNew: boolean;
-  missionId: number | null;
   values: AssetDraftValues;
-  /** Document values when the draft opened; null for a new asset. */
+  /** Values when the draft opened; drives the Save dirty check. Null for a new asset. */
   base: AssetDraftValues | null;
   /** True while an elevation fetch for `values.location` is in flight. */
   elevationPending: boolean;
-  /** Recoverable message shown in the editor, e.g. a conflicting change underneath the draft. */
-  message: string | null;
 }
-
-/** Result of capturing placement context; `ambiguous` when more than one REX is running. */
-type AssetPlacementCapture = { placement: AssetPlacementContext; ambiguous: boolean };
 
 /** A placed, visible asset as drawn on a map (the draft's values while it is being edited). */
 type AssetMapItem = Pick<Asset, "uuid" | "name" | "color" | "uncertaintyMeters"> & {
