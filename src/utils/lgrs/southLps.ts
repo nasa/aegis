@@ -118,7 +118,26 @@ const FULL_LGRS_PATTERN = new RegExp(
   `^([AB])([A-HJ-NP-Z])([A-HJ-NP-Z+-])(${LGRS_LETTER})(\\d{0,3})(${LGRS_LETTER})(\\d{0,3})$`
 );
 const CONDENSED_LGRS_PATTERN = new RegExp(`^(${LGRS_LETTER})(\\d{0,3})(${LGRS_LETTER})(\\d{0,3})$`);
+// Same grammar with every group after the first two optional (nested, so a middle group
+// cannot be skipped while a later one is present), for prefix-matching half-typed labels.
+const FULL_LGRS_PREFIX_PATTERN = new RegExp(
+  `^([AB])([A-HJ-NP-Z])(?:([A-HJ-NP-Z+-])(?:(${LGRS_LETTER})(\\d{0,3})(?:(${LGRS_LETTER})(\\d{0,3})?)?)?)?$`
+);
+const CONDENSED_LGRS_PREFIX_PATTERN = new RegExp(
+  `^(${LGRS_LETTER})(\\d{0,3})(?:(${LGRS_LETTER})(\\d{0,3})?)?$`
+);
 const LGRS_AREA_METERS = 25000;
+
+/**
+ * Whether the text could still become a valid LGRS label if more characters were typed —
+ * e.g. "K12 L" is half of "K12 L34". Lets live typing validation stay quiet on incomplete
+ * input; `parseSouthLpsLabel` is the authoritative check for complete entries.
+ */
+export function isPartialSouthLpsLabel(text: string): boolean {
+  const compact = text.replace(/\s+/g, "").toUpperCase();
+  if (!compact) return true;
+  return FULL_LGRS_PREFIX_PATTERN.test(compact) || CONDENSED_LGRS_PREFIX_PATTERN.test(compact);
+}
 
 /** Offset of a cell centre within its 25 km area, from a 1 km letter and residual digits. */
 function withinAreaCenter(letter: string, digits: string): number | null {

@@ -215,6 +215,22 @@ export function findGridCellCenterByName(
 }
 
 /**
+ * Whether any grid point's name starts with the given text (case/space-insensitive, like
+ * `findGridCellCenterByName`), so a half-typed cell name can be told apart from text that
+ * can never match a cell.
+ */
+export function gridHasCellNamePrefix(grid: MissionGridPoint[][], name: string): boolean {
+  const target = name.trim().toUpperCase();
+  if (!grid?.length || !target) return false;
+  for (const row of grid) {
+    for (const point of row) {
+      if (point.name?.trim().toUpperCase().startsWith(target)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Adjust grid indicies to be one shown cell out
  * @param {GridIndex} index - the index to adjust
  * @param {number} numRows - the number of rows in the grid
