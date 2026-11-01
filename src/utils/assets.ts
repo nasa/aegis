@@ -113,16 +113,16 @@ export function getVisibleMapAssets({
 }
 
 /**
- * Capture placement context at one instant: the running REX (from mission data, regardless of
- * the selected REX/EVA), its EVA, and a detached copy of its PET clock. When zero or more
- * than one REX is running, no REX context is stored.
+ * Resolve the placement to record for a location set at `nowMs`: the running REX (from mission
+ * data, regardless of the selected REX/EVA), its EVA, and a detached copy of its PET clock. When
+ * zero or more than one REX is running, no REX is recorded.
  */
-export function captureAssetPlacement(
+export function getAssetPlacement(
   mission: Pick<Mission, "rexes" | "evas">,
   nowMs: number
-): AssetPlacementContext {
+): AssetPlacement {
   const runningRexes = Object.values(mission.rexes ?? {}).filter((rex) => rex.isRunning);
-  const placement: AssetPlacementContext = {
+  const placement: AssetPlacement = {
     locationSetAt: nowMs,
     runningRexUuid: null,
     runningRexName: null,
@@ -155,9 +155,7 @@ export function captureAssetPlacement(
 }
 
 /** PET at the moment the asset was placed, or null when unavailable. */
-export function getAssetPlacementPetSeconds(
-  placement: AssetPlacementContext | null
-): number | null {
+export function getAssetPlacementPetSeconds(placement: AssetPlacement | null): number | null {
   if (!placement?.petClock) return null;
   return petSecondsAt(placement.petClock, placement.locationSetAt);
 }
@@ -174,8 +172,8 @@ export function getAssetEditValues(asset: Asset): AssetEditValues {
 const PLACEMENT_FIELDS: readonly (keyof AssetEditValues)[] = ["location", "elevation", "placement"];
 
 /**
- * Fields of `values` that differ from `base`, detached. Location, elevation, and placement
- * context are one unit: a change to any of them includes all three.
+ * Fields of `values` that differ from `base`, detached. Location, elevation, and placement are
+ * one unit: a change to any of them includes all three.
  */
 export function getChangedAssetFields(
   base: AssetEditValues,
@@ -205,7 +203,7 @@ export function validateAssetEditValues(values: AssetEditValues): string | null 
     return "Coordinates must be finite";
   }
   if ((values.location === null) !== (values.placement === null)) {
-    return "Location and placement context must be set together";
+    return "Location and placement must be set together";
   }
   return null;
 }
