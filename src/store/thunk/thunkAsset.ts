@@ -4,7 +4,6 @@ import {
   getAssetEditValues,
   getAssetFolderUuidByItem,
   getChangedAssetFields,
-  getMostRecentAsset,
   validateAssetEditValues,
 } from "utils/assets";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -36,6 +35,21 @@ import { getAccurateNow } from "utils/formatting";
 
 // Elevation fetches still in flight, keyed by asset uuid. Save waits for them to settle.
 const pendingElevationFetches = new Map<string, Promise<void>>();
+
+/** The most recently created asset (`createdAt`, uuid tie-breaker), or null. */
+export function getMostRecentAsset(assets: Asset[]): Asset | null {
+  let latest: Asset | null = null;
+  for (const asset of assets) {
+    if (
+      !latest ||
+      asset.createdAt > latest.createdAt ||
+      (asset.createdAt === latest.createdAt && asset.uuid > latest.uuid)
+    ) {
+      latest = asset;
+    }
+  }
+  return latest;
+}
 
 /** End an active or scheduled asset map gesture without touching the in-edit session. */
 export const thunkCancelAssetGesture = appCreateAsyncThunk<void>(

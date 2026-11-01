@@ -5,6 +5,7 @@ import { initialState as userInitialState } from "store/user";
 import type { StoreType } from "store";
 import { updateAssetInEditValues } from "store/asset";
 import {
+  getMostRecentAsset,
   thunkCancelAssetEdit,
   thunkDeleteAsset,
   thunkMoveAssetToFolder,
@@ -59,6 +60,16 @@ beforeEach(() => {
     m.demFilePath = "dem.tif";
   });
   store = createCustomTestStore({ connection: connected, user: editor, mission: editMode });
+});
+
+describe("getMostRecentAsset", () => {
+  it("picks the highest createdAt, with uuid as tie-breaker", () => {
+    const a = generateBlankAsset({ uuid: "a", createdAt: 5 });
+    const b = generateBlankAsset({ uuid: "b", createdAt: 5 });
+    const c = generateBlankAsset({ uuid: "c", createdAt: 1 });
+    expect(getMostRecentAsset([a, c, b])?.uuid).toBe("b");
+    expect(getMostRecentAsset([])).toBeNull();
+  });
 });
 
 describe("thunkAddAsset", () => {
