@@ -75,7 +75,6 @@ type Props = {
   canEdit: boolean;
   canMutate: boolean;
   draft: AssetDraft | null;
-  switchPrompt: JSX.Element | null;
   coordinateContext: CoordinateEntryContext;
   onEdit: (assetUuid: string) => void;
 };
@@ -89,7 +88,6 @@ export const AssetTable: FunctionComponent<Props> = ({
   canEdit,
   canMutate,
   draft,
-  switchPrompt,
   coordinateContext,
   onEdit,
 }) => {
@@ -157,7 +155,6 @@ export const AssetTable: FunctionComponent<Props> = ({
         isExpanded={isExpanded}
         isEditing={isEditing}
         draft={isEditing ? draft : null}
-        switchPrompt={isEditing ? switchPrompt : null}
         coordinateContext={coordinateContext}
         onEdit={onEdit}
       />
@@ -458,7 +455,6 @@ const AssetRow: FunctionComponent<{
   isExpanded: boolean;
   isEditing: boolean;
   draft: AssetDraft | null;
-  switchPrompt: JSX.Element | null;
   coordinateContext: CoordinateEntryContext;
   onEdit: (assetUuid: string) => void;
 }> = ({
@@ -471,7 +467,6 @@ const AssetRow: FunctionComponent<{
   isExpanded,
   isEditing,
   draft,
-  switchPrompt,
   coordinateContext,
   onEdit,
 }) => {
@@ -544,7 +539,10 @@ const AssetRow: FunctionComponent<{
             if (!isEditing) dispatch(setSelectedAssetUuid(null));
             return;
           }
-          if (hasOtherDraft) dispatch(thunkCancelAssetDraft());
+          if (hasOtherDraft) {
+            dispatch(thunkCancelAssetDraft());
+            dispatch(setExpandedAssetUuid(null));
+          }
           dispatch(setSelectedAssetUuid(asset.uuid));
         }}
       >
@@ -636,7 +634,6 @@ const AssetRow: FunctionComponent<{
                 draft={draft}
                 canMutate={canMutate}
                 coordinateContext={coordinateContext}
-                switchPrompt={switchPrompt}
               />
             ) : (
               <AssetEditor

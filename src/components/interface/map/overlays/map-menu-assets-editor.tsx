@@ -55,8 +55,6 @@ type Props =
       draft: AssetDraft;
       canMutate: boolean;
       coordinateContext: CoordinateEntryContext;
-      /** Shown instead of the Save/Cancel row while switching to another asset is pending. */
-      switchPrompt: JSX.Element | null;
     }
   | {
       mode: "view";
@@ -77,7 +75,6 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
   const values = isView ? getAssetDraftValues(props.asset) : props.draft.values;
   const { canMutate, coordinateContext } = props;
   const editable = !isView && canMutate;
-  const switchPrompt = isView ? null : props.switchPrompt;
 
   const gestureAction = useAppSelector(
     (s) =>
@@ -263,7 +260,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         >
           {placementText}
         </div>
-        {!switchPrompt && actions}
+        {actions}
       </div>
 
       <div className={styles.editorForm}>
@@ -519,7 +516,6 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
           {draft.message}
         </div>
       )}
-      {switchPrompt}
     </div>
   );
 };

@@ -12,7 +12,8 @@
  * 2. For each marker, positions a Point feature at (anchor + pixelOffset * resolution).
  * 3. Computes overlap-based opacities: higher-priority labels occlude lower-priority ones.
  * 4. The style function (`createMarkerLabelStyle`) renders each label + connector line
- *    with the computed opacity.
+ *    with the computed opacity. Asset label boxes are styled per mode via
+ *    `MODE_CONFIGS[mode].assetLabel`.
  * 5. Dragging via `ol/interaction/Translate` stores the new pixel offset.
  *
  * ## Priority
@@ -37,7 +38,7 @@ import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
-import { getVisibleMapAssets } from "utils/assets";
+import { DEFAULT_ASSET_RING_COLOR, getVisibleMapAssets } from "utils/assets";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -103,6 +104,8 @@ interface LabelInfo {
   labelType: "lander" | "station" | "poi" | "action" | "pos" | "asset";
   anchorCoord: [number, number]; // projected map coordinate
   priority: number;
+  /** Optional accent (e.g. the asset's own color) drawn as the label box border */
+  accentColor?: string | null;
   /** Transient hover tooltip — always renders at full opacity, never draggable */
   isHover?: boolean;
 }
@@ -242,7 +245,8 @@ export function MarkerLabels(): null {
   useEffect(() => {
     const styleFn = createMarkerLabelStyle(
       config.markerLabel.fontSize,
-      config.markerLabel.connectorWidth
+      config.markerLabel.connectorWidth,
+      config.assetLabel
     );
     const layer = new VectorLayer({
       source: labelSource,
@@ -256,7 +260,13 @@ export function MarkerLabels(): null {
       map.removeLayer(layer);
       layerRef.current = null;
     };
-  }, [map, labelSource, config.markerLabel.fontSize, config.markerLabel.connectorWidth]);
+  }, [
+    map,
+    labelSource,
+    config.markerLabel.fontSize,
+    config.markerLabel.connectorWidth,
+    config.assetLabel,
+  ]);
 
   // --- Drag interaction ---
   useEffect(() => {
@@ -517,6 +527,7 @@ export function MarkerLabels(): null {
         infos.push({
           id: `asset-${asset.uuid}`,
           name: asset.name,
+          accentColor: asset.color || DEFAULT_ASSET_RING_COLOR,
           labelType: "asset",
           anchorCoord: toMapCoord(asset.location) as [number, number],
           priority: PRIORITY_ASSET,
@@ -592,6 +603,7 @@ export function MarkerLabels(): null {
             infos.push({
               id: hoverLabelId,
               name: asset.name,
+              accentColor: asset.color || DEFAULT_ASSET_RING_COLOR,
               labelType: "asset",
               anchorCoord: toMapCoord(asset.location) as [number, number],
               priority: PRIORITY_ASSET,
@@ -685,6 +697,7 @@ export function MarkerLabels(): null {
         feature.set("anchorCoord", info.anchorCoord);
         feature.set("name", info.name);
         feature.set("labelType", info.labelType);
+        feature.set("accentColor", info.accentColor ?? null);
         feature.set("isHover", info.isHover ?? false);
       } else {
         feature = new Feature({ geometry: new Point(labelCoord) });
@@ -692,6 +705,7 @@ export function MarkerLabels(): null {
         feature.set("anchorCoord", info.anchorCoord);
         feature.set("name", info.name);
         feature.set("labelType", info.labelType);
+        feature.set("accentColor", info.accentColor ?? null);
         feature.set("isHover", info.isHover ?? false);
         labelSource.addFeature(feature);
       }
@@ -709,7 +723,10 @@ export function MarkerLabels(): null {
     // 2. Compute overlap-based opacities in pixel space
     const descriptors: LabelDescriptor[] = [];
     for (const info of labelInfos) {
-      const measurement = measureLabelText(info.name, config.markerLabel.fontSize);
+      const measurement = measureLabelText(
+        info.name,
+        info.labelType === "asset" ? config.assetLabel.fontSize : config.markerLabel.fontSize
+      );
       if (!measurement) continue;
 
       const feature = labelSource.getFeatureById(info.id) as Feature<Point> | null;

@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { faFolderPlus, faPlus } from "@fortawesome/free-solid-svg-icons";
 
 import assetsMenuStyles from "./map-menu-assets.module.css";
@@ -12,13 +12,7 @@ import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { isConnected } from "store/selectors";
 import { thunkCreateFolder } from "store/thunk/thunkFolder";
-import {
-  thunkCancelAssetDraft,
-  thunkOpenAssetDraftForEdit,
-  thunkOpenNewAssetDraft,
-  thunkSaveAssetDraft,
-} from "store/thunk/thunkAsset";
-import { getChangedAssetFields } from "utils/assets";
+import { thunkOpenAssetDraftForEdit, thunkOpenNewAssetDraft } from "store/thunk/thunkAsset";
 
 /** The mission's coordinate presentation for typed and displayed asset coordinates. */
 function useCoordinateEntryContext(): CoordinateEntryContext {
@@ -62,64 +56,10 @@ export const MapAssetsMenu: FunctionComponent = () => {
     ) ?? [];
   const coordinateContext = useCoordinateEntryContext();
 
-  // Another asset's Edit was chosen while the draft has unsaved changes.
-  const [pendingSwitch, setPendingSwitch] = useState<{
-    fromDraftUuid: string;
-    targetUuid: string;
-  } | null>(null);
-  const pendingEditUuid =
-    draft && pendingSwitch?.fromDraftUuid === draft.uuid ? pendingSwitch.targetUuid : null;
-  const draftDirty =
-    !!draft &&
-    (draft.isNew || Object.keys(getChangedAssetFields(draft.base, draft.values)).length > 0);
-
   const editAsset = (assetUuid: string) => {
     if (draft?.uuid === assetUuid) return;
-    if (draft && draftDirty) {
-      setPendingSwitch({ fromDraftUuid: draft.uuid, targetUuid: assetUuid });
-      return;
-    }
     dispatch(thunkOpenAssetDraftForEdit({ assetUuid }));
   };
-
-  const pendingAssetName = assets.find((a) => a.uuid === pendingEditUuid)?.name;
-  const switchPrompt =
-    draft && pendingEditUuid ? (
-      <div className={assetsMenuStyles.switchPrompt} data-testid="asset-switch-prompt">
-        <span>
-          Unsaved changes. Save them before editing &ldquo;{pendingAssetName ?? "another asset"}
-          &rdquo;?
-        </span>
-        <div className={assetsMenuStyles.editorActions}>
-          <Button
-            label="Save"
-            className={assetsMenuStyles.editorButton}
-            enabled={canMutate}
-            onClick={async () => {
-              const target = pendingEditUuid;
-              const saved = await dispatch(thunkSaveAssetDraft()).unwrap();
-              setPendingSwitch(null);
-              if (saved) dispatch(thunkOpenAssetDraftForEdit({ assetUuid: target }));
-            }}
-          />
-          <Button
-            label="Discard"
-            className={assetsMenuStyles.editorButton}
-            onClick={async () => {
-              const target = pendingEditUuid;
-              setPendingSwitch(null);
-              await dispatch(thunkCancelAssetDraft());
-              dispatch(thunkOpenAssetDraftForEdit({ assetUuid: target }));
-            }}
-          />
-          <Button
-            label="Keep Editing"
-            className={assetsMenuStyles.editorButton}
-            onClick={() => setPendingSwitch(null)}
-          />
-        </div>
-      </div>
-    ) : null;
 
   const showTopEditor =
     !!draft && (draft.isNew || !assets.some((asset) => asset.uuid === draft.uuid));
@@ -147,12 +87,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
         </div>
       )}
       {showTopEditor && (
-        <AssetEditor
-          draft={draft}
-          canMutate={canMutate}
-          coordinateContext={coordinateContext}
-          switchPrompt={switchPrompt}
-        />
+        <AssetEditor draft={draft} canMutate={canMutate} coordinateContext={coordinateContext} />
       )}
       <div className={assetsMenuStyles.tableContainer}>
         <AssetTable
@@ -161,7 +96,6 @@ export const MapAssetsMenu: FunctionComponent = () => {
           canEdit={canEdit}
           canMutate={canMutate}
           draft={draft && !draft.isNew ? draft : null}
-          switchPrompt={switchPrompt}
           coordinateContext={coordinateContext}
           onEdit={editAsset}
         />

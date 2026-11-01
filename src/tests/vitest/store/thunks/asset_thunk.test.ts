@@ -237,6 +237,7 @@ describe("thunkSaveAssetDraft", () => {
     await store.dispatch(thunkOpenAssetDraftForEdit({ assetUuid: asset.uuid }));
     store.dispatch(updateAssetDraftValues({ notes: "by the boulder" }));
     expect(await store.dispatch(thunkSaveAssetDraft()).unwrap()).toBe(true);
+    expect(store.getState().asset.expandedAssetUuid).toBeNull();
     expect(doc().assets[asset.uuid]).toMatchObject({
       notes: "by the boulder",
       elevation: 3,
@@ -333,9 +334,11 @@ describe("asset gestures and row actions", () => {
   });
 
   it("reveal restores the widget, requests the Assets tab, and expands the folder", async () => {
+    const other = generateBlankAsset({ name: "Other" });
     const asset = generateBlankAsset({ name: "Drill" });
     const folder = generateBlankFolder({ type: "asset", items: [asset.uuid] });
     getMissionDocHandle().change((m) => {
+      m.assets[other.uuid] = other;
       m.assets[asset.uuid] = asset;
       m.folders[folder.uuid] = folder;
     });
@@ -356,10 +359,12 @@ describe("asset gestures and row actions", () => {
         },
       },
     });
-    await store.dispatch(thunkOpenNewAssetDraft());
+    await store.dispatch(thunkOpenAssetDraftForEdit({ assetUuid: other.uuid }));
+    expect(store.getState().asset.expandedAssetUuid).toBe(other.uuid);
     await store.dispatch(thunkRevealAsset({ assetUuid: asset.uuid }));
     const state = store.getState();
     expect(state.asset.draft).toBeNull();
+    expect(state.asset.expandedAssetUuid).toBeNull();
     expect(state.interface.rexMenuIsMinimized).toBe(false);
     expect(state.asset.assetsTabRequestId).toBe(1);
     expect(state.interface.foldersInterface[folder.uuid].isOpen).toBe(true);

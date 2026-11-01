@@ -7,6 +7,7 @@
  * 1. A rounded-rect text box with the label name.
  * 2. A dashed connector line from the label back to the marker anchor.
  * 3. A small dot at the marker anchor.
+ * 4. An optional accent border around the box (asset labels use the asset's color).
  *
  * The connector line and anchor dot use OL geometry-based styles
  * (`LineString` / `Point`) so they transform in real-time during zoom
@@ -19,6 +20,8 @@ import Point from "ol/geom/Point";
 import { LineString } from "ol/geom";
 import { Style, Icon, Stroke, Fill, Circle as CircleStyle } from "ol/style";
 
+import type { ModeConfig } from "../modeConfig";
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -30,36 +33,30 @@ const TEXT_PADDING_V = 4;
 const DOT_RADIUS = 3;
 
 // Colors per label type
-const LABEL_COLORS: Record<string, { text: string; bg: string; connector: string }> = {
+const LABEL_COLORS: Record<string, { text: string; bg: string }> = {
   lander: {
     text: "rgba(255,255,255,1)",
     bg: "rgba(0,0,0,0.6)",
-    connector: "rgba(255,255,255,0.7)",
   },
   station: {
     text: "rgba(255,255,255,0.95)",
     bg: "rgba(0,0,0,0.5)",
-    connector: "rgba(255,255,255,0.5)",
   },
   poi: {
     text: "rgba(200,220,255,0.9)",
     bg: "rgba(0,0,0,0.5)",
-    connector: "rgba(200,220,255,0.45)",
   },
   action: {
     text: "rgba(255,220,180,0.9)",
     bg: "rgba(0,0,0,0.5)",
-    connector: "rgba(255,220,180,0.45)",
   },
   pos: {
     text: "rgb(255, 255, 255)",
     bg: "rgba(0,0,0,0.9)",
-    connector: "rgba(180,255,200,0.45)",
   },
   asset: {
     text: "rgba(255,236,170,0.95)",
     bg: "rgba(0,0,0,0.5)",
-    connector: "rgba(255,236,170,0.45)",
   },
 };
 
@@ -76,13 +73,20 @@ if (_measureCtx) _measureCtx.font = LABEL_FONT;
  * - `name` (string) — label text
  * - `labelType` ('lander' | 'station' | 'poi' | 'action' | 'pos' | 'asset')
  * - `anchorCoord` ([number, number]) — projected map coordinate of the marker
+ * - `accentColor` (string, optional) — accent border color; asset labels carry
+ *   their asset's color, suppressed when `assetLabel.accentBorder` is false
+ *
+ * `assetLabel` (optional `ModeConfig["assetLabel"]`) restyles asset labels per
+ * mode (font size, text/box colors, accent border). When omitted, asset labels
+ * use the hard-coded `LABEL_COLORS.asset` entry.
  *
  * The feature's geometry is a Point at the label position (may differ from
  * anchor if auto-laid-out or dragged).
  */
 export function createMarkerLabelStyle(
   fontSizePx: number = DEFAULT_LABEL_FONT_SIZE,
-  connectorWidth: number = 1.5
+  connectorWidth: number = 1.5,
+  assetLabel?: ModeConfig["assetLabel"]
 ) {
   const font = `${fontSizePx}px sans-serif`;
   // Scale the dash pattern with the line width so the dashes keep the same
@@ -100,6 +104,21 @@ export function createMarkerLabelStyle(
     const colors = LABEL_COLORS[labelType] || DEFAULT_COLORS;
     const opacity = (feature.get("labelOpacity") as number) ?? 1.0;
 
+    // Asset labels are restyled per mode via `assetLabel`; every other type
+    // keeps its LABEL_COLORS entry.
+    const isAsset = labelType === "asset";
+    const fontPx = isAsset && assetLabel ? assetLabel.fontSize : fontSizePx;
+    const boxColors =
+      isAsset && assetLabel
+        ? { ...colors, text: assetLabel.textColor, bg: assetLabel.bgColor }
+        : colors;
+    // Optional accent border (asset labels carry their asset's color)
+    const accentColor =
+      assetLabel && !assetLabel.accentBorder
+        ? null
+        : ((feature.get("accentColor") as string | null | undefined) ?? null);
+    const accentBorderWidth = isAsset && assetLabel ? assetLabel.accentBorderWidth : 2;
+
     const geom = feature.getGeometry() as Point | undefined;
     if (!geom) return undefined;
     const labelCoord = geom.getCoordinates();
@@ -111,10 +130,20 @@ export function createMarkerLabelStyle(
     const dpr = window.devicePixelRatio || 1;
 
     // Build base label canvas (text box only)
-    const baseCacheKey = `${name}-${labelType}-${fontSizePx}-${dpr}`;
+    const accentKey = accentColor ? `${accentColor}-${accentBorderWidth}` : "";
+    const baseCacheKey = `${name}-${labelType}-${fontPx}-${dpr}-${accentKey}`;
     let baseLabelImg = baseLabelCache.get(baseCacheKey);
     if (!baseLabelImg) {
-      baseLabelImg = renderBaseLabelCanvas(name, colors.text, colors.bg, font, fontSizePx, dpr);
+      baseLabelImg = renderBaseLabelCanvas(
+        name,
+        boxColors.text,
+        boxColors.bg,
+        fontPx === fontSizePx ? font : `${fontPx}px sans-serif`,
+        fontPx,
+        dpr,
+        accentColor,
+        accentBorderWidth
+      );
       if (!baseLabelImg) return undefined;
       baseLabelCache.set(baseCacheKey, baseLabelImg);
     }
@@ -174,7 +203,7 @@ export function createMarkerLabelStyle(
     const anchorDot = new Style({
       image: new CircleStyle({
         radius: DOT_RADIUS,
-        fill: new Fill({ color: applyOpacity(colors.text, opacity) }),
+        fill: new Fill({ color: applyOpacity(boxColors.text, opacity) }),
         stroke: new Stroke({
           color: applyOpacity("rgba(0,0,0,0.5)", opacity),
           width: 1,
@@ -194,7 +223,9 @@ function renderBaseLabelCanvas(
   bgColor: string,
   font: string = LABEL_FONT,
   fontSizePx: number = DEFAULT_LABEL_FONT_SIZE,
-  dpr: number = 1
+  dpr: number = 1,
+  accentColor: string | null = null,
+  accentBorderWidth: number = 2
 ): HTMLCanvasElement | null {
   if (!_measureCtx) return null;
 
@@ -227,6 +258,23 @@ function renderBaseLabelCanvas(
   ctx.beginPath();
   ctx.roundRect(0, 0, boxWidth, boxHeight, 3);
   ctx.fill();
+
+  // Accent border (inset by half the width so the stroke stays fully inside
+  // the canvas; radius keeps the same curvature as the outer box corners)
+  if (accentColor) {
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = accentBorderWidth;
+    const inset = accentBorderWidth / 2;
+    ctx.beginPath();
+    ctx.roundRect(
+      inset,
+      inset,
+      boxWidth - accentBorderWidth,
+      boxHeight - accentBorderWidth,
+      Math.max(0, 3 - inset)
+    );
+    ctx.stroke();
+  }
 
   // Baseline sits `ascent` below the top padding.
   const baselineY = TEXT_PADDING_V + ascent;

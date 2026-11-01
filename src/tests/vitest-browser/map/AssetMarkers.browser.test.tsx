@@ -27,23 +27,28 @@ import {
   useFeatureSourcesContext,
 } from "components/interface/map/FeatureSourcesProvider";
 import { MapMenuProvider, useMapMenuSetters } from "components/interface/map/MapMenuProvider";
+import { AssetEditGuard } from "components/interface/map/behaviors/AssetEditGuard";
 import { AssetMarkers } from "components/interface/map/behaviors/AssetMarkers";
 import { AssetUncertainty } from "components/interface/map/behaviors/AssetUncertainty";
 import { MarkerLabels } from "components/interface/map/behaviors/MarkerLabels";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { assetSlice, openAssetDraft, setSelectedAssetUuid } from "store/asset";
 import { actionSlice } from "store/action";
+import { connectionSlice } from "store/connection";
 import { evaSlice } from "store/eva";
 import { hoverSlice } from "store/hover";
-import { interfaceSlice } from "store/interface";
-import { mapSlice } from "store/map";
+import { interfaceSlice, setRexMenuIsMinimized } from "store/interface";
+import { mapSlice, updateMapDirective } from "store/map";
 import { measureSlice } from "store/measure";
+import { missionSlice, setIsInEditMode } from "store/mission";
 import { poiSlice } from "store/poi";
 import { rexSlice } from "store/rex";
 import { stationSlice } from "store/station";
 import { traverseSlice } from "store/traverse";
+import { userSlice } from "store/user";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
+import { generateBlankPoi } from "store/storeUtils/poi";
 import { getAssetDraftValues } from "utils/assets";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
@@ -56,6 +61,11 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
 }));
 
 vi.mock("store/thunk/thunkMap", () => ({
+  cancelPendingMapDirective: (): void => undefined,
+  thunkUpdateMapDirective: (args: unknown) => ({
+    type: "mock/thunkUpdateMapDirective",
+    payload: args,
+  }),
   thunkMarkerOnClick: (args: unknown) => ({ type: "mock/thunkMarkerOnClick", payload: args }),
 }));
 
@@ -82,20 +92,40 @@ const placed = (overrides: Partial<Asset> = {}) =>
     ...overrides,
   });
 
+const connectedState = {
+  ...connectionSlice.getInitialState(),
+  socketStatus: {
+    ...connectionSlice.getInitialState().socketStatus,
+    connectionStatus: "connected" as ConnectionStatus,
+  },
+  automergeConnectionStatus: "connected" as ConnectionStatus,
+};
+
 function makeStore() {
   return configureStore({
     reducer: {
       asset: assetSlice.reducer,
       action: actionSlice.reducer,
+      connection: connectionSlice.reducer,
       eva: evaSlice.reducer,
       hover: hoverSlice.reducer,
       interface: interfaceSlice.reducer,
       map: mapSlice.reducer,
       measure: measureSlice.reducer,
+      mission: missionSlice.reducer,
       poi: poiSlice.reducer,
       rex: rexSlice.reducer,
       station: stationSlice.reducer,
       traverse: traverseSlice.reducer,
+      user: userSlice.reducer,
+    },
+    preloadedState: {
+      connection: connectedState,
+      mission: { ...missionSlice.getInitialState(), isInEditMode: true },
+      user: {
+        ...userSlice.getInitialState(),
+        missionPerms: { missionId: 1, permissions: { view: true, edit: true } } as Permission,
+      },
     },
   });
 }
@@ -124,6 +154,7 @@ function render(mode: MapMode = "editor") {
             <MapContext.Provider value={{ map, mode }}>
               <AssetUncertainty />
               <AssetMarkers />
+              {mode === "editor" && <AssetEditGuard />}
               {mode !== "minimap" && <MarkerLabels />}
             </MapContext.Provider>
           </MapMenuProvider>
@@ -159,6 +190,8 @@ beforeEach(() => {
     controls: [],
     view: new View({ projection: "EPSG:3857", center: [0, 0], resolution: 1 }),
   });
+  map.updateSize();
+  map.renderSync();
   store = makeStore();
 });
 
@@ -237,9 +270,15 @@ describe("asset map behaviors", () => {
 
   it("labels assets separately from the Assets toggle and dims them below other labels", () => {
     const asset = placed({ name: "Core Tube" });
+    const poi = generateBlankPoi({ name: "Crater Rim", location: asset.location! });
     mockMissionDoc.assets = { [asset.uuid]: asset };
+    mockMissionDoc.pois = { [poi.uuid]: poi };
     render();
+    flushSync(() => setters!.setSubmenuPois({ show: true, showLabels: true }));
     expect(assetLabels().map((f) => f.get("name"))).toEqual(["Core Tube"]);
+    expect(labelSource!.getFeatureById(`poi-${poi.uuid}`)!.get("labelOpacity")).toBe(1);
+    expect(labelSource!.getFeatureById(`asset-${asset.uuid}`)!.get("labelOpacity")).toBeLessThan(1);
+
     flushSync(() => setters!.setSubmenuAssets({ show: true, showLabels: false }));
     expect(assetLabels()).toHaveLength(0);
     expect(assetSource!.getFeatures()).toHaveLength(1);
@@ -289,6 +328,65 @@ describe("asset map behaviors", () => {
         })
       )
     );
+    expect(assetSource!.getFeatureById(asset.uuid).getGeometry().getExtent().slice(0, 2)).toEqual([
+      20, 10,
+    ]);
+  });
+
+  it("ends an active asset gesture when blocked, and discards the draft when Edit Mode turns off", () => {
+    const asset = placed({ name: "Drill" });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    render();
+
+    const startDraftAndGesture = () => {
+      flushSync(() => {
+        store.dispatch(
+          openAssetDraft({
+            uuid: asset.uuid,
+            isNew: false,
+            missionId: null,
+            values: {
+              ...getAssetDraftValues(asset),
+              location: { lat: 0.05, lng: 0.06 },
+              name: "Moved",
+            },
+            base: getAssetDraftValues(asset),
+            elevationPending: false,
+            message: null,
+          })
+        );
+        store.dispatch(
+          updateMapDirective({
+            mapItemType: "asset",
+            uuid: asset.uuid,
+            mapAction: "editMarker",
+          })
+        );
+      });
+      expect(store.getState().map.mapDirective?.mapItemType).toBe("asset");
+    };
+
+    // Minimizing the floating widget ends the gesture while keeping the draft.
+    startDraftAndGesture();
+    flushSync(() => store.dispatch(setRexMenuIsMinimized(true)));
+    expect(store.getState().map.mapDirective).toBeNull();
+    expect(store.getState().asset.draft?.uuid).toBe(asset.uuid);
+    flushSync(() => store.dispatch(setRexMenuIsMinimized(false)));
+
+    // Hiding Assets in Map Item Visibility ends the gesture while keeping the draft.
+    startDraftAndGesture();
+    flushSync(() => setters!.setSubmenuAssets({ show: false, showLabels: true }));
+    expect(store.getState().map.mapDirective).toBeNull();
+    expect(store.getState().asset.draft?.uuid).toBe(asset.uuid);
+    flushSync(() => setters!.setSubmenuAssets({ show: true, showLabels: true }));
+
+    // Turning off global Edit Mode cancels both the gesture and the open draft.
+    startDraftAndGesture();
+    flushSync(() => store.dispatch(setIsInEditMode(false)));
+    expect(store.getState().map.mapDirective).toBeNull();
+    expect(store.getState().asset.draft).toBeNull();
+    expect(store.getState().asset.expandedAssetUuid).toBeNull();
+    // Map reverts from the unsaved draft location back to the saved asset location.
     expect(assetSource!.getFeatureById(asset.uuid).getGeometry().getExtent().slice(0, 2)).toEqual([
       20, 10,
     ]);
