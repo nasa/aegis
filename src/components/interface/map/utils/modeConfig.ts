@@ -108,6 +108,8 @@ export interface ModeConfig {
   assetLabel: {
     /** Font size (px) for asset label text. */
     fontSize: number;
+    /** CSS font-weight for asset label text ("normal", "bold", "600", ...). */
+    fontWeight: string;
     /** Label text color inside the box. */
     textColor: string;
     /** Rounded-rect background color behind the text. */
@@ -208,6 +210,7 @@ const EDITOR_CONFIG: ModeConfig = {
   },
   assetLabel: {
     fontSize: 14,
+    fontWeight: "normal",
     textColor: "rgba(255,236,170,0.95)",
     bgColor: "rgba(0,0,0,0.5)",
     accentBorder: true,
@@ -287,6 +290,7 @@ const DASHBOARD_CONFIG: ModeConfig = {
   },
   assetLabel: {
     fontSize: 20,
+    fontWeight: "bold",
     textColor: "rgba(255,236,170,0.95)",
     bgColor: "rgba(0,0,0,0.5)",
     accentBorder: true,
@@ -366,6 +370,7 @@ const MINIMAP_CONFIG: ModeConfig = {
   },
   assetLabel: {
     fontSize: 12,
+    fontWeight: "normal",
     textColor: "rgba(255,236,170,0.95)",
     bgColor: "rgba(0,0,0,0.5)",
     accentBorder: true,

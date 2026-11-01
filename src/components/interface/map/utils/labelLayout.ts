@@ -142,11 +142,12 @@ function getMeasureCtx(): CanvasRenderingContext2D | null {
  */
 export function measureLabelText(
   name: string,
-  fontSizePx = 14
+  fontSizePx = 14,
+  fontWeight: string = "normal"
 ): { width: number; height: number } | null {
   const ctx = getMeasureCtx();
   if (!ctx) return null;
-  ctx.font = `${fontSizePx}px sans-serif`;
+  ctx.font = `${fontWeight} ${fontSizePx}px sans-serif`;
   const metrics = ctx.measureText(name);
   return { width: metrics.width + 12, height: fontSizePx + 8 }; // padding included
 }
