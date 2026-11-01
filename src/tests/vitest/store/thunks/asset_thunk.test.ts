@@ -98,7 +98,7 @@ describe("thunkAddAsset", () => {
 });
 
 describe("thunkSetAssetEditLocation", () => {
-  it("captures the running REX, not the selected one, and fetches elevation into the inEdit", async () => {
+  it("resolves the running REX, not the selected one, and fetches elevation into the inEdit", async () => {
     const running = generateBlankRex({
       evaUuid: "eva-running",
       name: "Running",
@@ -206,13 +206,13 @@ describe("thunkSaveAssetEdit", () => {
     expect(inEdit()).not.toBeNull();
   });
 
-  it("waits for a pending elevation and keeps the captured placement on a delayed Save", async () => {
+  it("waits for a pending elevation and keeps the resolved placement on a delayed Save", async () => {
     await store.dispatch(thunkAddAsset());
     store.dispatch(updateAssetInEditValues({ name: "Drill" }));
     const uuid = inEdit().uuid;
     store.dispatch(thunkSetAssetEditLocation({ uuid, location: { lat: 1, lng: 1 } }));
     await flush();
-    const capturedAt = inEdit().values.placement.locationSetAt;
+    const placedAt = inEdit().values.placement.locationSetAt;
     const saving = store.dispatch(thunkSaveAssetEdit());
     await flush();
     expect(doc().assets[uuid]).toBeUndefined();
@@ -221,7 +221,7 @@ describe("thunkSaveAssetEdit", () => {
     expect(doc().assets[uuid]).toMatchObject({
       elevation: null,
       location: { lat: 1, lng: 1 },
-      placement: { locationSetAt: capturedAt },
+      placement: { locationSetAt: placedAt },
     });
   });
 

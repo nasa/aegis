@@ -4,10 +4,10 @@ import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import {
   DEFAULT_ASSET_RING_COLOR,
-  captureAssetPlacement,
   getAssetEditValues,
   getAssetRadiusColor,
   getAssetHiddenReason,
+  getAssetPlacement,
   getAssetPlacementPetSeconds,
   getChangedAssetFields,
   getVisibleMapAssets,
@@ -16,7 +16,7 @@ import {
 } from "utils/assets";
 import { calculatePetValue, petSecondsAt } from "utils/formatting";
 
-const placement = (overrides: Partial<AssetPlacementContext> = {}): AssetPlacementContext => ({
+const placement = (overrides: Partial<AssetPlacement> = {}): AssetPlacement => ({
   locationSetAt: Date.parse("2026-10-30T12:00:00Z"),
   runningRexUuid: null,
   runningRexName: null,
@@ -82,17 +82,17 @@ describe("petSecondsAt", () => {
   });
 });
 
-describe("captureAssetPlacement", () => {
+describe("getAssetPlacement", () => {
   const now = Date.parse("2026-10-30T12:00:00Z");
 
   test("records only the time when no REX is running", () => {
     const rex = generateBlankRex({ evaUuid: "eva", isRunning: false });
-    expect(captureAssetPlacement({ rexes: { [rex.uuid]: rex }, evas: {} }, now)).toEqual(
+    expect(getAssetPlacement({ rexes: { [rex.uuid]: rex }, evas: {} }, now)).toEqual(
       placement({ locationSetAt: now })
     );
   });
 
-  test("captures the running REX, its as-planned EVA name, and a detached clock copy", () => {
+  test("resolves the running REX, its as-planned EVA name, and a detached clock copy", () => {
     const planned = generateBlankEVA({ name: "EVA 2" });
     const rexEva = generateBlankEVA({ name: "", refUuid: planned.refUuid });
     const selectedButStopped = generateBlankRex({ name: "Old", evaUuid: rexEva.uuid });
@@ -108,22 +108,22 @@ describe("captureAssetPlacement", () => {
       rexes: { [rex.uuid]: rex, [selectedButStopped.uuid]: selectedButStopped },
       evas: { [planned.uuid]: planned, [rexEva.uuid]: rexEva },
     };
-    const captured = captureAssetPlacement(mission, now);
-    expect(captured).toMatchObject({
+    const resolved = getAssetPlacement(mission, now);
+    expect(resolved).toMatchObject({
       runningRexUuid: rex.uuid,
       runningRexName: "REX A",
       runningEvaUuid: rexEva.uuid,
       runningEvaName: "EVA 2",
     });
     rex.petValueAtStartStop = "+05:00:00";
-    expect(captured.petClock.petValueAtStartStop).toBe("+00:10:00");
-    expect(getAssetPlacementPetSeconds(captured)).toBe(600 + 60);
+    expect(resolved.petClock.petValueAtStartStop).toBe("+00:10:00");
+    expect(getAssetPlacementPetSeconds(resolved)).toBe(600 + 60);
   });
 
-  test("stores no REX context when more than one REX is running", () => {
+  test("records no REX when more than one REX is running", () => {
     const a = generateBlankRex({ evaUuid: "eva", isRunning: true });
     const b = generateBlankRex({ evaUuid: "eva", isRunning: true });
-    expect(captureAssetPlacement({ rexes: { [a.uuid]: a, [b.uuid]: b }, evas: {} }, now)).toEqual(
+    expect(getAssetPlacement({ rexes: { [a.uuid]: a, [b.uuid]: b }, evas: {} }, now)).toEqual(
       placement({ locationSetAt: now })
     );
   });
@@ -136,9 +136,9 @@ describe("captureAssetPlacement", () => {
       petValueAtStartStop: "-00:00:30",
     });
     const mission = { rexes: { [rex.uuid]: rex }, evas: {} };
-    const captured = captureAssetPlacement(mission, now);
+    const resolved = getAssetPlacement(mission, now);
     delete mission.rexes[rex.uuid];
-    expect(getAssetPlacementPetSeconds(captured)).toBe(-30);
+    expect(getAssetPlacementPetSeconds(resolved)).toBe(-30);
   });
 });
 

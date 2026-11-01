@@ -18,14 +18,14 @@ interface Asset {
   /** Uncertainty radius in meters; zero draws no ring or emoji disc. */
   uncertaintyMeters: number;
   notes: string | null;
-  /** Context captured when the location was last set. Null exactly when `location` is null. */
-  placement: AssetPlacementContext | null;
+  /** Placement recorded when the location was last set. Null exactly when `location` is null. */
+  placement: AssetPlacement | null;
   createdAt: number;
   updatedAt: number;
 }
 
-/** Snapshot taken at the instant an asset's location was set. */
-interface AssetPlacementContext {
+/** The running REX, its EVA, and PET clock at the instant the asset's location was set. */
+interface AssetPlacement {
   /** UTC epoch ms. */
   locationSetAt: number;
   runningRexUuid: string | null;

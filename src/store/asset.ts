@@ -33,14 +33,14 @@ export const assetSlice = createSlice({
       if (!state.inEdit) return;
       state.inEdit.values = { ...state.inEdit.values, ...action.payload };
     },
-    /** Accept a new in-edit location together with its freshly captured placement context. */
+    /** Accept a new in-edit location together with its freshly resolved placement. */
     setAssetInEditLocation: (
       state,
       action: {
         payload: {
           uuid: string;
           location: AEGISPoint;
-          placement: AssetPlacementContext;
+          placement: AssetPlacement;
           elevationPending: boolean;
         };
       }

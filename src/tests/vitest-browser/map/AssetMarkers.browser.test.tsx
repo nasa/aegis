@@ -76,7 +76,7 @@ vi.mock("utils/useDocSelector", () => ({
   useDocSelector: (): undefined => undefined,
 }));
 
-const placement: AssetPlacementContext = {
+const placement: AssetPlacement = {
   locationSetAt: 1,
   runningRexUuid: null,
   runningRexName: null,

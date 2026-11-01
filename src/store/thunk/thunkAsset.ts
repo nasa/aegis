@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import {
-  captureAssetPlacement,
+  getAssetPlacement,
   getAssetEditValues,
   getAssetFolderUuidByItem,
   getChangedAssetFields,
@@ -150,8 +150,8 @@ export const thunkStartAssetGesture = appCreateAsyncThunk<void>(
 
 /**
  * Accept a new in-edit location from a map click, a completed drag, or coordinate entry:
- * capture placement context at this instant and fetch the elevation. The document is not
- * touched until Save.
+ * resolve the placement to record at this instant and fetch the elevation. The document is
+ * not touched until Save.
  */
 export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
   uuid: string;
@@ -164,7 +164,7 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
   if (!Number.isFinite(location?.lat) || !Number.isFinite(location?.lng)) return;
 
   const point = { lat: location.lat, lng: location.lng };
-  const placement = captureAssetPlacement(mission, getAccurateNow().getTime());
+  const placement = getAssetPlacement(mission, getAccurateNow().getTime());
   const hasDem = !!mission.demFilePath;
   dispatch(
     setAssetInEditLocation({
