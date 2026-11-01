@@ -231,7 +231,7 @@ describe("MapAssetsMenu", () => {
     store = makeStore(true);
     render();
     const emojiCell = (uuid: string) =>
-      q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[1] as HTMLElement;
+      q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[2] as HTMLElement;
     expect(emojiCell(ringed.uuid).style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
     expect(emojiCell(flat.uuid).style.backgroundColor).toBe("");
   });
