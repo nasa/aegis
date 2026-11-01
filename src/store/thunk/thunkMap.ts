@@ -9,7 +9,7 @@ import { setSelectedPosEntryUuid } from "store/rex";
 import { setSelectedMeasurementUuid } from "store/measure";
 import { setSelectedEvaSequenceItemUuid } from "store/eva";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import { thunkRevealAsset } from "./thunkAsset";
+import { thunkJumpToAsset } from "./thunkAsset";
 
 export const thunkCancelMarkerMapDirective = appCreateAsyncThunk<void>(
   "mapCancelMarkerMapDirective",
@@ -118,8 +118,8 @@ export const thunkMarkerOnClick = appCreateAsyncThunk<{
     dispatch(setSelectedPoiUuid(markerUuid));
     dispatch(thunkSetRightPanelIsOpenIfAuto(true));
   } else if (mapItemType === "asset") {
-    // Assets are section-agnostic: reveal the row in the floating widget, keep the section.
-    await dispatch(thunkRevealAsset({ assetUuid: markerUuid }));
+    // Assets are section-agnostic: jump to the row in the floating widget, keep the section.
+    await dispatch(thunkJumpToAsset({ assetUuid: markerUuid }));
   }
 });
 

@@ -10,7 +10,7 @@ import {
   thunkMoveAssetToFolder,
   thunkOpenAssetDraftForEdit,
   thunkOpenNewAssetDraft,
-  thunkRevealAsset,
+  thunkJumpToAsset,
   thunkSaveAssetDraft,
   thunkSetAssetDraftLocation,
 } from "store/thunk/thunkAsset";
@@ -323,7 +323,7 @@ describe("asset gestures and row actions", () => {
     expect(store.getState().asset).toMatchObject({ draft: null, selectedAssetUuid: null });
   });
 
-  it("reveal restores the widget, requests the Assets tab, and expands the folder", async () => {
+  it("jumpTo restores the widget, requests the Assets tab, and expands the folder", async () => {
     const other = generateBlankAsset({ name: "Other" });
     const asset = generateBlankAsset({ name: "Drill" });
     const folder = generateBlankFolder({ type: "asset", items: [asset.uuid] });
@@ -351,7 +351,7 @@ describe("asset gestures and row actions", () => {
     });
     await store.dispatch(thunkOpenAssetDraftForEdit({ assetUuid: other.uuid }));
     expect(store.getState().asset.expandedAssetUuid).toBe(other.uuid);
-    await store.dispatch(thunkRevealAsset({ assetUuid: asset.uuid }));
+    await store.dispatch(thunkJumpToAsset({ assetUuid: asset.uuid }));
     const state = store.getState();
     expect(state.asset.draft).toBeNull();
     expect(state.asset.expandedAssetUuid).toBeNull();
