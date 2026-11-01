@@ -16,6 +16,7 @@
  *    they are NOT force-shown when labels are turned off
  *  - Hover-induced labels appear and are flagged isHover
  *  - The lander label is hover-only (no permanent label)
+ *  - Asset labels carry the asset's color as accentColor (default ring color fallback)
  *  - Labels stay visible as reference while an unrelated mapDirective is active
  *  - Stale labels removed when the underlying station is removed
  *  - Label opacities computed and stored on features (default = 1, since no overlap)
@@ -52,6 +53,7 @@ import { measureSlice } from "store/measure";
 import { actionSlice } from "store/action";
 import { hoverSlice } from "store/hover";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
+import { DEFAULT_ASSET_RING_COLOR } from "utils/assets";
 
 vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
   useCoordConverters: () => ({
@@ -81,6 +83,8 @@ const POI_UUID = "poi-1";
 const ACTION_UUID = "action-1";
 const EVA_UUID = "eva-1";
 const REX_UUID = "rex-1";
+const ASSET_UUID = "asset-1";
+const ASSET_UUID_2 = "asset-2";
 
 function makeStation(uuid: string, lat: number, lng: number, name?: string): Station {
   return {
@@ -124,6 +128,23 @@ function makeEva(uuid: string, stationUuids: string[]): Eva {
     sequence: stationUuids.map((u) => ({ uuid: u, type: "station" })),
     updatedAt: new Date().toISOString(),
   } as unknown as Eva;
+}
+
+function makeAsset(uuid: string, lat: number, lng: number, color: string | null): Asset {
+  return {
+    uuid,
+    name: `Asset ${uuid.slice(-1)}`,
+    icon: "1f6f8",
+    color,
+    visible: true,
+    location: { lat, lng },
+    elevation: null,
+    uncertaintyMeters: 0,
+    notes: null,
+    placement: null,
+    createdAt: 0,
+    updatedAt: 0,
+  } as unknown as Asset;
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +222,7 @@ beforeEach(() => {
   mockMissionDoc.evas = undefined;
   mockMissionDoc.pois = undefined;
   mockMissionDoc.actions = undefined;
+  mockMissionDoc.assets = undefined;
   mockMissionDoc.actionSystemVersion = undefined;
   mockMissionDoc.actionDefinitions = undefined;
   mockMissionDoc.actionDefinitionConjunctions = undefined;
@@ -552,6 +574,67 @@ describe("MarkerLabels", () => {
     const feature = labelSource!.getFeatureById(`poi-${POI_UUID}`);
     expect(feature).not.toBeNull();
     expect(feature!.get("labelType")).toBe("poi");
+  });
+
+  it("renders asset labels carrying the asset color as accentColor", () => {
+    const stationA = makeStation(STATION_A_UUID, 10, 20);
+    mockMissionDoc.stations = { [STATION_A_UUID]: stationA } as unknown as Mission["stations"];
+    mockMissionDoc.assets = {
+      [ASSET_UUID]: makeAsset(ASSET_UUID, 12, 22, "#ff0000"),
+      [ASSET_UUID_2]: makeAsset(ASSET_UUID_2, 14, 24, null),
+    } as unknown as Mission["assets"];
+
+    store = makeStore();
+    renderMarkerLabels();
+
+    flushSync(() => {
+      capturedSetters!.setSubmenuAssets({ show: true, showLabels: true });
+      capturedSetters!.setSubmenuStations({
+        show: true,
+        showLabels: true,
+        showWalkbacks: false,
+        showCircles: false,
+      });
+    });
+
+    const colored = labelSource!.getFeatureById(`asset-${ASSET_UUID}`)!;
+    expect(colored.get("labelType")).toBe("asset");
+    expect(colored.get("name")).toBe("Asset 1");
+    expect(colored.get("accentColor")).toBe("#ff0000");
+
+    // No color set — falls back to the default asset ring color
+    const uncolored = labelSource!.getFeatureById(`asset-${ASSET_UUID_2}`)!;
+    expect(uncolored.get("accentColor")).toBe(DEFAULT_ASSET_RING_COLOR);
+
+    // Non-asset labels carry no accent
+    const stationLabel = labelSource!.getFeatureById(`station-${STATION_A_UUID}`)!;
+    expect(stationLabel.get("accentColor")).toBeNull();
+  });
+
+  it("carries accentColor on the asset hover tooltip label", () => {
+    mockMissionDoc.assets = {
+      [ASSET_UUID]: makeAsset(ASSET_UUID, 12, 22, "#00ff00"),
+    } as unknown as Mission["assets"];
+
+    store = makeStore({
+      hover: {
+        ...hoverSlice.getInitialState(),
+        mapItemUuid: ASSET_UUID,
+        mapItemType: "asset",
+      },
+    } as PartialPreloadedState);
+    renderMarkerLabels();
+
+    // Permanent asset labels are on by default; turn them off so the hover
+    // tooltip branch is the only source of the label.
+    flushSync(() => {
+      capturedSetters!.setSubmenuAssets({ show: true, showLabels: false });
+    });
+
+    const feature = labelSource!.getFeatureById(`asset-${ASSET_UUID}`);
+    expect(feature).not.toBeNull();
+    expect(feature!.get("isHover")).toBe(true);
+    expect(feature!.get("accentColor")).toBe("#00ff00");
   });
 
   it("renders action label for selected station when actions.showLabels is on", () => {

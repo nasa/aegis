@@ -103,6 +103,21 @@ export interface ModeConfig {
     connectorWidth: number;
   };
 
+  // Asset name labels (MarkerLabels). Same box style as other marker labels;
+  // these knobs restyle the asset boxes per mode.
+  assetLabel: {
+    /** Font size (px) for asset label text. */
+    fontSize: number;
+    /** Label text color inside the box. */
+    textColor: string;
+    /** Rounded-rect background color behind the text. */
+    bgColor: string;
+    /** Whether the box gets an accent border in the asset's own color. */
+    accentBorder: boolean;
+    /** Width (px) of the accent border stroke. Only drawn when `accentBorder` is true. */
+    accentBorderWidth: number;
+  };
+
   // POS entries
   pos: {
     evIconSize: number;
@@ -188,6 +203,13 @@ const EDITOR_CONFIG: ModeConfig = {
     fontSize: 14,
     connectorWidth: 1.5,
   },
+  assetLabel: {
+    fontSize: 14,
+    textColor: "rgba(255,236,170,0.95)",
+    bgColor: "rgba(0,0,0,0.5)",
+    accentBorder: true,
+    accentBorderWidth: 2,
+  },
   pos: {
     evIconSize: 20,
     colorBarOffset: 8,
@@ -260,6 +282,13 @@ const DASHBOARD_CONFIG: ModeConfig = {
     fontSize: 20,
     connectorWidth: 3,
   },
+  assetLabel: {
+    fontSize: 20,
+    textColor: "rgba(255,236,170,0.95)",
+    bgColor: "rgba(0,0,0,0.5)",
+    accentBorder: true,
+    accentBorderWidth: 2,
+  },
   pos: {
     evIconSize: 40,
     colorBarOffset: 8,
@@ -331,6 +360,13 @@ const MINIMAP_CONFIG: ModeConfig = {
   markerLabel: {
     fontSize: 12,
     connectorWidth: 1.5,
+  },
+  assetLabel: {
+    fontSize: 12,
+    textColor: "rgba(255,236,170,0.95)",
+    bgColor: "rgba(0,0,0,0.5)",
+    accentBorder: true,
+    accentBorderWidth: 2,
   },
   pos: {
     evIconSize: 20,

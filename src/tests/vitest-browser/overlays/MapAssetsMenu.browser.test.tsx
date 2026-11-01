@@ -331,9 +331,10 @@ describe("MapAssetsMenu", () => {
     expect(cancelDraft).not.toHaveBeenCalled();
     expect(store.getState().asset.selectedAssetUuid).toBe(first.uuid);
 
-    // Selecting 'second' cancels the edit draft and selects 'second'.
+    // Selecting 'second' cancels the edit draft, collapses 'first', and selects 'second'.
     flushSync(() => q(`[data-testid='asset-row-${second.uuid}']`)!.click());
     expect(cancelDraft).toHaveBeenCalledTimes(1);
+    expect(store.getState().asset.expandedAssetUuid).toBeNull();
     expect(store.getState().asset.selectedAssetUuid).toBe(second.uuid);
 
     // Adding a new asset: selecting any row cancels the add draft.

@@ -319,6 +319,10 @@ a cache key omits a varying input:
 - `markerLabels.ts` (`createMarkerLabelStyle`): caches the rendered text-box canvas by
   `name-labelType-fontSize`. Draws a dashed black+white connector from label to anchor (skipped
   when the label is within 2px of the anchor). Opacity applied via `Icon.opacity`, not baked.
+  Asset labels take per-mode colors/font size/accent border (toggle + width) from
+  `MODE_CONFIGS[mode].assetLabel` (passed to the builder by `MarkerLabels`); without it they fall
+  back to the hard-coded `asset` `LABEL_COLORS` entry. The accent border (the asset's own color)
+  is baked into the canvas.
 - `polylines.ts`: module-level `baseStyleCache` for traverse lines (keyed
   `color|weight|selectedWeight|isSelected`) + `arrowCache` for chevron SVG data-URIs. Selected
   "glow" only pushed when `selectedWeight > 0` (dashboard/minimap set it to 0 = no emphasis).
@@ -380,8 +384,8 @@ for the timeline astronaut renders above all vector layers regardless.
 
 `utils/modeConfig.ts` → `MODE_CONFIGS[mode]` (mode from `useMapContext()`). Same rendering
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
-branching on mode. Sections: `map`, `lander`, `station`, `asset`, `circle`, `traverse`, `markerLabel`,
-`pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
+branching on mode. Sections: `map`, `lander`, `station`, `asset`, `assetLabel`, `circle`,
+`traverse`, `markerLabel`, `pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
 
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
 - dashboard: larger icons and label fonts throughout, `tooltipOpacity 0.65`, `hoverable: false`
@@ -390,9 +394,9 @@ branching on mode. Sections: `map`, `lander`, `station`, `asset`, `circle`, `tra
   `grid.labelsEnabled: false`, `dataLayer.labelsEnabled: false`.
 
 **Every** on-map font size is a mode-config number — `circle.labelFontSize`,
-`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `grid.labelFontSize`,
-`scaleBar.fontSize`, and `dataLayer.gazetteer/featureFontSize`. Don't hardcode a `px` size in a
-style file; add it here instead.
+`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `assetLabel.fontSize`,
+`grid.labelFontSize`, `scaleBar.fontSize`, and `dataLayer.gazetteer/featureFontSize`. Don't hardcode
+a `px` size in a style file; add it here instead.
 
 `dataLayer` (`DataLayerConfig`) is the one section consumed outside the behavior components:
 `layerFactory` takes it on `LayerFactoryInput` and as the 2nd arg of `buildVectorStyleFn`, and
@@ -523,7 +527,7 @@ Overlay gotchas:
 | `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                          |
 | `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); editor draws the draft under the asset's id; click → `thunkRevealAsset`   |
 | `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; no ids, not interactive; zero radius draws nothing (table row disc too)    |
-| `AssetEditGuard`     | —                                                      | editor      | —                            | ends stale asset gestures; discards the draft on unmount                                                                                        |
+| `AssetEditGuard`     | —                                                      | editor      | —                            | ends stale asset gestures; discards the draft when Edit Mode/permission is lost or on unmount                                                   |
 | `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                              |
 | `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                     |
 | `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                        |

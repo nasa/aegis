@@ -1,11 +1,11 @@
 /**
  * AssetEditGuard — ends an asset map gesture when it can no longer apply, and discards the
- * asset draft when the editor map unmounts (e.g. leaving the mission).
+ * asset draft when Edit Mode or edit permission is lost or when the editor map unmounts
+ * (e.g. leaving the mission).
  *
  * The gesture ends, keeping the draft, when: Assets is turned off, the edited asset or its
- * folder is hidden, the floating widget is minimized, edit permission, Edit Mode, or the
- * connection is lost, or the draft it targets is gone. Showing the asset again does not
- * restart it.
+ * folder is hidden, the floating widget is minimized, the connection is lost, or the draft it
+ * targets is gone. Showing the asset again does not restart it.
  *
  * Editor only. Returns null — headless behavior component.
  */
@@ -47,6 +47,10 @@ export function AssetEditGuard(): null {
     !canEdit ||
     !connected ||
     draftUuid !== mapDirective?.uuid;
+
+  useEffect(() => {
+    if (draftUuid && !canEdit) dispatch(thunkCancelAssetDraft());
+  }, [draftUuid, canEdit, dispatch]);
 
   useEffect(() => {
     if (assetGestureActive && gestureBlocked) dispatch(thunkCancelAssetGesture());

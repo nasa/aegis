@@ -85,6 +85,9 @@ export const assetSlice = createSlice({
       state.draft.message = action.payload.message;
     },
     clearAssetDraft: (state) => {
+      if (state.draft && !state.draft.isNew && state.expandedAssetUuid === state.draft.uuid) {
+        state.expandedAssetUuid = null;
+      }
       state.draft = null;
     },
     requestAssetsTab: (state) => {

@@ -136,8 +136,8 @@ export const thunkOpenAssetDraftForEdit = appCreateAsyncThunk<{ assetUuid: strin
 export const thunkCancelAssetDraft = appCreateAsyncThunk<void>(
   "asset/cancelDraft",
   async (__, { dispatch }) => {
-    await dispatch(thunkCancelAssetGesture());
     dispatch(clearAssetDraft());
+    await dispatch(thunkCancelAssetGesture());
   }
 );
 
