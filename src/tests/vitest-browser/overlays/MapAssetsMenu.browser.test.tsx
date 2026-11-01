@@ -16,7 +16,7 @@ import "styles/fonts.css";
 
 import { MapAssetsMenu } from "components/interface/map/overlays/map-menu-assets";
 import { MapMenuProvider, useMapMenuContext } from "components/interface/map/MapMenuProvider";
-import { assetSlice, openAssetDraft } from "store/asset";
+import { assetSlice, setAssetInEdit } from "store/asset";
 import { connectionSlice } from "store/connection";
 import { hoverSlice } from "store/hover";
 import { interfaceSlice } from "store/interface";
@@ -25,7 +25,7 @@ import { missionSlice } from "store/mission";
 import { userSlice } from "store/user";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
-import { getAssetDraftValues } from "utils/assets";
+import { getAssetEditValues } from "utils/assets";
 import { createReactHarness, type ReactHarness } from "../map/helpers/reactBrowserHarness";
 
 const mockMissionDoc: Partial<Mission> = {};
@@ -36,8 +36,8 @@ vi.mock("utils/useDocSelector", () => ({
 }));
 
 const startGesture = vi.fn(() => ({ type: "mock/startGesture" }));
-const openNewDraft = vi.fn(() => ({ type: "mock/openNewDraft" }));
-const openEditDraft = vi.fn((args: { assetUuid: string }) => ({
+const addAsset = vi.fn(() => ({ type: "mock/addAsset" }));
+const editAsset = vi.fn((args: { assetUuid: string }) => ({
   type: "mock/openEdit",
   payload: args,
 }));
@@ -45,15 +45,15 @@ const deleteAsset = vi.fn((args: { assetUuid: string }) => ({
   type: "mock/delete",
   payload: args,
 }));
-const cancelDraft = vi.fn(() => ({ type: "mock/cancelDraft" }));
+const cancelEdit = vi.fn(() => ({ type: "mock/cancelEdit" }));
 vi.mock("store/thunk/thunkAsset", () => ({
   thunkStartAssetGesture: () => startGesture(),
-  thunkOpenNewAssetDraft: () => openNewDraft(),
+  thunkAddAsset: () => addAsset(),
   thunkCancelAssetGesture: () => ({ type: "mock/cancelGesture" }),
-  thunkCancelAssetDraft: () => cancelDraft(),
-  thunkSaveAssetDraft: () => ({ type: "mock/save" }),
-  thunkSetAssetDraftLocation: () => ({ type: "mock/setLocation" }),
-  thunkOpenAssetDraftForEdit: (args: { assetUuid: string }) => openEditDraft(args),
+  thunkCancelAssetEdit: () => cancelEdit(),
+  thunkSaveAssetEdit: () => ({ type: "mock/save" }),
+  thunkSetAssetEditLocation: () => ({ type: "mock/setLocation" }),
+  thunkEditAsset: (args: { assetUuid: string }) => editAsset(args),
   thunkDeleteAsset: (args: { assetUuid: string }) => deleteAsset(args),
   thunkMoveAssetToFolder: () => ({ type: "mock/move" }),
   thunkToggleAssetVisible: () => ({ type: "mock/toggleVisible" }),
@@ -138,7 +138,7 @@ describe("MapAssetsMenu", () => {
       "No assets added yet. Click Add Asset to add one."
     );
     byText("Add Asset")!.click();
-    expect(openNewDraft).toHaveBeenCalledTimes(1);
+    expect(addAsset).toHaveBeenCalledTimes(1);
   });
 
   it("is read-only without edit permission", () => {
@@ -241,10 +241,10 @@ describe("MapAssetsMenu", () => {
     render();
     flushSync(() =>
       store.dispatch(
-        openAssetDraft({
+        setAssetInEdit({
           uuid: "new-asset",
           isNew: true,
-          values: getAssetDraftValues(generateBlankAsset()),
+          values: getAssetEditValues(generateBlankAsset()),
           base: null,
           elevationPending: false,
         })
@@ -285,11 +285,11 @@ describe("MapAssetsMenu", () => {
     render();
     flushSync(() =>
       store.dispatch(
-        openAssetDraft({
+        setAssetInEdit({
           uuid: asset.uuid,
           isNew: false,
-          values: getAssetDraftValues(asset),
-          base: getAssetDraftValues(asset),
+          values: getAssetEditValues(asset),
+          base: getAssetEditValues(asset),
           elevationPending: false,
         })
       )
@@ -301,7 +301,7 @@ describe("MapAssetsMenu", () => {
     expect(q("[data-testid='asset-editor-coordinates']")?.hasAttribute("disabled")).toBe(false);
   });
 
-  it("cancels an in-progress edit or add draft when selecting another row", () => {
+  it("cancels an in-progress edit or add inEdit when selecting another row", () => {
     const first = generateBlankAsset({ name: "First" });
     const second = generateBlankAsset({ name: "Second" });
     mockMissionDoc.assets = { [first.uuid]: first, [second.uuid]: second };
@@ -312,41 +312,41 @@ describe("MapAssetsMenu", () => {
     flushSync(() => {
       store.dispatch(assetSlice.actions.setSelectedAssetUuid(first.uuid));
       store.dispatch(
-        openAssetDraft({
+        setAssetInEdit({
           uuid: first.uuid,
           isNew: false,
-          values: getAssetDraftValues(first),
-          base: getAssetDraftValues(first),
+          values: getAssetEditValues(first),
+          base: getAssetEditValues(first),
           elevationPending: false,
         })
       );
     });
     flushSync(() => q(`[data-testid='asset-row-${first.uuid}']`)!.click());
-    expect(cancelDraft).not.toHaveBeenCalled();
+    expect(cancelEdit).not.toHaveBeenCalled();
     expect(store.getState().asset.selectedAssetUuid).toBe(first.uuid);
 
-    // Selecting 'second' cancels the edit draft, collapses 'first', and selects 'second'.
+    // Selecting 'second' cancels the open edit, collapses 'first', and selects 'second'.
     flushSync(() => q(`[data-testid='asset-row-${second.uuid}']`)!.click());
-    expect(cancelDraft).toHaveBeenCalledTimes(1);
+    expect(cancelEdit).toHaveBeenCalledTimes(1);
     expect(store.getState().asset.expandedAssetUuid).toBeNull();
     expect(store.getState().asset.selectedAssetUuid).toBe(second.uuid);
 
-    // Adding a new asset: selecting any row cancels the add draft.
-    cancelDraft.mockClear();
+    // Adding a new asset: selecting any row cancels the add session.
+    cancelEdit.mockClear();
     flushSync(() => {
       store.dispatch(assetSlice.actions.setSelectedAssetUuid("new-asset"));
       store.dispatch(
-        openAssetDraft({
+        setAssetInEdit({
           uuid: "new-asset",
           isNew: true,
-          values: getAssetDraftValues(generateBlankAsset()),
+          values: getAssetEditValues(generateBlankAsset()),
           base: null,
           elevationPending: false,
         })
       );
     });
     flushSync(() => q(`[data-testid='asset-row-${first.uuid}']`)!.click());
-    expect(cancelDraft).toHaveBeenCalledTimes(1);
+    expect(cancelEdit).toHaveBeenCalledTimes(1);
     expect(store.getState().asset.selectedAssetUuid).toBe(first.uuid);
   });
 
@@ -400,20 +400,20 @@ describe("MapAssetsMenu", () => {
 
       // Clicking Edit or Delete inside the expanded panel acts on that asset.
       flushSync(() => q("[data-testid='asset-editor'] [aria-label='Edit']")!.click());
-      expect(openEditDraft).toHaveBeenCalledWith({ assetUuid: second.uuid });
+      expect(editAsset).toHaveBeenCalledWith({ assetUuid: second.uuid });
       const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
       flushSync(() => q("[data-testid='asset-editor'] [aria-label='Delete']")!.click());
       expect(deleteAsset).toHaveBeenCalledWith({ assetUuid: second.uuid });
       confirmSpy.mockRestore();
 
-      // Opening an edit draft on 'first' expands 'first' in edit mode inside its row.
+      // Opening an edit session on 'first' expands 'first' in edit mode inside its row.
       flushSync(() =>
         store.dispatch(
-          openAssetDraft({
+          setAssetInEdit({
             uuid: first.uuid,
             isNew: false,
-            values: getAssetDraftValues(first),
-            base: getAssetDraftValues(first),
+            values: getAssetEditValues(first),
+            base: getAssetEditValues(first),
             elevationPending: false,
           })
         )

@@ -5,7 +5,7 @@
  * asset with a positive radius gets a polygon feature filled in its radius color with no
  * stroke; the selected asset's circle gets a white stroke. Features are rebuilt in full on
  * change, have no ids so they can never be an edit target, and are not interactive. Zero
- * uncertainty draws nothing. On the editor, the edited asset's circle follows the draft.
+ * uncertainty draws nothing. On the editor, the edited asset's circle follows the in-edit values.
  *
  * Returns null — headless behavior component.
  */

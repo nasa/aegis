@@ -2,8 +2,8 @@
  * AssetMarkers — behavior component for asset markers on the OL map.
  *
  * Draws every placed, visible asset (see `getVisibleMapAssets`) on the shared assetSource,
- * in every editor section and on the dashboard and minimap. On the editor, an open asset
- * draft replaces its saved values under the same feature id, so `editMarker` has exactly
+ * in every editor section and on the dashboard and minimap. On the editor, an open in-edit
+ * session replaces its saved values under the same feature id, so `editMarker` has exactly
  * one target and there is never a duplicate marker.
  *
  * Returns null — headless behavior component.
@@ -32,24 +32,24 @@ import { reconcileFeatures, type FeatureDescriptor } from "../utils/featureRecon
 import { buildAssetStyleFunction } from "../utils/styles/markers";
 import { Z_INDEX } from "../utils/zIndex";
 
-/** Visible assets for this map, with the editor's draft applied. */
+/** Visible assets for this map, with the in-edit session applied. */
 export function useVisibleMapAssets(): AssetMapItem[] {
   const { mode } = useMapContext();
   const { submenuAssets } = useMapMenuContext();
   const assets = useMissionDocSelector((m) => Object.values(m.assets ?? {}), deepEqual);
   const folders: Folder[] =
     useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
-  const draft = useAppSelector((s) => (mode === "editor" ? s.asset.draft : null), refEqual);
+  const inEdit = useAppSelector((s) => (mode === "editor" ? s.asset.inEdit : null), refEqual);
 
   return useMemo(
     () =>
       getVisibleMapAssets({
         assets: assets ?? [],
         folders,
-        draft,
+        inEdit,
         showAssets: submenuAssets.show,
       }),
-    [assets, folders, draft, submenuAssets.show]
+    [assets, folders, inEdit, submenuAssets.show]
   );
 }
 

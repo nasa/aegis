@@ -17,23 +17,23 @@ import { useMapMenuSetters } from "../MapMenuProvider";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { updateAssetDraftValues } from "store/asset";
+import { updateAssetInEditValues } from "store/asset";
 import {
-  thunkCancelAssetDraft,
+  thunkCancelAssetEdit,
   thunkCancelAssetGesture,
   thunkDeleteAsset,
-  thunkSaveAssetDraft,
-  thunkSetAssetDraftLocation,
+  thunkSaveAssetEdit,
+  thunkSetAssetEditLocation,
   thunkStartAssetGesture,
 } from "store/thunk/thunkAsset";
 import {
   DEFAULT_ASSET_ICON,
-  getAssetDraftValues,
+  getAssetEditValues,
   getAssetFolderUuidByItem,
   getAssetHiddenReason,
   getAssetPlacementPetSeconds,
   getChangedAssetFields,
-  validateAssetDraftValues,
+  validateAssetEditValues,
 } from "utils/assets";
 import {
   formatCoordinateEntry,
@@ -52,7 +52,7 @@ export function formatUtcTime(ms: number): string {
 type Props =
   | {
       mode?: "edit";
-      draft: AssetDraft;
+      inEdit: AssetInEdit;
       canMutate: boolean;
       coordinateContext: CoordinateEntryContext;
     }
@@ -70,9 +70,9 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
   const dispatch = useAppDispatch();
   const { setSubmenuAssets } = useMapMenuSetters();
   const isView = props.mode === "view";
-  const draft = isView ? null : props.draft;
-  const assetUuid = isView ? props.asset.uuid : props.draft.uuid;
-  const values = isView ? getAssetDraftValues(props.asset) : props.draft.values;
+  const inEdit = isView ? null : props.inEdit;
+  const assetUuid = isView ? props.asset.uuid : props.inEdit.uuid;
+  const values = isView ? getAssetEditValues(props.asset) : props.inEdit.values;
   const { canMutate, coordinateContext } = props;
   const editable = !isView && canMutate;
 
@@ -106,8 +106,9 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
   );
 
   const dirty =
-    !!draft && (draft.isNew || Object.keys(getChangedAssetFields(draft.base, values)).length > 0);
-  const invalid = draft ? validateAssetDraftValues({ ...values, name: values.name.trim() }) : null;
+    !!inEdit &&
+    (inEdit.isNew || Object.keys(getChangedAssetFields(inEdit.base, values)).length > 0);
+  const invalid = inEdit ? validateAssetEditValues({ ...values, name: values.name.trim() }) : null;
 
   // --- Text fields kept local so partial input can be typed ---
   const formattedLocation = formatCoordinateEntry(values.location, coordinateContext);
@@ -135,7 +136,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const submitCoordinates = () => {
-    if (!draft) return;
+    if (!inEdit) return;
     const text = coordinateText.trim();
     // Unchanged or cleared text never moves or clears an existing location.
     if (text === formattedLocation.trim() || !text) {
@@ -150,7 +151,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     }
     setCoordinateError(null);
     dispatch(thunkCancelAssetGesture());
-    dispatch(thunkSetAssetDraftLocation({ uuid: draft.uuid, location: result.location }));
+    dispatch(thunkSetAssetEditLocation({ uuid: inEdit.uuid, location: result.location }));
   };
 
   const startGesture = () => {
@@ -215,7 +216,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         onClick={async () => {
           setSaving(true);
           try {
-            await dispatch(thunkSaveAssetDraft());
+            await dispatch(thunkSaveAssetEdit());
           } finally {
             setSaving(false);
           }
@@ -224,7 +225,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         ariaLabel="Save"
         toolTip={
           saving
-            ? draft?.elevationPending
+            ? inEdit?.elevationPending
               ? "Waiting for elevation…"
               : "Saving…"
             : (invalid ?? (dirty ? "Save" : "Nothing to save"))
@@ -233,7 +234,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         enabled={saveEnabled}
       />
       <Button
-        onClick={() => dispatch(thunkCancelAssetDraft())}
+        onClick={() => dispatch(thunkCancelAssetEdit())}
         icon={faBan}
         ariaLabel="Cancel"
         toolTip="Cancel"
@@ -249,7 +250,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     >
       <div className={styles.editorHeader}>
         <div className={styles.editorHeading}>
-          {isView ? "Asset Details" : draft?.isNew ? "Add Asset" : "Edit Asset"}
+          {isView ? "Asset Details" : inEdit?.isNew ? "Add Asset" : "Edit Asset"}
         </div>
         <div
           className={styles.editorPlacement}
@@ -300,7 +301,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
                   perLine={9}
                   darkMode={true}
                   onEmojiSelect={(e) => {
-                    dispatch(updateAssetDraftValues({ icon: e.unified || e.id || null }));
+                    dispatch(updateAssetInEditValues({ icon: e.unified || e.id || null }));
                     emojiDialogRef.current?.close();
                   }}
                 />
@@ -309,7 +310,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
                     type="button"
                     className={styles.textButton}
                     onClick={() => {
-                      dispatch(updateAssetDraftValues({ icon: null }));
+                      dispatch(updateAssetInEditValues({ icon: null }));
                       emojiDialogRef.current?.close();
                     }}
                   >
@@ -326,7 +327,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
               data-testid="asset-editor-name"
               disabled={!editable}
               maxLength={80}
-              onChange={(e) => dispatch(updateAssetDraftValues({ name: e.target.value }))}
+              onChange={(e) => dispatch(updateAssetInEditValues({ name: e.target.value }))}
             />
           </div>
         )}
@@ -365,7 +366,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
                 setUncertaintyText(e.target.value);
                 const parsed = Number(e.target.value);
                 if (e.target.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0) {
-                  dispatch(updateAssetDraftValues({ uncertaintyMeters: parsed }));
+                  dispatch(updateAssetInEditValues({ uncertaintyMeters: parsed }));
                 }
               }}
             />
@@ -393,7 +394,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
                       color={values.color ?? undefined}
                       colors={COLOR_PALATTE}
                       onChange={(color) => {
-                        dispatch(updateAssetDraftValues({ color: color.hex }));
+                        dispatch(updateAssetInEditValues({ color: color.hex }));
                         setShowColorPicker(false);
                       }}
                     />
@@ -403,7 +404,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
             </div>
             {values.color ? (
               <Button
-                onClick={() => dispatch(updateAssetDraftValues({ color: null }))}
+                onClick={() => dispatch(updateAssetInEditValues({ color: null }))}
                 icon={faXmark}
                 label="Clear"
                 ariaLabel="Clear radius color"
@@ -464,12 +465,12 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
             )}
           </div>
         )}
-        {(values.location || draft?.elevationPending) && (
+        {(values.location || inEdit?.elevationPending) && (
           <div className={`${styles.fieldNote} ${styles.fieldValueColumn}`}>
             {values.location && <span>{formatLatLng(values.location)}</span>}
             <span data-testid="asset-editor-elevation">
               Elev.{" "}
-              {draft?.elevationPending
+              {inEdit?.elevationPending
                 ? "Fetching…"
                 : values.elevation !== null
                   ? `${values.elevation.toFixed(1)} m`
@@ -506,7 +507,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
             data-testid="asset-editor-notes"
             disabled={!editable}
             rows={1}
-            onChange={(e) => dispatch(updateAssetDraftValues({ notes: e.target.value || null }))}
+            onChange={(e) => dispatch(updateAssetInEditValues({ notes: e.target.value || null }))}
           />
         )}
       </div>

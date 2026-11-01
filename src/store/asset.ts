@@ -4,7 +4,7 @@ import { setAllSliceStores } from "./crossActions";
 export const initialState: AssetState = {
   selectedAssetUuid: null,
   expandedAssetUuid: null,
-  draft: null,
+  inEdit: null,
   assetsTabRequestId: 0,
 };
 
@@ -18,22 +18,23 @@ export const assetSlice = createSlice({
     setExpandedAssetUuid: (state, action: { payload: string | null }) => {
       state.expandedAssetUuid = action.payload;
     },
-    openAssetDraft: (state, action: { payload: AssetDraft }) => {
-      state.draft = action.payload;
+    /** Open an Add or Edit session; an edited asset's row expands, a new one has no row. */
+    setAssetInEdit: (state, action: { payload: AssetInEdit }) => {
+      state.inEdit = action.payload;
       state.expandedAssetUuid = action.payload.isNew ? null : action.payload.uuid;
     },
-    /** Update draft fields other than location, elevation, and placement. */
-    updateAssetDraftValues: (
+    /** Update in-edit fields other than location, elevation, and placement. */
+    updateAssetInEditValues: (
       state,
       action: {
-        payload: Partial<Omit<AssetDraftValues, "location" | "elevation" | "placement">>;
+        payload: Partial<Omit<AssetEditValues, "location" | "elevation" | "placement">>;
       }
     ) => {
-      if (!state.draft) return;
-      state.draft.values = { ...state.draft.values, ...action.payload };
+      if (!state.inEdit) return;
+      state.inEdit.values = { ...state.inEdit.values, ...action.payload };
     },
-    /** Accept a new draft location together with its freshly captured placement context. */
-    setAssetDraftLocation: (
+    /** Accept a new in-edit location together with its freshly captured placement context. */
+    setAssetInEditLocation: (
       state,
       action: {
         payload: {
@@ -45,29 +46,29 @@ export const assetSlice = createSlice({
       }
     ) => {
       const { uuid, location, placement, elevationPending } = action.payload;
-      if (state.draft?.uuid !== uuid) return;
-      state.draft.values.location = { lat: location.lat, lng: location.lng };
-      state.draft.values.placement = placement;
-      state.draft.values.elevation = null;
-      state.draft.elevationPending = elevationPending;
+      if (state.inEdit?.uuid !== uuid) return;
+      state.inEdit.values.location = { lat: location.lat, lng: location.lng };
+      state.inEdit.values.placement = placement;
+      state.inEdit.values.elevation = null;
+      state.inEdit.elevationPending = elevationPending;
     },
-    /** Store a fetched elevation, discarding it if the draft has moved since the fetch began. */
-    setAssetDraftElevation: (
+    /** Store a fetched elevation, discarding it if the asset has moved since the fetch began. */
+    setAssetInEditElevation: (
       state,
       action: { payload: { uuid: string; location: AEGISPoint; elevation: number | null } }
     ) => {
       const { uuid, location, elevation } = action.payload;
-      if (state.draft?.uuid !== uuid) return;
-      const current = state.draft.values.location;
+      if (state.inEdit?.uuid !== uuid) return;
+      const current = state.inEdit.values.location;
       if (!current || current.lat !== location.lat || current.lng !== location.lng) return;
-      state.draft.values.elevation = elevation;
-      state.draft.elevationPending = false;
+      state.inEdit.values.elevation = elevation;
+      state.inEdit.elevationPending = false;
     },
-    clearAssetDraft: (state) => {
-      if (state.draft && !state.draft.isNew && state.expandedAssetUuid === state.draft.uuid) {
+    clearAssetInEdit: (state) => {
+      if (state.inEdit && !state.inEdit.isNew && state.expandedAssetUuid === state.inEdit.uuid) {
         state.expandedAssetUuid = null;
       }
-      state.draft = null;
+      state.inEdit = null;
     },
     requestAssetsTab: (state) => {
       state.assetsTabRequestId += 1;
@@ -88,11 +89,11 @@ export const assetSlice = createSlice({
 export const {
   setSelectedAssetUuid,
   setExpandedAssetUuid,
-  openAssetDraft,
-  updateAssetDraftValues,
-  setAssetDraftLocation,
-  setAssetDraftElevation,
-  clearAssetDraft,
+  setAssetInEdit,
+  updateAssetInEditValues,
+  setAssetInEditLocation,
+  setAssetInEditElevation,
+  clearAssetInEdit,
   requestAssetsTab,
   obliterateState,
 } = assetSlice.actions;

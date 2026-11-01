@@ -32,7 +32,7 @@ import { AssetMarkers } from "components/interface/map/behaviors/AssetMarkers";
 import { AssetUncertainty } from "components/interface/map/behaviors/AssetUncertainty";
 import { MarkerLabels } from "components/interface/map/behaviors/MarkerLabels";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
-import { assetSlice, openAssetDraft, setSelectedAssetUuid } from "store/asset";
+import { assetSlice, setAssetInEdit, setSelectedAssetUuid } from "store/asset";
 import { actionSlice } from "store/action";
 import { connectionSlice } from "store/connection";
 import { evaSlice } from "store/eva";
@@ -49,7 +49,7 @@ import { userSlice } from "store/user";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankPoi } from "store/storeUtils/poi";
-import { getAssetDraftValues } from "utils/assets";
+import { getAssetEditValues } from "utils/assets";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
@@ -284,21 +284,21 @@ describe("asset map behaviors", () => {
     expect(assetSource!.getFeatures()).toHaveLength(1);
   });
 
-  it("previews the editor draft under the saved asset's feature id", () => {
+  it("previews the editor inEdit under the saved asset's feature id", () => {
     const asset = placed({ name: "Drill" });
     mockMissionDoc.assets = { [asset.uuid]: asset };
     render();
     flushSync(() =>
       store.dispatch(
-        openAssetDraft({
+        setAssetInEdit({
           uuid: asset.uuid,
           isNew: false,
           values: {
-            ...getAssetDraftValues(asset),
+            ...getAssetEditValues(asset),
             location: { lat: 0.05, lng: 0.06 },
             name: "Moved",
           },
-          base: getAssetDraftValues(asset),
+          base: getAssetEditValues(asset),
           elevationPending: false,
         })
       )
@@ -309,17 +309,17 @@ describe("asset map behaviors", () => {
     expect(assetLabels().map((f) => f.get("name"))).toEqual(["Moved"]);
   });
 
-  it("does not show the editor draft on the minimap", () => {
+  it("does not show the editor inEdit on the minimap", () => {
     const asset = placed();
     mockMissionDoc.assets = { [asset.uuid]: asset };
     render("minimap");
     flushSync(() =>
       store.dispatch(
-        openAssetDraft({
+        setAssetInEdit({
           uuid: asset.uuid,
           isNew: false,
-          values: { ...getAssetDraftValues(asset), location: { lat: 0.05, lng: 0.06 } },
-          base: getAssetDraftValues(asset),
+          values: { ...getAssetEditValues(asset), location: { lat: 0.05, lng: 0.06 } },
+          base: getAssetEditValues(asset),
           elevationPending: false,
         })
       )
@@ -329,23 +329,23 @@ describe("asset map behaviors", () => {
     ]);
   });
 
-  it("ends an active asset gesture when blocked, and discards the draft when Edit Mode turns off", () => {
+  it("ends an active asset gesture when blocked, and discards the inEdit when Edit Mode turns off", () => {
     const asset = placed({ name: "Drill" });
     mockMissionDoc.assets = { [asset.uuid]: asset };
     render();
 
-    const startDraftAndGesture = () => {
+    const startEditAndGesture = () => {
       flushSync(() => {
         store.dispatch(
-          openAssetDraft({
+          setAssetInEdit({
             uuid: asset.uuid,
             isNew: false,
             values: {
-              ...getAssetDraftValues(asset),
+              ...getAssetEditValues(asset),
               location: { lat: 0.05, lng: 0.06 },
               name: "Moved",
             },
-            base: getAssetDraftValues(asset),
+            base: getAssetEditValues(asset),
             elevationPending: false,
           })
         );
@@ -360,27 +360,27 @@ describe("asset map behaviors", () => {
       expect(store.getState().map.mapDirective?.mapItemType).toBe("asset");
     };
 
-    // Minimizing the floating widget ends the gesture while keeping the draft.
-    startDraftAndGesture();
+    // Minimizing the floating widget ends the gesture while keeping the open session.
+    startEditAndGesture();
     flushSync(() => store.dispatch(setRexMenuIsMinimized(true)));
     expect(store.getState().map.mapDirective).toBeNull();
-    expect(store.getState().asset.draft?.uuid).toBe(asset.uuid);
+    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
     flushSync(() => store.dispatch(setRexMenuIsMinimized(false)));
 
-    // Hiding Assets in Map Item Visibility ends the gesture while keeping the draft.
-    startDraftAndGesture();
+    // Hiding Assets in Map Item Visibility ends the gesture while keeping the open session.
+    startEditAndGesture();
     flushSync(() => setters!.setSubmenuAssets({ show: false, showLabels: true }));
     expect(store.getState().map.mapDirective).toBeNull();
-    expect(store.getState().asset.draft?.uuid).toBe(asset.uuid);
+    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
     flushSync(() => setters!.setSubmenuAssets({ show: true, showLabels: true }));
 
-    // Turning off global Edit Mode cancels both the gesture and the open draft.
-    startDraftAndGesture();
+    // Turning off global Edit Mode cancels both the gesture and the open session.
+    startEditAndGesture();
     flushSync(() => store.dispatch(setIsInEditMode(false)));
     expect(store.getState().map.mapDirective).toBeNull();
-    expect(store.getState().asset.draft).toBeNull();
+    expect(store.getState().asset.inEdit).toBeNull();
     expect(store.getState().asset.expandedAssetUuid).toBeNull();
-    // Map reverts from the unsaved draft location back to the saved asset location.
+    // Map reverts from the unsaved in-edit location back to the saved asset location.
     expect(assetSource!.getFeatureById(asset.uuid).getGeometry().getExtent().slice(0, 2)).toEqual([
       20, 10,
     ]);

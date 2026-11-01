@@ -91,7 +91,7 @@ vi.mock("store/thunk/thunkMeasurement", () => ({
 }));
 
 vi.mock("store/thunk/thunkAsset", () => ({
-  thunkSetAssetDraftLocation: vi.fn(() => ({ type: "mock/thunkSetAssetDraftLocation" })),
+  thunkSetAssetEditLocation: vi.fn(() => ({ type: "mock/thunkSetAssetEditLocation" })),
 }));
 
 // ---------------------------------------------------------------------------
@@ -281,8 +281,8 @@ describe("InteractionManager", () => {
     expect(interactionCount()).toBe(0);
   });
 
-  it("routes an asset createMarker click to the draft, never to a document thunk", async () => {
-    const { thunkSetAssetDraftLocation } = await import("store/thunk/thunkAsset");
+  it("routes an asset createMarker click to the inEdit, never to a document thunk", async () => {
+    const { thunkSetAssetEditLocation } = await import("store/thunk/thunkAsset");
     const { thunkDocUpdatePoiLocation } = await import("store/thunk/thunkPoi");
     store = makeStore({
       map: {
@@ -294,7 +294,7 @@ describe("InteractionManager", () => {
     flushSync(() => {
       dispatchMapClick(map, [10, 10], [50000, 30000]);
     });
-    expect(vi.mocked(thunkSetAssetDraftLocation)).toHaveBeenCalledWith({
+    expect(vi.mocked(thunkSetAssetEditLocation)).toHaveBeenCalledWith({
       uuid: "asset-1",
       location: { lat: 30, lng: 50 },
     });

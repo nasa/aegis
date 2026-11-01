@@ -12,7 +12,7 @@ import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { isConnected } from "store/selectors";
 import { thunkCreateFolder } from "store/thunk/thunkFolder";
-import { thunkOpenAssetDraftForEdit, thunkOpenNewAssetDraft } from "store/thunk/thunkAsset";
+import { thunkEditAsset, thunkAddAsset } from "store/thunk/thunkAsset";
 
 /** The mission's coordinate presentation for typed and displayed asset coordinates. */
 function useCoordinateEntryContext(): CoordinateEntryContext {
@@ -47,7 +47,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
   );
   const connected = useAppSelector(isConnected, refEqual);
   const canMutate = canEdit && connected;
-  const draft = useAppSelector((s) => s.asset.draft, deepEqual);
+  const inEdit = useAppSelector((s) => s.asset.inEdit, deepEqual);
   const assets = useMissionDocSelector((m) => Object.values(m.assets ?? {}), deepEqual) ?? [];
   const assetFolders =
     useMissionDocSelector(
@@ -57,24 +57,24 @@ export const MapAssetsMenu: FunctionComponent = () => {
   const coordinateContext = useCoordinateEntryContext();
 
   const editAsset = (assetUuid: string) => {
-    if (draft?.uuid === assetUuid) return;
-    dispatch(thunkOpenAssetDraftForEdit({ assetUuid }));
+    if (inEdit?.uuid === assetUuid) return;
+    dispatch(thunkEditAsset({ assetUuid }));
   };
 
   const showTopEditor =
-    !!draft && (draft.isNew || !assets.some((asset) => asset.uuid === draft.uuid));
+    !!inEdit && (inEdit.isNew || !assets.some((asset) => asset.uuid === inEdit.uuid));
 
   return (
     <div className={assetsMenuStyles.assetsMenu} data-testid="assets-map-menu">
       {canEdit && (
         <div className={assetsMenuStyles.toolbar}>
           <Button
-            onClick={() => dispatch(thunkOpenNewAssetDraft())}
+            onClick={() => dispatch(thunkAddAsset())}
             icon={faPlus}
             label="Add Asset"
-            toolTip={draft ? "Save or cancel the open asset first" : undefined}
+            toolTip={inEdit ? "Save or cancel the open asset first" : undefined}
             className={assetsMenuStyles.toolbarButton}
-            enabled={canMutate && !draft}
+            enabled={canMutate && !inEdit}
           />
           <Button
             onClick={() => dispatch(thunkCreateFolder({ type: "asset" }))}
@@ -87,7 +87,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
         </div>
       )}
       {showTopEditor && (
-        <AssetEditor draft={draft} canMutate={canMutate} coordinateContext={coordinateContext} />
+        <AssetEditor inEdit={inEdit} canMutate={canMutate} coordinateContext={coordinateContext} />
       )}
       <div className={assetsMenuStyles.tableContainer}>
         <AssetTable
@@ -95,7 +95,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
           folders={assetFolders}
           canEdit={canEdit}
           canMutate={canMutate}
-          draft={draft && !draft.isNew ? draft : null}
+          inEdit={inEdit && !inEdit.isNew ? inEdit : null}
           coordinateContext={coordinateContext}
           onEdit={editAsset}
         />

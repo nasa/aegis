@@ -18,7 +18,7 @@ export function getAssetRadiusColor(
   return asset.uncertaintyMeters > 0 ? asset.color || DEFAULT_ASSET_RING_COLOR : null;
 }
 
-export const ASSET_DRAFT_FIELDS: readonly (keyof AssetDraftValues)[] = [
+export const ASSET_EDIT_FIELDS: readonly (keyof AssetEditValues)[] = [
   "name",
   "icon",
   "color",
@@ -97,30 +97,30 @@ export function isAssetVisibleOnMap(
 }
 
 /**
- * The assets to draw on a map. A draft replaces its saved asset's values (same uuid) and a new
- * draft is drawn once it has a location. Hidden or unplaced assets are filtered out before any
+ * The assets to draw on a map. The in-edit asset replaces its saved values (same uuid) and a
+ * new asset is drawn once it has a location. Hidden or unplaced assets are filtered out before any
  * map conversion, so nothing is drawn at the projection origin.
  */
 export function getVisibleMapAssets({
   assets,
   folders,
-  draft,
+  inEdit,
   showAssets,
 }: {
   assets: Asset[];
   folders: Folder[];
-  draft: AssetDraft | null;
+  inEdit: AssetInEdit | null;
   showAssets: boolean;
 }): AssetMapItem[] {
   if (!showAssets) return [];
   const folderUuidByItem = getAssetFolderUuidByItem(folders);
   const foldersByUuid = new Map(folders.map((folder) => [folder.uuid, folder]));
-  const draftAsset = draft
-    ? assets.find((asset) => asset.uuid === draft.uuid) ||
-      (draft.isNew ? ({ uuid: draft.uuid, visible: true } as Asset) : null)
+  const inEditAsset = inEdit
+    ? assets.find((asset) => asset.uuid === inEdit.uuid) ||
+      (inEdit.isNew ? ({ uuid: inEdit.uuid, visible: true } as Asset) : null)
     : null;
-  const candidates = assets.filter((asset) => asset.uuid !== draftAsset?.uuid);
-  if (draftAsset) candidates.push({ ...draftAsset, ...draft.values });
+  const candidates = assets.filter((asset) => asset.uuid !== inEditAsset?.uuid);
+  if (inEditAsset) candidates.push({ ...inEditAsset, ...inEdit.values });
 
   const result: AssetMapItem[] = [];
   for (const asset of candidates) {
@@ -189,30 +189,26 @@ export function getAssetPlacementPetSeconds(
 }
 
 /** Detached copy of the editable fields of an asset. */
-export function getAssetDraftValues(asset: Asset): AssetDraftValues {
-  const values = {} as AssetDraftValues;
-  for (const field of ASSET_DRAFT_FIELDS) {
+export function getAssetEditValues(asset: Asset): AssetEditValues {
+  const values = {} as AssetEditValues;
+  for (const field of ASSET_EDIT_FIELDS) {
     (values as Record<string, unknown>)[field] = cloneDeep(asset[field] ?? null);
   }
   return values;
 }
 
-const PLACEMENT_FIELDS: readonly (keyof AssetDraftValues)[] = [
-  "location",
-  "elevation",
-  "placement",
-];
+const PLACEMENT_FIELDS: readonly (keyof AssetEditValues)[] = ["location", "elevation", "placement"];
 
 /**
  * Fields of `values` that differ from `base`, detached. Location, elevation, and placement
  * context are one unit: a change to any of them includes all three.
  */
 export function getChangedAssetFields(
-  base: AssetDraftValues,
-  values: AssetDraftValues
-): Partial<AssetDraftValues> {
-  const changes: Partial<AssetDraftValues> = {};
-  for (const field of ASSET_DRAFT_FIELDS) {
+  base: AssetEditValues,
+  values: AssetEditValues
+): Partial<AssetEditValues> {
+  const changes: Partial<AssetEditValues> = {};
+  for (const field of ASSET_EDIT_FIELDS) {
     if (!isEqual(base[field] ?? null, values[field] ?? null)) {
       (changes as Record<string, unknown>)[field] = cloneDeep(values[field] ?? null);
     }
@@ -225,8 +221,8 @@ export function getChangedAssetFields(
   return changes;
 }
 
-/** Validation message for a draft, or null when it can be saved. */
-export function validateAssetDraftValues(values: AssetDraftValues): string | null {
+/** Validation message for in-edit values, or null when they can be saved. */
+export function validateAssetEditValues(values: AssetEditValues): string | null {
   if (!values.name?.trim()) return "Name is required";
   if (!Number.isFinite(values.uncertaintyMeters) || values.uncertaintyMeters < 0) {
     return "Radius must be a number of meters, zero or more";

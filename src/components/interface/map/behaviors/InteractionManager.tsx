@@ -43,7 +43,7 @@ import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
 import { thunkDocUpdatePosEntryWithLocation } from "store/thunk/thunkRexPosEntry";
-import { thunkSetAssetDraftLocation } from "store/thunk/thunkAsset";
+import { thunkSetAssetEditLocation } from "store/thunk/thunkAsset";
 
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
@@ -73,7 +73,7 @@ function findFeatureOnMap(map: OLMap, featureId: string): Feature<Geometry> | nu
 
 /**
  * Dispatch the correct save-position thunk based on `mapItemType`. Assets go to the open
- * draft, not the document; they are written on Save.
+ * in-edit session, not the document; they are written on Save.
  */
 function saveItemPosition(
   dispatch: ReturnType<typeof useAppDispatch>,
@@ -98,7 +98,7 @@ function saveItemPosition(
       dispatch(thunkDocUpdatePosEntryWithLocation({ location, posEntryUuid: uuid }));
       break;
     case "asset":
-      dispatch(thunkSetAssetDraftLocation({ location, uuid }));
+      dispatch(thunkSetAssetEditLocation({ location, uuid }));
       break;
   }
 }

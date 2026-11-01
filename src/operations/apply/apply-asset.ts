@@ -14,11 +14,11 @@ export function applyCreateAsset(m: Mission, asset: Asset): void {
 /** Write only the given fields of an existing asset. Does nothing for a deleted asset. */
 export function applyUpdateAsset(
   m: Mission,
-  { assetUuid, changes }: { assetUuid: string; changes: Partial<AssetDraftValues> }
+  { assetUuid, changes }: { assetUuid: string; changes: Partial<AssetEditValues> }
 ): void {
   const asset = m.assets?.[assetUuid];
   if (!asset) return;
-  const fields = Object.keys(changes) as (keyof AssetDraftValues)[];
+  const fields = Object.keys(changes) as (keyof AssetEditValues)[];
   if (fields.length === 0) return;
   for (const field of fields) {
     (asset as unknown as Record<string, unknown>)[field] = cloneDeep(changes[field] ?? null);

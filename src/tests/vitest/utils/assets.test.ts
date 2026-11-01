@@ -6,7 +6,7 @@ import {
   DEFAULT_ASSET_RING_COLOR,
   captureAssetPlacement,
   compareByName,
-  getAssetDraftValues,
+  getAssetEditValues,
   getAssetRadiusColor,
   getAssetHiddenReason,
   getAssetPlacementPetSeconds,
@@ -14,7 +14,7 @@ import {
   getMostRecentAsset,
   getVisibleMapAssets,
   isAssetVisibleOnMap,
-  validateAssetDraftValues,
+  validateAssetEditValues,
 } from "utils/assets";
 import { calculatePetValue, petSecondsAt } from "utils/formatting";
 
@@ -208,26 +208,26 @@ describe("map visibility", () => {
     const result = getVisibleMapAssets({
       assets: [shown, unplaced, inHiddenFolder],
       folders: [folder],
-      draft: null,
+      inEdit: null,
       showAssets: true,
     });
     expect(result.map((a) => a.uuid)).toEqual([shown.uuid]);
     expect(result[0].icon).toBe("2754");
   });
 
-  test("a draft replaces its saved asset and a new draft draws once placed", () => {
+  test("the in-edit asset replaces its saved asset and a new asset draws once placed", () => {
     const saved = placed();
-    const editDraft: AssetDraft = {
+    const editSession: AssetInEdit = {
       uuid: saved.uuid,
       isNew: false,
-      values: { ...getAssetDraftValues(saved), location: { lat: 1, lng: 2 }, name: "Moved" },
-      base: getAssetDraftValues(saved),
+      values: { ...getAssetEditValues(saved), location: { lat: 1, lng: 2 }, name: "Moved" },
+      base: getAssetEditValues(saved),
       elevationPending: false,
     };
     const edited = getVisibleMapAssets({
       assets: [saved],
       folders: [],
-      draft: editDraft,
+      inEdit: editSession,
       showAssets: true,
     });
     expect(edited).toHaveLength(1);
@@ -237,23 +237,23 @@ describe("map visibility", () => {
       location: { lat: 1, lng: 2 },
     });
 
-    const newDraft: AssetDraft = { ...editDraft, uuid: "new", isNew: true, base: null };
+    const newSession: AssetInEdit = { ...editSession, uuid: "new", isNew: true, base: null };
     expect(
       getVisibleMapAssets({
         assets: [],
         folders: [],
-        draft: { ...newDraft, values: { ...newDraft.values, location: null } },
+        inEdit: { ...newSession, values: { ...newSession.values, location: null } },
         showAssets: true,
       })
     ).toEqual([]);
     expect(
-      getVisibleMapAssets({ assets: [], folders: [], draft: newDraft, showAssets: true })
+      getVisibleMapAssets({ assets: [], folders: [], inEdit: newSession, showAssets: true })
     ).toHaveLength(1);
   });
 });
 
-describe("draft change tracking", () => {
-  const base = getAssetDraftValues(
+describe("in-edit change tracking", () => {
+  const base = getAssetEditValues(
     generateBlankAsset({
       name: "Drill",
       location: { lat: 1, lng: 1 },
@@ -282,13 +282,13 @@ describe("draft change tracking", () => {
   });
 
   test("validation requires a trimmed name and finite nonnegative uncertainty", () => {
-    expect(validateAssetDraftValues({ ...base, name: "  " })).toMatch(/Name/);
-    expect(validateAssetDraftValues({ ...base, uncertaintyMeters: -1 })).toMatch(/Radius/);
-    expect(validateAssetDraftValues({ ...base, uncertaintyMeters: NaN })).toMatch(/Radius/);
-    expect(validateAssetDraftValues({ ...base, location: { lat: NaN, lng: 0 } })).toMatch(/finite/);
-    expect(validateAssetDraftValues(base)).toBeNull();
+    expect(validateAssetEditValues({ ...base, name: "  " })).toMatch(/Name/);
+    expect(validateAssetEditValues({ ...base, uncertaintyMeters: -1 })).toMatch(/Radius/);
+    expect(validateAssetEditValues({ ...base, uncertaintyMeters: NaN })).toMatch(/Radius/);
+    expect(validateAssetEditValues({ ...base, location: { lat: NaN, lng: 0 } })).toMatch(/finite/);
+    expect(validateAssetEditValues(base)).toBeNull();
     expect(
-      validateAssetDraftValues({ ...base, location: null, placement: null, elevation: null })
+      validateAssetEditValues({ ...base, location: null, placement: null, elevation: null })
     ).toBeNull();
   });
 });
