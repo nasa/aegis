@@ -1,23 +1,26 @@
 import { v4 as uuidv4 } from "uuid";
-import isEqual from "lodash/isEqual";
-
+import {
+  captureAssetPlacement,
+  getAssetDraftValues,
+  getAssetFolderUuidByItem,
+  getChangedAssetFields,
+  getMostRecentAsset,
+  validateAssetDraftValues,
+} from "utils/assets";
 import appCreateAsyncThunk from "./thunkUtil";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import {
   clearAssetDraft,
   openAssetDraft,
-  rebaseAssetDraft,
   requestAssetsTab,
   setAssetDraftElevation,
   setAssetDraftLocation,
-  setAssetDraftMessage,
   setExpandedAssetUuid,
   setSelectedAssetUuid,
 } from "store/asset";
 import { setHoverAssetUuid } from "store/hover";
 import { getFolderInterface, setRexMenuIsMinimized } from "store/interface";
 import { updateMapDirective } from "store/map";
-import { isConnected } from "store/selectors";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { thunkToggleFolderOpen } from "./thunkFolder";
 import { cancelPendingMapDirective, thunkUpdateMapDirective } from "./thunkMap";
@@ -29,30 +32,7 @@ import {
   applyToggleAssetVisible,
   applyUpdateAsset,
 } from "operations/apply/apply-asset";
-import {
-  captureAssetPlacement,
-  getAssetDraftValues,
-  getAssetFolderUuidByItem,
-  getChangedAssetFields,
-  getMostRecentAsset,
-  mergeAssetDraftWithDocument,
-  validateAssetDraftValues,
-} from "utils/assets";
 import { getAccurateNow } from "utils/formatting";
-
-const AMBIGUOUS_PLACEMENT_MESSAGE =
-  "More than one REX is running, so no REX or PET context was recorded for this placement.";
-
-const FIELD_LABELS: Record<keyof AssetDraftValues, string> = {
-  name: "name",
-  icon: "emoji",
-  color: "color",
-  location: "location",
-  elevation: "location",
-  uncertaintyMeters: "uncertainty",
-  notes: "notes",
-  placement: "location",
-};
 
 // Elevation fetches still in flight, keyed by asset uuid. Save waits for them to settle.
 const pendingElevationFetches = new Map<string, Promise<void>>();
@@ -82,7 +62,6 @@ export const thunkOpenNewAssetDraft = appCreateAsyncThunk<void>(
       openAssetDraft({
         uuid,
         isNew: true,
-        missionId: mission.id,
         values: {
           name: latest?.name ?? "",
           icon: latest?.icon ?? null,
@@ -95,7 +74,6 @@ export const thunkOpenNewAssetDraft = appCreateAsyncThunk<void>(
         },
         base: null,
         elevationPending: false,
-        message: null,
       })
     );
   }
@@ -122,11 +100,9 @@ export const thunkOpenAssetDraftForEdit = appCreateAsyncThunk<{ assetUuid: strin
       openAssetDraft({
         uuid: assetUuid,
         isNew: false,
-        missionId: mission.id,
         values,
         base: getAssetDraftValues(asset),
         elevationPending: false,
-        message: null,
       })
     );
   }
@@ -147,7 +123,7 @@ export const thunkStartAssetGesture = appCreateAsyncThunk<void>(
   async (__, { dispatch, getState }) => {
     const state = getState();
     const draft = state.asset.draft;
-    if (!draft || !state.user.missionPerms?.permissions.edit || !state.mission.isInEditMode) return;
+    if (!draft) return;
     await dispatch(
       thunkUpdateMapDirective({
         mapItemType: "asset",
@@ -170,11 +146,11 @@ export const thunkSetAssetDraftLocation = appCreateAsyncThunk<{
   const draft = getState().asset.draft;
   if (!draft || draft.uuid !== uuid) return;
   const mission = getMissionDocHandle()?.doc();
-  if (!mission || mission.id !== draft.missionId) return;
+  if (!mission) return;
   if (!Number.isFinite(location?.lat) || !Number.isFinite(location?.lng)) return;
 
   const point = { lat: location.lat, lng: location.lng };
-  const { placement, ambiguous } = captureAssetPlacement(mission, getAccurateNow().getTime());
+  const placement = captureAssetPlacement(mission, getAccurateNow().getTime());
   const hasDem = !!mission.demFilePath;
   dispatch(
     setAssetDraftLocation({
@@ -182,7 +158,6 @@ export const thunkSetAssetDraftLocation = appCreateAsyncThunk<{
       location: point,
       placement,
       elevationPending: hasDem,
-      message: ambiguous ? AMBIGUOUS_PLACEMENT_MESSAGE : null,
     })
   );
   if (!hasDem) return;
@@ -191,8 +166,6 @@ export const thunkSetAssetDraftLocation = appCreateAsyncThunk<{
     const result = await dispatch(thunkFetchPointElevation({ point, uuid }));
     const elevation =
       result.meta.requestStatus === "fulfilled" ? ((result.payload as number) ?? null) : null;
-    // A draft from another mission must not receive this result.
-    if (getState().asset.draft?.missionId !== mission.id) return;
     dispatch(setAssetDraftElevation({ uuid, location: point, elevation }));
   })();
   pendingElevationFetches.set(uuid, fetchElevation);
@@ -204,8 +177,10 @@ export const thunkSetAssetDraftLocation = appCreateAsyncThunk<{
 });
 
 /**
- * Save the open draft in one document change. Keeps the draft with a message when the save
- * cannot proceed (permission, connection, mission, validation, or a conflicting change).
+ * Save the open draft in one document change. Editability is enforced by the editor's Save
+ * button and AssetEditGuard, which cancels the draft when Edit Mode or edit permission is
+ * lost. Throws when the draft values are invalid, and cancels the draft when the asset was
+ * deleted underneath it.
  * @returns true when saved.
  */
 export const thunkSaveAssetDraft = appCreateAsyncThunk<void, boolean>(
@@ -220,30 +195,12 @@ export const thunkSaveAssetDraft = appCreateAsyncThunk<void, boolean>(
     const state = getState();
     const draft = state.asset.draft;
     if (!draft || draft.uuid !== uuid) return false;
-    if (!state.user.missionPerms?.permissions.edit) {
-      dispatch(setAssetDraftMessage("You do not have permission to edit assets."));
-      return false;
-    }
-    if (!state.mission.isInEditMode) {
-      dispatch(setAssetDraftMessage("Turn on Edit Mode to save assets."));
-      return false;
-    }
-    if (!isConnected(state)) {
-      dispatch(setAssetDraftMessage("Not connected. Save again once the connection returns."));
-      return false;
-    }
     const values: AssetDraftValues = { ...draft.values, name: draft.values.name.trim() };
     const invalid = validateAssetDraftValues(values);
-    if (invalid) {
-      dispatch(setAssetDraftMessage(invalid));
-      return false;
-    }
+    if (invalid) throw new Error(invalid);
     const missionDocHandle = getMissionDocHandle();
     const mission = missionDocHandle?.doc();
-    if (!mission || mission.id !== draft.missionId) {
-      dispatch(setAssetDraftMessage("The mission changed. Cancel to discard this draft."));
-      return false;
-    }
+    if (!missionDocHandle || !mission) return false;
     const current = mission.assets?.[uuid];
 
     if (draft.isNew) {
@@ -254,30 +211,11 @@ export const thunkSaveAssetDraft = appCreateAsyncThunk<void, boolean>(
       }
     } else {
       if (!current) {
-        dispatch(
-          setAssetDraftMessage(
-            "This asset was deleted by someone else. Cancel to discard your changes."
-          )
-        );
+        // The asset was deleted underneath the draft; discard the draft.
+        await dispatch(thunkCancelAssetDraft());
         return false;
       }
-      const currentValues = getAssetDraftValues(current);
-      let changes = getChangedAssetFields(draft.base, values);
-      if (!isEqual(currentValues, draft.base)) {
-        const merged = mergeAssetDraftWithDocument(draft.base, values, currentValues);
-        if (merged.conflicts.length > 0) {
-          const fields = [...new Set(merged.conflicts.map((field) => FIELD_LABELS[field]))];
-          dispatch(
-            rebaseAssetDraft({
-              base: currentValues,
-              values: merged.values,
-              message: `Someone else changed this asset's ${fields.join(", ")} while you were editing. Review and Save again to keep your values, or Cancel.`,
-            })
-          );
-          return false;
-        }
-        changes = getChangedAssetFields(currentValues, merged.values);
-      }
+      const changes = getChangedAssetFields(draft.base, values);
       if (Object.keys(changes).length > 0) {
         missionDocHandle.change((m: Mission) => applyUpdateAsset(m, { assetUuid: uuid, changes }));
       }

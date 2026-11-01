@@ -140,13 +140,13 @@ export function getVisibleMapAssets({
 
 /**
  * Capture placement context at one instant: the running REX (from mission data, regardless of
- * the selected REX/EVA), its EVA, and a detached copy of its PET clock. More than one running
- * REX is ambiguous, so no REX context is stored.
+ * the selected REX/EVA), its EVA, and a detached copy of its PET clock. When zero or more
+ * than one REX is running, no REX context is stored.
  */
 export function captureAssetPlacement(
   mission: Pick<Mission, "rexes" | "evas">,
   nowMs: number
-): AssetPlacementCapture {
+): AssetPlacementContext {
   const runningRexes = Object.values(mission.rexes ?? {}).filter((rex) => rex.isRunning);
   const placement: AssetPlacementContext = {
     locationSetAt: nowMs,
@@ -157,7 +157,7 @@ export function captureAssetPlacement(
     petClock: null,
   };
   if (runningRexes.length !== 1) {
-    return { placement, ambiguous: runningRexes.length > 1 };
+    return placement;
   }
   const [rex] = runningRexes;
   const eva = mission.evas?.[rex.evaUuid] ?? null;
@@ -177,7 +177,7 @@ export function captureAssetPlacement(
     petStartStopTimestamp: rex.petStartStopTimestamp,
     petRunning: rex.petRunning,
   };
-  return { placement, ambiguous: false };
+  return placement;
 }
 
 /** PET at the moment the asset was placed, or null when unavailable. */
@@ -223,26 +223,6 @@ export function getChangedAssetFields(
     }
   }
   return changes;
-}
-
-/**
- * Merge a draft onto a document that changed underneath it. Fields only the other side
- * changed are adopted; fields both sides changed to different values are conflicts and keep
- * the draft's value.
- */
-export function mergeAssetDraftWithDocument(
-  base: AssetDraftValues,
-  values: AssetDraftValues,
-  current: AssetDraftValues
-): { values: AssetDraftValues; conflicts: (keyof AssetDraftValues)[] } {
-  const ownChanges = getChangedAssetFields(base, values);
-  const merged = { ...cloneDeep(current), ...cloneDeep(ownChanges) };
-  const conflicts = (Object.keys(ownChanges) as (keyof AssetDraftValues)[]).filter(
-    (field) =>
-      !isEqual(base[field] ?? null, current[field] ?? null) &&
-      !isEqual(ownChanges[field] ?? null, current[field] ?? null)
-  );
-  return { values: merged, conflicts };
 }
 
 /** Validation message for a draft, or null when it can be saved. */

@@ -244,11 +244,9 @@ describe("MapAssetsMenu", () => {
         openAssetDraft({
           uuid: "new-asset",
           isNew: true,
-          missionId: null,
           values: getAssetDraftValues(generateBlankAsset()),
           base: null,
           elevationPending: false,
-          message: null,
         })
       )
     );
@@ -290,11 +288,9 @@ describe("MapAssetsMenu", () => {
         openAssetDraft({
           uuid: asset.uuid,
           isNew: false,
-          missionId: null,
           values: getAssetDraftValues(asset),
           base: getAssetDraftValues(asset),
           elevationPending: false,
-          message: null,
         })
       )
     );
@@ -319,11 +315,9 @@ describe("MapAssetsMenu", () => {
         openAssetDraft({
           uuid: first.uuid,
           isNew: false,
-          missionId: null,
           values: getAssetDraftValues(first),
           base: getAssetDraftValues(first),
           elevationPending: false,
-          message: null,
         })
       );
     });
@@ -345,11 +339,9 @@ describe("MapAssetsMenu", () => {
         openAssetDraft({
           uuid: "new-asset",
           isNew: true,
-          missionId: null,
           values: getAssetDraftValues(generateBlankAsset()),
           base: null,
           elevationPending: false,
-          message: null,
         })
       );
     });
@@ -420,11 +412,9 @@ describe("MapAssetsMenu", () => {
           openAssetDraft({
             uuid: first.uuid,
             isNew: false,
-            missionId: null,
             values: getAssetDraftValues(first),
             base: getAssetDraftValues(first),
             elevationPending: false,
-            message: null,
           })
         )
       );

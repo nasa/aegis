@@ -283,13 +283,6 @@
   resize: vertical;
 }
 
-.editorMessage {
-  padding: 3px 5px;
-  border-radius: var(--radius);
-  background-color: var(--grey1);
-  color: var(--warning);
-}
-
 .editorActions {
   flex: 0 0 auto;
   display: flex;

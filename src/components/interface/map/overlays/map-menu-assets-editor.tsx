@@ -510,12 +510,6 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
           />
         )}
       </div>
-
-      {draft?.message && (
-        <div className={styles.editorMessage} role="alert" data-testid="asset-editor-message">
-          {draft.message}
-        </div>
-      )}
     </div>
   );
 };

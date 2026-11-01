@@ -150,7 +150,7 @@ describe("thunkSetAssetDraftLocation", () => {
     expect(draft()).toMatchObject({ elevationPending: false, values: { elevation: null } });
   });
 
-  it("flags more than one running REX as ambiguous", async () => {
+  it("records no REX context when more than one REX is running", async () => {
     const a = generateBlankRex({ evaUuid: "a", isRunning: true });
     const b = generateBlankRex({ evaUuid: "b", isRunning: true });
     getMissionDocHandle().change((m) => {
@@ -163,7 +163,6 @@ describe("thunkSetAssetDraftLocation", () => {
       thunkSetAssetDraftLocation({ uuid: draft().uuid, location: { lat: 1, lng: 1 } })
     );
     expect(draft().values.placement.runningRexUuid).toBeNull();
-    expect(draft().message).toMatch(/More than one REX/);
   });
 });
 
@@ -192,10 +191,10 @@ describe("thunkSaveAssetDraft", () => {
     expect(store.getState().asset.selectedAssetUuid).toBe(uuid);
   });
 
-  it("blocks a blank name and keeps the draft", async () => {
+  it("throws on a blank name and keeps the draft", async () => {
     await store.dispatch(thunkOpenNewAssetDraft());
-    expect(await store.dispatch(thunkSaveAssetDraft()).unwrap()).toBe(false);
-    expect(draft().message).toMatch(/Name/);
+    await expect(store.dispatch(thunkSaveAssetDraft()).unwrap()).rejects.toThrow(/Name/);
+    expect(draft()).not.toBeNull();
   });
 
   it("waits for a pending elevation and keeps the captured placement on a delayed Save", async () => {
@@ -245,7 +244,7 @@ describe("thunkSaveAssetDraft", () => {
     });
   });
 
-  it("merges a non-conflicting remote change and stops on a conflicting one", async () => {
+  it("writes only fields changed since the draft opened, keeping other fields as-is", async () => {
     const asset = generateBlankAsset({ name: "Drill" });
     getMissionDocHandle().change((m) => {
       m.assets[asset.uuid] = asset;
@@ -257,18 +256,21 @@ describe("thunkSaveAssetDraft", () => {
     });
     expect(await store.dispatch(thunkSaveAssetDraft()).unwrap()).toBe(true);
     expect(doc().assets[asset.uuid]).toMatchObject({ notes: "mine", color: "#00ff00" });
+  });
 
+  it("keeps the draft's value for a field also changed underneath it", async () => {
+    const asset = generateBlankAsset({ name: "Drill" });
+    getMissionDocHandle().change((m) => {
+      m.assets[asset.uuid] = asset;
+    });
     await store.dispatch(thunkOpenAssetDraftForEdit({ assetUuid: asset.uuid }));
     store.dispatch(updateAssetDraftValues({ name: "Mine" }));
     getMissionDocHandle().change((m) => {
       m.assets[asset.uuid].name = "Theirs";
     });
-    expect(await store.dispatch(thunkSaveAssetDraft()).unwrap()).toBe(false);
-    expect(draft().message).toMatch(/name/);
-    expect(doc().assets[asset.uuid].name).toBe("Theirs");
-    // Saving again after review keeps the draft's value.
     expect(await store.dispatch(thunkSaveAssetDraft()).unwrap()).toBe(true);
     expect(doc().assets[asset.uuid].name).toBe("Mine");
+    expect(draft()).toBeNull();
   });
 
   it("never recreates an asset deleted underneath the draft", async () => {
@@ -283,19 +285,7 @@ describe("thunkSaveAssetDraft", () => {
     });
     expect(await store.dispatch(thunkSaveAssetDraft()).unwrap()).toBe(false);
     expect(doc().assets[asset.uuid]).toBeUndefined();
-    expect(draft().message).toMatch(/deleted/);
-  });
-
-  it("rechecks permission and connection on Save", async () => {
-    store = createCustomTestStore({
-      connection: connectionInitialState,
-      user: editor,
-      mission: editMode,
-    });
-    await store.dispatch(thunkOpenNewAssetDraft());
-    store.dispatch(updateAssetDraftValues({ name: "Drill" }));
-    expect(await store.dispatch(thunkSaveAssetDraft()).unwrap()).toBe(false);
-    expect(draft().message).toMatch(/Not connected/);
+    expect(draft()).toBeNull();
   });
 });
 

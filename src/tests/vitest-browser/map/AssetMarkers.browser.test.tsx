@@ -293,7 +293,6 @@ describe("asset map behaviors", () => {
         openAssetDraft({
           uuid: asset.uuid,
           isNew: false,
-          missionId: null,
           values: {
             ...getAssetDraftValues(asset),
             location: { lat: 0.05, lng: 0.06 },
@@ -301,7 +300,6 @@ describe("asset map behaviors", () => {
           },
           base: getAssetDraftValues(asset),
           elevationPending: false,
-          message: null,
         })
       )
     );
@@ -320,11 +318,9 @@ describe("asset map behaviors", () => {
         openAssetDraft({
           uuid: asset.uuid,
           isNew: false,
-          missionId: null,
           values: { ...getAssetDraftValues(asset), location: { lat: 0.05, lng: 0.06 } },
           base: getAssetDraftValues(asset),
           elevationPending: false,
-          message: null,
         })
       )
     );
@@ -344,7 +340,6 @@ describe("asset map behaviors", () => {
           openAssetDraft({
             uuid: asset.uuid,
             isNew: false,
-            missionId: null,
             values: {
               ...getAssetDraftValues(asset),
               location: { lat: 0.05, lng: 0.06 },
@@ -352,7 +347,6 @@ describe("asset map behaviors", () => {
             },
             base: getAssetDraftValues(asset),
             elevationPending: false,
-            message: null,
           })
         );
         store.dispatch(

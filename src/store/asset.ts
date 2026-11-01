@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import isEqual from "lodash/isEqual";
 import { setAllSliceStores } from "./crossActions";
 
 export const initialState: AssetState = {
@@ -42,17 +41,15 @@ export const assetSlice = createSlice({
           location: AEGISPoint;
           placement: AssetPlacementContext;
           elevationPending: boolean;
-          message: string | null;
         };
       }
     ) => {
-      const { uuid, location, placement, elevationPending, message } = action.payload;
+      const { uuid, location, placement, elevationPending } = action.payload;
       if (state.draft?.uuid !== uuid) return;
       state.draft.values.location = { lat: location.lat, lng: location.lng };
       state.draft.values.placement = placement;
       state.draft.values.elevation = null;
       state.draft.elevationPending = elevationPending;
-      state.draft.message = message;
     },
     /** Store a fetched elevation, discarding it if the draft has moved since the fetch began. */
     setAssetDraftElevation: (
@@ -65,24 +62,6 @@ export const assetSlice = createSlice({
       if (!current || current.lat !== location.lat || current.lng !== location.lng) return;
       state.draft.values.elevation = elevation;
       state.draft.elevationPending = false;
-    },
-    setAssetDraftMessage: (state, action: { payload: string | null }) => {
-      if (!state.draft) return;
-      state.draft.message = action.payload;
-    },
-    /** Rebase a draft on the current document values after a conflicting change. */
-    rebaseAssetDraft: (
-      state,
-      action: {
-        payload: { base: AssetDraftValues; values: AssetDraftValues; message: string | null };
-      }
-    ) => {
-      if (!state.draft) return;
-      if (!isEqual(state.draft.base, action.payload.base)) state.draft.base = action.payload.base;
-      if (!isEqual(state.draft.values, action.payload.values)) {
-        state.draft.values = action.payload.values;
-      }
-      state.draft.message = action.payload.message;
     },
     clearAssetDraft: (state) => {
       if (state.draft && !state.draft.isNew && state.expandedAssetUuid === state.draft.uuid) {
@@ -113,8 +92,6 @@ export const {
   updateAssetDraftValues,
   setAssetDraftLocation,
   setAssetDraftElevation,
-  setAssetDraftMessage,
-  rebaseAssetDraft,
   clearAssetDraft,
   requestAssetsTab,
   obliterateState,

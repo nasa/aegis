@@ -14,7 +14,6 @@ import {
   getMostRecentAsset,
   getVisibleMapAssets,
   isAssetVisibleOnMap,
-  mergeAssetDraftWithDocument,
   validateAssetDraftValues,
 } from "utils/assets";
 import { calculatePetValue, petSecondsAt } from "utils/formatting";
@@ -90,10 +89,9 @@ describe("captureAssetPlacement", () => {
 
   test("records only the time when no REX is running", () => {
     const rex = generateBlankRex({ evaUuid: "eva", isRunning: false });
-    expect(captureAssetPlacement({ rexes: { [rex.uuid]: rex }, evas: {} }, now)).toEqual({
-      placement: placement({ locationSetAt: now }),
-      ambiguous: false,
-    });
+    expect(captureAssetPlacement({ rexes: { [rex.uuid]: rex }, evas: {} }, now)).toEqual(
+      placement({ locationSetAt: now })
+    );
   });
 
   test("captures the running REX, its as-planned EVA name, and a detached clock copy", () => {
@@ -112,8 +110,7 @@ describe("captureAssetPlacement", () => {
       rexes: { [rex.uuid]: rex, [selectedButStopped.uuid]: selectedButStopped },
       evas: { [planned.uuid]: planned, [rexEva.uuid]: rexEva },
     };
-    const { placement: captured, ambiguous } = captureAssetPlacement(mission, now);
-    expect(ambiguous).toBe(false);
+    const captured = captureAssetPlacement(mission, now);
     expect(captured).toMatchObject({
       runningRexUuid: rex.uuid,
       runningRexName: "REX A",
@@ -128,9 +125,9 @@ describe("captureAssetPlacement", () => {
   test("stores no REX context when more than one REX is running", () => {
     const a = generateBlankRex({ evaUuid: "eva", isRunning: true });
     const b = generateBlankRex({ evaUuid: "eva", isRunning: true });
-    const result = captureAssetPlacement({ rexes: { [a.uuid]: a, [b.uuid]: b }, evas: {} }, now);
-    expect(result.ambiguous).toBe(true);
-    expect(result.placement).toEqual(placement({ locationSetAt: now }));
+    expect(captureAssetPlacement({ rexes: { [a.uuid]: a, [b.uuid]: b }, evas: {} }, now)).toEqual(
+      placement({ locationSetAt: now })
+    );
   });
 
   test("historical PET survives REX deletion and later clock changes", () => {
@@ -141,7 +138,7 @@ describe("captureAssetPlacement", () => {
       petValueAtStartStop: "-00:00:30",
     });
     const mission = { rexes: { [rex.uuid]: rex }, evas: {} };
-    const { placement: captured } = captureAssetPlacement(mission, now);
+    const captured = captureAssetPlacement(mission, now);
     delete mission.rexes[rex.uuid];
     expect(getAssetPlacementPetSeconds(captured)).toBe(-30);
   });
@@ -223,11 +220,9 @@ describe("map visibility", () => {
     const editDraft: AssetDraft = {
       uuid: saved.uuid,
       isNew: false,
-      missionId: 1,
       values: { ...getAssetDraftValues(saved), location: { lat: 1, lng: 2 }, name: "Moved" },
       base: getAssetDraftValues(saved),
       elevationPending: false,
-      message: null,
     };
     const edited = getVisibleMapAssets({
       assets: [saved],
@@ -284,17 +279,6 @@ describe("draft change tracking", () => {
       "location",
       "placement",
     ]);
-  });
-
-  test("merging adopts others' changes and reports only true conflicts", () => {
-    const mine = { ...base, name: "Mine", notes: "n" };
-    const theirsName = { ...base, name: "Theirs" };
-    const theirsColor = { ...base, color: "#ff0000" };
-    expect(mergeAssetDraftWithDocument(base, mine, theirsColor)).toEqual({
-      values: { ...mine, color: "#ff0000" },
-      conflicts: [],
-    });
-    expect(mergeAssetDraftWithDocument(base, mine, theirsName).conflicts).toEqual(["name"]);
   });
 
   test("validation requires a trimmed name and finite nonnegative uncertainty", () => {
