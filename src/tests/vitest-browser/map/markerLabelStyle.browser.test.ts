@@ -178,14 +178,18 @@ describe("createMarkerLabelStyle", () => {
     expect(plainPx[3]).toBeLessThan(255);
   });
 
-  it("assetLabel config overrides the asset label font size and box colors", () => {
+  it("asset config overrides the asset label font size and box colors", () => {
     const fn = createMarkerLabelStyle(14, 1.5, {
-      fontSize: 24,
-      fontWeight: "normal",
-      textColor: "rgba(0,255,0,1)",
-      bgColor: "rgba(0,0,255,0.5)",
-      accentBorder: true,
-      accentBorderWidth: 2,
+      iconSize: 20,
+      clickable: false,
+      hoverable: false,
+      labelsEnabled: true,
+      labelFontSize: 24,
+      labelFontWeight: "normal",
+      labelTextColor: "rgba(0,255,0,1)",
+      labelBgColor: "rgba(0,0,255,0.5)",
+      labelAccentBorder: true,
+      labelAccentBorderWidth: 2,
     });
     const assetCanvas = (
       asArray(fn(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1))[0].getImage() as Icon
@@ -207,14 +211,18 @@ describe("createMarkerLabelStyle", () => {
     expect(px[3]).toBeLessThan(200);
   });
 
-  it("assetLabel accentBorder: false suppresses the accent border", () => {
+  it("asset labelAccentBorder: false suppresses the accent border", () => {
     const fn = createMarkerLabelStyle(14, 1.5, {
-      fontSize: 14,
-      fontWeight: "normal",
-      textColor: "rgba(255,236,170,0.95)",
-      bgColor: "rgba(0,0,0,0.5)",
-      accentBorder: false,
-      accentBorderWidth: 2,
+      iconSize: 20,
+      clickable: false,
+      hoverable: false,
+      labelsEnabled: true,
+      labelFontSize: 14,
+      labelFontWeight: "normal",
+      labelTextColor: "rgba(255,236,170,0.95)",
+      labelBgColor: "rgba(0,0,0,0.5)",
+      labelAccentBorder: false,
+      labelAccentBorderWidth: 2,
     });
     const withAccentCanvas = (
       asArray(
@@ -236,15 +244,19 @@ describe("createMarkerLabelStyle", () => {
     expect(plainPx[3]).toBeLessThan(255);
   });
 
-  it("assetLabel accentBorderWidth widens the accent border", () => {
+  it("asset labelAccentBorderWidth widens the accent border", () => {
     const makeFn = (width: number) =>
       createMarkerLabelStyle(14, 1.5, {
-        fontSize: 14,
-        fontWeight: "normal",
-        textColor: "rgba(255,236,170,0.95)",
-        bgColor: "rgba(0,0,0,0.5)",
-        accentBorder: true,
-        accentBorderWidth: width,
+        iconSize: 20,
+        clickable: false,
+        hoverable: false,
+        labelsEnabled: true,
+        labelFontSize: 14,
+        labelFontWeight: "normal",
+        labelTextColor: "rgba(255,236,170,0.95)",
+        labelBgColor: "rgba(0,0,0,0.5)",
+        labelAccentBorder: true,
+        labelAccentBorderWidth: width,
       });
     const wideCanvas = (
       asArray(
@@ -271,15 +283,19 @@ describe("createMarkerLabelStyle", () => {
     expect(narrowPx).toEqual([0, 0, 0, 128]);
   });
 
-  it("assetLabel bold renders a wider text box", () => {
+  it("asset bold renders a wider text box", () => {
     const makeFn = (fontWeight: string) =>
       createMarkerLabelStyle(14, 1.5, {
-        fontSize: 14,
-        fontWeight,
-        textColor: "rgba(255,236,170,0.95)",
-        bgColor: "rgba(0,0,0,0.5)",
-        accentBorder: true,
-        accentBorderWidth: 2,
+        iconSize: 20,
+        clickable: false,
+        hoverable: false,
+        labelsEnabled: true,
+        labelFontSize: 14,
+        labelFontWeight: fontWeight,
+        labelTextColor: "rgba(255,236,170,0.95)",
+        labelBgColor: "rgba(0,0,0,0.5)",
+        labelAccentBorder: true,
+        labelAccentBorderWidth: 2,
       });
     const plainCanvas = (
       asArray(

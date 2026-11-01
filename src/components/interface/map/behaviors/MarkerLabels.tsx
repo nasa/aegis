@@ -13,7 +13,7 @@
  * 3. Computes overlap-based opacities: higher-priority labels occlude lower-priority ones.
  * 4. The style function (`createMarkerLabelStyle`) renders each label + connector line
  *    with the computed opacity. Asset label boxes are styled per mode via
- *    `MODE_CONFIGS[mode].assetLabel`.
+ *    `MODE_CONFIGS[mode].asset`.
  * 5. Dragging via `ol/interaction/Translate` stores the new pixel offset.
  *
  * ## Priority
@@ -246,7 +246,7 @@ export function MarkerLabels(): null {
     const styleFn = createMarkerLabelStyle(
       config.markerLabel.fontSize,
       config.markerLabel.connectorWidth,
-      config.assetLabel
+      config.asset
     );
     const layer = new VectorLayer({
       source: labelSource,
@@ -265,7 +265,7 @@ export function MarkerLabels(): null {
     labelSource,
     config.markerLabel.fontSize,
     config.markerLabel.connectorWidth,
-    config.assetLabel,
+    config.asset,
   ]);
 
   // --- Drag interaction ---
@@ -725,8 +725,8 @@ export function MarkerLabels(): null {
     for (const info of labelInfos) {
       const measurement = measureLabelText(
         info.name,
-        info.labelType === "asset" ? config.assetLabel.fontSize : config.markerLabel.fontSize,
-        info.labelType === "asset" ? config.assetLabel.fontWeight : "normal"
+        info.labelType === "asset" ? config.asset.labelFontSize : config.markerLabel.fontSize,
+        info.labelType === "asset" ? config.asset.labelFontWeight : "normal"
       );
       if (!measurement) continue;
 
