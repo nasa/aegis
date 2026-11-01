@@ -29,6 +29,15 @@ export async function toggleEditMode(page: Page): Promise<void> {
   await page.waitForTimeout(300);
 }
 
+/** Reveal map controls and gesture space covered by the floating widget on narrow maps. */
+export async function minimizeRexMenu(page: Page): Promise<void> {
+  const minimize = page.getByTestId("rex-menu-minimize");
+  const launcher = page.getByTestId("rex-menu-launcher");
+  await expect(minimize.or(launcher)).toBeVisible();
+  if (await minimize.isVisible()) await minimize.click();
+  await expect(launcher).toBeVisible();
+}
+
 /**
  * Select only the display <div> elements with the given aria-label.
  * This avoids matching <input> elements that share the same aria-label inside dialogs.

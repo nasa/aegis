@@ -10,7 +10,7 @@
 
 import type { Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
-import { waitForPageReady } from "../helpers";
+import { waitForPageReady, minimizeRexMenu } from "../helpers";
 
 const MISSION_URL = "http://localhost:4000/mission/22";
 
@@ -29,6 +29,7 @@ async function openEyeballMenu(page: Page): Promise<void> {
   const menuPanel = page.getByTestId("map-menu-floating-panel");
   const isOpen = await menuPanel.isVisible().catch(() => false);
   if (!isOpen) {
+    await minimizeRexMenu(page);
     await page.getByTestId("map-menu-launcher").click();
   }
   await expect(menuPanel).toBeVisible();
@@ -669,6 +670,7 @@ test.describe("Mission 22 — Preset Switching", () => {
 test.describe("Mission 22 — Map Display Integration", () => {
   test("double-click on map zooms in", async ({ page }) => {
     await openMissionMap(page);
+    await minimizeRexMenu(page);
 
     const viewport = page.locator(".ol-viewport").first();
     const box = await viewport.boundingBox();
@@ -711,6 +713,7 @@ test.describe("Mission 22 — Map Display Integration", () => {
 
   test("map viewport can be panned by mouse drag without crashing", async ({ page }) => {
     await openMissionMap(page);
+    await minimizeRexMenu(page);
 
     const viewport = page.locator(".ol-viewport").first();
     const box = await viewport.boundingBox();
@@ -734,6 +737,7 @@ test.describe("Mission 22 — Map Display Integration", () => {
     page.on("pageerror", (err) => errors.push(err.message));
 
     await openMissionMap(page);
+    await minimizeRexMenu(page);
 
     // Interact with the map — use force: true for zoom and wrap everything
     // in try/catch to tolerate page-level crashes during the interaction
