@@ -24,6 +24,19 @@ type ResolvedActionMissionPriority = {
 type MissionPriorityCellStatus =
   "complete" | "planned" | "inProgress" | "pending" | "skippedOnly" | "disabledOnly" | "none";
 
+/** Why a baseline-only action is missing from a diff target column. */
+type MissingBaselineExplanation =
+  { kind: "text"; text: string } | { kind: "priorityChanged"; trace: string };
+
+/** EVA prefix + located entity for one action within a report column. */
+type MissionPriorityActionLocation = {
+  /** As-planned EVA name prefix (campaign columns only). */
+  memberEvaName: string | null;
+  locationKind: "station" | "traverse" | "poi" | null;
+  locationUuid: string | null;
+  locationName: string;
+};
+
 /**
  * Rollup of a single Mission Priority Identifier within one report column.
  * Action UUID arrays preserve member occurrence multiplicity on campaign columns

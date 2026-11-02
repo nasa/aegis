@@ -695,7 +695,7 @@ export const explainMissingBaselineAction = ({
   baselineAction: Action;
   targetColumn: EvaReportColumn;
   priorityUuid: string;
-}): string | null => {
+}): MissingBaselineExplanation | null => {
   // Check if targetColumn is a REX or campaignExecuted where a refUuid clone exists
   const targetRexes: Rex[] = [];
   if (targetColumn.kind === "rex" && targetColumn.rexUuid) {
@@ -719,17 +719,19 @@ export const explainMissingBaselineAction = ({
             (!!candidate.traverseUuid && traverseUuids.has(candidate.traverseUuid)))
       );
       if (clone) {
-        if (!clone.enabled) return "Disabled in execution";
+        if (!clone.enabled) return { kind: "text", text: "Disabled in execution" };
         const resolved = resolveActionMissionPriority(clone, mission);
         if (resolved?.priorityUuid !== priorityUuid) {
           return resolved?.trace
-            ? `Priority changed to ${resolved.trace} in execution`
-            : "Priority cleared in execution";
+            ? { kind: "priorityChanged", trace: resolved.trace }
+            : { kind: "text", text: "Priority cleared in execution" };
         }
         const rexStatus = getActionRexStatus(rex, clone.uuid);
-        if (rexStatus === "skipped") return "Skipped in execution";
-        if (rexStatus === "in-progress") return "In progress (excluded by REX filter)";
-        if (rexStatus === "pending") return "Pending (excluded by REX filter)";
+        if (rexStatus === "skipped") return { kind: "text", text: "Skipped in execution" };
+        if (rexStatus === "in-progress")
+          return { kind: "text", text: "In progress (excluded by REX filter)" };
+        if (rexStatus === "pending")
+          return { kind: "text", text: "Pending (excluded by REX filter)" };
       }
     }
   }
@@ -753,7 +755,7 @@ export const explainMissingBaselineAction = ({
       });
       if (memberEvaUuid) {
         const evaName = mission.evas?.[memberEvaUuid]?.name ?? "EVA";
-        return `${evaName}: no execution REX recorded`;
+        return { kind: "text", text: `${evaName}: no execution REX recorded` };
       }
     }
   }
@@ -773,7 +775,7 @@ export const explainMissingBaselineAction = ({
           (!!candidate.traverseUuid && traverseUuids.has(candidate.traverseUuid)))
     );
     if (counterpart && !counterpart.enabled) {
-      return "Disabled in this column";
+      return { kind: "text", text: "Disabled in this column" };
     }
   }
 
@@ -790,6 +792,7 @@ export const getActionLineagePriorityMismatch = (
 ): {
   poiActionUuid: string;
   poiName: string;
+  poiIcon: string | null;
   poiPriorityTrace: string | null;
   currentPriorityTrace: string | null;
 } | null => {
@@ -804,12 +807,60 @@ export const getActionLineagePriorityMismatch = (
   }
 
   const poiName = poiAction.poiUuid ? (mission.pois?.[poiAction.poiUuid]?.name ?? "POI") : "POI";
+  const poiIcon = poiAction.poiUuid ? (mission.pois?.[poiAction.poiUuid]?.icon ?? null) : null;
 
   return {
     poiActionUuid: poiAction.uuid,
     poiName,
+    poiIcon,
     poiPriorityTrace: poiResolved?.trace ?? null,
     currentPriorityTrace: currentResolved?.trace ?? null,
+  };
+};
+
+/** Structured EVA prefix + located entity for an action in a column. */
+export const getPriorityActionLocationParts = (
+  mission: Mission | undefined,
+  column: EvaReportColumn | undefined,
+  action: Action
+): MissionPriorityActionLocation => {
+  if (!mission)
+    return { memberEvaName: null, locationKind: null, locationUuid: null, locationName: "" };
+  let memberEvaName: string | null = null;
+  if (column?.campaignUuid) {
+    const campaign = mission.reportCampaigns?.[column.campaignUuid];
+    const memberEvaUuid = campaign?.memberEvaUuids.find((evaUuid) =>
+      actionBelongsToCampaignMember({ mission, column, memberEvaUuid: evaUuid, action })
+    );
+    const memberEva = memberEvaUuid ? mission.evas?.[memberEvaUuid] : undefined;
+    memberEvaName = memberEva
+      ? (getAsPlannedEvaFromRefUuid(mission, memberEva.refUuid)?.name ?? memberEva.name)
+      : null;
+  }
+  const locationSource = action.stationUuid
+    ? {
+        kind: "station" as const,
+        uuid: action.stationUuid,
+        name: mission.stations?.[action.stationUuid]?.name,
+      }
+    : action.traverseUuid
+      ? {
+          kind: "traverse" as const,
+          uuid: action.traverseUuid,
+          name: mission.traverses?.[action.traverseUuid]?.name,
+        }
+      : action.poiUuid
+        ? {
+            kind: "poi" as const,
+            uuid: action.poiUuid,
+            name: mission.pois?.[action.poiUuid]?.name,
+          }
+        : null;
+  return {
+    memberEvaName,
+    locationKind: locationSource?.kind ?? null,
+    locationUuid: locationSource?.uuid ?? null,
+    locationName: locationSource?.name ?? "",
   };
 };
 
@@ -819,25 +870,6 @@ export const getPriorityActionLocationLabel = (
   column: EvaReportColumn | undefined,
   action: Action
 ): string => {
-  if (!mission) return "";
-  let memberPrefix = "";
-  if (column?.campaignUuid) {
-    const campaign = mission.reportCampaigns?.[column.campaignUuid];
-    const memberEvaUuid = campaign?.memberEvaUuids.find((evaUuid) =>
-      actionBelongsToCampaignMember({ mission, column, memberEvaUuid: evaUuid, action })
-    );
-    const memberEva = memberEvaUuid ? mission.evas?.[memberEvaUuid] : undefined;
-    const memberName = memberEva
-      ? (getAsPlannedEvaFromRefUuid(mission, memberEva.refUuid)?.name ?? memberEva.name)
-      : null;
-    if (memberName) memberPrefix = `${memberName} / `;
-  }
-  const locationName = action.stationUuid
-    ? mission.stations?.[action.stationUuid]?.name
-    : action.traverseUuid
-      ? mission.traverses?.[action.traverseUuid]?.name
-      : action.poiUuid
-        ? mission.pois?.[action.poiUuid]?.name
-        : "";
-  return `${memberPrefix}${locationName ?? ""}`;
+  const { memberEvaName, locationName } = getPriorityActionLocationParts(mission, column, action);
+  return `${memberEvaName ? `${memberEvaName} / ` : ""}${locationName}`;
 };

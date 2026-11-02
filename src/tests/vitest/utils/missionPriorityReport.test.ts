@@ -416,7 +416,7 @@ describe("Campaign columns, member expansion, and diff pairing", () => {
       targetColumn: executedCol,
       priorityUuid: "p10",
     });
-    expect(explanation).toBe("Bravo: no execution REX recorded");
+    expect(explanation).toEqual({ kind: "text", text: "Bravo: no execution REX recorded" });
 
     const differences = getPriorityCoverageDifferences({
       mission,
@@ -518,6 +518,7 @@ describe("computePriorityUnscheduledUsages() & lineage mismatch", () => {
     expect(getActionLineagePriorityMismatch(mission.actions.adoptedStationAct, mission)).toEqual({
       poiActionUuid: "poiAct1",
       poiName: "Crater Rim",
+      poiIcon: "1F534",
       poiPriorityTrace: "SIMD-0002.1",
       currentPriorityTrace: "GEO-0001.1",
     });

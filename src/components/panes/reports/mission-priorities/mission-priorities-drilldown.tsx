@@ -2,6 +2,7 @@ import type { FunctionComponent } from "react";
 import { useState } from "react";
 import styles from "../shared/report-grid.module.css";
 import priorityStyles from "./mission-priorities.module.css";
+import actionStyles from "components/panes/actions-action.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -21,11 +22,13 @@ import {
   explainMissingBaselineAction,
   getActionLineagePriorityMismatch,
   getPriorityActionLocationLabel,
+  getPriorityActionLocationParts,
 } from "utils/missionPriorityReport";
 import { Checkbox } from "components/interface/form/globalFields";
 import ReportSidePanel from "../shared/report-side-panel";
 import ReportActionTitle from "../shared/report-action-title";
 import ActionPreview, { type ActionPreviewTarget } from "../shared/action-preview";
+import TraceIcon from "../poi-traceability/trace-icon";
 import { PRIORITY_STATUS_LABEL } from "./mission-priorities-cell";
 
 const REPORT_ID: ColumnReportId = "missionPriorities";
@@ -144,13 +147,16 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
   const scoped =
     !!cellSelection.stationUuid || !!cellSelection.traverseUuid || !!cellSelection.evaUuid;
 
-  const scopeLabel = cellSelection.stationUuid
-    ? mission.stations?.[cellSelection.stationUuid]?.name
-    : cellSelection.traverseUuid
-      ? mission.traverses?.[cellSelection.traverseUuid]?.name
-      : cellSelection.evaUuid
-        ? mission.evas?.[cellSelection.evaUuid]?.name
-        : null;
+  const scopeNode = cellSelection.stationUuid ? (
+    <>
+      <TraceIcon icon={mission.stations?.[cellSelection.stationUuid]?.icon} />
+      {mission.stations?.[cellSelection.stationUuid]?.name}
+    </>
+  ) : cellSelection.traverseUuid ? (
+    mission.traverses?.[cellSelection.traverseUuid]?.name
+  ) : cellSelection.evaUuid ? (
+    <span style={{ color: "var(--eva)" }}>{mission.evas?.[cellSelection.evaUuid]?.name}</span>
+  ) : null;
 
   const matchesScope = (action: Action | undefined): boolean => {
     if (!action) return false;
@@ -211,13 +217,19 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
       )
     );
 
-  const columnTitle = column
-    ? column.isRex
-      ? `REX: ${column.label}`
-      : column.campaignUuid
-        ? `${column.groupLabel}: ${column.label}`
-        : column.label
-    : "Mission-wide usages";
+  const columnTitleNode = column ? (
+    column.isRex ? (
+      <span style={{ color: "var(--rex)" }}>REX: {column.label}</span>
+    ) : column.campaignUuid ? (
+      <>
+        {column.groupLabel}: {column.label}
+      </>
+    ) : (
+      <span style={{ color: "var(--eva)" }}>{column.label}</span>
+    )
+  ) : (
+    "Mission-wide usages"
+  );
 
   const unscheduled = unscheduledByPriorityUuid[priorityUuid];
   const parentUuidsWithCopies = new Set(
@@ -232,7 +244,17 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
       onWidthChange={(width) => dispatch(reportSetDrilldownWidth({ reportId: REPORT_ID, width }))}
       onClose={() => dispatch(reportSetCellSelection({ reportId: REPORT_ID, selection: null }))}
       title={`${priority.trace} — ${priority.category}`}
-      subtitle={`${columnTitle}${scopeLabel ? ` — ${scopeLabel}` : ""}`}
+      subtitle={
+        <>
+          {columnTitleNode}
+          {scopeNode ? (
+            <>
+              {" — "}
+              {scopeNode}
+            </>
+          ) : null}
+        </>
+      }
     >
       {diffActive && (
         <Checkbox
@@ -248,7 +270,7 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
       {column && coverage && (
         <div className={priorityStyles.drilldownSection}>
           <div className={priorityStyles.drilldownSectionHeader}>
-            <span>In {columnTitle}</span>
+            <span>In {columnTitleNode}</span>
             <span>
               {coverage.activeCount} active (
               {
@@ -354,7 +376,7 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
           {disabledActions.length > 0 && (
             <>
               <div className={priorityStyles.drilldownSubheading}>
-                Disabled in this EVA/REX ({disabledActions.length})
+                Disabled in this EVA / REX ({disabledActions.length})
               </div>
               {sortActions(disabledActions).map((action) => (
                 <DrilldownPriorityActionCard
@@ -398,7 +420,8 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
                       <div className={priorityStyles.drilldownActionMain}>
                         <div className={priorityStyles.drilldownActionTitleWrap}>
                           <span className={styles.drilldownActionSequenceName}>
-                            POI {poiName}:{" "}
+                            POI <TraceIcon icon={mission.pois?.[poiAction.poiUuid]?.icon} />
+                            {poiName}:{" "}
                           </span>
                           <ReportActionTitle action={poiAction} mission={mission} />
                         </div>
@@ -431,8 +454,11 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
                 {unscheduled.unassignedLocationActionUuids.map((actionUuid) => {
                   const action = mission.actions?.[actionUuid];
                   if (!action) return null;
-                  const locName = action.stationUuid
-                    ? mission.stations?.[action.stationUuid]?.name
+                  const locStation = action.stationUuid
+                    ? mission.stations?.[action.stationUuid]
+                    : undefined;
+                  const locName = locStation
+                    ? locStation.name
                     : action.traverseUuid
                       ? mission.traverses?.[action.traverseUuid]?.name
                       : "Location";
@@ -440,7 +466,10 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
                     <div key={actionUuid} className={priorityStyles.drilldownActionItem}>
                       <div className={priorityStyles.drilldownActionMain}>
                         <div className={priorityStyles.drilldownActionTitleWrap}>
-                          <span className={styles.drilldownActionSequenceName}>{locName}: </span>
+                          <span className={styles.drilldownActionSequenceName}>
+                            {locStation && <TraceIcon icon={locStation.icon} />}
+                            {locName}:{" "}
+                          </span>
                           <ReportActionTitle action={action} mission={mission} />
                         </div>
                         <button
@@ -507,6 +536,10 @@ const DIFF_ROW_CLASSES = {
   minus: `${priorityStyles.drilldownActionItem} ${styles.drilldownActionMinus}`,
 };
 
+/** Priority trace as the app's grey-outline badge; plain "none" when absent. */
+const PriorityTraceBadge: FunctionComponent<{ trace: string | null }> = ({ trace }) =>
+  trace ? <span className={actionStyles.actionHeadingPriority}>{trace}</span> : <>none</>;
+
 const DrilldownPriorityActionCard: FunctionComponent<{
   action: Action;
   kind: "matched" | "plus" | "minus";
@@ -529,7 +562,11 @@ const DrilldownPriorityActionCard: FunctionComponent<{
   const rex = findRexForActionInColumn(mission, column, action);
   const evaUuid = findEvaUuidForActionInColumn(mission, column, action);
   const rexStatus = rex && action.enabled ? getActionRexStatus(rex, action.uuid) : null;
-  const locationLabel = getPriorityActionLocationLabel(mission, column, action);
+  const location = getPriorityActionLocationParts(mission, column, action);
+  const locationStation =
+    location.locationKind === "station" && location.locationUuid
+      ? mission.stations?.[location.locationUuid]
+      : undefined;
   const lineageMismatch = getActionLineagePriorityMismatch(action, mission);
   const missingExplanation =
     kind === "minus" && targetColumnForExplanation
@@ -548,7 +585,15 @@ const DrilldownPriorityActionCard: FunctionComponent<{
           {showIndicator && DIFF_INDICATORS[kind] && (
             <span className={styles.drilldownDiffIndicator}>{DIFF_INDICATORS[kind]} </span>
           )}
-          <span className={styles.drilldownActionSequenceName}>{locationLabel}: </span>
+          <span className={styles.drilldownActionSequenceName}>
+            {location.memberEvaName && (
+              <>
+                <span style={{ color: "var(--eva)" }}>{location.memberEvaName}</span> /{" "}
+              </>
+            )}
+            {locationStation && <TraceIcon icon={locationStation.icon} />}
+            {location.locationName}:{" "}
+          </span>
           <ReportActionTitle action={action} mission={mission} />
         </div>
         <button
@@ -580,13 +625,23 @@ const DrilldownPriorityActionCard: FunctionComponent<{
           )}
           {lineageMismatch && (
             <span className={priorityStyles.lineageNote}>
-              Inherited from POI {lineageMismatch.poiName} (priority changed from{" "}
-              {lineageMismatch.poiPriorityTrace ?? "none"} to{" "}
-              {lineageMismatch.currentPriorityTrace ?? "none"})
+              Inherited from POI <TraceIcon icon={lineageMismatch.poiIcon} />
+              {lineageMismatch.poiName} (priority changed from{" "}
+              <PriorityTraceBadge trace={lineageMismatch.poiPriorityTrace} /> to{" "}
+              <PriorityTraceBadge trace={lineageMismatch.currentPriorityTrace} />)
             </span>
           )}
           {missingExplanation && (
-            <span className={priorityStyles.missingReasonNote}>{missingExplanation}</span>
+            <span className={priorityStyles.missingReasonNote}>
+              {missingExplanation.kind === "priorityChanged" ? (
+                <>
+                  Priority changed to <PriorityTraceBadge trace={missingExplanation.trace} /> in
+                  execution
+                </>
+              ) : (
+                missingExplanation.text
+              )}
+            </span>
           )}
         </div>
       )}

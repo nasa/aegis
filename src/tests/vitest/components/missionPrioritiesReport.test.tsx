@@ -181,7 +181,7 @@ describe("MissionPrioritiesPage UI transitions", () => {
     expect(container.textContent).toContain("In EVA Alpha");
     expect(container.textContent).toContain("Collect regolith");
     expect(container.textContent).toContain(
-      "Inherited from POI Rim POI (priority changed from GEO-0004.1 to SIMD-0002.1)"
+      "Inherited from POI 🔴Rim POI (priority changed from GEO-0004.1 to SIMD-0002.1)"
     );
 
     // Switch to disabled-only priority row
@@ -192,7 +192,7 @@ describe("MissionPrioritiesPage UI transitions", () => {
       p2Row.click();
     });
     expect(container.textContent).toContain("0 active (disabled only)");
-    expect(container.textContent).toContain("Disabled in this EVA/REX (1)");
+    expect(container.textContent).toContain("Disabled in this EVA / REX (1)");
     expect(container.textContent).toContain("Backup sample");
 
     // Toggle off "Show disabled"
@@ -204,7 +204,7 @@ describe("MissionPrioritiesPage UI transitions", () => {
     });
     expect(grid.textContent).not.toContain("0 (D)");
     expect(container.textContent).toContain("0 active (no active actions)");
-    expect(container.textContent).not.toContain("Disabled in this EVA/REX");
+    expect(container.textContent).not.toContain("Disabled in this EVA / REX");
 
     // Switch REX filter to "notSkipped" (with Diff mode active by default) and click the REX cell for SIMD-0002.1
     await act(async () => {
