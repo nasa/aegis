@@ -208,10 +208,6 @@
   font-size: 0.85rem;
 }
 
-.colorField {
-  position: relative;
-}
-
 .colorSwatch {
   display: block;
   width: 20px;
@@ -228,19 +224,20 @@
   cursor: pointer;
 }
 
-.colorPopover {
-  position: absolute;
-  left: 0;
-  z-index: 20;
+/* Top-layer dialog so the palette escapes the scrolling editor box; positioned next to the swatch. */
+.colorDialog {
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background-color: transparent;
 }
 
-.colorCover {
-  position: fixed;
-  inset: 0;
+.colorDialog::backdrop {
+  background: transparent;
 }
 
 .colorMenu {
-  position: relative;
   display: flex;
   flex-direction: column;
   row-gap: 4px;
