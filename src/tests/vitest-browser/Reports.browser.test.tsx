@@ -184,14 +184,14 @@ describe("Reports navigation and grid", () => {
     // Clicking the disabled-only row shows the disabled action in the drilldown
     await page.getByRole("button", { name: "SIMD-0010.1 (Sample Collection)" }).click();
     expect(harness.container.textContent).toContain("0 active (disabled only)");
-    expect(harness.container.textContent).toContain("Disabled in this EVA/REX (1)");
+    expect(harness.container.textContent).toContain("Disabled in this EVA / REX (1)");
     expect(harness.container.textContent).toContain("Backup sample");
 
     // Toggling off "Show disabled" hides the 0 (D) indicator and updates the drilldown status
     await page.getByText("Show disabled", { exact: true }).click();
     expect(grid.textContent).not.toContain("0 (D)");
     expect(harness.container.textContent).toContain("0 active (no active actions)");
-    expect(harness.container.textContent).not.toContain("Disabled in this EVA/REX");
+    expect(harness.container.textContent).not.toContain("Disabled in this EVA / REX");
   });
 
   it("expands to the right from title clicks and keeps the baseline unchanged", async () => {
