@@ -72,7 +72,7 @@ const mustBeNumberGTZero = (value: Stringy): string | undefined => {
   if (!isNaN(Number(value)) && Number(value) > 0) {
     return undefined;
   } else {
-    return "Must be an greater than 0";
+    return "Must be a number greater than 0";
   }
 };
 
@@ -81,7 +81,7 @@ const mustBeNumberGTEZero = (value: Stringy): string | undefined => {
   if (!isNaN(Number(value)) && Number(value) >= 0) {
     return undefined;
   } else {
-    return "Must be an greater than or equal to 0";
+    return "Must be a number greater than or equal to 0";
   }
 };
 

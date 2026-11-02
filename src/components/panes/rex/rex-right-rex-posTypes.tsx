@@ -136,6 +136,7 @@ const Positions_panel: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                     >
                       <div className={rexStyles.propertyHeaderAbbr}>Abbr</div>
                       <div className={rexStyles.propertyHeaderName}>Name</div>
+                      <div className={rexStyles.propertyHeaderPathColor}>Path Color</div>
                       <div className={rexStyles.propertyRowTrash}></div>
                     </div>
                   </div>
@@ -421,6 +422,23 @@ const PosSource: FunctionComponent<{
               );
             }}
             key={`${item.uuid}-name`}
+          />
+        </div>
+        <div className={rexStyles.propertyRowPathColor}>
+          <PathColorPickerMenu
+            currentColor={item.pathColor}
+            editMode={editMode}
+            updateColor={(val) => {
+              withMissionChange((m) =>
+                applyUpdatePosSourceField(m, {
+                  rexUuid,
+                  uuid: item.uuid,
+                  fieldName: "pathColor",
+                  value: val,
+                })
+              );
+            }}
+            hasDarkBorder={evenRow}
           />
         </div>
 

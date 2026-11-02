@@ -390,6 +390,38 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    inputs.add_argument(
+        "--in-lyrx-raster",
+        dest="in_lyrx_raster",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help=(
+            "Single-band raster to classify with its .lyrx class breaks into an RGBA COG; "
+            "repeatable (pair each with --lyrx-raster-style)."
+        ),
+    )
+    inputs.add_argument(
+        "--lyrx-raster-style",
+        dest="lyrx_raster_style",
+        action="append",
+        default=[],
+        type=Path,
+        metavar="LYRX",
+        help="ArcGIS .lyrx (CIMRasterClassifyColorizer) for each --in-lyrx-raster.",
+    )
+    inputs.add_argument(
+        "--out-lyrx-raster",
+        dest="out_lyrx_raster",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help=(
+            "Output layer name for each --in-lyrx-raster; repeat once per input "
+            "or omit to use the source filename."
+        ),
+    )
+
     output = parser.add_argument_group("Output location (--out-* / --layer-*)")
     output.add_argument(
         "--out-dir",

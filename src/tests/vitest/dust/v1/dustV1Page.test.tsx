@@ -40,6 +40,8 @@ const createFakeSocket = () => ({
   off: vi.fn(),
   onAny: vi.fn(),
   emit: vi.fn(),
+  timeout: vi.fn().mockReturnThis(),
+  emitWithAck: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   connect: vi.fn(),
   disconnect: vi.fn(),
   removeAllListeners: vi.fn(),
@@ -62,8 +64,13 @@ let dustSocket: FakeSocket;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   inspectorSocket = withCapturedHandlers(createFakeSocket());
   dustSocket = withCapturedHandlers(createFakeSocket());
+  dustSocket.emitWithAck.mockImplementation(async (event) => {
+    if (event === "getDebugInfo") return { visitors: {}, docListenerMissionIds: [] };
+    return { status: "success", message: "Mission joined" };
+  });
   mockCreateClientSocket.mockReturnValue(inspectorSocket);
   mockIo.mockReturnValue(dustSocket);
   mockIsLoggedIn.mockResolvedValue({ status: "success", data: { isSuperAdmin: true } });
@@ -74,8 +81,10 @@ beforeEach(() => {
   root = createRoot(container);
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await act(async () => root.unmount());
   container.remove();
+  vi.unstubAllGlobals();
 });
 
 const renderPage = async () => {
@@ -163,12 +172,14 @@ describe("DustV1 admin monitor", () => {
     await renderPage();
     await connectAndJoin();
 
-    expect(dustSocket.emit).toHaveBeenCalledWith(
+    expect(dustSocket.timeout).toHaveBeenCalledWith(15000);
+    expect(dustSocket.emitWithAck).toHaveBeenCalledWith(
       "missionJoin",
       9999,
-      expect.objectContaining({ name: "DUST Monitor Page" }),
-      expect.any(Function)
+      expect.objectContaining({ name: "DUST Monitor Page" })
     );
+    expect(dustSocket.emitWithAck).toHaveBeenCalledWith("getDebugInfo");
+    expect(container.textContent).toContain("success: Mission joined");
     expect(dustSocket.on).toHaveBeenCalledWith("posEntriesUpdate", expect.any(Function));
   });
 
@@ -181,15 +192,23 @@ describe("DustV1 admin monitor", () => {
     )!;
     expect(getEverythingButton.disabled).toBe(false);
 
+    let resolveResponse: (response: unknown) => void;
+    dustSocket.emitWithAck.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveResponse = resolve;
+      })
+    );
     await act(async () => {
       getEverythingButton.click();
     });
 
-    const call = dustSocket.emit.mock.calls.find((c) => c[0] === "getEverything")!;
-    expect(call[1]).toBe(9999);
+    expect(dustSocket.timeout).toHaveBeenLastCalledWith(15000);
+    expect(dustSocket.emitWithAck).toHaveBeenCalledWith("getEverything", 9999);
+    expect(getEverythingButton.disabled).toBe(true);
+    expect(container.textContent).toContain("Loading mission data...");
 
     await act(async () => {
-      (call[2] as (r: unknown) => void)({
+      resolveResponse({
         status: "success",
         message: "Everything retrieved",
         data: [
@@ -208,6 +227,27 @@ describe("DustV1 admin monitor", () => {
 
     expect(container.textContent).toContain("Vitest Rex");
     expect(container.textContent).toContain("success: Everything retrieved");
+    expect(container.textContent).not.toContain("Loading mission data...");
+    expect(getEverythingButton.disabled).toBe(false);
+  });
+
+  it("shows acknowledgement timeouts and re-enables Get Everything", async () => {
+    await renderPage();
+    await connectAndJoin();
+    dustSocket.emitWithAck.mockRejectedValueOnce(new Error("operation has timed out"));
+
+    const getEverythingButton = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent === "Get Everything"
+    )!;
+    await act(async () => {
+      getEverythingButton.click();
+    });
+
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+      "Loading mission data: operation has timed out"
+    );
+    expect(container.textContent).not.toContain("Loading mission data...");
+    expect(getEverythingButton.disabled).toBe(false);
   });
 
   it("disables Get Everything while the DUST socket is disconnected", async () => {

@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -64,6 +66,9 @@ const EmitCard: FunctionComponent<{
 // ─── Main page component ──────────────────────────────────────────────────────
 
 const MaestroV2: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Loading missions...");
+  const { run: runLoad } = loading;
+  const action = useAsyncStatus();
   const navigate = useNavigate();
 
   // Inspector socket (default namespace on the new /socket server).
@@ -118,7 +123,8 @@ const MaestroV2: React.FunctionComponent = () => {
 
   const refreshDebugInfo = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("getDebugInfo", (data) => {
+    action.run("Loading debug information...", async () => {
+      const data = await maestroSocket.current.timeout(15000).emitWithAck("getDebugInfo");
       setDebugInfo(data);
     });
   };
@@ -146,7 +152,7 @@ const MaestroV2: React.FunctionComponent = () => {
       setLastUpdatedAt(new Date().toISOString());
     });
 
-    (async () => {
+    runLoad("Loading missions...", async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
         if (!response.data.isSuperAdmin) {
@@ -162,7 +168,7 @@ const MaestroV2: React.FunctionComponent = () => {
         missionsRes.data.forEach((m) => nameMap.set(m.id, m.name));
         setMissionNames(nameMap);
       }
-    })();
+    });
 
     return () => {
       socket.off("connect");
@@ -170,7 +176,7 @@ const MaestroV2: React.FunctionComponent = () => {
       socket.off("inspectorUpdate");
       socket.disconnect();
     };
-  }, [navigate]);
+  }, [navigate, runLoad]);
 
   // ── Maestro socket lifecycle ──────────────────────────────────────────────
 
@@ -195,11 +201,16 @@ const MaestroV2: React.FunctionComponent = () => {
         name: joinVisitorName.trim() || "Maestro V2 Monitor Page",
         connectedAt: Date.now(),
       };
-      sock.emit("missionJoin", missionId, maestroVisitor, (response) => {
+      action.run("Joining mission...", async () => {
+        const response = await sock
+          .timeout(15000)
+          .emitWithAck("missionJoin", missionId, maestroVisitor);
         setJoinResponseMessage(`${response.status}: ${response.message}`);
       });
       // Populate the debug tables now that we have an authenticated socket.
-      sock.emit("getDebugInfo", (data) => setDebugInfo(data));
+      action.run("Loading debug information...", async () => {
+        setDebugInfo(await sock.timeout(15000).emitWithAck("getDebugInfo"));
+      });
     });
 
     sock.onAny((event, ...args) => {
@@ -242,7 +253,11 @@ const MaestroV2: React.FunctionComponent = () => {
 
   const emitSubscribeToEva = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("subscribeToEva", Number(subMissionId), subEvaUuid.trim(), () => {});
+    action.run("Subscribing to EVA...", () =>
+      maestroSocket.current
+        .timeout(15000)
+        .emitWithAck("subscribeToEva", Number(subMissionId), subEvaUuid.trim())
+    );
   };
 
   const emitUnsubscribeToEva = () => {
@@ -252,7 +267,9 @@ const MaestroV2: React.FunctionComponent = () => {
 
   const emitGetEverything = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit("getEverything", Number(everythingMissionId), () => {});
+    action.run("Loading mission data...", () =>
+      maestroSocket.current.timeout(15000).emitWithAck("getEverything", Number(everythingMissionId))
+    );
   };
 
   const emitSendMdau = () => {
@@ -268,11 +285,10 @@ const MaestroV2: React.FunctionComponent = () => {
 
   const emitGetExecuteUuids = () => {
     if (!maestroSocket.current?.connected) return;
-    maestroSocket.current.emit(
-      "getExecuteUuids",
-      Number(executeUuidsMissionId),
-      executeUuidsRexUuid.trim(),
-      () => {}
+    action.run("Loading execution IDs...", () =>
+      maestroSocket.current
+        .timeout(15000)
+        .emitWithAck("getExecuteUuids", Number(executeUuidsMissionId), executeUuidsRexUuid.trim())
     );
   };
 
@@ -285,6 +301,8 @@ const MaestroV2: React.FunctionComponent = () => {
           ← Admin
         </Link>
         <h1 className={adminCommon.pageTitle}>Maegistro v2 Monitor</h1>
+        <AsyncStatus {...loading} />
+        <AsyncStatus {...action} />
         <p style={{ color: "#94a3b8", marginTop: "-8px", fontSize: "0.9rem" }}>
           Current Maegistro v2 traffic on <code>/api/socket</code> namespace{" "}
           <code>/maestro/v2</code>.
@@ -321,7 +339,9 @@ const MaestroV2: React.FunctionComponent = () => {
         <section className={adminCommon.section}>
           <h2>Maegistro v2 Visitors</h2>
           <div className={adminCommon.details}>
-            {!debugInfo?.visitors || Object.keys(debugInfo.visitors).length === 0 ? (
+            {!debugInfo && action.pending ? (
+              <AsyncStatus pending="Loading visitor information..." />
+            ) : !debugInfo?.visitors || Object.keys(debugInfo.visitors).length === 0 ? (
               <div className={adminCommon.emptyState}>
                 {isMaestroConnected
                   ? "No Maegistro v2 visitors connected."
@@ -340,7 +360,7 @@ const MaestroV2: React.FunctionComponent = () => {
             <button
               className={adminCommon.button}
               onClick={refreshDebugInfo}
-              disabled={!isMaestroConnected}
+              disabled={!!action.pending || !isMaestroConnected}
               title={
                 isMaestroConnected
                   ? "Refresh"
@@ -435,6 +455,15 @@ const MaestroV2: React.FunctionComponent = () => {
           >
             {/* missionJoin */}
             <EmitCard title="missionJoin">
+              <AsyncStatus
+                pending={
+                  maestroConnectionStatus === "connecting"
+                    ? "Connecting..."
+                    : action.pending === "Joining mission..."
+                      ? action.pending
+                      : null
+                }
+              />
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <span style={{ color: "#94a3b8", fontSize: "0.85em" }}>Status:</span>
                 <span
@@ -527,7 +556,7 @@ const MaestroV2: React.FunctionComponent = () => {
               <button
                 className={adminCommon.buttonDanger}
                 onClick={emitMissionLeave}
-                disabled={!isMaestroConnected || !leaveMissionId}
+                disabled={!!action.pending || !isMaestroConnected || !leaveMissionId}
                 style={{ marginTop: "auto" }}
               >
                 Emit
@@ -536,6 +565,9 @@ const MaestroV2: React.FunctionComponent = () => {
 
             {/* subscribeToEva */}
             <EmitCard title="subscribeToEva">
+              <AsyncStatus
+                pending={action.pending === "Subscribing to EVA..." ? action.pending : null}
+              />
               <input
                 className={adminCommon.formInput}
                 type="number"
@@ -555,7 +587,7 @@ const MaestroV2: React.FunctionComponent = () => {
               <button
                 className={adminCommon.buttonPrimary}
                 onClick={emitSubscribeToEva}
-                disabled={!isMaestroConnected || !subMissionId || !subEvaUuid}
+                disabled={!!action.pending || !isMaestroConnected || !subMissionId || !subEvaUuid}
                 style={{ marginTop: "auto" }}
               >
                 Emit
@@ -583,7 +615,9 @@ const MaestroV2: React.FunctionComponent = () => {
               <button
                 className={adminCommon.buttonPrimary}
                 onClick={emitUnsubscribeToEva}
-                disabled={!isMaestroConnected || !desubMissionId || !desubEvaUuid}
+                disabled={
+                  !!action.pending || !isMaestroConnected || !desubMissionId || !desubEvaUuid
+                }
                 style={{ marginTop: "auto" }}
               >
                 Emit
@@ -592,6 +626,9 @@ const MaestroV2: React.FunctionComponent = () => {
 
             {/* getEverything */}
             <EmitCard title="getEverything">
+              <AsyncStatus
+                pending={action.pending === "Loading mission data..." ? action.pending : null}
+              />
               <input
                 className={adminCommon.formInput}
                 type="number"
@@ -603,7 +640,7 @@ const MaestroV2: React.FunctionComponent = () => {
               <button
                 className={adminCommon.buttonPrimary}
                 onClick={emitGetEverything}
-                disabled={!isMaestroConnected || !everythingMissionId}
+                disabled={!!action.pending || !isMaestroConnected || !everythingMissionId}
                 style={{ marginTop: "auto" }}
               >
                 Emit
@@ -645,7 +682,7 @@ const MaestroV2: React.FunctionComponent = () => {
                 <button
                   className={adminCommon.buttonPrimary}
                   onClick={emitSendMdau}
-                  disabled={!isMaestroConnected || !sendMdauMissionId}
+                  disabled={!!action.pending || !isMaestroConnected || !sendMdauMissionId}
                   style={{ width: "fit-content" }}
                 >
                   Emit
@@ -655,6 +692,9 @@ const MaestroV2: React.FunctionComponent = () => {
 
             {/* getExecuteUuids */}
             <EmitCard title="getExecuteUuids">
+              <AsyncStatus
+                pending={action.pending === "Loading execution IDs..." ? action.pending : null}
+              />
               <input
                 className={adminCommon.formInput}
                 type="number"
@@ -674,7 +714,12 @@ const MaestroV2: React.FunctionComponent = () => {
               <button
                 className={adminCommon.buttonPrimary}
                 onClick={emitGetExecuteUuids}
-                disabled={!isMaestroConnected || !executeUuidsMissionId || !executeUuidsRexUuid}
+                disabled={
+                  !!action.pending ||
+                  !isMaestroConnected ||
+                  !executeUuidsMissionId ||
+                  !executeUuidsRexUuid
+                }
                 style={{ marginTop: "auto" }}
               >
                 Emit

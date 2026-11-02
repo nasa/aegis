@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { populateStore } from "store/processing/populateStore";
 import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
@@ -17,6 +19,9 @@ type RouteParams = {
 };
 
 const ExportPage: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Loading mission for export...");
+  const { run: runLoad } = loading;
+  const action = useAsyncStatus();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const automergeRepo = useRepo();
@@ -37,35 +42,24 @@ const ExportPage: React.FunctionComponent = () => {
   const [selectTraverses, setSelectTraverses] = useState(false);
   const [selectRexes, setSelectRexes] = useState(false);
 
-  //on load check login and mission id
   useEffect(() => {
-    (async () => {
+    runLoad("Loading mission for export...", async () => {
       const response = await isLoggedIn();
-      if (response.status === "success") {
-        const user = response.data;
-        if (!(user.isAdmin || user.isSuperAdmin)) {
-          navigate("/"); //Redirect to homepage
-        }
-      } else {
+      if (
+        response.status !== "success" ||
+        !(response.data?.isAdmin || response.data?.isSuperAdmin)
+      ) {
         navigate("/");
+        return;
       }
-    })();
-  }, [navigate]);
-
-  useEffect(() => {
-    (async () => {
       const wholeStoreState = await populateStore({
         missionId: intMissionId,
         runAudit: false,
         automergeRepo,
       });
-      /**
-       * dispatch a single action to populate the stores across all slices using the wholeStoreState
-       */
       dispatch(setAllSliceStores(wholeStoreState));
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    });
+  }, [intMissionId, automergeRepo, dispatch, navigate, runLoad]);
 
   return (
     <main className={adminCommon.page}>
@@ -80,6 +74,9 @@ const ExportPage: React.FunctionComponent = () => {
             <span className={adminCommon.missionSubheaderName}>{missionName}</span>
           </div>
         )}
+
+        <AsyncStatus {...loading} />
+        <AsyncStatus {...action} />
 
         <section className={adminCommon.section}>
           <h2>Export</h2>
@@ -152,6 +149,7 @@ const ExportPage: React.FunctionComponent = () => {
             </div>
             <div className={adminCommon.formActions}>
               <button
+                disabled={!!loading.pending || !!loading.error || !!action.pending}
                 className={adminCommon.button}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
@@ -167,12 +165,18 @@ const ExportPage: React.FunctionComponent = () => {
                     });
                     setSelectedOutput(output);
                   };
-                  makeExportStringAsync();
+                  action.run("Generating export...", async () => {
+                    await new Promise<void>((resolve) =>
+                      requestAnimationFrame(() => setTimeout(resolve, 0))
+                    );
+                    await makeExportStringAsync();
+                  });
                 }}
               >
                 Export JSON to Text Field
               </button>
               <button
+                disabled={!!loading.pending || !!loading.error || !!action.pending}
                 className={adminCommon.button}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
@@ -204,7 +208,12 @@ const ExportPage: React.FunctionComponent = () => {
                     document.body.appendChild(element); // Required for this to work in FireFox
                     element.click();
                   };
-                  makeExportStringAsync();
+                  action.run("Generating export...", async () => {
+                    await new Promise<void>((resolve) =>
+                      requestAnimationFrame(() => setTimeout(resolve, 0))
+                    );
+                    await makeExportStringAsync();
+                  });
                 }}
               >
                 Export JSON to File
@@ -224,31 +233,28 @@ const ExportPage: React.FunctionComponent = () => {
             </p>
             <div className={adminCommon.formActions}>
               <button
+                disabled={!!loading.pending || !!loading.error || !!action.pending}
                 className={adminCommon.buttonPrimary}
                 type="button"
-                onClick={async () => {
-                  try {
+                onClick={() =>
+                  action.run("Preparing mission database dump...", async () => {
                     const response = await dumpMission(intMissionId);
-                    if (response.status === "success" && response.data) {
-                      const jsonString = JSON.stringify(response.data, null, 2);
-                      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-                      const filename = `mission_${intMissionId}_dump_${timestamp}.json`;
-
-                      const element = document.createElement("a");
-                      const file = new Blob([jsonString], { type: "application/json" });
-                      element.href = URL.createObjectURL(file);
-                      element.download = filename;
-                      document.body.appendChild(element);
-                      element.click();
-                      document.body.removeChild(element);
-                    } else {
-                      alert(`Error: ${response.message || "Unknown error occurred"}`);
+                    if (response.status !== "success" || !response.data) {
+                      throw new Error(response.message || "Unknown error occurred");
                     }
-                  } catch (error) {
-                    console.error("Dump failed:", error);
-                    alert("Error dumping mission. Please try again.");
-                  }
-                }}
+                    const jsonString = JSON.stringify(response.data, null, 2);
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                    const filename = `mission_${intMissionId}_dump_${timestamp}.json`;
+
+                    const element = document.createElement("a");
+                    const file = new Blob([jsonString], { type: "application/json" });
+                    element.href = URL.createObjectURL(file);
+                    element.download = filename;
+                    document.body.appendChild(element);
+                    element.click();
+                    document.body.removeChild(element);
+                  })
+                }
               >
                 Dump Mission to JSON File
               </button>

@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useCallback, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Link, useParams } from "react-router";
@@ -23,6 +25,8 @@ type RouteParams = {
 };
 
 const Mission: React.FunctionComponent = () => {
+  const elevationStatus = useAsyncStatus();
+  const maestroStatus = useAsyncStatus();
   const params = useParams<RouteParams>();
   // Access the automerge mission document via the useDocument hook instead of the
   // useMissionDocSelector (to read) and useDocHandle (to write). This is because for this
@@ -53,12 +57,14 @@ const Mission: React.FunctionComponent = () => {
   const calcLanderElevation = useCallback(async () => {
     if (!automergeMission) return;
     if (
-      !automergeMission.landerLocation.lat ||
-      !automergeMission.landerLocation.lat ||
+      automergeMission.landerLocation.lat == null ||
+      automergeMission.landerLocation.lng == null ||
       !automergeMission.planetRadius ||
       !automergeMission.demFilePath
     ) {
-      alert("Missing data. Must have lander location lat/lng, planet radius, and demFilePath");
+      throw new Error(
+        "Missing data. Must have lander location lat/lng, planet radius, and demFilePath"
+      );
     }
 
     const elevation = (
@@ -76,7 +82,7 @@ const Mission: React.FunctionComponent = () => {
 
   // Maestro section state
   const [maestroAccessControl, setMaestroAccessControl] = useState<MaestroAccessControl>("public");
-  const [maestroLoading, setMaestroLoading] = useState(false);
+  const maestroLoading = !!maestroStatus.pending;
   const [maestroError, setMaestroError] = useState<string | null>(null);
   const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
@@ -86,7 +92,6 @@ const Mission: React.FunctionComponent = () => {
 
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
-    setMaestroLoading(true);
     setMaestroError(null);
     setMaestroResponseMeta(null);
 
@@ -100,25 +105,25 @@ const Mission: React.FunctionComponent = () => {
       accessControl: maestroAccessControl,
     });
 
-    setMaestroLoading(false);
-
     if (response.status === "error") {
-      setMaestroError(response.message);
-    } else {
-      setMaestroResponseMeta(response.data.alteredInitialState ?? null);
-      if (response.data.error) {
-        const errStr =
-          typeof response.data.error === "string"
-            ? response.data.error
-            : JSON.stringify(response.data.error);
-        if (errStr && errStr !== "{}" && errStr !== "null") {
-          setMaestroError(errStr);
-        }
-      }
-      changeAutomergeMission((m: Mission) => {
-        m.maestroDocId = response.data.documentId;
-      });
+      throw new Error(response.message || "Failed to create Maestro project");
     }
+
+    setMaestroResponseMeta(response.data.alteredInitialState ?? null);
+    // The project was created; a payload-level error is a warning about the created
+    // document rather than a failure of this request.
+    if (response.data.error) {
+      const errStr =
+        typeof response.data.error === "string"
+          ? response.data.error
+          : JSON.stringify(response.data.error);
+      if (errStr && errStr !== "{}" && errStr !== "null") {
+        setMaestroError(errStr);
+      }
+    }
+    changeAutomergeMission((m: Mission) => {
+      m.maestroDocId = response.data.documentId;
+    });
   }, [automergeMission, changeAutomergeMission, maestroAccessControl]);
 
   const handleClearMaestroDocId = useCallback(() => {
@@ -135,6 +140,7 @@ const Mission: React.FunctionComponent = () => {
         <Link to="/admin/missions" className={adminCommon.backLink}>
           ← Missions
         </Link>
+        {!automergeMission && <AsyncStatus pending="Loading mission..." />}
         {automergeMission && (
           <>
             <h1 className={adminCommon.pageTitle}>
@@ -298,7 +304,7 @@ const Mission: React.FunctionComponent = () => {
                           }}
                           onSubmit={(value) => {
                             changeAutomergeMission((m: Mission) => {
-                              m.landerLocation.lat = +value || null;
+                              m.landerLocation.lat = value ? +value : null;
                             });
                           }}
                           key={`${automergeMission.id}-landerLocation.lat`}
@@ -323,7 +329,7 @@ const Mission: React.FunctionComponent = () => {
                           }}
                           onSubmit={(value) => {
                             changeAutomergeMission((m: Mission) => {
-                              m.landerLocation.lng = +value || null;
+                              m.landerLocation.lng = value ? +value : null;
                             });
                           }}
                           key={`${automergeMission.id}-landerLocation.lng`}
@@ -357,12 +363,17 @@ const Mission: React.FunctionComponent = () => {
                         <button
                           className={adminCommon.button}
                           type="button"
-                          onClick={() => {
-                            calcLanderElevation();
-                          }}
+                          disabled={!!elevationStatus.pending}
+                          onClick={() =>
+                            elevationStatus.run(
+                              "Calculating lander elevation...",
+                              calcLanderElevation
+                            )
+                          }
                         >
                           Calculate
                         </button>
+                        <AsyncStatus {...elevationStatus} />
                         <span className={adminCommon.formHint}>
                           {" "}
                           Lander Location must have value for elevation graph to show
@@ -704,10 +715,16 @@ const Mission: React.FunctionComponent = () => {
                             className={adminCommon.buttonPrimary}
                             type="button"
                             disabled={maestroLoading || !automergeMission.id}
-                            onClick={handleCreateMaestroProject}
+                            onClick={() =>
+                              maestroStatus.run(
+                                "Creating Maestro project...",
+                                handleCreateMaestroProject
+                              )
+                            }
                           >
                             {maestroLoading ? "Creating…" : "Create Project"}
                           </button>
+                          <AsyncStatus {...maestroStatus} />
                         </div>
                         {!automergeMission.id && (
                           <p className={adminCommon.formHint} style={{ marginTop: 8 }}>

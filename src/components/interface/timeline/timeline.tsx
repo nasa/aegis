@@ -337,14 +337,20 @@ const NavTimeline: FunctionComponent = () => {
         flattenedGraphData,
         event.point,
         setHoverValues,
-        partialMission?.landerElevationMeters
+        partialMission?.landerElevationMeters,
+        selectedEvaUuid
       );
     };
-    paper.view.onMouseMove = throttle(onMouseMove, 15, {
+    const view = paper.view;
+    view.onMouseMove = throttle(onMouseMove, 15, {
       leading: true,
       trailing: false,
     });
-  }, [dispatch, partialMission?.landerElevationMeters]);
+    return () => {
+      view.onMouseMove = null;
+      dispatch(clearMapItemHover());
+    };
+  }, [dispatch, partialMission?.landerElevationMeters, selectedEvaUuid]);
   useEffect(() => {
     paper.view.onResize = function () {
       drawTimeline();

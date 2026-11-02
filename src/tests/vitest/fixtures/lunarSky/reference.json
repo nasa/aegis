@@ -1,0 +1,3295 @@
+{
+  "provenance": {
+    "generatedAtUtc": "2026-10-15T01:54:30.717768+00:00",
+    "spiceypyVersion": "8.0.0",
+    "toolkitVersion": "CSPICE_N0067",
+    "spiceFrame": "IAU_MOON",
+    "spiceAberration": "NONE",
+    "horizonsQuantity": "4: airless apparent target-center azimuth/elevation",
+    "kernels": [
+      {
+        "url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440s.bsp",
+        "sha256": "c1c7feeab882263fc493a9d5a5b2ddd71b54826cdf65d8d17a76126b260a49f2"
+      },
+      {
+        "url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/pck00011.tpc",
+        "sha256": "3dff7b1dbeceaa01f25467767d3fa25816051c85d162d1edf04acb310ee28bb1"
+      },
+      {
+        "url": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls",
+        "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b"
+      }
+    ],
+    "horizonsRequests": [
+      {
+        "site": "lander",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2733.5021945%2C-84.223397%2C5.414891%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461771.500000000%27+%272461802.500000000%27+%272461831.500000000%27+%272461862.500000000%27+%272461892.500000000%27+%272461923.500000000%27+%272461953.500000000%27+%272461984.500000000%27+%272461985.416666667%27+%272461986.416666667%27+%272461987.416666667%27+%272461988.416666667%27+%272461989.416666667%27+%272461989.458333333%27+%272461990.416666667%27+%272461991.416666667%27+%272461992.416666667%27+%272461992.458333333%27+%272461993.416666667%27+%272461994.416666667%27+%272461995.416666667%27+%272461996.416666667%27+%272461997.416666667%27+%272461998.416666667%27+%272461999.416666667%27+%272462000.416666667%27+%272462001.416666667%27+%272462002.416666667%27+%272462003.416666667%27+%272462004.416666667%27+%272462005.416666667%27+%272462006.416666667%27+%272462007.416666667%27+%272462008.416666667%27+%272462009.416666667%27+%272462010.416666667%27+%272462011.416666667%27+%272462012.416666667%27+%272462013.416666667%27+%272462014.416666667%27+%272462015.416666667%27+%272462015.500000000%27+%272462016.416666667%27+%272462045.500000000%27+%272462076.500000000%27+%272462106.500000000%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/lander-10.txt",
+        "sha256": "7e14a487e41ee6060ff28caf06ea9c70a54ec1ba19da2326fc0930db6d88bf70"
+      },
+      {
+        "site": "lander",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2733.5021945%2C-84.223397%2C5.414891%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461771.500000000%27+%272461802.500000000%27+%272461831.500000000%27+%272461862.500000000%27+%272461892.500000000%27+%272461923.500000000%27+%272461953.500000000%27+%272461984.500000000%27+%272461985.416666667%27+%272461986.416666667%27+%272461987.416666667%27+%272461988.416666667%27+%272461989.416666667%27+%272461989.458333333%27+%272461990.416666667%27+%272461991.416666667%27+%272461992.416666667%27+%272461992.458333333%27+%272461993.416666667%27+%272461994.416666667%27+%272461995.416666667%27+%272461996.416666667%27+%272461997.416666667%27+%272461998.416666667%27+%272461999.416666667%27+%272462000.416666667%27+%272462001.416666667%27+%272462002.416666667%27+%272462003.416666667%27+%272462004.416666667%27+%272462005.416666667%27+%272462006.416666667%27+%272462007.416666667%27+%272462008.416666667%27+%272462009.416666667%27+%272462010.416666667%27+%272462011.416666667%27+%272462012.416666667%27+%272462013.416666667%27+%272462014.416666667%27+%272462015.416666667%27+%272462015.500000000%27+%272462016.416666667%27+%272462045.500000000%27+%272462076.500000000%27+%272462106.500000000%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "version": "1.2",
+          "source": "NASA/JPL Horizons API"
+        },
+        "rawFile": "horizons/lander-399.txt",
+        "sha256": "4ae1c19b4eb1dbcf8e4f5ae7e4a2d6a3fdb225d96ba00aa9f75e9934e8acbefc"
+      },
+      {
+        "site": "near-south-pole",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2733%2C-89.9999%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/near-south-pole-10.txt",
+        "sha256": "0eb085bf4d4ffce17e19df8a7bb2c94c0b82c512e0aeb913061cca95da56e76d"
+      },
+      {
+        "site": "near-south-pole",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2733%2C-89.9999%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/near-south-pole-399.txt",
+        "sha256": "211b6fc91c06b328dd3a59732736290ed0c931693f688345cbaf38189150c8ce"
+      },
+      {
+        "site": "near-side-equator",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%270%2C0%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/near-side-equator-10.txt",
+        "sha256": "eeda2c3c753e0186e1782cfba6e33b2df1650036ad07947247b7daacb6ecba19"
+      },
+      {
+        "site": "near-side-equator",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%270%2C0%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/near-side-equator-399.txt",
+        "sha256": "0a1c351f15d99f9f17235827a4eab7b7a7b876be77079a717836ce0cd6f2214b"
+      },
+      {
+        "site": "eastern-near-side",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2760%2C0%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/eastern-near-side-10.txt",
+        "sha256": "d7362ed36f0a0e7a2641d22c506aa7f132bb0ab31d98ade9fc0a2d4adb3a0129"
+      },
+      {
+        "site": "eastern-near-side",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2760%2C0%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "version": "1.2",
+          "source": "NASA/JPL Horizons API"
+        },
+        "rawFile": "horizons/eastern-near-side-399.txt",
+        "sha256": "e4da68eceb77fe71906b5fa4c0050bc961003810bd3bb7babf41fa5394529bac"
+      },
+      {
+        "site": "western-near-side",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%27-60%2C0%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "version": "1.2",
+          "source": "NASA/JPL Horizons API"
+        },
+        "rawFile": "horizons/western-near-side-10.txt",
+        "sha256": "6fa9e7bc95d52a013f5fa392f3ba8b3cdaa38c52b027c63f639636b2ccdfa447"
+      },
+      {
+        "site": "western-near-side",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%27-60%2C0%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/western-near-side-399.txt",
+        "sha256": "fc935c98da98fc050ec7a8317fc7c8cd39bc4148065390ab3b44d3580eeaf775"
+      },
+      {
+        "site": "northern-midlatitude",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%27-60%2C45%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "version": "1.2",
+          "source": "NASA/JPL Horizons API"
+        },
+        "rawFile": "horizons/northern-midlatitude-10.txt",
+        "sha256": "5606f48cd86a6a1ff42b20ffa8cbd1177d0da97dc2e88eb26c78fdac119748e5"
+      },
+      {
+        "site": "northern-midlatitude",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%27-60%2C45%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "version": "1.2",
+          "source": "NASA/JPL Horizons API"
+        },
+        "rawFile": "horizons/northern-midlatitude-399.txt",
+        "sha256": "5fc9629b132002df8bba8e72603deea990547af2a9f072d230a99d40da4e6d80"
+      },
+      {
+        "site": "southern-midlatitude",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2760%2C-45%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "version": "1.2",
+          "source": "NASA/JPL Horizons API"
+        },
+        "rawFile": "horizons/southern-midlatitude-10.txt",
+        "sha256": "476d15e7d345c35e20a08fe12bd989823d326fac68c3f2f70a506842c2968605"
+      },
+      {
+        "site": "southern-midlatitude",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2760%2C-45%2C0.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "version": "1.2",
+          "source": "NASA/JPL Horizons API"
+        },
+        "rawFile": "horizons/southern-midlatitude-399.txt",
+        "sha256": "36614bec3abc1077352812f92f6fb8e7bcb590c347f1681e6af931b0f9cd930c"
+      },
+      {
+        "site": "below-datum",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2733.5021945%2C-84.223397%2C-5.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/below-datum-10.txt",
+        "sha256": "ea1a1da50cb8e594da8b354a1ad5fd68f0a58f4a9ec51e7d1d58e4686e8b0374"
+      },
+      {
+        "site": "below-datum",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2733.5021945%2C-84.223397%2C-5.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "version": "1.2",
+          "source": "NASA/JPL Horizons API"
+        },
+        "rawFile": "horizons/below-datum-399.txt",
+        "sha256": "a20cc8f004b8814138c5776ba81e3242307ded322dc7289df14acec7e41496cc"
+      },
+      {
+        "site": "above-datum",
+        "target": "10",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%2710%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2733.5021945%2C-84.223397%2C100.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/above-datum-10.txt",
+        "sha256": "5c212669acf41b99375a69bcba2da61b97d9a33c705d5f06c00484e09fd68479"
+      },
+      {
+        "site": "above-datum",
+        "target": "399",
+        "url": "https://ssd.jpl.nasa.gov/api/horizons.api?format=json&COMMAND=%27399%27&CENTER=%27coord%40301%27&EPHEM_TYPE=%27OBSERVER%27&COORD_TYPE=%27GEODETIC%27&SITE_COORD=%2733.5021945%2C-84.223397%2C100.0%27&QUANTITIES=%274%27&TIME_TYPE=%27UT%27&TLIST_TYPE=%27JD%27&TIME_DIGITS=%27SECONDS%27&CAL_FORMAT=%27BOTH%27&CAL_TYPE=%27GREGORIAN%27&CSV_FORMAT=%27YES%27&EXTRA_PREC=%27YES%27&ANG_FORMAT=%27DEG%27&APPARENT=%27AIRLESS%27&ELEV_CUT=%27-90%27&SKIP_DAYLT=%27NO%27&TLIST=%272440423.345601852%27+%272451545.000000000%27+%272460369.770833333%27+%272461988.416666667%27+%272462857.281250000%27+%272466326.500000000%27",
+        "signature": {
+          "source": "NASA/JPL Horizons API",
+          "version": "1.2"
+        },
+        "rawFile": "horizons/above-datum-399.txt",
+        "sha256": "dc63cfa2a40c46f85eeb958b5f0f66f3f9c9b817f4b5e9bd852e961300391ecd"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "lander/1969-07-20T20:17:40Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 69.25947710881162,
+          "elevation": 0.7456951648492902
+        },
+        "earth": {
+          "azimuth": 319.3050136180092,
+          "elevation": 2.4254588896739793
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 69.253005242,
+          "elevation": 0.747071262
+        },
+        "earth": {
+          "azimuth": 319.303577,
+          "elevation": 2.427312278
+        }
+      }
+    },
+    {
+      "id": "lander/2000-01-01T12:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 208.83651051064527,
+          "elevation": -5.687617115797289
+        },
+        "earth": {
+          "azimuth": 331.06653215635146,
+          "elevation": 11.546316149482536
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 208.831882333,
+          "elevation": -5.685883014
+        },
+        "earth": {
+          "azimuth": 331.067796763,
+          "elevation": 11.544879197
+        }
+      }
+    },
+    {
+      "id": "lander/2024-02-29T06:30:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 269.6635918525962,
+          "elevation": 0.9292659624384229
+        },
+        "earth": {
+          "azimuth": 321.06618329170965,
+          "elevation": 2.482360773566375
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 269.657495801,
+          "elevation": 0.930377334
+        },
+        "earth": {
+          "azimuth": 321.065760127,
+          "elevation": 2.485483843
+        }
+      }
+    },
+    {
+      "id": "lander/2028-01-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-01-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 99.74535523315178,
+          "elevation": -0.3501993447137105
+        },
+        "earth": {
+          "azimuth": 325.04433917328925,
+          "elevation": 7.172169203825658
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 99.73959911,
+          "elevation": -0.348129653
+        },
+        "earth": {
+          "azimuth": 325.04392101,
+          "elevation": 7.170915837
+        }
+      }
+    },
+    {
+      "id": "lander/2028-02-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-02-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 82.78912814710387,
+          "elevation": 0.49311149986414654
+        },
+        "earth": {
+          "azimuth": 320.46651775650173,
+          "elevation": 10.559178090586405
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 82.782682491,
+          "elevation": 0.494635548
+        },
+        "earth": {
+          "azimuth": 320.465355994,
+          "elevation": 10.559024018
+        }
+      }
+    },
+    {
+      "id": "lander/2028-03-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-03-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 89.84957384392011,
+          "elevation": -0.9700307210374007
+        },
+        "earth": {
+          "azimuth": 319.74165942539173,
+          "elevation": 10.909717323380782
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 89.842660935,
+          "elevation": -0.969831453
+        },
+        "earth": {
+          "azimuth": 319.740082192,
+          "elevation": 10.910969644
+        }
+      }
+    },
+    {
+      "id": "lander/2028-04-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-04-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 72.26941557938478,
+          "elevation": 0.30590240917901895
+        },
+        "earth": {
+          "azimuth": 319.65371841640354,
+          "elevation": 8.398885050193813
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 72.262159587,
+          "elevation": 0.305723404
+        },
+        "earth": {
+          "azimuth": 319.651856176,
+          "elevation": 8.400891078
+        }
+      }
+    },
+    {
+      "id": "lander/2028-05-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-05-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 66.37602577883533,
+          "elevation": 0.8324622160430544
+        },
+        "earth": {
+          "azimuth": 322.1361652607653,
+          "elevation": 4.267029337647014
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 66.36928319,
+          "elevation": 0.832242547
+        },
+        "earth": {
+          "azimuth": 322.134818224,
+          "elevation": 4.268496588
+        }
+      }
+    },
+    {
+      "id": "lander/2028-06-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-06-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 47.90898408037457,
+          "elevation": 2.801584756988754
+        },
+        "earth": {
+          "azimuth": 327.0961609930961,
+          "elevation": -0.9389207652471214
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 47.902589609,
+          "elevation": 2.801700979
+        },
+        "earth": {
+          "azimuth": 327.095205454,
+          "elevation": -0.938979522
+        }
+      }
+    },
+    {
+      "id": "lander/2028-07-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-07-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 41.34680101987737,
+          "elevation": 3.96457445965924
+        },
+        "earth": {
+          "azimuth": 331.03316793347017,
+          "elevation": -1.9671006419956256
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 41.34061356,
+          "elevation": 3.965270902
+        },
+        "earth": {
+          "azimuth": 331.032474912,
+          "elevation": -1.967112609
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 22.4899997159655,
+          "elevation": 5.802107364924934
+        },
+        "earth": {
+          "azimuth": 332.94706879992816,
+          "elevation": 1.1609480296178396
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 22.483464834,
+          "elevation": 5.803357447
+        },
+        "earth": {
+          "azimuth": 332.946033028,
+          "elevation": 1.16205525
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-01T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-01T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 11.251867094872527,
+          "elevation": 6.157746122818403
+        },
+        "earth": {
+          "azimuth": 332.4661493968205,
+          "elevation": 2.3728411050646385
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 11.245018772,
+          "elevation": 6.158783218
+        },
+        "earth": {
+          "azimuth": 332.464837384,
+          "elevation": 2.37388849
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-02T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-02T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 358.9847492856376,
+          "elevation": 6.298677469773891
+        },
+        "earth": {
+          "azimuth": 331.7130901384632,
+          "elevation": 3.7763650121614707
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 358.977600827,
+          "elevation": 6.299429786
+        },
+        "earth": {
+          "azimuth": 331.711518481,
+          "elevation": 3.777253474
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-03T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-03T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 346.72008902448425,
+          "elevation": 6.176908467108288
+        },
+        "earth": {
+          "azimuth": 330.7612566670472,
+          "elevation": 5.19819757863961
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 346.712703991,
+          "elevation": 6.177324171
+        },
+        "earth": {
+          "azimuth": 330.759478519,
+          "elevation": 5.198863055
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-04T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 334.4681970301423,
+          "elevation": 5.799211660703484
+        },
+        "earth": {
+          "azimuth": 329.6498475658906,
+          "elevation": 6.57357704274268
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 334.460650714,
+          "elevation": 5.799259779
+        },
+        "earth": {
+          "azimuth": 329.647917892,
+          "elevation": 6.573997691
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-05T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-05T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 322.23735136231153,
+          "elevation": 5.184085914879786
+        },
+        "earth": {
+          "azimuth": 328.41634484996894,
+          "elevation": 7.843503951528004
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 322.229719498,
+          "elevation": 5.183769796
+        },
+        "earth": {
+          "azimuth": 328.414314656,
+          "elevation": 7.843698153
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-05T23:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-05T23:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 321.7282737095461,
+          "elevation": 5.1536999927676606
+        },
+        "earth": {
+          "azimuth": 328.36284122793495,
+          "elevation": 7.893337449300232
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 321.720639819,
+          "elevation": 5.153369336
+        },
+        "earth": {
+          "azimuth": 328.360807851,
+          "elevation": 7.893523112
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-06T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-06T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 310.03221815609663,
+          "elevation": 4.360782158904348
+        },
+        "earth": {
+          "azimuth": 327.0974909982586,
+          "elevation": 8.956320807308911
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 310.024566441,
+          "elevation": 4.360142118
+        },
+        "earth": {
+          "azimuth": 327.095403713,
+          "elevation": 8.956337658
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-07T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-07T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 297.8529579028338,
+          "elevation": 3.3678183378977056
+        },
+        "earth": {
+          "azimuth": 325.730990872382,
+          "elevation": 9.868786117190316
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 297.845334558,
+          "elevation": 3.366921664
+        },
+        "earth": {
+          "azimuth": 325.728880029,
+          "elevation": 9.868692301
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-08T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-08T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 285.69515810430573,
+          "elevation": 2.2511250119609403
+        },
+        "earth": {
+          "azimuth": 324.3574819560085,
+          "elevation": 10.546492452205646
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 285.687591909,
+          "elevation": 2.250046333
+        },
+        "earth": {
+          "azimuth": 324.35536968,
+          "elevation": 10.546359393
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-08T23:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-08T23:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 285.18893797799217,
+          "elevation": 2.2026538977944634
+        },
+        "earth": {
+          "azimuth": 324.3007504699937,
+          "elevation": 10.569225390268238
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 285.181374533,
+          "elevation": 2.201569105
+        },
+        "earth": {
+          "azimuth": 324.29863844,
+          "elevation": 10.569092196
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-09T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-09T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 273.55057159429714,
+          "elevation": 1.0619597345846417
+        },
+        "earth": {
+          "azimuth": 323.02233889785305,
+          "elevation": 10.963641900378784
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 273.543074701,
+          "elevation": 1.060758533
+        },
+        "earth": {
+          "azimuth": 323.0202356,
+          "elevation": 10.963535899
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-10T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-10T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 261.4085056941086,
+          "elevation": -0.14530345539761583
+        },
+        "earth": {
+          "azimuth": 321.7769222894427,
+          "elevation": 11.102389066798983
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 261.401079261,
+          "elevation": -0.146599474
+        },
+        "earth": {
+          "azimuth": 321.774828578,
+          "elevation": 11.102365127
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-11T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-11T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 249.25761753040214,
+          "elevation": -1.3154444543557187
+        },
+        "earth": {
+          "azimuth": 320.6789291554405,
+          "elevation": 10.952130928573597
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 249.25025766,
+          "elevation": -1.31684245
+        },
+        "earth": {
+          "azimuth": 320.676840823,
+          "elevation": 10.952229078
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-12T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-12T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 237.0878237634263,
+          "elevation": -2.394693676485334
+        },
+        "earth": {
+          "azimuth": 319.791527424305,
+          "elevation": 10.509234222647487
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 237.080526271,
+          "elevation": -2.396221436
+        },
+        "earth": {
+          "azimuth": 319.789443271,
+          "elevation": 10.509476288
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-13T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-13T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 224.8920207291275,
+          "elevation": -3.3330284894336244
+        },
+        "earth": {
+          "azimuth": 319.1809404033578,
+          "elevation": 9.777731960643656
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 224.88478504,
+          "elevation": -3.33470512
+        },
+        "earth": {
+          "azimuth": 319.178871157,
+          "elevation": 9.778117267
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-14T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-14T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 212.66733072435684,
+          "elevation": -4.086423087671349
+        },
+        "earth": {
+          "azimuth": 318.9121038937141,
+          "elevation": 8.771460011630092
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 212.660164425,
+          "elevation": -4.08822374
+        },
+        "earth": {
+          "azimuth": 318.910079397,
+          "elevation": 8.771960592
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-15T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-15T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 200.4156473595885,
+          "elevation": -4.6189648690255884
+        },
+        "earth": {
+          "azimuth": 319.0420212536853,
+          "elevation": 7.517852698982622
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 200.408572361,
+          "elevation": -4.620793853
+        },
+        "earth": {
+          "azimuth": 319.040093103,
+          "elevation": 7.518411097
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-16T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-16T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 188.14335463084498,
+          "elevation": -4.9047058012116995
+        },
+        "earth": {
+          "azimuth": 319.61064668509454,
+          "elevation": 6.063018004139582
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 188.136413286,
+          "elevation": -4.906393299
+        },
+        "earth": {
+          "azimuth": 319.608884773,
+          "elevation": 6.063552514
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-17T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-17T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 175.86023672370678,
+          "elevation": -4.929089329257694
+        },
+        "earth": {
+          "azimuth": 320.6297664242289,
+          "elevation": 4.476646996117658
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 175.853493195,
+          "elevation": -4.930420721
+        },
+        "earth": {
+          "azimuth": 320.628249705,
+          "elevation": 4.477068155
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-18T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-18T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 163.57775470182185,
+          "elevation": -4.6897993745309
+        },
+        "earth": {
+          "azimuth": 322.0716174515662,
+          "elevation": 2.8539723487282527
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 163.571286196,
+          "elevation": -4.690572937
+        },
+        "earth": {
+          "azimuth": 322.070420694,
+          "elevation": 2.854210573
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-19T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-19T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 151.30700217675772,
+          "elevation": -4.196923923685878
+        },
+        "earth": {
+          "azimuth": 323.860730489796,
+          "elevation": 1.3112505763860645
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 151.300878744,
+          "elevation": -4.197015244
+        },
+        "earth": {
+          "azimuth": 323.859909301,
+          "elevation": 1.311286428
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-20T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-20T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 139.05672554612752,
+          "elevation": -3.47240287313265
+        },
+        "earth": {
+          "azimuth": 325.8737653662641,
+          "elevation": -0.02745447510454025
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 139.05098467,
+          "elevation": -3.471806741
+        },
+        "earth": {
+          "azimuth": 325.87334172,
+          "elevation": -0.027569576
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-21T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-21T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 126.83178485596882,
+          "elevation": -2.5488179877537727
+        },
+        "earth": {
+          "azimuth": 327.95120662136213,
+          "elevation": -1.050368362154286
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 126.826412673,
+          "elevation": -2.547644349
+        },
+        "earth": {
+          "azimuth": 327.951158119,
+          "elevation": -1.050514716
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-22T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-22T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 114.63234236511087,
+          "elevation": -1.4676577831464364
+        },
+        "earth": {
+          "azimuth": 329.92056614385365,
+          "elevation": -1.678321301257637
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 114.627271262,
+          "elevation": -1.466083832
+        },
+        "earth": {
+          "azimuth": 329.920823318,
+          "elevation": -1.678339357
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-23T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-23T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 102.45391937910378,
+          "elevation": -0.2772309546815701
+        },
+        "earth": {
+          "azimuth": 331.62480272233375,
+          "elevation": -1.8770815348458745
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 102.449042629,
+          "elevation": -0.275434741
+        },
+        "earth": {
+          "azimuth": 331.625257923,
+          "elevation": -1.876816644
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-24T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-24T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 90.28829208966991,
+          "elevation": 0.9696017881009519
+        },
+        "earth": {
+          "azimuth": 332.9463221599239,
+          "elevation": -1.6574150157801795
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 90.283487097,
+          "elevation": 0.971492505
+        },
+        "earth": {
+          "azimuth": 332.946848855,
+          "elevation": -1.656760312
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-25T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-25T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 78.12504417789216,
+          "elevation": 2.217749667644143
+        },
+        "earth": {
+          "azimuth": 333.8191940488289,
+          "elevation": -1.0650200909125531
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 78.12019382,
+          "elevation": 2.219673959
+        },
+        "earth": {
+          "azimuth": 333.819670243,
+          "elevation": -1.063941911
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-26T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-26T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 65.95348958603002,
+          "elevation": 3.412197404148279
+        },
+        "earth": {
+          "azimuth": 334.2282988279558,
+          "elevation": -0.16641999013230113
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 65.948495646,
+          "elevation": 3.414144168
+        },
+        "earth": {
+          "azimuth": 334.228626484,
+          "elevation": -0.164959904
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-27T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-27T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 53.76463271208651,
+          "elevation": 4.500269290406381
+        },
+        "earth": {
+          "azimuth": 334.199329338991,
+          "elevation": 0.9635884952723264
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 53.759421732,
+          "elevation": 4.502243795
+        },
+        "earth": {
+          "azimuth": 334.199444798,
+          "elevation": 0.965331453
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-28T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-28T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 41.55283630259413,
+          "elevation": 5.433839584955969
+        },
+        "earth": {
+          "azimuth": 333.7851738279459,
+          "elevation": 2.250262600039158
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 41.547361223,
+          "elevation": 5.43583248
+        },
+        "earth": {
+          "azimuth": 333.785048666,
+          "elevation": 2.252160698
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-29T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-29T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 29.316909225759307,
+          "elevation": 6.171454572670378
+        },
+        "earth": {
+          "azimuth": 333.0529057718425,
+          "elevation": 3.623043253568292
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 29.31114966,
+          "elevation": 6.173426251
+        },
+        "earth": {
+          "azimuth": 333.052540863,
+          "elevation": 3.624970245
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-30T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-30T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 17.060406884209147,
+          "elevation": 6.680285877127225
+        },
+        "earth": {
+          "azimuth": 332.0734652407163,
+          "elevation": 5.016826875714782
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 17.054368466,
+          "elevation": 6.682169469
+        },
+        "earth": {
+          "azimuth": 332.07288174,
+          "elevation": 5.018682103
+        }
+      }
+    },
+    {
+      "id": "lander/2028-08-31T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-31T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 4.791060605192816,
+          "elevation": 6.937787347299617
+        },
+        "earth": {
+          "azimuth": 330.9145100317825,
+          "elevation": 6.371881820187693
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 4.784772072,
+          "elevation": 6.939505654
+        },
+        "earth": {
+          "azimuth": 330.913740307,
+          "elevation": 6.373604
+        }
+      }
+    },
+    {
+      "id": "lander/2028-09-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-09-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 3.7683535705586824,
+          "elevation": 6.947468275154569
+        },
+        "earth": {
+          "azimuth": 330.8117769723463,
+          "elevation": 6.481305109569503
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 3.76204608,
+          "elevation": 6.949169534
+        },
+        "earth": {
+          "azimuth": 330.810993352,
+          "elevation": 6.483014776
+        }
+      }
+    },
+    {
+      "id": "lander/2028-09-01T22:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-09-01T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 352.5194121369313,
+          "elevation": 6.932902990849621
+        },
+        "earth": {
+          "azimuth": 329.63614460360577,
+          "elevation": 7.633526989733269
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 352.512918863,
+          "elevation": 6.934390188
+        },
+        "earth": {
+          "azimuth": 329.635224702,
+          "elevation": 7.63509673
+        }
+      }
+    },
+    {
+      "id": "lander/2028-10-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-10-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 357.69921900646597,
+          "elevation": 7.32805535343834
+        },
+        "earth": {
+          "azimuth": 328.07065373053274,
+          "elevation": 9.678376975306605
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 357.694185131,
+          "elevation": 7.330041725
+        },
+        "earth": {
+          "azimuth": 328.071155459,
+          "elevation": 9.680286457
+        }
+      }
+    },
+    {
+      "id": "lander/2028-11-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-11-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 339.8907698588259,
+          "elevation": 6.90948967384608
+        },
+        "earth": {
+          "azimuth": 324.00720498387665,
+          "elevation": 11.004120883880393
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 339.887051457,
+          "elevation": 6.911333647
+        },
+        "earth": {
+          "azimuth": 324.009127709,
+          "elevation": 11.005964061
+        }
+      }
+    },
+    {
+      "id": "lander/2028-12-01T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2028-12-01T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 334.81611791148856,
+          "elevation": 6.195705299850865
+        },
+        "earth": {
+          "azimuth": 322.03451864326314,
+          "elevation": 9.347332747690537
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 334.813074056,
+          "elevation": 6.197182799
+        },
+        "earth": {
+          "azimuth": 322.037169513,
+          "elevation": 9.348718523
+        }
+      }
+    },
+    {
+      "id": "lander/2030-12-21T18:45:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 183.12288389952946,
+          "elevation": -6.375518980993831
+        },
+        "earth": {
+          "azimuth": 321.65478813414484,
+          "elevation": 2.095556824181448
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 183.114959901,
+          "elevation": -6.376003617
+        },
+        "earth": {
+          "azimuth": 321.652329189,
+          "elevation": 2.095770276
+        }
+      }
+    },
+    {
+      "id": "lander/2040-06-21T00:00:00Z",
+      "site": "lander",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 5414.891,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 11.440559364999435,
+          "elevation": 4.974735810311516
+        },
+        "earth": {
+          "azimuth": 319.2267986527051,
+          "elevation": 7.021624654028485
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 11.434372494,
+          "elevation": 4.977671025
+        },
+        "earth": {
+          "azimuth": 319.225905599,
+          "elevation": 7.021731033
+        }
+      }
+    },
+    {
+      "id": "near-south-pole/1969-07-20T20:17:40Z",
+      "site": "near-south-pole",
+      "point": {
+        "lat": -89.9999,
+        "lng": 33
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 69.78777783425758,
+          "elevation": -1.3002585562961586
+        },
+        "earth": {
+          "azimuth": 319.8394667754874,
+          "elevation": -1.9561566056337927
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 69.781203981,
+          "elevation": -1.299497834
+        },
+        "earth": {
+          "azimuth": 319.838155774,
+          "elevation": -1.954213635
+        }
+      }
+    },
+    {
+      "id": "near-south-pole/2000-01-01T12:00:00Z",
+      "site": "near-south-pole",
+      "point": {
+        "lat": -89.9999,
+        "lng": 33
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 209.18540304750252,
+          "elevation": -0.6226840053695889
+        },
+        "earth": {
+          "azimuth": 332.02127272858394,
+          "elevation": 6.476126134221198
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 209.180887069,
+          "elevation": -0.620728385
+        },
+        "earth": {
+          "azimuth": 332.022446702,
+          "elevation": 6.474630727
+        }
+      }
+    },
+    {
+      "id": "near-south-pole/2024-02-29T06:30:00Z",
+      "site": "near-south-pole",
+      "point": {
+        "lat": -89.9999,
+        "lng": 33
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 270.26109874153883,
+          "elevation": 0.958405186316434
+        },
+        "earth": {
+          "azimuth": 321.5989975880271,
+          "elevation": -2.0128006907989633
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 270.255145489,
+          "elevation": 0.960124464
+        },
+        "earth": {
+          "azimuth": 321.598773101,
+          "elevation": -2.009658188
+        }
+      }
+    },
+    {
+      "id": "near-south-pole/2028-08-04T22:00:00Z",
+      "site": "near-south-pole",
+      "point": {
+        "lat": -89.9999,
+        "lng": 33
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 335.10899581845246,
+          "elevation": 0.5829775107756077
+        },
+        "earth": {
+          "azimuth": 330.3722546807535,
+          "elevation": 1.5812736711515263
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 335.101496815,
+          "elevation": 0.583351333
+        },
+        "earth": {
+          "azimuth": 330.37036143,
+          "elevation": 1.581791111
+        }
+      }
+    },
+    {
+      "id": "near-south-pole/2030-12-21T18:45:00Z",
+      "site": "near-south-pole",
+      "point": {
+        "lat": -89.9999,
+        "lng": 33
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 183.60592417758886,
+          "elevation": -0.6075291340156064
+        },
+        "earth": {
+          "azimuth": 322.1634975882037,
+          "elevation": -2.4356425333215914
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 183.598046296,
+          "elevation": -0.607970636
+        },
+        "earth": {
+          "azimuth": 322.161056996,
+          "elevation": -2.435276093
+        }
+      }
+    },
+    {
+      "id": "near-south-pole/2040-06-21T00:00:00Z",
+      "site": "near-south-pole",
+      "point": {
+        "lat": -89.9999,
+        "lng": 33
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 11.899897685829874,
+          "elevation": -0.6876108840016881
+        },
+        "earth": {
+          "azimuth": 320.0643722789989,
+          "elevation": 2.6335686328825534
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 11.893676243,
+          "elevation": -0.68479928
+        },
+        "earth": {
+          "azimuth": 320.063494089,
+          "elevation": 2.633733062
+        }
+      }
+    },
+    {
+      "id": "near-side-equator/1969-07-20T20:17:40Z",
+      "site": "near-side-equator",
+      "point": {
+        "lat": 0,
+        "lng": 0
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 88.66731861488631,
+          "elevation": -12.78507383935977
+        },
+        "earth": {
+          "azimuth": 283.398816330825,
+          "elevation": 82.60839066914163
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 88.668133339,
+          "elevation": -12.778505486
+        },
+        "earth": {
+          "azimuth": 283.381704866,
+          "elevation": 82.607559813
+        }
+      }
+    },
+    {
+      "id": "near-side-equator/2000-01-01T12:00:00Z",
+      "site": "near-side-equator",
+      "point": {
+        "lat": 0,
+        "lng": 0
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 270.70315304635164,
+          "elevation": -27.813416222295096
+        },
+        "earth": {
+          "azimuth": 143.40126969569786,
+          "elevation": 81.58045961035232
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 270.700971192,
+          "elevation": -27.817943458
+        },
+        "earth": {
+          "azimuth": 143.388710235,
+          "elevation": 81.580956014
+        }
+      }
+    },
+    {
+      "id": "near-side-equator/2024-02-29T06:30:00Z",
+      "site": "near-side-equator",
+      "point": {
+        "lat": 0,
+        "lng": 0
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 268.8530737720308,
+          "elevation": 33.255274993576045
+        },
+        "earth": {
+          "azimuth": 288.12712872113735,
+          "elevation": 84.29407432068435
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 268.851096151,
+          "elevation": 33.249304533
+        },
+        "earth": {
+          "azimuth": 288.096241406,
+          "elevation": 84.294838555
+        }
+      }
+    },
+    {
+      "id": "near-side-equator/2028-08-04T22:00:00Z",
+      "site": "near-side-equator",
+      "point": {
+        "lat": 0,
+        "lng": 0
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 94.12990159370777,
+          "elevation": 81.8700819179435
+        },
+        "earth": {
+          "azimuth": 118.4995797638983,
+          "elevation": 86.1473769489107
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 94.13632429,
+          "elevation": 81.877533892
+        },
+        "earth": {
+          "azimuth": 118.51984986,
+          "elevation": 86.148798724
+        }
+      }
+    },
+    {
+      "id": "near-side-equator/2030-12-21T18:45:00Z",
+      "site": "near-side-equator",
+      "point": {
+        "lat": 0,
+        "lng": 0
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 271.01744523417864,
+          "elevation": -53.39015531909612
+        },
+        "earth": {
+          "azimuth": 294.1215434956169,
+          "elevation": 84.6778809143274
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 271.018373973,
+          "elevation": -53.398026347
+        },
+        "earth": {
+          "azimuth": 294.107172196,
+          "elevation": 84.675794346
+        }
+      }
+    },
+    {
+      "id": "near-side-equator/2040-06-21T00:00:00Z",
+      "site": "near-side-equator",
+      "point": {
+        "lat": 0,
+        "lng": 0
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 89.02670248976547,
+          "elevation": 45.09550693932967
+        },
+        "earth": {
+          "azimuth": 247.2438416073294,
+          "elevation": 82.45035994717655
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 89.030579491,
+          "elevation": 45.101760631
+        },
+        "earth": {
+          "azimuth": 247.245251839,
+          "elevation": 82.449484634
+        }
+      }
+    },
+    {
+      "id": "eastern-near-side/1969-07-20T20:17:40Z",
+      "site": "eastern-near-side",
+      "point": {
+        "lat": 0,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 88.08713844653818,
+          "elevation": 47.19585336384349
+        },
+        "earth": {
+          "azimuth": 271.84538418142074,
+          "elevation": 22.592854499241692
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 88.088020856,
+          "elevation": 47.202441546
+        },
+        "earth": {
+          "azimuth": 271.843258358,
+          "elevation": 22.591567033
+        }
+      }
+    },
+    {
+      "id": "eastern-near-side/2000-01-01T12:00:00Z",
+      "site": "eastern-near-side",
+      "point": {
+        "lat": 0,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 285.88947524530687,
+          "elevation": -87.72789574020331
+        },
+        "earth": {
+          "azimuth": 261.81041829524213,
+          "elevation": 34.54200832113522
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 285.873162972,
+          "elevation": -87.732774959
+        },
+        "earth": {
+          "azimuth": 261.81211506,
+          "elevation": 34.54329649
+        }
+      }
+    },
+    {
+      "id": "eastern-near-side/2024-02-29T06:30:00Z",
+      "site": "eastern-near-side",
+      "point": {
+        "lat": 0,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 268.9261125874138,
+          "elevation": -26.73545464658088
+        },
+        "earth": {
+          "azimuth": 271.94101857769607,
+          "elevation": 24.360580126492508
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 268.924131244,
+          "elevation": -26.741392734
+        },
+        "earth": {
+          "azimuth": 271.937559207,
+          "elevation": 24.360400471
+        }
+      }
+    },
+    {
+      "id": "eastern-near-side/2028-08-04T22:00:00Z",
+      "site": "eastern-near-side",
+      "point": {
+        "lat": 0,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 269.25838799025837,
+          "elevation": 38.10615070926262
+        },
+        "earth": {
+          "azimuth": 267.8098741398379,
+          "elevation": 33.14522533641167
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 269.257989063,
+          "elevation": 38.098649879
+        },
+        "earth": {
+          "azimuth": 267.80930238,
+          "elevation": 33.143318956
+        }
+      }
+    },
+    {
+      "id": "eastern-near-side/2030-12-21T18:45:00Z",
+      "site": "eastern-near-side",
+      "point": {
+        "lat": 0,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 88.47216726492869,
+          "elevation": -66.59876823282268
+        },
+        "earth": {
+          "azimuth": 272.388505341663,
+          "elevation": 24.895877900515952
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 88.47154158,
+          "elevation": -66.590881561
+        },
+        "earth": {
+          "azimuth": 272.388052838,
+          "elevation": 24.893441889
+        }
+      }
+    },
+    {
+      "id": "eastern-near-side/2040-06-21T00:00:00Z",
+      "site": "eastern-near-side",
+      "point": {
+        "lat": 0,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 272.6356498226591,
+          "elevation": 74.88446821529017
+        },
+        "earth": {
+          "azimuth": 266.8489200923403,
+          "elevation": 22.787502466766586
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 272.623823923,
+          "elevation": 74.878378715
+        },
+        "earth": {
+          "azimuth": 266.848762067,
+          "elevation": 22.786621194
+        }
+      }
+    },
+    {
+      "id": "western-near-side/1969-07-20T20:17:40Z",
+      "site": "western-near-side",
+      "point": {
+        "lat": 0,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 85.61584587108925,
+          "elevation": -72.74045934786552
+        },
+        "earth": {
+          "azimuth": 87.86622923498625,
+          "elevation": 36.9371101315555
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 85.620019027,
+          "elevation": -72.733959401
+        },
+        "earth": {
+          "azimuth": 87.86862932,
+          "elevation": 36.938466548
+        }
+      }
+    },
+    {
+      "id": "western-near-side/2000-01-01T12:00:00Z",
+      "site": "western-near-side",
+      "point": {
+        "lat": 0,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 270.7348317636694,
+          "elevation": 32.18270463187181
+        },
+        "earth": {
+          "azimuth": 97.40806220214458,
+          "elevation": 24.570432660018014
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 270.732484841,
+          "elevation": 32.178202843
+        },
+        "earth": {
+          "azimuth": 97.406348152,
+          "elevation": 24.569347275
+        }
+      }
+    },
+    {
+      "id": "western-near-side/2024-02-29T06:30:00Z",
+      "site": "western-near-side",
+      "point": {
+        "lat": 0,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 106.39820227209351,
+          "elevation": 86.60090041990209
+        },
+        "earth": {
+          "azimuth": 87.83504442996522,
+          "elevation": 35.17893760320654
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 106.454403077,
+          "elevation": 86.606124437
+        },
+        "earth": {
+          "azimuth": 87.838892387,
+          "elevation": 35.179230401
+        }
+      }
+    },
+    {
+      "id": "western-near-side/2028-08-04T22:00:00Z",
+      "site": "western-near-side",
+      "point": {
+        "lat": 0,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 90.6288835290788,
+          "elevation": 21.88920265009223
+        },
+        "earth": {
+          "azimuth": 92.04613767198066,
+          "elevation": 26.390787372576444
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 90.629319487,
+          "elevation": 21.896699349
+        },
+        "earth": {
+          "azimuth": 92.046750198,
+          "elevation": 26.392674016
+        }
+      }
+    },
+    {
+      "id": "western-near-side/2030-12-21T18:45:00Z",
+      "site": "western-near-side",
+      "point": {
+        "lat": 0,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 270.6108066252639,
+          "elevation": 6.604878892863476
+        },
+        "earth": {
+          "azimuth": 87.36647197834561,
+          "elevation": 34.58260989039833
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 270.611241362,
+          "elevation": 6.597001019
+        },
+        "earth": {
+          "azimuth": 87.366840352,
+          "elevation": 34.585063124
+        }
+      }
+    },
+    {
+      "id": "western-near-side/2040-06-21T00:00:00Z",
+      "site": "western-near-side",
+      "point": {
+        "lat": 0,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 89.28904250615813,
+          "elevation": -14.899433705972637
+        },
+        "earth": {
+          "azimuth": 93.62593500781395,
+          "elevation": 36.66677982191363
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 89.291972368,
+          "elevation": -14.893221465
+        },
+        "earth": {
+          "azimuth": 93.626181815,
+          "elevation": 36.667651446
+        }
+      }
+    },
+    {
+      "id": "northern-midlatitude/1969-07-20T20:17:40Z",
+      "site": "northern-midlatitude",
+      "point": {
+        "lat": 45,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 23.167970936243034,
+          "elevation": -41.24148024117245
+        },
+        "earth": {
+          "azimuth": 117.00385608679161,
+          "elevation": 26.381773799994384
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 23.176648146,
+          "elevation": -41.240381593
+        },
+        "earth": {
+          "azimuth": 117.006363139,
+          "elevation": 26.381089402
+        }
+      }
+    },
+    {
+      "id": "northern-midlatitude/2000-01-01T12:00:00Z",
+      "site": "northern-midlatitude",
+      "point": {
+        "lat": 45,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 246.44433682740245,
+          "elevation": 22.5997234795917
+        },
+        "earth": {
+          "azimuth": 112.84802630978682,
+          "elevation": 12.102094180035666
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 246.446687837,
+          "elevation": 22.595307383
+        },
+        "earth": {
+          "azimuth": 112.84612143,
+          "elevation": 12.102457243
+        }
+      }
+    },
+    {
+      "id": "northern-midlatitude/2024-02-29T06:30:00Z",
+      "site": "northern-midlatitude",
+      "point": {
+        "lat": 45,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 175.46872960114922,
+          "elevation": 43.94925889796838
+        },
+        "earth": {
+          "azimuth": 115.44520360630887,
+          "elevation": 25.320029008884624
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 175.477116814,
+          "elevation": 43.947874509
+        },
+        "earth": {
+          "azimuth": 115.447619537,
+          "elevation": 25.317749631
+        }
+      }
+    },
+    {
+      "id": "northern-midlatitude/2028-08-04T22:00:00Z",
+      "site": "northern-midlatitude",
+      "point": {
+        "lat": 45,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 106.27187657219862,
+          "elevation": 14.85734462871159
+        },
+        "earth": {
+          "azimuth": 110.7959700502855,
+          "elevation": 16.87124542674917
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 106.277835813,
+          "elevation": 14.862160085
+        },
+        "earth": {
+          "azimuth": 110.797812752,
+          "elevation": 16.872109586
+        }
+      }
+    },
+    {
+      "id": "northern-midlatitude/2030-12-21T18:45:00Z",
+      "site": "northern-midlatitude",
+      "point": {
+        "lat": 45,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 265.7478437453813,
+          "elevation": 5.095562822622901
+        },
+        "earth": {
+          "azimuth": 114.68333541775688,
+          "elevation": 25.239735336133403
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 265.753763572,
+          "elevation": 5.090320716
+        },
+        "earth": {
+          "azimuth": 114.685665139,
+          "elevation": 25.241024812
+        }
+      }
+    },
+    {
+      "id": "northern-midlatitude/2040-06-21T00:00:00Z",
+      "site": "northern-midlatitude",
+      "point": {
+        "lat": 45,
+        "lng": -60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 78.85986020025447,
+          "elevation": -9.981962839100156
+        },
+        "earth": {
+          "azimuth": 119.95946438846204,
+          "elevation": 22.62137786577543
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 78.866389862,
+          "elevation": -9.979671066
+        },
+        "earth": {
+          "azimuth": 119.960324923,
+          "elevation": 22.621786493
+        }
+      }
+    },
+    {
+      "id": "southern-midlatitude/1969-07-20T20:17:40Z",
+      "site": "southern-midlatitude",
+      "point": {
+        "lat": -45,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 51.77784658920886,
+          "elevation": 30.18196532442915
+        },
+        "earth": {
+          "azimuth": 287.7756422839572,
+          "elevation": 14.42865929677569
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 51.772014663,
+          "elevation": 30.186249291
+        },
+        "earth": {
+          "azimuth": 287.773288384,
+          "elevation": 14.429213634
+        }
+      }
+    },
+    {
+      "id": "southern-midlatitude/2000-01-01T12:00:00Z",
+      "site": "southern-midlatitude",
+      "point": {
+        "lat": -45,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 183.12298734184301,
+          "elevation": -45.580278583604645
+        },
+        "earth": {
+          "azimuth": 291.4919682281112,
+          "elevation": 28.846372846293967
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 183.116431938,
+          "elevation": -45.578498236
+        },
+        "earth": {
+          "azimuth": 291.49410073,
+          "elevation": 28.846025367
+        }
+      }
+    },
+    {
+      "id": "southern-midlatitude/2024-02-29T06:30:00Z",
+      "site": "southern-midlatitude",
+      "point": {
+        "lat": -45,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 249.72102403775824,
+          "elevation": -17.8349256125443
+        },
+        "earth": {
+          "azimuth": 289.1719349494269,
+          "elevation": 15.569685533176454
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 249.715146625,
+          "elevation": -17.837587833
+        },
+        "earth": {
+          "azimuth": 289.169579156,
+          "elevation": 15.571876747
+        }
+      }
+    },
+    {
+      "id": "southern-midlatitude/2028-08-04T22:00:00Z",
+      "site": "southern-midlatitude",
+      "point": {
+        "lat": -45,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 298.6110912599269,
+          "elevation": 26.331715590738252
+        },
+        "earth": {
+          "azimuth": 293.6879092932379,
+          "elevation": 24.06219791419696
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 298.604273599,
+          "elevation": 26.327353646
+        },
+        "earth": {
+          "azimuth": 293.685960606,
+          "elevation": 24.061365066
+        }
+      }
+    },
+    {
+      "id": "southern-midlatitude/2030-12-21T18:45:00Z",
+      "site": "southern-midlatitude",
+      "point": {
+        "lat": -45,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 148.2444309806754,
+          "elevation": -41.02876802833316
+        },
+        "earth": {
+          "azimuth": 289.88422286446587,
+          "elevation": 15.625137144692879
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 148.234520716,
+          "elevation": -41.026245446
+        },
+        "earth": {
+          "azimuth": 289.882076932,
+          "elevation": 15.623786511
+        }
+      }
+    },
+    {
+      "id": "southern-midlatitude/2040-06-21T00:00:00Z",
+      "site": "southern-midlatitude",
+      "point": {
+        "lat": -45,
+        "lng": 60
+      },
+      "heightMeters": 0,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 339.3483060274346,
+          "elevation": 42.388769603271975
+        },
+        "earth": {
+          "azimuth": 284.6900395014339,
+          "elevation": 17.952593961836662
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 339.339200555,
+          "elevation": 42.389940614
+        },
+        "earth": {
+          "azimuth": 284.689248631,
+          "elevation": 17.952112731
+        }
+      }
+    },
+    {
+      "id": "below-datum/1969-07-20T20:17:40Z",
+      "site": "below-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": -5000,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 69.25947710881162,
+          "elevation": 0.7456990936864565
+        },
+        "earth": {
+          "azimuth": 319.3050136180092,
+          "elevation": 2.4269899846769847
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 69.253005242,
+          "elevation": 0.747075191
+        },
+        "earth": {
+          "azimuth": 319.303576999,
+          "elevation": 2.42884337
+        }
+      }
+    },
+    {
+      "id": "below-datum/2000-01-01T12:00:00Z",
+      "site": "below-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": -5000,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 208.83651051064527,
+          "elevation": -5.68761307327146
+        },
+        "earth": {
+          "azimuth": 331.06653215635146,
+          "elevation": 11.547770148367267
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 208.831882334,
+          "elevation": -5.685878971
+        },
+        "earth": {
+          "azimuth": 331.067796762,
+          "elevation": 11.546333203
+        }
+      }
+    },
+    {
+      "id": "below-datum/2024-02-29T06:30:00Z",
+      "site": "below-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": -5000,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 269.6635918525962,
+          "elevation": 0.9292699816613502
+        },
+        "earth": {
+          "azimuth": 321.06618329170965,
+          "elevation": 2.483846648459196
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 269.657495801,
+          "elevation": 0.930381354
+        },
+        "earth": {
+          "azimuth": 321.065760126,
+          "elevation": 2.486969715
+        }
+      }
+    },
+    {
+      "id": "below-datum/2028-08-04T22:00:00Z",
+      "site": "below-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": -5000,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 334.4681970301423,
+          "elevation": 5.799215562569157
+        },
+        "earth": {
+          "azimuth": 329.6498475658906,
+          "elevation": 6.575055740439056
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 334.460650714,
+          "elevation": 5.799263681
+        },
+        "earth": {
+          "azimuth": 329.647917891,
+          "elevation": 6.575476388
+        }
+      }
+    },
+    {
+      "id": "below-datum/2030-12-21T18:45:00Z",
+      "site": "below-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": -5000,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 183.12288389952946,
+          "elevation": -6.375514943863115
+        },
+        "earth": {
+          "azimuth": 321.65478813414484,
+          "elevation": 2.0971979906242204
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 183.114959902,
+          "elevation": -6.37599958
+        },
+        "earth": {
+          "azimuth": 321.652329188,
+          "elevation": 2.097411442
+        }
+      }
+    },
+    {
+      "id": "below-datum/2040-06-21T00:00:00Z",
+      "site": "below-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": -5000,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 11.440559364999435,
+          "elevation": 4.974739714830422
+        },
+        "earth": {
+          "azimuth": 319.2267986527051,
+          "elevation": 7.023210750015826
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 11.434372493,
+          "elevation": 4.97767493
+        },
+        "earth": {
+          "azimuth": 319.225905598,
+          "elevation": 7.023317128
+        }
+      }
+    },
+    {
+      "id": "above-datum/1969-07-20T20:17:40Z",
+      "site": "above-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 100000,
+      "radiusMeters": 1737400,
+      "utc": "1969-07-20T20:17:40Z",
+      "spice": {
+        "sun": {
+          "azimuth": 69.25947710881162,
+          "elevation": 0.7456594842555231
+        },
+        "earth": {
+          "azimuth": 319.3050136180092,
+          "elevation": 2.411553757343101
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 69.253005244,
+          "elevation": 0.747035581
+        },
+        "earth": {
+          "azimuth": 319.303577005,
+          "elevation": 2.413407168
+        }
+      }
+    },
+    {
+      "id": "above-datum/2000-01-01T12:00:00Z",
+      "site": "above-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 100000,
+      "radiusMeters": 1737400,
+      "utc": "2000-01-01T12:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 208.83651051064527,
+          "elevation": -5.68765382887657
+        },
+        "earth": {
+          "azimuth": 331.06653215635146,
+          "elevation": 11.533110650822046
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 208.831882329,
+          "elevation": -5.685919727
+        },
+        "earth": {
+          "azimuth": 331.067796777,
+          "elevation": 11.531673631
+        }
+      }
+    },
+    {
+      "id": "above-datum/2024-02-29T06:30:00Z",
+      "site": "above-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 100000,
+      "radiusMeters": 1737400,
+      "utc": "2024-02-29T06:30:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 269.6635918525962,
+          "elevation": 0.9292294609864995
+        },
+        "earth": {
+          "azimuth": 321.06618329170965,
+          "elevation": 2.4688663232509773
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 269.657495801,
+          "elevation": 0.930340833
+        },
+        "earth": {
+          "azimuth": 321.065760132,
+          "elevation": 2.471989423
+        }
+      }
+    },
+    {
+      "id": "above-datum/2028-08-04T22:00:00Z",
+      "site": "above-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 100000,
+      "radiusMeters": 1737400,
+      "utc": "2028-08-04T22:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 334.4681970301423,
+          "elevation": 5.799176225055044
+        },
+        "earth": {
+          "azimuth": 329.6498475658906,
+          "elevation": 6.560147523993354
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 334.460650719,
+          "elevation": 5.799224344
+        },
+        "earth": {
+          "azimuth": 329.647917902,
+          "elevation": 6.560568183
+        }
+      }
+    },
+    {
+      "id": "above-datum/2030-12-21T18:45:00Z",
+      "site": "above-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 100000,
+      "radiusMeters": 1737400,
+      "utc": "2030-12-21T18:45:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 183.12288389952946,
+          "elevation": -6.375555645075921
+        },
+        "earth": {
+          "azimuth": 321.65478813414484,
+          "elevation": 2.0806520552609857
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 183.114959896,
+          "elevation": -6.376040281
+        },
+        "earth": {
+          "azimuth": 321.652329195,
+          "elevation": 2.080865512
+        }
+      }
+    },
+    {
+      "id": "above-datum/2040-06-21T00:00:00Z",
+      "site": "above-datum",
+      "point": {
+        "lat": -84.223397,
+        "lng": 33.5021945
+      },
+      "heightMeters": 100000,
+      "radiusMeters": 1737400,
+      "utc": "2040-06-21T00:00:00Z",
+      "spice": {
+        "sun": {
+          "azimuth": 11.440559364999435,
+          "elevation": 4.974700350567508
+        },
+        "earth": {
+          "azimuth": 319.22679865270504,
+          "elevation": 7.0072196817803585
+        }
+      },
+      "horizons": {
+        "sun": {
+          "azimuth": 11.434372499,
+          "elevation": 4.977635565
+        },
+        "earth": {
+          "azimuth": 319.225905609,
+          "elevation": 7.007326067
+        }
+      }
+    }
+  ]
+}

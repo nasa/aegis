@@ -1,62 +1,68 @@
-/* eslint-disable no-restricted-syntax -- TODO (Phase 2): Migrate automergeRepo.find().change() pattern to withMissionChange */
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { createMission, deleteMissions, getMissions } from "http-client/mission";
+import {
+  createMission,
+  deleteMissions,
+  getMissionSummaries,
+  setMissionArchived,
+} from "http-client/mission";
 import { isLoggedIn } from "http-client/login";
 import { Tooltip } from "react-tooltip";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { initialState as wholeStoreInitialState } from "store/index";
 import { setAllSliceStores } from "store/crossActions";
 import { getAutomergeDocListing } from "http-client/docListing";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faRocket } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
 import styles from "./missions.module.css";
 
 const Missions: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Loading missions...");
+  const { run: runLoad } = loading;
+  const action = useAsyncStatus();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [missions, setMissions] = useState<Mission[]>([]);
+  const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [automergeDocListings, setAutomergeDocListings] = useState<AutomergeDocListing[]>([]);
   const [user, setUser] = useState<AppUser | null>(null);
 
-  const loadMissions = useCallback(async () => {
-    // Load doc listings and missions in parallel
-    // Grab the missions from the server because it already has the documents loaded into
-    // memory, so we don't have to load/replay the document on the client side.
-    // This replay is the major slow down, and we only need a few fields from the doc.
-    const [docListingsRes, missionsRes] = await Promise.all([
-      getAutomergeDocListing(),
-      getMissions(),
-    ]);
+  const loadMissions = useCallback(
+    () =>
+      runLoad("Loading missions...", async () => {
+        // Both requests read SQL metadata; listing historical missions never loads their CRDTs.
+        const [docListingsRes, missionsRes] = await Promise.all([
+          getAutomergeDocListing(),
+          getMissionSummaries(),
+        ]);
 
-    if (!docListingsRes.data) {
-      console.error("Failed to load automerge doc listings:", docListingsRes);
-      return;
-    }
-    setAutomergeDocListings(docListingsRes.data);
+        if (!docListingsRes.data) {
+          throw new Error(docListingsRes.message || "Failed to load mission records");
+        }
+        setAutomergeDocListings(docListingsRes.data);
 
-    if (!missionsRes.data) {
-      console.error("Failed to load missions:", missionsRes);
-      return;
-    }
+        if (!missionsRes.data) {
+          throw new Error(missionsRes.message || "Failed to load missions");
+        }
 
-    const allMissions = [...missionsRes.data];
+        const allMissions = [...missionsRes.data];
 
-    //Sort by name
-    allMissions.sort((a, b) => {
-      if (a.name.toLowerCase() < b.name.toLowerCase()) {
-        return -1;
-      } else if (a.name.toLowerCase() > b.name.toLowerCase()) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
-    setMissions(allMissions);
-  }, []);
+        //Sort by name
+        allMissions.sort((a, b) => {
+          if (a.name.toLowerCase() < b.name.toLowerCase()) {
+            return -1;
+          } else if (a.name.toLowerCase() > b.name.toLowerCase()) {
+            return 1;
+          } else {
+            return 0;
+          }
+        });
+        setMissions(allMissions);
+      }),
+    [runLoad]
+  );
 
   //on load check login and mission id
   useEffect(() => {
@@ -72,8 +78,8 @@ const Missions: React.FunctionComponent = () => {
         navigate("/");
       }
     }
-    isLoggedInAsync();
-  }, [navigate, loadMissions]);
+    runLoad("Loading missions...", isLoggedInAsync);
+  }, [navigate, loadMissions, runLoad]);
 
   // clear the redux store
   useEffect(() => {
@@ -114,25 +120,30 @@ const Missions: React.FunctionComponent = () => {
           <button
             className={adminCommon.buttonPrimary}
             type="button"
-            onClick={async () => {
-              const res = await createMission();
-              if (res.status != "success") {
-                alert(`Error creating automerge record: ${res.message}`);
-                return;
-              } else if (res.data) {
-                navigate(`/admin/mission/${res.data.missionId}/${res.data.automergeUrl}`);
-              }
-            }}
-            disabled={user?.id !== 1}
+            onClick={() =>
+              action.run("Creating mission...", async () => {
+                const res = await createMission();
+                if (res.status != "success") {
+                  throw new Error(res.message || "Error creating automerge record");
+                } else if (res.data) {
+                  navigate(`/admin/mission/${res.data.missionId}/${res.data.automergeUrl}`);
+                }
+              })
+            }
+            disabled={user?.id !== 1 || !!loading.pending || !!action.pending}
           >
             + Add New Mission
           </button>
         </div>
+        <AsyncStatus {...loading} />
+        <AsyncStatus {...action} />
         <MissionList
           missions={missions}
           automergeDocListings={automergeDocListings}
           user={user}
           loadMissions={loadMissions}
+          isLoading={!!loading.pending}
+          loadError={!!loading.error}
         />
       </div>
     </main>
@@ -184,15 +195,19 @@ const MissionList = ({
   automergeDocListings,
   user,
   loadMissions,
+  isLoading,
+  loadError,
 }: {
-  missions: Mission[];
+  missions: MissionSummary[];
   automergeDocListings: AutomergeDocListing[];
   user: AppUser | null;
   loadMissions: Function;
+  isLoading: boolean;
+  loadError: boolean;
 }) => {
-  const automergeRepo = useRepo();
   const navigate = useNavigate();
   const permissionList = user?.permissionList;
+  const action = useAsyncStatus();
 
   async function delMissionAndAutomerge(missionId: number | null) {
     if (!missionId) return;
@@ -201,39 +216,21 @@ const MissionList = ({
         `Are you sure you want to delete mission ${missionId} and all of its GIS data? This will also delete the automerge doc listing.\nThis cannot be undone!`
       )
     ) {
-      try {
-        const res: WrappedResponse<number[]> = await deleteMissions([missionId]);
-        alert(`Delete ${res.status} - ${res.message} for missionID ${missionId}.`);
-        loadMissions();
-      } catch (e) {
-        alert("Error in deleting mission: " + e);
+      const res: WrappedResponse<number[]> = await deleteMissions([missionId]);
+      if (res.status !== "success") {
+        throw new Error(res.message || "Failed to delete mission");
       }
+      await loadMissions();
     }
   }
 
   async function archiveMission({ id, archive }: { id: number; archive: boolean }) {
-    const mission = missions.find((m) => m.id === id);
-    if (mission) {
-      // get automerge URL
-      const automergeUrl = automergeDocListings.find(
-        (listing) => listing.missionId === id
-      )?.automergeUrl;
-      if (!automergeUrl) {
-        alert("No automerge URL found for mission " + id);
-        return;
-      }
-      const missionDocHandle = await automergeRepo.find<Mission>(automergeUrl as AutomergeUrl);
-      if (missionDocHandle) {
-        missionDocHandle.change((mission: Mission) => {
-          mission.archivedAt = archive ? new Date().getTime() : null;
-        });
-      }
-      loadMissions();
-    }
+    await setMissionArchived(id, archive);
+    await loadMissions();
   }
 
-  const listedMissionRows = (missionType: Mission[], archivedAtTable = false) => {
-    return missionType.map((mission: Mission) => {
+  const listedMissionRows = (missionType: MissionSummary[], archivedAtTable = false) => {
+    return missionType.map((mission) => {
       if (
         user?.isSuperAdmin ||
         permissionList?.some((p) => p.missionId === mission.id && p.permissions.edit === true)
@@ -250,9 +247,6 @@ const MissionList = ({
             </td>
             <td style={{ textAlign: "center" }}>{mission.actionSystemVersion ?? "—"}</td>
             <td style={{ whiteSpace: "nowrap" }}>
-              {mission.updatedAt ? new Date(mission.updatedAt).toLocaleString() : "—"}
-            </td>
-            <td style={{ whiteSpace: "nowrap" }}>
               {mission.createdAt ? new Date(mission.createdAt).toLocaleString() : "—"}
             </td>
             {archivedAtTable ? (
@@ -263,6 +257,7 @@ const MissionList = ({
             <td>
               <div className={styles.missionActions}>
                 <button
+                  disabled={!!action.pending || isLoading || loadError}
                   className={adminCommon.button}
                   type="button"
                   onClick={() => {
@@ -272,6 +267,7 @@ const MissionList = ({
                   Edit Mission
                 </button>
                 <button
+                  disabled={!!action.pending || isLoading || loadError}
                   className={adminCommon.button}
                   type="button"
                   onClick={() => {
@@ -281,6 +277,7 @@ const MissionList = ({
                   Layers
                 </button>
                 <button
+                  disabled={!!action.pending || isLoading || loadError}
                   className={adminCommon.button}
                   type="button"
                   onClick={() => {
@@ -290,6 +287,7 @@ const MissionList = ({
                   STM
                 </button>
                 <button
+                  disabled={!!action.pending || isLoading || loadError}
                   className={styles.buttonSecondary}
                   type="button"
                   onClick={() => {
@@ -299,6 +297,7 @@ const MissionList = ({
                   Export
                 </button>
                 <button
+                  disabled={!!action.pending || isLoading || loadError}
                   className={styles.buttonSecondary}
                   type="button"
                   onClick={() => {
@@ -308,6 +307,7 @@ const MissionList = ({
                   Duplicate
                 </button>
                 <button
+                  disabled={!!action.pending || isLoading || loadError}
                   className={styles.buttonSecondary}
                   type="button"
                   onClick={() => {
@@ -317,17 +317,22 @@ const MissionList = ({
                   Automerge
                 </button>
                 <button
+                  disabled={!!action.pending || isLoading || loadError}
                   className={styles.buttonSecondary}
                   type="button"
                   onClick={() => {
-                    const action = mission.archivedAt ? "Unarchive" : "Archive";
+                    const archiveLabel = mission.archivedAt ? "Unarchive" : "Archive";
                     if (
-                      confirm(`Are you sure you want to ${action.toLowerCase()} "${mission.name}"?`)
+                      confirm(
+                        `Are you sure you want to ${archiveLabel.toLowerCase()} "${mission.name}"?`
+                      )
                     ) {
-                      archiveMission({
-                        id: mission.id,
-                        archive: !mission.archivedAt,
-                      });
+                      action.run("Updating mission archive...", () =>
+                        archiveMission({
+                          id: mission.id,
+                          archive: !mission.archivedAt,
+                        })
+                      );
                     }
                   }}
                 >
@@ -339,10 +344,11 @@ const MissionList = ({
               <td>
                 {mission.archivedAt && (
                   <button
+                    disabled={!!action.pending || isLoading || loadError}
                     className={adminCommon.buttonDanger}
                     type="button"
                     onClick={() => {
-                      delMissionAndAutomerge(mission.id);
+                      action.run("Deleting mission...", () => delMissionAndAutomerge(mission.id));
                     }}
                   >
                     Delete Mission
@@ -355,7 +361,7 @@ const MissionList = ({
       } else {
         return (
           <tr key={mission.id}>
-            <td colSpan={archivedAtTable ? 7 : 6}>
+            <td colSpan={archivedAtTable ? 7 : 5}>
               <span style={{ color: "#64748b", fontStyle: "italic", fontSize: "0.9rem" }}>
                 {mission.name} [No Edit Permissions]
               </span>
@@ -366,14 +372,14 @@ const MissionList = ({
     });
   };
 
-  const visibleMissions = missions?.filter(
-    (mission: Mission) => mission.archivedAt == undefined || mission.archivedAt == null
-  );
-  const archivedMissions = missions?.filter((missions: Mission) => missions.archivedAt !== null);
+  const visibleMissions = missions?.filter((mission) => mission.archivedAt == null);
+  const archivedMissions = missions?.filter((mission) => mission.archivedAt != null);
 
   if (missions.length > 0) {
     return (
       <>
+        <AsyncStatus {...action} />
+
         <CollapsibleMissionSection
           title="Active Missions"
           count={visibleMissions.length}
@@ -389,7 +395,6 @@ const MissionList = ({
                 <col />
                 <col className={styles.colVersion} />
                 <col className={styles.colDate} />
-                <col className={styles.colDate} />
                 <col className={styles.colActions} />
               </colgroup>
               <thead>
@@ -397,7 +402,6 @@ const MissionList = ({
                   <th>ID</th>
                   <th>Mission</th>
                   <th style={{ textAlign: "center" }}>Version</th>
-                  <th>Updated At</th>
                   <th>Created At</th>
                   <th>Actions</th>
                 </tr>
@@ -411,7 +415,6 @@ const MissionList = ({
                   <col className={styles.colId} />
                   <col />
                   <col className={styles.colVersion} />
-                  <col className={styles.colDate} />
                   <col className={styles.colDate} />
                   <col className={styles.colActions} />
                 </colgroup>
@@ -443,7 +446,6 @@ const MissionList = ({
                   <col className={styles.colVersion} />
                   <col className={styles.colDate} />
                   <col className={styles.colDate} />
-                  <col className={styles.colDate} />
                   <col className={styles.colActions} />
                   <col className={styles.colDelete} />
                 </colgroup>
@@ -452,7 +454,6 @@ const MissionList = ({
                     <th>ID</th>
                     <th>Mission</th>
                     <th style={{ textAlign: "center" }}>Version</th>
-                    <th>Updated At</th>
                     <th>Created At</th>
                     <th>Archived At</th>
                     <th>Actions</th>
@@ -470,7 +471,6 @@ const MissionList = ({
                     <col className={styles.colVersion} />
                     <col className={styles.colDate} />
                     <col className={styles.colDate} />
-                    <col className={styles.colDate} />
                     <col className={styles.colActions} />
                     <col className={styles.colDelete} />
                   </colgroup>
@@ -485,7 +485,9 @@ const MissionList = ({
       </>
     );
   } else {
-    return <div className={adminCommon.emptyState}>No missions found.</div>;
+    return !isLoading && !loadError ? (
+      <div className={adminCommon.emptyState}>No missions found.</div>
+    ) : null;
   }
 };
 

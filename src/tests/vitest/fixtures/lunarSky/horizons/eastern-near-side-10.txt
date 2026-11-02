@@ -1,0 +1,149 @@
+*******************************************************************************
+ Revised: July 31, 2013                  Sun                                 10
+
+ PHYSICAL PROPERTIES (updated 2024-Oct-30):
+  GM, km^3/s^2          = 132712440041.93938  Mass, 10^24 kg        = ~1988410
+  Vol. mean radius, km  = 695700              Volume, 10^12 km^3    = 1412000
+  Solar radius (IAU2015)= 695700 km           Mean density, g/cm^3  = 1.408
+  Radius (photosphere)  = 696500 km           Angular diam at 1 AU  = 1919.3"
+  Photosphere temp., K  = 6600 (bottom)       Photosphere temp., K  = 4400(top)
+  Photospheric depth    = ~500 km             Chromospheric depth   = ~2500 km
+  Flatness, f           = 0.00005             Adopted sid. rot. per.= 25.38 d
+  Surface gravity       =  274.0 m/s^2        Escape speed, km/s    =  617.7
+  Pole (RA,DEC), deg.   = (286.13, 63.87)     Obliquity to ecliptic = 7.25 deg.
+  Solar constant (1 AU) = 1367.6 W/m^2        Luminosity, 10^24 J/s = 382.8
+  Mass-energy conv rate = 4.260 x 10^9 kg/s   Effective temp, K     = 5772
+  Sunspot cycle         = 11.4 yr             Cycle 24 sunspot min. = 2008 A.D.
+
+  Motion relative to nearby stars = apex : R.A.= 271 deg.; DEC.= +30 deg.
+                                    speed: 19.4 km/s (0.0112 au/day)
+  Motion relative to 2.73K BB/CBR = apex : l= 264.7 +- 0.8; b= 48.2 +- 0.5 deg.
+                                    speed: 369 +-11 km/s
+*******************************************************************************
+
+
+*******************************************************************************
+Ephemeris / API_USER Wed Oct 14 18:54:22 2026 Pasadena, USA      / Horizons    
+*******************************************************************************
+Target body name: Sun (10)                        {source: DE441}
+Center body name: Moon (301)                      {source: DE441}
+Center-site name: (user defined site below)
+*******************************************************************************
+Start time      : A.D. 1969-Jul-20 20:17:40.0000 UT      
+Stop  time      : A.D. 2040-Jun-21 00:00:00.0000 UT      
+Step-size       : 0 steps
+*******************************************************************************
+Target pole/equ : IAU_SUN                         {East-longitude positive}
+Target radii    : 695700.0, 695700.0, 695700.0 km {Equator_a, b, pole_c}       
+Center geodetic : 60.0, 0.0, 0.0                  {E-lon(deg),Lat(deg),Alt(km)}
+Center cylindric: 60.0, 1737.4, 0.0               {E-lon(deg),Dxy(km),Dz(km)}
+Center pole/equ : MEAN_ME (high precision)        {East-longitude positive}
+Center radii    : 1737.4, 1737.4, 1737.4 km       {Equator_a, b, pole_c}       
+Target primary  : Sun
+Vis. interferer : EARTH (R_eq= 6378.137) km       {source: DE441}
+Rel. light bend : Sun, EARTH                      {source: DE441}
+Rel. lght bnd GM: 1.3271E+11, 3.9860E+05 km^3/s^2                              
+Atmos refraction: NO (AIRLESS)
+RA format       : DEG
+Time format     : BOTH
+Calendar mode   : Gregorian
+EOP file        : eop.261014.p270110                                           
+EOP coverage    : DATA-BASED 1962-JAN-20 TO 2026-OCT-14. PREDICTS-> 2027-JAN-09
+Units conversion: 1 au= 149597870.700 km, c= 299792.458 km/s, 1 day= 86400.0 s 
+Table cut-offs 1: Elevation (-90.0deg=NO ),Airmass     n.a.    , Daylight (NO )
+Table cut-offs 2: Solar elongation (  0.0,180.0=NO ),Local Hour Angle( 0.0=NO )
+Table cut-offs 3: RA/DEC angular rate (     0.0=NO )                           
+Table format    : Comma Separated Values (spreadsheet)
+************************************************************************************
+ Date__(UT)__HR:MN:SC.fff, Date_________JDUT, , ,Azimuth_(a-app), Elevation_(a-app),
+************************************************************************************
+$$SOE
+ 1969-Jul-20 20:17:40.000, 2440423.345601852,*,i,   88.088020856,      47.202441546,
+ 2000-Jan-01 12:00:00.000, 2451545.000000000, ,i,  285.873162972,     -87.732774959,
+ 2024-Feb-29 06:30:00.000, 2460369.770833333, ,i,  268.924131244,     -26.741392734,
+ 2028-Aug-04 22:00:00.000, 2461988.416666667,*,i,  269.257989063,      38.098649879,
+ 2030-Dec-21 18:45:00.000, 2462857.281250000, ,i,   88.471541580,     -66.590881561,
+ 2040-Jun-21 00:00:00.000, 2466326.500000000,*,i,  272.623823923,      74.878378715,
+$$EOE
+************************************************************************************
+Column meaning:
+ 
+TIME
+
+  Times PRIOR to 1962 are UT1, a mean-solar time closely related to the
+prior but now-deprecated GMT. Times AFTER 1962 are in UTC, the current
+civil or "wall-clock" time-scale. UTC is kept within 0.9 seconds of UT1
+using integer leap-seconds for 1972 and later years.
+
+  Conversion from the internal Barycentric Dynamical Time (TDB) of solar
+system dynamics to the non-uniform civil UT time-scale requested for output
+has not been determined for UTC times after the next July or January 1st.
+Therefore, the last known leap-second is used as a constant over future
+intervals.
+
+  Time tags refer to the UT time-scale conversion from TDB on Earth
+regardless of observer location within the solar system, although clock
+rates may differ due to the local gravity field and no analog to "UT"
+may be defined for that location.
+
+  Any 'b' symbol in the 1st-column denotes a B.C. date. First-column blank
+(" ") denotes an A.D. date.
+ 
+CALENDAR SYSTEM
+
+  Calendar dates are given in the modern Gregorian system, extended prior to
+its 1582-Oct-15 adoption. The Gregorian calendar more closely corresponds to
+physical Earth seasons and orbital motion, but can differ by up to 10 days with
+historical records made under the prior Julian calendar, more if the Julian
+calendar was extended prior to its 45-Jan-1 BC adoption to label the historical
+event. Select "mixed" calendar mode if correlation with historical dates prior
+to A.D. 1582 is important.
+
+  NOTE: "n.a." in output means quantity "not available" at the print-time.
+ 
+SOLAR PRESENCE (OBSERVING SITE)
+  Time tag is followed by a blank, then a solar-presence symbol:
+
+       '*'  Daylight (solar upper-limb on or above apparent horizon)
+       ' '  Night OR body-centered ephemeris
+
+INTERFERING BODY PRESENCE (OBSERVING SITE)
+  The solar-presence symbol is immediately followed by an "interfering body"
+presence symbol.
+
+       'i'  Upper-limb of interfering body on or above apparent horizon
+       ' '  Upper-limb of interfering body below apparent horizon OR body
+              centered ephemeris.
+
+  An "interfering body" is the largest other body in the immediate
+planet/satellite system, potentially compromising visual observations due to
+its brightness. Any such body is identified in the print-out header.
+ 
+ 'Azimuth_(a-app), Elevation_(a-app),' =
+  Airless apparent azimuth and elevation of target center. Compensated
+for light-time, the gravitational deflection of light, stellar aberration,
+precession and nutation. Azimuth is measured clockwise from north:
+
+  North(0) -> East(90) -> South(180) -> West(270) -> North (360)
+
+Elevation angle is with respect to a plane perpendicular to the reference
+surface local zenith direction. TOPOCENTRIC ONLY.  Units: DEGREES
+
+Computations by ...
+
+    Solar System Dynamics Group, Horizons On-Line Ephemeris System
+    4800 Oak Grove Drive, Jet Propulsion Laboratory
+    Pasadena, CA  91109   USA
+
+    General site: https://ssd.jpl.nasa.gov/
+    Mailing list: https://ssd.jpl.nasa.gov/email_list.html
+    System news : https://ssd.jpl.nasa.gov/horizons/news.html
+    User Guide  : https://ssd.jpl.nasa.gov/horizons/manual.html
+    Connect     : browser        https://ssd.jpl.nasa.gov/horizons/app.html#/x
+                  API            https://ssd-api.jpl.nasa.gov/doc/horizons.html
+                  command-line   telnet ssd.jpl.nasa.gov 6775
+                  e-mail/batch   https://ssd.jpl.nasa.gov/ftp/ssd/horizons_batch.txt
+                  scripts        https://ssd.jpl.nasa.gov/ftp/ssd/SCRIPTS
+    Inquiries   : Jon.D.Giorgini@jpl.nasa.gov
+
+************************************************************************************

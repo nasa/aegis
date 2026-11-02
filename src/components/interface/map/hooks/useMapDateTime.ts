@@ -3,11 +3,9 @@
  *
  * The logic is:
  * 1. If in preset editor and a preview time is set → use that
- * 2. If a REX is selected and has a running time → use REX time
- * 3. If a sequence item has a time → use that
- * 4. If an EVA is selected with a datetime → use that
- * 5. If any time-based sublayer exists → use first manifest entry
- * 6. Otherwise → null
+ * 2. If an EVA is selected with a datetime → add the timeline hover offset, if present
+ * 3. If any time-based sublayer exists → use first manifest entry
+ * 4. Otherwise → null
  */
 
 import { useMemo } from "react";
@@ -21,35 +19,87 @@ import { numericDatetimeToISO } from "utils/formatting";
  * Pure derivation from Redux state — no local state management needed.
  */
 export function useMapDateTime(): string | null {
+  return useMapDateTimeWithSource()?.datetime ?? null;
+}
+
+/** Resolve the date and its source together so displayed attribution stays in sync. */
+export function useMapDateTimeWithSource(): MapDateTimeWithSource {
   const presetPreviewTime = useAppSelector((s) => s.preset.presetPreviewTime, refEqual);
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
   const missionSublayers = useMissionDocSelector(selectSublayers, deepEqual);
 
   const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
+  const timelineTime = useAppSelector((s) => s.hover.timelineTime, refEqual);
   const selectedEvaDatetime = useMissionDocSelector((m) => {
     return selectedEvaUuid ? (m.evas?.[selectedEvaUuid]?.datetime ?? null) : null;
   }, refEqual);
+  const selectedEvaName = useMissionDocSelector(
+    (m) => (selectedEvaUuid ? m.evas?.[selectedEvaUuid]?.name : null),
+    refEqual
+  );
 
-  // The sequence time comes from the selected sequence item on the selected EVA
-  // NOTE: In the Leaflet implementation, sequenceTime is derived from
-  // getCalculatedTimeOfSequenceItem() which needs stations, actions, traverses,
-  // and mission rates. That wiring will be added when behavior components
-  // that consume time are implemented (Phase 1 TileLayers).
-  // For now, this hook returns the simpler time sources.
-
-  return useMemo(() => {
+  return useMemo<MapDateTimeWithSource>(() => {
+    const evaHasDate =
+      selectedEvaDatetime != null && Number.isFinite(new Date(selectedEvaDatetime).getTime());
+    const evaWarning =
+      selectedEvaUuid && !evaHasDate
+        ? `Selected EVA ${selectedEvaName || selectedEvaUuid} has no valid date.`
+        : null;
     if (presetPreviewTime && sectionSelected === "preset") {
-      return presetPreviewTime;
+      return {
+        datetime: presetPreviewTime,
+        sourceLabel: "Preset preview",
+        source: "preset-preview",
+        warning: evaWarning,
+        evaWarning,
+      };
     }
-    if (selectedEvaDatetime != null && !isNaN(new Date(selectedEvaDatetime).getTime())) {
-      return numericDatetimeToISO(selectedEvaDatetime);
+    if (evaHasDate) {
+      const hoverDatetime =
+        timelineTime?.evaUuid === selectedEvaUuid &&
+        Number.isFinite(timelineTime.elapsedSeconds) &&
+        timelineTime.elapsedSeconds >= 0
+          ? selectedEvaDatetime + timelineTime.elapsedSeconds * 1000
+          : NaN;
+      const isTimelineHover = Number.isFinite(new Date(hoverDatetime).getTime());
+      return {
+        datetime: numericDatetimeToISO(isTimelineHover ? hoverDatetime : selectedEvaDatetime),
+        sourceLabel: isTimelineHover
+          ? `Timeline hover: ${selectedEvaName || selectedEvaUuid} (+${Math.round(timelineTime.elapsedSeconds)} s)`
+          : `Selected EVA: ${selectedEvaName || selectedEvaUuid}`,
+        source: isTimelineHover ? "timeline-hover" : "eva",
+        warning: null,
+        evaWarning,
+      };
     }
     if (missionSublayers) {
       const firstTimeBased = missionSublayers.find((sl) => sl.isTimeBased);
       if (firstTimeBased?.timeLayerManifest?.[0]?.datetime) {
-        return firstTimeBased.timeLayerManifest[0].datetime;
+        return {
+          datetime: firstTimeBased.timeLayerManifest[0].datetime,
+          sourceLabel: `Time-based layer: ${firstTimeBased.name || firstTimeBased.uuid} (fallback)`,
+          source: "layer",
+          warning: [evaWarning, "Using time-based layer initial date, not a dated EVA."]
+            .filter(Boolean)
+            .join(" "),
+          evaWarning,
+        };
       }
     }
-    return null;
-  }, [presetPreviewTime, sectionSelected, selectedEvaDatetime, missionSublayers]);
+    return {
+      datetime: null,
+      sourceLabel: null,
+      source: null,
+      warning: evaWarning || "No map date is available.",
+      evaWarning,
+    };
+  }, [
+    presetPreviewTime,
+    sectionSelected,
+    selectedEvaDatetime,
+    selectedEvaName,
+    selectedEvaUuid,
+    timelineTime,
+    missionSublayers,
+  ]);
 }

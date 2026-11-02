@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -30,6 +32,8 @@ const NavCard: FunctionComponent<NavCardProps> = ({ to, title, description, enab
 };
 
 const Index: React.FunctionComponent = () => {
+  const loading = useAsyncStatus("Checking admin access...");
+  const { run: runLoad } = loading;
   const navigate = useNavigate();
   const [user, setUser] = useState<AppUser>(null);
 
@@ -47,13 +51,17 @@ const Index: React.FunctionComponent = () => {
         navigate("/");
       }
     }
-    adminCheck().catch(() => {
-      // Something went wrong. Eventually would like a logger here.
-    });
-  }, [navigate]);
+    runLoad("Checking admin access...", adminCheck);
+  }, [navigate, runLoad]);
 
   if (!(user?.isAdmin || user?.isSuperAdmin)) {
-    return null;
+    return (
+      <main className={adminCommon.page}>
+        <div className={adminCommon.container}>
+          <AsyncStatus {...loading} />
+        </div>
+      </main>
+    );
   }
 
   return (

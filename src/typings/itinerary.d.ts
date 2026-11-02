@@ -1,4 +1,8 @@
 interface Eva {
+  /** Defaults to calculation from the EVA start date. */
+  sunEarthFromDate: boolean;
+  sunAzimuth: number;
+  earthAzimuth: number;
   uuid: string;
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
@@ -17,7 +21,10 @@ interface Eva {
   updatedAt?: number;
 }
 
-type Eva_db_type = Omit<Eva, "createdAt" | "updatedAt" | "datetime"> & {
+type Eva_db_type = Omit<
+  Eva,
+  "createdAt" | "updatedAt" | "datetime" | "sunEarthFromDate" | "sunAzimuth" | "earthAzimuth"
+> & {
   missionId: number; // legacy Postgres column; removed from the Automerge Eva
   createdAt?: Date;
   updatedAt?: Date;

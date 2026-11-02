@@ -46,9 +46,10 @@ function setDocRexes(rexes: Partial<Rex>[]) {
 }
 
 let captured: string;
+let probeRexUuid: string | null | undefined;
 
 function Probe(): null {
-  captured = useRexPetTime();
+  captured = useRexPetTime(probeRexUuid);
   return null;
 }
 
@@ -61,6 +62,7 @@ beforeEach(() => {
     delete (docState as Record<string, unknown>)[key];
   }
   captured = "<unset>";
+  probeRexUuid = undefined;
   vi.useFakeTimers();
   vi.setSystemTime(new Date(FAKE_NOW));
   container = document.createElement("div");
@@ -174,6 +176,54 @@ describe("useRexPetTime", () => {
       vi.advanceTimersByTime(60_000);
     });
     expect(captured).toBe("+00:01:05");
+  });
+
+  it("returns the stopped PET of a selected REX that is not running", async () => {
+    setDocRexes([
+      {
+        uuid: "r1",
+        isRunning: false,
+        petRunning: false,
+        petStartStopTimestamp: "2026-05-01T11:00:00Z",
+        petValueAtStartStop: "+02:10:05",
+      } as Rex,
+    ]);
+    probeRexUuid = "r1";
+    render();
+    await vi.runAllTimersAsync();
+    flushSync(() => {});
+    expect(captured).toBe("+02:10:05");
+  });
+
+  it("uses the selected REX rather than a different running REX", async () => {
+    setDocRexes([
+      {
+        uuid: "running",
+        isRunning: true,
+        petRunning: false,
+        petStartStopTimestamp: "2026-05-01T11:00:00Z",
+        petValueAtStartStop: "+00:05:00",
+      } as Rex,
+      {
+        uuid: "stopped",
+        isRunning: false,
+        petRunning: false,
+        petStartStopTimestamp: "2026-05-01T11:00:00Z",
+        petValueAtStartStop: "+01:30:00",
+      } as Rex,
+    ]);
+    probeRexUuid = "stopped";
+    render();
+    await vi.runAllTimersAsync();
+    flushSync(() => {});
+    expect(captured).toBe("+01:30:00");
+  });
+
+  it("returns empty string when the selected REX does not exist", () => {
+    setDocRexes([]);
+    probeRexUuid = "missing";
+    render();
+    expect(captured).toBe("");
   });
 
   it("clears interval on unmount (no leak)", () => {

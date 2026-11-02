@@ -31,6 +31,7 @@ COLORIZE_SLOPE = ROOT / "slope" / "colorize_slope.py"
 COLORIZE_VIEWSHED = ROOT / "viewshed" / "colorize_viewshed.py"
 COLORIZE_CLASSIFIED_MASK = ROOT / "common" / "colorize_classified_mask.py"
 COLORIZE_CATEGORICAL_RASTER = ROOT / "common" / "colorize_categorical_raster.py"
+COLORIZE_LYRX_CLASSIFIED = ROOT / "common" / "colorize_lyrx_classified.py"
 SHP_TO_GEOJSON = ROOT / "vector" / "shp_to_geojson.py"
 DEM_PRODUCTS = ROOT / "products" / "dem_products.py"
 LYRX_TO_RAMP = ROOT / "products" / "lyrx_to_ramp.py"
@@ -1200,6 +1201,119 @@ def step_keepout_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None
             pass
 
 
+def _write_lyrx_classified_properties(
+    layer_dir: Path, name: str, style: Path, classes: list[dict]
+) -> None:
+    """Write a legend of the visible .lyrx classes (fully transparent classes are omitted)."""
+    properties = {
+        "name": name,
+        "description": f"Delivered raster classified with GIS symbology {style.name}.",
+        "legend": {
+            "legend": [
+                {"color": entry["color"], "description": entry["label"]}
+                for entry in classes
+                if entry["alpha"] > 0
+            ],
+            "unitsAbbr": "",
+            "version": "",
+        },
+    }
+    (layer_dir / "properties.json").write_text(
+        json.dumps(properties, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def step_lyrx_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
+    """Continuous rasters + .lyrx class breaks -> classified RGBA COG sublayers."""
+    banner("lyrx-cogs — rasters + .lyrx class breaks -> classified RGBA COGs")
+    count = len(args.in_lyrx_raster)
+    if len(args.lyrx_raster_style) != count:
+        raise SystemExit(
+            "--lyrx-raster-style must be provided once for each --in-lyrx-raster"
+        )
+    if args.out_lyrx_raster and len(args.out_lyrx_raster) != count:
+        raise SystemExit(
+            "--out-lyrx-raster must be provided once for each --in-lyrx-raster, "
+            "or omitted to use each source filename"
+        )
+
+    p.layers.mkdir(parents=True, exist_ok=True)
+    scratch = p.out / "scratch_lyrx_cogs"
+    scratch.mkdir(parents=True, exist_ok=True)
+    try:
+        for index, raster in enumerate(args.in_lyrx_raster):
+            raster = Path(raster)
+            style = Path(args.lyrx_raster_style[index])
+            require_input(raster, "classified source GeoTIFF", "--in-lyrx-raster")
+            require_input(style, ".lyrx symbology", "--lyrx-raster-style")
+            base_name = (
+                args.out_lyrx_raster[index]
+                if args.out_lyrx_raster
+                else _classified_mask_layer_name(raster)
+            )
+            if (
+                not base_name
+                or base_name in {".", ".."}
+                or "/" in base_name
+                or "\\" in base_name
+            ):
+                raise SystemExit(f"Invalid .lyrx raster layer name: {base_name!r}")
+            layer_name = p.layer_name(base_name)
+            layer_dir = p.layers / layer_name
+            out_cog = layer_dir / config.cog_layer_filename(layer_name)
+            if out_cog.exists() and not args.overwrite:
+                tee(f"  [skip] {out_cog} already built (use --overwrite to rebuild)")
+                continue
+
+            layer_dir.mkdir(parents=True, exist_ok=True)
+            rgba = scratch / f"{layer_name}_rgba.tif"
+            audit_path = layer_dir / "conversion_audit.json"
+            tee(f"\n  lyrx-classified: {raster} ({style.name}) -> {out_cog}")
+            try:
+                run(
+                    [
+                        PYTHON,
+                        COLORIZE_LYRX_CLASSIFIED,
+                        raster,
+                        rgba,
+                        "--lyrx",
+                        style,
+                        "--audit-out",
+                        audit_path,
+                    ]
+                )
+                run(
+                    [
+                        PYTHON,
+                        GEOTIFF_TO_COG,
+                        rgba,
+                        "-o",
+                        out_cog,
+                        "--compress",
+                        config.COG_COMPRESS,
+                        "--overview-resampling",
+                        "nearest",
+                    ]
+                )
+                audit = json.loads(audit_path.read_text(encoding="utf-8"))
+                _write_lyrx_classified_properties(
+                    layer_dir, layer_name, style, audit["classes"]
+                )
+                audit["source_checksum_sha256"] = sha256_file(raster)
+                audit["output"] = str(out_cog.resolve())
+                audit["output_checksum_sha256"] = sha256_file(out_cog)
+                audit_path.write_text(
+                    json.dumps(audit, indent=2) + "\n", encoding="utf-8"
+                )
+            finally:
+                rgba.unlink(missing_ok=True)
+    finally:
+        try:
+            scratch.rmdir()
+        except OSError:
+            pass
+
+
 def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     """Register mission fields + the 'All Layers' header + sublayers + active grid on the AEGIS server."""
     banner("register — AEGIS mission fields + layers + sublayers + grid")
@@ -1323,6 +1437,10 @@ STEPS: list[tuple[str, str]] = [
         "keepout-cogs",
         "Classified slope keep-out rasters (--in-keepout-raster) → transparent-mask RGBA COGs",
     ),
+    (
+        "lyrx-cogs",
+        "Rasters + .lyrx class breaks (--in-lyrx-raster) → classified RGBA COGs",
+    ),
     ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     (
         "register",
@@ -1347,6 +1465,7 @@ STEP_FNS = {
     "categorical-cogs": step_categorical_cogs,
     "viewshed-cogs": step_viewshed_cogs,
     "keepout-cogs": step_keepout_cogs,
+    "lyrx-cogs": step_lyrx_cogs,
     "grid": step_grid,
     "register": step_register,
     "box": step_box,
@@ -1371,6 +1490,7 @@ DATA_STEPS = {
     "categorical-cogs",
     "viewshed-cogs",
     "keepout-cogs",
+    "lyrx-cogs",
     "grid",
 }
 
@@ -1408,6 +1528,8 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("viewshed-cogs")
     if args.in_keepout_raster:
         chosen.append("keepout-cogs")
+    if args.in_lyrx_raster:
+        chosen.append("lyrx-cogs")
     if (
         getattr(args, "grid", False)
         and args.lander_lat is not None

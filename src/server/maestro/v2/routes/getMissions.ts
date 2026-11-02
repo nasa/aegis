@@ -5,7 +5,7 @@ import express from "express";
 
 import { serverLogger } from "utils/logging/serverLogger";
 import { emssTokenIsValid } from "utils/permissions";
-import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
+import { getMissionSummaries, getAsPlannedEvaSummaries } from "server/automerge/missionCatalog";
 
 // used in getMissions maestro route
 export type MissionsWithEvas = {
@@ -63,26 +63,23 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export async function getMissionsData(): Promise<MissionsWithEvas> {
-  // Get all automerge mission documents first
-  const allMissions = await getAutomergeMissions();
-  const activeMissions = allMissions.filter((mission) => !mission.archivedAt);
+  const [activeMissions, evas] = await Promise.all([
+    getMissionSummaries(),
+    getAsPlannedEvaSummaries(),
+  ]);
 
   const missions: MissionsWithEvas = {};
 
   for (const mission of activeMissions) {
-    const rexEvaUuids = Object.values(mission.rexes || {}).map((r) => r.evaUuid);
-    const asPlannedEvas = Object.values(mission.evas || {}).filter(
-      (e) => !rexEvaUuids.includes(e.uuid)
-    );
-
     missions[mission.id] = {
       missionName: mission.name,
       missionActionSystemVersion: mission.actionSystemVersion,
-      evas: asPlannedEvas.map((e) => ({
-        uuid: e.uuid,
-        evaName: e.name,
-      })),
+      evas: [],
     };
+  }
+
+  for (const eva of evas) {
+    missions[eva.missionId]?.evas.push({ uuid: eva.evaUuid, evaName: eva.name });
   }
 
   return missions;

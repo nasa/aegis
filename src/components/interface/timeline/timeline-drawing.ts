@@ -843,13 +843,14 @@ export const drawMouseHover = (
   flattenedGraphData: MutableRefObject<GraphData>,
   hoverPoint: paper.Point,
   setHoverValues: Function,
-  landerElevationMeters: number
+  landerElevationMeters: number,
+  evaUuid: string
 ): void => {
   //check if we're inside the bounds of the graph
   const paperVars = paperDataRef.current.paperVars;
   if (
-    hoverPoint.x > paperVars.timelineLeft &&
-    hoverPoint.x < paperVars.timelineLeft + paperVars.timelineWidth &&
+    hoverPoint.x >= paperVars.timelineLeft &&
+    hoverPoint.x <= paperVars.timelineLeft + paperVars.timelineWidth &&
     hoverPoint.y > paperVars.timelineTop &&
     hoverPoint.y < paperVars.timelineTop + paperVars.timelineHeight
   ) {
@@ -999,7 +1000,12 @@ export const drawMouseHover = (
     //save hover data to store
     dispatch(setLeftPanelHoverUuid(sequenceUuid));
     dispatch(
-      setSequenceHover({ sequenceUuid, sequenceItemPercentElapsed, mapItemType: sequenceType })
+      setSequenceHover({
+        sequenceUuid,
+        sequenceItemPercentElapsed,
+        mapItemType: sequenceType,
+        timelineTime: evaUuid ? { evaUuid, elapsedSeconds: seconds } : null,
+      })
     );
   } else {
     //mouse is outside of the graph area but is still inside paper canvas

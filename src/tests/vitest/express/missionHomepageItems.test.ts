@@ -7,6 +7,7 @@ import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
 import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
+import { seedMissionCatalog } from "../helpers/seedMissionCatalog";
 
 let testAppUserNoPerms: App_User_db;
 let testAppUser: App_User_db;
@@ -46,6 +47,7 @@ beforeAll(async () => {
   ];
   // Last, create mock automerge repo with test missions partials from above
   globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
+  await seedMissionCatalog(testAutomergeDocListings);
 
   testAppUserNoPerms = await new AppUserFactory(em).createOne({
     username: "Vitest testNoPerms",
@@ -103,6 +105,14 @@ describe("REX API Endpoint", () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.data.length).toEqual(1);
+
+      const summaryRes = await supertest(app)
+        .get("/api/v1/missionCatalog")
+        .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie]);
+      expect(summaryRes.statusCode).toBe(200);
+      expect(summaryRes.body.data.map((m: MissionSummary) => m.id)).toEqual([
+        testMissionsPartial[0].id,
+      ]);
     });
 
     test("Login as super admin", async () => {

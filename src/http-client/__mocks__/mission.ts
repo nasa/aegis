@@ -1,14 +1,5 @@
 // wrap all functions in a vi.fn so they read as a mock and can be referenced in assertions
 
-export const getMissions = vi.fn(async (): Promise<WrappedResponse<Mission[]>> => {
-  const res: WrappedResponse<Mission[]> = {
-    status: "success",
-    message: "Missions retrieved",
-    data: [],
-  };
-  return res;
-});
-
 export const getMissionHomepageItems = vi.fn(
   async (): Promise<WrappedResponse<MissionHomepageItem[]>> => {
     const response: WrappedResponse<MissionHomepageItem[]> = {

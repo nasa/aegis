@@ -11,6 +11,14 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
 import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
 import { seedDatabaseAndGenerateAutomergeMission } from "../fixtures/database";
+import type * as FileModule from "server/file/file";
+
+// These tests copy documents with copyAssets:false. Their cleanup must not touch the
+// configured static asset directory (test database IDs can overlap real mission IDs).
+vi.mock("server/file/file", async (importOriginal) => ({
+  ...(await importOriginal<typeof FileModule>()),
+  deleteFile: vi.fn().mockResolvedValue(true),
+}));
 
 // These global variables will store our test data
 let testAppUser: App_User_db;

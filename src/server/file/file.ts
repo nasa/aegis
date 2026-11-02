@@ -274,18 +274,16 @@ export async function copyDirectoryContents(
       });
       return;
     } else {
-      // log an error if the platform is not supported
-      serverLogger.error(
-        { logId: "file", logValue: `Unsupported platform: ${platform}` },
-        new Error(`Unsupported platform for directory copy: ${platform}. Please copy manually.`)
+      throw new Error(
+        `Unsupported platform for directory copy: ${platform}. Please copy manually.`
       );
-      return;
     }
   } catch (error) {
     serverLogger.error(
       { logId: "file", logValue: "System copy command failed" },
       error instanceof Error ? error : new Error(String(error))
     );
+    throw error;
   }
 }
 
@@ -302,7 +300,8 @@ async function executeCommand(
   options: { acceptableExitCodes?: number[]; cwd?: string } = {}
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(command, args, { cwd: options.cwd });
+    // Copy output is unused. Pipes can fill and block a verbose child process forever.
+    const proc = spawn(command, args, { cwd: options.cwd, stdio: "ignore" });
 
     proc.on("error", (err: Error) => {
       reject(new Error(`Failed to execute ${command}: ${err.message}`));

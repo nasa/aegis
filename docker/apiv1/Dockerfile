@@ -1,12 +1,12 @@
-# When building via kaniko in CI, the dependency proxy will cache image from Docker Hub.
+# When building via Buildah in CI, the dependency proxy caches images from Docker Hub.
 # For local builds, Docker pulls directly from Docker Hub
-FROM node:24.11.1-alpine3.23 AS base
+FROM node:24.22.1-alpine AS base
 
 # Set the working directory. It will create if doesn't exist
 WORKDIR /app
 
-# Make GIT_COMMIT available inside docker/kaniko so it can be baked into the code at build time
-# The GIT_COMMIT value is passed in using MAP_ENV_VARS_TO_BUILD_ARGS from the job pipeline.
+# Make GIT_COMMIT available in the image so it can be baked into the code at build time
+# The GIT_COMMIT value is passed as a build argument from the job pipeline.
 # When building this container locally, this is not available so "localDev" will be used as default value
 ARG GIT_COMMIT=localDev
 ENV GIT_COMMIT=$GIT_COMMIT
@@ -14,6 +14,7 @@ ENV GIT_COMMIT=$GIT_COMMIT
 # The * after npmrc ensure copy operation will not fail if the file does not exist
 COPY .npmrc* .
 COPY package*.json .
+COPY emss-fallback/check-installed.mjs ./emss-fallback/
 
 # # # # # # # #
 # BUILD image #
@@ -23,12 +24,12 @@ COPY package*.json .
 FROM base AS build
 
 # Install all packages including devDependencies
-# Use a cache mount for faster installs. Cache mounts can be used by buildx, but not kaniko
+# Use a cache mount for faster installs with Buildah in CI and buildx locally.
 #     - cache mount persists between builds and Docker Desktop restarts
 #     - cache remains until pruned with commands like "docker builder prune"
 #     - cache is stored in a location managed by Docker Desktop VM and is not in the image
-# Since we can't use the cache on kaniko, this cache is only beneficial for (re)building locally
-# buildx is the the component that our Docker Desktop uses to build images with BuildKit.
+# CI cache mounts last for the job; local cache mounts also benefit later rebuilds.
+# buildx is the component that Docker Desktop uses to build images with BuildKit.
 RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci
 
 # Copy the rest of the files and build the app
@@ -56,9 +57,10 @@ COPY --from=build /app/.local/schemas /app/.local/schemas
 
 # Run node with production config
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size-percentage=75"
 
 # Install runtime dependencies only, omit the devDependencies
-# Use the cache mount to avoid re-downloading and speed up install (only for local builds)
+# Reuse the npm cache from the build stage to avoid re-downloading packages.
 RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci --omit=dev
 
 # Install system packages:

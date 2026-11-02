@@ -1,3 +1,4 @@
+import AsyncStatus from "components/admin/asyncStatus";
 import isNull from "lodash/isNull";
 import { uploadFile } from "http-client/file";
 import prettyBytes from "pretty-bytes";
@@ -82,6 +83,7 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
     }
 
     const reader = new FileReader();
+    setGeoJSONMessage("validating");
 
     // something went horribly wrong reading the file
     reader.onerror = () => {
@@ -114,6 +116,11 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
 
     // non-blocking call that reads the file in the browser. .onload and .onerror callbacks will update geojson-related component state
     reader.readAsText(selectedFile, "utf-8");
+    return () => {
+      reader.onload = null;
+      reader.onerror = null;
+      if (reader.readyState === FileReader.LOADING) reader.abort();
+    };
   }, [props.zipOnly, selectedFile, fileExtension]);
 
   //sends file to be uploaded and sets progress message
@@ -223,7 +230,7 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
         <button
           className={adminStyles.button}
           onClick={uploadFileToAPI}
-          disabled={status !== UploadStatus.Ready}
+          disabled={status !== UploadStatus.Ready || geoJSONMessage === "validating"}
         >
           Submit
         </button>
@@ -243,7 +250,14 @@ const UploadFile: FunctionComponent<UploadProps> = (props: UploadProps) => {
           ""
         )}
       </div>
-      {progressMsg}
+      {geoJSONMessage === "validating" && (
+        <AsyncStatus pending="Reading and validating GeoJSON..." />
+      )}
+      {status === UploadStatus.Uploading ? (
+        <AsyncStatus pending={progressMsg || "Uploading file..."} />
+      ) : (
+        <span role="status">{progressMsg}</span>
+      )}
     </>
   );
 };

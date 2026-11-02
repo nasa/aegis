@@ -20,6 +20,9 @@ export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
     duration: null,
     traverseColor: null,
     datetime: null,
+    sunEarthFromDate: true,
+    sunAzimuth: 0,
+    earthAzimuth: 0,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

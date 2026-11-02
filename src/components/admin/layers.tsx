@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import adminStyles from "./admin.module.css";
@@ -21,6 +23,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
 
 const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
+  const loading = useAsyncStatus("Loading layers and sublayers...");
+  const { run: runLoad } = loading;
+  const saving = useAsyncStatus();
   const [allLayers, setAllLayers] = useState<Layer[]>(null);
   const [allSublayers, setAllSublayers] = useState<Sublayer[]>(null);
   const [editSublayerParentUUID, setEditSublayerParentUUID] = useState("0");
@@ -28,33 +33,37 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const [editModalTitle, setEditModalTitle] = useState<string>("");
   const [fileList, setFileList] = useState<GISfile[]>(null);
   const [layersSectionCollapsed, setLayersSectionCollapsed] = useState(false);
-  const editRef = useRef<{ save: () => Promise<boolean> }>(null);
+  const editRef = useRef<{ save: () => Promise<void> }>(null);
 
-  const reloadLayers = useCallback(() => {
-    if (!missionId) return;
-    const getLayersAsync = async () => {
-      //load layers
-      const resLayers = await getLayers(missionId);
-      if (resLayers.data) {
-        setAllLayers(resLayers.data);
-        if (resLayers.data.length > 0) setEditSublayerParentUUID(resLayers.data[0].uuid);
-      }
-
-      //load sublayers
-      const resSublayer = await getSublayers(missionId);
-      if (resSublayer.data) {
-        setAllSublayers(resSublayer.data);
-      }
-    };
-    getLayersAsync();
-  }, [missionId]);
+  const reloadLayers = useCallback(
+    () =>
+      runLoad("Loading layers and sublayers...", async () => {
+        if (!missionId) return;
+        const [layers, sublayers] = await Promise.all([
+          getLayers(missionId),
+          getSublayers(missionId),
+        ]);
+        if (!layers.data || !sublayers.data) {
+          throw new Error(
+            (!layers.data ? layers.message : sublayers.message) || "Unable to load layers"
+          );
+        }
+        setAllLayers(layers.data);
+        setAllSublayers(sublayers.data);
+        if (layers.data.length > 0) setEditSublayerParentUUID(layers.data[0].uuid);
+      }),
+    [missionId, runLoad]
+  );
 
   const openEditModal = (component: JSX.Element, title: string) => {
+    saving.clearError();
     setEditComponent(component);
     setEditModalTitle(title);
   };
 
   const closeEditModal = () => {
+    if (saving.pending) return;
+    saving.clearError();
     setEditComponent(null);
     setEditModalTitle("");
   };
@@ -110,6 +119,7 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   return (
     <>
       <section className={adminCommon.section}>
+        <AsyncStatus {...loading} />
         <h2
           className={adminCommon.sectionHeading}
           style={{
@@ -135,6 +145,8 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
                 openEditModal={openEditModal}
                 editRef={editRef}
                 fileList={fileList}
+                isLoading={!!loading.pending}
+                loadError={!!loading.error}
               />
             </div>
             <div
@@ -146,6 +158,7 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
                 <button
                   className={adminCommon.buttonPrimary}
                   type="button"
+                  disabled={!!loading.pending || !!loading.error}
                   onClick={() => {
                     addNewLayer();
                   }}
@@ -181,6 +194,7 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
                   <button
                     className={adminCommon.buttonPrimary}
                     type="button"
+                    disabled={!!loading.pending || !!loading.error}
                     onClick={() => {
                       addNewSublayer();
                     }}
@@ -205,6 +219,7 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
               path={`missionFiles/${missionId}/Layers`}
               setFileList={setFileList}
               isUsed={checkLayerUsesFolder}
+              usageLoading={!!loading.pending || !!loading.error}
               zipOnly={true}
             />
           ) : (
@@ -215,30 +230,47 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
         </div>
       </section>
       {editComponent && (
-        <div className={adminCommon.modalOverlay} onClick={closeEditModal}>
-          <div
-            className={adminCommon.modal}
-            style={{ maxWidth: "1300px", maxHeight: "92vh" }}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className={adminCommon.modalOverlay}>
+          <div className={adminCommon.modal} style={{ maxWidth: "1300px", maxHeight: "92vh" }}>
             <div className={adminCommon.modalHeader}>
               <h2 className={adminCommon.modalTitle}>{editModalTitle}</h2>
-              <button className={adminCommon.modalClose} onClick={closeEditModal} title="Close">
+              <button
+                disabled={!!saving.pending}
+                className={adminCommon.modalClose}
+                onClick={closeEditModal}
+                title="Close"
+              >
                 ✕
               </button>
             </div>
-            <div className={adminCommon.modalBody}>{editComponent}</div>
+            <fieldset
+              className={adminCommon.modalBody}
+              disabled={!!saving.pending}
+              style={{ border: 0, margin: 0, minWidth: 0 }}
+            >
+              {editComponent}
+            </fieldset>
+            <AsyncStatus {...saving} />
             <div className={adminCommon.modalFooter}>
-              <button className={adminCommon.buttonCancel} type="button" onClick={closeEditModal}>
+              <button
+                disabled={!!saving.pending}
+                className={adminCommon.buttonCancel}
+                type="button"
+                onClick={closeEditModal}
+              >
                 Cancel
               </button>
               <button
                 className={adminCommon.buttonPrimary}
                 type="button"
-                onClick={async () => {
-                  const saved = await editRef.current?.save();
-                  if (saved) closeEditModal();
-                }}
+                disabled={!!saving.pending}
+                onClick={() =>
+                  saving.run("Saving layer...", async () => {
+                    await editRef.current?.save();
+                    setEditComponent(null);
+                    setEditModalTitle("");
+                  })
+                }
               >
                 Save
               </button>
@@ -260,29 +292,35 @@ const LayerList = (props: {
   missionId: number;
   refreshLayerList: Function;
   openEditModal: (component: JSX.Element, title: string) => void;
-  editRef: React.RefObject<{ save: () => Promise<boolean> }>;
+  editRef: React.RefObject<{ save: () => Promise<void> }>;
   fileList: GISfile[];
+  isLoading: boolean;
+  loadError: boolean;
 }) => {
+  const action = useAsyncStatus();
   const [collapsedLayers, setCollapsedLayers] = useState<string[]>([]);
 
   async function delSubLayer(sublayer: Sublayer) {
     if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
       const res: WrappedResponse<null> = await deleteSublayers(props.missionId, [sublayer.uuid]);
-      alert(`Delete sublayer ${res.status} - ${res.message}`);
-      props.refreshLayerList(); //reload layer listing in parent component.
+      await props.refreshLayerList(); //reload layer listing in parent component.
+      if (res.status !== "success") {
+        throw new Error(res.message || "Failed to delete sublayer");
+      }
     }
   }
 
   async function delLayer(layer: Layer) {
     if (confirm("Are you sure you want to delete layer " + layer.name)) {
       if (props.sublayers.some((sublayer) => sublayer.layerUuid === layer.uuid)) {
-        alert(
-          `Error: Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first`
+        throw new Error(
+          `Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first.`
         );
-      } else {
-        const res: WrappedResponse<null> = await deleteLayers(props.missionId, [layer.uuid]);
-        alert(`Delete ${res.status} - ${res.message} for uuid ${layer.uuid}`);
-        props.refreshLayerList(); //reload layer listing in parent component.
+      }
+      const res: WrappedResponse<null> = await deleteLayers(props.missionId, [layer.uuid]);
+      await props.refreshLayerList(); //reload layer listing in parent component.
+      if (res.status !== "success") {
+        throw new Error(res.message || "Failed to delete layer");
       }
     }
   }
@@ -318,6 +356,11 @@ const LayerList = (props: {
   if (props.layers?.length > 0) {
     return (
       <ul style={{ paddingLeft: "1.2rem", margin: "8px 0", listStyle: "none" }}>
+        {(action.pending || action.error) && (
+          <li>
+            <AsyncStatus {...action} />
+          </li>
+        )}
         {props.layers.map((layer) => {
           return (
             <li key={layer.uuid} className={adminStyles.layerListItem}>
@@ -350,6 +393,7 @@ const LayerList = (props: {
               &nbsp;
               <span className={adminStyles.layerButtons}>
                 <button
+                  disabled={!!action.pending || props.isLoading || props.loadError}
                   className={adminCommon.button}
                   type="button"
                   onClick={() => {
@@ -359,10 +403,11 @@ const LayerList = (props: {
                   Edit
                 </button>
                 <button
+                  disabled={!!action.pending || props.isLoading || props.loadError}
                   className={adminCommon.buttonDanger}
                   type="button"
                   onClick={() => {
-                    delLayer(layer);
+                    action.run("Deleting layer...", () => delLayer(layer));
                   }}
                 >
                   Delete
@@ -393,6 +438,7 @@ const LayerList = (props: {
                         {sublayer.name}&nbsp;
                         <span className={adminStyles.layerButtons}>
                           <button
+                            disabled={!!action.pending || props.isLoading || props.loadError}
                             className={adminCommon.button}
                             type="button"
                             onClick={() => {
@@ -402,10 +448,11 @@ const LayerList = (props: {
                             Edit
                           </button>
                           <button
+                            disabled={!!action.pending || props.isLoading || props.loadError}
                             className={adminCommon.buttonDanger}
                             type="button"
                             onClick={() => {
-                              delSubLayer(sublayer);
+                              action.run("Deleting sublayer...", () => delSubLayer(sublayer));
                             }}
                           >
                             Delete
@@ -422,7 +469,7 @@ const LayerList = (props: {
       </ul>
     );
   } else {
-    return <div>No Layers Found</div>;
+    return !props.isLoading && !props.loadError ? <div>No Layers Found</div> : null;
   }
 };
 

@@ -49,11 +49,20 @@ import environmentConfigRoute from "./routes/environmentConfig";
 import missionAutomergeRoutes from "./routes/missionAutomerge";
 
 import dustRoute from "./routes/external/dust";
+import missionCatalogRoutes from "./routes/missionCatalog";
+import { retainMissionDocuments } from "server/automerge/missionCatalogRuntime";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app: Application = express();
+
+app.use((_req, res, next) => {
+  const release = retainMissionDocuments();
+  res.once("finish", release);
+  res.once("close", release);
+  next();
+});
 
 app.use(express.json({ limit: "40mb" }));
 app.use(cors());
@@ -108,6 +117,7 @@ app.use("/api/v1/terrain-profile", terrainProfile);
 app.use("/api/v1/grid", gridRoutes);
 app.use("/api/v1/layer", layerRoutes);
 app.use("/api/v1/mission", missionRoutes);
+app.use("/api/v1/missionCatalog", missionCatalogRoutes);
 app.use("/api/v1/missionAutomerge", missionAutomergeRoutes);
 app.use("/api/v1/missionHomepageItems", missionHomepageItemsRoutes);
 app.use("/api/v1/missionDup", missionDup);

@@ -34,7 +34,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  if (missionId === undefined || missionId === null) {
+  const parsedMissionId = Number(missionId);
+  if (
+    (typeof missionId !== "number" && typeof missionId !== "string") ||
+    !Number.isSafeInteger(parsedMissionId) ||
+    parsedMissionId <= 0
+  ) {
     serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "POST",
@@ -42,17 +47,52 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       routeName: "missionDup",
       appUsername: req.session?.appUser?.username,
       missionId: missionId,
-      message: "missionId is required in the request body",
+      message: "missionId must be a positive integer",
     });
-    res
-      .status(400)
-      .json({ status: "failure", message: "missionId is required in the request body" });
+    res.status(400).json({ status: "failure", message: "missionId must be a positive integer" });
     return;
   }
 
+  // Keep existing API clients on JSON; the admin UI opts into progress streaming.
+  const streamProgress = req.get("Accept")?.includes("application/x-ndjson");
+  const startedAt = Date.now();
+  let progressMessage = "Loading source mission...";
+  const writeProgress = (message = progressMessage) => {
+    progressMessage = message;
+    if (streamProgress && !res.destroyed && !res.writableEnded) {
+      const progress: MissionDuplicationProgress = {
+        type: "progress",
+        message,
+        elapsedSeconds: Math.floor((Date.now() - startedAt) / 1000),
+      };
+      res.write(`${JSON.stringify(progress)}\n`);
+    }
+  };
+  const sendResult = (statusCode: number, response: WrappedResponse<number>) => {
+    if (res.destroyed || res.writableEnded) return;
+    if (streamProgress) {
+      // Headers are already sent; the final event carries success or failure.
+      res.end(`${JSON.stringify(response)}\n`);
+    } else {
+      res.status(statusCode).json(response);
+    }
+  };
+  if (streamProgress) {
+    res.status(200);
+    res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+    writeProgress();
+  }
+  // GIS file copies can be silent for minutes. Send traffic through every proxy.
+  const heartbeat = streamProgress ? setInterval(writeProgress, 10_000) : undefined;
+  const stopHeartbeat = () => clearInterval(heartbeat);
+  res.once("close", stopHeartbeat);
+
   try {
     const newMissionId: number | null = await upsertDatabaseRetry(() =>
-      duplicateMission(parseInt(missionId as string))
+      duplicateMission(parsedMissionId, writeProgress)
     );
 
     // Check response
@@ -63,13 +103,13 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         responseStatus: 500,
         routeName: "missionDup",
         appUsername: req.session?.appUser?.username,
-        missionId: parseInt(missionId as string),
+        missionId: parsedMissionId,
         message: "Failed to duplicate mission after multiple tries due to optimistic locking",
         error: new Error(
           "Failed to duplicate mission after multiple tries due to optimistic locking"
         ),
       });
-      res.status(500).json({
+      sendResult(500, {
         status: "error",
         message: "Failed to duplicate mission after multiple tries due to optimistic locking",
         data: null,
@@ -77,7 +117,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    res.status(200).json({
+    sendResult(200, {
       status: "success",
       message: `Mission duplicated. New mission ID: ${newMissionId}`,
       data: newMissionId,
@@ -89,17 +129,23 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       responseStatus: 500,
       routeName: "missionDup",
       appUsername: req.session?.appUser?.username,
-      missionId: parseInt(missionId as string),
+      missionId: parsedMissionId,
       message: `Error processing the POST request ${e}`,
       error: asError(e),
     });
-    res.status(500).json({ status: "error", message: `Error processing the POST request ${e}` });
+    sendResult(500, { status: "error", message: `Error processing the POST request ${e}` });
+  } finally {
+    stopHeartbeat();
+    res.off("close", stopHeartbeat);
   }
 });
 
 export default router;
 
-const duplicateMission = async (missionId: number): Promise<number> => {
+const duplicateMission = async (
+  missionId: number,
+  onProgress: (message: string) => void
+): Promise<number> => {
   if (!missionId) {
     throw new Error("Mission ID is required");
   }
@@ -111,11 +157,14 @@ const duplicateMission = async (missionId: number): Promise<number> => {
     const sourceData = await fetchMissionSourceData(em, missionId);
 
     // 2. Create a copy of the mission with related entities
-    const newMissionId = await createMissionCopy(sourceData, {
-      nameSuffix: "Copy",
-      copyAssets: true,
-    });
+    onProgress("Creating mission copy...");
+    const newMissionId = await createMissionCopy(
+      sourceData,
+      { nameSuffix: "Copy", copyAssets: true },
+      onProgress
+    );
 
+    onProgress("Saving duplicated mission...");
     await em.commit(); // Commit the transaction
     return newMissionId;
   } catch (error) {
@@ -127,7 +176,8 @@ const duplicateMission = async (missionId: number): Promise<number> => {
 // Main function to create a mission copy
 export const createMissionCopy = async (
   sourceData: MissionSourceData,
-  options: MissionCopyOptions
+  options: MissionCopyOptions,
+  onProgress?: (message: string) => void
 ): Promise<number> => {
   try {
     // 1. Create new mission. All mission entities ride along on the mission doc copy.
@@ -164,6 +214,7 @@ export const createMissionCopy = async (
 
     // 2. Copy mission assets (layer tiles, grid coordinate file, etc.) if requested
     if (options.copyAssets && sourceData.mission.id) {
+      onProgress?.("Copying GIS files...");
       await copyMissionAssets(sourceData.mission.id, newMissionId);
     }
 

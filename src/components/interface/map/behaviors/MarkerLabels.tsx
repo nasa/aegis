@@ -210,8 +210,8 @@ export function MarkerLabels(): null {
     deepEqual
   ) as AEGISPoint | null;
 
-  // --- PET time (ticks while REX is running) ---
-  const petTime = useRexPetTime();
+  // --- PET time of the selected REX (ticks while it is running) ---
+  const petTime = useRexPetTime(selectedRexUuid);
 
   // --- Refs ---
   const layerRef = useRef<VectorLayer<VectorSource> | null>(null);

@@ -1,3 +1,5 @@
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
 /**
  * The admin view keeps download state keyed by Box item ID. This allows each row to show its own
  * progress and error state while other files remain available to start concurrently.
@@ -64,6 +66,7 @@ const DownloadFromBox: FunctionComponent<{
     etag: null,
   };
 
+  const loading = useAsyncStatus("Loading Box folders...");
   const [folderItems, setFolderItems] = useState<BoxItemsResponse>(null);
   const [folderHistory, setFolderHistory] = useState<BoxItemEntry[]>([rootFolderBoxEntry]);
   const [loadingNavigation, setLoadingNavigation] = useState<FolderLoadingTarget | null>(null);
@@ -74,15 +77,18 @@ const DownloadFromBox: FunctionComponent<{
   const updateFolderItems = async (
     folderId: string,
     loadingTarget: FolderLoadingTarget | null = null
-  ) => {
-    setLoadingNavigation(loadingTarget);
-    try {
-      const itemsResponse = await boxGetFolderItems(missionId, folderId);
-      setFolderItems(itemsResponse.data);
-    } finally {
-      setLoadingNavigation((current) => (current === loadingTarget ? null : current));
-    }
-  };
+  ) =>
+    loading.run("Loading Box folders...", async () => {
+      setLoadingNavigation(loadingTarget);
+      try {
+        const itemsResponse = await boxGetFolderItems(missionId, folderId);
+        if (!itemsResponse.data)
+          throw new Error(itemsResponse.message || "Unable to load Box folder");
+        setFolderItems(itemsResponse.data);
+      } finally {
+        setLoadingNavigation((current) => (current === loadingTarget ? null : current));
+      }
+    });
 
   const startDownload = async (itemId: string) => {
     setDownloadingItems((current) => ({ ...current, [itemId]: true }));
@@ -135,6 +141,7 @@ const DownloadFromBox: FunctionComponent<{
   return (
     <div className={adminStyles.adminContainer}>
       <h2>Download from Box</h2>
+      <AsyncStatus {...loading} />
       <div className={adminStyles.adminContent}>
         <div className={adminStyles.breadcrumb}>
           {folderHistory.map((item, index) => (
@@ -143,7 +150,7 @@ const DownloadFromBox: FunctionComponent<{
               <span
                 style={{ textDecoration: "underline", cursor: "pointer", color: "#60a5fa" }}
                 onClick={() => {
-                  if (loadingNavigation !== null) return;
+                  if (loading.pending) return;
                   //if clicking on the last item in the history, do nothing
                   if (index === folderHistory.length - 1) return;
                   //if clicking on the second to last item in the history, go back one level
@@ -178,7 +185,7 @@ const DownloadFromBox: FunctionComponent<{
                 <div
                   style={{ textDecoration: "underline", cursor: "pointer", color: "#60a5fa" }}
                   onClick={() => {
-                    if (loadingNavigation !== null) return;
+                    if (loading.pending) return;
                     if (folderHistory.length === 1) return; //already at root
                     updateFolderItems(folderHistory[folderHistory.length - 2].id, {
                       type: "parent",
@@ -204,7 +211,7 @@ const DownloadFromBox: FunctionComponent<{
                       <div
                         style={{ textDecoration: "underline", cursor: "pointer", color: "#60a5fa" }}
                         onClick={() => {
-                          if (loadingNavigation !== null) return;
+                          if (loading.pending) return;
                           setFolderHistory([...folderHistory, item]);
                           updateFolderItems(item.id, { type: "folder", id: item.id });
                         }}

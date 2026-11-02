@@ -22,20 +22,23 @@ interface RunningRexPetInfo {
 }
 
 /**
- * Returns the current PET time string ("+hh:mm:ss") for the running REX,
- * or "" if no REX is running or PET is paused.
+ * Returns the current PET time string ("+hh:mm:ss") for the REX identified by
+ * `rexUuid` (running or not), or for the running REX when `rexUuid` is omitted.
+ * A paused or stopped PET returns its frozen value; "" means no matching REX.
  */
-export function useRexPetTime(): string {
+export function useRexPetTime(rexUuid?: string | null): string {
   const [petTime, setPetTime] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const runningRexPetInfo = useMissionDocSelector((m): RunningRexPetInfo | null => {
-    const running = Object.values(m.rexes ?? {}).find((r) => r.isRunning);
-    if (!running) return null;
+    const rex = rexUuid
+      ? m.rexes?.[rexUuid]
+      : Object.values(m.rexes ?? {}).find((r) => r.isRunning);
+    if (!rex) return null;
     return {
-      petStartStopTimestamp: running.petStartStopTimestamp,
-      petValueAtStartStop: running.petValueAtStartStop,
-      petRunning: running.petRunning,
+      petStartStopTimestamp: rex.petStartStopTimestamp,
+      petValueAtStartStop: rex.petValueAtStartStop,
+      petRunning: rex.isRunning && rex.petRunning,
     };
   }, deepEqual);
 
@@ -62,7 +65,7 @@ export function useRexPetTime(): string {
       }, 100);
     } else {
       // PET paused — show static value
-      setPetTime(runningRexPetInfo.petValueAtStartStop);
+      setPetTime(runningRexPetInfo.petValueAtStartStop ?? "");
     }
 
     return () => {

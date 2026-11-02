@@ -39,7 +39,8 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
 
   // Set a placeholder immediately (before any awaits) to prevent two concurrent
   // calls from attaching duplicate listeners because this one was still processing
-  globalValues.maestroV2.docListeners.set(missionId, () => {});
+  const reservation = () => {};
+  globalValues.maestroV2.docListeners.set(missionId, reservation);
 
   try {
     // Get automerge doc handle
@@ -47,6 +48,10 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
     const missionDocHandle = await globalValues.automergeRepo.find<Mission>(
       automergeListing.automergeUrl as DocumentId
     );
+
+    // A leave/disconnect can cancel this join while the document is loading. Don't
+    // install an orphaned subscription (or overwrite a subsequent join's reservation).
+    if (globalValues.maestroV2.docListeners.get(missionId) !== reservation) return;
 
     // Save the reference to the handle so we can access the document faster without having to find it.
     globalValues.maestroV2.docHandles.set(missionId, missionDocHandle);
@@ -70,6 +75,7 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
 
     missionDocHandle.on("change", throttledListener);
     globalValues.maestroV2.docListeners.set(missionId, () => {
+      throttledListener.cancel();
       missionDocHandle.off("change", throttledListener);
     });
 
@@ -78,6 +84,9 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
       logValue: `addMaestroDocListenerForMission - Added maestro automerge doc listener for mission ${missionId}`,
     });
   } catch (error) {
+    if (globalValues.maestroV2.docListeners.get(missionId) === reservation) {
+      globalValues.maestroV2.docListeners.delete(missionId);
+    }
     serverLogger.error(
       {
         logId: "socket-maestro-v2",

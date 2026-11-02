@@ -1,41 +1,40 @@
-import { useEffect, useState } from "react";
+import { useAsyncStatus } from "components/admin/useAsyncStatus";
+import AsyncStatus from "components/admin/asyncStatus";
+import { useAdminMission } from "components/admin/useAdminMission";
+import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { duplicateMission } from "http-client/mission";
 import adminCommon from "./adminCommon.module.css";
-import { getAutomergeDocListing } from "http-client/docListing";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { isValidAutomergeUrl } from "@automerge/automerge-repo";
-import { useDocument } from "@automerge/automerge-repo-react-hooks";
 
 type RouteParams = {
   id: string;
 };
 
 const AdminMissionDuplicate: React.FunctionComponent = () => {
+  const action = useAsyncStatus();
   const [status, setStatus] = useState<string>("Idle");
 
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
 
-  const [automergeUrl, setAutomergeUrl] = useState<AutomergeUrl>();
-  useEffect(() => {
-    getAutomergeDocListing(intMissionId).then((res) => {
-      if (res.data?.[0] && isValidAutomergeUrl(res.data[0].automergeUrl)) {
-        setAutomergeUrl(res.data[0].automergeUrl as AutomergeUrl);
-      }
-    });
-  }, [intMissionId]);
-  const [missionDoc] = useDocument<Mission>(automergeUrl);
+  const mission = useAdminMission(intMissionId);
+  const { mission: missionDoc } = mission;
   const missionName = missionDoc?.name;
 
   const onDuplicateMission = async (missionId: number) => {
-    setStatus("Duplicating mission...");
-    const response = await duplicateMission(missionId);
-    if (response.status === "success") {
+    setStatus("Starting duplication...");
+    try {
+      const response = await duplicateMission(missionId, (progress) => {
+        setStatus(`${progress.message} (${progress.elapsedSeconds}s elapsed)`);
+      });
+      if (response.status !== "success") {
+        throw new Error(response.message || "Error duplicating mission");
+      }
       setStatus(response.message);
-    } else {
-      setStatus("Error duplicating mission");
+    } catch (error) {
+      setStatus("Duplication was not confirmed. Check the mission list before retrying.");
+      throw error;
     }
   };
 
@@ -46,6 +45,7 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
           ← Missions
         </Link>
         <h1 className={adminCommon.pageTitle}>Duplicate Mission</h1>
+        <AsyncStatus {...mission} />
         {missionName && (
           <div className={adminCommon.missionSubheader}>
             <span className={adminCommon.missionSubheaderLabel}>Mission</span>
@@ -68,13 +68,17 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
               <button
                 className={adminCommon.buttonPrimary}
                 type="button"
+                disabled={!!action.pending || !!mission.pending || !!mission.error}
                 onClick={() => {
-                  onDuplicateMission(intMissionId);
+                  action.run("Duplicating mission and GIS files...", () =>
+                    onDuplicateMission(intMissionId)
+                  );
                 }}
               >
                 Duplicate Mission
               </button>
             </div>
+            <AsyncStatus {...action} />
             <p className={adminCommon.statusMessage}>
               <strong>Status:</strong> {status}
             </p>

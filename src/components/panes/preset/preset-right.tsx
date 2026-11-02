@@ -5,13 +5,11 @@ import {
   faCircleInfo,
   faLayerGroup,
   faTrashAlt,
-  faSun,
 } from "@fortawesome/free-solid-svg-icons";
 
 import Info_panel from "./preset-right-info";
 import Layers_Panel from "./preset-right-layers";
 import Preset_Circles_Panel from "./preset-right-circles";
-import Azimuth_Panel from "./preset-right-azimuth";
 import paneStyles from "../global-pane-styles.module.css";
 import { setSelectedPresetRightNavItem } from "store/preset";
 import { Button } from "components/interface/form/globalFields";
@@ -69,12 +67,6 @@ const PresetEditorRight: FunctionComponent = () => {
       selectedColor: "white",
       icon: faBullseye,
     },
-    azimuth_panel: {
-      title: "Celestial Body Direction",
-      panel: Azimuth_Panel,
-      selectedColor: "white",
-      icon: faSun,
-    },
     grid_panel: {
       title: "Grid Configuration",
       panel: Grid_Panel,
@@ -84,7 +76,9 @@ const PresetEditorRight: FunctionComponent = () => {
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ActiveComponent: FunctionComponent<any> = panelTypes[selectedRightNavItem]?.panel;
+  const ActiveComponent: FunctionComponent<any> = (
+    panelTypes[selectedRightNavItem] ?? panelTypes.info_panel
+  ).panel;
 
   return (
     selectedPreset && (

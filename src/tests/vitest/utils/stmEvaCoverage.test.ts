@@ -328,7 +328,7 @@ describe("computeColumnCoverage()", () => {
     expect(coverage["stm1"].status).toBe("none");
   });
 
-  test("wildcard Any rules match any populated definition, but not missing dimensions", () => {
+  test("wildcard Any rules include null definitions and missing dimensions in coverage", () => {
     const { mission, makeAction } = buildFixture();
     mission.actions = {
       full: makeAction({ uuid: "full", stationUuid: "s1" }),
@@ -336,14 +336,12 @@ describe("computeColumnCoverage()", () => {
       partialDef: makeAction({
         uuid: "partialDef",
         stationUuid: "s2",
-        // adjectiveUuid missing: json-logic "!!" on a missing var is false,
-        // so this does not match adjectiveAny
         actionDefinition: { verbUuid: "v9", nounUuid: "n9" },
       }),
     };
     const anyRule = makeRule({
       uuid: "rule1",
-      count: 1,
+      count: 3,
       verbUuids: [],
       nounUuids: [],
       adjectiveUuids: [],
@@ -359,7 +357,18 @@ describe("computeColumnCoverage()", () => {
       column: asPlannedColumn,
       rexStatusFilter: "all",
     });
-    expect(coverage["stm1"].rules[0].matchingActionUuids).toEqual(["full"]);
+    expect(coverage["stm1"]).toMatchObject({
+      status: "satisfied",
+      totalMatches: 3,
+      rules: [
+        {
+          matchCount: 3,
+          required: 3,
+          satisfied: true,
+          matchingActionUuids: ["full", "noDef", "partialDef"],
+        },
+      ],
+    });
   });
 
   test("EVA with an empty sequence yields none for ruled level3s", () => {

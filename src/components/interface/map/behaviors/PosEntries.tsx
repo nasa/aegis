@@ -18,6 +18,7 @@
  *   - 3 label modes (all/latest/none)
  *   - 4 path modes (all/latest/faded/none)
  *   - N source filters
+ *   - 2 path groupings (merged across sources / separate per source)
  *
  * Returns null — headless behavior component.
  */
@@ -125,6 +126,10 @@ export function PosEntries(): null {
 
   const posTypes = useMissionDocSelector((m) => {
     return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posTypes ?? []) : [];
+  }, deepEqual);
+
+  const posSources = useMissionDocSelector((m) => {
+    return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posSources ?? []) : [];
   }, deepEqual);
 
   const egressLocation = useMissionDocSelector((m) => {
@@ -360,84 +365,66 @@ export function PosEntries(): null {
 
     if (!shouldShow || !mapDisplayPos.showPaths || config.pos.drawPathWeight === false) return;
 
-    if (!mapDisplayPos.showOldPaths) {
-      // Latest-only paths: one short polyline per posType (latest 2 entries)
-      for (const posType of posTypes) {
-        const latestEntries = latestByType[posType.uuid];
-        if (!latestEntries || latestEntries.length < 2) continue;
-
-        const coords = latestEntries
-          .slice()
-          .reverse()
-          .map((e) => toMapCoord(e.location));
-
-        const feature = new Feature({
-          geometry: new LineString(coords),
+    // "merged": one path per posType through every shown source's entries, colored by posType.
+    // "separate": one path per posType per source, colored by the source.
+    const pathGroups: { id: string; color: string; entries: PosEntry[] }[] = [];
+    for (const posType of posTypes) {
+      const entriesForType = filteredEntries.filter((e) => e.posTypeUuids.includes(posType.uuid));
+      if (mapDisplayPos.pathMode === "separate") {
+        for (const posSource of posSources) {
+          pathGroups.push({
+            id: `posPath-${posSource.uuid}-${posType.uuid}`,
+            color: posSource.pathColor,
+            entries: entriesForType.filter((e) => e.posSourceUuid === posSource.uuid),
+          });
+        }
+      } else {
+        pathGroups.push({
+          id: `posPath-${posType.uuid}`,
           color: posType.pathColor,
-          opacity: 0.6,
+          entries: entriesForType,
         });
-        feature.setId(`posPath-${posType.uuid}`);
-        posPathSource.addFeature(feature);
       }
-    } else {
-      // All paths: one polyline per posType
-      for (const posType of posTypes) {
-        const entriesForType = filteredEntries.filter((e) => e.posTypeUuids.includes(posType.uuid));
-        if (entriesForType.length < 2) continue;
+    }
 
-        if (mapDisplayPos.fadeOldPaths) {
-          // Faded old segment
-          const oldEntries = entriesForType.slice(1);
-          if (oldEntries.length >= 2) {
-            const oldCoords = oldEntries
-              .slice()
-              .reverse()
-              .map((e) => toMapCoord(e.location));
-            const oldFeature = new Feature({
-              geometry: new LineString(oldCoords),
-              color: posType.pathColor,
-              opacity: 0.2,
-            });
-            oldFeature.setId(`posPath-${posType.uuid}-faded`);
-            posPathSource.addFeature(oldFeature);
-          }
-
-          // Latest segment (not faded)
-          const latestEntries = entriesForType.slice(0, 2);
-          if (latestEntries.length === 2) {
-            const latestCoords = latestEntries
-              .slice()
-              .reverse()
-              .map((e) => toMapCoord(e.location));
-            const latestFeature = new Feature({
-              geometry: new LineString(latestCoords),
-              color: posType.pathColor,
-              opacity: 0.6,
-            });
-            latestFeature.setId(`posPath-${posType.uuid}-latest`);
-            posPathSource.addFeature(latestFeature);
-          }
-        } else {
-          // No fade — single path per type
-          const coords = entriesForType
+    // Entries are sorted newest-first; paths are drawn oldest-to-newest.
+    const addPath = (id: string, color: string, entries: PosEntry[], opacity: number) => {
+      const feature = new Feature({
+        geometry: new LineString(
+          entries
             .slice()
             .reverse()
-            .map((e) => toMapCoord(e.location));
-          const feature = new Feature({
-            geometry: new LineString(coords),
-            color: posType.pathColor,
-            opacity: 0.6,
-          });
-          feature.setId(`posPath-${posType.uuid}`);
-          posPathSource.addFeature(feature);
-        }
+            .map((e) => toMapCoord(e.location))
+        ),
+        color,
+        opacity,
+      });
+      feature.setId(id);
+      posPathSource.addFeature(feature);
+    };
+
+    for (const { id, color, entries } of pathGroups) {
+      if (entries.length < 2) continue;
+
+      if (!mapDisplayPos.showOldPaths) {
+        // Latest-only: one short polyline through the latest 2 entries
+        addPath(id, color, entries.slice(0, 2), 0.6);
+      } else if (mapDisplayPos.fadeOldPaths) {
+        // Faded old segment
+        const oldEntries = entries.slice(1);
+        if (oldEntries.length >= 2) addPath(`${id}-faded`, color, oldEntries, 0.2);
+        // Latest segment (not faded)
+        addPath(`${id}-latest`, color, entries.slice(0, 2), 0.6);
+      } else {
+        // No fade — single path
+        addPath(id, color, entries, 0.6);
       }
     }
   }, [
     shouldShow,
     filteredEntries,
-    latestByType,
     posTypes,
+    posSources,
     mapDisplayPos,
     config,
     posPathSource,

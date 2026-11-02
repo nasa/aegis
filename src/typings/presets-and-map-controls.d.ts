@@ -86,11 +86,6 @@ type Preset = {
   mapCircleControls: MapCircleControls;
   mapGridControl: MapGridControl;
   layerOrder: PresetLayerOrder[];
-  sunAzimuth: number;
-  sunEnabled: boolean;
-  earthAzimuth: number;
-  earthEnabled: boolean;
-  earthAsMoon: boolean;
   createdAt: number;
   updatedAt: number;
 };

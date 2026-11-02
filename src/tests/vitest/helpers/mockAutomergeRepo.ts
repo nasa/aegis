@@ -11,6 +11,7 @@ interface MockDocHandle {
   once: Mock;
   value: Mock<() => Mission>;
   url?: string;
+  documentId?: string;
 }
 
 /**
@@ -52,7 +53,7 @@ export const createMockAutomergeRepo = (missions: Partial<Mission>[] = []): any 
 
     // create an automerge doc url by squishing the name together with no spaces
     const url = `automerge:${missionData.name.replace(/\s+/g, "")}`;
-    mockHandles.set(url, mockHandle);
+    mockHandles.set(url, { ...mockHandle, url, documentId: url.slice(10) });
   });
 
   // Function to create a default mock handle for all other real missions
@@ -103,6 +104,7 @@ export const createMockAutomergeRepo = (missions: Partial<Mission>[] = []): any 
         once: vi.fn(),
         value: vi.fn().mockImplementation(() => currentDoc),
         url: url,
+        documentId: url.slice(10),
       };
 
       // Store the handle so it can be found later
