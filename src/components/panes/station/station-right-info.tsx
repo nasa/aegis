@@ -77,6 +77,12 @@ const Info_Panel: FunctionComponent<{
     (state) => state.station.selectedStationUuid,
     refEqual
   );
+  const terrainProfiles = useAppSelector((state) => {
+    const entry =
+      state.terrainProfiles.previews[selectedStationUuid] ??
+      state.terrainProfiles.profiles[selectedStationUuid];
+    return entry ? { [selectedStationUuid]: entry } : {};
+  }, shallowEqual);
   const docMaps = useMissionDocSelector(
     (mission) => ({
       stations: mission.stations,
@@ -152,11 +158,12 @@ const Info_Panel: FunctionComponent<{
       (a) => a.stationUuid === selectedStation?.uuid && a.enabled
     );
     return getCalcFieldsForStation({
+      terrainProfiles,
       station: selectedStation,
       missionWalkbackRate: partialMission.walkbackRate,
       stationActions,
     });
-  }, [docMaps, selectedStation, partialMission.walkbackRate]);
+  }, [terrainProfiles, docMaps, selectedStation, partialMission.walkbackRate]);
 
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const stationGridCoordinates = useMemo(() => {
@@ -761,10 +768,12 @@ const Info_Panel: FunctionComponent<{
                         <div className={paneStyles.displayFieldValue}>
                           {!selectedStation.location ? (
                             <>N/A</>
-                          ) : (
+                          ) : calculatedFields?.walkbackAscentDescentAvailable ? (
                             formatNumberWithCommas(
-                              calculatedFields?.walkbackAscentDescent.totalMetersClimbed
+                              calculatedFields.walkbackAscentDescent.totalMetersClimbed
                             )
+                          ) : (
+                            "—"
                           )}
                         </div>
                       </div>
@@ -784,10 +793,12 @@ const Info_Panel: FunctionComponent<{
                         <div className={paneStyles.displayFieldValue}>
                           {!selectedStation.location ? (
                             <>N/A</>
-                          ) : (
+                          ) : calculatedFields?.walkbackAscentDescentAvailable ? (
                             formatNumberWithCommas(
-                              calculatedFields?.walkbackAscentDescent.totalMetersDescended
+                              calculatedFields.walkbackAscentDescent.totalMetersDescended
                             )
+                          ) : (
+                            "—"
                           )}
                         </div>
                       </div>

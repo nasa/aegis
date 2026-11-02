@@ -92,7 +92,7 @@ Before committing an `op*` function or thunk, verify:
 
 Most stages are **pure sync** (`stageDuplicateEva`, `stageDeleteRex`, etc.) — they read the passed-in `Mission`, allocate uuids, and return a plain data plan. This is the default tier and should be preferred whenever possible.
 
-A small number of stages are **async** because they need to enrich the stage data with values from a read-only API (currently elevation or combined terrain profiles). `stageTraverseUpdate` and `stageLanderLocationUpdate` are the canonical examples. Async stages still:
+A small number of stages are **async** because they need to enrich the stage data with values from a read-only API (currently point elevation). `stageLanderLocationUpdate` is the canonical example; terrain profiles are derived after the commit, never staged. Async stages still:
 
 - Receive `mission: Mission` as a parameter (no `getMissionDocHandle()` calls).
 - Never call `.change()` themselves.

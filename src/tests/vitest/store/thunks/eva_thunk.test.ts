@@ -216,10 +216,10 @@ describe("Thunk EVA Tests", () => {
       expect(uniqueNames.size).toEqual(evaNames.length);
     });
 
-    it("calls thunkFetchTerrainProfile for the initial traverse", async () => {
+    it("leaves the initial traverse profile to the terrain coordinator", async () => {
       await store.dispatch(thunkDocCreateEva());
 
-      expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+      expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
     });
 
     it("new EVA uses mission traverseRate and defaultEvaDuration", async () => {
@@ -356,7 +356,7 @@ describe("Thunk EVA Tests", () => {
         const newSequence = getMission().evas[eva.uuid].sequence;
         expect(newSequence.length).toEqual(evaSequence.length - 2);
         expect(Object.keys(getMission().traverses).length).toEqual(traverseCount - 1);
-        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+        expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
       });
 
       it("removes a middle station + a surrounding traverse", async () => {
@@ -376,7 +376,7 @@ describe("Thunk EVA Tests", () => {
         const newSequence = getMission().evas[eva.uuid].sequence;
         expect(newSequence.length).toEqual(evaSequence.length - 2);
         expect(Object.keys(getMission().traverses).length).toEqual(traverseCount - 1);
-        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+        expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
       });
 
       it("removes the last removable station + its trailing traverse", async () => {
@@ -396,7 +396,7 @@ describe("Thunk EVA Tests", () => {
         const newSequence = getMission().evas[eva.uuid].sequence;
         expect(newSequence.length).toEqual(evaSequence.length - 2);
         expect(Object.keys(getMission().traverses).length).toEqual(traverseCount - 1);
-        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+        expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
       });
 
       it("leaves the pinned egress and ingress stations in place", async () => {
@@ -469,7 +469,7 @@ describe("Thunk EVA Tests", () => {
         expect(updatedEva.sequence[2].uuid).toEqual(stationNotInEva.uuid);
         // No duplication for non-rex
         expect(Object.keys(getMission().stations).length).toEqual(numStationsBefore);
-        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(2);
+        expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
       });
 
       it("duplicates the new station and deletes the old one (rex)", async () => {
@@ -504,7 +504,7 @@ describe("Thunk EVA Tests", () => {
         expect(Object.keys(getMission().stations).length).toEqual(numStationsBefore);
         // Old station removed from doc
         expect(getMission().stations[oldStationUuid]).toBeUndefined();
-        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(2);
+        expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
       });
     });
 
@@ -525,7 +525,7 @@ describe("Thunk EVA Tests", () => {
         const updatedSequence = getMission().evas[eva.uuid].sequence;
         expect(updatedSequence[2].uuid).toEqual(originalSequence[4].uuid);
         expect(updatedSequence[4].uuid).toEqual(originalSequence[2].uuid);
-        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(3);
+        expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
       });
 
       it("refuses to move a station into a pinned xgress position", async () => {
@@ -575,7 +575,7 @@ describe("Thunk EVA Tests", () => {
         expect(xgressStationUuid(eva.uuid, "ingress")).toEqual(stationNotInEva.uuid);
         // The lander station it replaced was owned by the EVA, so it is gone.
         expect(getMission().stations[oldIngressUuid]).toBeUndefined();
-        expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
+        expect(mockThunkFetchTerrainProfile).not.toHaveBeenCalled();
       });
 
       it("(isRexEva=false) switching back to the lander creates a fresh lander station", async () => {

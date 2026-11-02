@@ -1,3 +1,4 @@
+import { seedTerrainProfile, terrainProfiles } from "tests/vitest/fixtures/terrainProfiles";
 import {
   getCalcFieldsForPoi,
   getCalcFieldsForTraverse,
@@ -92,6 +93,7 @@ describe("Calculated fields", () => {
       );
       allCalculatedFields.push(
         getCalcFieldsForStation({
+          terrainProfiles,
           station: s,
           missionWalkbackRate: blankMission.walkbackRate,
           stationActions,
@@ -148,8 +150,8 @@ describe("Calculated fields", () => {
     const traverse1 = generateBlankTraverse({
       name: "Vitest Traverse-1",
       pathSegmentDistances: [500],
-      pathSegmentElevations: [[2, 4]],
     });
+    seedTerrainProfile(traverse1, [[2, 4]]);
     const traverse2 = generateBlankTraverse({
       name: "Vitest Traverse-1",
       traverseRate: 1,
@@ -194,6 +196,7 @@ describe("Calculated fields", () => {
       );
       allCalculatedFields.push(
         getCalcFieldsForTraverse({
+          terrainProfiles,
           traverse,
           missionTraverseRate: mission.traverseRate,
           evaTraverseRate: traverseEva.traverseRate,
@@ -208,6 +211,7 @@ describe("Calculated fields", () => {
       movementDurationMinutes: 10,
       distanceMeters: 500,
       ascentDescent: { totalMetersClimbed: 2, totalMetersDescended: 0 },
+      ascentDescentAvailable: true,
       actionCount: 0,
       totalActionTime: 0,
       totalDwellTime: 0,
@@ -230,8 +234,8 @@ describe("Calculated fields", () => {
     const traverse = generateBlankTraverse({
       name: "Vitest Traverse-1",
       pathSegmentDistances: [500],
-      pathSegmentElevations: [[2, 4]],
     });
+    seedTerrainProfile(traverse, [[2, 4]]);
     const station1: Station = generateBlankStation({ name: "Vitest Station-1" });
     const station2: Station = generateBlankStation({ name: "Vitest Station-1" });
     const eva: Eva = generateBlankEVA({
@@ -251,6 +255,7 @@ describe("Calculated fields", () => {
     for (const e of evas) {
       allEvaCalculatedFields.push(
         getCalcFieldsForEva({
+          terrainProfiles,
           eva: e,
           evaStations: stations,
           missionWalkbackRate: mission.walkbackRate,
@@ -278,6 +283,7 @@ describe("Calculated fields", () => {
         totalMetersClimbed: 2,
         totalMetersDescended: 0,
       },
+      totalTraverseAscentDescentAvailable: true,
       totalResolvedEvaTime: 40,
       totalResolvedStationTime: 30,
       totalResolvedTraverseTime: 10,
@@ -320,8 +326,8 @@ describe("Calculated fields", () => {
     const traverse = generateBlankTraverse({
       name: "Vitest Traverse-1",
       pathSegmentDistances: [500],
-      pathSegmentElevations: [[2, 4]],
     });
+    seedTerrainProfile(traverse, [[2, 4]]);
     const station1: Station = generateBlankStation({ name: "Vitest Station-1" });
     const station2: Station = generateBlankStation({ name: "Vitest Station-2" });
     const eva: Eva = generateBlankEVA({ name: "Vitest Eva-1" });
@@ -334,6 +340,7 @@ describe("Calculated fields", () => {
     ];
 
     const evaCalcFields = getCalcFieldsForEva({
+      terrainProfiles,
       eva,
       evaStations: [station1, station2],
       missionWalkbackRate: mission.walkbackRate,

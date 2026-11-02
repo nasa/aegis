@@ -59,6 +59,7 @@ const Actions_Panel: FunctionComponent = () => {
     const sequenceStationUuids = new Set(sequenceStations.map((s) => s.uuid));
     const sequenceTraverseUuids = new Set(sequenceTraverses.map((t) => t.uuid));
     const evaCalculatedFields = getCalcFieldsForEva({
+      terrainProfiles: {},
       eva: selectedEva,
       evaStations: sequenceStations,
       missionWalkbackRate: partialMission.walkbackRate,

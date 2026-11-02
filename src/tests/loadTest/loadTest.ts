@@ -1,4 +1,7 @@
 import "utils/loadEnv";
+import { populateStore } from "store/processing/populateStore";
+import { setAllSliceStores } from "store/crossActions";
+import { syncMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import {
   attachSocketListeners,
   cleanupSocketListeners,
@@ -6,8 +9,6 @@ import {
 } from "utils/clientSocketHelpers";
 import type { RootState } from "store/index";
 import reduxStore from "store/index";
-import { populateStore } from "store/processing/populateStore";
-import { setAllSliceStores } from "store/crossActions";
 import { workerData, parentPort } from "worker_threads";
 import { createHash } from "crypto";
 import { setAppUser } from "store/user";
@@ -102,13 +103,11 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
     const wholeStoreState = await populateStore({
       missionId: TEST_MISSION_ID,
       runAudit: false,
-      loadTestOptions: {
-        serverURL: serverURL,
-        cookies: formattedCookieStr,
-      },
       automergeRepo,
+      loadTestOptions: { serverURL, cookies: formattedCookieStr },
     });
     dispatch(setAllSliceStores(wholeStoreState));
+    syncMissionTerrainProfiles(reduxStore, { serverURL, cookies: formattedCookieStr });
     // these values are defined in esbuild.loadtest.mjs and are set at build time
     dispatch(
       setClientAppVersion({
