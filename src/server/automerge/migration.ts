@@ -74,6 +74,7 @@ const runMigration = async () => {
       dbPool
     );
     automergeRepo = new Repo({ storage: storageAdapter });
+    globalValues.automergeRepo = automergeRepo;
 
     serverLogger.info({
       logId: "automerge-migration",
