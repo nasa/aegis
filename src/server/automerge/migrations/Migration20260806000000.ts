@@ -2,10 +2,11 @@ import type { AutomergeMigration } from "server/automerge/migrations/types";
 import { v4 as uuidv4 } from "uuid";
 import { serverLogger } from "utils/logging/serverLogger";
 
-// This migration predates the removal of `missionId` from the Automerge entity types, and it
-// must stay as it originally ran. `LegacyStation` re-adds the `missionId` field it writes so the
-// historical code still type-checks against the current `Station` type.
-type LegacyStation = Station & { missionId: number };
+// Historical stations include mission IDs and stored walkback profiles.
+type LegacyStation = Station & {
+  missionId: number;
+  walkbackPathSegmentElevations: number[][] | null;
+};
 
 type LegacyEva = Eva & {
   egressDuration?: number | null;

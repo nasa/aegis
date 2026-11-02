@@ -1,5 +1,13 @@
+import {
+  cachedTerrainProfile,
+  loadMissionTerrainProfileCache,
+  watchTerrainCache,
+} from "server/terrain/terrainProfileCache";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
+import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { performance } from "node:perf_hooks";
+import { setTimeout as delay } from "node:timers/promises";
 import type { Request, Response } from "express";
 import { asError } from "@emss/utils";
 
@@ -13,13 +21,15 @@ import {
   RasterSamplingWorkerPoolSupersededError,
   RasterSamplingWorkerPoolUnavailableError,
 } from "server/raster/rasterSamplingWorkerPool";
+import { profileInputSignature } from "utils/terrainProfileInputs";
 import { serverLogger } from "utils/logging/serverLogger";
 import { hasPerms } from "utils/permissions";
 
 import { getAutomergeMissionHandle } from "./missionAutomerge";
 
 const router = express.Router();
-const ENTITY_KEY_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+const ENTITY_UUID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+type TerrainCacheStatus = "hit" | "miss" | "bypass";
 const samplesForDistance = (distance: number, resolutionMeters: number): number =>
   Math.max(2, Math.ceil(distance / resolutionMeters) + 1);
 
@@ -35,9 +45,11 @@ export const validateTerrainProfileRequest = (
   resolutionMeters: number
 ): {
   path: { lat: number; lng: number }[];
+  pathSegmentDistances: number[];
   samplesPerSegment: number[];
-  entityKey?: string;
+  entityUuid?: string;
   getElevationOnly: boolean;
+  preview: boolean;
 } => {
   if (!Array.isArray(postData?.path) || postData.path.length < 2) {
     throw new Error("Terrain profile path must contain at least two points");
@@ -67,13 +79,16 @@ export const validateTerrainProfileRequest = (
     throw new Error("Mission DEM resolution must be positive");
   }
   if (
-    postData.entityKey !== undefined &&
-    (typeof postData.entityKey !== "string" || !ENTITY_KEY_PATTERN.test(postData.entityKey))
+    postData.entityUuid !== undefined &&
+    (typeof postData.entityUuid !== "string" || !ENTITY_UUID_PATTERN.test(postData.entityUuid))
   ) {
-    throw new Error("Terrain profile entity key must be 1-64 safe characters");
+    throw new Error("Terrain profile entity uuid must be 1-64 safe characters");
   }
   if (postData.getElevationOnly !== undefined && typeof postData.getElevationOnly !== "boolean") {
     throw new Error("Terrain profile elevation-only flag must be a boolean");
+  }
+  if (postData.preview !== undefined && typeof postData.preview !== "boolean") {
+    throw new Error("Terrain profile preview flag must be a boolean");
   }
 
   const samplesPerSegment = postData.pathSegmentDistances.map((distance) =>
@@ -85,11 +100,175 @@ export const validateTerrainProfileRequest = (
   }
   return {
     path: postData.path,
+    pathSegmentDistances: postData.pathSegmentDistances,
     samplesPerSegment,
-    entityKey: postData.entityKey,
+    entityUuid: postData.entityUuid,
     getElevationOnly: postData.getElevationOnly ?? false,
+    preview: postData.preview ?? false,
   };
 };
+
+/** Sample a validated request; committed entity profiles go through the database cache. */
+export async function sampleMissionTerrainProfile(
+  missionId: number,
+  missionHandle: DocHandle<Mission>,
+  request: ReturnType<typeof validateTerrainProfileRequest>,
+  mission: Mission = missionHandle.doc(),
+  onCacheStatus?: (status: TerrainCacheStatus) => void,
+  getCache?: () => Promise<MissionTerrainProfileCache>
+): Promise<TerrainProfile> {
+  if (!mission.demFilePath) throw new Error("Mission does not have a DEM configured");
+  const { path: profilePath, samplesPerSegment, entityUuid, getElevationOnly, preview } = request;
+  const rasterPath = path.resolve(
+    process.env.STATIC_DIR ?? "",
+    "missionFiles",
+    missionId.toString(),
+    mission.demFilePath
+  );
+  watchTerrainCache(missionHandle);
+  // Previews coalesce separately so a drag never supersedes a committed profile request.
+  const coalescingKey = entityUuid
+    ? `${missionId}:${entityUuid}${preview ? ":preview" : ""}`
+    : undefined;
+  const compute = () =>
+    readTerrainProfileInWorker(
+      { absolutePath: rasterPath, expectedResolutionMeters: mission.demResolution ?? 10 },
+      profilePath,
+      samplesPerSegment,
+      coalescingKey,
+      getElevationOnly
+    );
+  const isCurrent = () =>
+    !missionHandle.isDeleted() &&
+    !!(missionHandle.doc()?.traverses?.[entityUuid] || missionHandle.doc()?.stations?.[entityUuid]);
+  const useCache = entityUuid && !getElevationOnly && !preview && isCurrent();
+  if (!useCache) onCacheStatus?.("bypass");
+  const result = useCache
+    ? await cachedTerrainProfile({
+        missionId,
+        entityUuid,
+        inputSignature: profileInputSignature(mission, profilePath, request.pathSegmentDistances),
+        isCurrent,
+        compute,
+        onCacheStatus,
+        cache: await getCache?.(),
+      })
+    : await compute();
+  return {
+    elevationsMeters: result.elevationsMeters,
+    terrainSlopesDegrees: result.terrainSlopesDegrees,
+  };
+}
+
+const rasterErrorStatus = (error: unknown): number => {
+  if (error instanceof RasterSamplingWorkerPoolSupersededError) return 409;
+  if (error instanceof RasterSamplingWorkerPoolUnavailableError) return 503;
+  return /must|invalid|limit|configured|contain/i.test(asError(error).message) ? 400 : 500;
+};
+
+/** UI loads and exports share bounded sampling and one server-side summary. */
+async function sampleMissionTerrainProfiles(
+  missionId: number,
+  missionHandle: DocHandle<Mission>,
+  mission: Mission,
+  requests: TerrainProfilePostData[]
+): Promise<TerrainProfileResponse[]> {
+  const startedAt = performance.now();
+  const batchId = randomUUID();
+  const results: TerrainProfileResponse[] = new Array(requests.length);
+  const cacheCounts: Record<TerrainCacheStatus, number> = { hit: 0, miss: 0, bypass: 0 };
+  const recordCacheStatus = (status: TerrainCacheStatus) => cacheCounts[status]++;
+  let cache: Promise<MissionTerrainProfileCache> | undefined;
+  const getCache = () => (cache ??= loadMissionTerrainProfileCache(missionId));
+  const jobs = requests.entries();
+  // Leave queue capacity for interactive requests, even for large exports.
+  const loadProfiles = async () => {
+    for (const [index, postData] of jobs) {
+      try {
+        const request = validateTerrainProfileRequest(postData, mission.demResolution ?? 10);
+        for (let attempt = 0; ; attempt++) {
+          try {
+            const profile = await sampleMissionTerrainProfile(
+              missionId,
+              missionHandle,
+              request,
+              mission,
+              recordCacheStatus,
+              getCache
+            );
+            results[index] = {
+              status: "success",
+              data: profile,
+              message: "Terrain profile sampled",
+            };
+            break;
+          } catch (error) {
+            if (
+              attempt >= 2 ||
+              !(error instanceof RasterSamplingWorkerPoolUnavailableError) ||
+              error instanceof RasterSamplingWorkerPoolSupersededError
+            )
+              throw error;
+            await delay(100 * (attempt + 1));
+          }
+        }
+      } catch (error) {
+        results[index] = {
+          status: "error",
+          message: asError(error).message,
+          httpStatus: rasterErrorStatus(error),
+        };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, loadProfiles));
+  serverLogger.debug({
+    logId: "terrain-profile",
+    missionId,
+    batchId,
+    logValue: `Batch ${results.length} profiles > db-cache hit=${cacheCounts.hit} miss=${cacheCounts.miss} bypass=${cacheCounts.bypass} errors=${results.filter((result) => result.status !== "success").length} in ${(performance.now() - startedAt).toFixed(1)} ms`,
+  });
+  return results;
+}
+
+/** Committed profiles for the given traverses and station walkbacks, read through the database cache. */
+export async function getMissionTerrainProfiles(
+  missionId: number,
+  missionHandle: DocHandle<Mission>,
+  mission: Mission,
+  uuids: Iterable<string>
+): Promise<TerrainProfiles> {
+  const profiles: TerrainProfiles = {};
+  if (!mission?.demFilePath) return profiles;
+  const requests: TerrainProfilePostData[] = [];
+  for (const uuid of new Set(uuids)) {
+    const traverse = mission.traverses?.[uuid];
+    const station = traverse ? undefined : mission.stations?.[uuid];
+    const entityPath = traverse?.path ?? station?.walkbackPath;
+    const distances = traverse?.pathSegmentDistances ?? station?.walkbackPathSegmentDistances;
+    if (!entityPath || entityPath.length < 2 || distances?.length !== entityPath.length - 1)
+      continue;
+    profiles[uuid] = {
+      inputSignature: profileInputSignature(mission, entityPath, distances),
+      path: entityPath,
+      distances,
+      status: "ready",
+      profile: null,
+      error: null,
+    };
+    requests.push({ path: entityPath, pathSegmentDistances: distances, entityUuid: uuid });
+  }
+  const results = await sampleMissionTerrainProfiles(missionId, missionHandle, mission, requests);
+  results.forEach((result, index) => {
+    const entry = profiles[requests[index].entityUuid];
+    entry.profile = result.data ?? null;
+    if (result.status !== "success") {
+      entry.status = "error";
+      entry.error = result.message;
+    }
+  });
+  return profiles;
+}
 
 const respondWithRasterRouteError = (
   res: Response,
@@ -101,23 +280,11 @@ const respondWithRasterRouteError = (
   const message = asError(error).message;
 
   if (error instanceof RasterSamplingWorkerPoolSupersededError) {
-    serverLogger.debug({
-      logId: "API Route",
-      logValue: `POST 409 ${routeName} ${message}`,
-      missionId,
-    });
     res.status(409).json({ status: "error", message });
     return;
   }
 
-  const workerUnavailable = error instanceof RasterSamplingWorkerPoolUnavailableError;
-  const clientError =
-    message.includes("must") ||
-    message.includes("invalid") ||
-    message.includes("limit") ||
-    message.includes("configured") ||
-    message.includes("contain");
-  const responseStatus = workerUnavailable ? 503 : clientError ? 400 : 500;
+  const responseStatus = rasterErrorStatus(error);
   serverLogger.apiRoute({
     logLevel: responseStatus === 400 ? "notice" : responseStatus === 503 ? "warning" : "error",
     httpMethod: "POST",
@@ -131,14 +298,15 @@ const respondWithRasterRouteError = (
   res.status(responseStatus).json({ status: "error", message });
 };
 
-router.post("/", async (req: Request, res: Response): Promise<void> => {
+router.post(["/", "/batch"], async (req: Request, res: Response): Promise<void> => {
+  const routeName = req.path === "/batch" ? "terrain-profile/batch" : "terrain-profile";
   const missionId = missionIdFromRequest(req);
   if (!missionId) {
     serverLogger.apiRoute({
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
-      routeName: "terrain-profile",
+      routeName,
       appUsername: req.session?.appUser?.username,
       message: "Invalid mission ID",
     });
@@ -157,7 +325,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
-      routeName: "terrain-profile",
+      routeName,
       appUsername: req.session?.appUser?.username,
       missionId,
       message: "Unauthorized",
@@ -166,7 +334,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  const routeStartedAt = performance.now();
   try {
     const missionHandle = await getAutomergeMissionHandle(missionId);
     if (!missionHandle) {
@@ -174,7 +341,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 404,
-        routeName: "terrain-profile",
+        routeName,
         appUsername: req.session?.appUser?.username,
         missionId,
         message: `Mission ${missionId} not found`,
@@ -183,42 +350,30 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
     const mission = missionHandle.doc();
-    const {
-      path: profilePath,
-      samplesPerSegment,
-      entityKey,
-      getElevationOnly,
-    } = validateTerrainProfileRequest(req.body, mission.demResolution ?? 10);
-    if (!mission.demFilePath) throw new Error("Mission does not have a DEM configured");
-    const rasterPath = path.resolve(
-      process.env.STATIC_DIR ?? "",
-      "missionFiles",
-      missionId.toString(),
-      mission.demFilePath
-    );
-    const result = await readTerrainProfileInWorker(
-      { absolutePath: rasterPath, expectedResolutionMeters: mission.demResolution ?? 10 },
-      profilePath,
-      samplesPerSegment,
-      entityKey ? `${missionId}:${entityKey}` : undefined,
-      getElevationOnly
-    );
-    const totalRouteDurationMs = performance.now() - routeStartedAt;
-    serverLogger.debug({
-      logId: "terrain-profile",
-      logValue: `Worker ${result.workerId} sampled ${result.centerSamples} centers (${result.uniqueDemPixels} unique DEM pixels) from ${result.blocksRead} blocks in ${result.executionDurationMs.toFixed(1)} ms after ${result.queueDurationMs.toFixed(1)} ms queued (${totalRouteDurationMs.toFixed(1)} ms total)`,
-      missionId,
-    });
+    if (req.path === "/batch") {
+      const postData = req.body as TerrainProfileBatchPostData;
+      if (!Array.isArray(postData?.profiles) || postData.profiles.length === 0)
+        throw new Error("Terrain profile batch must contain profiles");
+      const results = await sampleMissionTerrainProfiles(
+        missionId,
+        missionHandle,
+        mission,
+        postData.profiles
+      );
+      res
+        .status(200)
+        .json({ status: "success", data: results, message: "Terrain profiles sampled" });
+      return;
+    }
+    const request = validateTerrainProfileRequest(req.body, mission.demResolution ?? 10);
+    const profile = await sampleMissionTerrainProfile(missionId, missionHandle, request, mission);
     res.status(200).json({
       status: "success",
-      data: {
-        elevationsMeters: result.elevationsMeters,
-        terrainSlopesDegrees: result.terrainSlopesDegrees,
-      },
+      data: profile,
       message: "Terrain profile sampled",
     });
   } catch (error) {
-    respondWithRasterRouteError(res, req, "terrain-profile", missionId, error);
+    respondWithRasterRouteError(res, req, routeName, missionId, error);
   }
 });
 

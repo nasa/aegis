@@ -1,4 +1,5 @@
 import "utils/loadEnv";
+import { watchTerrainCache } from "server/terrain/terrainProfileCache";
 import type { Server as NetServer } from "http";
 import { createServer } from "http";
 import { v4 as uuidv4 } from "uuid";
@@ -11,6 +12,7 @@ import {
   loadRunningMissionDocuments,
   startMissionCatalogRuntime,
 } from "server/automerge/missionCatalogRuntime";
+import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket";
 import app from "./restApi";
 
@@ -179,6 +181,10 @@ initializeBase64Wasm(automergeWasmBase64);
       loadedDocuments: Object.keys(missionRepo.handles).length,
       rssBytes: process.memoryUsage.rss(),
     });
+  });
+
+  globalValues.automergeRepo.on("document", ({ handle }) => {
+    watchTerrainCache(handle as DocHandle<Mission>);
   });
 
   // clg peers as they come and go

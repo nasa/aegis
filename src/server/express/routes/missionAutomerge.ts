@@ -1,3 +1,4 @@
+import { waitForTerrainCache } from "server/terrain/terrainProfileCache";
 import type { Request, Response } from "express";
 import express from "express";
 import { hasPerms, emssTokenIsValid } from "utils/permissions";
@@ -469,6 +470,8 @@ export async function deleteAutomergeMissions(missionIds: number[]): Promise<num
     }
     // delete the doc from the automerge repo storage system
     globalValues.automergeRepo.delete(automergeUrl as AutomergeUrl);
+
+    await waitForTerrainCache(missionId);
 
     // delete from files
     await deleteFile(`missionFiles/${missionId.toString()}`);

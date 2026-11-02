@@ -1,0 +1,352 @@
+// @vitest-environment node
+import { MikroORM } from "@mikro-orm/postgresql";
+import { randomUUID } from "node:crypto";
+import config from "server/database/mikro-orm.config";
+import { Migration20261029000000 } from "server/database/migrations/Migration20261029000000-terrain-profile-cache";
+import { globalValues } from "server/express/global";
+import { Doc_Listing_db, Doc_Listing_dbSchema } from "server/database/models/doc_listing.model";
+import {
+  Terrain_Profile_Cache_db,
+  Terrain_Profile_Cache_dbSchema,
+} from "server/database/models/terrain_profile_cache.model";
+import { applyDeleteRexStage } from "operations/apply/apply-rex";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankRex } from "store/storeUtils/rex";
+import { watchTerrainCache } from "server/terrain/terrainProfileCache";
+import type { DocHandle } from "@automerge/automerge-repo/slim";
+import { profileInputSignature } from "utils/terrainProfileInputs";
+import {
+  cachedTerrainProfile,
+  loadMissionTerrainProfileCache,
+  deleteTerrainProfileFromDb,
+  waitForTerrainCache,
+} from "server/terrain/terrainProfileCache";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
+
+let missionId: number;
+const schema = "vitest_terrain_cache_" + randomUUID().replaceAll("-", "");
+beforeAll(async () => {
+  globalValues.orm = await MikroORM.init({
+    ...config,
+    schema,
+    entities: [Doc_Listing_dbSchema, Terrain_Profile_Cache_dbSchema],
+    entitiesTs: [Doc_Listing_dbSchema, Terrain_Profile_Cache_dbSchema],
+  });
+  await globalValues.orm.schema.create();
+  // Exercise the shipped migration rather than relying on schema generation for the cache.
+  await globalValues.orm.em.fork().transactional(async (tx) => {
+    await tx.execute(`set local search_path to "${schema}"`);
+    const migration = new Migration20261029000000(tx.getDriver(), globalValues.orm.config);
+    migration.down();
+    migration.up();
+    for (const query of migration.getQueries()) await tx.execute(query as string);
+  });
+});
+afterAll(async () => {
+  if (!globalValues.orm) return;
+  await globalValues.orm.schema.drop({ dropMigrationsTable: true, dropDb: false });
+  await globalValues.orm.em.getConnection().execute('drop schema if exists "' + schema + '"');
+  await globalValues.orm.close();
+});
+const rows = () => globalValues.orm.em.fork().find(Terrain_Profile_Cache_db, { missionId });
+const profile = { elevationsMeters: [[1, 2]], terrainSlopesDegrees: [[3, null]] };
+beforeEach(async () => {
+  const em = globalValues.orm.em.fork();
+  const listing = em.create(Doc_Listing_db, { automergeUrl: "Vitest Terrain Cache" });
+  await em.flush();
+  missionId = listing.missionId;
+});
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId });
+});
+const profileMission = () => ({ id: missionId, demFilePath: "Data/dem.tif", demResolution: 10 });
+const profilePath = [
+  { lat: 1, lng: 2 },
+  { lat: 2, lng: 3 },
+];
+const args = () => ({
+  missionId,
+  entityUuid: "traverse-1",
+  inputSignature: profileInputSignature(profileMission(), profilePath, [10]),
+  isCurrent: () => true,
+  compute: vi.fn(async () => profile),
+});
+
+it("loads a whole cached mission with one query and no sampling", async () => {
+  const requests = Array.from({ length: 40 }, (_, index) => ({
+    ...args(),
+    entityUuid: `traverse-${index}`,
+  }));
+  await Promise.all(requests.map(cachedTerrainProfile));
+  requests.forEach((request) => request.compute.mockClear());
+  const driver = globalValues.orm.em.getDriver();
+  const find = vi.spyOn(driver, "find");
+  const findOne = vi.spyOn(driver, "findOne");
+  const cache = await loadMissionTerrainProfileCache(missionId);
+  expect(cache.profiles.size).toBe(40);
+  const results = await Promise.all(
+    requests.map((request) => cachedTerrainProfile({ ...request, cache }))
+  );
+  expect(results).toEqual(requests.map(() => profile));
+  requests.forEach((request) => expect(request.compute).not.toHaveBeenCalled());
+  expect(find).toHaveBeenCalledTimes(1);
+  expect(findOne).not.toHaveBeenCalled();
+});
+
+it("samples only missing, stale, or invalid profiles from the mission snapshot", async () => {
+  const requests = ["cached", "stale", "invalid", "missing"].map((entityUuid) => ({
+    ...args(),
+    entityUuid,
+  }));
+  await Promise.all(requests.slice(0, 3).map(cachedTerrainProfile));
+  await globalValues.orm.em
+    .fork()
+    .nativeUpdate(
+      Terrain_Profile_Cache_db,
+      { missionId, entityUuid: "invalid" },
+      { profile: { elevationsMeters: [], terrainSlopesDegrees: [] } }
+    );
+  requests.forEach((request) => request.compute.mockClear());
+  requests[1].inputSignature = profileInputSignature(profileMission(), profilePath, [20]);
+  const driver = globalValues.orm.em.getDriver();
+  const find = vi.spyOn(driver, "find");
+  const findOne = vi.spyOn(driver, "findOne");
+  const cache = await loadMissionTerrainProfileCache(missionId);
+  await Promise.all(requests.map((request) => cachedTerrainProfile({ ...request, cache })));
+  expect(requests[0].compute).not.toHaveBeenCalled();
+  requests.slice(1).forEach((request) => expect(request.compute).toHaveBeenCalledTimes(1));
+  expect(find.mock.calls.filter(([entity]) => entity === Terrain_Profile_Cache_db)).toHaveLength(1);
+  expect(findOne).toHaveBeenCalledTimes(3);
+  for (const [entity] of findOne.mock.calls) expect(entity).toBe(Doc_Listing_db);
+  requests.forEach((request) => request.compute.mockClear());
+  await Promise.all(requests.map((request) => cachedTerrainProfile({ ...request, cache })));
+  requests.forEach((request) => expect(request.compute).not.toHaveBeenCalled());
+});
+
+it("refreshes a queued snapshot request after an in-flight writer publishes", async () => {
+  const cache = await loadMissionTerrainProfileCache(missionId);
+  const request = args();
+  let finish: (value: TerrainProfile) => void;
+  request.compute.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  const first = cachedTerrainProfile(request);
+  await vi.waitFor(() => expect(request.compute).toHaveBeenCalled());
+  const second = cachedTerrainProfile({ ...request, cache });
+  finish(profile);
+  await expect(Promise.all([first, second])).resolves.toEqual([profile, profile]);
+  expect(request.compute).toHaveBeenCalledTimes(1);
+});
+
+it("invalidates a loaded snapshot when the DEM filepath changes", async () => {
+  const request = args();
+  await cachedTerrainProfile(request);
+  const cache = await loadMissionTerrainProfileCache(missionId);
+  request.inputSignature = profileInputSignature(
+    { ...profileMission(), demFilePath: "Data/dem-v2.tif" },
+    profilePath,
+    [10]
+  );
+  await cachedTerrainProfile({ ...request, cache });
+  expect(request.compute).toHaveBeenCalledTimes(2);
+  await cachedTerrainProfile({ ...request, cache });
+  expect(request.compute).toHaveBeenCalledTimes(2);
+  expect(await rows()).toHaveLength(1);
+});
+
+it("reuses database results without a raster file and refreshes changed inputs in one row", async () => {
+  const onCacheStatus = vi.fn();
+  const request = { ...args(), onCacheStatus };
+  await cachedTerrainProfile(request);
+  await cachedTerrainProfile(request);
+  expect(request.compute).toHaveBeenCalledTimes(1);
+  const changedPath = [{ lat: 3, lng: 4 }, profilePath[1]];
+  await cachedTerrainProfile({
+    ...request,
+    inputSignature: profileInputSignature(profileMission(), changedPath, [10]),
+  });
+  expect(request.compute).toHaveBeenCalledTimes(2);
+  const inputSignature = profileInputSignature(
+    { ...profileMission(), demFilePath: "Data/dem-v2.tif" },
+    changedPath,
+    [10]
+  );
+  await cachedTerrainProfile({ ...request, inputSignature });
+  expect(request.compute).toHaveBeenCalledTimes(3);
+  expect(await rows()).toMatchObject([
+    { missionId, entityUuid: "traverse-1", inputSignature, profile },
+  ]);
+  expect(onCacheStatus.mock.calls.map(([status]) => status)).toEqual([
+    "miss",
+    "hit",
+    "miss",
+    "miss",
+  ]);
+});
+it("repairs invalid profiles and shares simultaneous requests", async () => {
+  const request = args();
+  await cachedTerrainProfile(request);
+  await globalValues.orm.em
+    .fork()
+    .nativeUpdate(
+      Terrain_Profile_Cache_db,
+      { missionId },
+      { profile: { elevationsMeters: [], terrainSlopesDegrees: [] } }
+    );
+  await Promise.all([cachedTerrainProfile(request), cachedTerrainProfile(request)]);
+  expect(request.compute).toHaveBeenCalledTimes(2);
+  await globalValues.orm.em
+    .fork()
+    .nativeUpdate(
+      Terrain_Profile_Cache_db,
+      { missionId },
+      { profile: { elevationsMeters: [[1, 2]], terrainSlopesDegrees: [[3]] } }
+    );
+  await cachedTerrainProfile(request);
+  expect(request.compute).toHaveBeenCalledTimes(3);
+});
+it("removes deleted entity rows while retaining live entities", async () => {
+  await cachedTerrainProfile(args());
+  await cachedTerrainProfile({ ...args(), entityUuid: "traverse-2" });
+  const traverse = generateBlankTraverse({ uuid: "traverse-2" });
+  await deleteTerrainProfileFromDb(
+    generateBlankMission({ id: missionId, traverses: { [traverse.uuid]: traverse } })
+  );
+  expect(await rows()).toMatchObject([{ entityUuid: "traverse-2" }]);
+});
+it.each([false, true])(
+  "does not recreate a deleted entity with a mission snapshot: %s",
+  async (useSnapshot) => {
+    const cache = useSnapshot ? await loadMissionTerrainProfileCache(missionId) : undefined;
+    let current = true;
+    let finish: (value: TerrainProfile) => void;
+    const compute = vi.fn(
+      () =>
+        new Promise<TerrainProfile>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const result = cachedTerrainProfile({ ...args(), compute, isCurrent: () => current, cache });
+    await vi.waitFor(() => expect(compute).toHaveBeenCalled());
+    current = false;
+    finish(profile);
+    await result;
+    expect(await rows()).toEqual([]);
+    if (cache) expect(cache.profiles.size).toBe(0);
+  }
+);
+
+it("cleans a deleted REX's profiles through the server document observer", async () => {
+  const traverse = generateBlankTraverse({ uuid: "traverse-1" });
+  const eva = generateBlankEVA({ sequence: [{ type: "traverse", uuid: traverse.uuid }] });
+  const rex = generateBlankRex({ evaUuid: eva.uuid });
+  const mission = generateBlankMission({
+    id: missionId,
+    traverses: { [traverse.uuid]: traverse },
+    evas: { [eva.uuid]: eva },
+    rexes: { [rex.uuid]: rex },
+  });
+  const callbacks = new Map<string, () => void>();
+  const handle = {
+    doc: () => mission,
+    whenReady: async () => {},
+    on: (event: string, callback: () => void) => callbacks.set(event, callback),
+    off: vi.fn(),
+  } as unknown as DocHandle<Mission>;
+  await cachedTerrainProfile(args());
+  watchTerrainCache(handle);
+  await Promise.resolve();
+  applyDeleteRexStage(mission, {
+    rexUuid: rex.uuid,
+    evaUuid: eva.uuid,
+    traverseUuids: [traverse.uuid],
+    stationUuids: [],
+    actionUuids: [],
+  });
+  callbacks.get("change")();
+  await vi.waitFor(async () => expect(await rows()).toEqual([]));
+});
+
+it("isolates the same entity in different missions and cascades mission deletion", async () => {
+  const em = globalValues.orm.em.fork();
+  const other = em.create(Doc_Listing_db, { automergeUrl: "Vitest Other Terrain Cache" });
+  await em.flush();
+  try {
+    const request = args();
+    await cachedTerrainProfile(request);
+    await cachedTerrainProfile({ ...request, missionId: other.missionId });
+    expect(request.compute).toHaveBeenCalledTimes(2);
+    await em.nativeDelete(Doc_Listing_db, { missionId });
+    expect(await rows()).toEqual([]);
+    expect(await em.count(Terrain_Profile_Cache_db, { missionId: other.missionId })).toBe(1);
+  } finally {
+    await em.nativeDelete(Doc_Listing_db, { missionId: other.missionId });
+  }
+});
+
+it("runs the same uuid independently across missions and waits for only the requested mission", async () => {
+  let finishFirst: (profile: TerrainProfile) => void;
+  let finishOther: (profile: TerrainProfile) => void;
+  const firstRequest = {
+    ...args(),
+    compute: vi.fn(
+      () =>
+        new Promise<TerrainProfile>((resolve) => {
+          finishFirst = resolve;
+        })
+    ),
+  };
+  const otherRequest = {
+    ...args(),
+    missionId: missionId + 1,
+    isCurrent: () => false,
+    compute: vi.fn(
+      () =>
+        new Promise<TerrainProfile>((resolve) => {
+          finishOther = resolve;
+        })
+    ),
+  };
+  const first = cachedTerrainProfile(firstRequest);
+  const other = cachedTerrainProfile(otherRequest);
+  try {
+    await vi.waitFor(() => {
+      expect(firstRequest.compute).toHaveBeenCalled();
+      expect(otherRequest.compute).toHaveBeenCalled();
+    });
+    const wait = waitForTerrainCache(missionId);
+    finishFirst(profile);
+    await wait;
+    expect(await rows()).toMatchObject([{ entityUuid: firstRequest.entityUuid, profile }]);
+  } finally {
+    finishFirst?.(profile);
+    finishOther?.(profile);
+    await Promise.allSettled([first, other]);
+  }
+});
+
+it.each([false, true])(
+  "does not publish a deleted mission with a mission snapshot: %s",
+  async (useSnapshot) => {
+    const cache = useSnapshot ? await loadMissionTerrainProfileCache(missionId) : undefined;
+    let finish: (value: TerrainProfile) => void;
+    const compute = vi.fn(
+      () =>
+        new Promise<TerrainProfile>((resolve) => {
+          finish = resolve;
+        })
+    );
+    const result = cachedTerrainProfile({ ...args(), compute, cache });
+    await vi.waitFor(() => expect(compute).toHaveBeenCalled());
+    await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId });
+    finish(profile);
+    await expect(result).resolves.toEqual(profile);
+    expect(await rows()).toEqual([]);
+    if (cache) expect(cache.profiles.size).toBe(0);
+  }
+);

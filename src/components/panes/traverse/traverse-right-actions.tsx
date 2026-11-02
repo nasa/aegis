@@ -36,6 +36,7 @@ const Actions_Panel: FunctionComponent<{
       (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
     const calculatedFields = getCalcFieldsForTraverse({
+      terrainProfiles: {},
       traverse: selectedTraverse,
       missionTraverseRate,
       evaTraverseRate: traverseEva?.traverseRate,

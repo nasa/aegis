@@ -1,3 +1,5 @@
+import { setTerrainPreview, clearTerrainPreview } from "store/terrainProfiles";
+import { profileInputSignature } from "utils/terrainProfileInputs";
 import appCreateAsyncThunk from "./thunkUtil";
 import {
   setSelectedStationUuid,
@@ -161,25 +163,10 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     traversesToUpdate.map(({ traverseUuid }) => traverseUuid)
   );
 
-  const [stationElevResult, walkbackElevResult, ...traverseProfileResults] = await Promise.all([
-    // Station elevation
-    dispatch(thunkFetchPointElevation({ point: location, uuid: stationUuid })),
-    // Walkback terrain profile; only its elevations are stored until slope rendering is supported.
-    dispatch(
-      thunkFetchTerrainProfile({
-        path: newWalkbackPath,
-        pathSegmentDistances: walkbackSegmentDistances,
-        uuid: `${stationUuid}_walkback`,
-      })
-    ),
-    // Get traverse elevations
-    ...traversesToUpdate.map(({ traverseUuid }, idx) => {
-      const { path, distances } = recalculatedTraversePaths[idx];
-      return dispatch(
-        thunkFetchTerrainProfile({ path, pathSegmentDistances: distances, uuid: traverseUuid })
-      );
-    }),
-  ]);
+  // Terrain profiles are derived after the commit; only the station elevation is stored.
+  const stationElevResult = await dispatch(
+    thunkFetchPointElevation({ point: location, uuid: stationUuid })
+  );
 
   // ── Build the stage ────────────────────────────────────
   const newElevation =
@@ -187,26 +174,14 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
       ? (stationElevResult.payload as number)
       : null;
 
-  const newWalkbackElevations =
-    walkbackElevResult.meta.requestStatus === "fulfilled"
-      ? (walkbackElevResult.payload as TerrainProfile).elevationsMeters
-      : null;
-
   const stagedTraverseData: TraverseUpdateStageData[] = traversesToUpdate.map(
     ({ traverseUuid, renameTraverse }, idx) => {
       const { path, distances, nameBefore, nameAfter } = recalculatedTraversePaths[idx];
-      const profileResult = traverseProfileResults[idx];
-      const profile =
-        profileResult.meta.requestStatus === "fulfilled"
-          ? (profileResult.payload as TerrainProfile)
-          : null;
       return {
         traverseUuid,
         profileRevision: traverseProfileRevisions.get(traverseUuid)!,
         newPath: path,
         newPathSegmentDistances: distances,
-        newPathSegmentElevations: profile?.elevationsMeters ?? null,
-        newPathSegmentAbsoluteSlopes: profile?.terrainSlopesDegrees ?? null,
         newName: renameTraverse ? `${nameBefore} to ${nameAfter}` : undefined,
         updatedAt: getAccurateNow().getTime(),
       } satisfies TraverseUpdateStageData;
@@ -219,7 +194,6 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
     newElevation,
     newWalkbackPath,
     newWalkbackPathSegmentDistances: walkbackSegmentDistances,
-    newWalkbackPathSegmentElevations: newWalkbackElevations,
     traverseUpdates: stagedTraverseData,
   };
 
@@ -245,7 +219,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 });
 
 /**
- * Updates the walkback path, distances, elevation, and
+ * Updates the walkback path and distances, and
  *  snaps ends to surrounding stations
  * This is used on polyline edit drag-end.
  *
@@ -256,15 +230,16 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
   {
     path: AEGISPoint[];
     stationUuid: string;
+    preview?: boolean;
   },
   AEGISPoint[],
   false
->("fullUpdateWalkback", async ({ path, stationUuid }, { dispatch }) => {
+>("fullUpdateWalkback", async ({ path, stationUuid, preview = false }, { dispatch }) => {
   const missionDocHandle = getMissionDocHandle();
   if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
 
-  // Step 1: Build the updated walkback path and fetch elevation
+  // Step 1: Build the updated walkback path
   // Calculate path distances
   let newPath: AEGISPoint[];
   if (!path || path.length === 0) {
@@ -292,8 +267,21 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
     pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
   }
 
-  // Get the terrain profile; only elevations are stored until walkback slope rendering is supported.
-  let newElevationProfile = null;
+  if (!preview) {
+    // Step 2: Apply single change to automerge; this also ends any drag preview
+    missionDocHandle.change((m: Mission) => {
+      const s = m.stations[stationUuid];
+      if (!s) return;
+      s.walkbackPath = cloneDeep(newPath);
+      s.walkbackPathSegmentDistances = pathSegmentDistances;
+    });
+    dispatch(clearTerrainPreview({ uuid: stationUuid }));
+
+    // No Step 3: this thunk has no UI side-effects of its own.
+    return newPath;
+  }
+
+  // Previews fetch their own profile; committed profiles are derived after the commit.
   const profileResponse = await dispatch(
     thunkFetchTerrainProfile({
       path: newPath,
@@ -301,39 +289,59 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
       uuid: stationUuid,
     })
   );
-  if (profileResponse.meta.requestStatus === "fulfilled") {
-    newElevationProfile = (profileResponse.payload as TerrainProfile).elevationsMeters;
-  }
 
   if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {
     clientLogger.debug({
       logId: "thunk-station",
-      logValue: `thunkDocUpdateWalkback: stale request for station ${stationUuid}, skipping apply`,
+      logValue: `thunkDocUpdateWalkback: stale request for station ${stationUuid}, skipping preview`,
     });
     return;
   }
-  // Step 2: Apply single change to automerge
-  // Save walkback to automerge
-  missionDocHandle.change((m: Mission) => {
-    const s = m.stations[stationUuid];
-    if (!s) return;
-    s.walkbackPath = cloneDeep(newPath);
-    s.walkbackPathSegmentDistances = pathSegmentDistances;
-    s.walkbackPathSegmentElevations = newElevationProfile;
-  });
+  const currentMission = missionDocHandle.doc();
+  const currentStation = currentMission?.stations?.[stationUuid];
+  if (getMissionDocHandle() !== missionDocHandle || !currentStation) return;
+  if (
+    profileInputSignature(
+      currentMission,
+      currentStation.walkbackPath ?? [],
+      currentStation.walkbackPathSegmentDistances ?? []
+    ) !==
+    profileInputSignature(
+      mission,
+      station?.walkbackPath ?? [],
+      station?.walkbackPathSegmentDistances ?? []
+    )
+  )
+    return;
 
-  // No Step 3: this thunk has no UI side-effects of its own.
+  const profile =
+    profileResponse.meta.requestStatus === "fulfilled"
+      ? (profileResponse.payload as TerrainProfile)
+      : null;
+  dispatch(
+    setTerrainPreview({
+      uuid: stationUuid,
+      entry: {
+        inputSignature: profileInputSignature(mission, newPath, pathSegmentDistances),
+        status: profile ? "ready" : "error",
+        error: profile ? null : "Terrain profile unavailable",
+        path: JSON.parse(JSON.stringify(newPath)),
+        distances: pathSegmentDistances,
+        profile,
+      },
+    })
+  );
   return newPath;
 });
 
 /**
  * Reset the start and end points of walkback to station and lander
- * Updates path, distance, elevation
+ * Updates path and distance
  */
 export const thunkDocResetWalkback = appCreateAsyncThunk<{
   stationUuid: string;
 }>("resetWalkback", async ({ stationUuid }, { dispatch }) => {
-  // Step 1: Build the reset path and fetch elevation
+  // Step 1: Build the reset path
   const missionDocHandle = getMissionDocHandle();
   if (!missionDocHandle) return;
   const mission = missionDocHandle.doc();
@@ -348,39 +356,20 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
     getDistanceBetweenTwoCoordinates(newPath[0], newPath[1], mission.planetRadius),
   ];
 
-  // Shares the walkback profile revision with thunkDocUpdateWalkback so a reset and an
-  // in-flight drag update racing on the same station resolve to whichever started last.
-  const profileRevision = (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) ?? 0) + 1;
-  latestIssuedWalkbackProfileRevisionByStation.set(stationUuid, profileRevision);
-
-  // Get the terrain profile; only elevations are stored until walkback slope rendering is supported.
-  let newElevationProfile = null;
-  const profileResponse = await dispatch(
-    thunkFetchTerrainProfile({
-      path: newPath,
-      pathSegmentDistances: newPathSegmentDistances,
-      uuid: stationUuid,
-    })
+  // Claim the walkback revision so an in-flight drag preview cannot reappear after the reset.
+  latestIssuedWalkbackProfileRevisionByStation.set(
+    stationUuid,
+    (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) ?? 0) + 1
   );
-  if (profileResponse.meta.requestStatus === "fulfilled") {
-    newElevationProfile = (profileResponse.payload as TerrainProfile).elevationsMeters;
-  }
 
-  if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {
-    clientLogger.debug({
-      logId: "thunk-station",
-      logValue: `thunkDocResetWalkback: stale request for station ${stationUuid}, skipping apply`,
-    });
-    return;
-  }
-  // Step 2: Write the reset walkback path, distances, and elevation atomically
+  // Step 2: Write the reset walkback path and distances atomically
   missionDocHandle.change((m: Mission) => {
     const s = m.stations[stationUuid];
     if (!s) return;
     s.walkbackPath = newPath;
     s.walkbackPathSegmentDistances = newPathSegmentDistances;
-    s.walkbackPathSegmentElevations = newElevationProfile;
   });
+  dispatch(clearTerrainPreview({ uuid: stationUuid }));
 
   // No Step 3: this thunk has no UI side-effects of its own.
 });

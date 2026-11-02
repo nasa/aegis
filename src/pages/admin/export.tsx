@@ -1,14 +1,16 @@
+import { populateStore } from "store/processing/populateStore";
+import { setAllSliceStores } from "store/crossActions";
+import { syncMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
-import { populateStore } from "store/processing/populateStore";
+import store from "store";
 import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
-import { refEqual } from "utils/useAppSelector";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 
 import { isLoggedIn } from "http-client/login";
 import { dumpMission } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { setAllSliceStores } from "store/crossActions";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import adminCommon from "./adminCommon.module.css";
@@ -32,6 +34,11 @@ const ExportPage: React.FunctionComponent = () => {
 
   const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
   const mission = useMissionDocSelector((mission) => mission, refEqual);
+  const terrainSettled = useAppSelector(
+    (state) =>
+      Object.values(state.terrainProfiles.profiles).every((entry) => entry.status !== "idle"),
+    refEqual
+  );
 
   const [selectedOutput, setSelectedOutput] = useState("");
   const [selectEvas, setSelectEvas] = useState(true);
@@ -58,6 +65,7 @@ const ExportPage: React.FunctionComponent = () => {
         automergeRepo,
       });
       dispatch(setAllSliceStores(wholeStoreState));
+      syncMissionTerrainProfiles(store);
     });
   }, [intMissionId, automergeRepo, dispatch, navigate, runLoad]);
 
@@ -149,11 +157,15 @@ const ExportPage: React.FunctionComponent = () => {
             </div>
             <div className={adminCommon.formActions}>
               <button
-                disabled={!!loading.pending || !!loading.error || !!action.pending}
+                disabled={
+                  !!loading.pending || !!loading.error || !!action.pending || !terrainSettled
+                }
                 className={adminCommon.button}
+                title={terrainSettled ? undefined : "Loading terrain profiles"}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
+                      terrainProfiles: store.getState().terrainProfiles.profiles,
                       mission,
                       selectEvas,
                       selectMission,
@@ -176,11 +188,15 @@ const ExportPage: React.FunctionComponent = () => {
                 Export JSON to Text Field
               </button>
               <button
-                disabled={!!loading.pending || !!loading.error || !!action.pending}
+                disabled={
+                  !!loading.pending || !!loading.error || !!action.pending || !terrainSettled
+                }
                 className={adminCommon.button}
+                title={terrainSettled ? undefined : "Loading terrain profiles"}
                 onClick={() => {
                   const makeExportStringAsync = async () => {
                     const output = makeExportString({
+                      terrainProfiles: store.getState().terrainProfiles.profiles,
                       mission,
                       selectEvas,
                       selectMission,

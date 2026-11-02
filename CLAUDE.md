@@ -110,7 +110,7 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
   - `apply*` (`src/operations/apply/`): inner draft mutators that receive `(m: Mission, args)` and mutate the doc. Pure sync; never call `.change()` or import `missionDocHandle`. _(ESLint-enforced.)_
   - `stage*` (`src/operations/stage/`): plan builders that receive a `Mission` snapshot and return a typed `*StageData` object (in `src/typings/thunkStageData.d.ts`) with all new uuids pre-allocated. Used for cascading multi-entity operations and any reusable plan-building logic shared across thunks. Two tiers exist:
     - **Sync stages** (default, most common): pure sync, no I/O. Examples: `stageDuplicateEva`, `stageDeleteRex`.
-    - **Async stages** (allowed when needed): may `await` from a small allow-list of read-only data thunks (currently only `thunkGetElevation`). They still never call `.change()` and never call mutation thunks. Example: `stageTraverseUpdate`.
+    - **Async stages** (allowed when needed): may `await` from a small allow-list of read-only data thunks (currently only `thunkGetElevation`). They still never call `.change()` and never call mutation thunks. Example: `stageLanderLocationUpdate`.
     - _(ESLint-enforced: `automergeDocHandles` blocked entirely; `store/thunk/**` blocked except the explicit allow-list.)_
   - `thunk*` (`src/store/thunk/*`): async orchestrators that may pre-fetch elevation/REST, then run a single `.change()` per logical operation.
   - **`withMissionChange`** (`src/client/automergeDocHandles.ts`): the only sanctioned mutation entry-point for components. Wraps the null-guard and `.change()` call so callers never have to handle either: `withMissionChange((m) => applyFoo(m, args))`. Composing multiple `apply*` inside one call is atomic.
@@ -130,6 +130,12 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 - **Elevation sampling** runs natively in the API through `src/server/raster/` and
   `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
   there is no separate GDAL/Python runtime service.
+- **Terrain profile cache** — committed traverse and station walkback profiles are cached in the
+  `terrain_profile_cache_db` table, keyed by `(mission_id, entity_uuid)`. `entity_uuid` is the
+  traverse or station uuid, sent by the client as `entityUuid` on terrain profile requests.
+  Client and server share `profileInputSignature`; `input_signature` stores geometry, sampling
+  settings, and the DEM filepath. DEM releases use distinct filepaths; cache lookups do not poll
+  file size or timestamps.
 - **MikroORM 6** with PostgreSQL. Entity models live in `src/server/database/models/`. Legacy ORM definitions for entities that moved into the mission doc live in `_legacyModels.ts` and are used only by Automerge migrations; the folder, layer, sublayer, preset, and STM tables are read with raw SQL by `Migration20261009000000` and then dropped. Every request runs inside a `RequestContext` middleware for ORM isolation.
 - **Socket.io** runs on a single Socket.IO server instance mounted at path `/api/socket`, hosting multiple namespaces:
   - **Default namespace** (`/`) — handles AEGIS web-client connections: visitor presence, and heartbeats (`statusFromServer` every 10s). Handlers are in `src/server/express/sockets.ts`.

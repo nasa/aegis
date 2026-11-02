@@ -388,7 +388,7 @@ export function InteractionManager(): null {
             : vertexStyle,
         });
 
-        // Run the full update at most once per 100 ms while dragging. The update
+        // Preview terrain at most once per 100 ms without changing Automerge. The update
         // thunks reject stale profile responses, while throttle coalesces rapid
         // geometry changes into the latest pending path.
         const throttledSave = throttle(() => {
@@ -397,9 +397,13 @@ export function InteractionManager(): null {
           const path = liveGeom.getCoordinates().map((c) => toAegisPoint(c));
 
           if (mapDirective.mapItemType === "traverse") {
-            dispatch(thunkDocUpdateTraverse({ path, traverseUuid: mapDirective.uuid }));
+            dispatch(
+              thunkDocUpdateTraverse({ path, traverseUuid: mapDirective.uuid, preview: true })
+            );
           } else if (mapDirective.mapItemType === "walkback") {
-            dispatch(thunkDocUpdateWalkback({ path, stationUuid: mapDirective.uuid }));
+            dispatch(
+              thunkDocUpdateWalkback({ path, stationUuid: mapDirective.uuid, preview: true })
+            );
           } else if (mapDirective.mapItemType === "measurement") {
             dispatch(thunkUpdateMeasurementPath({ path, measurementUuid: mapDirective.uuid }));
           }

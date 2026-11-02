@@ -1,4 +1,7 @@
+import { setTerrainPreview, clearTerrainPreview } from "store/terrainProfiles";
+import { profileInputSignature } from "utils/terrainProfileInputs";
 import { stageTraverseUpdate } from "operations/stage/stage-traverse";
+import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import { getTraverseEndpoints } from "operations/helpers/getTraverseEndpoints";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkUpdateMapDirective } from "./thunkMap";
@@ -7,14 +10,13 @@ import { applyDeleteActions } from "operations/apply/apply-action";
 import {
   applyDeleteTraverses,
   applyUpdateTraverseByField,
-  applyUpsertTraverse,
   applyTraverseUpdatesStage,
 } from "operations/apply/apply-traverse";
 import { areTraverseProfileUpdatesCurrent } from "operations/helpers/traverseProfileRevision";
 import { clientLogger } from "utils/logging/clientLogger";
 
 /**
- * Updates the traverse path, distances, elevation, and
+ * Updates the traverse path and distances, and
  *  snaps ends to surrounding stations
  * This is used on polyline edit drag-end among other areas
  *
@@ -31,48 +33,98 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
     traverseUuid: string;
     path?: AEGISPoint[];
     renameTraverse?: boolean;
+    preview?: boolean;
     evaSequence?: EvaSequenceItem[];
   },
   AEGISPoint[],
   false
 >(
   "fullUpdateTraverse",
-  async ({ traverseUuid, path, renameTraverse = false, evaSequence }, { dispatch }) => {
-    // Step 1: Build the updated traverse path, distances, and elevation
-    const mission = getMissionDocHandle()?.doc();
+  async (
+    { traverseUuid, path, renameTraverse = false, evaSequence, preview = false },
+    { dispatch }
+  ) => {
+    // Step 1: Build the updated traverse path and distances
+    const handle = getMissionDocHandle();
+    const mission = handle?.doc();
     if (!mission) return;
-    const stageData = await stageTraverseUpdate(mission, dispatch, {
-      traverseUuid,
-      renameTraverse,
-      overrides: { path, evaSequence },
-    });
-    if (!stageData) return;
-
-    // Step 2: Upsert the fully-built traverse in a single atomic .change()
-    // We need the full Traverse shape, so spread the existing traverse and
-    // overlay the stage data fields
-    const traverse = getMissionDocHandle()?.doc()?.traverses?.[traverseUuid];
-    if (!traverse) return;
-    const newTraverse: Traverse = {
-      ...traverse,
-      name: stageData.newName ?? traverse.name,
-      path: stageData.newPath,
-      pathSegmentDistances: stageData.newPathSegmentDistances,
-      pathSegmentElevations: stageData.newPathSegmentElevations,
-      pathSegmentAbsoluteSlopes: stageData.newPathSegmentAbsoluteSlopes,
-      updatedAt: stageData.updatedAt,
-    };
-    if (!areTraverseProfileUpdatesCurrent([stageData])) {
-      clientLogger.debug({
-        logId: "thunk-traverse",
-        logValue: `thunkDocUpdateTraverse: superseded traverse profile for traverse ${traverseUuid}, skipping apply`,
+    try {
+      const stageData = stageTraverseUpdate(mission, {
+        traverseUuid,
+        renameTraverse,
+        overrides: { path, evaSequence },
       });
-      return;
-    }
-    getMissionDocHandle()?.change((m: Mission) => applyUpsertTraverse(m, newTraverse));
+      if (!stageData) return;
 
-    // No Step 3: this thunk has no UI side-effects of its own.
-    return stageData.newPath;
+      // Previews fetch their own profile; committed profiles are derived after the commit.
+      const profileResponse = preview
+        ? await dispatch(
+            thunkFetchTerrainProfile({
+              path: stageData.newPath,
+              pathSegmentDistances: stageData.newPathSegmentDistances,
+              uuid: traverseUuid,
+            })
+          )
+        : null;
+
+      if (!areTraverseProfileUpdatesCurrent([stageData])) {
+        clientLogger.debug({
+          logId: "thunk-traverse",
+          logValue: `thunkDocUpdateTraverse: superseded traverse profile for traverse ${traverseUuid}, skipping apply`,
+        });
+        return;
+      }
+      const currentMission = handle.doc();
+      const currentTraverse = currentMission?.traverses?.[traverseUuid];
+      if (getMissionDocHandle() !== handle || !currentTraverse) return;
+      const sourceTraverse = mission.traverses[traverseUuid];
+      if (
+        preview &&
+        profileInputSignature(
+          currentMission,
+          currentTraverse.path ?? [],
+          currentTraverse.pathSegmentDistances ?? []
+        ) !==
+          profileInputSignature(
+            mission,
+            sourceTraverse.path ?? [],
+            sourceTraverse.pathSegmentDistances ?? []
+          )
+      )
+        return;
+
+      if (preview) {
+        const profile =
+          profileResponse.meta.requestStatus === "fulfilled"
+            ? (profileResponse.payload as TerrainProfile)
+            : null;
+        dispatch(
+          setTerrainPreview({
+            uuid: traverseUuid,
+            entry: {
+              inputSignature: profileInputSignature(
+                mission,
+                stageData.newPath,
+                stageData.newPathSegmentDistances
+              ),
+              status: profile ? "ready" : "error",
+              error: profile ? null : "Terrain profile unavailable",
+              path: JSON.parse(JSON.stringify(stageData.newPath)),
+              distances: stageData.newPathSegmentDistances,
+              profile,
+            },
+          })
+        );
+      } else {
+        handle.change((m: Mission) => applyTraverseUpdatesStage(m, [stageData]));
+      }
+
+      // No Step 3: this thunk has no UI side-effects of its own.
+      return stageData.newPath;
+    } finally {
+      // A final update ends the drag whether or not it committed.
+      if (!preview) dispatch(clearTerrainPreview({ uuid: traverseUuid }));
+    }
   }
 );
 
@@ -94,7 +146,7 @@ export const thunkDocResetTraverse = appCreateAsyncThunk<{
   const newPath = [locationBefore, locationAfter];
 
   // Step 2 (delegated): This thunk makes no .change() call directly — it delegates
-  // the elevation fetch and atomic .change() to thunkDocUpdateTraverse.
+  // the atomic .change() to thunkDocUpdateTraverse.
   await dispatch(
     thunkDocUpdateTraverse({
       path: newPath,
@@ -114,7 +166,7 @@ export const thunkDocResetTraverse = appCreateAsyncThunk<{
 export const thunkDocUpdateTraversesAroundStation = appCreateAsyncThunk<{
   stationUuid: string;
   evaUuid?: string;
-}>("updateTraversesAroundStation", async ({ stationUuid, evaUuid }, { dispatch }) => {
+}>("updateTraversesAroundStation", async ({ stationUuid, evaUuid }) => {
   // Step 1: Identify all traverses adjacent to the station across all relevant EVAs
   const mission = getMissionDocHandle()?.doc();
   if (!mission) return;
@@ -157,15 +209,14 @@ export const thunkDocUpdateTraversesAroundStation = appCreateAsyncThunk<{
 
   if (traversesToUpdate.length === 0) return;
 
-  // Build updated path + fetch elevations for all traverses in parallel
-  const traverseUpdates: (TraverseUpdateStageData | null)[] = await Promise.all(
-    traversesToUpdate.map(({ traverseUuid, evaSequence, renameTraverse }) =>
-      stageTraverseUpdate(mission, dispatch, {
+  // Build updated paths for all traverses
+  const traverseUpdates: (TraverseUpdateStageData | null)[] = traversesToUpdate.map(
+    ({ traverseUuid, evaSequence, renameTraverse }) =>
+      stageTraverseUpdate(mission, {
         traverseUuid,
         renameTraverse,
         overrides: { evaSequence },
       })
-    )
   );
 
   const validUpdates = traverseUpdates.filter(Boolean) as TraverseUpdateStageData[];
