@@ -7,7 +7,6 @@ import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { getAutomergeMissions } from "../../../express/routes/missionAutomerge";
-import { getMissionIdsForEva } from "server/automerge/missionCatalog";
 
 // used in getRexesByEva maestro route
 export type RefRex = {
@@ -105,6 +104,7 @@ export async function getRexesByEva(
   missionId: number
 ): Promise<RefRex[]> {
   const mission = (await getAutomergeMissions([missionId]))[0];
+  if (!mission) return [];
 
   const asPlannedEva = mission.evas?.[asPlannedEvaUuid];
   if (!asPlannedEva) return [];
