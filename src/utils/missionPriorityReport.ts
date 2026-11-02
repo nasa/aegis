@@ -124,7 +124,7 @@ export const resolveActionMissionPriority = (
   return null;
 };
 
-type EvaluatedPriorityAction = {
+type CollectedPriorityAction = {
   action: Action;
   priorityUuid: string;
   rex?: Rex;
@@ -132,7 +132,13 @@ type EvaluatedPriorityAction = {
   passesRexFilter: boolean;
 };
 
-const evaluatePriorityActionsForEva = ({
+/**
+ * Collects the actions belonging to one EVA (via its stations and traverses)
+ * that resolve to a Mission Priority Identifier, tagging each with its REX
+ * execution status and whether it passes `rexStatusFilter`. Callers partition
+ * the result into enabled / disabled / filtered-out actions.
+ */
+const collectPriorityActionsForEva = ({
   mission,
   evaUuid,
   rex,
@@ -142,13 +148,13 @@ const evaluatePriorityActionsForEva = ({
   evaUuid: string;
   rex?: Rex;
   rexStatusFilter: RexStatusFilter;
-}): EvaluatedPriorityAction[] => {
+}): CollectedPriorityAction[] => {
   const stationUuids = new Set(selectEvaStations(mission, evaUuid).map((station) => station.uuid));
   const traverseUuids = new Set(
     selectEvaTraverses(mission, evaUuid).map((traverse) => traverse.uuid)
   );
 
-  const results: EvaluatedPriorityAction[] = [];
+  const results: CollectedPriorityAction[] = [];
   for (const action of Object.values(mission.actions ?? {})) {
     const inEva =
       (!!action.stationUuid && stationUuids.has(action.stationUuid)) ||
@@ -158,6 +164,8 @@ const evaluatePriorityActionsForEva = ({
     const resolved = resolveActionMissionPriority(action, mission);
     if (!resolved?.priorityUuid) continue;
 
+    // REX status is only meaningful for enabled actions; disabled ones are
+    // partitioned out by the caller and never pass the filter.
     const rexStatus = rex && action.enabled ? getActionRexStatus(rex, action.uuid) : null;
     let passesRexFilter = action.enabled;
     if (action.enabled && rex && rexStatusFilter !== "all") {
@@ -194,12 +202,12 @@ export const getPriorityActionsForColumn = ({
   enabledActions: Action[];
   disabledActions: Action[];
   filteredOutRexActions: Action[];
-  evaluated: EvaluatedPriorityAction[];
+  collected: CollectedPriorityAction[];
 } => {
-  let evaluated: EvaluatedPriorityAction[] = [];
+  let collected: CollectedPriorityAction[] = [];
 
   if (!column.campaignUuid && column.evaUuid) {
-    evaluated = evaluatePriorityActionsForEva({
+    collected = collectPriorityActionsForEva({
       mission,
       evaUuid: column.evaUuid,
       rex: column.isRex ? mission.rexes?.[column.rexUuid ?? ""] : undefined,
@@ -211,15 +219,15 @@ export const getPriorityActionsForColumn = ({
       : undefined;
     if (campaign) {
       if (column.kind === "campaignPlanned") {
-        evaluated = campaign.memberEvaUuids.flatMap((evaUuid) =>
+        collected = campaign.memberEvaUuids.flatMap((evaUuid) =>
           mission.evas?.[evaUuid]
-            ? evaluatePriorityActionsForEva({ mission, evaUuid, rexStatusFilter })
+            ? collectPriorityActionsForEva({ mission, evaUuid, rexStatusFilter })
             : []
         );
       } else if (column.kind === "campaignExecuted") {
-        evaluated = resolveCampaignExecutionRexes(mission, campaign).flatMap((rex) =>
+        collected = resolveCampaignExecutionRexes(mission, campaign).flatMap((rex) =>
           mission.evas?.[rex.evaUuid]
-            ? evaluatePriorityActionsForEva({
+            ? collectPriorityActionsForEva({
                 mission,
                 evaUuid: rex.evaUuid,
                 rex,
@@ -234,7 +242,7 @@ export const getPriorityActionsForColumn = ({
   const enabledActions: Action[] = [];
   const disabledActions: Action[] = [];
   const filteredOutRexActions: Action[] = [];
-  for (const item of evaluated) {
+  for (const item of collected) {
     if (!item.action.enabled) {
       disabledActions.push(item.action);
     } else if (item.passesRexFilter) {
@@ -248,7 +256,7 @@ export const getPriorityActionsForColumn = ({
     enabledActions,
     disabledActions,
     filteredOutRexActions,
-    evaluated,
+    collected,
   };
 };
 
@@ -264,7 +272,7 @@ export const computePriorityColumnCoverage = ({
   column: EvaReportColumn;
   rexStatusFilter: RexStatusFilter;
 }): { [priorityUuid: string]: MissionPriorityCellCoverage } => {
-  const { evaluated } = getPriorityActionsForColumn({ mission, column, rexStatusFilter });
+  const { collected } = getPriorityActionsForColumn({ mission, column, rexStatusFilter });
   const isExecutionColumn = column.kind === "rex" || column.kind === "campaignExecuted";
 
   const coverageByPriorityUuid: { [priorityUuid: string]: MissionPriorityCellCoverage } = {};
@@ -284,7 +292,7 @@ export const computePriorityColumnCoverage = ({
     };
   }
 
-  for (const item of evaluated) {
+  for (const item of collected) {
     const cell = coverageByPriorityUuid[item.priorityUuid];
     if (!cell) continue;
     if (!item.action.enabled) {
@@ -368,11 +376,17 @@ export const groupPriorityMatchesBySequenceItem = ({
 };
 
 /**
- * Per-member EVA counts for an expanded Campaign column. Distributes shared
- * station/traverse action occurrences across member EVAs so sub-columns always
- * sum to the campaign total.
+ * Per-member-EVA counts of the matching actions in one (priority, campaign)
+ * cell, for the expanded sub-column view.
+ *
+ * Actions hang off stations/traverses, which several member EVAs can share, so
+ * the cell's action uuids contain one occurrence per member whose sequence
+ * includes the action. Occurrence N of an action is attributed to its Nth
+ * matching member, so each occurrence is counted exactly once and the member
+ * sub-columns sum exactly to the campaign cell total. With `includeDisabled`,
+ * disabled matches count toward member totals too.
  */
-export const groupCampaignPriorityMatchesByMember = ({
+export const groupCampaignPriorityMatchesByMemberEva = ({
   mission,
   column,
   cellCoverage,
@@ -383,9 +397,9 @@ export const groupCampaignPriorityMatchesByMember = ({
   cellCoverage: MissionPriorityCellCoverage;
   includeDisabled?: boolean;
 }): { [evaUuid: string]: number } => {
-  const memberItems = getCampaignMemberItems(mission, column);
+  const memberEvaItems = getCampaignMemberItems(mission, column);
   const counts: { [evaUuid: string]: number } = Object.fromEntries(
-    memberItems.map(({ uuid }) => [uuid, 0])
+    memberEvaItems.map(({ uuid }) => [uuid, 0])
   );
   const occurrenceByActionUuid: { [actionUuid: string]: number } = {};
   const actionUuids = includeDisabled
@@ -395,14 +409,15 @@ export const groupCampaignPriorityMatchesByMember = ({
   for (const actionUuid of actionUuids) {
     const action = mission?.actions?.[actionUuid];
     if (!action) continue;
-    const matchingMemberUuids = memberItems
+    const matchingMemberEvaUuids = memberEvaItems
       .map(({ uuid }) => uuid)
       .filter((memberEvaUuid) =>
         actionBelongsToCampaignMember({ mission, column, memberEvaUuid, action })
       );
-    if (matchingMemberUuids.length === 0) continue;
+    if (matchingMemberEvaUuids.length === 0) continue;
+    // Occurrence N of a shared action maps to the Nth member containing it.
     const occurrence = occurrenceByActionUuid[actionUuid] ?? 0;
-    const memberEvaUuid = matchingMemberUuids[occurrence % matchingMemberUuids.length];
+    const memberEvaUuid = matchingMemberEvaUuids[occurrence % matchingMemberEvaUuids.length];
     counts[memberEvaUuid] += 1;
     occurrenceByActionUuid[actionUuid] = occurrence + 1;
   }

@@ -7,7 +7,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { reportSetCellSelection } from "store/report";
 import {
   diffPriorityCell,
-  groupCampaignPriorityMatchesByMember,
+  groupCampaignPriorityMatchesByMemberEva,
   groupPriorityMatchesBySequenceItem,
 } from "utils/missionPriorityReport";
 import { BaseCell } from "../shared/report-cell";
@@ -90,7 +90,7 @@ export const MissionPrioritiesColumnCells: FunctionComponent<{
       includeDisabled: false,
     });
     if (column.campaignUuid) {
-      matches.evas = groupCampaignPriorityMatchesByMember({
+      matches.evas = groupCampaignPriorityMatchesByMemberEva({
         mission,
         column,
         cellCoverage: coverage,

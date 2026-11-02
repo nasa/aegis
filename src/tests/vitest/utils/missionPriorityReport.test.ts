@@ -7,7 +7,7 @@ import {
   getPriorityActionsForColumn,
   getPriorityCoverageDifferences,
   getSortedMissionPriorityCategories,
-  groupCampaignPriorityMatchesByMember,
+  groupCampaignPriorityMatchesByMemberEva,
   groupPriorityMatchesBySequenceItem,
   resolveActionMissionPriority,
 } from "utils/missionPriorityReport";
@@ -444,7 +444,7 @@ describe("Campaign columns, member expansion, and diff pairing", () => {
 
     // Station s2 is visited in both eva1 and eva2, so planB appears twice in campaignPlanned
     expect(plannedCov.p10.activeCount).toBe(2);
-    const memberCounts = groupCampaignPriorityMatchesByMember({
+    const memberCounts = groupCampaignPriorityMatchesByMemberEva({
       mission,
       column: plannedCol,
       cellCoverage: plannedCov.p10,
