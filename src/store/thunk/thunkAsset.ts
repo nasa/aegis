@@ -62,7 +62,7 @@ export const thunkCancelAssetGesture = appCreateAsyncThunk<void>(
   }
 );
 
-/** Open a new-asset edit session prefilled from the most recently created asset. */
+/** Open a new-asset edit session, prefilling radius and color from the most recently created asset. */
 export const thunkAddAsset = appCreateAsyncThunk<void>(
   "asset/add",
   async (__, { dispatch, getState }) => {
@@ -77,12 +77,12 @@ export const thunkAddAsset = appCreateAsyncThunk<void>(
         uuid,
         isNew: true,
         values: {
-          name: latest?.name ?? "",
-          icon: latest?.icon ?? null,
-          color: null,
+          name: "",
+          icon: null,
+          color: latest?.color ?? null,
           location: null,
           elevation: null,
-          uncertaintyMeters: 0,
+          uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
           notes: null,
           placement: null,
         },

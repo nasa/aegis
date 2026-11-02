@@ -6,7 +6,7 @@ import { petSecondsAt } from "utils/formatting";
 /** Emoji drawn for an asset with no icon (❔), matching stations. */
 export const DEFAULT_ASSET_ICON = "2754";
 /** Uncertainty ring color for an asset with no color. */
-export const DEFAULT_ASSET_RING_COLOR = "#ffcc00";
+export const DEFAULT_ASSET_RING_COLOR = "#999999";
 
 /**
  * Color of an asset's radius ring, also used for the disc behind its emoji on the map and in
