@@ -311,7 +311,7 @@
 }
 
 .colNumber {
-  width: 30px;
+  width: 42px;
 }
 
 .colPet {
@@ -489,6 +489,11 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+/* Folder children indent under their folder header; root assets stay at the left edge. */
+.folderItem .rowToggle {
+  margin-left: 12px;
 }
 
 .assetDetailRow {

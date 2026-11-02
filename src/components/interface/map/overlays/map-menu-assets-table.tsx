@@ -518,6 +518,7 @@ const AssetRow: FunctionComponent<{
 
   const rowClass = [
     styles.assetRow,
+    folder ? styles.folderItem : "",
     isSelected ? styles.assetRowSelected : isHovered ? styles.assetRowHover : "",
     isExpanded ? styles.assetRowExpanded : "",
     isEditing ? styles.assetRowEditing : "",
