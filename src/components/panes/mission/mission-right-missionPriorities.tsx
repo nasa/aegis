@@ -22,22 +22,8 @@ import {
   opDeleteMissionPriorityCategory,
 } from "operations/op-missionPriority";
 import { createDropdownWithHeadings } from "utils/dropdown-options";
+import { getSortedMissionPriorityCategories } from "utils/missionPriorityReport";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
-
-/**
- * Sort mission priority entries by category, then by trace within each category. Numeric
- * collation keeps SIMD-0002 ahead of SIMD-0010 instead of sorting them lexically.
- */
-const sortMissionPriorities = (
-  missionPriorities: MissionPriorities | null
-): [string, MissionPriority][] =>
-  Object.entries(missionPriorities ?? {}).sort(([, a], [, b]) => {
-    const categoryComparison = a.category.localeCompare(b.category);
-    if (categoryComparison !== 0) {
-      return categoryComparison;
-    }
-    return a.trace.localeCompare(b.trace, undefined, { numeric: true });
-  });
 
 const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const missionPriorities = useMissionDocSelector(
@@ -45,11 +31,8 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
     deepEqual
   );
 
-  const categorySet = new Set<string>();
-  for (const missionPriority of Object.values(missionPriorities ?? {})) {
-    categorySet.add(missionPriority.category);
-  }
-  const categories = [...categorySet].sort((a, b) => a.localeCompare(b));
+  const groups = getSortedMissionPriorityCategories({ missionPriorities });
+  const categories = groups.map((group) => group.category);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -57,11 +40,11 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
         Mission Priority Identifiers
       </div>
       <div className={paneStyles.rightBodyBody}>
-        {categories.map((category) => (
-          <div className={paneStyles.panelContainer} key={category}>
+        {groups.map((group) => (
+          <div className={paneStyles.panelContainer} key={group.category}>
             <MissionPriorityCategory
-              category={category}
-              otherCategories={categories.filter((c) => c !== category)}
+              group={group}
+              otherCategories={categories.filter((c) => c !== group.category)}
               missionPriorities={missionPriorities}
               editMode={editMode}
             />
@@ -89,14 +72,17 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
 export default MissionPriorities_Panel;
 
 const MissionPriorityCategory: FunctionComponent<{
-  category: string;
+  group: MissionPriorityCategoryGroup;
   otherCategories: string[];
   missionPriorities: MissionPriorities | null;
   editMode: boolean;
-}> = ({ category, otherCategories, missionPriorities, editMode }) => {
-  const traces = sortMissionPriorities(missionPriorities).filter(
-    ([, missionPriority]) => missionPriority.category === category
-  );
+}> = ({ group, otherCategories, missionPriorities, editMode }) => {
+  const category = group.category;
+  const traces: [string, MissionPriority][] = [];
+  for (const item of group.items) {
+    const missionPriority = missionPriorities?.[item.priorityUuid];
+    if (missionPriority) traces.push([item.priorityUuid, missionPriority]);
+  }
 
   return (
     <div className={paneStyles.panelSection}>
@@ -283,14 +269,15 @@ export const MissionPriorityDropdown: FunctionComponent<{
   const selectedMissionPriority = selectedUuid ? missionPriorities?.[selectedUuid] : null;
 
   // The category is carried by the optgroup heading, so each option shows only its trace.
+  // Numeric collation keeps SIMD-2 ahead of SIMD-10, matching the identifiers panel.
   const missionPriorityOptions = createDropdownWithHeadings({
-    items: sortMissionPriorities(missionPriorities).map(([uuid, missionPriority]) => ({
+    items: Object.entries(missionPriorities ?? {}).map(([uuid, missionPriority]) => ({
       uuid,
       name: missionPriority.trace,
       category: missionPriority.category,
     })),
     getHeading: (item) => item.category,
-    compareItems: (a, b) => a.name.localeCompare(b.name),
+    compareItems: (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }),
   });
 
   if (!editMode) {

@@ -10,8 +10,7 @@ import {
 /**
  * Pure computation module for the "Mission Priorities" report.
  *
- * Everything here is a plain function over (mission, column, ...) — no React,
- * no Redux, no Automerge handles.
+ * Everything here is a plain function over (mission, column, ...)
  *
  * Types are declared ambiently in typings/missionPriorityReport.d.ts and typings/stm.d.ts.
  */
@@ -21,11 +20,11 @@ const PRIORITY_PREFIX_REGEX = /^(?:pri\.?|priority|mission priority)\s*:?\s+/i;
 
 /**
  * Sort mission priority entries by category, then by trace within each category
- * with numeric collation (e.g. SIMD-0002 before SIMD-0010), matching
- * mission-right-missionPriorities.tsx.
+ * with numeric collation (e.g. SIMD-0002 before SIMD-0010). Shared by the
+ * Mission Priority Identifiers panel and the mission priorities report.
  */
 export const getSortedMissionPriorityCategories = (
-  mission: Mission | null | undefined
+  mission: { missionPriorities?: MissionPriorities | null } | null | undefined
 ): MissionPriorityCategoryGroup[] => {
   const entries = Object.entries(mission?.missionPriorities ?? {}).sort(
     ([uuidA, a], [uuidB, b]) => {
