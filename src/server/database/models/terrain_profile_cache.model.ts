@@ -9,6 +9,7 @@ export const Terrain_Profile_Cache_dbSchema = defineEntity({
       .mapToPk()
       .fieldName("mission_id")
       .primary()
+      .updateRule("cascade")
       .deleteRule("cascade"),
     entityUuid: p.text().fieldName("entity_uuid").primary(),
     inputSignature: p.text().fieldName("input_signature"),

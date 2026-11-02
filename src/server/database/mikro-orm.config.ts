@@ -26,6 +26,9 @@ export default defineConfig({
   },
   entitiesTs: allSchemas,
   entities: allSchemas,
+  schemaGenerator: {
+    skipTables: ["mikro_orm_migrations"],
+  },
   debug: process.env.DEBUG === "true" || process.env.DEBUG?.includes("db"),
   extensions: [Migrator, SeedManager],
 });
