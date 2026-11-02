@@ -1,6 +1,7 @@
 import {
   computePriorityColumnCoverage,
   computePriorityUnscheduledUsages,
+  diffPriorityActions,
   diffPriorityCell,
   explainMissingBaselineAction,
   getActionLineagePriorityMismatch,
@@ -293,9 +294,18 @@ describe("computePriorityColumnCoverage() — REX execution statuses and filter"
       rexStatusFilter: "completeOnly",
     });
     expect(completeOnlyCoverage.pComplete.activeCount).toBe(1);
-    expect(completeOnlyCoverage.pInProg.activeCount).toBe(0);
-    expect(completeOnlyCoverage.pInProg.excludedRexActionUuids).toEqual(["aProg"]);
-    expect(completeOnlyCoverage.pPending.activeCount).toBe(0);
+    expect(completeOnlyCoverage.pInProg).toMatchObject({
+      status: "none",
+      activeCount: 0,
+      inProgressCount: 1,
+      excludedRexActionUuids: ["aProg"],
+    });
+    expect(completeOnlyCoverage.pPending).toMatchObject({
+      status: "none",
+      activeCount: 0,
+      pendingCount: 1,
+      excludedRexActionUuids: ["aPend"],
+    });
     expect(completeOnlyCoverage.pSkipped.status).toBe("skippedOnly");
   });
 });
@@ -388,6 +398,14 @@ describe("Campaign columns, member expansion, and diff pairing", () => {
       rexStatusFilter: "all",
     });
 
+    expect(
+      groupCampaignPriorityMatchesByMemberEva({
+        mission,
+        column: executedCol,
+        cellCoverage: executedCov.p2,
+      })
+    ).toEqual({ eva1: 1 });
+
     // p2 was planned in eva1 (s1) and completed in rex1 (s1Rex) -> matched via refUuid, equal
     const diffP2 = diffPriorityCell({
       mission,
@@ -451,6 +469,37 @@ describe("Campaign columns, member expansion, and diff pairing", () => {
     });
     expect(memberCounts).toEqual({ eva1: 1, eva2: 1 });
     expect(memberCounts.eva1 + memberCounts.eva2).toBe(plannedCov.p10.activeCount);
+
+    mission.actions.disabled = generateBlankAction({
+      uuid: "disabled",
+      stationUuid: "s2",
+      enabled: false,
+      missionPriorityUuid: "p10",
+    });
+    const withDisabled = computePriorityColumnCoverage({
+      mission,
+      column: plannedCol,
+      rexStatusFilter: "all",
+    });
+    expect(withDisabled.p10.disabledCount).toBe(2);
+    expect(
+      groupCampaignPriorityMatchesByMemberEva({
+        mission,
+        column: plannedCol,
+        cellCoverage: withDisabled.p10,
+        includeDisabled: false,
+      })
+    ).toEqual({ eva1: 1, eva2: 1 });
+    const memberCountsWithDisabled = groupCampaignPriorityMatchesByMemberEva({
+      mission,
+      column: plannedCol,
+      cellCoverage: withDisabled.p10,
+      includeDisabled: true,
+    });
+    expect(memberCountsWithDisabled).toEqual({ eva1: 2, eva2: 2 });
+    expect(memberCountsWithDisabled.eva1 + memberCountsWithDisabled.eva2).toBe(
+      withDisabled.p10.activeCount + withDisabled.p10.disabledCount
+    );
 
     const eva1Cov = computePriorityColumnCoverage({
       mission,
@@ -521,6 +570,362 @@ describe("computePriorityUnscheduledUsages() & lineage mismatch", () => {
       poiIcon: "1F534",
       poiPriorityTrace: "SIMD-0002.1",
       currentPriorityTrace: "GEO-0001.1",
+    });
+  });
+});
+
+describe("resolveActionMissionPriority() — non-STM and version guards", () => {
+  test("does not interpret a non-STM action's retained definition as a legacy priority", () => {
+    const { mission } = buildFixture();
+    mission.actionDefinitions = {
+      verbs: { v1: { name: "Collect", abbr: "c" } },
+      nouns: { n1: { name: "Core", abbr: "co" } },
+      adjectives: { adjPri: { name: "Pri: simd-0002.1", abbr: "p" } },
+    };
+    const nonStm = generateBlankAction({
+      uuid: "n1",
+      stmAction: false,
+      name: "Pri: SIMD-0002.1",
+      missionPriorityUuid: null,
+      actionDefinition: { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: "adjPri" },
+    });
+    expect(resolveActionMissionPriority(nonStm, mission)).toBeNull();
+  });
+
+  test("legacy adjective mapping requires actionSystemVersion 2", () => {
+    const { mission } = buildFixture();
+    mission.actionSystemVersion = 1;
+    mission.actionDefinitions = {
+      verbs: { v1: { name: "Collect", abbr: "c" } },
+      nouns: { n1: { name: "Core", abbr: "co" } },
+      adjectives: { adjPri: { name: "Pri: simd-0002.1", abbr: "p" } },
+    };
+    const v1Action = generateBlankAction({
+      uuid: "v1act",
+      stmAction: true,
+      missionPriorityUuid: null,
+      actionDefinition: { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: "adjPri" },
+    });
+    expect(resolveActionMissionPriority(v1Action, mission)).toBeNull();
+  });
+
+  test("dangling missionPriorityUuid falls through to the legacy adjective check", () => {
+    const { mission } = buildFixture();
+    const dangling = generateBlankAction({
+      uuid: "d1",
+      stmAction: true,
+      missionPriorityUuid: "pGone",
+    });
+    expect(resolveActionMissionPriority(dangling, mission)).toBeNull();
+
+    // ...and still maps via a priority adjective when one matches
+    mission.actionDefinitions = {
+      verbs: { v1: { name: "Collect", abbr: "c" } },
+      nouns: { n1: { name: "Core", abbr: "co" } },
+      adjectives: { adjPri: { name: "Pri: simd-0002.1", abbr: "p" } },
+    };
+    dangling.actionDefinition = { verbUuid: "v1", nounUuid: "n1", adjectiveUuid: "adjPri" };
+    expect(resolveActionMissionPriority(dangling, mission)).toEqual({
+      priorityUuid: "p2",
+      trace: "SIMD-0002.1",
+      category: "Sample Collection",
+      fromLegacyAdjective: true,
+    });
+  });
+});
+
+describe("diffPriorityActions() — refUuid pairing vs fallback keys", () => {
+  test("pairs a renamed REX clone by refUuid, not by a same-named unrelated baseline action", () => {
+    const baseline = [
+      generateBlankAction({ uuid: "a1", refUuid: "r1", name: "Alpha original" }),
+      generateBlankAction({ uuid: "b1", refUuid: "r2", name: "Shared name" }),
+    ];
+    const selected = [
+      generateBlankAction({ uuid: "s2", refUuid: "r3", name: "Alpha original" }),
+      generateBlankAction({ uuid: "s1", refUuid: "r1", name: "Shared name" }),
+    ];
+
+    const { matched, added, removed } = diffPriorityActions({
+      baselineActions: baseline,
+      selectedActions: selected,
+    });
+    // s1 (ref r1) must pair with a1 (its actual clone) even though b1 shares its name
+    expect(matched.map((a) => a.uuid)).toEqual(["s1"]);
+    expect(added.map((a) => a.uuid)).toEqual(["s2"]);
+    expect(removed.map((a) => a.uuid)).toEqual(["b1"]);
+  });
+
+  test("preserves repeated campaign occurrences when one side has fewer copies", () => {
+    const baseline = generateBlankAction({ uuid: "a1", refUuid: "shared-ref", name: "Dig" });
+    const selected = generateBlankAction({ uuid: "s1", refUuid: "shared-ref", name: "Dig" });
+    expect(
+      diffPriorityActions({ baselineActions: [baseline], selectedActions: [selected, selected] })
+    ).toEqual({
+      matched: [selected],
+      added: [selected],
+      removed: [],
+    });
+    expect(
+      diffPriorityActions({ baselineActions: [baseline, baseline], selectedActions: [selected] })
+    ).toEqual({
+      matched: [selected],
+      added: [],
+      removed: [baseline],
+    });
+  });
+
+  test("STM tuple fallback pairs identical verb|noun|adjective but never differing tuples or cross-kind actions", () => {
+    const tuple = (verbUuid: string, nounUuid: string, adjectiveUuid: string) => ({
+      verbUuid,
+      nounUuid,
+      adjectiveUuid,
+    });
+    const stmAction = (uuid: string, definition: ActionDefinition, name: string) =>
+      generateBlankAction({
+        uuid,
+        refUuid: `ref-${uuid}`,
+        stmAction: true,
+        actionDefinition: definition,
+        name,
+      });
+
+    // Same tuple, different names -> matched via stm: key
+    const sameTuple = diffPriorityActions({
+      baselineActions: [stmAction("a1", tuple("v1", "n1", "ad1"), "One")],
+      selectedActions: [stmAction("s1", tuple("v1", "n1", "ad1"), "Two")],
+    });
+    expect(sameTuple.matched.map((a) => a.uuid)).toEqual(["s1"]);
+    expect(sameTuple.added).toEqual([]);
+    expect(sameTuple.removed).toEqual([]);
+
+    // Same name, different tuple -> no false pair
+    const differentTuple = diffPriorityActions({
+      baselineActions: [stmAction("a1", tuple("v1", "n1", "ad1"), "Same")],
+      selectedActions: [stmAction("s1", tuple("v1", "n2", "ad1"), "Same")],
+    });
+    expect(differentTuple.matched).toEqual([]);
+    expect(differentTuple.added.map((a) => a.uuid)).toEqual(["s1"]);
+    expect(differentTuple.removed.map((a) => a.uuid)).toEqual(["a1"]);
+
+    // STM vs non-STM with identical names -> keys differ (stm: vs name:), no pair
+    const crossKind = diffPriorityActions({
+      baselineActions: [stmAction("a1", tuple("v1", "n1", "ad1"), "Sample")],
+      selectedActions: [
+        generateBlankAction({ uuid: "s1", refUuid: "ref-s1", stmAction: false, name: "Sample" }),
+      ],
+    });
+    expect(crossKind.matched).toEqual([]);
+    expect(crossKind.added).toHaveLength(1);
+    expect(crossKind.removed).toHaveLength(1);
+  });
+
+  test("name fallback is case-insensitive and whitespace-trimming; empty refUuid falls back to name", () => {
+    const baseline = [generateBlankAction({ uuid: "a1", refUuid: "", name: "Collect Core" })];
+    const selected = [generateBlankAction({ uuid: "s1", refUuid: "", name: "  collect core  " })];
+    const { matched, added, removed } = diffPriorityActions({
+      baselineActions: baseline,
+      selectedActions: selected,
+    });
+    expect(matched.map((a) => a.uuid)).toEqual(["s1"]);
+    expect(added).toEqual([]);
+    expect(removed).toEqual([]);
+
+    const different = diffPriorityActions({
+      baselineActions: [generateBlankAction({ uuid: "a1", refUuid: "", name: "Collect Core" })],
+      selectedActions: [generateBlankAction({ uuid: "s1", refUuid: "", name: "Collect Cores" })],
+    });
+    expect(different).toMatchObject({
+      matched: [],
+      added: [{ uuid: "s1" }],
+      removed: [{ uuid: "a1" }],
+    });
+  });
+});
+
+describe("computePriorityColumnCoverage() — per-REX scoping of diff pairing", () => {
+  const buildTwoRexFixture = () => {
+    const { mission } = buildFixture();
+    mission.missionPriorities = { p2: { trace: "SIMD-0002.1", category: "Sample Collection" } };
+    mission.stations.s1Rex1 = generateBlankStation({
+      uuid: "s1Rex1",
+      refUuid: "ref-s1",
+      name: "Station 1",
+    });
+    mission.stations.s1Rex2 = generateBlankStation({
+      uuid: "s1Rex2",
+      refUuid: "ref-s1",
+      name: "Station 1",
+    });
+    mission.evas.eva1Rex1 = generateBlankEVA({
+      uuid: "eva1Rex1",
+      refUuid: "ref-eva1",
+      name: "",
+      sequence: [{ type: "station", uuid: "s1Rex1" }],
+    });
+    mission.evas.eva1Rex2 = generateBlankEVA({
+      uuid: "eva1Rex2",
+      refUuid: "ref-eva1",
+      name: "",
+      sequence: [{ type: "station", uuid: "s1Rex2" }],
+    });
+    mission.actions = {
+      planA: generateBlankAction({
+        uuid: "planA",
+        refUuid: "ref-action-a",
+        stationUuid: "s1",
+        name: "Collect core",
+        enabled: true,
+        missionPriorityUuid: "p2",
+      }),
+      aRex1: generateBlankAction({
+        uuid: "aRex1",
+        refUuid: "ref-action-a",
+        stationUuid: "s1Rex1",
+        name: "Collect core",
+        enabled: true,
+        missionPriorityUuid: "p2",
+      }),
+      aRex2: generateBlankAction({
+        uuid: "aRex2",
+        refUuid: "ref-action-a",
+        stationUuid: "s1Rex2",
+        name: "Collect core",
+        enabled: true,
+        missionPriorityUuid: "p2",
+      }),
+    };
+    mission.rexes = {
+      rex1: generateBlankRex({
+        uuid: "rex1",
+        evaUuid: "eva1Rex1",
+        name: "Run 1",
+        createdAt: 10,
+        actionEntries: { aRex1: { rexStatus: "complete" } },
+      }),
+      rex2: generateBlankRex({
+        uuid: "rex2",
+        evaUuid: "eva1Rex2",
+        name: "Run 2",
+        createdAt: 20,
+        actionEntries: { aRex2: { rexStatus: "skipped" } },
+      }),
+    };
+    return { mission };
+  };
+
+  test("each REX column only sees its own clones; cross-REX diff still pairs via shared refUuid", () => {
+    const { mission } = buildTwoRexFixture();
+    const columns = getEvaColumns(mission);
+    const rex1Col = columns.find((c) => c.rexUuid === "rex1")!;
+    const rex2Col = columns.find((c) => c.rexUuid === "rex2")!;
+
+    const rex1Cov = computePriorityColumnCoverage({
+      mission,
+      column: rex1Col,
+      rexStatusFilter: "all",
+    });
+    const rex2Cov = computePriorityColumnCoverage({
+      mission,
+      column: rex2Col,
+      rexStatusFilter: "all",
+    });
+
+    // aRex2 (same refUuid, sibling REX's station copy) must not leak into rex1's cell
+    expect(rex1Cov.p2.activeActionUuids).toEqual(["aRex1"]);
+    expect(rex1Cov.p2.status).toBe("complete");
+    expect(rex1Cov.p2.excludedRexActionUuids).toEqual([]);
+    expect(rex2Cov.p2.activeActionUuids).toEqual(["aRex2"]);
+    expect(rex2Cov.p2.status).toBe("skippedOnly");
+
+    const diff = diffPriorityCell({ mission, baseline: rex1Cov.p2, other: rex2Cov.p2 });
+    // The two REX clones share refUuid, so they pair as matched despite different station copies
+    expect(diff.matched.map((a) => a.uuid)).toEqual(["aRex2"]);
+    expect(diff.added).toEqual([]);
+    expect(diff.removed).toEqual([]);
+    expect(diff.statusChanged).toBe(true);
+    expect(diff.equal).toBe(false);
+  });
+});
+
+describe("computePriorityColumnCoverage() mixed execution statuses", () => {
+  test("filters occurrences without losing the raw status counts or status precedence", () => {
+    const { mission } = buildFixture();
+    mission.stations.sRex = generateBlankStation({ uuid: "sRex" });
+    mission.evas.rexEva = generateBlankEVA({
+      uuid: "rexEva",
+      refUuid: "ref-eva1",
+      sequence: [{ type: "station", uuid: "sRex" }],
+    });
+    mission.actions = {
+      complete: generateBlankAction({
+        uuid: "complete",
+        stationUuid: "sRex",
+        missionPriorityUuid: "p2",
+      }),
+      progress: generateBlankAction({
+        uuid: "progress",
+        stationUuid: "sRex",
+        missionPriorityUuid: "p2",
+      }),
+      mixedProgress: generateBlankAction({
+        uuid: "mixedProgress",
+        stationUuid: "sRex",
+        missionPriorityUuid: "p10",
+      }),
+      skipped: generateBlankAction({
+        uuid: "skipped",
+        stationUuid: "sRex",
+        missionPriorityUuid: "p10",
+      }),
+    };
+    mission.rexes = {
+      rex1: generateBlankRex({
+        uuid: "rex1",
+        evaUuid: "rexEva",
+        actionEntries: {
+          complete: { rexStatus: "complete" },
+          progress: { rexStatus: "in-progress" },
+          mixedProgress: { rexStatus: "in-progress" },
+          skipped: { rexStatus: "skipped" },
+        },
+      }),
+    };
+    const column = getEvaColumns(mission).find((c) => c.kind === "rex")!;
+    const coverage = (rexStatusFilter: RexStatusFilter) =>
+      computePriorityColumnCoverage({ mission, column, rexStatusFilter });
+
+    const all = coverage("all");
+    expect(all.p2).toMatchObject({
+      status: "complete",
+      activeActionUuids: ["complete", "progress"],
+    });
+    expect(all.p10).toMatchObject({
+      status: "inProgress",
+      activeActionUuids: ["mixedProgress", "skipped"],
+    });
+    expect(coverage("notSkipped").p10).toMatchObject({
+      status: "inProgress",
+      activeActionUuids: ["mixedProgress"],
+      excludedRexActionUuids: ["skipped"],
+      inProgressCount: 1,
+      skippedCount: 1,
+    });
+    const completeOnly = coverage("completeOnly");
+    expect(completeOnly.p2).toMatchObject({
+      status: "complete",
+      activeCount: 1,
+      activeActionUuids: ["complete"],
+      excludedRexActionUuids: ["progress"],
+      completeCount: 1,
+      inProgressCount: 1,
+    });
+    expect(completeOnly.p10).toMatchObject({
+      status: "none",
+      activeCount: 0,
+      activeActionUuids: [],
+      excludedRexActionUuids: ["mixedProgress", "skipped"],
+      inProgressCount: 1,
+      skippedCount: 1,
     });
   });
 });

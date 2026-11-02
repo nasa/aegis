@@ -5,7 +5,7 @@ import { Provider } from "react-redux";
 import ReportsPage from "components/panes/reports/reports-page";
 import gridStyles from "components/panes/reports/shared/report-grid.module.css";
 import { sliceReducers } from "store/index";
-import { reportSetActiveTab, reportSetRexStatusFilter } from "store/report";
+import { reportSetActiveTab, reportSetCellSelection, reportSetRexStatusFilter } from "store/report";
 import { setMissionPerms } from "store/user";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -160,6 +160,54 @@ describe("MissionPrioritiesPage UI transitions", () => {
     });
     expect(grid.textContent).toContain("SIMD-0002.1");
   });
+
+  it.each([
+    {
+      name: "a removed priority",
+      selection: { stmUuid: "p1", priorityUuid: "removed-priority", columnKey: "eva1" },
+    },
+    {
+      name: "a foreign STM row",
+      selection: { stmUuid: "level3-row", columnKey: "eva1" },
+    },
+  ])(
+    "closes the drilldown for $name and can open a valid selection again",
+    async ({ selection }) => {
+      await act(async () => {
+        root.render(
+          <Provider store={store}>
+            <ReportsPage />
+          </Provider>
+        );
+      });
+
+      const grid = container.querySelector(`.${gridStyles.gridScroll}`)!;
+      await act(async () => {
+        (
+          grid.querySelector('[aria-label="SIMD-0002.1 (Sample Collection)"]') as HTMLElement
+        ).click();
+      });
+      const drilldown = () => container.querySelector(`.${gridStyles.drilldown}`);
+      expect(drilldown()?.textContent).toContain("In EVA Alpha");
+      expect(drilldown()?.textContent).toContain("Collect regolith");
+
+      await act(async () => {
+        store.dispatch(reportSetCellSelection({ reportId: "missionPriorities", selection }));
+      });
+      expect(drilldown()).toBeNull();
+
+      await act(async () => {
+        store.dispatch(
+          reportSetCellSelection({
+            reportId: "missionPriorities",
+            selection: { stmUuid: "p1", priorityUuid: "p1", columnKey: "eva1" },
+          })
+        );
+      });
+      expect(drilldown()?.textContent).toContain("In EVA Alpha");
+      expect(drilldown()?.textContent).toContain("Collect regolith");
+    }
+  );
 
   it("opens drilldown with lineage mismatch note, toggles Show disabled, and shows missing baseline explanation in Diff mode", async () => {
     await act(async () => {
