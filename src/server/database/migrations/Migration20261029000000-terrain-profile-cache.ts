@@ -6,7 +6,7 @@ export class Migration20261029000000 extends Migration {
       create table terrain_profile_cache_db (
         mission_id integer not null,
         entity_uuid text not null,
-        fingerprint text not null,
+        input_signature text not null,
         profile jsonb not null,
         primary key (mission_id, entity_uuid),
         constraint terrain_profile_cache_db_mission_id_foreign foreign key (mission_id)
