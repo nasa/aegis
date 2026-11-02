@@ -61,7 +61,7 @@ Every persistent application table must have its own matching `.model.ts` file i
 
 When creating or changing a table, update its model in the same change. Match the table and column names, types, nullability, defaults, primary keys, foreign keys, unique constraints, and indexes. Check for an existing model before adding one, and keep migration-local historical schemas in `_legacyModels.ts` separate from current models.
 
-Framework-owned tables require special handling: `mikro_orm_migrations` has a read-only model and is excluded from schema generation with `schemaGenerator.skipTables`; its schema and writes belong to MikroORM's migrator. Do not generate an application migration for that table. Temporary tables and implicit ORM join tables do not need separate model files.
+Framework-owned tables such as `mikro_orm_migrations` are managed by the framework and must not have application models or application migrations. MikroORM handles its migration table automatically. The application-owned `automerge_migration_db` table does require a registered model. Temporary tables and implicit ORM join tables do not need separate model files.
 
 Verify entity discovery and schema generation after model changes. Adding a model for an existing table should not generate schema changes when the model matches the database. Preserve migration immutability when fixing missing or outdated models.
 

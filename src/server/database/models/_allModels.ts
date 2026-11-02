@@ -5,7 +5,6 @@ import { Automerge_Migration_db, Automerge_Migration_dbSchema } from "./automerg
 import { Automerge_Native_db, Automerge_Native_dbSchema } from "./automerge_native.model";
 import { Doc_Listing_db, Doc_Listing_dbSchema } from "./doc_listing.model";
 import { EnvironmentConfig_db, EnvironmentConfig_dbSchema } from "./environmentConfig.model";
-import { Mikro_Orm_Migrations, Mikro_Orm_MigrationsSchema } from "./mikro_orm_migrations.model";
 import {
   Terrain_Profile_Cache_db,
   Terrain_Profile_Cache_dbSchema,
@@ -19,7 +18,6 @@ export const allSchemas = [
   Automerge_Native_dbSchema,
   Doc_Listing_dbSchema,
   EnvironmentConfig_dbSchema,
-  Mikro_Orm_MigrationsSchema,
   Mission_Catalog_dbSchema,
   Mission_Eva_Catalog_dbSchema,
   Terrain_Profile_Cache_dbSchema,
@@ -31,7 +29,6 @@ export {
   Doc_Listing_db,
   Automerge_Native_db,
   EnvironmentConfig_db,
-  Mikro_Orm_Migrations,
   Mission_Catalog_db,
   Mission_Eva_Catalog_db,
   Terrain_Profile_Cache_db,
