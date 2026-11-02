@@ -68,6 +68,7 @@ type Rex = {
 type RexWithLegacyFields = Rex & {
   xgressEntries?: { [role: string]: { rexStatus: RexStatus } } | null;
   maestroActivityPropertiesByRefUuid?: { [refUuid: string]: MaestroActivityProperty } | null;
+  description?: string;
 };
 
 /**

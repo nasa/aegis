@@ -38,7 +38,7 @@ type LegacyRex = Rex & {
   missionId: number;
   xgressEntries?: Record<string, { rexStatus: RexStatus }> | null;
   maestroActivityPropertiesByRefUuid?: MaestroActivityProperties | null;
-  description: string;
+  description?: string;
 };
 
 export const Migration20260416000000: AutomergeMigration = {
