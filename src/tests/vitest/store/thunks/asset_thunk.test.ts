@@ -73,15 +73,32 @@ describe("getMostRecentAsset", () => {
 });
 
 describe("thunkAddAsset", () => {
-  it("prefills name and emoji from the most recently created asset", async () => {
-    const older = generateBlankAsset({ name: "Old", icon: "1F4A1", createdAt: 1 });
-    const newer = generateBlankAsset({ name: "Tools", icon: "1F9F0", createdAt: 2 });
+  it("prefills radius and color from the most recently created asset", async () => {
+    const older = generateBlankAsset({
+      name: "Old",
+      color: "#ff0000",
+      uncertaintyMeters: 3,
+      createdAt: 1,
+    });
+    const newer = generateBlankAsset({
+      name: "Tools",
+      icon: "1F9F0",
+      color: "#00ff00",
+      uncertaintyMeters: 7,
+      createdAt: 2,
+    });
     getMissionDocHandle().change((m) => {
       m.assets[older.uuid] = older;
       m.assets[newer.uuid] = newer;
     });
     await store.dispatch(thunkAddAsset());
-    expect(inEdit().values).toMatchObject({ name: "Tools", icon: "1F9F0", location: null });
+    expect(inEdit().values).toMatchObject({
+      name: "",
+      icon: null,
+      color: "#00ff00",
+      uncertaintyMeters: 7,
+      location: null,
+    });
     expect(inEdit().isNew).toBe(true);
     expect(store.getState().asset.selectedAssetUuid).toBe(inEdit().uuid);
 
@@ -91,9 +108,14 @@ describe("thunkAddAsset", () => {
     expect(inEdit().uuid).toBe(uuid);
   });
 
-  it("starts blank with no emoji when the mission has no assets", async () => {
+  it("starts blank when the mission has no assets", async () => {
     await store.dispatch(thunkAddAsset());
-    expect(inEdit().values).toMatchObject({ name: "", icon: null });
+    expect(inEdit().values).toMatchObject({
+      name: "",
+      icon: null,
+      color: null,
+      uncertaintyMeters: 0,
+    });
   });
 });
 
