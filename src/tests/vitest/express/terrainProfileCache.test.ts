@@ -3,7 +3,6 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import { randomUUID } from "node:crypto";
 import config from "server/database/mikro-orm.config";
 import { Migration20261029000000 } from "server/database/migrations/Migration20261029000000-terrain-profile-cache";
-import { Migration20261029010000 } from "server/database/migrations/Migration20261029010000-terrain-profile-input-signature";
 import { globalValues } from "server/express/global";
 import { Doc_Listing_db, Doc_Listing_dbSchema } from "server/database/models/doc_listing.model";
 import {
@@ -42,11 +41,6 @@ beforeAll(async () => {
     migration.down();
     migration.up();
     for (const query of migration.getQueries()) await tx.execute(query as string);
-    const rename = new Migration20261029010000(tx.getDriver(), globalValues.orm.config);
-    rename.up();
-    rename.down();
-    rename.up();
-    for (const query of rename.getQueries()) await tx.execute(query as string);
   });
 });
 afterAll(async () => {
