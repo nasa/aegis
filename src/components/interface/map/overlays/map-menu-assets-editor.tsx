@@ -134,7 +134,23 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
   const [saving, setSaving] = useState(false);
   const saveEnabled = editable && dirty && !invalid && uncertaintyValid && !saving;
   const emojiDialogRef = useRef<HTMLDialogElement>(null);
-  const [showColorPicker, setShowColorPicker] = useState(false);
+  const colorSwatchRef = useRef<HTMLButtonElement>(null);
+  const colorDialogRef = useRef<HTMLDialogElement>(null);
+
+  /** Open the color dialog in the top layer, anchored below the swatch (flipped up near the bottom). */
+  const openColorPicker = () => {
+    const dialog = colorDialogRef.current;
+    if (!dialog) return;
+    const swatch = colorSwatchRef.current?.getBoundingClientRect();
+    dialog.showModal();
+    if (!swatch) return;
+    const rect = dialog.getBoundingClientRect();
+    const left = Math.max(8, Math.min(swatch.left, window.innerWidth - rect.width - 8));
+    const below = swatch.bottom + 4;
+    const top = below + rect.height > window.innerHeight - 8 ? swatch.top - rect.height - 4 : below;
+    dialog.style.left = `${left}px`;
+    dialog.style.top = `${Math.max(8, top)}px`;
+  };
 
   const submitCoordinates = () => {
     if (!inEdit) return;
@@ -379,36 +395,36 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
             />
             <span className={styles.fieldNote}>m</span>
             <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
-            <div className={styles.colorField}>
-              <button
-                type="button"
-                className={styles.colorSwatch}
-                style={
-                  values.color
-                    ? { backgroundColor: values.color, backgroundImage: "none" }
-                    : undefined
-                }
-                onClick={() => setShowColorPicker(true)}
-                disabled={!editable}
-                aria-label="Choose radius color"
-                data-testid="asset-editor-color"
-              />
-              {showColorPicker && (
-                <div className={styles.colorPopover}>
-                  <div className={styles.colorCover} onClick={() => setShowColorPicker(false)} />
-                  <div className={styles.colorMenu}>
-                    <CompactColor
-                      color={values.color ?? undefined}
-                      colors={COLOR_PALATTE}
-                      onChange={(color) => {
-                        dispatch(updateAssetInEditValues({ color: color.hex }));
-                        setShowColorPicker(false);
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              ref={colorSwatchRef}
+              className={styles.colorSwatch}
+              style={
+                values.color
+                  ? { backgroundColor: values.color, backgroundImage: "none" }
+                  : undefined
+              }
+              onClick={openColorPicker}
+              disabled={!editable}
+              aria-label="Choose radius color"
+              data-testid="asset-editor-color"
+            />
+            <dialog
+              ref={colorDialogRef}
+              className={styles.colorDialog}
+              onClick={() => colorDialogRef.current?.close()}
+            >
+              <div className={styles.colorMenu} onClick={(e) => e.stopPropagation()}>
+                <CompactColor
+                  color={values.color ?? undefined}
+                  colors={COLOR_PALATTE}
+                  onChange={(color) => {
+                    dispatch(updateAssetInEditValues({ color: color.hex }));
+                    colorDialogRef.current?.close();
+                  }}
+                />
+              </div>
+            </dialog>
             {values.color ? (
               <Button
                 onClick={() => dispatch(updateAssetInEditValues({ color: null }))}
