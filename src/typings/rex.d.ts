@@ -27,7 +27,6 @@ type Rex = {
   uuid: string;
   ownerId: number;
   name: string;
-  description: string;
   petStartStopTimestamp: string | null; // the timestamp the play/pause button was clicked
   petValueAtStartStop: string; // the value of the pet timer when the play/pause button was clicked in "+hh:mm:ss"
   petRunning: boolean; // whether the timer is currently running

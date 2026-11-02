@@ -117,7 +117,6 @@ function makeRex(overrides: Partial<Rex> = {}): Rex {
     uuid: REX_UUID,
     ownerId: 1,
     name: "Test REX",
-    description: "",
     petStartStopTimestamp: null,
     petValueAtStartStop: "+00:00:00",
     petRunning: false,
