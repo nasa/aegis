@@ -74,6 +74,9 @@ type GridSpacingMode = "auto" | 10 | 100 | 1000;
 /**
  * Cookie for map menu settings
  */
+/** Traverse bearing labels: one per segment, or spaced evenly along the path. */
+type TraverseBearingMode = "segment" | "path";
+
 type MapMenuCookie = {
   submenuStations: MapSubmenuStations;
   submenuPois: MapSubmenuMarkers;
@@ -81,6 +84,7 @@ type MapMenuCookie = {
   submenuPos: MapSubmenuPos;
   showArrows: boolean;
   showBearings?: boolean;
+  bearingMode?: TraverseBearingMode;
   showDistances?: boolean;
   showSunEarth: boolean;
   showScaleBar: boolean;

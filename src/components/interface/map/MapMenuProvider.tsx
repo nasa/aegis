@@ -30,6 +30,7 @@ export interface MapMenuSettings {
   submenuPos: MapSubmenuPos;
   showArrows: boolean;
   showBearings: boolean;
+  bearingMode: TraverseBearingMode;
   showDistances: boolean;
   showScaleBar: boolean;
   showMouseLatLon: boolean;
@@ -45,6 +46,7 @@ export interface MapMenuSetters {
   setSubmenuPos: Dispatch<SetStateAction<MapSubmenuPos>>;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
   setShowBearings: Dispatch<SetStateAction<boolean>>;
+  setBearingMode: Dispatch<SetStateAction<TraverseBearingMode>>;
   setShowDistances: Dispatch<SetStateAction<boolean>>;
   setShowScaleBar: Dispatch<SetStateAction<boolean>>;
   setShowMouseLatLon: Dispatch<SetStateAction<boolean>>;
@@ -70,7 +72,8 @@ const DEFAULT_SETTINGS: MapMenuSettings = {
     sourceUuids: [],
   },
   showArrows: true,
-  showBearings: true,
+  showBearings: false,
+  bearingMode: "segment",
   showDistances: true,
   showScaleBar: true,
   showMouseLatLon: true,
@@ -118,6 +121,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
   const [submenuPos, setSubmenuPos] = useState<MapSubmenuPos>(DEFAULT_SETTINGS.submenuPos);
   const [showArrows, setShowArrows] = useState(DEFAULT_SETTINGS.showArrows);
   const [showBearings, setShowBearings] = useState(DEFAULT_SETTINGS.showBearings);
+  const [bearingMode, setBearingMode] = useState<TraverseBearingMode>(DEFAULT_SETTINGS.bearingMode);
   const [showDistances, setShowDistances] = useState(DEFAULT_SETTINGS.showDistances);
   const [showScaleBar, setShowScaleBar] = useState(DEFAULT_SETTINGS.showScaleBar);
   const [showMouseLatLon, setShowMouseLatLon] = useState(DEFAULT_SETTINGS.showMouseLatLon);
@@ -141,7 +145,12 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
     if (saved.submenuActions) setSubmenuActions(saved.submenuActions);
     if (saved.submenuPos) setSubmenuPos(saved.submenuPos);
     if (saved.showArrows !== undefined) setShowArrows(saved.showArrows);
-    if (saved.showBearings !== undefined) setShowBearings(saved.showBearings);
+    // Cookies from before `bearingMode` stored the old default (bearings on), so
+    // their `showBearings` is ignored and bearings start off.
+    if (saved.bearingMode === "segment" || saved.bearingMode === "path") {
+      setBearingMode(saved.bearingMode);
+      if (saved.showBearings !== undefined) setShowBearings(saved.showBearings);
+    }
     if (saved.showDistances !== undefined) setShowDistances(saved.showDistances);
     setShowScaleBar(saved.showScaleBar ?? true);
     setShowMouseLatLon(saved.showMouseLatLon ?? true);
@@ -162,6 +171,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
         submenuPos,
         showArrows,
         showBearings,
+        bearingMode,
         showDistances,
         showSunEarth,
         showScaleBar,
@@ -181,6 +191,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
     submenuPos,
     showArrows,
     showBearings,
+    bearingMode,
     showDistances,
     showSunEarth,
     showScaleBar,
@@ -198,6 +209,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       submenuPos,
       showArrows,
       showBearings,
+      bearingMode,
       showDistances,
       showScaleBar,
       showMouseLatLon,
@@ -212,6 +224,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       submenuPos,
       showArrows,
       showBearings,
+      bearingMode,
       showDistances,
       showScaleBar,
       showMouseLatLon,
@@ -229,6 +242,7 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       setSubmenuPos,
       setShowArrows,
       setShowBearings,
+      setBearingMode,
       setShowDistances,
       setShowScaleBar,
       setShowMouseLatLon,

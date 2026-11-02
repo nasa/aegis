@@ -35,6 +35,7 @@ import { faClock } from "@fortawesome/free-regular-svg-icons";
 
 import { selectEvaStations, selectEvaTraverses } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDisplayedTraverseRecord } from "components/interface/traversePaths/TraversePathsProvider";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
@@ -51,7 +52,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
 
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
 
-  const docMaps = useMissionDocSelector(
+  const docMapsFromDoc = useMissionDocSelector(
     (mission) => ({
       evas: mission.evas,
       rexes: mission.rexes,
@@ -60,6 +61,12 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       traverses: mission.traverses,
     }),
     shallowEqual
+  );
+  // Previewed Newton paths drive totals in this tab; the doc is unchanged.
+  const displayedTraverses = useDisplayedTraverseRecord(docMapsFromDoc?.traverses);
+  const docMaps = useMemo(
+    () => docMapsFromDoc && { ...docMapsFromDoc, traverses: displayedTraverses },
+    [docMapsFromDoc, displayedTraverses]
   );
 
   const selectedEva = useMemo(

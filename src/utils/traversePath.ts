@@ -117,14 +117,13 @@ export function rowErrorMessage(row: TraversePathRow): string | null {
   return message.replace(/^ArgumentError:\s*/, "");
 }
 
+/** Status shown in Path Options; an active option shows "Active" instead. */
 export function rowStatusLabel(status: TraversePathStatus): string {
   switch (status) {
     case "submitting":
-      return "Submitting";
     case "pending":
-      return "Queued";
     case "in_progress":
-      return "Planning";
+      return "Requested";
     case "succeeded":
       return "Ready";
     case "failed":
@@ -213,7 +212,7 @@ export function buildTraversePathPreview(
   row: TraversePathRow,
   target: TraversePathTarget,
   radius: number
-): TraversePathPreview | null {
+): Omit<TraversePathPreview, "profile" | "profileStatus"> | null {
   if (row.status !== "succeeded" || !isLocated(target.start) || !isLocated(target.end)) {
     return null;
   }
@@ -240,18 +239,18 @@ export function manualCandidateId(traverseUuid: string): string {
 
 /**
  * The traverse as it would look with the preview applied. Elevation and slope
- * profiles are cleared because they belong to the doc path.
+ * come from the preview's own profile, or are null until it loads.
  */
-export function applyTraversePathPreview(
-  traverse: Traverse,
+export function applyTraversePathPreview<T extends Traverse | undefined>(
+  traverse: T,
   preview: TraversePathPreview | undefined
-): Traverse {
+): T {
   if (!traverse || !preview) return traverse;
   return {
     ...traverse,
     path: preview.path,
     pathSegmentDistances: preview.segmentDistances,
-    pathSegmentElevations: null,
-    pathSegmentAbsoluteSlopes: null,
+    pathSegmentElevations: preview.profile?.elevationsMeters ?? null,
+    pathSegmentAbsoluteSlopes: preview.profile?.terrainSlopesDegrees ?? null,
   };
 }

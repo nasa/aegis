@@ -16,6 +16,7 @@ import { initGraphItemsRef, initPaperRefs } from "./timeline-init";
 import TimelineHoverValues from "./timeline-hover";
 import { selectEvaActions, selectEvaStations, selectEvaTraverses } from "store/selectors";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDisplayedTraverses } from "components/interface/traversePaths/TraversePathsProvider";
 import { setSelectedPosEntryUuid } from "store/rex";
 import PetInterval from "../../page/petInterval";
 import { getStmUuids } from "store/storeUtils/store";
@@ -69,10 +70,12 @@ const NavTimeline: FunctionComponent = () => {
     (mission) => selectEvaStations(mission, selectedEvaUuid),
     deepEqual
   );
-  const evaTraverses = useMissionDocSelector(
+  const docEvaTraverses = useMissionDocSelector(
     (mission) => selectEvaTraverses(mission, selectedEvaUuid),
     deepEqual
   );
+  // Previewed Newton paths drive the timeline in this tab; the doc is unchanged.
+  const evaTraverses = useDisplayedTraverses(docEvaTraverses);
   const runningRex = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return null;
     return Object.values(mission.rexes).find((r) => r.isRunning) ?? null;

@@ -12,6 +12,12 @@ import type { Coordinate } from "ol/coordinate";
 import Color from "color";
 import { range_bearing_from_xy } from "utils/surf-nav/orienteering";
 
+import {
+  BEARING_LABEL_MIN_SPACING_PX,
+  thinBearingAnchors,
+  type BearingAnchor,
+} from "../bearingAnchors";
+
 // ---------------------------------------------------------------------------
 // Chevron arrow SVG (inline data URI, cached)
 // ---------------------------------------------------------------------------
@@ -108,6 +114,8 @@ export interface TraverseStyleOptions {
   selectedWeight: number;
   showArrows: boolean;
   showBearings: boolean;
+  /** Bearing labels per segment (default), or from the feature's `bearingAnchors`. */
+  bearingMode?: TraverseBearingMode;
   showDistances: boolean;
   arrowSize: number;
   arrowRepeat: number; // pixels between arrows
@@ -153,6 +161,33 @@ function getBaseLineStyles(
   return styles;
 }
 
+/** A bearing label rotated along the direction of travel, kept right-side up. */
+function bearingLabelStyle(
+  coord: Coordinate,
+  bearing: number,
+  angle: number,
+  fontSize: number,
+  color: string
+): Style {
+  let textRotation = -angle;
+  const normalizedAngle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const isUpsideDown = normalizedAngle > Math.PI / 2 && normalizedAngle < (3 * Math.PI) / 2;
+  const arrowChar = isUpsideDown ? "◄" : "►";
+  if (isUpsideDown) textRotation = -angle + Math.PI;
+  return new Style({
+    geometry: new Point(coord),
+    text: new Text({
+      text: `${arrowChar} ${Math.round(bearing)}°`,
+      font: `bold ${fontSize}px sans-serif`,
+      fill: new Fill({ color }),
+      stroke: new Stroke({ color: "#000000", width: 3 }),
+      textAlign: "center",
+      textBaseline: "middle",
+      rotation: textRotation,
+    }),
+  });
+}
+
 export function buildTraverseStyleFunction(
   opts: TraverseStyleOptions
 ): (feature: FeatureLike, resolution: number) => Style[] {
@@ -176,6 +211,25 @@ export function buildTraverseStyleFunction(
       // so labels match the traverse info panel. Fall back to projected math.
       const segBearings = feature.get("segmentBearings") as number[] | undefined;
       const segDistances = feature.get("segmentDistances") as number[] | undefined;
+      const anchors = feature.get("bearingAnchors") as BearingAnchor[] | undefined;
+      const alongPath = opts.bearingMode === "path" && !!anchors;
+
+      if (opts.showBearings && alongPath) {
+        for (const anchor of thinBearingAnchors(
+          anchors,
+          BEARING_LABEL_MIN_SPACING_PX * resolution
+        )) {
+          styles.push(
+            bearingLabelStyle(
+              anchor.coord,
+              anchor.bearing,
+              anchor.angle,
+              opts.bearingLabelFontSize,
+              opts.bearingLabelColor
+            )
+          );
+        }
+      }
 
       for (let i = 0; i < coords.length - 1; i++) {
         const a = coords[i];
@@ -195,33 +249,19 @@ export function buildTraverseStyleFunction(
         }
 
         // Bearing label on the line (at 15% of segment from start)
-        if (opts.showBearings) {
+        if (opts.showBearings && !alongPath) {
           const bearing = segBearings?.[i] ?? range_bearing_from_xy(b[0], b[1], a[0], a[1]).bearing;
           const bearingFraction = 0.15;
           const bx = a[0] + (b[0] - a[0]) * bearingFraction;
           const by = a[1] + (b[1] - a[1]) * bearingFraction;
-
-          // Calculate text rotation to align with the line, keep right-side up
-          let textRotation = -angle;
-          const normalizedAngle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-          const isUpsideDown = normalizedAngle > Math.PI / 2 && normalizedAngle < (3 * Math.PI) / 2;
-
-          const arrowChar = isUpsideDown ? "◄" : "►";
-          if (isUpsideDown) textRotation = -angle + Math.PI;
-
           styles.push(
-            new Style({
-              geometry: new Point([bx, by]),
-              text: new Text({
-                text: `${arrowChar} ${Math.round(bearing)}°`,
-                font: `bold ${opts.bearingLabelFontSize}px sans-serif`,
-                fill: new Fill({ color: opts.bearingLabelColor }),
-                stroke: new Stroke({ color: "#000000", width: 3 }),
-                textAlign: "center",
-                textBaseline: "middle",
-                rotation: textRotation,
-              }),
-            })
+            bearingLabelStyle(
+              [bx, by],
+              bearing,
+              angle,
+              opts.bearingLabelFontSize,
+              opts.bearingLabelColor
+            )
           );
         }
 

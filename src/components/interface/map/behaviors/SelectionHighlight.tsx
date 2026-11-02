@@ -17,6 +17,7 @@ import { containsCoordinate } from "ol/extent";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDisplayedTraverses } from "components/interface/traversePaths/TraversePathsProvider";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { Z_INDEX } from "../utils/zIndex";
@@ -98,10 +99,8 @@ export function SelectionHighlight(): null {
     return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posEntries ?? []) : [];
   }, deepEqual);
 
-  const allTraversesFromDoc = useMissionDocSelector(
-    (m) => Object.values(m.traverses ?? {}),
-    deepEqual
-  );
+  const docTraverses = useMissionDocSelector((m) => Object.values(m.traverses ?? {}), deepEqual);
+  const allTraversesFromDoc = useDisplayedTraverses(docTraverses);
 
   const sourceRef = useRef(new VectorSource());
   const layerRef = useRef<VectorLayer<VectorSource> | null>(null);

@@ -91,6 +91,8 @@ export function MapOverlays(): JSX.Element {
             setShowArrows={setters.setShowArrows}
             showBearings={display.showBearings}
             setShowBearings={setters.setShowBearings}
+            bearingMode={display.bearingMode}
+            setBearingMode={setters.setBearingMode}
             showDistances={display.showDistances}
             setShowDistances={setters.setShowDistances}
             mapDisplayPos={display.submenuPos}

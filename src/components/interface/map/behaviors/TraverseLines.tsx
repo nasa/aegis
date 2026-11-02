@@ -20,7 +20,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkPolylineOnClick } from "store/thunk/thunkMap";
 import { setHoverUuidsForSequence, clearMapItemHover } from "store/hover";
 import { getDistanceBetweenTwoCoordinates, getSegmentBearing } from "utils/mapping/geoMath";
-import { useTraversePathsContext } from "components/interface/traversePaths/TraversePathsProvider";
+import { useDisplayedTraverses } from "components/interface/traversePaths/TraversePathsProvider";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -29,6 +29,7 @@ import { useMapMenuContext } from "../MapMenuProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { reconcileFeatures, type FeatureDescriptor } from "../utils/featureReconciler";
 import { buildTraverseStyleFunction } from "../utils/styles/polylines";
+import { buildBearingAnchors } from "../utils/bearingAnchors";
 import { Z_INDEX } from "../utils/zIndex";
 
 export function TraverseLines(): null {
@@ -36,10 +37,8 @@ export function TraverseLines(): null {
   const config = MODE_CONFIGS[mode];
   const dispatch = useAppDispatch();
   const { traverseSource } = useFeatureSourcesContext();
-  const { showArrows, showBearings, showDistances } = useMapMenuContext();
+  const { showArrows, showBearings, bearingMode, showDistances } = useMapMenuContext();
   const { toMapCoord } = useCoordConverters();
-  // Client-side Newton path previews; absent outside the mission editor.
-  const previewByTraverseUuid = useTraversePathsContext()?.previewByTraverseUuid;
 
   // --- Redux UI state ---
   const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
@@ -61,10 +60,9 @@ export function TraverseLines(): null {
     return selectedEvaUuid ? (m.evas?.[selectedEvaUuid] ?? null) : null;
   }, deepEqual);
 
-  const allTraversesFromDoc = useMissionDocSelector(
-    (m) => Object.values(m.traverses ?? {}),
-    deepEqual
-  );
+  const docTraverses = useMissionDocSelector((m) => Object.values(m.traverses ?? {}), deepEqual);
+  // Client-side Newton path previews replace the doc path in the editor.
+  const allTraversesFromDoc = useDisplayedTraverses(docTraverses);
 
   const planetRadius = useMissionDocSelector((m) => m.planetRadius ?? 1737400, refEqual) as number;
   const usingLGRSCoordinates = useMissionDocSelector((m) => m.usingLGRSCoordinates, refEqual);
@@ -140,7 +138,7 @@ export function TraverseLines(): null {
 
   useEffect(() => {
     const mapper = (traverse: Traverse): FeatureDescriptor | null => {
-      const path = previewByTraverseUuid?.[traverse.uuid]?.path ?? traverse.path;
+      const path = traverse.path;
       if (!path || path.length < 2) return null;
       const validPath = path.filter((p) => p.lat != null && p.lng != null);
       const coords = validPath.map((p) => toMapCoord(p));
@@ -159,6 +157,14 @@ export function TraverseLines(): null {
       // using projected-grid geometry (which is distorted near the pole).
       const segmentBearings: number[] = [];
       const segmentDistances: number[] = [];
+      const bearingAnchors =
+        !isThisFeatureEditing && bearingMode === "path"
+          ? buildBearingAnchors(validPath, {
+              radius: planetRadius,
+              usingLGRSCoordinates,
+              toMapCoord,
+            })
+          : undefined;
       if (!isThisFeatureEditing) {
         for (let i = 0; i < validPath.length - 1; i++) {
           segmentBearings.push(
@@ -179,7 +185,7 @@ export function TraverseLines(): null {
           mapItemType: "traverse",
           // Withheld while editing to avoid a feature.changed() that would
           // detach the in-progress Modify drag (see note above).
-          ...(isThisFeatureEditing ? {} : { segmentBearings, segmentDistances }),
+          ...(isThisFeatureEditing ? {} : { segmentBearings, segmentDistances, bearingAnchors }),
         },
       };
     };
@@ -194,7 +200,7 @@ export function TraverseLines(): null {
     mapDirective?.uuid,
     planetRadius,
     usingLGRSCoordinates,
-    previewByTraverseUuid,
+    bearingMode,
   ]);
 
   // --- Style function ---
@@ -210,6 +216,7 @@ export function TraverseLines(): null {
       // Per-mode config gates capability (e.g. minimap never shows these);
       // the eyeball-menu toggles let the user turn them off where supported.
       showBearings: config.traverse.showBearings && showBearings,
+      bearingMode,
       showDistances: config.traverse.showDistances && showDistances,
       arrowSize: config.traverse.arrowSize,
       arrowRepeat: config.traverse.arrowRepeat,
@@ -221,7 +228,7 @@ export function TraverseLines(): null {
       getIsSelected: (feature) => feature.getId() === selectedTraverseUuid,
     });
     layer.setStyle(styleFn);
-  }, [config, showArrows, showBearings, showDistances, selectedTraverseUuid]);
+  }, [config, showArrows, showBearings, bearingMode, showDistances, selectedTraverseUuid]);
 
   // --- Click handler (disabled during any active edit) ---
   useEffect(() => {

@@ -76,7 +76,20 @@ type TraversePathPreview = {
   path: AEGISPoint[];
   segmentDistances: number[];
   rawVertexCount: number;
+  /** Mission-DEM profile of `path`; null until loaded or when unavailable. */
+  profile: TerrainProfile | null;
+  profileStatus: TraversePathProfileStatus;
 };
+
+type TraversePathProfileStatus = "loading" | "ready" | "unavailable";
+
+/** Fetches the mission-DEM profile for a previewed path. Null when there is none. */
+type TraversePathProfileFetcher = (args: {
+  missionId: number;
+  rowUuid: string;
+  path: AEGISPoint[];
+  segmentDistances: number[];
+}) => Promise<TerrainProfile | null>;
 
 type TraversePathsContextValue = {
   source: TraversePathSource;

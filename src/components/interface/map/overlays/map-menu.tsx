@@ -67,6 +67,8 @@ interface MapMenuProps {
   setShowArrows: Dispatch<SetStateAction<boolean>>;
   showBearings: boolean;
   setShowBearings: Dispatch<SetStateAction<boolean>>;
+  bearingMode?: TraverseBearingMode;
+  setBearingMode?: Dispatch<SetStateAction<TraverseBearingMode>>;
   showDistances: boolean;
   setShowDistances: Dispatch<SetStateAction<boolean>>;
   mapDisplayPos: MapSubmenuPos;
@@ -96,6 +98,8 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   setShowArrows,
   showBearings,
   setShowBearings,
+  bearingMode = "segment",
+  setBearingMode,
   showDistances,
   setShowDistances,
   mapDisplayPos,
@@ -634,6 +638,39 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                 Distances
               </div>
             </div>
+            {setBearingMode && (
+              <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
+                Bearings
+                <div
+                  className={`${styles.toggleLeft} ${styles.center} ${
+                    bearingMode === "segment" && styles.toggleSelected
+                  }`}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-content="One bearing label per path segment"
+                  data-testid="map-menu-bearing-mode-segment"
+                  onClick={() => {
+                    setBearingMode("segment");
+                    setShowBearings(true);
+                  }}
+                >
+                  Per Segment
+                </div>
+                <div
+                  className={`${styles.toggleRight} ${styles.center} ${
+                    bearingMode === "path" && styles.toggleSelected
+                  }`}
+                  data-tooltip-id="aegis-tooltip"
+                  data-tooltip-content="Bearing labels spaced evenly along the path, for detailed paths"
+                  data-testid="map-menu-bearing-mode-path"
+                  onClick={() => {
+                    setBearingMode("path");
+                    setShowBearings(true);
+                  }}
+                >
+                  Along Path
+                </div>
+              </div>
+            )}
             <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
               Grid
               {GRID_SPACING_OPTIONS.map((opt, idx) => {
@@ -780,6 +817,8 @@ export const MapMenuPanel: FunctionComponent = () => {
       setShowArrows={setters.setShowArrows}
       showBearings={display.showBearings}
       setShowBearings={setters.setShowBearings}
+      bearingMode={display.bearingMode}
+      setBearingMode={setters.setBearingMode}
       showDistances={display.showDistances}
       setShowDistances={setters.setShowDistances}
       mapDisplayPos={display.submenuPos}

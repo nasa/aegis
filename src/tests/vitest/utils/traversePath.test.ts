@@ -8,6 +8,7 @@ import {
   roundedPointsEqual,
   rowApplies,
   rowErrorMessage,
+  rowStatusLabel,
   rowToCandidate,
   simplifyPathToEndpoints,
   splitRowsForTarget,
@@ -208,9 +209,37 @@ describe("traverse path preview", () => {
       pathSegmentDistances: [1],
       pathSegmentElevations: [[1, 2]],
     } as unknown as Traverse;
-    const shown = applyTraversePathPreview(traverse, preview);
+    const loading: TraversePathPreview = { ...preview, profile: null, profileStatus: "loading" };
+    const shown = applyTraversePathPreview(traverse, loading);
     expect(shown.pathSegmentDistances).toEqual(preview.segmentDistances);
     expect(shown.pathSegmentElevations).toBeNull();
+    expect(shown.pathSegmentAbsoluteSlopes).toBeNull();
     expect(applyTraversePathPreview(traverse, undefined)).toBe(traverse);
+  });
+
+  it("maps a loaded preview profile onto the segment arrays", () => {
+    const base = buildTraversePathPreview(makeRow(), target, R);
+    const profile: TerrainProfile = {
+      elevationsMeters: [[10, 12, 15]],
+      terrainSlopesDegrees: [[2, null, 4]],
+    };
+    const traverse = { uuid: "t-1", path: [A, C] } as unknown as Traverse;
+    const shown = applyTraversePathPreview(traverse, {
+      ...base,
+      profile,
+      profileStatus: "ready",
+    });
+    expect(shown.pathSegmentElevations).toBe(profile.elevationsMeters);
+    expect(shown.pathSegmentAbsoluteSlopes).toBe(profile.terrainSlopesDegrees);
+  });
+});
+
+describe("rowStatusLabel", () => {
+  it("shows unfinished jobs as Requested and succeeded ones as Ready", () => {
+    expect(rowStatusLabel("submitting")).toBe("Requested");
+    expect(rowStatusLabel("pending")).toBe("Requested");
+    expect(rowStatusLabel("in_progress")).toBe("Requested");
+    expect(rowStatusLabel("succeeded")).toBe("Ready");
+    expect(rowStatusLabel("failed")).toBe("Failed");
   });
 });

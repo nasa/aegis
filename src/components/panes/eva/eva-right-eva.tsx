@@ -39,6 +39,7 @@ import isNull from "lodash/isNull";
 import { thunkDocDeleteRex } from "store/thunk/thunkRex";
 import { LoadingOverlay } from "components/interface/_global-elements";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDisplayedTraverseRecord } from "components/interface/traversePaths/TraversePathsProvider";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { applyUpdateRexByField } from "operations/apply/apply-rex";
@@ -61,7 +62,7 @@ const EvaRightEva: FunctionComponent = () => {
   const selectedEvaUuid = useAppSelector((state) => state.eva.selectedEvaUuid, refEqual);
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
 
-  const docMaps = useMissionDocSelector(
+  const docMapsFromDoc = useMissionDocSelector(
     (mission) => ({
       evas: mission.evas,
       rexes: mission.rexes,
@@ -70,6 +71,12 @@ const EvaRightEva: FunctionComponent = () => {
       traverses: mission.traverses,
     }),
     shallowEqual
+  );
+  // Previewed Newton paths drive totals in this tab; the doc is unchanged.
+  const displayedTraverses = useDisplayedTraverseRecord(docMapsFromDoc?.traverses);
+  const docMaps = useMemo(
+    () => docMapsFromDoc && { ...docMapsFromDoc, traverses: displayedTraverses },
+    [docMapsFromDoc, displayedTraverses]
   );
 
   const selectedEva = useMemo(

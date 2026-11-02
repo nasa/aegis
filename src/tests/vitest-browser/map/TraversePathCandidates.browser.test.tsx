@@ -10,9 +10,12 @@
  *  - clicking an option previews it as the active path (doc unchanged) and
  *    turns the doc path into a candidate; clicking "Current path" restores it
  *  - a preview is dropped once its row no longer applies
+ *  - the timeline astronaut and `useDisplayedTraverses` consumers follow the
+ *    preview, and its mission-DEM profile fills elevation and slope
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useEffect } from "react";
 import { Provider } from "react-redux";
 import { CookiesProvider } from "react-cookie";
 import { configureStore } from "@reduxjs/toolkit";
@@ -37,7 +40,13 @@ import { stationSlice } from "store/station";
 import { poiSlice } from "store/poi";
 import { rexSlice } from "store/rex";
 import { measureSlice } from "store/measure";
+import { hoverSlice, setSequenceHover } from "store/hover";
 import { TraverseLines } from "components/interface/map/behaviors/TraverseLines";
+import { TimelineAstronaut } from "components/interface/map/behaviors/TimelineAstronaut";
+import {
+  useDisplayedTraverses,
+  useTraversePathPreviews,
+} from "components/interface/traversePaths/TraversePathsProvider";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
@@ -125,6 +134,7 @@ function makeStore(selectedTraverse: string | null = TRAVERSE_UUID) {
       poi: poiSlice.reducer,
       rex: rexSlice.reducer,
       measure: measureSlice.reducer,
+      hover: hoverSlice.reducer,
     },
     preloadedState: {
       eva: {
@@ -143,18 +153,48 @@ let mapContainer: HTMLDivElement;
 
 let store: ReturnType<typeof makeStore>;
 
-function render(fetcher: Parameters<typeof TraversePathsProvider>[0]["fetcher"], pollMs = 20) {
+/** Stand-in for the timeline: what `processEvaDataFromStore` would receive. */
+const displayedSnapshot: {
+  traverses: Traverse[];
+  previews: Record<string, TraversePathPreview>;
+} = { traverses: [], previews: {} };
+function DisplayedProbe(): null {
+  const docTraverses = Object.values(mockMissionDoc.traverses ?? {});
+  const traverses = useDisplayedTraverses(docTraverses);
+  const previews = useTraversePathPreviews();
+  useEffect(() => {
+    displayedSnapshot.traverses = traverses;
+    displayedSnapshot.previews = previews;
+  });
+  return null;
+}
+
+type ProfileFetcher = Parameters<typeof TraversePathsProvider>[0]["profileFetcher"];
+
+function render(
+  fetcher: Parameters<typeof TraversePathsProvider>[0]["fetcher"],
+  pollMs = 20,
+  profileFetcher: ProfileFetcher = null
+) {
   store ??= makeStore();
   harness.render(
     <CookiesProvider>
       <Provider store={store}>
         <FeatureSourcesProvider>
           <MapMenuProvider>
-            <TraversePathsProvider missionId={1} source="api" fetcher={fetcher} pollMs={pollMs}>
+            <TraversePathsProvider
+              missionId={1}
+              source="api"
+              fetcher={fetcher}
+              profileFetcher={profileFetcher}
+              pollMs={pollMs}
+            >
               <MapContext.Provider value={{ map, mode: "editor" }}>
                 <TraversePathCandidates />
                 <TraverseLines />
+                <TimelineAstronaut />
               </MapContext.Provider>
+              <DisplayedProbe />
               <PathOptions traverseUuid={TRAVERSE_UUID} />
             </TraversePathsProvider>
           </MapMenuProvider>
@@ -196,6 +236,14 @@ function click(testId: string, index = 0) {
 function isActive(testId: string, index = 0): boolean {
   const el = harness.container.querySelectorAll<HTMLElement>(`[data-testid='${testId}']`)[index];
   return el?.dataset.active === "true";
+}
+
+function optionStatusTexts(): string[] {
+  return [
+    ...harness.container.querySelectorAll<HTMLElement>(
+      "[data-testid='traverse-path-option'] [data-status]"
+    ),
+  ].map((el) => el.textContent ?? "");
 }
 
 function optionStatuses(): string[] {
@@ -264,6 +312,7 @@ describe("TraversePathCandidates", () => {
     render(fetcher);
 
     await vi.waitFor(() => expect(candidateFeatureIds()).toEqual(["job"]));
+    expect(optionStatusTexts()).toEqual(["Ready"]);
     const callsAtFinish = fetcher.mock.calls.length;
     expect(callsAtFinish).toBe(3);
     await new Promise((r) => setTimeout(r, 120));
@@ -311,6 +360,7 @@ describe("TraversePathCandidates", () => {
     expect(isActive("traverse-path-option")).toBe(true);
     expect(isActive("traverse-path-option-current")).toBe(false);
     expect(activeLineCoordinateCount()).toBe(3);
+    expect(optionStatusTexts()).toEqual(["Active"]);
     expect(
       harness.container.querySelector("[data-testid='traverse-path-preview-note']")
     ).not.toBeNull();
@@ -350,5 +400,107 @@ describe("TraversePathCandidates", () => {
     await vi.waitFor(() => expect(activeLineCoordinateCount()).toBe(2));
     expect(candidateFeatureIds()).toEqual([]);
     expect(isActive("traverse-path-option-current")).toBe(true);
+  });
+  it("moves the timeline astronaut along the previewed path", async () => {
+    const fetcher = vi.fn(async () => ({
+      status: "success" as const,
+      message: "",
+      data: [makeRow({ uuid: "ok" })],
+    }));
+    render(fetcher);
+    await vi.waitFor(() => expect(candidateFeatureIds()).toEqual(["ok"]));
+
+    const astronautX = () => {
+      const overlay = map
+        .getOverlays()
+        .getArray()
+        .find((o) => (o.getElement() as HTMLElement)?.textContent === "🧑\u200d🚀");
+      return overlay?.getPosition()?.[0];
+    };
+    store.dispatch(
+      setSequenceHover({
+        sequenceUuid: TRAVERSE_UUID,
+        sequenceItemPercentElapsed: 0.5,
+        mapItemType: "traverse",
+      })
+    );
+    await vi.waitFor(() => expect(astronautX()).toBeDefined());
+    const docMidX = astronautX();
+
+    click("traverse-path-option");
+    await vi.waitFor(() => expect(activeLineCoordinateCount()).toBe(3));
+    // The previewed path bends east through its middle vertex.
+    await vi.waitFor(() => expect(astronautX()).not.toBeCloseTo(docMidX, 3));
+
+    click("traverse-path-option-current");
+    await vi.waitFor(() => expect(astronautX()).toBeCloseTo(docMidX, 6));
+  });
+
+  it("gives displayed traverses the preview path and its DEM profile", async () => {
+    mockMissionDoc.demFilePath = "Data/dem.tif";
+    const fetcher = vi.fn(async () => ({
+      status: "success" as const,
+      message: "",
+      data: [makeRow({ uuid: "ok" })],
+    }));
+    let resolveProfile: (p: TerrainProfile) => void;
+    const profileFetcher = vi.fn(
+      (_args: Parameters<TraversePathProfileFetcher>[0]) =>
+        new Promise<TerrainProfile | null>((resolve) => (resolveProfile = resolve))
+    );
+    render(fetcher, 20, profileFetcher);
+    await vi.waitFor(() => expect(candidateFeatureIds()).toEqual(["ok"]));
+    expect(displayedSnapshot.traverses[0]).toBe(mockMissionDoc.traverses[TRAVERSE_UUID]);
+
+    click("traverse-path-option");
+    await vi.waitFor(() => expect(displayedSnapshot.traverses[0].path).toHaveLength(3));
+    expect(displayedSnapshot.previews[TRAVERSE_UUID].profileStatus).toBe("loading");
+    expect(displayedSnapshot.traverses[0].pathSegmentElevations).toBeNull();
+    expect(profileFetcher).toHaveBeenCalledTimes(1);
+    expect(profileFetcher.mock.calls[0][0]).toMatchObject({ missionId: 1, rowUuid: "ok" });
+
+    const profile: TerrainProfile = {
+      elevationsMeters: [
+        [1, 2],
+        [2, 5],
+      ],
+      terrainSlopesDegrees: [
+        [3, 3],
+        [4, 6],
+      ],
+    };
+    resolveProfile(profile);
+    await vi.waitFor(() =>
+      expect(displayedSnapshot.previews[TRAVERSE_UUID].profileStatus).toBe("ready")
+    );
+    expect(displayedSnapshot.traverses[0].pathSegmentElevations).toEqual(profile.elevationsMeters);
+    expect(displayedSnapshot.traverses[0].pathSegmentAbsoluteSlopes).toEqual(
+      profile.terrainSlopesDegrees
+    );
+
+    // Switching back and forth reuses the cached profile.
+    click("traverse-path-option-current");
+    await vi.waitFor(() => expect(displayedSnapshot.traverses[0].path).toHaveLength(2));
+    click("traverse-path-option");
+    await vi.waitFor(() =>
+      expect(displayedSnapshot.previews[TRAVERSE_UUID]?.profileStatus).toBe("ready")
+    );
+    expect(profileFetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks the profile unavailable without a mission DEM", async () => {
+    const fetcher = vi.fn(async () => ({
+      status: "success" as const,
+      message: "",
+      data: [makeRow({ uuid: "ok" })],
+    }));
+    const profileFetcher = vi.fn(async () => null);
+    render(fetcher, 20, profileFetcher);
+    await vi.waitFor(() => expect(candidateFeatureIds()).toEqual(["ok"]));
+    click("traverse-path-option");
+    await vi.waitFor(() =>
+      expect(displayedSnapshot.previews[TRAVERSE_UUID]?.profileStatus).toBe("unavailable")
+    );
+    expect(profileFetcher).not.toHaveBeenCalled();
   });
 });

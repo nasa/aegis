@@ -15,6 +15,7 @@ import { LineString } from "ol/geom";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDisplayedTraverses } from "components/interface/traversePaths/TraversePathsProvider";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 
@@ -33,10 +34,9 @@ export function TimelineAstronaut(): null {
   const selectedEva = useMissionDocSelector((m) => {
     return selectedEvaUuid ? (m.evas?.[selectedEvaUuid] ?? null) : null;
   }, deepEqual);
-  const allTraversesFromDoc = useMissionDocSelector(
-    (m) => Object.values(m.traverses ?? {}),
-    deepEqual
-  );
+  const docTraverses = useMissionDocSelector((m) => Object.values(m.traverses ?? {}), deepEqual);
+  // Follows a previewed Newton path, like the traverse line.
+  const allTraversesFromDoc = useDisplayedTraverses(docTraverses);
   const allStationsFromDoc = useMissionDocSelector(
     (m) => Object.values(m.stations ?? {}),
     deepEqual

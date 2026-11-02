@@ -135,6 +135,7 @@ const Info_Panel: FunctionComponent<{
     traverseEvaTraverseRate,
     usingLGRSCoordinates,
   ]);
+  const previewProfileText = pathPreview?.profileStatus === "loading" ? "…" : "—";
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = useMemo(
     () => (mapDirective?.uuid === selectedEvaSequenceItemUuid ? mapDirective : null),
@@ -476,8 +477,8 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {pathPreview
-                          ? "—"
+                        {pathPreview && pathPreview.profileStatus !== "ready"
+                          ? previewProfileText
                           : calculatedFields.ascentDescent.totalMetersClimbed.toFixed(0)}
                       </div>
                     </div>
@@ -494,8 +495,8 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {pathPreview
-                          ? "—"
+                        {pathPreview && pathPreview.profileStatus !== "ready"
+                          ? previewProfileText
                           : calculatedFields.ascentDescent.totalMetersDescended.toFixed(0)}
                       </div>
                     </div>
@@ -503,28 +504,31 @@ const Info_Panel: FunctionComponent<{
                 </div>
               </div>
             </div>
-            <div className={paneStyles.panelSectionRow}>
-              <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable}>
-                  <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
-                  <div className={paneStyles.panelColumnTableRow}>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldLabel}>Segment Bearings:</div>
-                    </div>
-                    <div className={paneStyles.panelColumnTableCell}>
-                      <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.bearings.map((bearing, index) => (
-                          <span
-                            key={index}
-                            style={{ marginRight: "6px" }}
-                          >{`${Math.round(bearing)}° `}</span>
-                        ))}
+            {/* Per-segment bearings of a Newton path are pixel steps, not headings. */}
+            {!pathPreview && (
+              <div className={paneStyles.panelSectionRow}>
+                <div className={paneStyles.panelSection2Column}>
+                  <div className={paneStyles.panelColumnTable}>
+                    <div className={paneStyles.panelColumnTableRow}>&nbsp;</div>
+                    <div className={paneStyles.panelColumnTableRow}>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldLabel}>Segment Bearings:</div>
+                      </div>
+                      <div className={paneStyles.panelColumnTableCell}>
+                        <div className={paneStyles.displayFieldValue}>
+                          {calculatedFields.bearings.map((bearing, index) => (
+                            <span
+                              key={index}
+                              style={{ marginRight: "6px" }}
+                            >{`${Math.round(bearing)}° `}</span>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
             <PathOptions traverseUuid={selectedTraverse.uuid} />
           </div>
 

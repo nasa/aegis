@@ -209,6 +209,37 @@ describe("MapMenuProvider — cookie persistence", () => {
     expect(settings!.submenuStations.showLabels).toBe(true);
     expect(settings!.submenuPois.show).toBe(false);
   });
+
+  async function loadSaved(saved: Partial<MapMenuCookie>): Promise<MapMenuSettings> {
+    const savedCookies = new Cookies();
+    savedCookies.set("AEGIS_Map_Menu_Settings", saved, { path: "/" });
+    let settings: MapMenuSettings | null = null;
+    function Probe(): null {
+      settings = useMapMenuContext();
+      return null;
+    }
+    harness.render(withCookies(<Probe />, savedCookies));
+    await new Promise((r) => setTimeout(r, 0));
+    harness.render(withCookies(<Probe />, savedCookies));
+    return settings!;
+  }
+
+  it("starts with bearings off", async () => {
+    const settings = await loadSaved({});
+    expect(settings.showBearings).toBe(false);
+    expect(settings.bearingMode).toBe("segment");
+  });
+
+  it("ignores showBearings from cookies saved before bearingMode existed", async () => {
+    const settings = await loadSaved({ showBearings: true });
+    expect(settings.showBearings).toBe(false);
+  });
+
+  it("keeps showBearings and bearingMode from a current cookie", async () => {
+    const settings = await loadSaved({ showBearings: true, bearingMode: "path" });
+    expect(settings.showBearings).toBe(true);
+    expect(settings.bearingMode).toBe("path");
+  });
 });
 
 describe("MapMenuProvider — error cases", () => {

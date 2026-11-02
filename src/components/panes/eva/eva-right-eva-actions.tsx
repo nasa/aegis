@@ -9,6 +9,7 @@ import { ExpandCollapseActionsButtons } from "../actions-action-body-multiselect
 import { getCalcFieldsForEva } from "store/processing/calculatedFields";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDisplayedTraverseRecord } from "components/interface/traversePaths/TraversePathsProvider";
 import { getHighlightedActions } from "store/selectors";
 
 const Actions_Panel: FunctionComponent = () => {
@@ -28,13 +29,19 @@ const Actions_Panel: FunctionComponent = () => {
     if (rex) return { uuid: rex.uuid, name: rex.name };
     return undefined;
   }, deepEqual);
-  const docMaps = useMissionDocSelector(
+  const docMapsFromDoc = useMissionDocSelector(
     (mission) => ({
       stations: mission.stations,
       actions: mission.actions,
       traverses: mission.traverses,
     }),
     shallowEqual
+  );
+  // Previewed Newton paths drive totals in this tab; the doc is unchanged.
+  const displayedTraverses = useDisplayedTraverseRecord(docMapsFromDoc?.traverses);
+  const docMaps = useMemo(
+    () => docMapsFromDoc && { ...docMapsFromDoc, traverses: displayedTraverses },
+    [docMapsFromDoc, displayedTraverses]
   );
   const sequenceStations = useMemo(() => {
     if (!docMaps) return [];

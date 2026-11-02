@@ -174,7 +174,7 @@ const PathOptions: FunctionComponent<{ traverseUuid: string }> = ({ traverseUuid
                 {row.label || `Newton ${row.method ?? "A*"}`}
               </span>
               <span className={traverseStyles.pathOptionStatus} data-status={row.status}>
-                {active ? "Active (preview)" : rowStatusLabel(row.status)}
+                {active ? "Active" : rowStatusLabel(row.status)}
               </span>
             </div>
             {candidate && (

@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppSelector, refEqual, shallowEqual, deepEqual } from "utils/useAppSelector";
 import { setSelectedEvaRightNavItem, setSelectedEvaUuid } from "store/eva";
 import evaStyles from "./eva.module.css";
@@ -12,6 +12,7 @@ import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDisplayedTraverse } from "components/interface/traversePaths/TraversePathsProvider";
 
 const SequenceItemTraverse: FunctionComponent<{
   evaUuid: string;
@@ -44,17 +45,30 @@ const SequenceItemTraverse: FunctionComponent<{
       )?.traverseRate ?? null
     );
   }, deepEqual);
-  const thisTraverseCalculatedFields = useMissionDocSelector((mission) => {
-    const traverseActions = Object.values(mission.actions ?? {}).filter(
-      (a) => a.traverseUuid === traverseUuid && a.enabled
-    );
-    return getCalcFieldsForTraverse({
-      traverse: mission.traverses ? mission.traverses[traverseUuid] : undefined,
-      missionTraverseRate,
-      evaTraverseRate: traverseEvaTraverseRate,
-      traverseActions,
-    });
-  }, deepEqual);
+  const traverseActions = useMissionDocSelector(
+    (mission) =>
+      Object.values(mission.actions ?? {}).filter(
+        (a) => a.traverseUuid === traverseUuid && a.enabled
+      ),
+    deepEqual
+  );
+  const docTraverse = useMissionDocSelector(
+    (mission) => mission.traverses?.[traverseUuid],
+    deepEqual
+  );
+  // Follows a previewed Newton path in this tab; the doc is unchanged.
+  const traverse = useDisplayedTraverse(docTraverse);
+  const isPreviewed = traverse !== docTraverse;
+  const thisTraverseCalculatedFields = useMemo(
+    () =>
+      getCalcFieldsForTraverse({
+        traverse,
+        missionTraverseRate,
+        evaTraverseRate: traverseEvaTraverseRate,
+        traverseActions: traverseActions ?? [],
+      }),
+    [traverse, missionTraverseRate, traverseEvaTraverseRate, traverseActions]
+  );
 
   const traverseActivityEntry = useMissionDocSelector((mission) => {
     if (!mission?.rexes) return null;
@@ -189,9 +203,13 @@ const SequenceItemTraverse: FunctionComponent<{
             <div
               className={evaStyles.evaItemRightItem}
               data-tooltip-id="aegis-tooltip"
-              data-tooltip-content={"Est traverse time"}
+              data-tooltip-content={
+                isPreviewed ? "Est traverse time for the previewed path" : "Est traverse time"
+              }
               data-tooltip-place="right"
+              data-testid={isPreviewed ? "eva-sequence-traverse-preview" : undefined}
             >
+              {isPreviewed ? "~" : ""}
               {displayTraverseDuration()}
             </div>
           </div>

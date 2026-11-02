@@ -6,42 +6,143 @@ Note:
 
 - `Content-Type` is `application/json` for all request and response bodies
 - CORS is enabled with `Access-Control-Allow-Origin: *`
+- Newton never returns `502` or `504`. On the deployed server, the proxy in front
+  of Newton returns them (as an HTML page, not JSON) when a request takes longer
+  than its timeout, about 60 s, which can happen while many traverses are
+  planning at once. Treat them as temporary: retry with a backoff, and don't
+  parse the body.
 
 ## Error model
 
-All errors are returned like so:
+Every error, returned by an endpoint or stored on a failed job (the `error` of
+`GET /api/v1/traverses/:traverse_id`), has the same shape:
 
 ```json
 {
   "error": {
-    "code": "validation_error",
-    "message": "human readable",
-    "details": []
+    "code": "waypoint_not_traversable",
+    "message": "one or more waypoints are not traversable: ...",
+    "details": [{ "waypoint": 0, "lonlat": [12.5, -89.9], "reason": "blocked" }]
   }
 }
 ```
 
+Clients should act on `code`. `message` is for people and may change. `details`
+is a list of structured data about the error, empty unless a code below says otherwise.
+
+| Code                       | Status    | When                                                                                                                                   |
+| -------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `invalid_request`          | 400       | The body or a query parameter fails schema or value validation (missing field, bad value, malformed JSON).                             |
+| `unknown_field`            | 400       | A field the endpoint's body doesn't have, at any depth (nested ones are named `"vehicle.max_turn"`). `details`: `[{"field": string}]`. |
+| `dropped_field`            | 400       | A field that is no longer supported (`obstacle_maps`, `slope_buffer_px`, `obstacle_buffer_px`). `details`: `[{"field": string}]`.      |
+| `no_slope_map`             | 400 / job | No slope map registered for the planet covers every waypoint (or the profiled path).                                                   |
+| `waypoint_not_traversable` | job       | A waypoint fails a check. `details`: one `{"waypoint", "lonlat", "reason"}` per failing waypoint (below).                              |
+| `no_path`                  | job       | No route between two consecutive waypoints. `details`: `[{"from_waypoint": i, "to_waypoint": i + 1}]`.                                 |
+| `not_found`                | 404       | Unknown traverse or profile id.                                                                                                        |
+| `already_finished`         | 409       | `DELETE` on a traverse that already finished.                                                                                          |
+| `payload_too_large`        | 413       | The request body is over the limit.                                                                                                    |
+| `service_unavailable`      | 503       | A reprojected obstacle map is missing or stale; the operator must run `bin/prepare-maps.jl`.                                           |
+| `internal_error`           | 500 / job | Anything else. The message is generic (it names the job, for a job); the server log has the details.                                   |
+
+"job" means the error is the `error` of a `failed` traverse, not an HTTP status.
+
+Waypoint indices (`waypoint`, `from_waypoint`, `to_waypoint`) are 0-based
+positions in the request's `waypoints`. In a `waypoint_not_traversable` detail,
+`reason` is `"blocked"`: the waypoint is outside the slope map, on missing
+slope data, over the slope limit, or on an obstacle, with or without the
+buffers. The detailed reasons (and the obstacle map's name, `map`) were dropped
+so that waypoints can be checked on a planning grid shared between traverses.
+
+Jobs that failed before this error model have their stored message wrapped as
+`{"code": "internal_error", "message": <the old message>, "details": []}`.
+
+### When a traverse request fails
+
+A `POST /api/v1/traverses` is checked in two stages.
+
+**At `POST` (synchronous).** These fail with an HTTP error and create no
+traverse, so there is no `traverse_id` and no `request_hash`:
+
+- the body's schema and values (`invalid_request`), unknown fields
+  (`unknown_field`) and no-longer-supported fields (`dropped_field`): `400`;
+- no registered slope map covers every waypoint (`no_slope_map`): `400`;
+- an obstacle map the traverse would use needs `bin/prepare-maps.jl` re-run
+  (`service_unavailable`): `503`;
+- a body over the size limit (`payload_too_large`): `413`.
+
+**In the job (asynchronous).** Everything else needs the maps read, so `POST`
+returns `202` and the traverse later ends `failed`, with the reason in the
+`error` of `GET /api/v1/traverses/:traverse_id`:
+
+- `waypoint_not_traversable`: a waypoint is outside the slope map's data, over
+  the slope limit, or on an obstacle (with or without the buffers);
+- `no_path`: no route between two consecutive waypoints. Finding this out is
+  the search itself, so it can't be checked earlier;
+- `internal_error`: a bug; the server log has the details.
+
+The waypoint checks run only once the planning grid is built, which can take
+minutes on a large map, so even a waypoint that is obviously over the slope
+limit fails only after that time.
+
+A failed traverse still has its `request_hash`. Failed traverses are not
+cached: posting the same request again plans it again.
+
+### Terrain cache
+
+Most of a traverse's time on a large map goes to building its planning grid:
+reading the slope map, then applying the slope limit, the buffers and the
+obstacle maps. The server keeps the slope maps it has read and the grids it
+has built in memory, so a traverse over maps and settings already used plans
+much faster:
+
+- the same maps, `slope_limit` and buffers as an earlier traverse (any
+  waypoints, `method`, `vehicle` or `subpixel_hazard_penalty`): the grid is
+  reused (on the deployed MS3 map, 4 s instead of 30 s);
+- a new `slope_limit` or buffer on a slope map already read: the grid is
+  built without reading the map again (6 s).
+
+A traverse that fails on its waypoints (`waypoint_not_traversable`) still
+leaves its grid in the cache, so the corrected request is fast. A cancelled
+one leaves no grid. A map file that changes on disk is read again. The cache
+is in memory only, so it is empty after a restart.
+
+Its size is bounded by `[cache] terrain_bytes` in `config.toml` (default
+100 GB; see `config.example.toml`). Past it, the least recently used grids,
+and then their slope maps, are dropped. A slope map takes 4 bytes per pixel
+and each grid 1 byte per pixel, plus 4 with an obstacle map finer than the
+slope map.
+
+`/api/v1/health` reports it as `terrain_cache`:
+
+| Field                            | Meaning                                                 |
+| -------------------------------- | ------------------------------------------------------- |
+| `slopes`, `terrains`             | slope maps and grids held now                           |
+| `bytes`, `budget_bytes`          | memory held now, and `terrain_bytes`                    |
+| `slope_hits`, `slope_misses`     | slope map lookups since startup (a miss reads the file) |
+| `terrain_hits`, `terrain_misses` | grid lookups since startup (a miss builds the grid)     |
+| `evictions`                      | entries dropped to stay under the budget since startup  |
+
 ## `/api/v1`
 
-| Method | Endpoint         | Request body | Success                                                | Errors | Description                                                                                                             |
-| ------ | ---------------- | ------------ | ------------------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `GET`  | `/api/v1/health` | —            | `200 {"status":"ok", "sha": string, "map_count": int}` | `500`  | Health check. `sha` is the short git sha of the running code (`"unknown"` outside a git checkout, e.g. in a container). |
-| `GET`  | `/api/v1/jobs`   | —            | `200 {"jobs": Job[]}`                                  | `500`  | List all background jobs (traverses, profiles), newest first. Summary rows only — no `request`/`result` payloads.       |
+| Method | Endpoint         | Request body | Success                                                                                    | Errors | Description                                                                                                                                                                   |
+| ------ | ---------------- | ------------ | ------------------------------------------------------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/v1/health` | —            | `200 {"status":"ok", "sha": string, "map_count": int, "terrain_cache": TerrainCacheStats}` | `500`  | Health check. `sha` is the short git sha of the running code (`"unknown"` outside a git checkout, e.g. in a container). `terrain_cache`: see [Terrain cache](#terrain-cache). |
+| `GET`  | `/api/v1/jobs`   | —            | `200 {"jobs": Job[]}`                                                                      | `500`  | List all background jobs (traverses, profiles), newest first. Summary rows only — no `request`/`result` payloads.                                                             |
 
 ### `/api/v1/traverses`
 
 Anything related to understanding how to get from point A to point B.
 
-| Method   | Endpoint                                  | Request body                                                                  | Success                                                                                                                                                                                                                                      | Errors                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------- | ----------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`   | `/api/v1/traverses`                       | `TraverseProblem`                                                             | `202 {"traverse_id": "some-uuid", "request_hash": "v1:…"}` (adds `"cached": true` when a prior identical result is reused)                                                                                                                   | `400`, `413`, `422`, `500`, `503` | Plan a new traverse. Works asynchronously by returning a queryable `traverse_id`. `503` when an obstacle map it would use changed since `bin/prepare-maps.jl` reprojected it (re-run it). If an identical request (same normalized `TraverseProblem` + same, unchanged maps) already succeeded, its `traverse_id` is returned immediately with `"cached": true`. The planner (`method`), the `vehicle` (for `"turning_radius"` only) and `subpixel_hazard_penalty` (omitted = `0`) are part of the match. Buffers are normalized to meters on the selected map, so the deprecated `slope_buffer: 2` on a 5 m map and `slope_buffer_m: 10.0` share an entry. Registering an overlapping obstacle map, or changing a map's configured `buffer_m`, starts a new entry.                                               |
-| `GET`    | `/api/v1/traverses/:traverse_id`          | —                                                                             | `200 {"traverse_problem": TraverseProblem, "method": string, "request_hash": string \| null, "effective_problem": object \| null, "status": WorkStatus, "runtime": int \| null, "path": Path, "map_info": list of MapInfo, "error": string}` | `404`, `500`                      | Query for information about a traverse. `method` is the effective planner (`"astar"` or `"turning_radius"`), filled in even when the request omitted it. `request_hash` and `effective_problem` are described under [Request hash](#request-hash); both are `null` for traverses planned before they existed. Poll `status` until it reaches a terminal state. A traverse yields exactly one `path` (null until succeeded). `runtime` is the wall-clock job duration in milliseconds, or null until the job reaches a terminal state. `map_info` is the list of `MapInfo` structs for the maps used to plan the traverse: the slope map and every obstacle map (empty until maps are resolved). `error` is present only when `status` is `failed`, and says why (e.g. a waypoint inside an obstacle, or no path). |
-| `DELETE` | `/api/v1/traverses/:traverse_id`          | —                                                                             | `202 {"status": "cancelled"}`                                                                                                                                                                                                                | `404`, `409`, `500`               | Cancel an in-progress traverse. Planning stops at its next check: between waypoint legs and between refined windows, not inside one.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `GET`    | `/api/v1/traverses/maps`                  | query: `?type=obstacle` (optional filter)                                     | `200 {"maps": MapInfo[], "next_cursor": string \| null}`                                                                                                                                                                                     | `400`, `500`                      | List available maps, optionally filtered by `type` and/or `planet`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `GET`    | `/api/v1/traverses/maps/probe`            | query: `?planet=&lon=&lat=` **or** `?planet=&extent=minX,minY,maxX,maxY&crs=` | `200 {"maps": MapInfo[]}`                                                                                                                                                                                                                    | `400`, `422`, `500`               | List maps available at a location or over an extent. When using `extent`, returns all maps that cover any part of the region.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `POST`   | `/api/v1/traverses/:traverse_id/profiles` | `{"profiles": list of profile options}`                                       | `202 {"profile_id": "some-uuid"}`                                                                                                                                                                                                            | `400`, `404`, `413`, `422`, `500` | Profile an existing traverse. Works asynchronously by returning a queryable `profile_id`. **⚠️ Not yet implemented:** the job is accepted and validated (unknown traverse → 404, unknown option → 400), but the work is a placeholder — the resulting profile's `profiles` is always `null` and `map_info` is `[]`. It does not yet fetch the referenced traverse's planned path or sample maps. Use `POST /api/v1/traverses/profiles` (arbitrary path) for real profiling in the meantime. See [docs/plan.md](plan.md) §4.                                                                                                                                                                                                                                                                                       |
-| `POST`   | `/api/v1/traverses/profiles`              | `{"planet": Planet, "path": Path, "profiles": list of profile options}`       | `202 {"profile_id": "some-uuid"}`                                                                                                                                                                                                            | `400`, `413`, `422`, `500`        | Profile an arbitrary path. `path` is a GeoJSON `LineString`; each map is chosen independently as the highest-resolution registered map that covers the path. Works asynchronously by returning a queryable `profile_id`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `GET`    | `/api/v1/traverses/profiles/:profile_id`  | —                                                                             | `200 {"status": WorkStatus, "runtime": int \| null, "profiles": Profile, "map_info": list of MapInfo}`                                                                                                                                       | `404`, `500`                      | Returns a `Profile` GeoJSON where each selected profile option is a property. `runtime` is the wall-clock job duration in milliseconds, or null until the job reaches a terminal state. `map_info` is the list of `MapInfo` structs for the maps sampled to build the profile (empty until maps are resolved).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Method   | Endpoint                                  | Request body                                                                  | Success                                                                                                                                                                                                                                                                                                       | Errors                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------- | ----------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`   | `/api/v1/traverses`                       | `TraverseProblem`                                                             | `202 {"traverse_id": "some-uuid", "request_hash": "v1:…"}` (adds `"cached": true` when a prior identical result is reused: the oldest such traverse, so its id stays the same; adds `"deduplicated": true` when an identical traverse is still pending or running: the oldest such, which this request joins) | `400`, `413`, `500`, `503` | Plan a new traverse. Works asynchronously by returning a queryable `traverse_id`. `400 no_slope_map` (no job is created) when no registered slope map covers every waypoint. `503` when an obstacle map it would use changed since `bin/prepare-maps.jl` reprojected it (re-run it). If an identical request (same normalized `TraverseProblem` + same, unchanged maps) already succeeded, its `traverse_id` is returned immediately with `"cached": true`. If one is still pending or running (and no one asked to cancel it), its `traverse_id` is returned with `"deduplicated": true`, so identical requests run one job. Failed and cancelled traverses are never reused. The planner (`method`), the `vehicle` (for `"turning_radius"` only) and `subpixel_hazard_penalty` (omitted = `0`) are part of the match. Buffers are normalized to meters on the selected map, so the deprecated `slope_buffer: 2` on a 5 m map and `slope_buffer_m: 10.0` share an entry. Registering an overlapping obstacle map, or changing a map's configured `buffer_m`, starts a new entry.                  |
+| `GET`    | `/api/v1/traverses/:traverse_id`          | —                                                                             | `200 {"traverse_problem": TraverseProblem, "method": string, "request_hash": string \| null, "effective_problem": object \| null, "status": WorkStatus, "cancel_requested": bool, "runtime": int \| null, "path": Path, "map_info": list of MapInfo, "error": Error}`                                         | `404`, `500`               | Query for information about a traverse. `method` is the effective planner (`"astar"` or `"turning_radius"`), filled in even when the request omitted it. `request_hash` and `effective_problem` are described under [Request hash](#request-hash); both are `null` for traverses planned before they existed. Poll `status` until it reaches a terminal state. `cancel_requested` is `true` once a `DELETE` was accepted, while the traverse is still stopping too. A traverse yields exactly one `path` (null until succeeded). `runtime` is the wall-clock job duration in milliseconds, or null until the job reaches a terminal state. `map_info` is the list of `MapInfo` structs for the maps used to plan the traverse: the slope map and every obstacle map (empty until maps are resolved). `error` is present only when `status` is `failed`, and says why as an error-model object (see "Error model"), e.g. `waypoint_not_traversable` or `no_path`.                                                                                                                                   |
+| `DELETE` | `/api/v1/traverses/:traverse_id`          | —                                                                             | `202 {"status": WorkStatus, "cancel_requested": true}`                                                                                                                                                                                                                                                        | `404`, `409`, `500`        | Cancel a pending or in-progress traverse. `status` is the traverse's status right after the request: `"cancelled"` for a pending traverse, which stopped at once, or `"in_progress"` for a running one, which only stops at its next check. Poll `GET` until it reports `cancelled`. Planning checks while the planning grid is built (after the slope map is read, before and after each obstacle map, before the slope limit is applied; a grid taken from the [terrain cache](#terrain-cache) has nothing to check), between waypoint legs and between refined windows. A single step (one large map read or reprojection, one window) can't be interrupted, so a running traverse may take as long as one such step (minutes for a large map) to stop. A cancelled traverse ends `cancelled` even if planning would otherwise have failed. A traverse is shared by every identical request (`"cached"` / `"deduplicated"` in the `POST` response), so cancelling it cancels it for every client holding its `traverse_id`; an identical request posted after the cancel starts a new traverse. |
+| `GET`    | `/api/v1/traverses/maps`                  | query: `?type=obstacle` (optional filter)                                     | `200 {"maps": MapInfo[], "next_cursor": string \| null}`                                                                                                                                                                                                                                                      | `400`, `500`               | List available maps, optionally filtered by `type` and/or `planet`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `GET`    | `/api/v1/traverses/maps/probe`            | query: `?planet=&lon=&lat=` **or** `?planet=&extent=minX,minY,maxX,maxY&crs=` | `200 {"maps": MapInfo[]}`                                                                                                                                                                                                                                                                                     | `400`, `500`               | List maps available at a location or over an extent. `lon`/`lat` are geodetic on `planet` and are projected into each map's CRS. `extent` is in `crs` (required with `extent`) and is transformed into each map's CRS, so it can be in any CRS of that planet; it returns all maps that cover any part of the region. An unknown `crs` or a `lat` outside ±90 is a `400`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `POST`   | `/api/v1/traverses/:traverse_id/profiles` | `{"profiles": list of profile options}`                                       | `202 {"profile_id": "some-uuid"}`                                                                                                                                                                                                                                                                             | `400`, `404`, `413`, `500` | Profile an existing traverse. Works asynchronously by returning a queryable `profile_id`. **⚠️ Not yet implemented:** the job is accepted and validated (unknown traverse → 404, unknown option → 400), but the work is a placeholder — the resulting profile's `profiles` is always `null` and `map_info` is `[]`. It does not yet fetch the referenced traverse's planned path or sample maps. Use `POST /api/v1/traverses/profiles` (arbitrary path) for real profiling in the meantime. See [docs/plan.md](plan.md) §4.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `POST`   | `/api/v1/traverses/profiles`              | `{"planet": Planet, "path": Path, "profiles": list of profile options}`       | `202 {"profile_id": "some-uuid"}`                                                                                                                                                                                                                                                                             | `400`, `413`, `500`        | Profile an arbitrary path. `path` is a GeoJSON `LineString`; each map is chosen independently as the highest-resolution registered map that covers the path. Works asynchronously by returning a queryable `profile_id`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `GET`    | `/api/v1/traverses/profiles/:profile_id`  | —                                                                             | `200 {"status": WorkStatus, "runtime": int \| null, "profiles": Profile, "map_info": list of MapInfo}`                                                                                                                                                                                                        | `404`, `500`               | Returns a `Profile` GeoJSON where each selected profile option is a property. `runtime` is the wall-clock job duration in milliseconds, or null until the job reaches a terminal state. `map_info` is the list of `MapInfo` structs for the maps sampled to build the profile (empty until maps are resolved).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 #### Traverse Profiles
 
@@ -61,6 +162,10 @@ Profile options:
 
 #### Trying it out with `curl`
 
+The examples below run against a **local** server with `config-local.toml`
+(the `cr_g2` maps). For the deployed server, see [Against the deployed
+server](#against-the-deployed-server-ms3) after them.
+
 Start the server (it loads maps from a config file; `config-local.toml` points at
 real lunar GeoTIFFs on disk):
 
@@ -78,7 +183,9 @@ On Mac, `curl` with: `CURL_SSL_BACKEND=secure-transport curl ...`
 
 ```sh
 curl -s http://localhost:8080/api/v1/health
-# {"status":"ok","sha":"90ed886","map_count":5}
+# {"status":"ok","sha":"90ed886","map_count":5,
+#  "terrain_cache":{"slopes":1,"terrains":2,"bytes":14502801600,"budget_bytes":100000000000,
+#   "slope_hits":1,"slope_misses":1,"terrain_hits":1,"terrain_misses":2,"evictions":0}}
 ```
 
 **List background jobs** (traverses + profiles), newest first:
@@ -101,6 +208,12 @@ curl -s "http://localhost:8080/api/v1/traverses/maps?type=slope&planet=moon"
 
 ```sh
 curl -s "http://localhost:8080/api/v1/traverses/maps/probe?planet=moon&lon=-80.0&lat=-89.0"
+```
+
+**Probe which maps overlap a region** (here in Moon South Pole Stereographic meters):
+
+```sh
+curl -s "http://localhost:8080/api/v1/traverses/maps/probe?planet=moon&extent=96000,146000,97000,147000&crs=ESRI:103878"
 ```
 
 **Plan a traverse** (async). The request body is a `TraverseProblem`. The two
@@ -137,7 +250,7 @@ curl -s -X POST http://localhost:8080/api/v1/traverses \
     ],
     "slope_limit": 10.0
   }'
-# {"traverse_id":"<uuid>"}
+# {"traverse_id":"<uuid>","request_hash":"v1:<sha256 hex>"}
 ```
 
 **Poll the traverse** until `status` is `succeeded` (then `path` is a GeoJSON
@@ -175,14 +288,15 @@ curl -s -X POST http://localhost:8080/api/v1/traverses \
       "step_distance": 5.0
     }
   }'
-# {"traverse_id":"<uuid>"}
+# {"traverse_id":"<uuid>","request_hash":"v1:<sha256 hex>"}
 ```
 
-**Cancel an in-progress traverse**:
+**Cancel a traverse**. A running traverse answers `in_progress` and stops at
+its next check; poll it until `status` is `cancelled`:
 
 ```sh
 curl -s -X DELETE http://localhost:8080/api/v1/traverses/<uuid>
-# {"status":"cancelled"}
+# {"status":"in_progress","cancel_requested":true}
 ```
 
 **Profile an arbitrary path** (async). The body is GeoJSON: a `LineString` under
@@ -215,6 +329,28 @@ curl -s http://localhost:8080/api/v1/traverses/profiles/<uuid>
 #  "geometry":{"type":"LineString","coordinates":[...]},
 #  "properties":{"slope":[...],"elevation":[...],"distance":[...]}}}
 ```
+
+#### Against the deployed server (`ms3`)
+
+The same calls against the deployed server, with two points `A` and `C`, about
+100 m apart, that lie inside its `ms3` maps:
+
+```sh
+B=https://jsxim-gisproc1.ndc.nasa.gov/api/v1
+A='[33.5021945,-84.223397]'
+C='[33.529543847174324,-84.22158866054008]'
+
+# which maps cover point A (ms3_slope, ms3_elevation, ...)
+curl -s "$B/traverses/maps/probe?planet=moon&lon=33.5021945&lat=-84.223397"
+
+# plan from A to C, then poll the returned traverse_id
+curl -s -X POST $B/traverses -H 'Content-Type: application/json' \
+  -d "{\"planet\":\"moon\",\"waypoints\":[$A,$C],\"slope_limit\":20.0}"
+curl -s $B/traverses/<uuid>
+```
+
+A repeated request is answered from the cache (`"cached": true`). To plan
+again, change an input, e.g. `slope_limit`.
 
 ### `/api/v1` Schemas
 
@@ -351,10 +487,20 @@ planner the CLI's `--turning-radius` flag uses). The request body is a flat obje
 | `subpixel_hazard_penalty` | float         | no       | `≥ 0`, default `0`. How strongly a route avoids slope pixels that an obstacle map finer than the slope map covers only in part. `0` treats them as free; larger values route around obstacle fields rather than through the gaps in them, at the cost of a longer path. Has no effect without such an obstacle map.   |
 
 The slope map is chosen automatically: the highest-resolution registered `slope`
-map for `planet` whose extent covers **every** waypoint. A `400` is returned when
-no such map is registered, when a waypoint is not traversable (missing data, or
-blocked by the slope limit or an obstacle map), or when no path exists between
-two waypoints.
+map for `planet` whose extent covers **every** waypoint. When no such map is
+registered, the `POST` gets a `400 no_slope_map`. A waypoint that is not
+traversable (missing data, or blocked by the slope limit or an obstacle map) and
+a missing path between two waypoints are found only by the job, which ends
+`failed` with `waypoint_not_traversable` or `no_path`; see [When a traverse
+request fails](#when-a-traverse-request-fails). Fields a `TraverseProblem`
+doesn't have get a `400 unknown_field`, so a misspelled field is never ignored.
+
+**Waypoints in one pixel.** When every waypoint falls in the same slope-map pixel
+(e.g. start == goal), there is nothing to plan: the traverse succeeds with a
+two-point `Path` made of the first and last waypoints, exactly as sent, for
+either `method`. The waypoint checks still apply, so a waypoint on blocked
+terrain still fails. In a longer route, a leg between two waypoints in one
+pixel adds no points.
 
 **Obstacle maps.** The server plans around every registered `type = "obstacle"`
 map whose extent overlaps the selected slope map; a request can't choose them.
@@ -391,17 +537,18 @@ curves in open terrain. When a window cannot be solved the planner blocks those
 pixels and restarts A\*, up to 20 times (after that, windows that still fail
 are left as plain A\*), so these jobs can run considerably longer than plain
 A\*. Cancellation (`DELETE`) is honoured between windows, not inside one. If
-the restarts wall off the goal the job fails with "no turning-radius-feasible
-path between start and goal".
+the restarts wall off the goal the job fails with `no_path`.
 
 ##### Request hash
 
 `request_hash` identifies a traverse's **effective planning inputs**: two
 requests get the same hash exactly when the planner receives the same inputs,
 however they were written. `effective_problem` is the object it was computed
-over. Both are returned by `POST` (new and cached) and by `GET` in every status,
+over. Both are returned by `POST` (new, cached and deduplicated) and by `GET` in every status,
 and both are stored with the traverse when it is accepted, so they never change
-afterwards. Requests rejected with a `400` or `503` get neither.
+afterwards. Requests rejected at `POST` (a `400`, `413` or `503`, no
+`slope_map` covering the waypoints included) get neither, so every hash names a
+slope map. A traverse that is accepted and later fails keeps both.
 
 `effective_problem` has the server defaults filled in and buffers in meters:
 
@@ -434,7 +581,7 @@ whenever they do, so a client can tell a rule change from an input change:
 compare hashes only when their prefixes match. The hash is computed by Newton
 only; clients should not try to reproduce it.
 
-Coordinate spaces: `waypoints` are in `LonLat`. Map `extent`s and probe `extent`s are in `XY` of their `CRS`.
+Coordinate spaces: `waypoints` are in `LonLat`. Map `extent`s are in `XY` of their `CRS`, and probe `extent`s in `XY` of the probe's `crs`. LonLat is on the request's `planet`: the Moon's geodetic CRS (`ESRI:104903`) or, for the Earth, WGS 84 (`EPSG:4326`).
 
 ##### `WorkStatus`
 
@@ -686,36 +833,41 @@ already has the doc.
 MikroORM model `src/server/database/models/traverse_path.model.ts`, plus a migration, plus
 registration in `_allModels.ts`.
 
-| Column                       | Type          | Notes                                                                                                                                                   |
-| ---------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `uuid`                       | uuid pk       | Value written to `Traverse.activePathUuid`.                                                                                                             |
-| `mission_id`                 | int           | Indexed.                                                                                                                                                |
-| `traverse_ref_uuid`          | text          | Index `(mission_id, traverse_ref_uuid)`.                                                                                                                |
-| `created_from_traverse_uuid` | text          | Provenance: which scope (as-planned or a REX) requested it.                                                                                             |
-| `start_point`, `end_point`   | jsonb         | `AEGISPoint` endpoints used; drives the "applies" check.                                                                                                |
-| `method`                     | text          | Effective method (`astar` / `turning_radius`), taken from Newton's GET response.                                                                        |
-| `request`                    | jsonb         | `TraverseProblem` exactly as sent.                                                                                                                      |
-| `params_key`                 | text          | AEGIS-side canonical key (rounded endpoints + params). Unique `(mission_id, traverse_ref_uuid, params_key)`.                                            |
-| `request_hash`               | text null     | From Newton. Plain index. Only `v1:` values are comparable (see "Hash").                                                                                |
-| `newton_deduplicated`        | bool          | `true` when Newton merged this POST into another caller's job (future). Never cancel these.                                                             |
-| `newton_traverse_id`         | text          |                                                                                                                                                         |
-| `status`                     | text          | Newton `WorkStatus` (`pending`, `in_progress`, `succeeded`, `failed`, `cancelled`), plus AEGIS-only `submitting` (row inserted, POST not yet accepted). |
-| `submit_attempts`            | int           | Count of POST attempts; drives backoff on `503`/network errors.                                                                                         |
-| `path`                       | jsonb null    | GeoJSON `LineString` (`[lon, lat]`), full resolution. Set on `succeeded`.                                                                               |
-| `map_info`                   | jsonb null    | Newton `MapInfo[]`: the slope map plus every obstacle map used.                                                                                         |
-| `runtime_ms`                 | int null      |                                                                                                                                                         |
-| `error`                      | jsonb null    | Newton error object (POST error model, or GET `error` on `failed`), or an AEGIS-side message.                                                           |
-| `label`                      | text null     | Optional user-facing name ("Slope ≤ 10°").                                                                                                              |
-| `owner_id`                   | int null      |                                                                                                                                                         |
-| `created_at`, `updated_at`   | timestamptz   |                                                                                                                                                         |
-| `last_polled_at`             | timestamptz   | Rate-limits refresh calls to Newton.                                                                                                                    |
-| `version`                    | int (version) | Optimistic lock so two concurrent pollers finalize a row only once.                                                                                     |
+| Column                         | Type          | Notes                                                                                                                                                   |
+| ------------------------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `uuid`                         | uuid pk       | Value written to `Traverse.activePathUuid`.                                                                                                             |
+| `mission_id`                   | int           | Indexed.                                                                                                                                                |
+| `traverse_ref_uuid`            | text          | Index `(mission_id, traverse_ref_uuid)`.                                                                                                                |
+| `created_from_traverse_uuid`   | text          | Provenance: which scope (as-planned or a REX) requested it.                                                                                             |
+| `start_point`, `end_point`     | jsonb         | `AEGISPoint` endpoints used; drives the "applies" check.                                                                                                |
+| `method`                       | text          | Effective method (`astar` / `turning_radius`), taken from Newton's GET response.                                                                        |
+| `request`                      | jsonb         | `TraverseProblem` exactly as sent.                                                                                                                      |
+| `params_key`                   | text          | AEGIS-side canonical key (rounded endpoints + params). Unique `(mission_id, traverse_ref_uuid, params_key)`.                                            |
+| `request_hash`                 | text null     | From Newton. Plain index. Only `v1:` values are comparable (see "Hash").                                                                                |
+| `newton_deduplicated`          | bool          | `true` when Newton merged this POST into another caller's job (future). Never cancel these.                                                             |
+| `newton_traverse_id`           | text          |                                                                                                                                                         |
+| `status`                       | text          | Newton `WorkStatus` (`pending`, `in_progress`, `succeeded`, `failed`, `cancelled`), plus AEGIS-only `submitting` (row inserted, POST not yet accepted). |
+| `submit_attempts`              | int           | Count of POST attempts; drives backoff on `503`/network errors.                                                                                         |
+| `path`                         | jsonb null    | GeoJSON `LineString` (`[lon, lat]`), full resolution. Set on `succeeded`.                                                                               |
+| `simplified_path`              | jsonb null    | `AEGISPoint[]` after Douglas–Peucker with the endpoints snapped to the stations, i.e. exactly what selection writes. Set on `succeeded`.                |
+| `simplified_segment_distances` | jsonb null    | `number[]`, metres, one per segment of `simplified_path`.                                                                                               |
+| `profile`                      | jsonb null    | `TerrainProfile` from the mission DEM for `simplified_path`. Null without a DEM, or if sampling failed. Used for preview, comparison and selection.     |
+| `map_info`                     | jsonb null    | Newton `MapInfo[]`: the slope map plus every obstacle map used.                                                                                         |
+| `runtime_ms`                   | int null      |                                                                                                                                                         |
+| `error`                        | jsonb null    | Newton error object (POST error model, or GET `error` on `failed`), or an AEGIS-side message.                                                           |
+| `label`                        | text null     | Optional user-facing name ("Slope ≤ 10°").                                                                                                              |
+| `owner_id`                     | int null      |                                                                                                                                                         |
+| `created_at`, `updated_at`     | timestamptz   |                                                                                                                                                         |
+| `last_polled_at`               | timestamptz   | Rate-limits refresh calls to Newton.                                                                                                                    |
+| `version`                      | int (version) | Optimistic lock so two concurrent pollers finalize a row only once.                                                                                     |
 
-Profile arrays (elevation and slope) are **not** stored. AEGIS computes them from its own
-DEM when an option is selected, so the numbers match manual traverses. If the UI needs to
-compare options before selecting one, add a nullable `profile` JSONB column filled on
-success, either from Newton `/traverses/profiles` or from AEGIS's
-`readTerrainProfileInWorker`.
+Profile arrays (elevation and slope) come from **AEGIS's own DEM**, so the numbers match
+manual traverses, stations, and `landerElevationMeters`. The client preview (step 6b) and
+the option comparison both need them before an option is selected. Add a nullable
+`profile` JSONB column, filled when a row succeeds: run `readTerrainProfileInWorker` on the
+**simplified** path (step 7's simplification, run on the server) and store the same shape
+as `TerrainProfile` together with the simplified path and its segment distances. Newton's
+`/traverses/profiles` is not used for this; see "Profiles" in the step 0 results.
 
 #### Hash (Newton `request_hash`)
 
@@ -1518,6 +1670,124 @@ What matches the docs:
 - cancelled results aren't cached;
 - `v1:` hashes on new jobs, and an unprefixed hash on the older job.
 
+#### Re-check against Newton sha `7b69916` (2026-10-26)
+
+Newton was redeployed and its docs were updated (the top of this file). These cheap checks
+were re-run with `.local/newton-spike/recheck.mjs`:
+
+| Earlier item                       | Now                                                                                                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. errors `202` then `failed`      | **Partly fixed.** `no_slope_map` is now a synchronous `400` (checked). `waypoint_not_traversable` and `no_path` are still job errors, as documented.                 |
+| 2. error model                     | **Fixed.** `400` and `404` bodies are `{"error": {"code", "message", "details"}}` (checked). Old jobs are wrapped as `internal_error` with their old string message. |
+| 3. probe by point                  | **Fixed.** `?lon=&lat=` inside `ms3` returns `ms3_slope` and `ms3_elevation` (checked).                                                                              |
+| 4. unknown fields ignored          | **Fixed.** `slope_limt` returns `400 unknown_field` with `details: [{"field": "slope_limt"}]` (checked).                                                             |
+| 5. `DELETE` says `cancelled` early | Documented: the response is `{"status": "in_progress", "cancel_requested": true}` for a running job. Not re-checked.                                                 |
+| 6. zero-length requests            | Documented: waypoints in one pixel **succeed** with a two-point path, still subject to the waypoint checks. Not re-checked.                                          |
+| 7. proxy `502`s                    | Documented as proxy-only, HTML, and transient.                                                                                                                       |
+| 8. which cached job is returned    | Documented: the **oldest** identical traverse.                                                                                                                       |
+| (c) identical concurrent jobs      | Documented: `"deduplicated": true` joins the running job. Not re-checked.                                                                                            |
+
+The re-check POST of A → C used rounded coordinates, so it wasn't a cache hit. It started
+one real job on the shared server.
+
+These override the matching bullets in "Plan changes from step 0" below:
+
+- **Step 1:** parse errors by `code`. Keep a fallback for `{"error": "<string>"}` (old
+  jobs, and the wrapped `internal_error`) and for HTML. Terminal versus transient:
+  - `400`, `404`, `409`, `413` and job errors are terminal;
+  - `503 service_unavailable`, `502`/`504`, timeouts and non-JSON bodies are transient.
+- **Step 1:** keep the POST whitelist. It now also prevents a `400 unknown_field`.
+- **Step 3:** the AEGIS-side cross-traverse in-flight dedupe becomes a cheap optimisation,
+  not a requirement, since Newton dedupes running jobs itself. Keep `NEWTON_MAX_IN_FLIGHT=1`.
+  A `deduplicated` job is shared, so `DELETE` must never be sent for it (already in step 3).
+- **Step 3:** store `error` as the error-model object. Show `message` in the UI. Use `code`
+  for the label: `waypoint_not_traversable` gives "Station on steep or blocked terrain" plus
+  the `reason` from `details`; `no_path` gives "No route". Strip `ArgumentError: ` only from
+  legacy string errors.
+- **Step 4:** the coverage check can use `GET /traverses/maps/probe?lon=&lat=` for each
+  endpoint, cached per rounded point. The proj4 extent test stays as the fallback.
+- **Step 4:** zero-length traverses would no longer fail, but they still cost a full job
+  for nothing. Keep the 1 m skip.
+
+#### Performance re-check against Newton sha `ffe0733` (2026-10-26)
+
+Newton now keeps slope maps and planning grids in an in-memory terrain cache (see
+[Terrain cache](#terrain-cache)). The script is `.local/newton-spike/perf2.mjs`. It ran 2
+new jobs on a 532 m mission 50 pair (Kiwi → LDA deploy), with waypoints offset slightly
+so the result cache missed:
+
+| Job              | `runtime` | Wall (POST → `succeeded`, 1 s polling) | Vertices |
+| ---------------- | --------- | -------------------------------------- | -------- |
+| default          | 6.1 s     | 6.8 s                                  | 485      |
+| `slope_limit` 10 | 6.0 s     | 6.6 s                                  | 485      |
+
+At step 0 the same kind of job took about 65–90 s, and close to 3 minutes with 5 in flight.
+`/health` reported 6–8 grids cached (24–29 GB of a 100 GB budget), so both jobs reused a
+grid.
+
+What this changes in the plan (not built yet; steps 1–4 are still server work):
+
+- **Poll interval:** a job usually finishes before the first 10 s poll. Poll the first
+  time after about 2 s, then back off (2, 4, 8, then 10 s). Keep the `last_polled_at`
+  throttle, but at 2 s.
+- **`NEWTON_MAX_IN_FLIGHT`:** keep the default at 1. A cache miss (new map or settings, or
+  a restart) still costs the full grid build, and the server is shared. Raising it to 2–4
+  is a deployment setting, not a code change.
+- **Request timeout:** keep about 65 s. That's for the proxy, not the planner.
+- **Cross-traverse in-flight dedupe:** no longer worth building. Newton dedupes running
+  jobs itself, and a duplicate now costs seconds, not minutes.
+- **The first job after a Newton restart is still slow.** The cache is in memory only.
+  Don't show a timeout or error just because a row has been `in_progress` for a minute.
+
+#### Profiles (spike, 2026-10-26; deferred)
+
+**Deferred.** Newton profiles are out of scope for now. The findings are kept here for when
+they're picked up again. They were measured on sha `7b69916`, before the terrain cache, so
+re-measure the timing first.
+
+`POST /traverses/profiles` with `elevation`, `slope`, `distance`, `dir_travel` and
+`elevation_change`, on mission 50's "ALLR Deploy and Cherry Sampling" → "Soursop" (379 m).
+The script is `.local/newton-spike/profile50.mjs`, and the raw output is in
+`raw/profile-*.json`.
+
+| Path                     | Vertices sent → returned | `runtime` | Length  | Max / mean slope | Ascent / descent |
+| ------------------------ | ------------------------ | --------- | ------- | ---------------- | ---------------- |
+| Newton A\* (raw)         | 315 → 315                | **137 s** | 404.9 m | 7.0° / 2.8°      | 18.7 / 0.1 m     |
+| Straight line, same ends | 2 → **289**              | **129 s** | 389.7 m | 26.2° / 4.1°     | 19.7 / 1.2 m     |
+
+- **Cost:** about 2 minutes per profile, whatever the path. It's the same fixed per-job cost
+  as planning, on the same shared server. A profile for every option doubles the Newton
+  load.
+- **Maps:** values come from `ms3_elevation` and `ms3_slope` (1 m). Mission 50's own DEM is
+  `mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`, so Newton elevations won't match the AEGIS
+  station elevations, `landerElevationMeters`, or the manual traverses' profiles.
+- **Geometry:** a sparse input path is **resampled** to pixel steps. The returned
+  LineString isn't the one sent, so the arrays don't line up with AEGIS's `traverse.path`
+  vertices.
+- **`elevation_change`** is the change since the **previous vertex**, not since the start as
+  documented ("elevation change so far"). It sums to the end-to-end change. Report this to
+  Newton.
+- **`dir_travel`** is the pixel-step heading (0°, 45°, 26.57°, …), with a 0 placeholder at
+  the first and last vertex. It's too jagged to use for bearing labels.
+- **What's worth having:** the comparison is useful. On this pair the A\* path keeps slope
+  under 7°, where the straight line reaches 26°. AEGIS gets the same numbers from its own DEM
+  in milliseconds, though. Only `tri` and `slope_aspect` are Newton-only.
+
+**Decision:**
+
+- AEGIS's DEM (`readTerrainProfileInWorker`) is the source of record for elevation and slope
+  everywhere, including on the timeline.
+- Newton profiles are not requested automatically.
+- Optional later: a low-priority Newton profile for `tri` (and `slope_aspect`) on succeeded
+  rows, queued behind path jobs under `NEWTON_MAX_IN_FLIGHT`, and shown only in the option
+  comparison.
+
+It also fits the timeline's data format. A per-vertex array maps to
+`pathSegmentElevations[i] = [e[i], e[i + 1]]` and
+`pathSegmentAbsoluteSlopes[i] = [s[i], s[i + 1]]`. It would still have to be resampled
+onto the AEGIS path's vertices. Keep this as the fallback if a mission has no DEM but
+Newton has an elevation map for it.
+
 #### Plan changes from step 0
 
 These change the steps below. Where an earlier design section conflicts, these win.
@@ -1665,6 +1935,11 @@ Work:
   - **Terminal errors:** set `failed`.
   - `refreshRows(rows)`: throttled by `last_polled_at`, saved under the `version` lock.
     It also resubmits rows stuck in `submitting`.
+  - **On `succeeded`:** simplify the path (step 7's rules), then run
+    `readTerrainProfileInWorker` on it when the mission has a DEM. Store `profile`,
+    `simplified_path` and `simplified_segment_distances` in the same save. A profile
+    failure leaves `profile` null and doesn't fail the row. `GET` returns these fields
+    (step 6b reads them).
 - **Routes.** `src/server/express/routes/traversePath.ts`, registered in the router:
   - `POST /`
   - `POST /eva`
@@ -1772,24 +2047,225 @@ Work:
   `map_info`), runtime, and error.
 - **No auto-select.** The straight line stays active when a Newton row finishes.
 
+**Status: built ahead of steps 1–5, against a mock.**
+
+- `TraversePathsProvider` (wraps the mission editor) polls rows for the selected EVA's
+  traverses. The data source is `off` / `mock` / `api`: localStorage
+  `aegisTraversePathSource`, then `VITE_PUBLIC_TRAVERSE_PATH_SOURCE`, defaulting to `off`.
+- `utils/traversePathMock.ts` emulates the watcher in memory. On mission 50 it replays
+  recorded live Newton results from `utils/traversePathFixtures/mission50.json` (32 pairs ×
+  default and "Slope ≤ 10°"; two of the latter fail on steep terrain at the Apple station).
+- `TraversePathCandidates` draws the options; `traverse-right-path-options.tsx` lists them.
+- **Click to activate (client preview).** Clicking an option, on the map or in the pane,
+  makes it the traverse's active path in this tab only. The doc is unchanged.
+  - `previewByTraverseUuid` in the provider holds the simplified path (Douglas–Peucker at
+    0.5 × slope-map resolution, endpoints snapped to the stations) and its segment
+    distances.
+  - `applyTraversePathPreview(traverse, preview)` overlays it on a `Traverse`. This is the
+    one seam every consumer uses.
+  - The doc path becomes a dashed "Current path" candidate, which is clickable to switch
+    back.
+  - A preview is dropped when its row stops applying. Edit Path and Reset Path clear it
+    first.
+  - Today the overlay reaches `TraverseLines` and the traverse pane (distance, duration,
+    bearings). Ascent and descent show "—", because the preview has no profile yet.
+
 **Gate:**
 
-- [ ] Browser tests (vitest browser): candidate rows render on the map and in the pane; a
+- [x] Browser tests (vitest browser): candidate rows render on the map and in the pane; a
       row with stale endpoints is hidden; polling stops once all rows have finished; a
-      `failed` row shows its error.
+      `failed` row shows its error; clicking an option previews it without a doc write,
+      and the preview is dropped when the endpoints move.
 - [ ] Manual check: on the test mission, the straight line and the Newton path are visible
-      together and match the step 0 harness. Closing the tab that triggered the job and
-      opening another one still shows the result.
-- [ ] Dashboard and minimap are unaffected, unless candidates are deliberately shown there.
+      together. Closing the tab that triggered the job and opening another one still shows
+      the result (needs `api`; the mock is per tab).
+- [x] Dashboard and minimap are unaffected.
+
+### Step 6b: make the preview consistent (bearings, timeline, astronaut)
+
+Client-only, and works with the mock. The goal is that everything in the editing tab that
+describes the active path describes the previewed one. Step 7 then only adds the doc write.
+
+**Status: built (2026-10-26).** What changed from the design below:
+
+- **Hooks.** The overlay hooks take traverse **objects**, not uuids:
+  - `useDisplayedTraverse(traverse)`;
+  - `useDisplayedTraverses(traverses[])`;
+  - `useDisplayedTraverseRecord(record)`, for the EVA panes' `docMaps.traverses`.
+
+  Each returns the input unchanged (the same reference) when nothing is previewed, so
+  memoised consumers don't re-run. `useTraversePathPreviews()` exposes the raw previews.
+
+- **Consumers moved onto the hooks:**
+  - map: `TraverseLines`, `TimelineAstronaut`, `SelectionHighlight`;
+  - `NavTimeline`;
+  - traverse pane: info, the reports tab icon (`traverse-right.tsx`);
+  - EVA pane: info, actions, reports (`eva-right-eva*.tsx`);
+  - EVA sequence rows (`eva-item-sequence-traverse.tsx`).
+
+  A previewed sequence row shows its time with a leading `~`, and the tooltip says
+  "for the previewed path".
+
+- **Profile source.** For now the client fetches the profile in both `mock` and `api`
+  modes, through the `profileFetcher` prop (default: `getTerrainProfile`, then
+  `normalizeTerrainProfile`).
+  - The entity key is `tpp-<rowUuid>`. The route only allows `[A-Za-z0-9_-]`, and keying
+    by row means switching rows doesn't supersede a queued sample.
+  - Results are cached per row and simplified path. Each is requested once per tab.
+  - Without a mission DEM, the status is `unavailable` and nothing is requested.
+  - Once step 3 stores `profile` on the row, the provider should use the row's profile
+    and fall back to this fetch.
+- **Pane.** Ascent and descent show `…` while the profile loads, `—` if it's
+  unavailable, then the numbers. "Segment Bearings" lists up to 8 values. Beyond that it
+  shows "N segments: start X°, end Y°" with "show all".
+- **Bearings mode.**
+  - The map menu has a new **Bearings: Per Segment / Along Path** row (cookie field
+    `bearingMode`, default `segment`). The existing Traverse → Bearings toggle is still
+    the on/off switch, and picking a mode turns it on.
+  - The mode is map-wide.
+  - Anchors are built in `utils/bearingAnchors.ts` and thinned in the traverse style
+    function: `BEARING_LABEL_MIN_SPACING_PX = 120` × resolution.
+  - A feature without anchors (e.g. while it's being edited) falls back to per-segment
+    labels.
+- **Not changed:** `HoverHighlight` (it follows the traverse layer), the dashboard, the
+  minimap, Maestro, DUST, export.
+- **Tests:**
+  - unit: `bearingAnchors.test.ts`, `traversePath.test.ts`;
+  - browser: `TraversePathCandidates.browser.test.tsx` gained tests for the astronaut, the
+    displayed-traverse profile and "no DEM".
+
+  The timeline itself is covered through a probe that reads `useDisplayedTraverses`
+  (exactly what `NavTimeline` passes to `processEvaDataFromStore`). Paper.js output isn't
+  asserted.
+
+#### One overlay for every consumer
+
+Add `useDisplayedTraverses(uuids)` and `useDisplayedTraverse(uuid)` next to the provider.
+They read the doc traverses and return them with `applyTraversePathPreview` applied.
+Outside a `TraversePathsProvider` (dashboard, minimap, tests) they return the doc data
+unchanged. Each consumer below switches its doc read to this hook; none of them learns
+about Newton.
+
+| Consumer                                                                                   | Reads today                                                        | Change                                                                                                      |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `TraverseLines`                                                                            | `traverse.path`                                                    | Done (step 6). Move it onto the hook.                                                                       |
+| traverse pane                                                                              | `getCalcFieldsForTraverse(traverse)`                               | Done. Move it onto the hook; ascent and descent come back once the preview has a profile.                   |
+| `TimelineAstronaut`                                                                        | `traverse.path` → `LineString.getCoordinateAt(percent)`            | Use the displayed path.                                                                                     |
+| `NavTimeline` (`timeline.tsx`) → `processEvaDataFromStore`                                 | `evaTraverses`: `path`, `pathSegmentDistances`, elevations, slopes | Pass displayed traverses to both the calculated fields and `processEvaDataFromStore`.                       |
+| EVA pane totals (`eva-right-eva.tsx`) and sequence rows (`eva-item-sequence-traverse.tsx`) | `getCalcFieldsForTraverse`                                         | Use the hook too, so the EVA duration matches the timeline. Mark previewed rows with a small "preview" tag. |
+| `SelectionHighlight` (pan to midpoint)                                                     | `traverse.path`                                                    | Use the hook (minor).                                                                                       |
+| `HoverHighlight`                                                                           | the feature on the traverse layer                                  | Nothing: it already follows `TraverseLines`.                                                                |
+
+The dashboard timeline, minimap, Maestro, DUST, export and audits stay on the doc. Only
+the previewing user sees the preview, and the pane banner says so.
+
+#### Timeline data for the previewed path
+
+`processEvaDataFromStore` needs four things per traverse:
+
+- `path`;
+- `pathSegmentDistances`;
+- `pathSegmentElevations` (`number[][]`, per segment);
+- `pathSegmentAbsoluteSlopes` (`(number | null)[][]`).
+
+It derives distance-from-lander itself, by subdividing `path`. So:
+
+- **Distance from lander, duration, segment distances and the astronaut** work as soon as
+  the overlay reaches the timeline. They need only the path.
+- **Elevation, path grade, terrain slope and the slope legend** need a profile, which is
+  `TerrainProfile` from AEGIS's own DEM. Extend `TraversePathPreview` with:
+  - `profile: TerrainProfile | null`;
+  - `profileStatus: "loading" | "ready" | "unavailable"`.
+
+  `applyTraversePathPreview` maps `elevationsMeters` to `pathSegmentElevations` and
+  `terrainSlopesDegrees` to `pathSegmentAbsoluteSlopes`.
+
+- **Where the profile comes from:**
+  - **`api` source:** the server fills the row's `profile` column when the row succeeds
+    (see the `traverse_path_db` table). This is computed from the same simplified path,
+    so the client does no extra work. Return the simplified path and its segment
+    distances with it, so client and server can't disagree on the geometry.
+  - **`mock` source:** the provider calls the existing `getTerrainProfile`
+    (`POST /api/v1/terrain-profile`) for the simplified path the first time a row is
+    previewed, then caches the result by row uuid. Use
+    `entityKey: "tpp-<rowUuid>"`. Don't use `thunkFetchTerrainProfile`:
+    it marks the traverse uuid as elevation-pending, which would disable the pane's Save.
+- **While loading, or without a DEM:**
+  - Elevation, grade and slope stay empty for that traverse, and the hover values show
+    "—".
+  - The pane's ascent and descent show a spinner, then "—".
+  - Timeline items that don't depend on the profile still update immediately.
+- **Newton `/traverses/profiles` is not used here.** It is about 2 minutes per call,
+  samples different maps from the mission DEM, and resamples the geometry (see
+  "Profiles" in the step 0 results).
+- Local note: mission 50's DEM (`mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`) isn't in
+  `../aegis_static`. Download it through "Download from Box" on `/admin/mission/50` to see
+  elevation locally.
+
+#### Bearings along the path
+
+- **Problem.** Bearing labels are per segment, at 15 % of each segment, skipping segments
+  under 1 m on screen. A simplified Newton path still has many short segments: on mission
+  50 at 0.5 m tolerance, 842 segments over 32 paths, median 4.5 m, and 37 % under 3 m. So
+  the labels overlap. The pane's "Segment Bearings" list grows to 40–70 numbers.
+- **Toggle.** The map menu's Bearings toggle gets a mode: **Off / Per segment / Along
+  path**. It is saved with the other map-menu settings. The default is Per segment, as
+  today.
+- **"Along path" labels:**
+  - `TraverseLines` precomputes anchors every 10 m of path distance. Each anchor's bearing
+    is the geodesic chord bearing over ±10 m (`getSegmentBearing`, honouring
+    `usingLGRSCoordinates`), which smooths over the pixel stair-steps.
+  - The style function shows one anchor in every k, chosen from the resolution so that
+    labels are at least about 120 px apart. Labels are rotated along the line, as now.
+  - The first and last 5 m are always skipped, so labels don't sit on the station
+    markers.
+- **Which paths it applies to.** "Along path" applies to every traverse. Per segment stays
+  correct for hand-drawn paths, which have 2–7 vertices.
+- **Pane.** "Segment Bearings" shows at most 8 values. More than that shows "N segments"
+  plus a disclosure. In Along path mode, it lists the start bearing, end bearing, and the
+  bearing range.
+- **Open question:** should the mode be per traverse (a toggle in Path Options) rather
+  than map-wide? The plan assumes map-wide, matching the existing toggle.
+
+#### Work order
+
+1. Add the hooks and move `TraverseLines` and the traverse pane onto them, with no change
+   in behaviour.
+2. `TimelineAstronaut`, `SelectionHighlight`.
+3. Timeline and EVA pane (distance-from-lander and durations, without a profile).
+4. Preview profile (mock source), then elevation, slope, and ascent/descent.
+5. Bearings mode, then the pane's bearing summary.
+
+**Gate:**
+
+- [x] Unit tests:
+  - `applyTraversePathPreview` maps a `TerrainProfile` to the segment arrays, and leaves
+    them `null` while loading;
+  - the bearing anchors for a stair-step path have a near-constant bearing on a straight
+    run, and change at a real turn;
+  - the anchor thinning keeps labels at least 120 px apart for several resolutions.
+- [x] Browser tests:
+  - with a preview active, `TimelineAstronaut` positions along the previewed path at 50 %;
+  - displayed traverses (the timeline's input) carry the previewed path and, once
+    loaded, its profile; the profile is fetched once per row;
+  - switching back restores both;
+  - existing `TimelineAstronaut` and `SelectionHighlight` tests (no provider, as on the
+    dashboard) are unchanged and pass.
+- [ ] Manual check on mission 50, in mock mode with its DEM present, on a pair where the
+      options differ (Kiwi → LDA deploy). Switching options changes the timeline elevation,
+      slope band, lander distance, hover values, the astronaut's route and the EVA
+      duration. Switching back restores all of them, and a second tab sees no change.
 
 ### Step 7: selecting a path
 
 Work:
 
 - **Thunk.** `thunkDocSelectTraversePath({ traverseUuid, pathUuid | null })`:
-  1. Convert the row's GeoJSON and simplify it with the step 0 tolerance.
+  1. Take the simplified path, distances and profile that step 6b already computed (the
+     row's stored `profile` with `api`). Only recompute them if they're missing.
   2. Save `path` into `manualPath` when switching away from manual.
-  3. Run `stageTraverseUpdate` with `overrides.path`.
+  3. Run `stageTraverseUpdate` with `overrides.path`. Skip its terrain call when the row's
+     profile is present.
   4. Write one `.change()` through a new `applySelectTraversePathStage` in
      `apply-traverse.ts`.
 
@@ -1797,6 +2273,10 @@ Work:
 
 - **Hand edits.** Hand-editing while a Newton path is active saves the edit as manual and
   clears `activePathUuid`.
+- **UI.** The pane's click-to-preview stays. Add a "Use this path" button to the previewed
+  option. It runs the thunk and then clears the preview. Previewing and committing stay
+  separate, so a user can compare options on the timeline without changing the plan for
+  everyone.
 
 **Gate:**
 
@@ -1860,3 +2340,41 @@ Work:
     attached.
 - [ ] A restart in the middle of a job (stop apiv1 while rows are `pending`) loses nothing.
       The next GET finishes the rows.
+
+### Step 10: UI changes
+
+**Status: done (2026-10-26),** except the open question at the end:
+
+- **Bearings off by default.** The map-menu default is `showBearings: false`. A cookie
+  saved before `bearingMode` existed always stored the old default (on), so its
+  `showBearings` is ignored and bearings start off. After that, the toggle is remembered
+  as before. Turn bearings on with Traverse → Bearings in the eyeball menu; the
+  Bearings row (Per Segment / Along Path) picks the style.
+- **"Segment Bearings" is hidden** while a Newton path is active (previewed) on the
+  traverse. The summary added in step 6b is removed.
+- **Status labels** are now:
+  - "Requested" for `submitting`, `pending` and `in_progress`;
+  - "Ready" for `succeeded`;
+  - "Active" for the active option.
+
+  "Failed" and "Cancelled" are kept for jobs that don't succeed.
+
+- **"N of M vertices"** applies to the whole active path, not to a segment, and only the
+  active option shows it:
+  - M is the vertex count of Newton's raw path, one vertex per grid cell.
+  - N is the count after simplification (Douglas–Peucker at half the slope-map pixel,
+    endpoints snapped to the stations). That's what the line, the timeline and step 7's
+    doc write use.
+
+  It's a diagnostic. Remove it, or move it to a tooltip, if it isn't useful to planners.
+
+Original list:
+
+- toggleable bearings over traverse paths. bearings should be off by default. toggle them on using the eyeball menu
+- the "Segment Bearings" in the Traverse Information panel are useless for a Newton traverse. hide them
+- for each path in Path Options, the statuses should be "Requested", "Ready", and "Active". drop "Submitted"
+- question: what does the "x of y vertices" refer to for each path segment?
+
+### Step 11: more path info
+
+- under each Newton path, include the min, max, and median slopes. or at least the min and max slope if median is challening to calculate

@@ -5,6 +5,7 @@ import {
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import type { FunctionComponent } from "react";
+import { useMemo } from "react";
 import { setSelectedTraverseRightNavItem } from "store/traverse";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import paneStyles from "../global-pane-styles.module.css";
@@ -16,6 +17,7 @@ import { RightTabs } from "components/interface/side-controls";
 import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useDisplayedTraverse } from "components/interface/traversePaths/TraversePathsProvider";
 import {
   canEditInRexScope,
   findRexUuidForEntity,
@@ -47,18 +49,29 @@ const TraverseEditorRight: FunctionComponent = () => {
       )?.traverseRate ?? null
     );
   }, deepEqual);
-  const calculatedFields = useMissionDocSelector((mission) => {
-    const traverse = mission.traverses[selectedEvaSequenceItemUuid];
-    const traverseActions = Object.values(mission.actions).filter(
-      (a) => a.traverseUuid === traverse?.uuid && a.enabled
-    );
-    return getCalcFieldsForTraverse({
-      traverse,
-      missionTraverseRate,
-      evaTraverseRate: traverseEvaTraverseRate,
-      traverseActions,
-    });
-  }, deepEqual);
+  const traverseActions = useMissionDocSelector(
+    (mission) =>
+      Object.values(mission.actions).filter(
+        (a) => a.traverseUuid === selectedEvaSequenceItemUuid && a.enabled
+      ),
+    deepEqual
+  );
+  const docTraverse = useMissionDocSelector(
+    (mission) => mission.traverses[selectedEvaSequenceItemUuid],
+    deepEqual
+  );
+  // Reports follow a previewed Newton path in this tab.
+  const traverse = useDisplayedTraverse(docTraverse);
+  const calculatedFields = useMemo(
+    () =>
+      getCalcFieldsForTraverse({
+        traverse,
+        missionTraverseRate,
+        evaTraverseRate: traverseEvaTraverseRate,
+        traverseActions: traverseActions ?? [],
+      }),
+    [traverse, missionTraverseRate, traverseEvaTraverseRate, traverseActions]
+  );
 
   const traverseRexUuid = useMissionDocSelector(
     (mission) => findRexUuidForEntity(mission, { traverseUuid: selectedEvaSequenceItemUuid }),
