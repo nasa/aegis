@@ -53,6 +53,12 @@ const Info_Panel: FunctionComponent<{
     (state) => state.eva.selectedEvaSequenceItemUuid,
     refEqual
   );
+  const terrainProfiles = useAppSelector((state) => {
+    const entry =
+      state.terrainProfiles.previews[selectedEvaSequenceItemUuid] ??
+      state.terrainProfiles.profiles[selectedEvaSequenceItemUuid];
+    return entry ? { [selectedEvaSequenceItemUuid]: entry } : {};
+  }, shallowEqual);
   const docMaps = useMissionDocSelector(
     (mission) => ({ traverses: mission.traverses, actions: mission.actions }),
     shallowEqual
@@ -110,6 +116,7 @@ const Info_Panel: FunctionComponent<{
       (a) => a.traverseUuid === selectedTraverse?.uuid && a.enabled
     );
     return getCalcFieldsForTraverse({
+      terrainProfiles,
       traverse: selectedTraverse,
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,
@@ -117,6 +124,7 @@ const Info_Panel: FunctionComponent<{
       usingLGRSCoordinates,
     });
   }, [
+    terrainProfiles,
     docMaps,
     selectedTraverse,
     missionTraverseRate,
@@ -461,7 +469,9 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.ascentDescent.totalMetersClimbed.toFixed(0)}
+                        {calculatedFields.ascentDescentAvailable
+                          ? calculatedFields.ascentDescent.totalMetersClimbed.toFixed(0)
+                          : "—"}
                       </div>
                     </div>
                   </div>
@@ -477,7 +487,9 @@ const Info_Panel: FunctionComponent<{
                     </div>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.displayFieldValue}>
-                        {calculatedFields.ascentDescent.totalMetersDescended.toFixed(0)}
+                        {calculatedFields.ascentDescentAvailable
+                          ? calculatedFields.ascentDescent.totalMetersDescended.toFixed(0)
+                          : "—"}
                       </div>
                     </div>
                   </div>

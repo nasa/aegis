@@ -41,6 +41,11 @@ import { applyUpdateEvaByField } from "operations/apply/apply-eva";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
 const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
+  const terrainProfiles = useAppSelector(
+    (state) => ({ ...state.terrainProfiles.profiles, ...state.terrainProfiles.previews }),
+    shallowEqual
+  );
+
   const partialMission = useMissionDocSelector(
     (mission) => ({
       walkbackRate: mission.walkbackRate,
@@ -100,6 +105,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
       selectedEva.sequence.filter((s) => s.type === "traverse").map((s) => s.uuid)
     );
     return getCalcFieldsForEva({
+      terrainProfiles,
       eva: selectedEva,
       evaStations: Object.values(docMaps.stations ?? {}).filter((s) => seqStationUuids.has(s.uuid)),
       missionWalkbackRate: partialMission.walkbackRate,
@@ -111,7 +117,13 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
         seqTraverseUuids.has(t.uuid)
       ),
     });
-  }, [selectedEva, docMaps, partialMission.walkbackRate, partialMission.traverseRate]);
+  }, [
+    terrainProfiles,
+    selectedEva,
+    docMaps,
+    partialMission.walkbackRate,
+    partialMission.traverseRate,
+  ]);
 
   const [evaDate, setEvaDate] = useState(() => {
     const iso = numericDatetimeToISO(selectedEva?.datetime);
@@ -453,9 +465,11 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldValue}>
-                              {evaCalculatedFields.totalTraverseAscentDescent.totalMetersClimbed.toFixed(
-                                0
-                              )}
+                              {evaCalculatedFields.totalTraverseAscentDescentAvailable
+                                ? evaCalculatedFields.totalTraverseAscentDescent.totalMetersClimbed.toFixed(
+                                    0
+                                  )
+                                : "—"}
                             </div>
                           </div>
                         </div>
@@ -471,9 +485,11 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                           </div>
                           <div className={paneStyles.panelColumnTableCell}>
                             <div className={paneStyles.displayFieldValue}>
-                              {evaCalculatedFields.totalTraverseAscentDescent.totalMetersDescended.toFixed(
-                                0
-                              )}
+                              {evaCalculatedFields.totalTraverseAscentDescentAvailable
+                                ? evaCalculatedFields.totalTraverseAscentDescent.totalMetersDescended.toFixed(
+                                    0
+                                  )
+                                : "—"}
                             </div>
                           </div>
                         </div>

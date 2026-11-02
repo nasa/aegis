@@ -18,6 +18,11 @@ const SequenceItemTraverse: FunctionComponent<{
   traverseUuid: string;
   isRexRunning: boolean;
 }> = ({ evaUuid, traverseUuid }) => {
+  const terrainProfiles = useAppSelector((state) => {
+    const entry =
+      state.terrainProfiles.previews[traverseUuid] ?? state.terrainProfiles.profiles[traverseUuid];
+    return entry ? { [traverseUuid]: entry } : {};
+  }, shallowEqual);
   const dispatch = useAppDispatch();
   const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
 
@@ -49,6 +54,7 @@ const SequenceItemTraverse: FunctionComponent<{
       (a) => a.traverseUuid === traverseUuid && a.enabled
     );
     return getCalcFieldsForTraverse({
+      terrainProfiles,
       traverse: mission.traverses ? mission.traverses[traverseUuid] : undefined,
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,

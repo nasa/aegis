@@ -1,5 +1,43 @@
 import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 
+/** Fetch a mission's pending profiles in one request; each result has its own error status. */
+export async function getTerrainProfiles(
+  missionId: number,
+  profiles: TerrainProfilePostData[],
+  loadTestOptions?: { serverURL?: string; cookies?: string }
+): Promise<TerrainProfileResponse[]> {
+  const response = await clientFetchWithTimeout(
+    `${loadTestOptions?.serverURL ?? ""}/api/v1/terrain-profile/batch?missionId=${missionId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(loadTestOptions?.cookies ? { Cookie: loadTestOptions.cookies } : {}),
+      },
+      body: JSON.stringify({ profiles } satisfies TerrainProfileBatchPostData),
+    },
+    120_000
+  );
+  if (response.status !== 200) {
+    let message = `${response.status} ${response.statusText}`;
+    try {
+      const body = await response.json();
+      if (body?.message) message = body.message;
+    } catch {
+      /* response body is not JSON */
+    }
+    return profiles.map(() => ({ status: "error", message, httpStatus: response.status }));
+  }
+  const body = (await response.json()) as WrappedResponse<TerrainProfileResponse[]>;
+  if (
+    body.status !== "success" ||
+    !Array.isArray(body.data) ||
+    body.data.length !== profiles.length
+  )
+    throw new Error("Invalid terrain profile batch response");
+  return body.data;
+}
+
 /** Validate that all derived arrays describe the same path revision. */
 export function normalizeTerrainProfile(
   profile: TerrainProfile | undefined,
@@ -40,20 +78,23 @@ export async function getTerrainProfile({
   missionId,
   path,
   pathSegmentDistances,
-  entityKey,
+  entityUuid,
   getElevationOnly = false,
+  preview = false,
 }: {
   missionId: number;
   path: AEGISPoint[];
   pathSegmentDistances: number[];
-  entityKey?: string;
+  entityUuid?: string;
   getElevationOnly?: boolean;
-}): Promise<WrappedResponse<TerrainProfile>> {
+  preview?: boolean;
+}): Promise<TerrainProfileResponse> {
   const postData: TerrainProfilePostData = {
     path,
     pathSegmentDistances,
-    entityKey,
+    entityUuid,
     getElevationOnly,
+    preview,
   };
   const res = await clientFetchWithTimeout(`/api/v1/terrain-profile?missionId=${missionId}`, {
     method: "POST",
@@ -69,7 +110,7 @@ export async function getTerrainProfile({
     } catch {
       /* response body is not JSON */
     }
-    return { status: "error", message: errorMessage };
+    return { status: "error", message: errorMessage, httpStatus: res.status };
   }
 
   return (await res.json()) as WrappedResponse<TerrainProfile>;

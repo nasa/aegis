@@ -1,13 +1,9 @@
+import { populateTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import { initialState as wholeStoreInitialState } from "store/index";
 import { getAll } from "http-client/all";
 import cloneDeep from "lodash/cloneDeep";
 import Cookies from "js-cookie";
-import {
-  auditActionDefinitions,
-  auditActions,
-  auditMissionGrid,
-  auditTraverseTerrainProfiles,
-} from "./audits";
+import { auditActionDefinitions, auditActions, auditMissionGrid } from "./audits";
 import { getAutomergeDocListing } from "http-client/docListing";
 import type { DocHandle, Repo, AutomergeUrl } from "@automerge/automerge-repo";
 import { isValidAutomergeUrl } from "@automerge/automerge-repo";
@@ -73,7 +69,6 @@ export const populateStore = async (params: {
     await auditActionDefinitions({ missionDocHandle });
     await auditActions({ missionDocHandle });
     await auditMissionGrid({ missionDocHandle });
-    await auditTraverseTerrainProfiles({ missionDocHandle });
   }
 
   // Set the default preset
@@ -107,6 +102,8 @@ export const populateStore = async (params: {
       `Something went wrong in the audit function. Invalid mission schema: ${JSON.stringify(validationErrors)}`
     );
   }
+
+  wholeStoreState.terrainProfiles = await populateTerrainProfiles(updatedMission, loadTestOptions);
 
   return wholeStoreState;
 };

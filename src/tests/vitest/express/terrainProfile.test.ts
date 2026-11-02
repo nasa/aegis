@@ -1,3 +1,11 @@
+vi.mock("server/terrain/terrainProfileCache", () => ({
+  watchTerrainCache: vi.fn(),
+  cachedTerrainProfile: vi.fn(),
+  loadMissionTerrainProfileCache: vi.fn(async (missionId: number) => ({
+    missionId,
+    profiles: new Map(),
+  })),
+}));
 const mocks = vi.hoisted(() => ({
   getAutomergeMissionHandle: vi.fn(),
   hasPerms: vi.fn(),
@@ -17,17 +25,32 @@ vi.mock("server/terrain/readTerrainProfile", () => ({
 vi.mock("utils/logging/serverLogger", () => ({
   serverLogger: { apiRoute: mocks.apiRoute, debug: mocks.debug },
 }));
-vi.mock("server/raster/rasterSamplingWorkerPool", () => ({
-  RasterSamplingWorkerPoolUnavailableError: class extends Error {},
-  RasterSamplingWorkerPoolSupersededError: class extends Error {},
-}));
+vi.mock("server/raster/rasterSamplingWorkerPool", () => {
+  class RasterSamplingWorkerPoolUnavailableError extends Error {}
+  class RasterSamplingWorkerPoolSupersededError extends RasterSamplingWorkerPoolUnavailableError {}
+  return { RasterSamplingWorkerPoolUnavailableError, RasterSamplingWorkerPoolSupersededError };
+});
 
 import path from "node:path";
 import express from "express";
 import supertest from "supertest";
 
-import terrainProfileRouter from "server/express/routes/terrainProfile";
+import terrainProfileRouter, {
+  getMissionTerrainProfiles,
+} from "server/express/routes/terrainProfile";
 import { MAX_RASTER_PROFILE_SAMPLES } from "server/terrain/readTerrainProfile";
+import {
+  cachedTerrainProfile,
+  loadMissionTerrainProfileCache,
+} from "server/terrain/terrainProfileCache";
+import {
+  RasterSamplingWorkerPoolSupersededError,
+  RasterSamplingWorkerPoolUnavailableError,
+} from "server/raster/rasterSamplingWorkerPool";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankTraverse } from "store/storeUtils/traverse";
+import { buildTerrainProfiles } from "store/terrainProfiles";
+import type { DocHandle } from "@automerge/automerge-repo/slim";
 
 const app = express();
 app.use(express.json());
@@ -50,7 +73,7 @@ const validBody = {
     { lat: -85.1, lng: 10.1 },
   ],
   pathSegmentDistances: [20],
-  entityKey: "traverse_abc-123",
+  entityUuid: "traverse_abc-123",
 };
 
 describe("terrain profile route", () => {
@@ -58,6 +81,7 @@ describe("terrain profile route", () => {
     vi.clearAllMocks();
     mocks.hasPerms.mockReturnValue(true);
     mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
       doc: () => ({ demFilePath: "Data/trusted.tif", demResolution: 5 }),
     });
     mocks.readTerrainProfileInWorker.mockResolvedValue({
@@ -97,6 +121,7 @@ describe("terrain profile route", () => {
       "42:traverse_abc-123",
       false
     );
+    expect(mocks.debug).not.toHaveBeenCalled();
   });
 
   it("retains both coincident endpoints for a zero-length segment", async () => {
@@ -113,8 +138,118 @@ describe("terrain profile route", () => {
     );
   });
 
-  it("allows requests without a coalescing entity key", async () => {
-    const { entityKey: _, ...body } = validBody;
+  it("serves 40 profiles in one HTTP call with bounded sampling and one debug summary", async () => {
+    const profiles = Array.from({ length: 40 }, (_, i) => ({
+      ...validBody,
+      entityUuid: `traverse-${i}`,
+      path: [
+        { lat: i, lng: 0 },
+        { lat: i, lng: 1 },
+      ],
+    }));
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
+      doc: () => ({
+        demFilePath: "dem.tif",
+        demResolution: 5,
+        traverses: Object.fromEntries(profiles.map(({ entityUuid }) => [entityUuid, {}])),
+      }),
+    });
+    vi.mocked(cachedTerrainProfile).mockImplementation(({ compute, onCacheStatus }) => {
+      onCacheStatus?.("miss");
+      return compute();
+    });
+    let active = 0;
+    let peak = 0;
+    mocks.readTerrainProfileInWorker.mockImplementation(async (_descriptor, path) => {
+      peak = Math.max(peak, ++active);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      active--;
+      return { elevationsMeters: [[path[0].lat, path[0].lat + 1]], terrainSlopesDegrees: [[1, 2]] };
+    });
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({ profiles });
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(40);
+    response.body.data.forEach((result: TerrainProfileResponse, index: number) => {
+      expect(result.status).toBe("success");
+      expect(result.data.elevationsMeters).toEqual([[index, index + 1]]);
+    });
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(4);
+    expect(loadMissionTerrainProfileCache).toHaveBeenCalledExactlyOnceWith(42);
+    const cache = await vi.mocked(loadMissionTerrainProfileCache).mock.results[0].value;
+    for (const [args] of vi.mocked(cachedTerrainProfile).mock.calls) expect(args.cache).toBe(cache);
+    expect(mocks.debug).toHaveBeenCalledTimes(1);
+    expect(mocks.debug).toHaveBeenCalledWith({
+      logId: "terrain-profile",
+      missionId: 42,
+      batchId: expect.any(String),
+      logValue: expect.stringMatching(
+        /^Batch 40 profiles > db-cache hit=0 miss=40 bypass=0 errors=0 in [\d.]+ ms$/
+      ),
+    });
+  });
+
+  it("returns successful profiles alongside validation failures in a batch", async () => {
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({
+        profiles: [validBody, { ...validBody, path: [{ lat: 91, lng: 0 }, validBody.path[1]] }],
+      });
+    expect(response.status).toBe(200);
+    expect(response.body.data[0].status).toBe("success");
+    expect(response.body.data[1]).toMatchObject({ status: "error", httpStatus: 400 });
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(1);
+    expect(mocks.debug).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips the mission cache query for a batch of previews and elevation-only requests", async () => {
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
+      doc: () => ({
+        demFilePath: "dem.tif",
+        traverses: { [validBody.entityUuid]: {} },
+      }),
+    });
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({
+        profiles: [
+          { ...validBody, preview: true },
+          { ...validBody, getElevationOnly: true },
+        ],
+      });
+    expect(
+      response.body.data.every((result: TerrainProfileResponse) => result.status === "success")
+    ).toBe(true);
+    expect(loadMissionTerrainProfileCache).not.toHaveBeenCalled();
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([null, {}, { profiles: [] }, { profiles: "invalid" }])(
+    "rejects an invalid batch body: %j",
+    async (body) => {
+      const response = await supertest(app)
+        .post("/api/v1/terrain-profile/batch?missionId=42")
+        .send(body);
+      expect(response.status).toBe(400);
+      expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
+    }
+  );
+
+  it("checks mission permission before sampling a batch", async () => {
+    mocks.hasPerms.mockReturnValue(false);
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({ profiles: [validBody] });
+    expect(response.status).toBe(401);
+    expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
+  });
+
+  it("allows requests without a coalescing entity uuid", async () => {
+    const { entityUuid: _, ...body } = validBody;
     await supertest(app).post("/api/v1/terrain-profile?missionId=42").send(body);
 
     expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(
@@ -142,6 +277,7 @@ describe("terrain profile route", () => {
 
   it("rejects a mission without a configured DEM", async () => {
     mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
       doc: () => ({ demFilePath: "", demResolution: 5 }),
     });
 
@@ -166,14 +302,14 @@ describe("terrain profile route", () => {
       { ...validBody, pathSegmentDistances: [-1] },
     ],
     [
-      "invalid entity key",
+      "invalid entity uuid",
       "/api/v1/terrain-profile?missionId=42",
-      { ...validBody, entityKey: "unsafe:key" },
+      { ...validBody, entityUuid: "unsafe:key" },
     ],
     [
-      "oversized entity key",
+      "oversized entity uuid",
       "/api/v1/terrain-profile?missionId=42",
-      { ...validBody, entityKey: "a".repeat(65) },
+      { ...validBody, entityUuid: "a".repeat(65) },
     ],
     [
       "invalid elevation-only flag",
@@ -242,5 +378,215 @@ describe("terrain profile route", () => {
       missionId: 42,
       message: "Mission 42 not found",
     });
+  });
+});
+
+it("returns an owned entity's db-cached profile without sampling the DEM", async () => {
+  const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
+  mocks.hasPerms.mockReturnValue(true);
+  mocks.readTerrainProfileInWorker.mockClear();
+  mocks.debug.mockClear();
+  mocks.getAutomergeMissionHandle.mockResolvedValue({
+    isDeleted: () => false,
+    doc: () => ({
+      demFilePath: "Data/trusted.tif",
+      demResolution: 5,
+      traverses: { [validBody.entityUuid]: {} },
+    }),
+  });
+  vi.mocked(cachedTerrainProfile).mockImplementation(async ({ onCacheStatus }) => {
+    onCacheStatus?.("hit");
+    return { elevationsMeters: [[10, 20]], terrainSlopesDegrees: [[1, 2]] };
+  });
+  const response = await supertest(app)
+    .post("/api/v1/terrain-profile?missionId=42")
+    .send(validBody);
+  expect(response.status).toBe(200);
+  expect(cachedTerrainProfile).toHaveBeenCalledWith(
+    expect.objectContaining({ missionId: 42, entityUuid: validBody.entityUuid })
+  );
+  expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
+  expect(mocks.debug).not.toHaveBeenCalled();
+});
+
+it("samples drag previews without the database cache under a separate coalescing key", async () => {
+  const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
+  mocks.hasPerms.mockReturnValue(true);
+  vi.mocked(cachedTerrainProfile).mockClear();
+  mocks.getAutomergeMissionHandle.mockResolvedValue({
+    isDeleted: () => false,
+    doc: () => ({
+      demFilePath: "Data/trusted.tif",
+      demResolution: 5,
+      traverses: { [validBody.entityUuid]: {} },
+    }),
+  });
+  mocks.readTerrainProfileInWorker.mockResolvedValue({
+    elevationsMeters: [[1, 2, 3, 4, 5]],
+    terrainSlopesDegrees: [[1, 2, 3, 4, 5]],
+  });
+  const response = await supertest(app)
+    .post("/api/v1/terrain-profile?missionId=42")
+    .send({ ...validBody, preview: true });
+  expect(response.status).toBe(200);
+  expect(cachedTerrainProfile).not.toHaveBeenCalled();
+  expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(
+    expect.any(Object),
+    validBody.path,
+    [5],
+    "42:traverse_abc-123:preview",
+    false
+  );
+});
+
+it("maps validation errors to 400 regardless of message case", async () => {
+  const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
+  mocks.hasPerms.mockReturnValue(true);
+  mocks.getAutomergeMissionHandle.mockResolvedValue({
+    isDeleted: () => false,
+    doc: () => ({
+      demFilePath: "Data/trusted.tif",
+      demResolution: 5,
+      traverses: { [validBody.entityUuid]: {} },
+    }),
+  });
+  vi.mocked(cachedTerrainProfile).mockRejectedValue(new Error("Invalid cache entity uuid"));
+  const response = await supertest(app)
+    .post("/api/v1/terrain-profile?missionId=42")
+    .send(validBody);
+  expect(response.status).toBe(400);
+});
+
+describe("mission terrain profile batches", () => {
+  const profile = { elevationsMeters: [[10, 20]], terrainSlopesDegrees: [[1, 2]] };
+  let mission: Mission;
+  let handle: DocHandle<Mission>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const traverse = generateBlankTraverse({
+      uuid: "traverse",
+      path: validBody.path,
+      pathSegmentDistances: [20],
+    });
+    mission = generateBlankMission({
+      id: 42,
+      demFilePath: "Data/original.tif",
+      demResolution: 5,
+      traverses: { traverse },
+    });
+    handle = { doc: () => mission, isDeleted: () => false } as unknown as DocHandle<Mission>;
+    vi.mocked(cachedTerrainProfile).mockImplementation(({ compute, onCacheStatus }) => {
+      onCacheStatus?.("miss");
+      return compute();
+    });
+    mocks.readTerrainProfileInWorker.mockReset().mockResolvedValue(profile);
+  });
+
+  it("loads 40 cold profiles with bounded concurrency and deduplicates entities", async () => {
+    mission.traverses = Object.fromEntries(
+      Array.from({ length: 40 }, (_, i) => {
+        const uuid = `traverse${i}`;
+        return [uuid, { ...mission.traverses.traverse, uuid }];
+      })
+    );
+    let active = 0;
+    let peak = 0;
+    mocks.readTerrainProfileInWorker.mockImplementation(async () => {
+      active++;
+      peak = Math.max(peak, active);
+      try {
+        if (active > 33) throw new RasterSamplingWorkerPoolUnavailableError("queue is full");
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        return profile;
+      } finally {
+        active--;
+      }
+    });
+    const uuids = Object.keys(mission.traverses);
+    const profiles = await getMissionTerrainProfiles(42, handle, mission, [...uuids, uuids[0]]);
+    expect(Object.keys(profiles)).toHaveLength(40);
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(4);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(40);
+    expect(loadMissionTerrainProfileCache).toHaveBeenCalledExactlyOnceWith(42);
+    expect(mocks.debug).toHaveBeenCalledTimes(1);
+    expect(mocks.debug).toHaveBeenCalledWith({
+      logId: "terrain-profile",
+      missionId: 42,
+      batchId: expect.any(String),
+      logValue: expect.stringMatching(
+        /^Batch 40 profiles > db-cache hit=0 miss=40 bypass=0 errors=0 in [\d.]+ ms$/
+      ),
+    });
+    for (const entry of Object.values(profiles)) {
+      expect(entry.status).toBe("ready");
+      expect(entry.profile).toEqual(profile);
+    }
+  });
+
+  it("samples geometry and DEM metadata from the export snapshot", async () => {
+    const snapshot = mission;
+    mission = {
+      ...mission,
+      demFilePath: "Data/new.tif",
+      demResolution: 10,
+      traverses: {
+        traverse: {
+          ...mission.traverses.traverse,
+          path: [
+            { lat: 0, lng: 0 },
+            { lat: 1, lng: 1 },
+          ],
+          pathSegmentDistances: [100],
+        },
+      },
+    };
+    const profiles = await getMissionTerrainProfiles(42, handle, snapshot, ["traverse"]);
+    const clientEntry = buildTerrainProfiles(snapshot).traverse;
+    expect(profiles.traverse.inputSignature).toBe(clientEntry.inputSignature);
+    expect(cachedTerrainProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ inputSignature: clientEntry.inputSignature })
+    );
+    expect(profiles.traverse.path).toEqual(snapshot.traverses.traverse.path);
+    expect(profiles.traverse.distances).toEqual([20]);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledWith(
+      {
+        absolutePath: path.resolve(
+          process.env.STATIC_DIR ?? "",
+          "missionFiles",
+          "42",
+          "Data/original.tif"
+        ),
+        expectedResolutionMeters: 5,
+      },
+      snapshot.traverses.traverse.path,
+      [5],
+      "42:traverse",
+      false
+    );
+  });
+
+  it("retries transient worker capacity failures", async () => {
+    mocks.readTerrainProfileInWorker.mockRejectedValueOnce(
+      new RasterSamplingWorkerPoolUnavailableError("Raster sampling worker queue is full")
+    );
+    const profiles = await getMissionTerrainProfiles(42, handle, mission, ["traverse"]);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(2);
+    expect(profiles.traverse.status).toBe("ready");
+    expect(profiles.traverse.profile).toEqual(profile);
+    expect(loadMissionTerrainProfileCache).toHaveBeenCalledExactlyOnceWith(42);
+  });
+
+  it.each([
+    [new RasterSamplingWorkerPoolUnavailableError("queue is full"), 3],
+    [new RasterSamplingWorkerPoolSupersededError(), 1],
+    [new Error("invalid raster"), 1],
+  ])("bounds retries for %s", async (error, attempts) => {
+    mocks.readTerrainProfileInWorker.mockRejectedValue(error);
+    const profiles = await getMissionTerrainProfiles(42, handle, mission, ["traverse"]);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledTimes(attempts);
+    expect(profiles.traverse.status).toBe("error");
+    expect(profiles.traverse.profile).toBeNull();
   });
 });

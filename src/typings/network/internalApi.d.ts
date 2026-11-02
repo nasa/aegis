@@ -7,11 +7,19 @@ interface WrappedResponse<T> {
 type TerrainProfilePostData = {
   path: AEGISPoint[];
   pathSegmentDistances: number[];
-  entityKey?: string;
+  entityUuid?: string;
   getElevationOnly?: boolean;
+  /** Drag previews skip the database cache. */
+  preview?: boolean;
 };
 
 type TerrainProfile = {
   elevationsMeters: number[][];
   terrainSlopesDegrees: (number | null)[][];
+};
+
+type TerrainProfileResponse = WrappedResponse<TerrainProfile> & { httpStatus?: number };
+
+type TerrainProfileBatchPostData = {
+  profiles: TerrainProfilePostData[];
 };

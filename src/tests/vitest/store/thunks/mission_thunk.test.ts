@@ -291,11 +291,8 @@ describe("Thunk Mission Tests", () => {
       // the second pass would overwrite with a path snapped from a stale clone,
       // potentially corrupting the midpoint.
       expect(updated.path[1]).toEqual(midpoint);
-      // Exactly one combined profile fetch must be dispatched for this traverse uuid.
-      const profileCallsForTraverse = mockThunkFetchTerrainProfileFactory.mock.calls.filter(
-        (call) => (call[0] as { uuid?: string })?.uuid === sharedTraverse.uuid
-      );
-      expect(profileCallsForTraverse).toHaveLength(1);
+      // Profiles are derived after the commit, so the move fetches none.
+      expect(mockThunkFetchTerrainProfileFactory).not.toHaveBeenCalled();
     });
 
     it("skips evas with empty sequences (no traverse to update)", async () => {

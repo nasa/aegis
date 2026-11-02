@@ -1,3 +1,4 @@
+import store from "store";
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
@@ -5,13 +6,18 @@ import missionStyles from "./mission.module.css";
 import { SubpanelHeading } from "components/interface/_global-elements";
 import { faFileExport } from "@fortawesome/free-solid-svg-icons";
 import { Button, Checkbox } from "components/interface/form/globalFields";
-import { refEqual } from "utils/useAppSelector";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { makeExportString } from "utils/export";
 
 const Export_panel: FunctionComponent = () => {
   const missionName = useMissionDocSelector((mission) => mission.name, refEqual);
   const mission = useMissionDocSelector((mission) => mission, refEqual);
+  const terrainSettled = useAppSelector(
+    (state) =>
+      Object.values(state.terrainProfiles.profiles).every((entry) => entry.status !== "idle"),
+    refEqual
+  );
 
   const [selectEvas, setSelectEvas] = useState(true);
   const [selectMission, setSelectMission] = useState(false);
@@ -23,6 +29,7 @@ const Export_panel: FunctionComponent = () => {
 
   const exportFile = async () => {
     const output = makeExportString({
+      terrainProfiles: store.getState().terrainProfiles.profiles,
       mission,
       selectEvas,
       selectMission,
@@ -123,6 +130,8 @@ const Export_panel: FunctionComponent = () => {
               <Button
                 icon={faFileExport}
                 label="Export JSON File"
+                enabled={terrainSettled}
+                toolTip={terrainSettled ? undefined : "Loading terrain profiles"}
                 style={{ width: "135px", marginLeft: "18px", marginTop: "8px" }}
                 onClick={() => {
                   exportFile();

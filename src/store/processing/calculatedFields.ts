@@ -104,6 +104,10 @@ const getCalcFieldsForActions = (actions: Action[]): ActionsCalculatedFields => 
   };
 };
 
+/** Ascent/descent is only meaningful once the entity's terrain profile has loaded. */
+const isTerrainReady = (entry: TerrainProfileEntry | undefined): boolean =>
+  entry?.status === "ready" && !!entry.profile;
+
 const calcTraverseEffectiveRate = (
   traverse: Traverse,
   missionTraverseRate: number,
@@ -120,11 +124,12 @@ const calcTraverseEffectiveRate = (
 };
 
 export const getCalcFieldsForStation = (params: {
+  terrainProfiles: TerrainProfiles;
   station: Station;
   missionWalkbackRate: number;
   stationActions: Action[];
 }): StationCalculatedFields => {
-  const { station, missionWalkbackRate, stationActions } = params;
+  const { terrainProfiles, station, missionWalkbackRate, stationActions } = params;
 
   //calculate total station time
   const {
@@ -200,20 +205,25 @@ export const getCalcFieldsForStation = (params: {
     } as ReportItem);
   }
 
+  const walkbackTerrain = terrainProfiles[station.uuid];
+  const walkbackDistances = walkbackTerrain?.distances ?? station.walkbackPathSegmentDistances;
+
   // get walkback duration minutes
   const walkbackDurationMinutes = calcPathDurationMins(
-    station.walkbackPathSegmentDistances,
+    walkbackDistances,
     station.walkbackTraverseRate ? station.walkbackTraverseRate : missionWalkbackRate
   );
 
   // get walkback distance meters
-  const walkbackDistanceMeters = station.walkbackPathSegmentDistances?.reduce(
+  const walkbackDistanceMeters = walkbackDistances?.reduce(
     (accumulator, currentVal) => accumulator + currentVal,
     0
   );
 
   // total ascended and descended
-  const walkbackAscentDescent = calculateAscentAndDescent(station.walkbackPathSegmentElevations);
+  const walkbackAscentDescent = calculateAscentAndDescent(
+    walkbackTerrain?.profile?.elevationsMeters
+  );
 
   const newCalculatedFields: StationCalculatedFields = {
     uuid: station.uuid,
@@ -227,6 +237,7 @@ export const getCalcFieldsForStation = (params: {
     walkbackMovementDurationMinutes: walkbackDurationMinutes,
     walkbackDistanceMeters,
     walkbackAscentDescent,
+    walkbackAscentDescentAvailable: isTerrainReady(walkbackTerrain),
     totalEquipmentItems,
     totalMass,
   };
@@ -234,6 +245,7 @@ export const getCalcFieldsForStation = (params: {
 };
 
 export const getCalcFieldsForTraverse = (params: {
+  terrainProfiles: TerrainProfiles;
   traverse: Traverse;
   missionTraverseRate: number;
   evaTraverseRate: number;
@@ -245,6 +257,7 @@ export const getCalcFieldsForTraverse = (params: {
   usingLGRSCoordinates?: boolean;
 }): TraverseCalculatedFields => {
   const {
+    terrainProfiles,
     traverse,
     missionTraverseRate,
     evaTraverseRate,
@@ -267,24 +280,27 @@ export const getCalcFieldsForTraverse = (params: {
 
   const newReportItems: ReportItem[] = [];
 
+  const terrain = terrainProfiles[traverse.uuid];
+  const path = terrain?.path ?? traverse.path;
+  const pathSegmentDistances = terrain?.distances ?? traverse.pathSegmentDistances;
+
   // get duration minutes
   const traverseRate = calcTraverseEffectiveRate(traverse, missionTraverseRate, evaTraverseRate);
-  const traverseDurationMins = calcPathDurationMins(traverse.pathSegmentDistances, traverseRate);
+  const traverseDurationMins = calcPathDurationMins(pathSegmentDistances, traverseRate);
 
   // get distance meters
-  const distanceMeters = traverse.pathSegmentDistances?.reduce(
+  const distanceMeters = pathSegmentDistances?.reduce(
     (accumulator, currentVal) => accumulator + currentVal,
     0
   );
 
   // total ascended and descended
-  const ascentDescent = calculateAscentAndDescent(traverse.pathSegmentElevations);
+  const ascentDescent = calculateAscentAndDescent(terrain?.profile?.elevationsMeters);
 
   // get traverse segment bearings
   const pathSegmentBearings: number[] = [];
-  for (let i = 1; i < traverse.path.length; i++) {
-    const bearing = getSegmentBearing(traverse.path[i - 1], traverse.path[i], usingLGRSCoordinates);
-    pathSegmentBearings.push(bearing);
+  for (let i = 1; i < (path?.length ?? 0); i++) {
+    pathSegmentBearings.push(getSegmentBearing(path[i - 1], path[i], usingLGRSCoordinates));
   }
 
   // check if calculated duration is greater than predicted durationLower
@@ -333,6 +349,7 @@ export const getCalcFieldsForTraverse = (params: {
     movementDurationMinutes: traverseDurationMins,
     distanceMeters,
     ascentDescent,
+    ascentDescentAvailable: isTerrainReady(terrain),
     bearings: pathSegmentBearings,
   };
 
@@ -340,6 +357,7 @@ export const getCalcFieldsForTraverse = (params: {
 };
 
 export const getCalcTimeForSequenceItem = (params: {
+  terrainProfiles: TerrainProfiles;
   evaUuid: string;
   sequenceItemUuid: string;
   evas: Eva[];
@@ -350,6 +368,7 @@ export const getCalcTimeForSequenceItem = (params: {
   missionTraverseRate: number;
 }): string => {
   const {
+    terrainProfiles,
     evaUuid,
     sequenceItemUuid,
     evas,
@@ -380,6 +399,7 @@ export const getCalcTimeForSequenceItem = (params: {
         stationActions = actions.filter((a) => a.stationUuid === station.uuid && a.enabled);
       }
       thisStationCalculatedTime = getCalcFieldsForStation({
+        terrainProfiles,
         station,
         missionWalkbackRate,
         stationActions,
@@ -394,6 +414,7 @@ export const getCalcTimeForSequenceItem = (params: {
         traverseActions = actions.filter((a) => a.traverseUuid === traverse.uuid && a.enabled);
       }
       thisTraverseCalculatedTime = getCalcFieldsForTraverse({
+        terrainProfiles,
         traverse,
         missionTraverseRate,
         evaTraverseRate: traverseEva?.traverseRate,
@@ -419,6 +440,7 @@ export const getCalcTimeForSequenceItem = (params: {
 };
 
 export const getCalcFieldsForEva = (params: {
+  terrainProfiles: TerrainProfiles;
   eva: Eva;
   evaStations: Station[];
   missionWalkbackRate: number;
@@ -426,8 +448,15 @@ export const getCalcFieldsForEva = (params: {
   evaActions: Action[];
   evaTraverses: Traverse[];
 }): EvaCalculatedFields => {
-  const { eva, evaStations, missionWalkbackRate, missionTraverseRate, evaActions, evaTraverses } =
-    params;
+  const {
+    terrainProfiles,
+    eva,
+    evaStations,
+    missionWalkbackRate,
+    missionTraverseRate,
+    evaActions,
+    evaTraverses,
+  } = params;
 
   if (!eva) return;
   // go through eva sequence and calculate things
@@ -465,6 +494,7 @@ export const getCalcFieldsForEva = (params: {
       totalMetersClimbed: 0,
       totalMetersDescended: 0,
     },
+    totalTraverseAscentDescentAvailable: true,
 
     // resolved durations
     totalResolvedEvaTime: 0,
@@ -490,6 +520,7 @@ export const getCalcFieldsForEva = (params: {
         stationActions = evaActions.filter((a) => a.stationUuid === thisStation.uuid && a.enabled);
       }
       thisStationCalculatedFields = getCalcFieldsForStation({
+        terrainProfiles,
         station: thisStation,
         missionWalkbackRate,
         stationActions,
@@ -540,6 +571,7 @@ export const getCalcFieldsForEva = (params: {
         );
       }
       thisTraverseCalculatedFields = getCalcFieldsForTraverse({
+        terrainProfiles,
         traverse: thisTraverse,
         missionTraverseRate,
         evaTraverseRate: eva.traverseRate,
@@ -572,6 +604,8 @@ export const getCalcFieldsForEva = (params: {
         thisTraverseCalculatedFields.ascentDescent.totalMetersClimbed;
       evaCalculatedFields.totalTraverseAscentDescent.totalMetersDescended +=
         thisTraverseCalculatedFields.ascentDescent.totalMetersDescended;
+      evaCalculatedFields.totalTraverseAscentDescentAvailable &&=
+        thisTraverseCalculatedFields.ascentDescentAvailable;
       // Traverse action time + movement time
       const totalCalcTraverseDurationMins =
         thisTraverseCalculatedFields.totalDwellTime +

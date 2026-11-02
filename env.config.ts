@@ -287,6 +287,7 @@ export const config: DotenvConfig<typeof environments> = {
    * Levels (most severe first):
    *    "off" | "emergency" | "alert" | "critical" | "error" | "warning" | "notice" | "info" | "debug"
    * Example: if level is "warning", only warning and more severe levels are handled
+   * The "debug" level includes terrain load summaries.
    *
    * The VITE_PUBLIC_REMOTE_LOG_LEVEL is a gate in front of the emss/logger remote logger. The remote logger
    * controls it's own "should log" with LOG_ENABLE_APP_LOGGING. If/when the logger package updates to use

@@ -1,3 +1,7 @@
+import {
+  terrainProfilesSlice,
+  initialState as terrainProfilesInitialState,
+} from "./terrainProfiles";
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 
 import { hoverSlice, initialState as hoverInitialState } from "./hover";
@@ -21,6 +25,7 @@ import type { Middleware, Unsubscribe } from "@reduxjs/toolkit";
 import { clientLogger } from "utils/logging/clientLogger";
 
 export const initialState: WholeStoreState = {
+  terrainProfiles: terrainProfilesInitialState,
   hover: hoverInitialState,
   mission: missionInitialState,
   user: userInitialState,
@@ -40,6 +45,7 @@ export const initialState: WholeStoreState = {
 };
 
 export const sliceReducers = combineReducers({
+  terrainProfiles: terrainProfilesSlice.reducer,
   hover: hoverSlice.reducer,
   mission: missionSlice.reducer,
   user: userSlice.reducer,

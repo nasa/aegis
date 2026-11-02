@@ -78,6 +78,11 @@ const memberColumn = (
  * differing only in the left axis and cell body (a metric value / numeric Δ).
  */
 const EvaComparisonPage: FunctionComponent = () => {
+  const terrainProfiles = useAppSelector(
+    (state) => ({ ...state.terrainProfiles.profiles, ...state.terrainProfiles.previews }),
+    shallowEqual
+  );
+
   const dispatch = useAppDispatch();
   const mission = useMissionDocSelector((m) => m, refEqual);
   const revision = useMissionDocSelector(
@@ -146,16 +151,25 @@ const EvaComparisonPage: FunctionComponent = () => {
     const result: { [columnKey: string]: EvaComparisonColumnValues } = {};
     if (!mission) return result;
     for (const column of visibleColumns) {
-      result[column.key] = computeComparisonColumnValues({ mission, column });
+      result[column.key] = computeComparisonColumnValues({
+        terrainProfiles,
+        mission,
+        column,
+      });
       // per-sub-column values for an expanded column: member EVAs for a campaign
       // column, per-station/traverse contributions for a single EVA/REX column.
       for (const item of sequenceByColumnKey[column.key] ?? []) {
         if (column.campaignUuid) {
           const synthetic = memberColumn(mission, column, item.uuid);
           if (synthetic)
-            result[synthetic.key] = computeComparisonColumnValues({ mission, column: synthetic });
+            result[synthetic.key] = computeComparisonColumnValues({
+              terrainProfiles,
+              mission,
+              column: synthetic,
+            });
         } else {
           result[`${column.key}_${item.uuid}`] = computeSequenceItemMetrics({
+            terrainProfiles,
             mission,
             column,
             item,
@@ -165,7 +179,7 @@ const EvaComparisonPage: FunctionComponent = () => {
     }
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on revision
-  }, [revision, visibleColumns, sequenceByColumnKey]);
+  }, [terrainProfiles, revision, visibleColumns, sequenceByColumnKey]);
 
   // "Differences only": hide metric rows and columns whose value equals the
   // baseline everywhere (the baseline column always stays visible).

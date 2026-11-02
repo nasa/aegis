@@ -14,6 +14,8 @@ import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
 import { setAllSliceStores } from "store/crossActions";
 import { getPaneTypes } from "components/interface/_paneTypes";
 import { populateStore } from "store/processing/populateStore";
+import store from "store";
+import { syncMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import { thunkSelectEvaAction } from "store/thunk/crossThunk";
 import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { setGridCornerPoint } from "store/map";
@@ -128,6 +130,7 @@ const Main: React.FunctionComponent = () => {
 
       // Dispatch a single action to populate the stores across all slices using the wholeStoreState
       dispatch(setAllSliceStores(wholeStoreState));
+      syncMissionTerrainProfiles(store);
 
       // If evaRefUuid, actionRefUuid are present in the URL, set the selected action using thunk
       if (evaRefUuid && actionRefUuid) {
