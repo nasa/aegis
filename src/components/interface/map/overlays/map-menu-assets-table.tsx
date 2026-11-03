@@ -80,7 +80,7 @@ export function compareByName(
 type Props = {
   assets: Asset[];
   folders: Folder[];
-  /** Edit permission with the global Edit toggle on; controls whether the visibility column renders. */
+  /** Mission edit permission; controls whether the visibility column renders. */
   canEdit: boolean;
   canMutate: boolean;
   inEdit: AssetInEdit | null;

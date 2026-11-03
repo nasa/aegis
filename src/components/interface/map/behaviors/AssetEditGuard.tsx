@@ -1,6 +1,6 @@
 /**
  * AssetEditGuard — ends an asset map gesture when it can no longer apply, and discards the
- * asset's in-edit session when Edit Mode or edit permission is lost or when the editor map unmounts
+ * asset's in-edit session when edit permission is lost or when the editor map unmounts
  * (e.g. leaving the mission).
  *
  * The gesture ends, keeping the session, when: Assets is turned off, the edited asset or its
@@ -27,10 +27,7 @@ export function AssetEditGuard(): null {
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
   const inEditUuid = useAppSelector((s) => s.asset.inEdit?.uuid ?? null, refEqual);
   const minimized = useAppSelector((s) => s.interface.rexMenuIsMinimized, refEqual);
-  const canEdit = useAppSelector(
-    (s) => !!s.user.missionPerms?.permissions.edit && s.mission.isInEditMode,
-    refEqual
-  );
+  const canEdit = useAppSelector((s) => !!s.user.missionPerms?.permissions.edit, refEqual);
   const connected = useAppSelector(isConnected, refEqual);
   const hiddenReason = useMissionDocSelector((m) => {
     const asset = inEditUuid ? m.assets?.[inEditUuid] : null;

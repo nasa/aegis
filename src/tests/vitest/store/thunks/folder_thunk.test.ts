@@ -30,6 +30,19 @@ afterEach(() => {
 });
 
 describe("shared folder visibility", () => {
+  it.each([false, true])(
+    "gates asset folder visibility by edit permission (%s) with global Edit off",
+    async (edit) => {
+      const folder = generateBlankFolder({ type: "asset" });
+      const handle = getMissionDocHandle();
+      handle.change((m) => {
+        m.folders[folder.uuid] = folder;
+      });
+      await makeStore(edit, false).dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }));
+      expect(handle.doc().folders[folder.uuid].visible).toBe(!edit);
+    }
+  );
+
   it.each(["poi", "station"] as const)(
     "toggles %s visibility in the doc, ignoring cookies",
     async (type) => {

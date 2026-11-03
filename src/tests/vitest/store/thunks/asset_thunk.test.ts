@@ -1,6 +1,5 @@
 import { createCustomTestStore } from "tests/vitest/fixtures/store";
 import { initialState as connectionInitialState } from "store/connection";
-import { initialState as missionInitialState } from "store/mission";
 import { initialState as userInitialState } from "store/user";
 import type { StoreType } from "store";
 import { updateAssetInEditValues } from "store/asset";
@@ -14,6 +13,7 @@ import {
   thunkJumpToAsset,
   thunkSaveAssetEdit,
   thunkSetAssetEditLocation,
+  thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { generateBlankAsset } from "store/storeUtils/asset";
@@ -39,9 +39,6 @@ const editor: UserState = {
   ...userInitialState,
   missionPerms: { permissions: { edit: true } } as Permission,
 };
-// Asset mutations require the global Edit toggle on.
-const editMode = { ...missionInitialState, isInEditMode: true };
-
 let store: StoreType;
 const doc = (): Mission => getMissionDocHandle().doc();
 const inEdit = () => store.getState().asset.inEdit;
@@ -59,7 +56,7 @@ beforeEach(() => {
     m.evas = {};
     m.demFilePath = "dem.tif";
   });
-  store = createCustomTestStore({ connection: connected, user: editor, mission: editMode });
+  store = createCustomTestStore({ connection: connected, user: editor });
 });
 
 describe("getMostRecentAsset", () => {
@@ -440,6 +437,22 @@ describe("thunkSaveAssetEdit", () => {
 });
 
 describe("asset gestures and row actions", () => {
+  it.each([false, true])(
+    "gates visibility by edit permission (%s) with global Edit off",
+    async (edit) => {
+      const asset = generateBlankAsset();
+      getMissionDocHandle().change((m) => {
+        m.assets[asset.uuid] = asset;
+      });
+      store = createCustomTestStore({
+        connection: connected,
+        user: { ...editor, missionPerms: { permissions: { edit } } as Permission },
+      });
+      await store.dispatch(thunkToggleAssetVisible({ assetUuid: asset.uuid }));
+      expect(doc().assets[asset.uuid].visible).toBe(!edit);
+    }
+  );
+
   it("a cancelled asset gesture never starts after the delayed directive start", async () => {
     vi.useFakeTimers();
     await store.dispatch(thunkAddAsset());
@@ -485,7 +498,6 @@ describe("asset gestures and row actions", () => {
     store = createCustomTestStore({
       connection: connected,
       user: editor,
-      mission: editMode,
       interface: {
         ...store.getState().interface,
         rexMenuIsMinimized: true,

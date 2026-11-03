@@ -45,7 +45,7 @@ import { poiSlice } from "store/poi";
 import { rexSlice } from "store/rex";
 import { stationSlice } from "store/station";
 import { traverseSlice } from "store/traverse";
-import { userSlice } from "store/user";
+import { userSlice, setMissionPerms } from "store/user";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankPoi } from "store/storeUtils/poi";
@@ -352,7 +352,7 @@ describe("asset map behaviors", () => {
     ]);
   });
 
-  it("ends an active asset gesture when blocked, and discards the inEdit when Edit Mode turns off", () => {
+  it("keeps editing across global Edit changes and discards the session when permission is lost", () => {
     const asset = placed({ name: "Drill" });
     mockMissionDoc.assets = { [asset.uuid]: asset };
     render();
@@ -397,9 +397,18 @@ describe("asset map behaviors", () => {
     expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
     flushSync(() => setters!.setSubmenuAssets({ show: true, showLabels: true }));
 
-    // Turning off global Edit Mode cancels both the gesture and the open session.
+    // Turning off global Edit Mode keeps the gesture and the open session.
     startEditAndGesture();
     flushSync(() => store.dispatch(setIsInEditMode(false)));
+    expect(store.getState().map.mapDirective?.mapItemType).toBe("asset");
+    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
+
+    // Losing edit permission cancels both the gesture and the open session.
+    flushSync(() =>
+      store.dispatch(
+        setMissionPerms({ missionId: 1, permissions: { view: true, edit: false } } as Permission)
+      )
+    );
     expect(store.getState().map.mapDirective).toBeNull();
     expect(store.getState().asset.inEdit).toBeNull();
     expect(store.getState().asset.expandedAssetUuid).toBeNull();

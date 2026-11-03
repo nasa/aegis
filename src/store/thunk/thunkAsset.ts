@@ -192,7 +192,7 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
 
 /**
  * Save the open edit session in one document change. Editability is enforced by the editor's
- * Save button and AssetEditGuard, which cancels the session when Edit Mode or edit permission
+ * Save button and AssetEditGuard, which cancels the session when edit permission
  * is lost. Throws when the values are invalid, and cancels the session when the asset was
  * deleted underneath it.
  * @returns true when saved.
@@ -256,7 +256,7 @@ export const thunkDeleteAsset = appCreateAsyncThunk<{ assetUuid: string }>(
   "asset/delete",
   async ({ assetUuid }, { dispatch, getState }) => {
     const state = getState();
-    if (!state.user.missionPerms?.permissions.edit || !state.mission.isInEditMode) return;
+    if (!state.user.missionPerms?.permissions.edit) return;
     if (state.asset.inEdit?.uuid === assetUuid) await dispatch(thunkCancelAssetEdit());
     if (getState().asset.selectedAssetUuid === assetUuid) dispatch(setSelectedAssetUuid(null));
     if (getState().asset.expandedAssetUuid === assetUuid) dispatch(setExpandedAssetUuid(null));
@@ -269,7 +269,7 @@ export const thunkDeleteAsset = appCreateAsyncThunk<{ assetUuid: string }>(
 export const thunkToggleAssetVisible = appCreateAsyncThunk<{ assetUuid: string }>(
   "asset/toggleVisible",
   async ({ assetUuid }, { getState }) => {
-    if (!getState().user.missionPerms?.permissions.edit || !getState().mission.isInEditMode) return;
+    if (!getState().user.missionPerms?.permissions.edit) return;
     getMissionDocHandle()?.change((m: Mission) => applyToggleAssetVisible(m, assetUuid));
   }
 );
@@ -279,7 +279,7 @@ export const thunkMoveAssetToFolder = appCreateAsyncThunk<{
   assetUuid: string;
   folderUuid: string | null;
 }>("asset/moveToFolder", async ({ assetUuid, folderUuid }, { getState }) => {
-  if (!getState().user.missionPerms?.permissions.edit || !getState().mission.isInEditMode) return;
+  if (!getState().user.missionPerms?.permissions.edit) return;
   getMissionDocHandle()?.change((m: Mission) =>
     applyMoveAssetToFolder(m, { assetUuid, folderUuid })
   );

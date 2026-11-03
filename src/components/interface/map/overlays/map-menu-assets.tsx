@@ -38,13 +38,10 @@ function useCoordinateEntryContext(): CoordinateEntryContext {
 }
 
 // Content of the "Assets" tab in the floating Rex Menu widget on the map. Mutations need
-// mission edit permission, the global Edit toggle, and a live connection.
+// mission edit permission and a live connection.
 export const MapAssetsMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
-  const canEdit = useAppSelector(
-    (s) => !!s.user.missionPerms?.permissions.edit && s.mission.isInEditMode,
-    refEqual
-  );
+  const canEdit = useAppSelector((s) => !!s.user.missionPerms?.permissions.edit, refEqual);
   const connected = useAppSelector(isConnected, refEqual);
   const canMutate = canEdit && connected;
   const inEdit = useAppSelector((s) => s.asset.inEdit, deepEqual);
