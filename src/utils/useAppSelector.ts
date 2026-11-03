@@ -50,7 +50,10 @@ const devRefEqual: EqualityFn = (a, b) => {
     (!isPrimitive(a) || !isPrimitive(b))
   ) {
     clientLogger.error(
-      { logId: "redux-selector", logValue: "refEqual used with non-primitive values" },
+      {
+        logId: "redux-selector:refEqual:usedWithNonPrimitiveValues",
+        logValue: "refEqual used with non-primitive values",
+      },
       new Error(
         `Redux selector using refEqual() with non-primitive values.
 				shallowEqual() or deepEqual() probably desired`
@@ -71,7 +74,10 @@ const devShallowEqual: EqualityFn = (a, b) => {
     (isPrimitive(a) || isPrimitive(b))
   ) {
     clientLogger.error(
-      { logId: "redux-selector", logValue: "shallowEqual used with primitive values" },
+      {
+        logId: "redux-selector:shallowEqual:usedWithPrimitiveValues",
+        logValue: "shallowEqual used with primitive values",
+      },
       new Error(
         `Redux selector using shallowEqual() with primitive values.
 				refEqual() probably desired`
@@ -92,7 +98,10 @@ const devDeepEqual: EqualityFn = (a, b) => {
     (isPrimitive(a) || isPrimitive(b))
   ) {
     clientLogger.error(
-      { logId: "redux-selector", logValue: "deepEqual used with primitive values" },
+      {
+        logId: "redux-selector:deepEqual:usedWithPrimitiveValues",
+        logValue: "deepEqual used with primitive values",
+      },
       new Error(
         `Redux selector using deepEqual() with primitive values.
 				refEqual() probably desired`
@@ -123,7 +132,10 @@ const selectorEqualityNotify = (equalityFn: EqualityFn): EqualityFn => {
     const deepEqual = productionDeepEqual(prev, next);
     if (prevAndNextEqual !== deepEqual) {
       clientLogger.error(
-        { logId: "redux-selector", logValue: "equalityFn not match DeepEqual" },
+        {
+          logId: "redux-selector:useAppSelector:equalityFnResultDiffersFromDeepEqual",
+          logValue: "equalityFn not match DeepEqual",
+        },
         new Error("equalityFn not match DeepEqual")
       );
     }

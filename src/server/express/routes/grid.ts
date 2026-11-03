@@ -41,6 +41,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:grid:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -54,6 +55,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:grid:GET:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -75,6 +77,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:grid:GET:failedToRetrieveGrids",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -101,6 +104,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:grid/closestPoint:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -114,6 +118,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:grid/closestPoint:GET:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -127,6 +132,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
   }
   if (!queryObj.pointList || !queryObj.radius) {
     serverLogger.apiRoute({
+      logId: "api-route:grid/closestPoint:GET:rejectedMissingPointListOrRadius",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -152,6 +158,7 @@ router.get("/closestPoint", async (req: Request, res: Response): Promise<void> =
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:grid/closestPoint:GET:failedToFindClosestGridPoints",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -178,6 +185,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:grid:POST:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -193,6 +201,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     if (!grid || !grid.gridDefinition) {
       serverLogger.apiRoute({
+        logId: "api-route:grid:POST:rejectedNoGridDefinitionProvidedInRequestBody",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -214,6 +223,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:grid:POST:unexpectedErrorSavingGrid",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -240,6 +250,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:grid:DELETE:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
@@ -262,6 +273,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     } else {
       serverLogger.apiRoute({
+        logId: "api-route:grid:DELETE:gridRecordNotFoundNothingDeleted",
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 404,
@@ -277,6 +289,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     }
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:grid:DELETE:unexpectedErrorDeletingGrid",
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,
@@ -449,7 +462,10 @@ async function deleteGridFile(missionId: number, gridFileName: string): Promise<
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
     serverLogger.error(
-      { logId: "grid", logValue: `Error deleting file ${fileName}` },
+      {
+        logId: "grid:deleteGridFile:failedToDeleteGridFileFromDisk",
+        logValue: `Error deleting file ${fileName}`,
+      },
       asError(error)
     );
     throw error;

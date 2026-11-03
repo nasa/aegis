@@ -76,7 +76,8 @@ export function startMissionCatalogRuntime(
   const reportError = (error: unknown, documentId?: DocumentId) => {
     serverLogger.error(
       {
-        logId: "mission-catalog",
+        logId:
+          "mission-catalog:startMissionCatalogRuntime:catalogUpdateFailedWillRetryOnNextSaveOrOpen",
         logValue: "Catalog update failed; next save/open will retry",
         documentId,
       },
@@ -142,7 +143,7 @@ export function startMissionCatalogRuntime(
     } catch (error) {
       serverLogger.error(
         {
-          logId: "mission-load",
+          logId: "mission-catalog:onDocMetrics:missionDocumentDidNotBecomeReadyAfterLoading",
           logValue: "Mission document did not become ready after loading",
           documentId: event.documentId,
         },
@@ -151,7 +152,7 @@ export function startMissionCatalogRuntime(
       return;
     }
     serverLogger.debug({
-      logId: "mission-load",
+      logId: "mission-catalog:onDocMetrics:loadedMissionDocumentIntoMemory",
       logValue: "Loaded mission document into memory",
       missionId: (handle.doc() as Mission).id,
       documentId: event.documentId,
@@ -205,7 +206,10 @@ export function startMissionCatalogRuntime(
   const timer = setInterval(() => {
     refresh(false).catch((error) => {
       serverLogger.error(
-        { logId: "mission-catalog", logValue: "Idle document housekeeping failed" },
+        {
+          logId: "mission-catalog:startMissionCatalogRuntime:idleDocumentHousekeepingFailed",
+          logValue: "Idle document housekeeping failed",
+        },
         error instanceof Error ? error : new Error(String(error))
       );
     });

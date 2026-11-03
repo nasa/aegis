@@ -237,7 +237,7 @@ test("loading a persisted mission schedules a catalog check without a save", asy
     expect(createMissionSummary).toHaveBeenCalledExactlyOnceWith(repo, handle);
     expect(repo.listenerCount("doc-metrics")).toBe(1);
     expect(serverLogger.debug).toHaveBeenCalledExactlyOnceWith({
-      logId: "mission-load",
+      logId: "mission-catalog:onDocMetrics:loadedMissionDocumentIntoMemory",
       logValue: "Loaded mission document into memory",
       missionId: 1,
       documentId: source.documentId,

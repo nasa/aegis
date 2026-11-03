@@ -76,6 +76,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:file/boxDownloadFile:GET:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -111,7 +112,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     writeProgress(res, { type: "progress", stage: "starting" });
 
     serverLogger.info({
-      logId: "box-download",
+      logId: "box-download:download:startedBoxItemDownload",
       logValue: `Starting Box download for item ${queryObj.itemId}`,
     });
 
@@ -126,7 +127,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       bytesDownloaded: 0,
     });
     serverLogger.info({
-      logId: "box-download",
+      logId: "box-download:download:receivedBoxItemMetadata",
       logValue: `Box metadata received for ${metadata.name}: ${totalBytes ?? "unknown"} bytes`,
     });
 
@@ -169,7 +170,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       };
       writeExtractionProgress();
       serverLogger.info({
-        logId: "box-download",
+        logId: "box-download:extract:startedExtractingDownloadedZip",
         logValue: `Extracting downloaded zip ${metadata.name} to ${queryObj.path}`,
       });
       const extractionHeartbeat = setInterval(() => {
@@ -191,7 +192,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     serverLogger.info({
-      logId: "box-download",
+      logId: "box-download:download:completedBoxDownloadAndProcessing",
       logValue: `Completed Box download and processing for ${metadata.name}`,
     });
     writeProgress(res, { type: "progress", stage: "complete", fileName: metadata.name });
@@ -204,6 +205,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   } catch (e) {
     const error = asError(e);
     serverLogger.apiRoute({
+      logId: "api-route:file/boxDownloadFile:GET:failedToDownloadOrProcessBoxItem",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -302,7 +304,7 @@ async function downloadFileFromBox(
         }
 
         serverLogger.warning({
-          logId: "box-download",
+          logId: "box-download:streamWithRetry:downloadAttemptFailedRetryingFromLastByte",
           logValue: `Box download attempt ${attempt} failed for item ${itemId} at ${downloadedBytes} bytes: ${downloadError.message}. Retrying from that byte.`,
         });
         onProgress(downloadedBytes);
@@ -463,7 +465,7 @@ async function writeBoxDownloadToFile(
       ) {
         lastLoggedBytes = bytesDownloaded;
         serverLogger.info({
-          logId: "box-download",
+          logId: "box-download:streamWithRetry:periodicDownloadProgress",
           logValue: `Box download progress for ${itemId}: ${bytesDownloaded}/${totalBytes ?? "unknown"} bytes`,
         });
       }
@@ -477,7 +479,7 @@ async function writeBoxDownloadToFile(
       const finishDownload = () => {
         onProgress(bytesDownloaded);
         serverLogger.info({
-          logId: "box-download",
+          logId: "box-download:streamWithRetry:streamFinishedAllBytesWritten",
           logValue: `Box stream finished for ${itemId}: ${bytesDownloaded} bytes written`,
         });
         resolve();

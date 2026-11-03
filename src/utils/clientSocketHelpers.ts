@@ -82,7 +82,10 @@ export const attachSocketListeners = (
   // For non-production environments. In production we will attempt reconnects infinitely
   socket.io.on("reconnect_failed", () => {
     clientLogger.error(
-      { logId: "socket", logValue: "Socket.IO reconnect_failed (path: /api/socket)" },
+      {
+        logId: "socket:clientSocketIo:reconnectFailedAfterMaximumAttempts",
+        logValue: "Socket.IO reconnect_failed (path: /api/socket)",
+      },
       new Error("Socket reconnection failed after maximum attempts")
     );
     dispatch(setSocketConnectionStatus("failed"));

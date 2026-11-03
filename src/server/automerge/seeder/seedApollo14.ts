@@ -30,7 +30,6 @@ import {
 } from "server/automerge/seeder/apollo14SeedData";
 
 const SEED_MISSION_NAME = "Apollo 14";
-const LOG_ID = "automerge-seed";
 
 // This is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
@@ -62,7 +61,10 @@ const automergeRepo = new Repo({ storage: storageAdapter });
  */
 const seed = async (): Promise<void> => {
   globalValues.orm = await MikroORM.init(config);
-  serverLogger.info({ logId: LOG_ID, logValue: "Starting Apollo 14 seed script..." });
+  serverLogger.info({
+    logId: "automerge-seed:seedApollo14:startingApollo14SeedScript",
+    logValue: "Starting Apollo 14 seed script...",
+  });
 
   // Idempotency guard: skip if an Apollo 14 mission already exists.
   const existingListings = await getAutomergeDocListing();
@@ -81,7 +83,7 @@ const seed = async (): Promise<void> => {
   );
   if (existingMissions.some((m) => m?.name === SEED_MISSION_NAME)) {
     serverLogger.info({
-      logId: LOG_ID,
+      logId: "automerge-seed:seedApollo14:skippedSeedBecauseApollo14MissionAlreadyExists",
       logValue: `A "${SEED_MISSION_NAME}" mission already exists. Nothing to seed. Exiting.`,
     });
     return;
@@ -125,7 +127,7 @@ const seed = async (): Promise<void> => {
   await automergeRepo.flush();
 
   serverLogger.info({
-    logId: LOG_ID,
+    logId: "automerge-seed:seedApollo14:seededApollo14MissionWithEntityCounts",
     logValue:
       `Seeded "${SEED_MISSION_NAME}" (missionId ${missionId}) with ` +
       `${Object.keys(mission.pois).length} POI(s), ` +
@@ -142,13 +144,19 @@ const seed = async (): Promise<void> => {
 
 seed()
   .then(() => {
-    serverLogger.info({ logId: LOG_ID, logValue: "Seed complete. Exiting." });
+    serverLogger.info({
+      logId: "automerge-seed:seedApollo14:seedCompleteExiting",
+      logValue: "Seed complete. Exiting.",
+    });
     process.exitCode = 0;
     process.exit();
   })
   .catch((err: unknown) => {
     serverLogger.error(
-      { logId: LOG_ID, logValue: "Unhandled error in seed script" },
+      {
+        logId: "automerge-seed:seedApollo14:unhandledErrorInSeedScript",
+        logValue: "Unhandled error in seed script",
+      },
       err instanceof Error ? err : new Error(String(err))
     );
     process.exitCode = 1;

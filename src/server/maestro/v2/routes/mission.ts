@@ -46,6 +46,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:readable/mission:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -95,6 +96,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:readable/mission:GET:failedToBuildReadableMission",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

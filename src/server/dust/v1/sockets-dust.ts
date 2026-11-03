@@ -45,7 +45,7 @@ export const setupDustNamespace = (
     const token = socket.handshake.auth?.token as string | undefined;
     if (!dustTokenIsValid(token) && !emssTokenIsValid(token)) {
       serverLogger.warning({
-        logId: "socket-dust-v1",
+        logId: "socket-dust-v1:authMiddleware:rejectedConnectionInvalidDustOrEmssToken",
         logValue: "Dust v1 namespace: rejected connection, invalid dustToken",
       });
       next(new Error("Unauthorized"));
@@ -59,7 +59,7 @@ export const setupDustNamespace = (
     socket.on("missionJoin", async (missionId: number, dustVisitor: DustVisitor, callback) => {
       if (!missionId || isNaN(missionId)) {
         serverLogger.warning({
-          logId: "socket-dust-v1",
+          logId: "socket-dust-v1:missionJoin:rejectedInvalidMissionId",
           dustName: dustVisitor?.name || "unknown",
           logValue: `missionJoin - invalid missionId ${missionId}`,
         });
@@ -97,7 +97,7 @@ export const setupDustNamespace = (
           .emit("inspectorUpdate", globalValues.serverSocketStatus);
         serverLogger.error(
           {
-            logId: "socket-dust-v1",
+            logId: "socket-dust-v1:missionJoin:failedToAttachDocListenerJoinRolledBack",
             dustName: dustVisitor?.name || "unknown",
             logValue: `missionJoin - failed to attach doc listener for mission ${missionId}`,
           },
@@ -122,7 +122,7 @@ export const setupDustNamespace = (
     socket.on("getEverything", async (missionId: number, callback) => {
       if (!missionId || isNaN(missionId)) {
         serverLogger.warning({
-          logId: "socket-dust-v1",
+          logId: "socket-dust-v1:getEverything:rejectedInvalidMissionId",
           logValue: `getEverything - invalid missionId ${missionId}`,
         });
         callback({ status: "error", message: `Invalid missionId ${missionId}` });
@@ -137,7 +137,7 @@ export const setupDustNamespace = (
       } catch (error) {
         serverLogger.error(
           {
-            logId: "socket-dust-v1",
+            logId: "socket-dust-v1:getEverything:failedToBuildFullResyncPayload",
             logValue: `getEverything - Error getting everything for mission ${missionId}`,
           },
           error instanceof Error ? error : new Error(String(error))

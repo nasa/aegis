@@ -27,6 +27,7 @@ router.delete("/", async (req: Request, res: Response) => {
   });
   if (!editPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
     serverLogger.apiRoute({
+      logId: "api-route:file/delete:DELETE:unauthorizedRequestRequiresEditPermissionAndAdmin",
       logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
@@ -47,6 +48,7 @@ router.delete("/", async (req: Request, res: Response) => {
     res.status(200).json("Success");
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:file/delete:DELETE:failedToDeleteFileOrDirectory",
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,

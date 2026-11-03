@@ -39,14 +39,14 @@ export const auditActions = async ({
     // action has no parent, remove it
     actionUuidsToDelete.push(action.uuid);
     clientLogger.debug({
-      logId: "audit",
+      logId: "audit:orphanedActions:foundOrphanedActionWithoutParent",
       logValue: `Found orphaned action: ${action.uuid} - poiUuid: ${action.poiUuid} stationUuid: ${action.stationUuid} traverseUuid: ${action.traverseUuid}`,
     });
   }
   // delete from automerge doc
   if (actionUuidsToDelete.length > 0) {
     clientLogger.debug({
-      logId: "audit",
+      logId: "audit:orphanedActions:deletingOrphanedActionsFromMissionDoc",
       logValue: `Deleting orphaned actions: ${actionUuidsToDelete.join(", ")}`,
     });
     withMissionChange((m: Mission) => {

@@ -52,7 +52,10 @@ router.post("/archive", async (req: Request, res: Response) => {
     res.json({ status: "success", message: "Mission archive status updated" });
   } catch (error) {
     serverLogger.error(
-      { logId: "mission-archive", logValue: "Could not archive mission" },
+      {
+        logId: "api-route:missionAutomerge/archive:POST:failedToUpdateMissionArchiveStatus",
+        logValue: "Could not archive mission",
+      },
       asError(error)
     );
     res.status(500).json({ status: "error", message: "Could not archive mission" });
@@ -72,6 +75,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     emssTokenIsValid(emssToken);
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -93,6 +97,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({ status: "success", message: "missions retrieved", data: missions });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge:GET:failedToRetrieveMissions",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -121,6 +126,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!createPermissions) {
     serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge:POST:unauthorizedRequestMissingCreatePermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -153,6 +159,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge:POST:unexpectedErrorCreatingMission",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -191,6 +198,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/fields:POST:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -266,6 +274,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/fields:POST:unexpectedErrorUpdatingMissionFields",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -288,6 +297,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   for (const missionIdToDelete of missionIds) {
     if (!missionIdToDelete || isNaN(missionIdToDelete)) {
       serverLogger.apiRoute({
+        logId: "api-route:missionAutomerge:DELETE:rejectedInvalidMissionIdInDeleteList",
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 400,
@@ -308,6 +318,8 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     });
     if (!canEditThisMission) {
       serverLogger.apiRoute({
+        logId:
+          "api-route:missionAutomerge:DELETE:unauthorizedRequestMissingEditPermissionForMission",
         logLevel: "warning",
         httpMethod: "DELETE",
         responseStatus: 401,
@@ -331,6 +343,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     } else {
       serverLogger.apiRoute({
+        logId: "api-route:missionAutomerge:DELETE:missionRecordNotFoundNothingDeleted",
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 404,
@@ -347,6 +360,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     }
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge:DELETE:unexpectedErrorDeletingMissions",
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,

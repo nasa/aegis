@@ -39,6 +39,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:automerge:GET:unauthorizedDocListingRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -74,8 +75,9 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:automerge:GET:failedToRetrieveDocListings",
       logLevel: "error",
-      httpMethod: "POST",
+      httpMethod: "GET",
       responseStatus: 500,
       routeName: "automerge",
       appUsername: req.session?.appUser?.username,

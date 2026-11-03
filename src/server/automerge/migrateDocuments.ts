@@ -12,7 +12,7 @@ const logProgress = (message: string) => {
   const memory = process.memoryUsage();
   const mib = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
   serverLogger.info({
-    logId: "automerge-migration",
+    logId: "automerge-migration:logProgress:migrationProgressWithMemoryUsage",
     logValue: `${message}; memory MiB: rss=${mib(memory.rss)}, heapUsed=${mib(memory.heapUsed)}, heapTotal=${mib(memory.heapTotal)}, external=${mib(memory.external)}, arrayBuffers=${mib(memory.arrayBuffers)}`,
   });
 };
