@@ -9,10 +9,7 @@ export type OpenRaster = {
 
 export const openRaster = async (absolutePath: string): Promise<OpenRaster> => {
   const { image } = await getCachedRaster(absolutePath);
-  const fileDirectory = image.getFileDirectory() as {
-    ModelTransformation?: ArrayLike<number>;
-  };
-  if (fileDirectory.ModelTransformation) {
+  if (image.getFileDirectory().hasTag("ModelTransformation")) {
     // The pixel conversion assumes an axis-aligned origin and scale. A transformation matrix
     // could also encode rotation or shear, which would require affine inversion.
     throw new Error("Rotated or sheared GeoTIFF transforms are not supported");
@@ -27,7 +24,7 @@ export const openRaster = async (absolutePath: string): Promise<OpenRaster> => {
     throw new Error("Raster resolution must be non-zero");
   }
 
-  const bandMetadata = (image.getGDALMetadata(0) ?? {}) as Record<string, unknown>;
+  const bandMetadata = ((await image.getGDALMetadata(0)) ?? {}) as Record<string, unknown>;
   const parseBandNumber = (key: "SCALE" | "OFFSET", fallback: number): number => {
     const rawValue = bandMetadata[key];
     if (rawValue === undefined) return fallback;
