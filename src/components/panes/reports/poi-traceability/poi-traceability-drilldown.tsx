@@ -3,7 +3,7 @@ import { useState } from "react";
 import styles from "./poi-traceability.module.css";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { getActionDisplayName } from "utils/component-helpers";
-import ActionPreview, { type ActionPreviewTarget } from "./action-preview";
+import ActionPreview, { type ActionPreviewTarget } from "../shared/action-preview";
 import TraceIcon from "./trace-icon";
 import ReportActionTitle from "../shared/report-action-title";
 

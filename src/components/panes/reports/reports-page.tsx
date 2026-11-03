@@ -6,11 +6,13 @@ import styles from "../stm-rules/stm-rules-page.module.css";
 import EvaStmCoveragePage from "./eva-stm-coverage/eva-stm-coverage-page";
 import EvaComparisonPage from "./eva-comparison/eva-comparison-page";
 import PoiTraceabilityPage from "./poi-traceability/poi-traceability-page";
+import MissionPrioritiesPage from "./mission-priorities/mission-priorities-page";
 
 const TABS: { key: ReportsTab; label: string }[] = [
   { key: "coverage", label: "EVA STM Coverage" },
   { key: "comparison", label: "EVA Comparison" },
   { key: "poiTrace", label: "POI Traceability" },
+  { key: "missionPriorities", label: "Mission Priorities" },
 ];
 
 /**
@@ -40,6 +42,7 @@ const ReportsPage: FunctionComponent = () => {
         {activeTab === "coverage" && <EvaStmCoveragePage />}
         {activeTab === "comparison" && <EvaComparisonPage />}
         {activeTab === "poiTrace" && <PoiTraceabilityPage />}
+        {activeTab === "missionPriorities" && <MissionPrioritiesPage />}
       </div>
     </div>
   );
