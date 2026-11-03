@@ -67,7 +67,10 @@ const deleteFolder = (folderUuid: string) => {
     }
   } catch (error) {
     clientLogger.error(
-      { logId: "folders", logValue: "Error removing folder state from cookie" },
+      {
+        logId: "folders:removeFolderStateFromCookie:failedToRemoveFolderStateFromCookie",
+        logValue: "Error removing folder state from cookie",
+      },
       error instanceof Error ? error : new Error(String(error))
     );
   }

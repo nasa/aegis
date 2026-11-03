@@ -199,14 +199,14 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 
   if (latestIssuedStationLocationRevisionByStation.get(stationUuid) !== locationRevision) {
     clientLogger.debug({
-      logId: "thunk-station",
+      logId: "thunk-station:thunkDocUpdateStationLocation:staleLocationRequestSkippingApply",
       logValue: `thunkDocUpdateStationLocation: stale request for station ${stationUuid}, skipping apply`,
     });
     return;
   }
   if (!areTraverseProfileUpdatesCurrent(stagedTraverseData)) {
     clientLogger.debug({
-      logId: "thunk-station",
+      logId: "thunk-station:thunkDocUpdateStationLocation:supersededTraverseProfileSkippingApply",
       logValue: `thunkDocUpdateStationLocation: superseded traverse profile for station ${stationUuid}, skipping apply`,
     });
     return;
@@ -292,7 +292,7 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
 
   if (latestIssuedWalkbackProfileRevisionByStation.get(stationUuid) !== profileRevision) {
     clientLogger.debug({
-      logId: "thunk-station",
+      logId: "thunk-station:thunkDocUpdateWalkback:staleWalkbackProfileRequestSkippingPreview",
       logValue: `thunkDocUpdateWalkback: stale request for station ${stationUuid}, skipping preview`,
     });
     return;

@@ -75,7 +75,8 @@ const toSchemaViolation = (error: ErrorObject): SchemaViolation => ({
 getORM()
   .then(async () => {
     serverLogger.info({
-      logId: "automerge-schema-validate",
+      logId:
+        "automerge-schema-validate:missionSchemaValidatorRunner:startingMissionSchemaValidation",
       logValue: "Starting Automerge mission schema validation...",
     });
 
@@ -93,7 +94,8 @@ getORM()
         });
         serverLogger.error(
           {
-            logId: "automerge-schema-validate",
+            logId:
+              "automerge-schema-validate:missionSchemaValidatorRunner:invalidAutomergeUrlInDocListing",
             logValue: `Mission ${docListing.missionId}: invalid automerge URL ${docListing.automergeUrl}`,
           },
           new Error(`Invalid automerge URL for mission ${docListing.missionId}`)
@@ -115,7 +117,8 @@ getORM()
         });
         serverLogger.error(
           {
-            logId: "automerge-schema-validate",
+            logId:
+              "automerge-schema-validate:missionSchemaValidatorRunner:failedToLoadAutomergeDocument",
             logValue: `Mission ${docListing.missionId}: failed to load automerge doc`,
           },
           err instanceof Error ? err : new Error(String(err))
@@ -131,7 +134,8 @@ getORM()
         });
         serverLogger.error(
           {
-            logId: "automerge-schema-validate",
+            logId:
+              "automerge-schema-validate:missionSchemaValidatorRunner:automergeDocumentIsUndefined",
             logValue: `Mission ${docListing.missionId}: automerge doc is undefined`,
           },
           new Error(`Automerge doc undefined for mission ${docListing.missionId}`)
@@ -158,7 +162,8 @@ getORM()
       });
       serverLogger.error(
         {
-          logId: "automerge-schema-validate",
+          logId:
+            "automerge-schema-validate:missionSchemaValidatorRunner:missionFailedSchemaValidation",
           logValue: `Mission ${doc.id} - ${doc.name} is invalid (${violations.length} violation(s))`,
         },
         new Error(`Mission ${doc.id} - ${doc.name} failed schema validation`)
@@ -183,7 +188,8 @@ getORM()
     fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf8");
 
     serverLogger.info({
-      logId: "automerge-schema-validate",
+      logId:
+        "automerge-schema-validate:missionSchemaValidatorRunner:schemaValidationCompleteWithReportPath",
       logValue:
         `Schema validation complete. ${validCount} valid, ${failures.length} invalid, ` +
         `${unreadable.length} unreadable of ${allDocListings.length} mission(s). ` +
@@ -196,7 +202,11 @@ getORM()
   })
   .catch((err: unknown) => {
     serverLogger.error(
-      { logId: "automerge-schema-validate", logValue: "Unhandled error in schema validation" },
+      {
+        logId:
+          "automerge-schema-validate:missionSchemaValidatorRunner:unhandledErrorInSchemaValidation",
+        logValue: "Unhandled error in schema validation",
+      },
       err instanceof Error ? err : new Error(String(err))
     );
     process.exitCode = 1;

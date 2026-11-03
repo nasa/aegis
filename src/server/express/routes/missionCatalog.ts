@@ -20,7 +20,10 @@ router.get("/", async (req: Request, res: Response) => {
     res.json({ status: "success", message: "Mission summaries retrieved", data });
   } catch (error) {
     serverLogger.error(
-      { logId: "mission-catalog", logValue: "Could not list mission summaries" },
+      {
+        logId: "api-route:missionCatalog:GET:failedToListMissionSummaries",
+        logValue: "Could not list mission summaries",
+      },
       asError(error)
     );
     res.status(500).json({ status: "error", message: "Could not list mission summaries" });

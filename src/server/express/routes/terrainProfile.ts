@@ -223,7 +223,7 @@ async function sampleMissionTerrainProfiles(
   };
   await Promise.all(Array.from({ length: 4 }, loadProfiles));
   serverLogger.debug({
-    logId: "terrain-profile",
+    logId: "terrain-profile:sampleMissionTerrainProfiles:batchSamplingCompletedWithCacheStatistics",
     missionId,
     batchId,
     logValue: `Batch ${results.length} profiles > db-cache hit=${cacheCounts.hit} miss=${cacheCounts.miss} bypass=${cacheCounts.bypass} errors=${results.filter((result) => result.status !== "success").length} in ${(performance.now() - startedAt).toFixed(1)} ms`,
@@ -286,6 +286,7 @@ const respondWithRasterRouteError = (
 
   const responseStatus = rasterErrorStatus(error);
   serverLogger.apiRoute({
+    logId: "api-route:terrain-profile:POST:terrainProfileSamplingFailed",
     logLevel: responseStatus === 400 ? "notice" : responseStatus === 503 ? "warning" : "error",
     httpMethod: "POST",
     responseStatus,
@@ -303,6 +304,7 @@ router.post(["/", "/batch"], async (req: Request, res: Response): Promise<void> 
   const missionId = missionIdFromRequest(req);
   if (!missionId) {
     serverLogger.apiRoute({
+      logId: "api-route:terrain-profile:POST:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -322,6 +324,7 @@ router.post(["/", "/batch"], async (req: Request, res: Response): Promise<void> 
   });
   if (!permitted) {
     serverLogger.apiRoute({
+      logId: "api-route:terrain-profile:POST:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -338,6 +341,7 @@ router.post(["/", "/batch"], async (req: Request, res: Response): Promise<void> 
     const missionHandle = await getAutomergeMissionHandle(missionId);
     if (!missionHandle) {
       serverLogger.apiRoute({
+        logId: "api-route:terrain-profile:POST:missionDocumentNotFound",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 404,

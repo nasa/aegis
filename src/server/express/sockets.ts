@@ -22,7 +22,7 @@ export const setupSocketIO = (): void => {
           // check app version and git commit
           if (!isEqual(visitorData.clientAppVersion, globalValues.appVersion)) {
             serverLogger.warning({
-              logId: "socket",
+              logId: "socket:visitorJoin:clientAppVersionDoesNotMatchServerAppVersion",
               logValue: `SocketIO - visitorJoin: appVersion mismatch between client and server
           client: ${JSON.stringify(visitorData.clientAppVersion)}
           server: ${JSON.stringify(globalValues.appVersion)}`,
@@ -54,7 +54,7 @@ export const setupSocketIO = (): void => {
         } catch (error) {
           serverLogger.error(
             {
-              logId: "socket",
+              logId: "socket:visitorJoin:unhandledErrorWhileProcessingVisitorJoin",
               logValue: "SocketIO - visitorJoin",
               launchpadUser: visitorData.launchpadUser?.auid,
               appUser: visitorData.appUser?.username,
@@ -94,7 +94,10 @@ export const setupSocketIO = (): void => {
           io.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
         } catch (error) {
           serverLogger.error(
-            { logId: "socket", logValue: "SocketIO - disconnect" },
+            {
+              logId: "socket:disconnect:unhandledErrorWhileRemovingDisconnectedVisitor",
+              logValue: "SocketIO - disconnect",
+            },
             error instanceof Error ? error : new Error(String(error))
           );
         }

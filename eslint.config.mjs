@@ -20,6 +20,130 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 });
 
+const LOGGER_OBJECT_NAMES = new Set([
+  "serverLogger",
+  "clientLogger",
+  "ConsoleLogger",
+  "rawServerLogger",
+]);
+const LOGGER_METHOD_NAMES = new Set([
+  "emergency",
+  "alert",
+  "critical",
+  "error",
+  "warning",
+  "notice",
+  "info",
+  "debug",
+  "apiRoute",
+]);
+
+// logId -> first location it was seen at. Module-level so it persists across every file
+// linted by one ESLint process, which is what makes the uniqueness check project-wide.
+const registeredLogIdLocations = new Map();
+
+/**
+ * Requires every logger call to pass an object literal whose `logId` is a string literal,
+ * and requires that string to be unique across the project so a single log line in the
+ * logging server can be traced back to exactly one call site.
+ */
+const uniqueLogIdRule = {
+  meta: {
+    type: "problem",
+    docs: { description: "Require a unique string-literal logId on every logger call" },
+    schema: [],
+    messages: {
+      firstArgumentMustBeObjectLiteral:
+        "The first argument to {{loggerCall}}() must be an object literal with a string-literal logId, so the logId can be checked for uniqueness.",
+      logIdMustBeStringLiteral:
+        "logId must be a non-empty string literal (no variables, expressions, or template substitutions) so it can be checked for uniqueness.",
+      duplicateLogId:
+        'logId "{{logId}}" is already used at {{otherLocation}}. Every logId must be unique; make this one more specific.',
+    },
+  },
+  create(context) {
+    const currentFilename = context.filename;
+    const relativeFilename = path.relative(__dirname, currentFilename).replaceAll("\\", "/");
+
+    // Drop entries from a previous lint of this same file (editor re-lint, or --fix passes)
+    for (const [logId, location] of registeredLogIdLocations) {
+      if (location.filename === currentFilename) registeredLogIdLocations.delete(logId);
+    }
+
+    const getStaticStringValue = (node) => {
+      if (node.type === "Literal" && typeof node.value === "string") return node.value;
+      if (node.type === "TemplateLiteral" && node.expressions.length === 0) {
+        return node.quasis[0].value.cooked;
+      }
+      return null;
+    };
+
+    return {
+      CallExpression(node) {
+        const callee = node.callee;
+        if (
+          callee.type !== "MemberExpression" ||
+          callee.computed ||
+          callee.object.type !== "Identifier" ||
+          !LOGGER_OBJECT_NAMES.has(callee.object.name) ||
+          callee.property.type !== "Identifier" ||
+          !LOGGER_METHOD_NAMES.has(callee.property.name)
+        ) {
+          return;
+        }
+
+        const firstArgument = node.arguments[0];
+        if (!firstArgument || firstArgument.type !== "ObjectExpression") {
+          context.report({
+            node: firstArgument ?? node,
+            messageId: "firstArgumentMustBeObjectLiteral",
+            data: { loggerCall: `${callee.object.name}.${callee.property.name}` },
+          });
+          return;
+        }
+
+        const logIdProperty = firstArgument.properties.find(
+          (property) =>
+            property.type === "Property" &&
+            !property.computed &&
+            ((property.key.type === "Identifier" && property.key.name === "logId") ||
+              (property.key.type === "Literal" && property.key.value === "logId"))
+        );
+        if (!logIdProperty) {
+          context.report({ node: firstArgument, messageId: "logIdMustBeStringLiteral" });
+          return;
+        }
+
+        const logId = getStaticStringValue(logIdProperty.value);
+        if (!logId) {
+          context.report({ node: logIdProperty.value, messageId: "logIdMustBeStringLiteral" });
+          return;
+        }
+
+        const existingLocation = registeredLogIdLocations.get(logId);
+        if (existingLocation) {
+          context.report({
+            node: logIdProperty.value,
+            messageId: "duplicateLogId",
+            data: {
+              logId,
+              otherLocation: `${existingLocation.relativeFilename}:${existingLocation.line}`,
+            },
+          });
+          return;
+        }
+        registeredLogIdLocations.set(logId, {
+          filename: currentFilename,
+          relativeFilename,
+          line: logIdProperty.value.loc.start.line,
+        });
+      },
+    };
+  },
+};
+
+export const aegisLoggingPlugin = { rules: { "unique-log-id": uniqueLogIdRule } };
+
 export default [
   {
     ignores: [
@@ -201,6 +325,16 @@ export default [
     files: ["**/*.d.ts"],
     rules: {
       "@typescript-eslint/consistent-type-imports": "off",
+    },
+  },
+
+  // Every logger call in application code needs its own unique logId
+  {
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    ignores: ["src/tests/**"],
+    plugins: { "aegis-logging": aegisLoggingPlugin },
+    rules: {
+      "aegis-logging/unique-log-id": "error",
     },
   },
 

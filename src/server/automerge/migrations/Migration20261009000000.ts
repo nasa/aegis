@@ -485,7 +485,8 @@ export const Migration20261009000000: AutomergeMigration = {
         )
     );
     serverLogger.debug({
-      logId: "automerge-migration",
+      logId:
+        "automerge-migration:Migration20261009000000:foldersLayersPresetsStmMigrationCountsForMission",
       logValue: `Mission ${missionId} folders/layers/presets/stm migration: ${counts}${
         missingTables.length > 0 ? ` (missing tables: ${missingTables.join(", ")})` : ""
       }${droppedRows.length > 0 ? ` (dropped orphaned rows in: ${droppedRows.join(", ")})` : ""}`,

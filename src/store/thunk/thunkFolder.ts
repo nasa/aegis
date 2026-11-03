@@ -80,7 +80,10 @@ export const thunkToggleFolderOpen = appCreateAsyncThunk<{ folderUuid: string }>
       );
     } catch (error) {
       clientLogger.error(
-        { logId: "thunk-folder", logValue: "Error saving folder state to cookie" },
+        {
+          logId: "thunk-folder:saveFolderOpenState:failedToSaveFolderStateToCookie",
+          logValue: "Error saving folder state to cookie",
+        },
         error instanceof Error ? error : new Error(String(error))
       );
     }

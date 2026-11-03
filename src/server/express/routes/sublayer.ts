@@ -50,6 +50,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!viewPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:GET:unauthorizedRequestMissingViewPermission",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -64,6 +65,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:GET:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
@@ -86,6 +88,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:GET:failedToRetrieveSublayers",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -111,6 +114,7 @@ router.get("/schema", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer/schema:GET:failedToRetrieveSublayerJsonSchema",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -140,6 +144,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:POST:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -154,6 +159,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!missionId || isNaN(missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:POST:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "POST",
       responseStatus: 400,
@@ -170,6 +176,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // validate
     if (!sublayers || sublayers.length === 0) {
       serverLogger.apiRoute({
+        logId: "api-route:sublayer:POST:rejectedNoSublayersProvidedInRequestBody",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -187,6 +194,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
       serverLogger.apiRoute({
+        logId: "api-route:sublayer:POST:upsertSublayersReturnedNoSublayers",
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -213,6 +221,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   } catch (e) {
     if (e instanceof SublayerInputError) {
       serverLogger.apiRoute({
+        logId: "api-route:sublayer:POST:rejectedInvalidSublayerInput",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -226,6 +235,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:POST:unexpectedErrorUpsertingSublayers",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -253,6 +263,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   });
   if (!editPermission) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:DELETE:unauthorizedRequestMissingEditPermission",
       logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
@@ -267,6 +278,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   }
   if (!missionId || isNaN(missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:DELETE:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "DELETE",
       responseStatus: 400,
@@ -289,6 +301,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     } else {
       serverLogger.apiRoute({
+        logId: "api-route:sublayer:DELETE:sublayerRecordNotFoundNothingDeleted",
         logLevel: "notice",
         httpMethod: "DELETE",
         responseStatus: 404,
@@ -305,6 +318,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     }
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:sublayer:DELETE:unexpectedErrorDeletingSublayers",
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,

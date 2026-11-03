@@ -19,7 +19,7 @@ export async function releaseMissionDocument(repo: Repo, documentId: DocumentId)
     handle.unload = unload;
   }
   serverLogger.debug({
-    logId: "mission-release",
+    logId: "mission-catalog:releaseMissionDocument:releasedMissionDocumentFromMemory",
     logValue: "Released mission document from memory",
     missionId,
     documentId,
