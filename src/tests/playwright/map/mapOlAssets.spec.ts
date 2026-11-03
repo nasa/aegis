@@ -6,7 +6,7 @@
 
 import type { Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
-import { waitForPageReady, toggleEditMode, minimizeRexMenu } from "../helpers";
+import { waitForPageReady, minimizeRexMenu } from "../helpers";
 
 const MISSION_URL = "http://localhost:4000/mission/22";
 
@@ -35,9 +35,8 @@ test.describe("Mission 22 — Asset tracking", () => {
     const folderName = `PW Assets ${suffix}`;
     const assetRow = page.locator("tr[data-testid^='asset-row-']", { hasText: assetName });
     await openAssetsTab(page);
-    await expect(page.getByText("Add Asset", { exact: true })).toBeHidden();
-    await expect(page.getByText("Add Folder", { exact: true })).toBeHidden();
-    await toggleEditMode(page);
+    await expect(page.getByText("Add Asset", { exact: true })).toBeVisible();
+    await expect(page.getByText("Add Folder", { exact: true })).toBeVisible();
     await page.getByText("Add Asset", { exact: true }).click();
     const editor = page.getByTestId("asset-editor");
     await editor.getByTestId("asset-editor-name").fill(assetName);
@@ -69,7 +68,6 @@ test.describe("Mission 22 — Asset tracking", () => {
     await openAssetsTab(page);
     await expect(assetRow).toBeVisible();
 
-    await toggleEditMode(page);
     await page.getByText("Add Folder", { exact: true }).click();
     await page.getByRole("textbox", { name: "Folder name", exact: true }).fill(folderName);
     await page.getByLabel("Save folder name", { exact: true }).click();

@@ -96,7 +96,10 @@ export const thunkToggleFolderOpen = appCreateAsyncThunk<{ folderUuid: string }>
 export const thunkToggleFolderVisible = appCreateAsyncThunk<{ folderUuid: string }>(
   "thunkToggleFolderVisible",
   async ({ folderUuid }, { getState }) => {
-    if (!getState().user.missionPerms?.permissions.edit || !getState().mission.isInEditMode) return;
+    const state = getState();
+    if (!state.user.missionPerms?.permissions.edit) return;
+    const folder = getMissionDocHandle()?.doc()?.folders?.[folderUuid];
+    if (folder?.type !== "asset" && !state.mission.isInEditMode) return;
     withMissionChange((m) => applyToggleFolderVisible(m, folderUuid));
   }
 );
