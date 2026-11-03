@@ -119,8 +119,10 @@ z:db-export:silver:
   script:
     - echo "${DEPLOY_SUDO_PASS}" | sudo -S touch /tmp/somefile
 
-    # OS info and partition usage
+    # OS info, partition usage, and memory info
     - cat /etc/os-release
+    - lscpu
+    - free -h
     - df -h
 
     # Setup artifact directories
@@ -133,9 +135,9 @@ z:db-export:silver:
     - sudo docker compose stats --no-stream
 
     # print last 100 lines to job output
-    - sudo docker compose logs nginx --tail 100
-    - sudo docker compose logs database --tail 100
-    - sudo docker compose logs apiv1 --tail 100
+    - sudo docker compose logs nginx --no-log-prefix --timestamps --tail 100
+    - sudo docker compose logs database --no-log-prefix --timestamps --tail 100
+    - sudo docker compose logs apiv1 --no-log-prefix --timestamps --tail 100
     - sudo journalctl --unit=rsyslog -n 200 --no-pager
 
     # Put the full logs into artifacts. Full logs may hit the job log length
