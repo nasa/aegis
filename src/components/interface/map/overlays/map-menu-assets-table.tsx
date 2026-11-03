@@ -357,6 +357,7 @@ const FolderGroup: FunctionComponent<{
                 fieldProps={{
                   name: "folderName",
                   ariaLabel: "Folder name",
+                  className: styles.folderNameInput,
                   validators: [
                     validators.required,
                     validators.maxLength(24),
@@ -375,11 +376,11 @@ const FolderGroup: FunctionComponent<{
             {folderInterface.editing && canMutate && (
               <button
                 type="button"
-                className={styles.iconButton}
+                className={`${styles.folderSaveButton} ${styles.saveButton}`}
                 onClick={saveName}
                 aria-label="Save folder name"
               >
-                <FontAwesomeIcon icon={faFloppyDisk} size="sm" />
+                <FontAwesomeIcon icon={faFloppyDisk} size="lg" />
               </button>
             )}
           </div>
