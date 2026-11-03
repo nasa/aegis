@@ -228,16 +228,16 @@ describe("MapAssetsMenu", () => {
     expect(q(`[data-testid='asset-row-${zed.uuid}']`)?.textContent).toContain("Not placed");
   });
 
-  it("draws the emoji disc in the radius color only for a positive radius", () => {
-    const ringed = generateBlankAsset({ name: "Ringed", color: "#ff0000", uncertaintyMeters: 5 });
-    const flat = generateBlankAsset({ name: "Flat", color: "#ff0000", uncertaintyMeters: 0 });
-    mockMissionDoc.assets = { [ringed.uuid]: ringed, [flat.uuid]: flat };
+  it.each([0, 5])("shows chosen and default emoji background colors at radius %s", (radius) => {
+    const colored = generateBlankAsset({ color: "#ff0000", uncertaintyMeters: radius });
+    const uncolored = generateBlankAsset({ color: null, uncertaintyMeters: radius });
+    mockMissionDoc.assets = { [colored.uuid]: colored, [uncolored.uuid]: uncolored };
     store = makeStore(true);
     render();
     const emojiCell = (uuid: string) =>
       q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[2] as HTMLElement;
-    expect(emojiCell(ringed.uuid).style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
-    expect(emojiCell(flat.uuid).style.backgroundColor).toBe("");
+    expect(emojiCell(colored.uuid).style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
+    expect(emojiCell(uncolored.uuid).style.backgroundColor).toBe("rgba(153, 153, 153, 0.5)");
   });
 
   it.each([false, true])("toggles folders from the header or icon (can edit: %s)", (canEdit) => {
