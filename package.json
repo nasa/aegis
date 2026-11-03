@@ -214,5 +214,10 @@
     "configPaths": [
       "./src/server/database/mikro-orm.config.ts"
     ]
+  },
+  "overrides": {
+    "get-uri": {
+      "basic-ftp": "6.2.5"
+    }
   }
 }
