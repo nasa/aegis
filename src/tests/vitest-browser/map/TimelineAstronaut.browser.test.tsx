@@ -27,7 +27,7 @@ import View from "ol/View";
 import type Overlay from "ol/Overlay";
 
 import { MapContext } from "components/interface/map/MapProvider";
-import { MODE_CONFIGS } from "components/interface/map/utils/modeConfig";
+import { EV_ICON_SRC, MODE_CONFIGS } from "components/interface/map/utils/modeConfig";
 import { TimelineAstronaut } from "components/interface/map/behaviors/TimelineAstronaut";
 import { hoverSlice } from "store/hover";
 import { evaSlice } from "store/eva";
@@ -204,7 +204,7 @@ describe("TimelineAstronaut", () => {
     expect(el.dataset.timelineMarker).toBe("astronaut");
     const astronautImage = el.querySelector("img");
     expect(astronautImage).not.toBeNull();
-    expect(astronautImage!.getAttribute("src")).toBe("/images/astronaut_outline.svg");
+    expect(astronautImage!.getAttribute("src")).toBe(EV_ICON_SRC);
     // Same size as the editor's "EV*" POS marker icon.
     expect(astronautImage!.width).toBe(MODE_CONFIGS.editor.pos.evIconSize);
     expect(astronautImage!.height).toBe(MODE_CONFIGS.editor.pos.evIconSize);
@@ -382,7 +382,7 @@ describe("TimelineAstronaut", () => {
     });
 
     expect(el.dataset.timelineMarker).toBe("astronaut");
-    expect(el.querySelector("img")?.getAttribute("src")).toBe("/images/astronaut_outline.svg");
+    expect(el.querySelector("img")?.getAttribute("src")).toBe(EV_ICON_SRC);
   });
 
   it("removes the overlay from the map on unmount", () => {

@@ -18,9 +18,8 @@ import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
-import { MODE_CONFIGS } from "../utils/modeConfig";
+import { EV_ICON_SRC, MODE_CONFIGS } from "../utils/modeConfig";
 
-const ASTRONAUT_ICON_SRC = "/images/astronaut_outline.svg";
 // Editor-only marker, sized to match the editor's "EV*" POS marker icon.
 const ASTRONAUT_ICON_SIZE_PX = MODE_CONFIGS.editor.pos.evIconSize;
 const MEASUREMENT_MARKER_TEXT = "❌";
@@ -30,7 +29,7 @@ const MEASUREMENT_MARKER_FONT_SIZE = "15px";
 function showAstronautIcon(element: HTMLDivElement): void {
   if (element.dataset.timelineMarker === "astronaut") return;
   const astronautImage = document.createElement("img");
-  astronautImage.src = ASTRONAUT_ICON_SRC;
+  astronautImage.src = EV_ICON_SRC;
   astronautImage.alt = "";
   astronautImage.width = ASTRONAUT_ICON_SIZE_PX;
   astronautImage.height = ASTRONAUT_ICON_SIZE_PX;
