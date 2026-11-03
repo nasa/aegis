@@ -196,7 +196,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     ? "Not placed"
     : [
         petSeconds === null ? null : `PET ${hhmmssFromSeconds(petSeconds)}`,
-        formatUtcTime(placement.locationSetAt).slice(11),
+        formatUtcTime(placement.locationSetAt),
         placement.runningRexUuid
           ? `${placement.runningEvaName ?? "EVA"}${provenance.evaExists ? "" : " (unavailable)"} / ${
               placement.runningRexName ?? "REX"
@@ -274,15 +274,6 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
       <div className={styles.editorHeader}>
         <div className={styles.editorHeading}>
           {isView ? "Asset Details" : inEdit?.isNew ? "Add Asset" : "Edit Asset"}
-        </div>
-        <div
-          className={styles.editorPlacement}
-          title={
-            placement ? `${placementText} (${formatUtcTime(placement.locationSetAt)})` : undefined
-          }
-          data-testid="asset-editor-placement"
-        >
-          {placementText}
         </div>
         {actions}
       </div>
@@ -541,6 +532,9 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
             onChange={(e) => dispatch(updateAssetInEditValues({ notes: e.target.value || null }))}
           />
         )}
+        <div className={styles.editorPlacement} data-testid="asset-editor-placement">
+          {placementText}
+        </div>
       </div>
     </div>
   );
