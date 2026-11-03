@@ -16,10 +16,12 @@ export const generateBlankAsset = (partialAsset?: Partial<Asset>): Asset => {
     color: null,
     visible: true,
     location: null,
+    locationSetAt: null,
     elevation: null,
     uncertaintyMeters: 0,
     notes: null,
-    placement: null,
+    petSeconds: null,
+    petRex: null,
     createdAt: now,
     updatedAt: now,
   };

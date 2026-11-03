@@ -1,30 +1,19 @@
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { generateBlankEVA } from "store/storeUtils/eva";
 import {
   DEFAULT_ASSET_RING_COLOR,
   getAssetEditValues,
   getAssetRadiusColor,
   getAssetHiddenReason,
-  getAssetPlacement,
-  getAssetPlacementPetSeconds,
+  getCurrentAssetPet,
+  parseAssetPetSeconds,
   getChangedAssetFields,
   getVisibleMapAssets,
   isAssetVisibleOnMap,
   validateAssetEditValues,
 } from "utils/assets";
 import { calculatePetValue, petSecondsAt } from "utils/formatting";
-
-const placement = (overrides: Partial<AssetPlacement> = {}): AssetPlacement => ({
-  locationSetAt: Date.parse("2026-10-30T12:00:00Z"),
-  runningRexUuid: null,
-  runningRexName: null,
-  runningEvaUuid: null,
-  runningEvaName: null,
-  petClock: null,
-  ...overrides,
-});
 
 describe("petSecondsAt", () => {
   const at = Date.parse("2026-10-30T12:00:10Z");
@@ -39,7 +28,7 @@ describe("petSecondsAt", () => {
   });
 
   test("returns the stored value for a paused clock, without needing a timestamp", () => {
-    const clock: AssetPetClockSnapshot = {
+    const clock: Pick<Rex, "petValueAtStartStop" | "petStartStopTimestamp" | "petRunning"> = {
       petValueAtStartStop: "+00:05:00",
       petStartStopTimestamp: null,
       petRunning: false,
@@ -82,63 +71,63 @@ describe("petSecondsAt", () => {
   });
 });
 
-describe("getAssetPlacement", () => {
+describe("getCurrentAssetPet", () => {
   const now = Date.parse("2026-10-30T12:00:00Z");
 
-  test("records only the time when no REX is running", () => {
-    const rex = generateBlankRex({ evaUuid: "eva", isRunning: false });
-    expect(getAssetPlacement({ rexes: { [rex.uuid]: rex }, evas: {} }, now)).toEqual(
-      placement({ locationSetAt: now })
-    );
-  });
-
-  test("resolves the running REX, its as-planned EVA name, and a detached clock copy", () => {
-    const planned = generateBlankEVA({ name: "EVA 2" });
-    const rexEva = generateBlankEVA({ name: "", refUuid: planned.refUuid });
-    const selectedButStopped = generateBlankRex({ name: "Old", evaUuid: rexEva.uuid });
+  test("captures a running clock's PET at creation", () => {
     const rex = generateBlankRex({
-      name: "REX A",
-      evaUuid: rexEva.uuid,
+      evaUuid: "eva",
       isRunning: true,
       petRunning: true,
       petValueAtStartStop: "+00:10:00",
       petStartStopTimestamp: "2026-10-30T11:59:00Z",
     });
-    const mission = {
-      rexes: { [rex.uuid]: rex, [selectedButStopped.uuid]: selectedButStopped },
-      evas: { [planned.uuid]: planned, [rexEva.uuid]: rexEva },
-    };
-    const resolved = getAssetPlacement(mission, now);
-    expect(resolved).toMatchObject({
-      runningRexUuid: rex.uuid,
-      runningRexName: "REX A",
-      runningEvaUuid: rexEva.uuid,
-      runningEvaName: "EVA 2",
+    expect(getCurrentAssetPet({ rexes: { [rex.uuid]: rex } }, now)).toEqual({
+      petSeconds: 660,
+      petRex: { uuid: rex.uuid, name: rex.name },
     });
-    rex.petValueAtStartStop = "+05:00:00";
-    expect(resolved.petClock.petValueAtStartStop).toBe("+00:10:00");
-    expect(getAssetPlacementPetSeconds(resolved)).toBe(600 + 60);
   });
 
-  test("records no REX when more than one REX is running", () => {
-    const a = generateBlankRex({ evaUuid: "eva", isRunning: true });
-    const b = generateBlankRex({ evaUuid: "eva", isRunning: true });
-    expect(getAssetPlacement({ rexes: { [a.uuid]: a, [b.uuid]: b }, evas: {} }, now)).toEqual(
-      placement({ locationSetAt: now })
-    );
-  });
-
-  test("historical PET survives REX deletion and later clock changes", () => {
+  test("captures a paused negative PET without retaining a clock reference", () => {
     const rex = generateBlankRex({
       evaUuid: "eva",
       isRunning: true,
       petRunning: false,
       petValueAtStartStop: "-00:00:30",
+      name: "REX A",
     });
-    const mission = { rexes: { [rex.uuid]: rex }, evas: {} };
-    const resolved = getAssetPlacement(mission, now);
+    const mission = { rexes: { [rex.uuid]: rex } };
+    const captured = getCurrentAssetPet(mission, now);
+    rex.petValueAtStartStop = "+05:00:00";
+    rex.name = "Renamed";
     delete mission.rexes[rex.uuid];
-    expect(getAssetPlacementPetSeconds(resolved)).toBe(-30);
+    expect(captured).toEqual({ petSeconds: -30, petRex: { uuid: rex.uuid, name: "REX A" } });
+  });
+
+  test("leaves PET blank with zero or multiple running REXes", () => {
+    const a = generateBlankRex({ evaUuid: "eva", isRunning: true });
+    const b = generateBlankRex({ evaUuid: "eva", isRunning: true });
+    expect(getCurrentAssetPet({ rexes: {} }, now)).toEqual({ petSeconds: null, petRex: null });
+    expect(getCurrentAssetPet({ rexes: { [a.uuid]: a, [b.uuid]: b } }, now)).toEqual({
+      petSeconds: null,
+      petRex: null,
+    });
+  });
+});
+
+describe("parseAssetPetSeconds", () => {
+  test.each([
+    ["+00:00:00", 0],
+    ["12:34:56", 45296],
+    [" -01:02:03 ", -3723],
+    ["+100:00:00", 360000],
+    ["", null],
+    ["+01:60:00", null],
+    ["+01:00:60", null],
+    ["1:00", null],
+    ["nonsense", null],
+  ])("parses %s as %s", (text, expected) => {
+    expect(parseAssetPetSeconds(text)).toBe(expected);
   });
 });
 
@@ -157,7 +146,7 @@ describe("map visibility", () => {
     generateBlankAsset({
       name: "Drill",
       location: { lat: 0, lng: 0 },
-      placement: placement(),
+      locationSetAt: Date.parse("2026-10-30T12:00:00Z"),
       ...overrides,
     });
 
@@ -239,26 +228,33 @@ describe("in-edit change tracking", () => {
       name: "Drill",
       location: { lat: 1, lng: 1 },
       elevation: 5,
-      placement: placement(),
+      locationSetAt: Date.parse("2026-10-30T12:00:00Z"),
     })
   );
 
-  test("metadata edits leave location, elevation, and placement out of the change", () => {
+  test("metadata edits leave location, elevation, and its timestamp out of the change", () => {
     expect(getChangedAssetFields(base, { ...base, notes: "left by rover" })).toEqual({
       notes: "left by rover",
     });
   });
 
-  test("a location change carries elevation and placement with it", () => {
+  test("PET edits leave location, elevation, and its timestamp out of the change", () => {
+    expect(getChangedAssetFields(base, { ...base, petSeconds: -30 })).toEqual({
+      petSeconds: -30,
+      petRex: null,
+    });
+  });
+
+  test("a location change carries elevation and its timestamp with it", () => {
     const moved = {
       ...base,
       location: { lat: 2, lng: 2 },
-      placement: placement({ locationSetAt: 9 }),
+      locationSetAt: 9,
     };
     expect(Object.keys(getChangedAssetFields(base, moved)).sort()).toEqual([
       "elevation",
       "location",
-      "placement",
+      "locationSetAt",
     ]);
   });
 
@@ -266,10 +262,12 @@ describe("in-edit change tracking", () => {
     expect(validateAssetEditValues({ ...base, name: "  " })).toMatch(/Name/);
     expect(validateAssetEditValues({ ...base, uncertaintyMeters: -1 })).toMatch(/Radius/);
     expect(validateAssetEditValues({ ...base, uncertaintyMeters: NaN })).toMatch(/Radius/);
+    expect(validateAssetEditValues({ ...base, petSeconds: NaN })).toMatch(/PET/);
+    expect(validateAssetEditValues({ ...base, petSeconds: 0.5 })).toMatch(/PET/);
     expect(validateAssetEditValues({ ...base, location: { lat: NaN, lng: 0 } })).toMatch(/finite/);
     expect(validateAssetEditValues(base)).toBeNull();
     expect(
-      validateAssetEditValues({ ...base, location: null, placement: null, elevation: null })
+      validateAssetEditValues({ ...base, location: null, locationSetAt: null, elevation: null })
     ).toBeNull();
   });
 });

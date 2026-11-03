@@ -249,11 +249,11 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
   }
 
   // ── Assets ────────────────────────────────────────────────────────────────
-  // Location and placement are set together; a set location has finite coordinates.
+  // Location and its timestamp are set together; a set location has finite coordinates.
   for (const asset of Object.values(doc.assets ?? {})) {
     const hasLocation = asset.location != null;
-    if (hasLocation !== (asset.placement != null)) {
-      log("placement", hasLocation ? "missing" : "unexpected", "Asset", asset.uuid);
+    if (hasLocation !== (asset.locationSetAt != null)) {
+      log("locationSetAt", hasLocation ? "missing" : "unexpected", "Asset", asset.uuid);
     }
     if (
       hasLocation &&

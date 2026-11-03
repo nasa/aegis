@@ -53,12 +53,7 @@ import {
   thunkMoveAssetToFolder,
   thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
-import {
-  DEFAULT_ASSET_ICON,
-  getAssetFolderUuidByItem,
-  getAssetRadiusColor,
-  getAssetPlacementPetSeconds,
-} from "utils/assets";
+import { DEFAULT_ASSET_ICON, getAssetFolderUuidByItem, getAssetRadiusColor } from "utils/assets";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { AssetEditor, formatUtcTime } from "./map-menu-assets-editor";
 import { hhmmssFromSeconds } from "utils/formatting";
@@ -503,14 +498,14 @@ const AssetRow: FunctionComponent<{
   }, [isSelected]);
 
   const placed = !!asset.location;
-  const petSeconds = getAssetPlacementPetSeconds(asset.placement);
+  const petSeconds = asset.petSeconds;
   const inheritedHidden = asset.visible && folder && !folder.visible;
   const locationDetails = placed
     ? [
         formatCoordinateEntry(asset.location, coordinateContext),
         formatLatLng(asset.location),
         `Elevation ${asset.elevation === null ? "unavailable" : `${asset.elevation.toFixed(1)} m`}`,
-        asset.placement ? `Placed ${formatUtcTime(asset.placement.locationSetAt)}` : null,
+        `Last modified ${formatUtcTime(asset.updatedAt)}`,
       ]
         .filter(Boolean)
         .join("\n")
@@ -580,10 +575,8 @@ const AssetRow: FunctionComponent<{
           </button>
         </td>
         <td>
-          {!placed ? (
-            "Not placed"
-          ) : petSeconds === null ? (
-            <span title="No PET was recorded when this asset was placed">—</span>
+          {petSeconds === null ? (
+            <span title="No PET set for this asset">—</span>
           ) : (
             hhmmssFromSeconds(petSeconds)
           )}
