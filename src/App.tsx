@@ -17,7 +17,10 @@ import Emss from "pages/admin/emss";
 import MaestroV2 from "pages/admin/maestroV2";
 import DustV1 from "pages/admin/dustV1";
 import EnvironmentConfig from "pages/admin/environmentConfig";
+import NotificationBanners from "pages/admin/notificationBanners";
 import ManageAutomergeDoc from "pages/admin/automerge";
+import NotificationBannerBar from "components/page/notificationBannerBar";
+import bannerStyles from "components/page/notificationBannerBar.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setLaunchpadUser } from "store/user";
 
@@ -30,36 +33,40 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
   }
 
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/versionCheck" element={<VersionCheck />} />
-        <Route path="/mission/:id" element={<Mission />} />
-        <Route path="/dashboard/:id" element={<Dashboard />} />
-        <Route
-          path="/testMapPerformant"
-          element={
-            <React.Suspense fallback={null}>
-              <TestMapPerformant />
-            </React.Suspense>
-          }
-        />
-        <Route path="/admin" element={<AdminHome />} />
-        <Route path="/admin/export/:id" element={<AdminExport />} />
-        <Route path="/admin/automerge/:automergeUrl?" element={<ManageAutomergeDoc />} />
-        <Route path="/admin/missions" element={<AdminMissions />} />
-        <Route path="/admin/mission/:id/:automergeUrl?" element={<AdminMission />} />
-        <Route path="/admin/mission_layers/:id" element={<AdminMissionLayers />} />
-        <Route path="/admin/mission_stm/:id" element={<AdminMissionSTM />} />
-        <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
-        <Route path="/admin/user" element={<AdminUser />} />
-        <Route path="/admin/serverSocketStatus" element={<ServerSocketStatus />} />
-        <Route path="/admin/maestroV2" element={<MaestroV2 />} />
-        <Route path="/admin/dustV1" element={<DustV1 />} />
-        <Route path="/admin/environmentConfig" element={<EnvironmentConfig />} />
-        <Route path="/admin/emss" element={<Emss />} />
-      </Routes>
-    </>
+    <div className={bannerStyles.appShell}>
+      <NotificationBannerBar />
+      <div className={bannerStyles.appContent}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/versionCheck" element={<VersionCheck />} />
+          <Route path="/mission/:id" element={<Mission />} />
+          <Route path="/dashboard/:id" element={<Dashboard />} />
+          <Route
+            path="/testMapPerformant"
+            element={
+              <React.Suspense fallback={null}>
+                <TestMapPerformant />
+              </React.Suspense>
+            }
+          />
+          <Route path="/admin" element={<AdminHome />} />
+          <Route path="/admin/export/:id" element={<AdminExport />} />
+          <Route path="/admin/automerge/:automergeUrl?" element={<ManageAutomergeDoc />} />
+          <Route path="/admin/missions" element={<AdminMissions />} />
+          <Route path="/admin/mission/:id/:automergeUrl?" element={<AdminMission />} />
+          <Route path="/admin/mission_layers/:id" element={<AdminMissionLayers />} />
+          <Route path="/admin/mission_stm/:id" element={<AdminMissionSTM />} />
+          <Route path="/admin/mission_duplicate/:id" element={<AdminMissionDuplicate />} />
+          <Route path="/admin/user" element={<AdminUser />} />
+          <Route path="/admin/serverSocketStatus" element={<ServerSocketStatus />} />
+          <Route path="/admin/maestroV2" element={<MaestroV2 />} />
+          <Route path="/admin/dustV1" element={<DustV1 />} />
+          <Route path="/admin/environmentConfig" element={<EnvironmentConfig />} />
+          <Route path="/admin/emss" element={<Emss />} />
+          <Route path="/admin/notificationBanners" element={<NotificationBanners />} />
+        </Routes>
+      </div>
+    </div>
   );
 };
 

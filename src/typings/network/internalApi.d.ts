@@ -4,6 +4,15 @@ interface WrappedResponse<T> {
   data?: T;
 }
 
+/** Notification banner create/update body after validation, with times parsed to Dates. */
+type ValidatedNotificationBannerInput = Omit<NotificationBannerInput, "startsAt" | "endsAt"> & {
+  startsAt: Date | null;
+  endsAt: Date | null;
+};
+
+type NotificationBannerValidationResult =
+  { ok: true; value: ValidatedNotificationBannerInput } | { ok: false; message: string };
+
 type TerrainProfilePostData = {
   path: AEGISPoint[];
   pathSegmentDistances: number[];

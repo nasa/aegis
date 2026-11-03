@@ -10,8 +10,7 @@
   --admin-muted: #e0e0e0;
   --admin-radius: 6px;
 
-  min-height: 100vh;
-  height: 100vh;
+  height: 100%;
   overflow-y: auto;
   padding: 32px 24px 48px;
   background: var(--admin-bg);

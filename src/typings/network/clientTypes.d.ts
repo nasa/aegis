@@ -104,6 +104,60 @@ type EnvironmentConfigData = {
   isOverridden: boolean;
 };
 
+/** "application" shows on every page; "missions" shows only on the listed missions' pages. */
+type NotificationBannerScope = "application" | "missions";
+type NotificationBannerTextColor = "white" | "black";
+
+/** Banner as returned by the admin REST endpoints. Dates are ISO strings in UTC. */
+type NotificationBanner = {
+  id: number;
+  message: string;
+  /** Manual on/off switch, applied on top of the time window. */
+  enabled: boolean;
+  /** null means no start limit. */
+  startsAt: string | null;
+  /** null means no end limit. */
+  endsAt: string | null;
+  scope: NotificationBannerScope;
+  /** Missions the banner shows on when `scope` is "missions"; empty otherwise. */
+  missionIds: number[];
+  /** "#RRGGBB" */
+  backgroundColor: string;
+  textColor: NotificationBannerTextColor;
+  createdBy: string | null;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Fields the admin page sends on create and update. */
+type NotificationBannerInput = Pick<
+  NotificationBanner,
+  | "message"
+  | "enabled"
+  | "startsAt"
+  | "endsAt"
+  | "scope"
+  | "missionIds"
+  | "backgroundColor"
+  | "textColor"
+>;
+
+/** Banner as shown to end users. `updatedAt` identifies the version a user dismissed. */
+type ActiveNotificationBanner = Pick<
+  NotificationBanner,
+  "id" | "message" | "endsAt" | "backgroundColor" | "textColor" | "updatedAt"
+>;
+
+/**
+ * Admin banner editor state. Times are `datetime-local` values in the admin's time zone;
+ * an empty string means no limit.
+ */
+type NotificationBannerFormValues = Omit<NotificationBannerInput, "startsAt" | "endsAt"> & {
+  startsAtLocal: string;
+  endsAtLocal: string;
+};
+
 type AutomergeUpsertRequest = {
   automergeDocListings?: AutomergeDocListing[];
 };

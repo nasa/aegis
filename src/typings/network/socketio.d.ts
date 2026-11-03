@@ -6,6 +6,7 @@ interface ServerToClientEvents {
   statusFromServer: (payload: StatusFromServer) => void;
   version: (version: AppVersion) => void; // server version sent to client
   inspectorUpdate: (payload: ServerSocketStatus) => void;
+  bannersChanged: () => void; // notification banners changed; clients refetch them over REST
 }
 
 interface ClientToServerEvents {
