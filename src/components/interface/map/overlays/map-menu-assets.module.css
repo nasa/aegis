@@ -22,8 +22,20 @@
   gap: 4px;
 }
 
-.toolbarButton {
+.toolbar .toolbarButton {
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
   height: 1.9em;
+  padding: 0 7px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.toolbarButton > svg {
+  display: block;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .offline {
