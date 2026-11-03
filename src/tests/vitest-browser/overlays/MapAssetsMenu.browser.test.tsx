@@ -240,6 +240,42 @@ describe("MapAssetsMenu", () => {
     expect(emojiCell(flat.uuid).style.backgroundColor).toBe("");
   });
 
+  it.each([false, true])("toggles folders from the header or icon (can edit: %s)", (canEdit) => {
+    const asset = generateBlankAsset({ name: "Drill" });
+    const folder = generateBlankFolder({ type: "asset", name: "Cache", items: [asset.uuid] });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    mockMissionDoc.folders = { [folder.uuid]: folder };
+    store = makeStore(canEdit);
+    render();
+
+    const group = q(`[data-testid='asset-folder-${folder.uuid}']`)!;
+    const header = group.querySelector("tr")!;
+    const toggle = header.querySelector("button")!;
+    expect(toggle.querySelectorAll("svg")).toHaveLength(1);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    // The name and unused header space toggle just like the folder icon.
+    flushSync(() => q("[aria-label='Folder name']")!.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(q(`[data-testid='asset-row-${asset.uuid}']`)).toBeNull();
+    flushSync(() => header.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(q(`[data-testid='asset-row-${asset.uuid}']`)).not.toBeNull();
+    flushSync(() => toggle.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    if (canEdit) {
+      // Menu actions and the rename input must not toggle the folder.
+      flushSync(() => q("[aria-label='Folder actions']")!.click());
+      const rename = [...group.querySelectorAll<HTMLElement>("[role='menuitem']")].find(
+        (item) => item.textContent === "Rename Folder"
+      )!;
+      flushSync(() => rename.click());
+      flushSync(() => q("input[aria-label='Folder name']")!.click());
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    }
+  });
+
   it("turns the viewer's Assets and Asset Labels back on when placing starts", () => {
     store = makeStore(true);
     render();

@@ -228,12 +228,7 @@ export const AssetTable: FunctionComponent<Props> = ({
             </FolderGroup>
           );
         })}
-        <RootGroup
-          dragActive={!!activeDragUuid}
-          columnCount={columnCount}
-          canMutate={canMutate}
-          divided={sortedFolders.length > 0}
-        >
+        <RootGroup dragActive={!!activeDragUuid} columnCount={columnCount} canMutate={canMutate}>
           {rootAssets.map((asset) => renderAssetRow(asset, null))}
         </RootGroup>
       </table>
@@ -262,15 +257,11 @@ const RootGroup: FunctionComponent<{
   dragActive: boolean;
   columnCount: number;
   canMutate: boolean;
-  divided: boolean;
   children: ReactNode;
-}> = ({ dragActive, columnCount, canMutate, divided, children }) => {
+}> = ({ dragActive, columnCount, canMutate, children }) => {
   const { isOver, setNodeRef } = useDroppable({ id: ROOT_DROP_ID, disabled: !canMutate });
   return (
-    <tbody
-      ref={setNodeRef}
-      className={`${isOver ? styles.dropTarget : ""} ${divided ? styles.rootDivided : ""}`}
-    >
+    <tbody ref={setNodeRef} className={`${styles.rootGroup} ${isOver ? styles.dropTarget : ""}`}>
       {children}
       {dragActive && (
         <tr className={styles.dropHintRow}>
@@ -308,6 +299,7 @@ const FolderGroup: FunctionComponent<{
     deepEqual
   );
   const { isOver, setNodeRef } = useDroppable({ id: folder.uuid, disabled: !canMutate });
+  const toggleFolder = () => dispatch(thunkToggleFolderOpen({ folderUuid: folder.uuid }));
 
   const saveName = (e: KeyboardEvent | MouseEvent) => {
     e.stopPropagation();
@@ -326,20 +318,24 @@ const FolderGroup: FunctionComponent<{
   return (
     <tbody
       ref={setNodeRef}
-      className={`${isOver ? styles.dropTarget : ""} ${folder.visible ? "" : styles.folderHidden}`}
+      className={`${styles.folderGroup} ${isOver ? styles.dropTarget : ""} ${folder.visible ? "" : styles.folderHidden}`}
       data-testid={`asset-folder-${folder.uuid}`}
     >
-      <tr className={styles.folderRow}>
+      <tr
+        className={styles.folderRow}
+        onClick={(e) => {
+          if (!(e.target as Element).closest("button, input, form, dialog")) toggleFolder();
+        }}
+      >
         <td colSpan={canEdit ? columnCount - 2 : columnCount}>
           <div className={styles.folderCell}>
             <button
               type="button"
               className={styles.folderToggle}
-              onClick={() => dispatch(thunkToggleFolderOpen({ folderUuid: folder.uuid }))}
+              onClick={toggleFolder}
               aria-label={isOpen ? "Collapse folder" : "Expand folder"}
               aria-expanded={isOpen}
             >
-              <FontAwesomeIcon icon={isOpen ? faCaretDown : faCaretRight} size="sm" />
               <FontAwesomeIcon icon={isOpen ? faFolderOpen : faFolder} />
             </button>
             <div
@@ -571,7 +567,7 @@ const AssetRow: FunctionComponent<{
             aria-expanded={isExpanded}
             data-testid={`asset-expand-${asset.uuid}`}
           >
-            <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="sm" />
+            <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="lg" />
             <span>{number}</span>
           </button>
         </td>

@@ -310,6 +310,8 @@
   flex: 1 1 60px;
   min-height: 60px;
   overflow: auto;
+  border-radius: var(--radius);
+  background-color: var(--grey1);
 }
 
 .assetTable {
@@ -369,15 +371,31 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background-color: var(--grey2);
+  background-color: var(--grey1);
   color: var(--grey4);
   font-weight: normal;
 }
 
-.folderRow td {
-  padding: 3px 3px;
-  border-top: 1px solid var(--grey3);
+.folderGroup,
+.rootGroup {
+  background-color: var(--grey2);
+}
+
+/* A small gutter separates groups while keeping every item in the shared table columns. */
+.assetTable tbody + tbody::before {
+  content: "";
+  display: table-row;
+  height: 5px;
   background-color: var(--grey1);
+}
+
+.folderRow {
+  cursor: pointer;
+  user-select: none;
+}
+
+.folderRow td {
+  padding: 6px 3px;
 }
 
 .folderCell {
@@ -463,11 +481,6 @@
   border-top: 1px solid var(--grey4, #a9a9a9);
 }
 
-/* Separates the last folder's contents from root assets */
-.rootDivided > tr:first-child > td {
-  border-top: 1px solid var(--grey3);
-}
-
 .assetTable .assetRowExpanded td:first-child {
   padding-left: 2px;
   border-left: 1px solid var(--grey4, #a9a9a9);
@@ -478,11 +491,6 @@
   padding-right: 2px;
   border-right: 1px solid var(--grey4, #a9a9a9);
   border-top-right-radius: var(--radius);
-}
-
-/* The first root row already has a top border separating it from folders. */
-.rootDivided > .assetRowExpanded:first-child > td {
-  padding-top: 2px;
 }
 
 .assetTable .assetRowEditing.assetRowExpanded td {
@@ -532,7 +540,7 @@
 
 /* Folder children indent under their folder header; root assets stay at the left edge. */
 .folderItem .rowToggle {
-  margin-left: 12px;
+  margin-left: 4px;
 }
 
 .assetDetailRow {
