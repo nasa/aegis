@@ -110,7 +110,9 @@ describe("clear Automerge document history", () => {
   };
 
   it("is registered after the existing document migrations", () => {
-    expect(AUTOMERGE_MIGRATIONS.at(-1)).toBe(Migration20261028000000);
+    const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261028000000);
+    expect(index).toBeGreaterThan(0);
+    expect(AUTOMERGE_MIGRATIONS[index - 1]).toBe(Migration20261026000000);
   });
 
   it("runs after schema migrations and passes replacement handles to later migrations and release", async () => {
@@ -130,7 +132,8 @@ describe("clear Automerge document history", () => {
     const listings = [first.listing, second.listing];
     const oldUrls = listings.map(({ automergeUrl }) => automergeUrl);
     const schemaMigrations = AUTOMERGE_MIGRATIONS.filter(
-      ({ version }) => version >= Migration20261022000000.version
+      ({ version }) =>
+        version >= Migration20261022000000.version && version <= Migration20261028000000.version
     );
     expect(schemaMigrations).toEqual([
       Migration20261022000000,
