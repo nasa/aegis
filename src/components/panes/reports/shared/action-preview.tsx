@@ -1,9 +1,9 @@
 import type { FunctionComponent } from "react";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
-import TraceIcon from "./trace-icon";
+import TraceIcon from "../poi-traceability/trace-icon";
 import RightAction from "components/panes/actions-action";
-import styles from "./poi-traceability.module.css";
+import styles from "../poi-traceability/poi-traceability.module.css";
 
 export type ActionPreviewTarget = {
   actionUuid: string;
@@ -87,7 +87,11 @@ const ActionPreview: FunctionComponent<{
                   POI: {mission.pois[action.poiUuid]?.name ?? "Deleted POI"}
                 </div>
               )}
-              {evaName && <div>EVA: {evaName}</div>}
+              {evaName && (
+                <div>
+                  EVA: <span style={{ color: "var(--eva)" }}>{evaName}</span>
+                </div>
+              )}
               {action.stationUuid && (
                 <div>
                   <TraceIcon icon={mission.stations[action.stationUuid]?.icon} />
@@ -101,7 +105,8 @@ const ActionPreview: FunctionComponent<{
               )}
               {rex && (
                 <div>
-                  REX: {rex.name || "Unnamed execution"} /{" "}
+                  REX:{" "}
+                  <span style={{ color: "var(--rex)" }}>{rex.name || "Unnamed execution"}</span> /{" "}
                   {REX_STATUS[entry?.rexStatus ?? "pending"]}
                 </div>
               )}

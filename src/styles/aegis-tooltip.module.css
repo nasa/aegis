@@ -8,10 +8,11 @@
   --rt-opacity: 1;
 
   z-index: 900;
-  max-width: 300px;
+  max-width: min(300px, 100vw - 16px);
 }
 
 .tooltip div {
   font-size: 0.8rem;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

@@ -11,6 +11,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Tooltip } from "react-tooltip";
+import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
 
 let harness: ReactHarness;
@@ -88,6 +89,50 @@ function isTooltipVisible(el: HTMLElement): boolean {
 // ---------------------------------------------------------------------------
 
 describe("react-tooltip", () => {
+  it("wraps long tooltip text near the viewport edge without adding scrollbars", async () => {
+    const tooltipId = "test-tooltip-long-content";
+    const tooltipText =
+      "Hide actions that also match in the baseline; show only added (+) and baseline-only (−) actions";
+
+    harness.render(
+      <div
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          textAlign: "right",
+          padding: "60px 8px",
+        }}
+      >
+        <Tooltip id={tooltipId} className={aegisTooltipStyles.tooltip} />
+        <button data-tooltip-id={tooltipId} data-tooltip-content={tooltipText}>
+          Changes only
+        </button>
+      </div>
+    );
+
+    const anchor = harness.container.querySelector("button")!;
+    hover(anchor);
+
+    await vi.waitFor(() => {
+      const tooltip = getTooltipEl(tooltipId)!;
+      expect(tooltip).not.toBeNull();
+      expect(isTooltipVisible(tooltip)).toBe(true);
+
+      const content = tooltip.querySelector(".react-tooltip-content-wrapper")!;
+      expect(content.textContent).toBe(tooltipText);
+      const text = document.createRange();
+      text.selectNodeContents(content);
+      expect(text.getClientRects().length).toBeGreaterThan(1);
+      expect(text.getBoundingClientRect().right).toBeLessThanOrEqual(
+        tooltip.getBoundingClientRect().right
+      );
+      expect(harness.container.firstElementChild!.scrollWidth).toBe(
+        harness.container.firstElementChild!.clientWidth
+      );
+      expect(document.documentElement.scrollWidth).toBe(document.documentElement.clientWidth);
+    });
+  });
+
   it("Pattern 1: shows tooltip from `data-tooltip-content` on hover and hides on un-hover", async () => {
     // Mirrors the global `aegis-tooltip` pattern used throughout the app:
     // a single <Tooltip id="aegis-tooltip"> and many anchors that just set

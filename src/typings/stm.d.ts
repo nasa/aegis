@@ -153,9 +153,11 @@ type StmRulesTierExpansion = {
   level2: boolean;
 };
 
-/** A selected coverage cell (or sub-cell), or null when nothing is selected. */
+/** A selected coverage or priority cell (or sub-cell), or null when nothing is selected. */
 type StmCoverageCellSelection = {
   stmUuid: string;
+  /** set by Mission Priorities report for priority row identity */
+  priorityUuid?: string;
   columnKey: string;
   /** set when a per-station sub-cell was clicked */
   stationUuid?: string;
