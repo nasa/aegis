@@ -315,7 +315,10 @@ export const calculatePetValue = ({
  * PET in seconds at a given instant for a PET clock snapshot. Never reads the current clock.
  * @returns null when the clock values cannot be parsed. A paused clock needs no valid timestamp.
  */
-export function petSecondsAt(clock: AssetPetClockSnapshot | null, atMs: number): number | null {
+export function petSecondsAt(
+  clock: Pick<Rex, "petValueAtStartStop" | "petStartStopTimestamp" | "petRunning"> | null,
+  atMs: number
+): number | null {
   if (!clock || typeof clock.petValueAtStartStop !== "string") return null;
   const base = secondsFromhhmmss(clock.petValueAtStartStop);
   if (!Number.isFinite(base)) return null;

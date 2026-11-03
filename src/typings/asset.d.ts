@@ -12,39 +12,35 @@ interface Asset {
   color: string | null;
   /** Shared map visibility of this asset. */
   visible: boolean;
-  /** Null until the asset is placed. Set together with `placement`. */
+  /** Null until the asset is placed. Set together with `locationSetAt`. */
   location: AEGISPoint | null;
+  /** UTC epoch ms when the location was last set; null exactly when `location` is null. */
+  locationSetAt: number | null;
   elevation: number | null;
   /** Uncertainty radius in meters; zero draws no ring or emoji disc. */
   uncertaintyMeters: number;
   notes: string | null;
-  /** Placement recorded when the location was last set. Null exactly when `location` is null. */
-  placement: AssetPlacement | null;
+  /** Editable PET in seconds, initially captured from the running REX when adding the asset. */
+  petSeconds: number | null;
+  /** REX that supplied PET; null for a manually entered or absent PET. */
+  petRex: Pick<Rex, "uuid" | "name"> | null;
   createdAt: number;
   updatedAt: number;
 }
 
-/** The running REX, its EVA, and PET clock at the instant the asset's location was set. */
-interface AssetPlacement {
-  /** UTC epoch ms. */
-  locationSetAt: number;
-  runningRexUuid: string | null;
-  runningRexName: string | null;
-  runningEvaUuid: string | null;
-  runningEvaName: string | null;
-  petClock: AssetPetClockSnapshot | null;
-}
-
-/** Detached copy of a REX's PET clock fields. */
-type AssetPetClockSnapshot = Pick<
-  Rex,
-  "petValueAtStartStop" | "petStartStopTimestamp" | "petRunning"
->;
-
 /** The asset fields edited in the asset editor. */
 type AssetEditValues = Pick<
   Asset,
-  "name" | "icon" | "color" | "location" | "elevation" | "uncertaintyMeters" | "notes" | "placement"
+  | "name"
+  | "icon"
+  | "color"
+  | "location"
+  | "locationSetAt"
+  | "elevation"
+  | "uncertaintyMeters"
+  | "notes"
+  | "petSeconds"
+  | "petRex"
 >;
 
 /** The asset being edited in the editor (added or changed), held in Redux until Save. */

@@ -25,6 +25,7 @@ import { missionSlice } from "store/mission";
 import { userSlice } from "store/user";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
+import { generateBlankRex } from "store/storeUtils/rex";
 import { getAssetEditValues } from "utils/assets";
 import { createReactHarness, type ReactHarness } from "../map/helpers/reactBrowserHarness";
 
@@ -46,12 +47,15 @@ const deleteAsset = vi.fn((args: { assetUuid: string }) => ({
   payload: args,
 }));
 const cancelEdit = vi.fn(() => ({ type: "mock/cancelEdit" }));
+const saveAsset = vi.fn((_options?: { petUpdate?: "current" | "clear" }) => ({
+  type: "mock/save",
+}));
 vi.mock("store/thunk/thunkAsset", () => ({
   thunkStartAssetGesture: () => startGesture(),
   thunkAddAsset: () => addAsset(),
   thunkCancelAssetGesture: () => ({ type: "mock/cancelGesture" }),
   thunkCancelAssetEdit: () => cancelEdit(),
-  thunkSaveAssetEdit: () => ({ type: "mock/save" }),
+  thunkSaveAssetEdit: (options?: { petUpdate?: "current" | "clear" }) => saveAsset(options),
   thunkSetAssetEditLocation: () => ({ type: "mock/setLocation" }),
   thunkEditAsset: (args: { assetUuid: string }) => editAsset(args),
   thunkDeleteAsset: (args: { assetUuid: string }) => deleteAsset(args),
@@ -253,7 +257,7 @@ describe("MapAssetsMenu", () => {
     expect(q("[data-testid='asset-editor']")?.textContent).toContain("Add Asset");
     expect(byText("Place on Map")).toBeDefined();
     // The editor has no folder field.
-    expect(q("[data-testid='asset-editor'] select")).toBeNull();
+    expect(q("[data-testid='asset-editor'] [aria-label='Asset folder']")).toBeNull();
 
     flushSync(() => byText("Place on Map")!.click());
     expect(menuSettings!.submenuAssets).toEqual({ show: true, showLabels: true });
@@ -292,18 +296,106 @@ describe("MapAssetsMenu", () => {
     await vi.waitFor(() => expect(q("[data-testid='asset-editor-coordinate-error']")).toBeNull());
   });
 
+  it("edits and clears PET during planning and prevents saving invalid text", async () => {
+    const asset = generateBlankAsset({
+      name: "Drill",
+      petSeconds: 600,
+      petRex: { uuid: "rex", name: "Recorded REX" },
+    });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    store = makeStore(true);
+    render();
+    expect(q(`[data-testid='asset-row-${asset.uuid}']`)?.children[1].textContent).toBe("+00:10:00");
+    flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
+    expect(q("[data-testid='asset-editor-pet']")?.textContent).toBe("+00:10:00");
+    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-id")).toBe("aegis-tooltip");
+    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-content")).toContain(
+      "Recorded REX"
+    );
+    expect(q("[data-testid='asset-editor-placement']")).toBeNull();
+
+    flushSync(() =>
+      store.dispatch(
+        setAssetInEdit({
+          uuid: asset.uuid,
+          isNew: false,
+          values: getAssetEditValues(asset),
+          base: getAssetEditValues(asset),
+          elevationPending: false,
+        })
+      )
+    );
+    const input = q("[data-testid='asset-editor-pet']") as HTMLInputElement;
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const type = (text: string) => {
+      setValue.call(input, text);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    expect(input.disabled).toBe(false);
+    type("12:34:56");
+    await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBe(45296));
+    expect(store.getState().asset.inEdit?.values.petRex).toBeNull();
+    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-content")).toContain(
+      "entered manually"
+    );
+    type("-00:00:30");
+    await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBe(-30));
+    type("+00:60:00");
+    await vi.waitFor(() => expect(q("[data-testid='asset-editor-pet-error']")).not.toBeNull());
+    expect(q("[aria-label='Save']")?.getAttribute("data-tooltip-content")).toContain("Enter PET");
+    expect(store.getState().asset.inEdit?.values.petSeconds).toBe(-30);
+
+    type("");
+    await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBeNull());
+    expect(q("[data-testid='asset-editor-pet-error']")).toBeNull();
+    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-content")).toBe(
+      "No PET set."
+    );
+    expect(mockMissionDoc.assets[asset.uuid].petSeconds).toBe(600);
+  });
+
+  it.each(["current", "clear"] as const)("offers a %s PET update when saving", (petUpdate) => {
+    const asset = generateBlankAsset({ name: "Drill", petSeconds: 600 });
+    const rex = generateBlankRex({ evaUuid: "eva", isRunning: petUpdate === "current" });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    mockMissionDoc.rexes = { [rex.uuid]: rex };
+    store = makeStore(true);
+    render();
+    flushSync(() =>
+      store.dispatch(
+        setAssetInEdit({
+          uuid: asset.uuid,
+          isNew: false,
+          values: getAssetEditValues(asset),
+          base: getAssetEditValues(asset),
+          elevationPending: false,
+        })
+      )
+    );
+    const select = q("[aria-label='PET update']") as HTMLSelectElement;
+    expect(select.querySelector<HTMLOptionElement>("option[value='current']")!.disabled).toBe(
+      petUpdate !== "current"
+    );
+    expect(select.querySelector<HTMLOptionElement>("option[value='clear']")!.disabled).toBe(false);
+    flushSync(() => {
+      select.value = petUpdate;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(q("[data-testid='asset-editor-pet']")).toBeNull();
+    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-content")).toContain(
+      petUpdate === "current" ? "running REX" : "cleared when saved"
+    );
+    expect(q("[aria-label='Save']")?.getAttribute("data-tooltip-content")).toBe("Save");
+    expect(store.getState().asset.inEdit?.values.petSeconds).toBe(600);
+    flushSync(() => q("[aria-label='Save']")!.click());
+    expect(saveAsset).toHaveBeenCalledWith({ petUpdate });
+  });
+
   it("disables Edit Pos. for an asset hidden by its folder, naming the folder", () => {
     const asset = generateBlankAsset({
       name: "Drill",
       location: { lat: 1, lng: 1 },
-      placement: {
-        locationSetAt: 1,
-        runningRexUuid: null,
-        runningRexName: null,
-        runningEvaUuid: null,
-        runningEvaName: null,
-        petClock: null,
-      },
+      locationSetAt: 1,
     });
     const folder = generateBlankFolder({
       type: "asset",

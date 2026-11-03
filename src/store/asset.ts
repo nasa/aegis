@@ -23,32 +23,40 @@ export const assetSlice = createSlice({
       state.inEdit = action.payload;
       state.expandedAssetUuid = action.payload.isNew ? null : action.payload.uuid;
     },
-    /** Update in-edit fields other than location, elevation, and placement. */
+    /** Update editable metadata; location/timestamp/elevation and PET source are managed separately. */
     updateAssetInEditValues: (
       state,
       action: {
-        payload: Partial<Omit<AssetEditValues, "location" | "elevation" | "placement">>;
+        payload: Partial<
+          Omit<AssetEditValues, "location" | "elevation" | "locationSetAt" | "petRex">
+        >;
       }
     ) => {
       if (!state.inEdit) return;
+      if (
+        "petSeconds" in action.payload &&
+        action.payload.petSeconds !== state.inEdit.values.petSeconds
+      ) {
+        state.inEdit.values.petRex = null;
+      }
       state.inEdit.values = { ...state.inEdit.values, ...action.payload };
     },
-    /** Accept a new in-edit location together with its freshly resolved placement. */
+    /** Accept a new in-edit location and record when it was set. */
     setAssetInEditLocation: (
       state,
       action: {
         payload: {
           uuid: string;
           location: AEGISPoint;
-          placement: AssetPlacement;
+          locationSetAt: number;
           elevationPending: boolean;
         };
       }
     ) => {
-      const { uuid, location, placement, elevationPending } = action.payload;
+      const { uuid, location, locationSetAt, elevationPending } = action.payload;
       if (state.inEdit?.uuid !== uuid) return;
       state.inEdit.values.location = { lat: location.lat, lng: location.lng };
-      state.inEdit.values.placement = placement;
+      state.inEdit.values.locationSetAt = locationSetAt;
       state.inEdit.values.elevation = null;
       state.inEdit.elevationPending = elevationPending;
     },

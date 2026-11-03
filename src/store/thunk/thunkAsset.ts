@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import {
-  getAssetPlacement,
+  getCurrentAssetPet,
   getAssetEditValues,
   getAssetFolderUuidByItem,
   getChangedAssetFields,
@@ -81,10 +81,11 @@ export const thunkAddAsset = appCreateAsyncThunk<void>(
           icon: null,
           color: latest?.color ?? null,
           location: null,
+          locationSetAt: null,
           elevation: null,
           uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
           notes: null,
-          placement: null,
+          ...getCurrentAssetPet(mission, getAccurateNow().getTime()),
         },
         base: null,
         elevationPending: false,
@@ -150,7 +151,7 @@ export const thunkStartAssetGesture = appCreateAsyncThunk<void>(
 
 /**
  * Accept a new in-edit location from a map click, a completed drag, or coordinate entry:
- * resolve the placement to record at this instant and fetch the elevation. The document is
+ * record the location timestamp and fetch the elevation. The document is
  * not touched until Save.
  */
 export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
@@ -164,13 +165,12 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
   if (!Number.isFinite(location?.lat) || !Number.isFinite(location?.lng)) return;
 
   const point = { lat: location.lat, lng: location.lng };
-  const placement = getAssetPlacement(mission, getAccurateNow().getTime());
   const hasDem = !!mission.demFilePath;
   dispatch(
     setAssetInEditLocation({
       uuid,
       location: point,
-      placement,
+      locationSetAt: getAccurateNow().getTime(),
       elevationPending: hasDem,
     })
   );
@@ -197,50 +197,59 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
  * deleted underneath it.
  * @returns true when saved.
  */
-export const thunkSaveAssetEdit = appCreateAsyncThunk<void, boolean>(
-  "asset/saveEdit",
-  async (__, { dispatch, getState }) => {
-    const uuid = getState().asset.inEdit?.uuid;
-    if (!uuid) return false;
+export const thunkSaveAssetEdit = appCreateAsyncThunk<
+  { petUpdate?: "current" | "clear" } | void,
+  boolean
+>("asset/saveEdit", async (options, { dispatch, getState }) => {
+  const uuid = getState().asset.inEdit?.uuid;
+  if (!uuid) return false;
 
-    // Wait for the latest elevation fetch; a newer location may start another one meanwhile.
-    while (pendingElevationFetches.has(uuid)) await pendingElevationFetches.get(uuid);
+  // Wait for the latest elevation fetch; a newer location may start another one meanwhile.
+  while (pendingElevationFetches.has(uuid)) await pendingElevationFetches.get(uuid);
 
-    const state = getState();
-    const inEdit = state.asset.inEdit;
-    if (!inEdit || inEdit.uuid !== uuid) return false;
-    const values: AssetEditValues = { ...inEdit.values, name: inEdit.values.name.trim() };
-    const invalid = validateAssetEditValues(values);
-    if (invalid) throw new Error(invalid);
-    const missionDocHandle = getMissionDocHandle();
-    const mission = missionDocHandle?.doc();
-    if (!missionDocHandle || !mission) return false;
-    const current = mission.assets?.[uuid];
-
-    if (inEdit.isNew) {
-      if (!current) {
-        const now = getAccurateNow().getTime();
-        const asset = generateBlankAsset({ ...values, uuid, createdAt: now, updatedAt: now });
-        missionDocHandle.change((m: Mission) => applyCreateAsset(m, asset));
-      }
-    } else {
-      if (!current) {
-        // The asset was deleted underneath the edit; discard the session.
-        await dispatch(thunkCancelAssetEdit());
-        return false;
-      }
-      const changes = getChangedAssetFields(inEdit.base, values);
-      if (Object.keys(changes).length > 0) {
-        missionDocHandle.change((m: Mission) => applyUpdateAsset(m, { assetUuid: uuid, changes }));
-      }
-    }
-
-    await dispatch(thunkCancelAssetGesture());
-    dispatch(clearAssetInEdit());
-    dispatch(setSelectedAssetUuid(uuid));
-    return true;
+  const state = getState();
+  const inEdit = state.asset.inEdit;
+  if (!inEdit || inEdit.uuid !== uuid) return false;
+  const values: AssetEditValues = { ...inEdit.values, name: inEdit.values.name.trim() };
+  const missionDocHandle = getMissionDocHandle();
+  const mission = missionDocHandle?.doc();
+  if (!missionDocHandle || !mission) return false;
+  const petUpdate = options ? options.petUpdate : undefined;
+  if (petUpdate === "current") {
+    const pet = getCurrentAssetPet(mission, getAccurateNow().getTime());
+    if (pet.petSeconds === null) throw new Error("No running REX with a valid PET");
+    Object.assign(values, pet);
+  } else if (petUpdate === "clear") {
+    values.petSeconds = null;
+    values.petRex = null;
   }
-);
+  const invalid = validateAssetEditValues(values);
+  if (invalid) throw new Error(invalid);
+  const current = mission.assets?.[uuid];
+
+  if (inEdit.isNew) {
+    if (!current) {
+      const now = getAccurateNow().getTime();
+      const asset = generateBlankAsset({ ...values, uuid, createdAt: now, updatedAt: now });
+      missionDocHandle.change((m: Mission) => applyCreateAsset(m, asset));
+    }
+  } else {
+    if (!current) {
+      // The asset was deleted underneath the edit; discard the session.
+      await dispatch(thunkCancelAssetEdit());
+      return false;
+    }
+    const changes = getChangedAssetFields(inEdit.base, values);
+    if (Object.keys(changes).length > 0) {
+      missionDocHandle.change((m: Mission) => applyUpdateAsset(m, { assetUuid: uuid, changes }));
+    }
+  }
+
+  await dispatch(thunkCancelAssetGesture());
+  dispatch(clearAssetInEdit());
+  dispatch(setSelectedAssetUuid(uuid));
+  return true;
+});
 
 /** Delete an asset with its folder membership, and clear everything that referenced it. */
 export const thunkDeleteAsset = appCreateAsyncThunk<{ assetUuid: string }>(

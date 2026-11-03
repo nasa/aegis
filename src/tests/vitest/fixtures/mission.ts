@@ -327,14 +327,7 @@ export const generateFullMission = (): Mission => {
     location: { lat: 1.5, lng: 2.5 },
     elevation: 10,
     uncertaintyMeters: 5,
-    placement: {
-      locationSetAt: 1_700_000_000_000,
-      runningRexUuid: null,
-      runningRexName: null,
-      runningEvaUuid: null,
-      runningEvaName: null,
-      petClock: null,
-    },
+    locationSetAt: 1_700_000_000_000,
   });
   const unplacedAsset = generateBlankAsset({ name: "Vitest Unplaced Asset" });
   mission.assets[placedAsset.uuid] = placedAsset;

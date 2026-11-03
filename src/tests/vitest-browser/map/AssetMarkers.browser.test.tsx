@@ -76,19 +76,11 @@ vi.mock("utils/useDocSelector", () => ({
   useDocSelector: (): undefined => undefined,
 }));
 
-const placement: AssetPlacement = {
-  locationSetAt: 1,
-  runningRexUuid: null,
-  runningRexName: null,
-  runningEvaUuid: null,
-  runningEvaName: null,
-  petClock: null,
-};
 const placed = (overrides: Partial<Asset> = {}) =>
   generateBlankAsset({
     name: "Drill",
     location: { lat: 0.01, lng: 0.02 },
-    placement,
+    locationSetAt: 1,
     ...overrides,
   });
 

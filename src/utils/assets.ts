@@ -1,7 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
 
-import { petSecondsAt } from "utils/formatting";
+import { petSecondsAt, secondsFromhhmmss } from "utils/formatting";
 
 /** Emoji drawn for an asset with no icon (❔), matching stations. */
 export const DEFAULT_ASSET_ICON = "2754";
@@ -23,10 +23,12 @@ export const ASSET_EDIT_FIELDS: readonly (keyof AssetEditValues)[] = [
   "icon",
   "color",
   "location",
+  "locationSetAt",
   "elevation",
   "uncertaintyMeters",
   "notes",
-  "placement",
+  "petSeconds",
+  "petRex",
 ];
 
 /** Map each asset uuid to the uuid of the asset folder holding it. */
@@ -112,52 +114,26 @@ export function getVisibleMapAssets({
   return result;
 }
 
-/**
- * Resolve the placement to record for a location set at `nowMs`: the running REX (from mission
- * data, regardless of the selected REX/EVA), its EVA, and a detached copy of its PET clock. When
- * zero or more than one REX is running, no REX is recorded.
- */
-export function getAssetPlacement(
-  mission: Pick<Mission, "rexes" | "evas">,
+/** Capture the current PET and its source REX together, leaving both blank when unavailable. */
+export function getCurrentAssetPet(
+  mission: Pick<Mission, "rexes">,
   nowMs: number
-): AssetPlacement {
+): Pick<Asset, "petSeconds" | "petRex"> {
   const runningRexes = Object.values(mission.rexes ?? {}).filter((rex) => rex.isRunning);
-  const placement: AssetPlacement = {
-    locationSetAt: nowMs,
-    runningRexUuid: null,
-    runningRexName: null,
-    runningEvaUuid: null,
-    runningEvaName: null,
-    petClock: null,
+  const rex = runningRexes.length === 1 ? runningRexes[0] : null;
+  const petSeconds = petSecondsAt(rex, nowMs);
+  return {
+    petSeconds,
+    petRex: petSeconds !== null ? { uuid: rex.uuid, name: rex.name } : null,
   };
-  if (runningRexes.length !== 1) {
-    return placement;
-  }
-  const [rex] = runningRexes;
-  const eva = mission.evas?.[rex.evaUuid] ?? null;
-  // A REX's EVA copy may have no name of its own; fall back to its as-planned EVA's name.
-  const rexEvaUuids = new Set(Object.values(mission.rexes ?? {}).map((r) => r.evaUuid));
-  const asPlannedEva = eva
-    ? Object.values(mission.evas ?? {}).find(
-        (candidate) => candidate.refUuid === eva.refUuid && !rexEvaUuids.has(candidate.uuid)
-      )
-    : null;
-  placement.runningRexUuid = rex.uuid;
-  placement.runningRexName = rex.name ?? null;
-  placement.runningEvaUuid = rex.evaUuid ?? null;
-  placement.runningEvaName = eva?.name || asPlannedEva?.name || null;
-  placement.petClock = {
-    petValueAtStartStop: rex.petValueAtStartStop,
-    petStartStopTimestamp: rex.petStartStopTimestamp,
-    petRunning: rex.petRunning,
-  };
-  return placement;
 }
 
-/** PET at the moment the asset was placed, or null when unavailable. */
-export function getAssetPlacementPetSeconds(placement: AssetPlacement | null): number | null {
-  if (!placement?.petClock) return null;
-  return petSecondsAt(placement.petClock, placement.locationSetAt);
+/** Parse signed or unsigned HH:MM:SS, allowing hours beyond 99. Blank/invalid input returns null. */
+export function parseAssetPetSeconds(text: string): number | null {
+  const trimmed = text.trim();
+  if (!/^[+-]?\d{2,}:[0-5]\d:[0-5]\d$/.test(trimmed)) return null;
+  const seconds = secondsFromhhmmss(/^[+-]/.test(trimmed) ? trimmed : `+${trimmed}`);
+  return Number.isSafeInteger(seconds) ? seconds : null;
 }
 
 /** Detached copy of the editable fields of an asset. */
@@ -169,11 +145,16 @@ export function getAssetEditValues(asset: Asset): AssetEditValues {
   return values;
 }
 
-const PLACEMENT_FIELDS: readonly (keyof AssetEditValues)[] = ["location", "elevation", "placement"];
+const LOCATION_FIELDS: readonly (keyof AssetEditValues)[] = [
+  "location",
+  "elevation",
+  "locationSetAt",
+];
+const PET_FIELDS: readonly (keyof AssetEditValues)[] = ["petSeconds", "petRex"];
 
 /**
- * Fields of `values` that differ from `base`, detached. Location, elevation, and placement are
- * one unit: a change to any of them includes all three.
+ * Fields of `values` that differ from `base`, detached. Location, elevation, and its timestamp are
+ * one unit; PET and its source REX are another. A change carries the whole unit.
  */
 export function getChangedAssetFields(
   base: AssetEditValues,
@@ -185,9 +166,11 @@ export function getChangedAssetFields(
       (changes as Record<string, unknown>)[field] = cloneDeep(values[field] ?? null);
     }
   }
-  if (PLACEMENT_FIELDS.some((field) => field in changes)) {
-    for (const field of PLACEMENT_FIELDS) {
-      (changes as Record<string, unknown>)[field] = cloneDeep(values[field] ?? null);
+  for (const fields of [LOCATION_FIELDS, PET_FIELDS]) {
+    if (fields.some((field) => field in changes)) {
+      for (const field of fields) {
+        (changes as Record<string, unknown>)[field] = cloneDeep(values[field] ?? null);
+      }
     }
   }
   return changes;
@@ -199,11 +182,14 @@ export function validateAssetEditValues(values: AssetEditValues): string | null 
   if (!Number.isFinite(values.uncertaintyMeters) || values.uncertaintyMeters < 0) {
     return "Radius must be a number of meters, zero or more";
   }
+  if (values.petSeconds !== null && !Number.isSafeInteger(values.petSeconds)) {
+    return "PET must be a whole number of seconds";
+  }
   if (values.location !== null && !isPlacedLocation(values.location)) {
     return "Coordinates must be finite";
   }
-  if ((values.location === null) !== (values.placement === null)) {
-    return "Location and placement must be set together";
+  if ((values.location === null) !== (values.locationSetAt === null)) {
+    return "Location and its timestamp must be set together";
   }
   return null;
 }

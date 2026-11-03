@@ -115,12 +115,62 @@ describe("thunkAddAsset", () => {
       icon: null,
       color: null,
       uncertaintyMeters: 0,
+      petSeconds: null,
     });
+  });
+
+  it("captures PET when adding and preserves a manual value through placement and Save", async () => {
+    const running = generateBlankRex({
+      evaUuid: "eva",
+      isRunning: true,
+      petRunning: false,
+      petValueAtStartStop: "+00:20:00",
+    });
+    getMissionDocHandle().change((m) => {
+      m.rexes[running.uuid] = running;
+      m.demFilePath = "";
+    });
+    await store.dispatch(thunkAddAsset());
+    expect(inEdit().values.petSeconds).toBe(1200);
+    expect(inEdit().values.petRex).toEqual({ uuid: running.uuid, name: running.name });
+    const uuid = inEdit().uuid;
+    store.dispatch(updateAssetInEditValues({ name: "Drill", petSeconds: -30 }));
+    getMissionDocHandle().change((m) => {
+      m.rexes[running.uuid].petValueAtStartStop = "+05:00:00";
+    });
+    await store.dispatch(thunkSetAssetEditLocation({ uuid, location: { lat: 1, lng: 2 } }));
+    expect(inEdit().values.petSeconds).toBe(-30);
+    expect(inEdit().values.petRex).toBeNull();
+    expect(await store.dispatch(thunkSaveAssetEdit()).unwrap()).toBe(true);
+    expect(doc().assets[uuid].petSeconds).toBe(-30);
+    expect(doc().assets[uuid].petRex).toBeNull();
+    expect(doc().rexes[running.uuid].petValueAtStartStop).toBe("+05:00:00");
+  });
+
+  it("discards a cancelled PET edit and saves a cleared value", async () => {
+    const asset = generateBlankAsset({
+      name: "Drill",
+      petSeconds: 1200,
+      petRex: { uuid: "rex", name: "Recorded REX" },
+    });
+    getMissionDocHandle().change((m) => {
+      m.assets[asset.uuid] = asset;
+    });
+    await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+    store.dispatch(updateAssetInEditValues({ petSeconds: 0 }));
+    await store.dispatch(thunkCancelAssetEdit());
+    expect(doc().assets[asset.uuid].petSeconds).toBe(1200);
+    expect(doc().assets[asset.uuid].petRex).toEqual(asset.petRex);
+    await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+    store.dispatch(updateAssetInEditValues({ petSeconds: null }));
+    expect(await store.dispatch(thunkSaveAssetEdit()).unwrap()).toBe(true);
+    expect(doc().assets[asset.uuid].petSeconds).toBeNull();
+    expect(doc().assets[asset.uuid].petRex).toBeNull();
   });
 });
 
 describe("thunkSetAssetEditLocation", () => {
-  it("resolves the running REX, not the selected one, and fetches elevation into the inEdit", async () => {
+  it("captures PET from the running REX, not the selected one, and fetches elevation", async () => {
     const running = generateBlankRex({
       evaUuid: "eva-running",
       name: "Running",
@@ -140,10 +190,9 @@ describe("thunkSetAssetEditLocation", () => {
     );
     await flush();
     expect(inEdit().elevationPending).toBe(true);
-    expect(inEdit().values.placement).toMatchObject({
-      runningRexUuid: running.uuid,
-      petClock: { petValueAtStartStop: "+00:20:00", petRunning: false },
-    });
+    expect(inEdit().values.petRex).toEqual({ uuid: running.uuid, name: running.name });
+    expect(inEdit().values.locationSetAt).toEqual(expect.any(Number));
+    expect(inEdit().values.petSeconds).toBe(20 * 60);
     elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 42 });
     await pending;
     expect(inEdit().values.elevation).toBe(42);
@@ -193,11 +242,88 @@ describe("thunkSetAssetEditLocation", () => {
     await store.dispatch(
       thunkSetAssetEditLocation({ uuid: inEdit().uuid, location: { lat: 1, lng: 1 } })
     );
-    expect(inEdit().values.placement.runningRexUuid).toBeNull();
+    expect(inEdit().values.petRex).toBeNull();
   });
 });
 
 describe("thunkSaveAssetEdit", () => {
+  it.each([false, true])("uses the current PET on Save (next REX: %s)", async (nextRex) => {
+    const asset = generateBlankAsset({
+      name: "Drill",
+      petSeconds: 600,
+      petRex: { uuid: "original", name: "Original REX" },
+    });
+    const original = generateBlankRex({
+      uuid: "original",
+      name: "Original REX",
+      evaUuid: "eva",
+      isRunning: true,
+      petRunning: false,
+      petValueAtStartStop: "+00:10:00",
+    });
+    const next = generateBlankRex({
+      evaUuid: "eva-next",
+      name: "Next REX",
+      petValueAtStartStop: "+00:45:00",
+    });
+    getMissionDocHandle().change((m) => {
+      m.assets[asset.uuid] = asset;
+      m.rexes[original.uuid] = original;
+      m.rexes[next.uuid] = next;
+    });
+    await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+    getMissionDocHandle().change((m) => {
+      if (nextRex) {
+        m.rexes[original.uuid].isRunning = false;
+        m.rexes[next.uuid].isRunning = true;
+      } else {
+        m.rexes[original.uuid].petValueAtStartStop = "+00:45:00";
+      }
+    });
+    expect(inEdit().values.petSeconds).toBe(600);
+    expect(await store.dispatch(thunkSaveAssetEdit({ petUpdate: "current" })).unwrap()).toBe(true);
+    expect(doc().assets[asset.uuid].petSeconds).toBe(2700);
+    const source = nextRex ? next : original;
+    expect(doc().assets[asset.uuid].petRex).toEqual({ uuid: source.uuid, name: source.name });
+    expect(doc().assets[asset.uuid].locationSetAt).toBeNull();
+  });
+
+  it("clears PET on Save during replanning without a running REX", async () => {
+    const asset = generateBlankAsset({
+      name: "Drill",
+      petSeconds: 600,
+      petRex: { uuid: "rex", name: "Recorded REX" },
+    });
+    getMissionDocHandle().change((m) => {
+      m.assets[asset.uuid] = asset;
+    });
+    await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+    expect(inEdit().values.petSeconds).toBe(600);
+    expect(await store.dispatch(thunkSaveAssetEdit({ petUpdate: "clear" })).unwrap()).toBe(true);
+    expect(doc().assets[asset.uuid].petSeconds).toBeNull();
+    expect(doc().assets[asset.uuid].petRex).toBeNull();
+  });
+
+  it.each([0, 2])(
+    "keeps the edit open when current PET is unavailable (%s running REXes)",
+    async (count) => {
+      const asset = generateBlankAsset({ name: "Drill", petSeconds: 600 });
+      const rexes = Array.from({ length: count }, () =>
+        generateBlankRex({ evaUuid: "eva", isRunning: true })
+      );
+      getMissionDocHandle().change((m) => {
+        m.assets[asset.uuid] = asset;
+        for (const rex of rexes) m.rexes[rex.uuid] = rex;
+      });
+      await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+      await expect(
+        store.dispatch(thunkSaveAssetEdit({ petUpdate: "current" })).unwrap()
+      ).rejects.toThrow("No running REX with a valid PET");
+      expect(doc().assets[asset.uuid].petSeconds).toBe(600);
+      expect(inEdit()).not.toBeNull();
+    }
+  );
+
   it("saves an unplaced asset at the root in one change and keeps it selected", async () => {
     const folder = generateBlankFolder({ type: "asset" });
     getMissionDocHandle().change((m) => {
@@ -214,7 +340,7 @@ describe("thunkSaveAssetEdit", () => {
       name: "Drill",
       icon: null,
       location: null,
-      placement: null,
+      locationSetAt: null,
       visible: true,
     });
     expect(doc().folders[folder.uuid].items).toEqual([]);
@@ -228,13 +354,13 @@ describe("thunkSaveAssetEdit", () => {
     expect(inEdit()).not.toBeNull();
   });
 
-  it("waits for a pending elevation and keeps the resolved placement on a delayed Save", async () => {
+  it("waits for a pending elevation and keeps the location timestamp on a delayed Save", async () => {
     await store.dispatch(thunkAddAsset());
     store.dispatch(updateAssetInEditValues({ name: "Drill" }));
     const uuid = inEdit().uuid;
     store.dispatch(thunkSetAssetEditLocation({ uuid, location: { lat: 1, lng: 1 } }));
     await flush();
-    const placedAt = inEdit().values.placement.locationSetAt;
+    const placedAt = inEdit().values.locationSetAt;
     const saving = store.dispatch(thunkSaveAssetEdit());
     await flush();
     expect(doc().assets[uuid]).toBeUndefined();
@@ -243,23 +369,16 @@ describe("thunkSaveAssetEdit", () => {
     expect(doc().assets[uuid]).toMatchObject({
       elevation: null,
       location: { lat: 1, lng: 1 },
-      placement: { locationSetAt: placedAt },
+      locationSetAt: placedAt,
     });
   });
 
-  it("writes only metadata on a metadata-only edit, keeping placement", async () => {
+  it("writes only metadata on a metadata-only edit, keeping the location timestamp", async () => {
     const asset = generateBlankAsset({
       name: "Drill",
       location: { lat: 1, lng: 1 },
       elevation: 3,
-      placement: {
-        locationSetAt: 7,
-        runningRexUuid: "r",
-        runningRexName: "R",
-        runningEvaUuid: "e",
-        runningEvaName: "E",
-        petClock: null,
-      },
+      locationSetAt: 7,
     });
     getMissionDocHandle().change((m) => {
       m.assets[asset.uuid] = asset;
@@ -271,7 +390,7 @@ describe("thunkSaveAssetEdit", () => {
     expect(doc().assets[asset.uuid]).toMatchObject({
       notes: "by the boulder",
       elevation: 3,
-      placement: { locationSetAt: 7 },
+      locationSetAt: 7,
     });
   });
 

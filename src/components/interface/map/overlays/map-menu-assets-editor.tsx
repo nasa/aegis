@@ -2,12 +2,14 @@ import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   faBan,
+  faCircleInfo,
   faCrosshairs,
   faEdit,
   faFloppyDisk,
   faTrashAlt,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import CompactColor from "@uiw/react-color-compact";
 
 import styles from "./map-menu-assets.module.css";
@@ -15,7 +17,7 @@ import { Button } from "components/interface/form/globalFields";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { useMapMenuSetters } from "../MapMenuProvider";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { deepEqual, refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { updateAssetInEditValues } from "store/asset";
 import {
@@ -31,7 +33,8 @@ import {
   getAssetEditValues,
   getAssetFolderUuidByItem,
   getAssetHiddenReason,
-  getAssetPlacementPetSeconds,
+  getCurrentAssetPet,
+  parseAssetPetSeconds,
   getChangedAssetFields,
   validateAssetEditValues,
 } from "utils/assets";
@@ -42,7 +45,7 @@ import {
   getLiveCoordinateEntryError,
   parseCoordinateEntry,
 } from "utils/coordinateEntry";
-import { hhmmssFromSeconds } from "utils/formatting";
+import { getAccurateNow, hhmmssFromSeconds } from "utils/formatting";
 import { COLOR_PALATTE } from "utils/consts";
 
 /** UTC wall-clock time, e.g. "2026-10-30 14:05:09 UTC". */
@@ -76,6 +79,10 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
   const values = isView ? getAssetEditValues(props.asset) : props.inEdit.values;
   const { canMutate, coordinateContext } = props;
   const editable = !isView && canMutate;
+  const lastModifiedAt = useMissionDocSelector(
+    (m) => (isView ? props.asset.updatedAt : (m.assets?.[assetUuid]?.updatedAt ?? null)),
+    refEqual
+  );
 
   const gestureAction = useAppSelector(
     (s) =>
@@ -97,14 +104,6 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     const reason = getAssetHiddenReason(asset, folder);
     return reason ? { reason, folderName: folder?.name ?? "" } : null;
   }, shallowEqual);
-
-  const provenance = useMissionDocSelector(
-    (m) => ({
-      rexExists: !!(values.placement?.runningRexUuid && m.rexes?.[values.placement.runningRexUuid]),
-      evaExists: !!(values.placement?.runningEvaUuid && m.evas?.[values.placement.runningEvaUuid]),
-    }),
-    deepEqual
-  );
 
   const dirty =
     !!inEdit &&
@@ -131,8 +130,34 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     return uncertaintyText.trim() !== "" && Number.isFinite(parsed) && parsed >= 0;
   })();
 
+  const formattedPet = values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds);
+  const [petUpdate, setPetUpdate] = useState<"manual" | "current" | "clear">("manual");
+  useEffect(() => setPetUpdate("manual"), [assetUuid, isView]);
+  const currentPetAvailable = useMissionDocSelector(
+    (m) => getCurrentAssetPet(m, getAccurateNow().getTime()).petSeconds !== null,
+    refEqual
+  );
+  const [petText, setPetText] = useState(formattedPet);
+  useEffect(() => {
+    setPetText((current) =>
+      parseAssetPetSeconds(current) === values.petSeconds ? current : formattedPet
+    );
+  }, [values.petSeconds, formattedPet]);
+  const petError =
+    petUpdate === "current" && !currentPetAvailable
+      ? "No running REX with a valid PET"
+      : petUpdate === "manual" && petText.trim() && parseAssetPetSeconds(petText) === null
+        ? "Enter PET as +HH:MM:SS or -HH:MM:SS"
+        : null;
+
   const [saving, setSaving] = useState(false);
-  const saveEnabled = editable && dirty && !invalid && uncertaintyValid && !saving;
+  const saveEnabled =
+    editable &&
+    (dirty || petUpdate !== "manual") &&
+    !invalid &&
+    !petError &&
+    uncertaintyValid &&
+    !saving;
   const emojiDialogRef = useRef<HTMLDialogElement>(null);
   const colorSwatchRef = useRef<HTMLButtonElement>(null);
   const colorDialogRef = useRef<HTMLDialogElement>(null);
@@ -190,21 +215,16 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         : `This asset's folder "${hidden.folderName}" is hidden on the map. Show the folder to edit its position on the map, or enter coordinates.`
       : null;
 
-  const petSeconds = getAssetPlacementPetSeconds(values.placement);
-  const placement = values.placement;
-  const placementText = !placement
-    ? "Not placed"
-    : [
-        petSeconds === null ? null : `PET ${hhmmssFromSeconds(petSeconds)}`,
-        formatUtcTime(placement.locationSetAt),
-        placement.runningRexUuid
-          ? `${placement.runningEvaName ?? "EVA"}${provenance.evaExists ? "" : " (unavailable)"} / ${
-              placement.runningRexName ?? "REX"
-            }${provenance.rexExists ? "" : " (unavailable)"}`
-          : "No running REX",
-      ]
-        .filter(Boolean)
-        .join(" · ");
+  const petInfo =
+    !isView && petUpdate === "current"
+      ? "PET and its source REX will be captured from the running REX when saved."
+      : !isView && petUpdate === "clear"
+        ? "PET and its source REX will be cleared when saved."
+        : values.petRex
+          ? `PET captured from REX "${values.petRex.name || values.petRex.uuid}".`
+          : values.petSeconds === null
+            ? "No PET set."
+            : "PET entered manually; no source REX.";
 
   const actions = isView ? (
     props.canEdit ? (
@@ -239,7 +259,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         onClick={async () => {
           setSaving(true);
           try {
-            await dispatch(thunkSaveAssetEdit());
+            await dispatch(thunkSaveAssetEdit(petUpdate === "manual" ? undefined : { petUpdate }));
           } finally {
             setSaving(false);
           }
@@ -251,7 +271,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
             ? inEdit?.elevationPending
               ? "Waiting for elevation…"
               : "Saving…"
-            : (invalid ?? (dirty ? "Save" : "Nothing to save"))
+            : petError || invalid || (dirty || petUpdate !== "manual" ? "Save" : "Nothing to save")
         }
         className={`${styles.iconOnlyButton} ${saveEnabled ? styles.saveButton : styles.saveButtonDisabled}`}
         enabled={saveEnabled}
@@ -512,6 +532,74 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
           </div>
         )}
 
+        <span className={`${styles.fieldLabel} ${styles.petLabel}`}>
+          PET
+          <button
+            type="button"
+            className={styles.petInfo}
+            aria-label="PET source"
+            data-tooltip-id="aegis-tooltip"
+            data-tooltip-content={petInfo}
+          >
+            <FontAwesomeIcon icon={faCircleInfo} />
+          </button>
+        </span>
+        {isView ? (
+          <span className={styles.viewValue} data-testid="asset-editor-pet">
+            {formattedPet || "—"}
+          </span>
+        ) : (
+          <div className={styles.fieldControls}>
+            {petUpdate === "manual" ? (
+              <input
+                className={`${styles.editorInput} ${styles.petInput} ${petError ? styles.editorInputError : ""}`}
+                value={petText}
+                placeholder="+HH:MM:SS"
+                aria-label="Asset PET"
+                aria-invalid={!!petError}
+                data-testid="asset-editor-pet"
+                disabled={!editable}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  setPetText(text);
+                  const seconds = parseAssetPetSeconds(text);
+                  if (!text.trim() || seconds !== null) {
+                    dispatch(updateAssetInEditValues({ petSeconds: seconds }));
+                  }
+                }}
+                onBlur={() => {
+                  if (!petError) setPetText(formattedPet);
+                }}
+              />
+            ) : (
+              <span className={styles.fieldNote}>
+                {petUpdate === "clear" ? "No PET" : "Captured when saved"}
+              </span>
+            )}
+            <select
+              className={styles.editorInput}
+              aria-label="PET update"
+              value={petUpdate}
+              disabled={!editable}
+              onChange={(e) => setPetUpdate(e.target.value as typeof petUpdate)}
+            >
+              <option value="manual">Keep / edit PET</option>
+              <option value="current" disabled={!currentPetAvailable}>
+                Use current PET on save
+              </option>
+              <option value="clear">Clear PET on save</option>
+            </select>
+          </div>
+        )}
+        {!isView && petError && (
+          <div
+            className={`${styles.fieldError} ${styles.fieldValueColumn}`}
+            data-testid="asset-editor-pet-error"
+          >
+            {petError}
+          </div>
+        )}
+
         <span className={styles.fieldLabel}>Notes</span>
         {isView ? (
           <span
@@ -532,9 +620,11 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
             onChange={(e) => dispatch(updateAssetInEditValues({ notes: e.target.value || null }))}
           />
         )}
-        <div className={styles.editorPlacement} data-testid="asset-editor-placement">
-          {placementText}
-        </div>
+        {lastModifiedAt !== null && (
+          <div className={styles.editorLastModified} data-testid="asset-editor-last-modified">
+            Last modified {formatUtcTime(lastModifiedAt)}
+          </div>
+        )}
       </div>
     </div>
   );
