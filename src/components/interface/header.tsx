@@ -48,7 +48,7 @@ const Header: FunctionComponent = () => {
   }, refEqual);
 
   const isInEditMode = useAppSelector((state) => state.mission.isInEditMode, refEqual);
-  const isAssetGesture = useAppSelector(
+  const isAssetMapDirective = useAppSelector(
     (state) => state.map.mapDirective?.mapItemType === "asset",
     refEqual
   );
@@ -123,7 +123,7 @@ const Header: FunctionComponent = () => {
             isDisabled={!isOnline}
             onClick={() => {
               if (!isOnline) return;
-              if (isInEditMode && !isAssetGesture) {
+              if (isInEditMode && !isAssetMapDirective) {
                 dispatch(thunkCancelMarkerMapDirective());
               }
               dispatch(setIsInEditMode(!isInEditMode));

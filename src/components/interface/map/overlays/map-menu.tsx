@@ -10,6 +10,7 @@ import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { LGRS_GRID_BASE_SPACING_METERS } from "utils/lgrs/grid/plan";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { setMapMenuIsOpen } from "store/interface";
+import { thunkCancelAssetMapDirective } from "store/thunk/thunkAsset";
 import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
 
 const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
@@ -127,6 +128,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   floating = false,
   onClose,
 }) => {
+  const dispatch = useAppDispatch();
   const [showMenu, setShowMenu] = useState(floating);
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
   const selectedRexPosSources = useMissionDocSelector((mission) => {
@@ -337,6 +339,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
               <div
                 className={styles.menuEyeIcon}
                 onClick={() => {
+                  if (mapDisplayAssets.show) dispatch(thunkCancelAssetMapDirective());
                   setMapDisplayAssets({ ...mapDisplayAssets, show: !mapDisplayAssets.show });
                 }}
                 data-testid="map-menu-assets-toggle"

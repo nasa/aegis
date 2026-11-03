@@ -160,7 +160,7 @@ export function InteractionManager(): null {
     refEqual
   );
   const selectedAssetUuid = useAppSelector((s) => s.asset.selectedAssetUuid, refEqual);
-  // Asset gestures are section-agnostic: only selecting another asset ends them.
+  // Asset map directives are section-agnostic: only selecting another asset ends them.
   const selectionKey =
     mapDirective?.mapItemType === "asset"
       ? `asset|${selectedAssetUuid}`
@@ -173,7 +173,7 @@ export function InteractionManager(): null {
   // Auto-cancel an in-progress edit when the user navigates away.
   // An active edit implies its target item is selected. If ANY selection
   // (section, POI, station, EVA sequence item, measurement — or, for an asset
-  // gesture, only the selected asset) then changes, the user has moved on — so
+  // map directive, only the selected asset) then changes, the user has moved on — so
   // tear the edit down. This prevents a stale OL
   // Modify/Translate interaction from surviving a context switch (which lets the
   // user "drag when not in edit mode" and crashes when starting a new edit).

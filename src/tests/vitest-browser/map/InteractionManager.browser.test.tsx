@@ -302,7 +302,7 @@ describe("InteractionManager", () => {
     expect(store.getState().map.mapDirective).toBeNull();
   });
 
-  it("keeps an asset gesture across section and station changes but ends it on another asset", () => {
+  it("keeps an asset map directive across section and station changes but ends it on another asset", () => {
     const source = new VectorSource();
     const feature = new Feature(new Point([0, 0]));
     feature.setId("asset-1");

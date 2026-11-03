@@ -42,7 +42,7 @@ test.describe("Mission 22 — Asset tracking", () => {
     await editor.getByTestId("asset-editor-name").fill(assetName);
     await editor.getByTestId("asset-editor-uncertainty").fill("15");
     await editor.getByText("Place on Map", { exact: true }).click();
-    await expect(page.getByTestId("asset-editor-gesture-hint")).toBeVisible();
+    await expect(page.getByTestId("asset-editor-map-directive-hint")).toBeVisible();
 
     const map = page.locator(".ol-viewport").first();
     const box = (await map.boundingBox())!;

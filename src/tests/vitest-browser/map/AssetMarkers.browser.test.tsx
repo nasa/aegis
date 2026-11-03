@@ -27,7 +27,7 @@ import {
   useFeatureSourcesContext,
 } from "components/interface/map/FeatureSourcesProvider";
 import { MapMenuProvider, useMapMenuSetters } from "components/interface/map/MapMenuProvider";
-import { AssetEditGuard } from "components/interface/map/behaviors/AssetEditGuard";
+import { MapMenuPanel } from "components/interface/map/overlays/map-menu";
 import { AssetMarkers } from "components/interface/map/behaviors/AssetMarkers";
 import { AssetUncertainty } from "components/interface/map/behaviors/AssetUncertainty";
 import { MarkerLabels } from "components/interface/map/behaviors/MarkerLabels";
@@ -37,15 +37,15 @@ import { actionSlice } from "store/action";
 import { connectionSlice } from "store/connection";
 import { evaSlice } from "store/eva";
 import { hoverSlice } from "store/hover";
-import { interfaceSlice, setRexMenuIsMinimized } from "store/interface";
+import { interfaceSlice } from "store/interface";
 import { mapSlice, updateMapDirective } from "store/map";
 import { measureSlice } from "store/measure";
-import { missionSlice, setIsInEditMode } from "store/mission";
+import { missionSlice } from "store/mission";
 import { poiSlice } from "store/poi";
 import { rexSlice } from "store/rex";
 import { stationSlice } from "store/station";
 import { traverseSlice } from "store/traverse";
-import { userSlice, setMissionPerms } from "store/user";
+import { userSlice } from "store/user";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankPoi } from "store/storeUtils/poi";
@@ -136,7 +136,7 @@ function Capture(): null {
   return null;
 }
 
-function render(mode: MapMode = "editor") {
+function render(mode: MapMode = "editor", showMenu = false) {
   harness.render(
     <CookiesProvider cookies={new Cookies()}>
       <Provider store={store}>
@@ -146,7 +146,7 @@ function render(mode: MapMode = "editor") {
             <MapContext.Provider value={{ map, mode }}>
               <AssetUncertainty />
               <AssetMarkers />
-              {mode === "editor" && <AssetEditGuard />}
+              {showMenu && <MapMenuPanel />}
               {mode !== "minimap" && <MarkerLabels />}
             </MapContext.Provider>
           </MapMenuProvider>
@@ -352,12 +352,12 @@ describe("asset map behaviors", () => {
     ]);
   });
 
-  it("keeps editing across global Edit changes and discards the session when permission is lost", () => {
+  it("hiding Assets in the visibility menu cancels positioning and keeps the draft", () => {
     const asset = placed({ name: "Drill" });
     mockMissionDoc.assets = { [asset.uuid]: asset };
-    render();
+    render("editor", true);
 
-    const startEditAndGesture = () => {
+    const startEditAndMapDirective = () => {
       flushSync(() => {
         store.dispatch(
           setAssetInEdit({
@@ -383,38 +383,19 @@ describe("asset map behaviors", () => {
       expect(store.getState().map.mapDirective?.mapItemType).toBe("asset");
     };
 
-    // Minimizing the floating widget ends the gesture while keeping the open session.
-    startEditAndGesture();
-    flushSync(() => store.dispatch(setRexMenuIsMinimized(true)));
+    startEditAndMapDirective();
+    const toggle = harness.container.querySelector<HTMLElement>(
+      "[data-testid='map-menu-assets-toggle']"
+    )!;
+    flushSync(() => toggle.click());
     expect(store.getState().map.mapDirective).toBeNull();
-    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
-    flushSync(() => store.dispatch(setRexMenuIsMinimized(false)));
+    expect(store.getState().asset.inEdit?.values.name).toBe("Moved");
+    expect(assetSource!.getFeatures()).toHaveLength(0);
 
-    // Hiding Assets in Map Item Visibility ends the gesture while keeping the open session.
-    startEditAndGesture();
-    flushSync(() => setters!.setSubmenuAssets({ show: false, showLabels: true }));
+    flushSync(() => toggle.click());
     expect(store.getState().map.mapDirective).toBeNull();
-    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
-    flushSync(() => setters!.setSubmenuAssets({ show: true, showLabels: true }));
-
-    // Turning off global Edit Mode keeps the gesture and the open session.
-    startEditAndGesture();
-    flushSync(() => store.dispatch(setIsInEditMode(false)));
-    expect(store.getState().map.mapDirective?.mapItemType).toBe("asset");
-    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
-
-    // Losing edit permission cancels both the gesture and the open session.
-    flushSync(() =>
-      store.dispatch(
-        setMissionPerms({ missionId: 1, permissions: { view: true, edit: false } } as Permission)
-      )
-    );
-    expect(store.getState().map.mapDirective).toBeNull();
-    expect(store.getState().asset.inEdit).toBeNull();
-    expect(store.getState().asset.expandedAssetUuid).toBeNull();
-    // Map reverts from the unsaved in-edit location back to the saved asset location.
     expect(assetSource!.getFeatureById(asset.uuid).getGeometry().getExtent().slice(0, 2)).toEqual([
-      20, 10,
+      60, 50,
     ]);
   });
 });

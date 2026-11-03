@@ -5,6 +5,10 @@
  * tiles, markers, polylines, circles, grid, interactions, POS, assets,
  * hover/selection highlights, timeline astronaut, and UI overlays.
  */
+import { useEffect } from "react";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { thunkCancelAssetEdit } from "store/thunk/thunkAsset";
+
 import { AegisMap } from "./AegisMap";
 import { FeatureSourcesProvider } from "./FeatureSourcesProvider";
 import { TileLayers } from "./behaviors/TileLayers";
@@ -26,13 +30,19 @@ import { MapOverlays } from "./overlays/MapOverlays";
 import { MarkerLabels } from "./behaviors/MarkerLabels";
 import { AssetMarkers } from "./behaviors/AssetMarkers";
 import { AssetUncertainty } from "./behaviors/AssetUncertainty";
-import { AssetEditGuard } from "./behaviors/AssetEditGuard";
 
 interface AegisMapEditorProps {
   className?: string;
 }
 
 export function AegisMapEditor({ className }: AegisMapEditorProps): JSX.Element {
+  const dispatch = useAppDispatch();
+  useEffect(() => {
+    return () => {
+      dispatch(thunkCancelAssetEdit());
+    };
+  }, [dispatch]);
+
   return (
     <FeatureSourcesProvider>
       <AegisMap mode="editor" className={className}>
@@ -51,7 +61,6 @@ export function AegisMapEditor({ className }: AegisMapEditorProps): JSX.Element 
         <MarkerLabels />
         <PosEntries />
         <InteractionManager />
-        <AssetEditGuard />
         <HoverHighlight />
         <SelectionHighlight />
         <TimelineAstronaut />
