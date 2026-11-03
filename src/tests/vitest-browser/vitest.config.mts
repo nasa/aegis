@@ -36,10 +36,10 @@ export default defineConfig(
     },
     test: {
       globals: true,
+      // Keep the browser API outside ports commonly reserved by Windows Hyper-V.
+      api: { port: 15315 },
       browser: {
         enabled: true,
-        // Keep the browser API outside ports commonly reserved by Windows Hyper-V.
-        api: { port: 15315 },
         provider: playwright(),
         headless: true,
         instances: [{ browser: "chromium" }],
