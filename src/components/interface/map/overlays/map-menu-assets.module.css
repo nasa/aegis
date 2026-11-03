@@ -65,11 +65,10 @@
 }
 
 .editorPlacement {
-  flex: 1 1 auto;
+  grid-column: 1 / -1;
   min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
   color: var(--grey4);
 }
 
