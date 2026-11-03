@@ -147,7 +147,7 @@
     "cors": "2.8.6",
     "dayjs": "1.11.23",
     "deep-object-diff": "1.1.9",
-    "dockview-react": "7.0.4",
+    "dockview-react": "8.8.3",
     "esbuild": "0.28.2",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-css-modules": "2.12.0",
