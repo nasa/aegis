@@ -405,6 +405,27 @@
   text-overflow: ellipsis;
 }
 
+.folderNameInput {
+  width: 100%;
+  min-width: 0;
+  font-size: 1em;
+}
+
+.folderNameInput:focus {
+  outline: 1px solid var(--grey4);
+  outline-offset: -1px;
+}
+
+.folderSaveButton {
+  flex-shrink: 0;
+  padding: 3px 4px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .folderHidden .folderName,
 .folderHidden .folderToggle {
   color: var(--grey4);
