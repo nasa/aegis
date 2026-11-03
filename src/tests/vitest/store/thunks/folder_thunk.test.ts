@@ -3,6 +3,9 @@ import Cookies from "js-cookie";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { createCustomTestStore } from "tests/vitest/fixtures/store";
 import { generateBlankFolder } from "store/storeUtils/folder";
+import { generateBlankAsset } from "store/storeUtils/asset";
+import { thunkEditAsset } from "store/thunk/thunkAsset";
+import { updateMapDirective } from "store/map";
 import { initialState as userInitialState } from "store/user";
 import { initialState as missionInitialState } from "store/mission";
 import { getFolderInterface } from "store/interface";
@@ -30,6 +33,34 @@ afterEach(() => {
 });
 
 describe("shared folder visibility", () => {
+  it.each([false, true])(
+    "cancels asset positioning only when the folder contains the edited asset (%s)",
+    async (containsAsset) => {
+      const asset = generateBlankAsset();
+      const folder = generateBlankFolder({
+        type: "asset",
+        items: containsAsset ? [asset.uuid] : [],
+      });
+      getMissionDocHandle().change((m) => {
+        m.assets[asset.uuid] = asset;
+        m.folders[folder.uuid] = folder;
+      });
+      const store = makeStore(true, false);
+      await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+      const draft = store.getState().asset.inEdit;
+      const directive: MapDirective = {
+        mapItemType: "asset",
+        uuid: asset.uuid,
+        mapAction: "editMarker",
+      };
+      store.dispatch(updateMapDirective(directive));
+
+      await store.dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }));
+      expect(store.getState().map.mapDirective).toEqual(containsAsset ? null : directive);
+      expect(store.getState().asset.inEdit).toEqual(draft);
+    }
+  );
+
   it.each([false, true])(
     "gates asset folder visibility by edit permission (%s) with global Edit off",
     async (edit) => {

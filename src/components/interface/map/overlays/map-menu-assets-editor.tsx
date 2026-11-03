@@ -22,11 +22,11 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { updateAssetInEditValues } from "store/asset";
 import {
   thunkCancelAssetEdit,
-  thunkCancelAssetGesture,
+  thunkCancelAssetMapDirective,
   thunkDeleteAsset,
   thunkSaveAssetEdit,
   thunkSetAssetEditLocation,
-  thunkStartAssetGesture,
+  thunkStartAssetMapDirective,
 } from "store/thunk/thunkAsset";
 import {
   DEFAULT_ASSET_ICON,
@@ -84,7 +84,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     refEqual
   );
 
-  const gestureAction = useAppSelector(
+  const mapAction = useAppSelector(
     (s) =>
       !isView &&
       s.map.mapDirective?.mapItemType === "asset" &&
@@ -93,7 +93,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         : null,
     refEqual
   );
-  const gestureActive = gestureAction === "createMarker" || gestureAction === "editMarker";
+  const mapDirectiveActive = mapAction === "createMarker" || mapAction === "editMarker";
 
   // Shared flags of the saved asset that would keep its marker off the map.
   const hidden = useMissionDocSelector((m) => {
@@ -192,7 +192,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
       return;
     }
     setSubmitError(null);
-    dispatch(thunkCancelAssetGesture());
+    dispatch(thunkCancelAssetMapDirective());
     dispatch(thunkSetAssetEditLocation({ uuid: inEdit.uuid, location: result.location }));
   };
 
@@ -202,10 +202,10 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     : getLiveCoordinateEntryError(coordinateText, coordinateContext);
   const coordinateError = submitError ?? liveCoordinateError;
 
-  const startGesture = () => {
+  const startMapDirective = () => {
     // Placing turns the viewer's Assets and Asset Labels back on; shared flags never change.
     setSubmenuAssets({ show: true, showLabels: true });
-    dispatch(thunkStartAssetGesture());
+    dispatch(thunkStartAssetMapDirective());
   };
 
   const editPosBlockedReason =
@@ -482,16 +482,16 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
                 }
               }}
             />
-            {gestureActive ? (
+            {mapDirectiveActive ? (
               <Button
-                onClick={() => dispatch(thunkCancelAssetGesture())}
+                onClick={() => dispatch(thunkCancelAssetMapDirective())}
                 icon={faBan}
                 label="Cancel Pos."
                 className={styles.editorButton}
               />
             ) : (
               <Button
-                onClick={startGesture}
+                onClick={startMapDirective}
                 icon={faCrosshairs}
                 label={values.location ? "Edit Pos." : "Place on Map"}
                 toolTip={editPosBlockedReason ?? undefined}
@@ -523,10 +523,10 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
             {coordinateError}
           </div>
         )}
-        {gestureActive && (
+        {mapDirectiveActive && (
           <div
-            className={`${styles.gestureHint} ${styles.fieldValueColumn}`}
-            data-testid="asset-editor-gesture-hint"
+            className={`${styles.mapDirectiveHint} ${styles.fieldValueColumn}`}
+            data-testid="asset-editor-map-directive-hint"
           >
             Click the map to place the asset, or enter coordinates. Save to keep changes.
           </div>

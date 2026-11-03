@@ -438,13 +438,11 @@ It holds two non-closable tabs:
   `map-menu-assets-table.tsx`): Add Asset / Add Folder toolbar, the asset editor (one Redux edit
   session in `state.asset.inEdit`, written to `mission.assets` in one change on Save), and one
   folder-aware table (`colgroup`, folder header rows over their own `tbody` drop targets, root
-  rows last). Mutations need mission edit permission, the global Edit toggle, and a live
-  connection; with Edit Mode off the toolbar, visibility buttons, and row menus are removed. An
+  rows last). Mutations need mission edit permission and a live connection. An
   asset marker click (`thunkJumpToAsset`) restores the widget, asks for this tab via
   `state.asset.assetsTabRequestId`, expands the folder, and selects the row without changing the
-  section. `AssetEditGuard` (editor) ends an asset gesture when Assets is off, the asset or its
-  folder is hidden, the widget is minimized, or permission, Edit Mode, or the connection is lost,
-  and discards the in-edit session when the editor unmounts.
+  section. The Assets visibility toggle and asset/folder visibility thunks cancel positioning
+  directly while keeping the draft. `AegisMapEditor` discards the in-edit session on unmount.
 
 Dockview owns drag (via the tab bar's empty space) and resize. Dockview clamps floating-group
 drag and resize only to its `.dv-floating-overlay-host` element, which it sizes (inline styles) to
@@ -531,7 +529,6 @@ Overlay gotchas:
 | `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                                                                                                       |
 | `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); draws nothing when `MODE_CONFIGS[mode].asset.show` is false (minimap); editor draws the in-edit asset under the asset's id; click → `thunkJumpToAsset` |
 | `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; gated by `asset.show` like AssetMarkers (minimap: off); no ids, not interactive; zero radius draws nothing (table row disc too)                         |
-| `AssetEditGuard`     | —                                                      | editor      | —                            | ends stale asset gestures; discards the in-edit session when Edit Mode/permission is lost or on unmount                                                                                                                      |
 | `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                                                                                                           |
 | `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                                                                                                  |
 | `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                                                                                                     |

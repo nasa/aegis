@@ -184,7 +184,7 @@
   color: var(--error);
 }
 
-.gestureHint {
+.mapDirectiveHint {
   color: var(--warning);
 }
 

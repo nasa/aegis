@@ -36,7 +36,7 @@ vi.mock("utils/useDocSelector", () => ({
   useDocSelector: (): undefined => undefined,
 }));
 
-const startGesture = vi.fn(() => ({ type: "mock/startGesture" }));
+const startMapDirective = vi.fn(() => ({ type: "mock/startMapDirective" }));
 const addAsset = vi.fn(() => ({ type: "mock/addAsset" }));
 const editAsset = vi.fn((args: { assetUuid: string }) => ({
   type: "mock/openEdit",
@@ -51,9 +51,9 @@ const saveAsset = vi.fn((_options?: { petUpdate?: "current" | "clear" }) => ({
   type: "mock/save",
 }));
 vi.mock("store/thunk/thunkAsset", () => ({
-  thunkStartAssetGesture: () => startGesture(),
+  thunkStartAssetMapDirective: () => startMapDirective(),
   thunkAddAsset: () => addAsset(),
-  thunkCancelAssetGesture: () => ({ type: "mock/cancelGesture" }),
+  thunkCancelAssetMapDirective: () => ({ type: "mock/cancelMapDirective" }),
   thunkCancelAssetEdit: () => cancelEdit(),
   thunkSaveAssetEdit: (options?: { petUpdate?: "current" | "clear" }) => saveAsset(options),
   thunkSetAssetEditLocation: () => ({ type: "mock/setLocation" }),
@@ -299,7 +299,7 @@ describe("MapAssetsMenu", () => {
 
     flushSync(() => byText("Place on Map")!.click());
     expect(menuSettings!.submenuAssets).toEqual({ show: true, showLabels: true });
-    expect(startGesture).toHaveBeenCalledTimes(1);
+    expect(startMapDirective).toHaveBeenCalledTimes(1);
   });
 
   it("shows coordinate validation errors while typing, without waiting for blur", async () => {
@@ -459,7 +459,7 @@ describe("MapAssetsMenu", () => {
     const editPos = byText("Edit Pos.")!.parentElement!;
     expect(editPos.getAttribute("data-tooltip-content")).toContain('"Cache"');
     flushSync(() => editPos.click());
-    expect(startGesture).not.toHaveBeenCalled();
+    expect(startMapDirective).not.toHaveBeenCalled();
     expect(q("[data-testid='asset-editor-coordinates']")?.hasAttribute("disabled")).toBe(false);
   });
 

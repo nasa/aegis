@@ -3,6 +3,7 @@ import { initialState as connectionInitialState } from "store/connection";
 import { initialState as userInitialState } from "store/user";
 import type { StoreType } from "store";
 import { updateAssetInEditValues } from "store/asset";
+import { updateMapDirective } from "store/map";
 import {
   getMostRecentAsset,
   thunkCancelAssetEdit,
@@ -436,7 +437,32 @@ describe("thunkSaveAssetEdit", () => {
   });
 });
 
-describe("asset gestures and row actions", () => {
+describe("asset map directives and row actions", () => {
+  it("visibility changes cancel positioning for the edited asset and keep its draft", async () => {
+    const asset = generateBlankAsset();
+    const other = generateBlankAsset();
+    getMissionDocHandle().change((m) => {
+      m.assets[asset.uuid] = asset;
+      m.assets[other.uuid] = other;
+    });
+    await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+    store.dispatch(updateAssetInEditValues({ name: "Unsaved" }));
+    const directive: MapDirective = {
+      mapItemType: "asset",
+      uuid: asset.uuid,
+      mapAction: "editMarker",
+    };
+    store.dispatch(updateMapDirective(directive));
+
+    await store.dispatch(thunkToggleAssetVisible({ assetUuid: other.uuid }));
+    expect(store.getState().map.mapDirective).toEqual(directive);
+
+    await store.dispatch(thunkToggleAssetVisible({ assetUuid: asset.uuid }));
+    expect(store.getState().map.mapDirective).toBeNull();
+    expect(inEdit()?.values.name).toBe("Unsaved");
+    expect(doc().assets[asset.uuid].name).toBe(asset.name);
+  });
+
   it.each([false, true])(
     "gates visibility by edit permission (%s) with global Edit off",
     async (edit) => {
@@ -453,7 +479,7 @@ describe("asset gestures and row actions", () => {
     }
   );
 
-  it("a cancelled asset gesture never starts after the delayed directive start", async () => {
+  it("a cancelled asset map directive never starts after the delayed directive start", async () => {
     vi.useFakeTimers();
     await store.dispatch(thunkAddAsset());
     await store.dispatch(

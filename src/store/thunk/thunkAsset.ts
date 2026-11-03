@@ -51,9 +51,9 @@ export function getMostRecentAsset(assets: Asset[]): Asset | null {
   return latest;
 }
 
-/** End an active or scheduled asset map gesture without touching the in-edit session. */
-export const thunkCancelAssetGesture = appCreateAsyncThunk<void>(
-  "asset/cancelGesture",
+/** End an active or scheduled asset map directive without touching the in-edit session. */
+export const thunkCancelAssetMapDirective = appCreateAsyncThunk<void>(
+  "asset/cancelMapDirective",
   async (__, { dispatch, getState }) => {
     cancelPendingMapDirective();
     if (getState().map.mapDirective?.mapItemType === "asset") {
@@ -94,14 +94,14 @@ export const thunkAddAsset = appCreateAsyncThunk<void>(
   }
 );
 
-/** Open the editor on an existing asset. Selects and expands it first so a gesture keys on it. */
+/** Open the editor on an existing asset, selecting and expanding its row. */
 export const thunkEditAsset = appCreateAsyncThunk<{ assetUuid: string }>(
   "asset/edit",
   async ({ assetUuid }, { dispatch, getState }) => {
     const mission = getMissionDocHandle()?.doc();
     const asset = mission?.assets?.[assetUuid];
     if (!asset) return;
-    await dispatch(thunkCancelAssetGesture());
+    await dispatch(thunkCancelAssetMapDirective());
     const folderUuid = getAssetFolderUuidByItem(Object.values(mission.folders ?? {}))[assetUuid];
     if (
       folderUuid &&
@@ -123,18 +123,18 @@ export const thunkEditAsset = appCreateAsyncThunk<{ assetUuid: string }>(
   }
 );
 
-/** Discard the in-edit session and any gesture. Nothing was written, so nothing is rolled back. */
+/** Discard the in-edit session and any map directive. Nothing was written, so nothing is rolled back. */
 export const thunkCancelAssetEdit = appCreateAsyncThunk<void>(
   "asset/cancelEdit",
   async (__, { dispatch }) => {
     dispatch(clearAssetInEdit());
-    await dispatch(thunkCancelAssetGesture());
+    await dispatch(thunkCancelAssetMapDirective());
   }
 );
 
 /** Start Place on Map (unplaced asset) or Edit Pos. (placed asset) for the open session. */
-export const thunkStartAssetGesture = appCreateAsyncThunk<void>(
-  "asset/startGesture",
+export const thunkStartAssetMapDirective = appCreateAsyncThunk<void>(
+  "asset/startMapDirective",
   async (__, { dispatch, getState }) => {
     const state = getState();
     const inEdit = state.asset.inEdit;
@@ -192,8 +192,7 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
 
 /**
  * Save the open edit session in one document change. Editability is enforced by the editor's
- * Save button and AssetEditGuard, which cancels the session when edit permission
- * is lost. Throws when the values are invalid, and cancels the session when the asset was
+ * Save button. Throws when the values are invalid, and cancels the session when the asset was
  * deleted underneath it.
  * @returns true when saved.
  */
@@ -245,7 +244,7 @@ export const thunkSaveAssetEdit = appCreateAsyncThunk<
     }
   }
 
-  await dispatch(thunkCancelAssetGesture());
+  await dispatch(thunkCancelAssetMapDirective());
   dispatch(clearAssetInEdit());
   dispatch(setSelectedAssetUuid(uuid));
   return true;
@@ -268,8 +267,10 @@ export const thunkDeleteAsset = appCreateAsyncThunk<{ assetUuid: string }>(
 /** Toggle an asset's shared map visibility. */
 export const thunkToggleAssetVisible = appCreateAsyncThunk<{ assetUuid: string }>(
   "asset/toggleVisible",
-  async ({ assetUuid }, { getState }) => {
-    if (!getState().user.missionPerms?.permissions.edit) return;
+  async ({ assetUuid }, { dispatch, getState }) => {
+    const state = getState();
+    if (!state.user.missionPerms?.permissions.edit) return;
+    if (state.asset.inEdit?.uuid === assetUuid) dispatch(thunkCancelAssetMapDirective());
     getMissionDocHandle()?.change((m: Mission) => applyToggleAssetVisible(m, assetUuid));
   }
 );
