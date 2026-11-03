@@ -7,7 +7,7 @@ import {
   getActionLineagePriorityMismatch,
   getPriorityActionsForColumn,
   getPriorityCoverageDifferences,
-  getSortedMissionPriorityCategories,
+  getSortedMissionPrioritiesByCategory,
   groupCampaignPriorityMatchesByMemberEva,
   groupPriorityMatchesBySequenceItem,
   resolveActionMissionPriority,
@@ -60,25 +60,36 @@ const alphaColumn: EvaReportColumn = {
   groupLabel: "Alpha",
 };
 
-describe("getSortedMissionPriorityCategories()", () => {
-  test("sorts categories alphabetically and traces with numeric collation (SIMD-0002 before SIMD-0010)", () => {
+describe("getSortedMissionPrioritiesByCategory()", () => {
+  test("sorts categories alphabetically and accounts for omitted trailing zeros in SIMD traces", () => {
     const { mission } = buildFixture();
-    mission.missionPriorities!.p3 = { trace: "SIMD-0003.2", category: "Sample Collection" };
+    Object.assign(mission.missionPriorities!, {
+      short2: { trace: "SIMD-2", category: "Sample Collection" },
+      short10: { trace: "SIMD-10", category: "Sample Collection" },
+      short10Subtrace: { trace: "SIMD-10.2", category: "Sample Collection" },
+      full10Subtrace: { trace: "SIMD-1000.10", category: "Sample Collection" },
+    });
 
-    const groups = getSortedMissionPriorityCategories(mission);
-    expect(groups.map((g) => g.category)).toEqual(["Field Geology", "Sample Collection"]);
-    expect(groups[0].items.map((item) => item.trace)).toEqual(["GEO-0001.1"]);
-    expect(groups[1].items.map((item) => item.trace)).toEqual([
+    const prioritiesByCategory = getSortedMissionPrioritiesByCategory(mission);
+    expect(prioritiesByCategory.map(({ category }) => category)).toEqual([
+      "Field Geology",
+      "Sample Collection",
+    ]);
+    expect(prioritiesByCategory[0].items.map((item) => item.trace)).toEqual(["GEO-0001.1"]);
+    expect(prioritiesByCategory[1].items.map((item) => item.trace)).toEqual([
       "SIMD-0002.1",
-      "SIMD-0003.2",
       "SIMD-0010.1",
+      "SIMD-10",
+      "SIMD-10.2",
+      "SIMD-1000.10",
+      "SIMD-2",
     ]);
   });
 
   test("returns empty array when missionPriorities is null or empty", () => {
     const { mission } = buildFixture();
     mission.missionPriorities = null;
-    expect(getSortedMissionPriorityCategories(mission)).toEqual([]);
+    expect(getSortedMissionPrioritiesByCategory(mission)).toEqual([]);
   });
 });
 

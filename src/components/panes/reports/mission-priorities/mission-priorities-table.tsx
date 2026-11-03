@@ -19,7 +19,7 @@ export const PRIORITY_LABEL_COLUMN_WIDTH = 260;
 const REPORT_ID: ColumnReportId = "missionPriorities";
 
 const MissionPrioritiesTable: FunctionComponent<{
-  categories: MissionPriorityCategoryGroup[];
+  categories: MissionPrioritiesByCategory[];
   unscheduledByPriorityUuid: { [priorityUuid: string]: MissionPriorityUnscheduledUsage };
 }> = ({ categories, unscheduledByPriorityUuid }) => {
   const dispatch = useAppDispatch();
@@ -35,14 +35,14 @@ const MissionPrioritiesTable: FunctionComponent<{
   const rowVisible = (priorityUuid: string) =>
     !visibleRowIds || visibleRowIds.includes(priorityUuid);
 
-  const visibleCategoryGroups = categories
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => rowVisible(item.priorityUuid)),
+  const visibleCategories = categories
+    .map(({ category, items }) => ({
+      category,
+      items: items.filter((item) => rowVisible(item.priorityUuid)),
     }))
-    .filter((group) => group.items.length > 0);
+    .filter(({ items }) => items.length > 0);
 
-  if (visibleCategoryGroups.length === 0) {
+  if (visibleCategories.length === 0) {
     return (
       <div className={styles.emptyState}>
         No Mission Priority Identifiers differ from the selected baseline.
@@ -52,10 +52,10 @@ const MissionPrioritiesTable: FunctionComponent<{
 
   return (
     <div className={priorityStyles.table}>
-      {visibleCategoryGroups.map((group) => {
-        const isCollapsed = collapsedCategories.includes(group.category);
+      {visibleCategories.map(({ category, items }) => {
+        const isCollapsed = collapsedCategories.includes(category);
         return (
-          <Fragment key={group.category}>
+          <Fragment key={category}>
             <div className={priorityStyles.categoryHeaderRow}>
               <button
                 type="button"
@@ -65,18 +65,18 @@ const MissionPrioritiesTable: FunctionComponent<{
                   dispatch(
                     reportTogglePriorityCategoryCollapsed({
                       reportId: REPORT_ID,
-                      category: group.category,
+                      category,
                     })
                   )
                 }
               >
                 <FontAwesomeIcon icon={isCollapsed ? faChevronRight : faChevronDown} />
-                <span className={priorityStyles.categoryTitle}>{group.category}</span>
-                <span className={priorityStyles.categoryCount}>{group.items.length}</span>
+                <span className={priorityStyles.categoryTitle}>{category}</span>
+                <span className={priorityStyles.categoryCount}>{items.length}</span>
               </button>
             </div>
             {!isCollapsed &&
-              group.items.map((item) => (
+              items.map((item) => (
                 <PriorityRow
                   key={item.priorityUuid}
                   item={item}

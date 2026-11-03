@@ -18,37 +18,45 @@ import {
 const PRIORITY_LABEL_REGEX = /^(?:pri\.?|priority|mission priority)$/i;
 const PRIORITY_PREFIX_REGEX = /^(?:pri\.?|priority|mission priority)\s*:?\s+/i;
 
+// Short SIMD identifiers omit trailing zeros, so SIMD-10 sorts as SIMD-1000.
+const padSimdTrace = (trace: string): string =>
+  trace.replace(
+    /^(SIMD-)(\d{1,3})(?=\.|$)/i,
+    (_, prefix: string, digits: string) => prefix + digits.padEnd(4, "0")
+  );
+
+export const compareMissionPriorityTraces = (a: string, b: string): number =>
+  padSimdTrace(a).localeCompare(padSimdTrace(b), undefined, { numeric: true });
+
 /**
- * Sort mission priority entries by category, then by trace within each category
- * with numeric collation (e.g. SIMD-0002 before SIMD-0010). Shared by the
- * Mission Priority Identifiers panel and the mission priorities report.
+ * Sort mission priorities by category, then by trace within each category.
  */
-export const getSortedMissionPriorityCategories = (
+export const getSortedMissionPrioritiesByCategory = (
   mission: { missionPriorities?: MissionPriorities | null } | null | undefined
-): MissionPriorityCategoryGroup[] => {
+): MissionPrioritiesByCategory[] => {
   const entries = Object.entries(mission?.missionPriorities ?? {}).sort(
     ([uuidA, a], [uuidB, b]) => {
       const categoryComparison = a.category.localeCompare(b.category);
       if (categoryComparison !== 0) return categoryComparison;
-      const traceComparison = a.trace.localeCompare(b.trace, undefined, { numeric: true });
+      const traceComparison = compareMissionPriorityTraces(a.trace, b.trace);
       if (traceComparison !== 0) return traceComparison;
       return uuidA.localeCompare(uuidB);
     }
   );
 
-  const groupsByCategory = new Map<string, MissionPriorityRowItem[]>();
+  const prioritiesByCategory = new Map<string, MissionPriorityRowItem[]>();
   for (const [priorityUuid, priority] of entries) {
     const item: MissionPriorityRowItem = {
       priorityUuid,
       trace: priority.trace,
       category: priority.category,
     };
-    const existing = groupsByCategory.get(priority.category);
+    const existing = prioritiesByCategory.get(priority.category);
     if (existing) existing.push(item);
-    else groupsByCategory.set(priority.category, [item]);
+    else prioritiesByCategory.set(priority.category, [item]);
   }
 
-  return [...groupsByCategory.entries()].map(([category, items]) => ({
+  return [...prioritiesByCategory.entries()].map(([category, items]) => ({
     category,
     items,
   }));
@@ -100,8 +108,8 @@ export const resolveActionMissionPriority = (
       const rawTrace = adjective.replace(PRIORITY_PREFIX_REGEX, "").trim();
       if (!rawTrace) return null;
       const lowerTrace = rawTrace.toLowerCase();
-      for (const group of getSortedMissionPriorityCategories(mission)) {
-        for (const item of group.items) {
+      for (const { items } of getSortedMissionPrioritiesByCategory(mission)) {
+        for (const item of items) {
           if (item.trace.trim().toLowerCase() === lowerTrace) {
             return {
               priorityUuid: item.priorityUuid,

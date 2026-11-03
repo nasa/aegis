@@ -17,7 +17,7 @@ import {
   computePriorityColumnCoverage,
   computePriorityUnscheduledUsages,
   getPriorityCoverageDifferences,
-  getSortedMissionPriorityCategories,
+  getSortedMissionPrioritiesByCategory,
 } from "utils/missionPriorityReport";
 import {
   STM_COVERAGE_STATION_CELL_WIDTH,
@@ -82,12 +82,12 @@ const MissionPrioritiesPage: FunctionComponent = () => {
   const cellSelection = useAppSelector((state) => state.report[REPORT_ID].cellSelection, refEqual);
 
   const categories = useMemo(
-    () => getSortedMissionPriorityCategories(mission),
+    () => getSortedMissionPrioritiesByCategory(mission),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- gated on revision
     [revision]
   );
   const allPriorityUuids = useMemo(
-    () => categories.flatMap((group) => group.items.map((item) => item.priorityUuid)),
+    () => categories.flatMap(({ items }) => items.map((item) => item.priorityUuid)),
     [categories]
   );
 

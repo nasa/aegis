@@ -22,7 +22,10 @@ import {
   opDeleteMissionPriorityCategory,
 } from "operations/op-missionPriority";
 import { createDropdownWithHeadings } from "utils/dropdown-options";
-import { getSortedMissionPriorityCategories } from "utils/missionPriorityReport";
+import {
+  compareMissionPriorityTraces,
+  getSortedMissionPrioritiesByCategory,
+} from "utils/missionPriorityReport";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 
 const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
@@ -31,8 +34,8 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
     deepEqual
   );
 
-  const groups = getSortedMissionPriorityCategories({ missionPriorities });
-  const categories = groups.map((group) => group.category);
+  const prioritiesByCategory = getSortedMissionPrioritiesByCategory({ missionPriorities });
+  const categories = prioritiesByCategory.map(({ category }) => category);
 
   return (
     <div className={paneStyles.rightBody}>
@@ -40,11 +43,13 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
         Mission Priority Identifiers
       </div>
       <div className={paneStyles.rightBodyBody}>
-        {groups.map((group) => (
-          <div className={paneStyles.panelContainer} key={group.category}>
+        {prioritiesByCategory.map((categoryPriorities) => (
+          <div className={paneStyles.panelContainer} key={categoryPriorities.category}>
             <MissionPriorityCategory
-              group={group}
-              otherCategories={categories.filter((c) => c !== group.category)}
+              categoryPriorities={categoryPriorities}
+              otherCategories={categories.filter(
+                (category) => category !== categoryPriorities.category
+              )}
               missionPriorities={missionPriorities}
               editMode={editMode}
             />
@@ -72,14 +77,14 @@ const MissionPriorities_Panel: FunctionComponent<{ editMode: boolean }> = ({ edi
 export default MissionPriorities_Panel;
 
 const MissionPriorityCategory: FunctionComponent<{
-  group: MissionPriorityCategoryGroup;
+  categoryPriorities: MissionPrioritiesByCategory;
   otherCategories: string[];
   missionPriorities: MissionPriorities | null;
   editMode: boolean;
-}> = ({ group, otherCategories, missionPriorities, editMode }) => {
-  const category = group.category;
+}> = ({ categoryPriorities, otherCategories, missionPriorities, editMode }) => {
+  const { category, items } = categoryPriorities;
   const traces: [string, MissionPriority][] = [];
-  for (const item of group.items) {
+  for (const item of items) {
     const missionPriority = missionPriorities?.[item.priorityUuid];
     if (missionPriority) traces.push([item.priorityUuid, missionPriority]);
   }
@@ -269,7 +274,6 @@ export const MissionPriorityDropdown: FunctionComponent<{
   const selectedMissionPriority = selectedUuid ? missionPriorities?.[selectedUuid] : null;
 
   // The category is carried by the optgroup heading, so each option shows only its trace.
-  // Numeric collation keeps SIMD-2 ahead of SIMD-10, matching the identifiers panel.
   const missionPriorityOptions = createDropdownWithHeadings({
     items: Object.entries(missionPriorities ?? {}).map(([uuid, missionPriority]) => ({
       uuid,
@@ -277,7 +281,8 @@ export const MissionPriorityDropdown: FunctionComponent<{
       category: missionPriority.category,
     })),
     getHeading: (item) => item.category,
-    compareItems: (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }),
+    compareItems: (a, b) =>
+      compareMissionPriorityTraces(a.name, b.name) || a.uuid.localeCompare(b.uuid),
   });
 
   if (!editMode) {

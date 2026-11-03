@@ -9,7 +9,7 @@ type MissionPriorityRowItem = {
   category: string;
 };
 
-type MissionPriorityCategoryGroup = {
+type MissionPrioritiesByCategory = {
   category: string;
   items: MissionPriorityRowItem[];
 };
