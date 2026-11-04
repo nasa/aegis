@@ -14,14 +14,14 @@ async function deleteSelectedPreset(page: Page): Promise<void> {
   await dialogPromise;
 }
 
-export async function presetTest(page: Page): Promise<string> {
+export async function presetTest(page: Page, mission: BehavioralMission): Promise<string> {
   // Use a unique suffix per run to avoid collisions with names left behind
   // by previously failed test runs.
   const suffix = Math.floor(Math.random() * 1_000_000).toString(36);
   const presetBaseName = `Playwright Test Preset ${suffix}`;
   const copyName = `${presetBaseName} (copy`;
 
-  await page.goto("http://localhost:4000/mission/22");
+  await mission.open(page);
   //go to preset section
   await waitForPageReady(page);
   await page.getByLabel("preset Section", { exact: true }).click();

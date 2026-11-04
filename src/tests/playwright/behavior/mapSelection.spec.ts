@@ -273,7 +273,7 @@ test.describe("execution position selection", () => {
     await mission.open(page);
     await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
     const before = await mission.read();
-    const menu = page.getByTestId("rex-map-menu");
+    const menu = page.getByTestId("positions-menu");
     await menu.getByText("All Positions", { exact: true }).click();
     const row = menu.locator("table").last().getByRole("row").filter({ hasText: "00:02:00" });
     await expect(row).toBeVisible();

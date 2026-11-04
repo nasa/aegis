@@ -146,7 +146,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-const duplicateMission = async (missionId: number, onProgress: (message: string) => void, copyAssets: boolean): Promise<number> => {
+const duplicateMission = async (
+  missionId: number,
+  onProgress: (message: string) => void,
+  copyAssets: boolean
+): Promise<number> => {
   if (!missionId) {
     throw new Error("Mission ID is required");
   }
@@ -159,7 +163,11 @@ const duplicateMission = async (missionId: number, onProgress: (message: string)
 
     // 2. Create a copy of the mission with related entities
     onProgress("Creating mission copy...");
-    const newMissionId = await createMissionCopy(sourceData, { nameSuffix: "Copy", copyAssets }, onProgress);
+    const newMissionId = await createMissionCopy(
+      sourceData,
+      { nameSuffix: "Copy", copyAssets },
+      onProgress
+    );
 
     onProgress("Saving duplicated mission...");
     await em.commit(); // Commit the transaction

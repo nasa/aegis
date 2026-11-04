@@ -60,7 +60,7 @@ test("dashboard follows newest source-filtered positions and independently selec
   const task = { lat: 0.003, lng: 0.006 };
   await mission.change((doc) => {
     const rex = doc.rexes[mission.ids.rexB];
-    rex.posSources.push({ uuid: extraSource, name: "Task", abbr: "T" });
+    rex.posSources.push({ uuid: extraSource, name: "Task", abbr: "T", pathColor: "#0088ff" });
     rex.posEntries = [
       seedPosEntry({
         uuid: mission.ids.posB,
@@ -192,7 +192,7 @@ test("peer marker-type edits preserve disabled follow choices and deleting the l
   }
   await page.getByText("Select Items to Follow", { exact: true }).click();
   expect((await dashboardView(page)).center).toEqual(fixed.center);
-  const positions = peer.getByTestId("rex-map-menu");
+  const positions = peer.getByTestId("positions-menu");
   await positions.getByText("All Positions", { exact: true }).click();
   const position = positions
     .locator("table")

@@ -60,8 +60,9 @@ function numberText(value: number | null) {
 
 test.describe("Independent report metrics", () => {
   test.use({ scenario: "execution" });
-  test.beforeEach(async ({ mission }) => {
+  test.beforeEach(async ({ page, mission }) => {
     await mission.change((doc) => {
+      doc.demFilePath = "synthetic-report.tif";
       doc.actionSystemVersion = 2;
       doc.actionDefinitions = { verbs: {}, nouns: {}, adjectives: {} };
       doc.planetRadius = 6378137;
@@ -84,7 +85,6 @@ test.describe("Independent report metrics", () => {
         station.actionOrderUuids = [];
         station.walkbackPath = [point(meters), point(0)];
         station.walkbackPathSegmentDistances = [meters];
-        station.walkbackPathSegmentElevations = [[0, 0]];
       }
       const families = [
         {
@@ -142,8 +142,6 @@ test.describe("Independent report metrics", () => {
             doc.traverses[item.uuid].pathSegmentDistances = [
               Math.round(((Math.abs(after.lng - before.lng) * Math.PI) / 180) * 6378137),
             ];
-            doc.traverses[item.uuid].pathSegmentElevations = [[0, 5, -2]];
-            doc.traverses[item.uuid].pathSegmentAbsoluteSlopes = [[0, 1, 2]];
             doc.traverses[item.uuid].duration = null;
             doc.traverses[item.uuid].actionOrderUuids = [];
           } else {
@@ -209,6 +207,26 @@ test.describe("Independent report metrics", () => {
           );
         }
       }
+    });
+    const traverses = (await mission.read()).traverses;
+    await page.route("**/terrain-profile/batch?*", async (route) => {
+      const profiles = route.request().postDataJSON().profiles as TerrainProfilePostData[];
+      await route.fulfill({
+        json: {
+          status: "success",
+          data: profiles.map((profile) => ({
+            status: "success",
+            data: {
+              elevationsMeters: profile.pathSegmentDistances.map(() =>
+                Object.hasOwn(traverses, profile.entityUuid) ? [0, 5, -2] : [0, 0]
+              ),
+              terrainSlopesDegrees: profile.pathSegmentDistances.map(() =>
+                Object.hasOwn(traverses, profile.entityUuid) ? [0, 1, 2] : [0, 0]
+              ),
+            },
+          })),
+        },
+      });
     });
   });
   test("equal travel totals have neutral cells and disappear from differences-only rows", async ({

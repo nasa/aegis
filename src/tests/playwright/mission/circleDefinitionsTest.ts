@@ -8,9 +8,12 @@ import {
   displayField,
 } from "./missionTestHelpers";
 
-export async function circleDefinitionsTest(page: Page): Promise<string> {
+export async function circleDefinitionsTest(
+  page: Page,
+  mission: BehavioralMission
+): Promise<string> {
   const suffix = Math.floor(Math.random() * 1_000_000).toString(36);
-  await goToV2MissionSection(page);
+  await goToV2MissionSection(page, mission);
 
   // Go to circle definitions list
   await page.getByLabel("circle_panel", { exact: true }).click();

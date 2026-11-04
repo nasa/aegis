@@ -269,6 +269,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
       emssTokenIsValid(emssToken);
     if (changesAdminOnlyFields && !hasAdminRole) {
       serverLogger.apiRoute({
+        logId: "mission-automerge:post:unauthorized",
         logLevel: "warning",
         httpMethod: "POST",
         responseStatus: 401,

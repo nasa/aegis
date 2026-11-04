@@ -100,7 +100,7 @@ async function startDirective(page: Page, mission: BehavioralMission, target: Di
       break;
     case "position": {
       await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-      const menu = page.getByTestId("rex-map-menu");
+      const menu = page.getByTestId("positions-menu");
       await menu.getByText("All Positions", { exact: true }).click();
       const row = menu.locator("table").last().getByRole("row").filter({ hasText: "00:02:00" });
       await row.locator('svg[data-icon="ellipsis-vertical"]').click();
@@ -245,7 +245,7 @@ test("station location can be cancelled, cleared, and recreated from a known map
   expect(cleared.elevation).toBeNull();
   expect(cleared.walkbackPath).toBeNull();
   expect(cleared.walkbackPathSegmentDistances).toBeNull();
-  expect(cleared.walkbackPathSegmentElevations).toBeNull();
+  expect(cleared).not.toHaveProperty("walkbackPathSegmentElevations");
   expect(clearedDoc.traverses[mission.ids.traverseA].path).toEqual(
     before.traverses[mission.ids.traverseA].path
   );
@@ -367,7 +367,7 @@ test.describe("execution position map directives", () => {
   }) => {
     await mission.open(page);
     await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-    const menu = page.getByTestId("rex-map-menu");
+    const menu = page.getByTestId("positions-menu");
     await menu.getByText("All Positions", { exact: true }).click();
     const row = menu.locator("table").last().getByRole("row").filter({ hasText: "00:02:00" });
     await row.locator('svg[data-icon="ellipsis-vertical"]').click();

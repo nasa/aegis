@@ -136,7 +136,7 @@ test("mouse coordinates show independent lat/lng order, precision and grid refer
     if (projection !== "lunar") {
       await writeFile(
         path.join(dataDirectory, FIXED_GRID_FILE),
-        JSON.stringify(knownGrid(point)),
+        JSON.stringify(knownGrid({ lat: point.lat + 0.002, lng: point.lng - 0.002 })),
         "utf8"
       );
     }
@@ -144,12 +144,8 @@ test("mouse coordinates show independent lat/lng order, precision and grid refer
     await enableMouseCoordinates(page);
     const expectedCoordinate = `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`;
     await expect(page.getByText(expectedCoordinate, { exact: true })).toBeVisible();
-    const expectedGrid =
-      projection === "lunar"
-        ? "AZM B95 D44"
-        : projection === "mercator"
-          ? "Known-2-1"
-          : "Known-2-2";
+    // Both fixed-grid projections sample the interior of the same known cell.
+    const expectedGrid = projection === "lunar" ? "AZM B95 D44" : "Known-2-2";
     await expect(page.getByText(expectedGrid, { exact: true })).toBeVisible();
   }
 

@@ -205,7 +205,7 @@ describe("Mission duplication", () => {
       "/api/v1/missionDup",
       expect.objectContaining({
         headers: expect.objectContaining({ Accept: "application/x-ndjson" }),
-        body: JSON.stringify({ missionId: 50 }),
+        body: JSON.stringify({ missionId: 50, copyAssets: true }),
       })
     );
   });

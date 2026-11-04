@@ -41,6 +41,9 @@ vi.mock("components/admin/uploadFile", () => ({ default: (): null => null }));
 vi.mock("components/admin/downloadFromBox", () => ({ default: (): null => null }));
 vi.mock("components/admin/layerSublayerEdit", () => ({ default: (): null => null }));
 vi.mock("http-client/docListing", () => ({ getAutomergeDocListing: vi.fn() }));
+vi.mock("http-client/mission", () => ({
+  getMissionSummaries: vi.fn(async () => ({ status: "success", data: [] })),
+}));
 vi.mock("@automerge/automerge-repo-react-hooks", () => {
   const repo = { find: vi.fn() };
   return { useDocument: vi.fn(() => [undefined]), useRepo: vi.fn(() => repo) };
