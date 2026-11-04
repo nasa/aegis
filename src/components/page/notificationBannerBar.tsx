@@ -23,19 +23,6 @@ export function getMissionIdFromPath(pathname: string): number | null {
   return null;
 }
 
-/** Formats a UTC ISO time in the viewer's local time zone, including the zone name. */
-export function formatBannerTime(isoTime: string, timeZone?: string): string {
-  return new Date(isoTime).toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-    timeZone,
-  });
-}
-
 /** Identifies one version of a banner, so editing a dismissed banner shows it again. */
 const getDismissKey = (banner: ActiveNotificationBanner): string =>
   `${banner.id}:${banner.updatedAt}`;
@@ -66,13 +53,13 @@ const NotificationBannerBar: FunctionComponent = () => {
         setBanners(res.data ?? []);
       } else {
         clientLogger.warning({
-          logId: "notificationBanner",
+          logId: "notificationBanner:UnsuccessfulResponse",
           logValue: `Failed to load notification banners: ${res.message}`,
         });
       }
     } catch (error) {
       clientLogger.warning({
-        logId: "notificationBanner",
+        logId: "notificationBanner:Error",
         logValue: `Failed to load notification banners: ${error}`,
       });
     }
@@ -118,9 +105,6 @@ const NotificationBannerBar: FunctionComponent = () => {
         >
           <div className={styles.bannerText}>
             <span className={styles.bannerMessage}>{banner.message}</span>
-            {banner.endsAt && (
-              <span className={styles.bannerEndTime}>Until {formatBannerTime(banner.endsAt)}</span>
-            )}
           </div>
           <button
             type="button"

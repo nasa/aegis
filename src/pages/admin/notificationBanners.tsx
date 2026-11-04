@@ -11,7 +11,6 @@ import {
   getAllNotificationBanners,
   updateNotificationBanner,
 } from "http-client/notificationBanner";
-import { formatBannerTime } from "components/page/notificationBannerBar";
 import bannerStyles from "components/page/notificationBannerBar.module.css";
 import adminCommon from "./adminCommon.module.css";
 
@@ -36,6 +35,19 @@ const BANNER_STATUS_COLORS = {
   Expired: "#94a3b8",
   Disabled: "#f87171",
 } as const;
+
+/** Formats a UTC ISO time in the viewer's local time zone, including the zone name. */
+function formatBannerTime(isoTime: string, timeZone?: string): string {
+  return new Date(isoTime).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone,
+  });
+}
 
 const NotificationBanners: FunctionComponent = () => {
   const loading = useAsyncStatus("Loading notification banners...");
