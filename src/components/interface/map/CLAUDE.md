@@ -462,7 +462,7 @@ Manual mode uses the EVA's
 out and hovering or focusing the compass explains why.
 
 Distinct from these, `ol/Overlay` (a real DOM node anchored to a coordinate) is used for the
-**timeline astronaut** (`TimelineAstronaut`). POS markers are **not** overlays — they are vector
+**timeline astronaut** (`TimelineAstronaut`), which shows the same astronaut SVG as "EV*" POS markers (an X emoji on measurement hover). POS markers are **not** overlays — they are vector
 features on `posSource` styled by `buildPosMarkerStyleFunction` (stacked posType icons + color
 bars), so they hit-test, edit, and z-order like every other marker (see §12 PosEntries).
 
