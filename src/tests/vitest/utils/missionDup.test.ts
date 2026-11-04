@@ -59,7 +59,16 @@ const MISSION_ID_COLLECTIONS = [
 
 // What properties to exclude in comparisons for each entity type
 const CHANGING_PROPS = {
-  mission: ["id", "uuid", "createdAt", "updatedAt", "name", "version", ...MISSION_ID_COLLECTIONS],
+  mission: [
+    "id",
+    "uuid",
+    "createdAt",
+    "updatedAt",
+    "name",
+    "version",
+    "dataOwner",
+    ...MISSION_ID_COLLECTIONS,
+  ],
 };
 
 let originalFullStore: OneMissionToRuleThemAll;
@@ -145,10 +154,14 @@ describe("Mission Duplication Tests", () => {
       const em = globalValues.orm.em.fork();
 
       // Create a duplicate mission
-      duplicatedMissionId = await createMissionCopy(sourceData, {
-        nameSuffix: "Vitest Test Copy",
-        copyGISAssets: false, // We're just testing the document copy, not file operations
-      });
+      duplicatedMissionId = await createMissionCopy(
+        sourceData,
+        {
+          nameSuffix: "Vitest Test Copy",
+          copyGISAssets: false, // We're just testing the document copy, not file operations
+        },
+        "mock-owner"
+      );
 
       // Verify the duplicated mission exists
       expect(duplicatedMissionId).toBeDefined();
