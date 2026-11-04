@@ -125,6 +125,9 @@ export interface ModeConfig {
   };
 }
 
+/** Astronaut SVG used for "EV*" POS markers and the timeline astronaut, in every mode. */
+export const EV_ICON_SRC = "/images/astronaut_outline.svg";
+
 // ---------------------------------------------------------------------------
 // Configs per mode
 // ---------------------------------------------------------------------------

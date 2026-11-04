@@ -1,6 +1,7 @@
 /**
- * TimelineAstronaut — behavior component that shows an astronaut emoji marker
- * moving along a traverse path based on timeline hover percentage.
+ * TimelineAstronaut — behavior component that shows the astronaut SVG marker
+ * (the same icon used for "EV*" POS markers) moving along a traverse path based
+ * on timeline hover percentage. Measurement hover shows an X emoji instead.
  *
  * Uses OL's `LineString.getCoordinateAt(fraction)` for interpolation in
  * projected CRS coordinates — more accurate than Leaflet's pixel-space
@@ -17,6 +18,35 @@ import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { EV_ICON_SRC, MODE_CONFIGS } from "../utils/modeConfig";
+
+// Editor-only marker, sized to match the editor's "EV*" POS marker icon.
+const ASTRONAUT_ICON_SIZE_PX = MODE_CONFIGS.editor.pos.evIconSize;
+const MEASUREMENT_MARKER_TEXT = "❌";
+const MEASUREMENT_MARKER_FONT_SIZE = "15px";
+
+/** Replace the overlay element's content with the astronaut SVG. */
+function showAstronautIcon(element: HTMLDivElement): void {
+  if (element.dataset.timelineMarker === "astronaut") return;
+  const astronautImage = document.createElement("img");
+  astronautImage.src = EV_ICON_SRC;
+  astronautImage.alt = "";
+  astronautImage.width = ASTRONAUT_ICON_SIZE_PX;
+  astronautImage.height = ASTRONAUT_ICON_SIZE_PX;
+  astronautImage.draggable = false;
+  astronautImage.style.display = "block";
+  element.replaceChildren(astronautImage);
+  element.style.fontSize = "";
+  element.dataset.timelineMarker = "astronaut";
+}
+
+/** Replace the overlay element's content with the measurement X emoji. */
+function showMeasurementMarker(element: HTMLDivElement): void {
+  if (element.dataset.timelineMarker === "measurement") return;
+  element.textContent = MEASUREMENT_MARKER_TEXT;
+  element.style.fontSize = MEASUREMENT_MARKER_FONT_SIZE;
+  element.dataset.timelineMarker = "measurement";
+}
 
 export function TimelineAstronaut(): null {
   const { map, mode } = useMapContext();
@@ -50,8 +80,7 @@ export function TimelineAstronaut(): null {
     if (mode !== "editor") return;
 
     const el = document.createElement("div");
-    el.textContent = "🧑‍🚀";
-    el.style.fontSize = "24px";
+    showAstronautIcon(el);
     el.style.pointerEvents = "none";
     el.style.userSelect = "none";
     elRef.current = el;
@@ -78,8 +107,8 @@ export function TimelineAstronaut(): null {
   useEffect(() => {
     if (mode !== "editor" || !overlayRef.current) return;
 
-    // Reset to the astronaut's normal size.
-    if (elRef.current) elRef.current.style.fontSize = "24px";
+    // Reset to the astronaut icon after a measurement hover.
+    if (elRef.current) showAstronautIcon(elRef.current);
 
     // Allow percentElapsed === 0 (start of traverse). Only skip when truly absent.
     if (percentElapsed == null || !hoverItemUuid || !selectedEva) {
@@ -98,7 +127,6 @@ export function TimelineAstronaut(): null {
       const station = (allStationsFromDoc ?? []).find((s) => s.uuid === seqItem.uuid);
       if (station?.location) {
         overlayRef.current.setPosition(toMapCoord(station.location));
-        if (elRef.current) elRef.current.textContent = "🧑\u200d🚀";
       }
     } else if (seqItem.type === "traverse") {
       const traverse = (allTraversesFromDoc ?? []).find((t) => t.uuid === seqItem.uuid);
@@ -107,7 +135,6 @@ export function TimelineAstronaut(): null {
         const line = new LineString(coords);
         const position = line.getCoordinateAt(percentElapsed);
         overlayRef.current.setPosition(position);
-        if (elRef.current) elRef.current.textContent = "🧑\u200d🚀";
       }
     }
   }, [
@@ -138,10 +165,7 @@ export function TimelineAstronaut(): null {
       const line = new LineString(coords);
       const position = line.getCoordinateAt(measurementPercent);
       overlayRef.current.setPosition(position);
-      if (elRef.current) {
-        elRef.current.textContent = "❌";
-        elRef.current.style.fontSize = "15px";
-      }
+      if (elRef.current) showMeasurementMarker(elRef.current);
     }
   }, [mode, measurementPercent, measurementUuid, measurements, percentElapsed, toMapCoord]);
 

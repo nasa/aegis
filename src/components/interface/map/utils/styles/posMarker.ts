@@ -17,7 +17,7 @@
 
 import { Style, Icon } from "ol/style";
 import type { FeatureLike } from "ol/Feature";
-import type { ModeConfig } from "../modeConfig";
+import { EV_ICON_SRC, type ModeConfig } from "../modeConfig";
 import { renderEmojiToCanvas } from "../emojiRenderer";
 
 /** One posType's contribution to a POS marker, top-to-bottom in stack order. */
@@ -37,7 +37,6 @@ const BAR_GAP_PX = 1;
 const BAR_MARGIN_PX = 6; // gap between icon-stack bottom and first bar
 const BAR_WIDTH_INSET_PX = 4; // bar width = iconSize - inset
 const FADED_OPACITY = 0.4;
-const EV_ICON_SRC = "/images/astronaut_outline.svg";
 
 // ---------------------------------------------------------------------------
 // Color bar data URIs

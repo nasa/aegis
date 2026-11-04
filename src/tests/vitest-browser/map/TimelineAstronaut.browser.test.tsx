@@ -8,12 +8,13 @@
  * traverse or measurement path in response to hover state.
  *
  * Verifies:
- *  - Astronaut overlay added to the map in editor mode only
+ *  - Astronaut SVG overlay added to the map in editor mode only
  *  - Hidden initially (no position)
  *  - Positions to a station when hovering a station sequence item
  *  - Positions along a traverse path using the percent-elapsed
  *  - Positions along a measurement path using percent distance
- *  - Switches text to the X emoji when measurement hover is active
+ *  - Switches to the X emoji when measurement hover is active
+ *  - Switches back to the astronaut SVG when traverse hover resumes
  *  - Removes overlay on unmount
  */
 
@@ -26,6 +27,7 @@ import View from "ol/View";
 import type Overlay from "ol/Overlay";
 
 import { MapContext } from "components/interface/map/MapProvider";
+import { EV_ICON_SRC, MODE_CONFIGS } from "components/interface/map/utils/modeConfig";
 import { TimelineAstronaut } from "components/interface/map/behaviors/TimelineAstronaut";
 import { hoverSlice } from "store/hover";
 import { evaSlice } from "store/eva";
@@ -155,7 +157,7 @@ function findAstronautOverlay(): Overlay | null {
   const overlays = map.getOverlays().getArray();
   for (const o of overlays) {
     const el = o.getElement() as HTMLElement | undefined;
-    if (el && (el.textContent === "🧑‍🚀" || el.textContent === "❌")) return o;
+    if (el?.dataset.timelineMarker) return o;
   }
   return null;
 }
@@ -192,14 +194,21 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("TimelineAstronaut", () => {
-  it("adds an Overlay with astronaut emoji in editor mode", () => {
+  it("adds an Overlay with the astronaut SVG in editor mode", () => {
     store = makeStore();
     renderTimelineAstronaut("editor");
 
     const overlay = findAstronautOverlay();
     expect(overlay).not.toBeNull();
     const el = overlay!.getElement() as HTMLElement;
-    expect(el.textContent).toBe("🧑‍🚀");
+    expect(el.dataset.timelineMarker).toBe("astronaut");
+    const astronautImage = el.querySelector("img");
+    expect(astronautImage).not.toBeNull();
+    expect(astronautImage!.getAttribute("src")).toBe(EV_ICON_SRC);
+    // Same size as the editor's "EV*" POS marker icon.
+    expect(astronautImage!.width).toBe(MODE_CONFIGS.editor.pos.evIconSize);
+    expect(astronautImage!.height).toBe(MODE_CONFIGS.editor.pos.evIconSize);
+    expect(el.textContent).toBe("");
   });
 
   it("does NOT add the overlay in dashboard mode", () => {
@@ -325,12 +334,55 @@ describe("TimelineAstronaut", () => {
     const overlay = findAstronautOverlay()!;
     const el = overlay.getElement() as HTMLElement;
     expect(el.textContent).toBe("❌");
+    expect(el.dataset.timelineMarker).toBe("measurement");
+    expect(el.querySelector("img")).toBeNull();
 
     const pos = overlay.getPosition();
     expect(pos).not.toBeUndefined();
     // Path projected: [[0,0], [200000, 0]]; 25% along = [50000, 0]
     expect(pos![0]).toBe(50000);
     expect(pos![1]).toBe(0);
+  });
+
+  it("switches back to the astronaut SVG when traverse hover follows a measurement hover", () => {
+    const traverse = makeTraverse(TRAVERSE_UUID);
+    const eva = makeEva(EVA_UUID, [{ uuid: TRAVERSE_UUID, type: "traverse" }]);
+    mockMissionDoc.traverses = { [TRAVERSE_UUID]: traverse } as unknown as Mission["traverses"];
+    mockMissionDoc.evas = { [EVA_UUID]: eva } as unknown as Mission["evas"];
+
+    store = makeStore({
+      eva: {
+        ...evaSlice.getInitialState(),
+        selectedEvaUuid: EVA_UUID,
+      },
+      measure: {
+        ...measureSlice.getInitialState(),
+        measurements: [makeMeasurement(MEASUREMENT_UUID)],
+      },
+      hover: {
+        ...hoverSlice.getInitialState(),
+        measurementUuid: MEASUREMENT_UUID,
+        measurementPercentDistance: 0.25,
+      },
+    } as PartialPreloadedState);
+
+    renderTimelineAstronaut("editor");
+    const el = findAstronautOverlay()!.getElement() as HTMLElement;
+    expect(el.dataset.timelineMarker).toBe("measurement");
+
+    flushSync(() => {
+      store.dispatch(hoverSlice.actions.clearMapItemHover());
+      store.dispatch(
+        hoverSlice.actions.setSequenceHover({
+          sequenceUuid: TRAVERSE_UUID,
+          mapItemType: "traverse",
+          sequenceItemPercentElapsed: 0.5,
+        })
+      );
+    });
+
+    expect(el.dataset.timelineMarker).toBe("astronaut");
+    expect(el.querySelector("img")?.getAttribute("src")).toBe(EV_ICON_SRC);
   });
 
   it("removes the overlay from the map on unmount", () => {
