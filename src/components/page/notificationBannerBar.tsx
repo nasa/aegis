@@ -8,27 +8,24 @@ import { createClientSocket } from "utils/clientSocketHelpers";
 import { clientLogger } from "utils/logging/clientLogger";
 import styles from "./notificationBannerBar.module.css";
 
-// Pages whose banners include the mission-scoped banners for the :id in the URL
-const MISSION_PAGE_PATTERNS = ["/mission/:id", "/dashboard/:id"];
-
-/** Mission id from a mission or dashboard URL, or null on every other page. */
+/** Mission id from a mission page URL, or null on every other page. */
 export function getMissionIdFromPath(pathname: string): number | null {
-  for (const pattern of MISSION_PAGE_PATTERNS) {
-    const match = matchPath(pattern, pathname);
-    if (match?.params.id) {
-      const missionId = Number(match.params.id);
-      return Number.isInteger(missionId) ? missionId : null;
-    }
-  }
-  return null;
+  const match = matchPath("/mission/:id", pathname);
+  if (!match?.params.id) return null;
+  const missionId = Number(match.params.id);
+  return Number.isInteger(missionId) ? missionId : null;
 }
+
+/** The dashboard is the one page that never shows banners. */
+export const isBannerHiddenOnPath = (pathname: string): boolean =>
+  matchPath("/dashboard/*", pathname) !== null;
 
 /** Identifies one version of a banner, so editing a dismissed banner shows it again. */
 const getDismissKey = (banner: ActiveNotificationBanner): string =>
   `${banner.id}:${banner.updatedAt}`;
 
 /**
- * Shows admin-managed notification banners at the top of every page. Mounted once in the app
+ * Shows admin-managed notification banners at the top of every page except the dashboard. Mounted once in the app
  * shell so dismissals last until the page is refreshed. Refetches when the route's mission
  * changes, when the server sends `bannersChanged`, and when the socket reconnects.
  */
@@ -87,7 +84,7 @@ const NotificationBannerBar: FunctionComponent = () => {
   }, [refreshBanners]);
 
   const visibleBanners = banners.filter((banner) => !dismissedKeys.has(getDismissKey(banner)));
-  if (visibleBanners.length === 0) return null;
+  if (isBannerHiddenOnPath(pathname) || visibleBanners.length === 0) return null;
 
   const dismissBanner = (banner: ActiveNotificationBanner) => {
     setDismissedKeys((previous) => new Set(previous).add(getDismissKey(banner)));

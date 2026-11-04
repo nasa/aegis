@@ -109,10 +109,13 @@ const NotificationBanners: FunctionComponent = () => {
         <AsyncStatus {...loading} />
 
         <p style={mutedText}>
-          Banners appear at the top of every page. Application-wide banners show everywhere,
-          including the homepage. Mission banners show only on the selected missions&apos; mission
-          and dashboard pages. Open pages update without a refresh. Users can dismiss a banner until
-          they refresh the page.
+          Banners appear at the top of every page except the dashboard. Application-wide banners
+          show everywhere, including the homepage. Mission banners show only on the selected
+          missions&apos; mission pages. Open pages update without a refresh. Users can dismiss a
+          banner until they refresh the page.
+        </p>
+        <p style={mutedText}>
+          <strong>Note:</strong> Banners never show on the dashboard page, for any scope.
         </p>
 
         {loadError && <p style={errorText}>{loadError}</p>}
@@ -381,7 +384,7 @@ const BannerEditor: FunctionComponent<{
                 checked={values.scope === "application"}
                 onChange={() => setValue("scope", "application")}
               />
-              Application-wide (every page, including the homepage)
+              Application-wide (every page except the dashboard, including the homepage)
             </label>
             <label className={adminCommon.checkboxItem}>
               <input
@@ -390,7 +393,7 @@ const BannerEditor: FunctionComponent<{
                 checked={values.scope === "missions"}
                 onChange={() => setValue("scope", "missions")}
               />
-              Specific missions (mission and dashboard pages)
+              Specific missions (mission pages only)
             </label>
             {values.scope === "missions" && (
               <div style={{ marginLeft: "26px" }}>

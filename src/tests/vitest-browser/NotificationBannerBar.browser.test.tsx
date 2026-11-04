@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router";
 import { page } from "vitest/browser";
-import NotificationBannerBar, { getMissionIdFromPath } from "components/page/notificationBannerBar";
+import NotificationBannerBar, {
+  getMissionIdFromPath,
+  isBannerHiddenOnPath,
+} from "components/page/notificationBannerBar";
 import { getActiveNotificationBanners } from "http-client/notificationBanner";
 import { createClientSocket } from "utils/clientSocketHelpers";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
@@ -63,12 +66,21 @@ const renderAt = (path: string) =>
   );
 
 describe("getMissionIdFromPath", () => {
-  it("reads the mission id from mission and dashboard pages only", () => {
+  it("reads the mission id from mission pages only", () => {
     expect(getMissionIdFromPath("/mission/12")).toBe(12);
-    expect(getMissionIdFromPath("/dashboard/3")).toBe(3);
+    expect(getMissionIdFromPath("/dashboard/3")).toBeNull();
     expect(getMissionIdFromPath("/")).toBeNull();
     expect(getMissionIdFromPath("/admin/mission/12")).toBeNull();
     expect(getMissionIdFromPath("/mission/abc")).toBeNull();
+  });
+});
+
+describe("isBannerHiddenOnPath", () => {
+  it("hides banners on the dashboard page only", () => {
+    expect(isBannerHiddenOnPath("/dashboard/3")).toBe(true);
+    expect(isBannerHiddenOnPath("/mission/3")).toBe(false);
+    expect(isBannerHiddenOnPath("/")).toBe(false);
+    expect(isBannerHiddenOnPath("/admin/notificationBanners")).toBe(false);
   });
 });
 
@@ -82,8 +94,15 @@ describe("NotificationBannerBar", () => {
 
   it("fetches mission banners for the mission in the URL", async () => {
     mockBanners([]);
-    renderAt("/dashboard/7");
+    renderAt("/mission/7");
     await vi.waitFor(() => expect(getActiveNotificationBanners).toHaveBeenCalledWith(7));
+  });
+
+  it("renders nothing on the dashboard page even when banners are active", async () => {
+    mockBanners([makeBanner()]);
+    renderAt("/dashboard/7");
+    await vi.waitFor(() => expect(getActiveNotificationBanners).toHaveBeenCalledWith(null));
+    await expect.element(page.getByTestId("notification-banner")).not.toBeInTheDocument();
   });
 
   it("renders each banner with its colors and end time", async () => {

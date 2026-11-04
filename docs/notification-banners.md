@@ -1,6 +1,7 @@
 # Notification Banners
 
-Admin-managed messages shown at the top of every AEGIS page. Super admins create them at
+Admin-managed messages shown at the top of every AEGIS page except the dashboard
+(`/dashboard/:id`), which never shows banners for any scope. Super admins create them at
 `/admin/notificationBanners`.
 
 ## Data
@@ -24,8 +25,9 @@ Admin-managed messages shown at the top of every AEGIS page. Super admins create
 The end time is exclusive. The server evaluates this with server time; clients never filter.
 
 A page gets every active application banner, plus active mission banners whose `missionIds`
-contains the page's mission id. Mission pages are `/mission/:id` and `/dashboard/:id` only
-(`getMissionIdFromPath`). Results are newest first (id descending).
+contains the page's mission id. Mission pages are `/mission/:id` only (`getMissionIdFromPath`).
+The dashboard is hidden on the client (`isBannerHiddenOnPath`): the bar still fetches there (with
+no mission id) and listens for `bannersChanged`, but renders nothing. Results are newest first (id descending).
 
 ## REST — `/api/v1/notificationBanner`
 
