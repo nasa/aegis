@@ -23,12 +23,11 @@ type NotificationBannerValidationResult =
 
 const router = express.Router();
 
-const ROUTE_NAME = "notificationBanner";
 const MAX_MESSAGE_LENGTH = 500;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 // setTimeout overflows above ~24.8 days, so long waits are split into daily wake-ups
 const MAX_TIMER_DELAY_MS = 24 * 60 * 60 * 1000;
-// Fire slightly after the boundary so `now` is past it when clients refetch
+// Fire slightly after the boundary so `now` is past it when clients re-fetch
 const TIMER_MARGIN_MS = 250;
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
@@ -59,7 +58,7 @@ router.get("/active", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
-      routeName: ROUTE_NAME,
+      routeName: "notificationBanner",
       appUsername: req.session?.appUser?.username,
       missionId: missionId ?? undefined,
       message: `Error retrieving active notification banners: ${e}`,
@@ -89,7 +88,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
-      routeName: ROUTE_NAME,
+      routeName: "notificationBanner",
       appUsername: req.session?.appUser?.username,
       message: `Error retrieving notification banners: ${e}`,
       error: asError(e),
@@ -135,7 +134,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
-      routeName: ROUTE_NAME,
+      routeName: "notificationBanner",
       appUsername: req.session?.appUser?.username,
       message: `Error creating notification banner: ${e}`,
       error: asError(e),
@@ -177,7 +176,7 @@ router.post("/:id", async (req: Request, res: Response): Promise<void> => {
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
-        routeName: ROUTE_NAME,
+        routeName: "notificationBanner",
         appUsername: req.session?.appUser?.username,
         message:
           "Failed to update notification banner after multiple tries due to optimistic locking",
@@ -207,7 +206,7 @@ router.post("/:id", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
-      routeName: ROUTE_NAME,
+      routeName: "notificationBanner",
       appUsername: req.session?.appUser?.username,
       message: `Error updating notification banner: ${e}`,
       error: asError(e),
@@ -242,7 +241,7 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,
-      routeName: ROUTE_NAME,
+      routeName: "notificationBanner",
       appUsername: req.session?.appUser?.username,
       message: `Error deleting notification banner: ${e}`,
       error: asError(e),
@@ -269,7 +268,7 @@ function rejectIfNotSuperAdmin(
     logLevel: "warning",
     httpMethod,
     responseStatus: 401,
-    routeName: ROUTE_NAME,
+    routeName: "notificationBanner",
     appUsername: req.session?.appUser?.username,
     message: "Unauthorized",
   });

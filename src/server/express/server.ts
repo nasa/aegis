@@ -98,7 +98,7 @@ initializeBase64Wasm(automergeWasmBase64);
   });
 
   setupSocketIO();
-  // Notify clients at each notification banner start/end time
+  // Start the server timer for active banners
   await rescheduleBannerTimer();
   // v2 Maegistro lives on the /api/socket server under the /maestro/v2 namespace.
   setupMaestroNamespaceV2(globalValues.socketio);
