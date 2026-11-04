@@ -5,6 +5,9 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { duplicateMission } from "http-client/mission";
 import adminCommon from "./adminCommon.module.css";
+import adminStyles from "components/admin/admin.module.css";
+import { InLineEditInput } from "components/interface/form/globalFields";
+import { validators } from "components/interface/form/formValidators";
 
 type RouteParams = {
   id: string;
@@ -13,6 +16,7 @@ type RouteParams = {
 const AdminMissionDuplicate: React.FunctionComponent = () => {
   const action = useAsyncStatus();
   const [status, setStatus] = useState<string>("Idle");
+  const [dataOwner, setDataOwner] = useState(null);
 
   const params = useParams<RouteParams>();
   const slug = params.id;
@@ -22,10 +26,10 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
   const { mission: missionDoc } = mission;
   const missionName = missionDoc?.name;
 
-  const onDuplicateMission = async (missionId: number) => {
+  const onDuplicateMission = async (missionId: number, dataOwner: string) => {
     setStatus("Starting duplication...");
     try {
-      const response = await duplicateMission(missionId, (progress) => {
+      const response = await duplicateMission(missionId, dataOwner, (progress) => {
         setStatus(`${progress.message} (${progress.elapsedSeconds}s elapsed)`);
       });
       if (response.status !== "success") {
@@ -65,13 +69,31 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
               GIS products. Please be patient and do not refresh the page or navigate away.
             </p>
             <div className={adminCommon.actionButtons}>
+              <div className={adminStyles.editDiv}>
+                <InLineEditInput
+                  editing={true}
+                  value={""}
+                  fieldProps={{
+                    name: "owner",
+                    ariaLabel: "Data Owner *",
+                    style: { width: "100%" },
+                    validators: [validators.required, validators.maxLength(50)],
+                    label: { label: "Data Owner", className: adminStyles.editLabel },
+                  }}
+                  onSubmit={(value) => {
+                    setDataOwner(value);
+                  }}
+                  key={`${intMissionId}-dataOwner`}
+                  debounceSubmit={false}
+                />
+              </div>
               <button
                 className={adminCommon.buttonPrimary}
                 type="button"
-                disabled={!!action.pending || !!mission.pending || !!mission.error}
+                disabled={!dataOwner || !!action.pending || !!mission.pending || !!mission.error}
                 onClick={() => {
                   action.run("Duplicating mission and GIS files...", () =>
-                    onDuplicateMission(intMissionId)
+                    onDuplicateMission(intMissionId, dataOwner)
                   );
                 }}
               >

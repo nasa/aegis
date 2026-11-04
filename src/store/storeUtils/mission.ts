@@ -69,6 +69,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     updatedAt: getAccurateNow().getTime(),
     createdAt: getAccurateNow().getTime(),
     archivedAt: null,
+    dataOwner: "",
   };
   return { ...defaultNewMission, ...partialMission };
 };

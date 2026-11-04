@@ -193,7 +193,7 @@ describe("Mission duplication", () => {
     ]);
     const onProgress = vi.fn();
 
-    const response = await duplicateMission(50, onProgress);
+    const response = await duplicateMission(50, "", onProgress);
 
     expect(response).toEqual({ status: "success", message: "Mission duplicated", data: 51 });
     expect(onProgress).toHaveBeenCalledWith({
@@ -205,7 +205,7 @@ describe("Mission duplication", () => {
       "/api/v1/missionDup",
       expect.objectContaining({
         headers: expect.objectContaining({ Accept: "application/x-ndjson" }),
-        body: JSON.stringify({ missionId: 50 }),
+        body: JSON.stringify({ missionId: 50, dataOwner: "" }),
       })
     );
   });
@@ -216,7 +216,7 @@ describe("Mission duplication", () => {
       '{"status":"error","message":"rsync exited with code 23"}\n',
     ]);
 
-    await expect(duplicateMission(50)).resolves.toEqual({
+    await expect(duplicateMission(50, "")).resolves.toEqual({
       status: "error",
       message: "rsync exited with code 23",
     });
@@ -227,7 +227,7 @@ describe("Mission duplication", () => {
       '{"type":"progress","message":"Copying GIS files...","elapsedSeconds":0}\n',
     ]);
 
-    await expect(duplicateMission(50)).resolves.toMatchObject({
+    await expect(duplicateMission(50, "")).resolves.toMatchObject({
       status: "error",
       message: expect.stringContaining("Check the mission list before retrying"),
     });
@@ -235,7 +235,7 @@ describe("Mission duplication", () => {
 
   test("accepts the previous JSON response format", async () => {
     mockFetchResponse({ status: "success", data: 51 });
-    await expect(duplicateMission(50)).resolves.toEqual({ status: "success", data: 51 });
+    await expect(duplicateMission(50, "")).resolves.toEqual({ status: "success", data: 51 });
   });
 
   test("returns non-JSON gateway errors for the page to display", async () => {
@@ -245,7 +245,7 @@ describe("Mission duplication", () => {
       json: () => Promise.reject(new SyntaxError("Not JSON")),
     });
 
-    await expect(duplicateMission(50)).resolves.toEqual({
+    await expect(duplicateMission(50, "")).resolves.toEqual({
       status: "error",
       message: "504 Gateway Time-out",
     });
