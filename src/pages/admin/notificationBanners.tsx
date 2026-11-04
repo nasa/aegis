@@ -211,7 +211,6 @@ const BannerCard: FunctionComponent<{
           message={banner.message}
           backgroundColor={banner.backgroundColor}
           textColor={banner.textColor}
-          endsAt={banner.endsAt}
         />
 
         <dl className={adminCommon.definitionList} style={{ marginTop: "12px" }}>
@@ -235,18 +234,6 @@ const BannerCard: FunctionComponent<{
             <dt style={dtStyle}>Colors</dt>
             <dd style={ddStyle}>
               <code>{banner.backgroundColor}</code> background, {banner.textColor} text
-            </dd>
-          </div>
-          <div className={adminCommon.definitionRow}>
-            <dt style={dtStyle}>Created</dt>
-            <dd style={ddStyle}>
-              {formatBannerTime(banner.createdAt)} by {banner.createdBy ?? "(unknown)"}
-            </dd>
-          </div>
-          <div className={adminCommon.definitionRow}>
-            <dt style={dtStyle}>Updated</dt>
-            <dd style={ddStyle}>
-              {formatBannerTime(banner.updatedAt)} by {banner.updatedBy ?? "(unknown)"}
             </dd>
           </div>
         </dl>
@@ -501,7 +488,6 @@ const BannerEditor: FunctionComponent<{
               message={values.message || "Banner message"}
               backgroundColor={values.backgroundColor}
               textColor={values.textColor}
-              endsAt={localInputToIso(values.endsAtLocal)}
             />
           </div>
 
@@ -584,17 +570,13 @@ const BannerPreview: FunctionComponent<{
   message: string;
   backgroundColor: string;
   textColor: NotificationBannerTextColor;
-  endsAt: string | null;
-}> = ({ message, backgroundColor, textColor, endsAt }) => (
+}> = ({ message, backgroundColor, textColor }) => (
   <div
     className={bannerStyles.banner}
     style={{ backgroundColor, color: textColor, borderRadius: 4 }}
   >
     <div className={bannerStyles.bannerText}>
       <span className={bannerStyles.bannerMessage}>{message}</span>
-      {endsAt && (
-        <span className={bannerStyles.bannerEndTime}>Until {formatBannerTime(endsAt)}</span>
-      )}
     </div>
   </div>
 );
