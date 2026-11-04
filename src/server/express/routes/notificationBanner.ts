@@ -3,11 +3,23 @@ import type { Request, Response } from "express";
 import express from "express";
 import { asError } from "@emss/utils";
 
-import { Doc_Listing_db, Notification_Banner_db } from "server/database/models/_allModels";
+import { Notification_Banner_db } from "server/database/models/_allModels";
 import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
+
+/** Notification banner create/update body after validation, with times parsed to Dates. */
+type ValidatedNotificationBannerInput = Omit<
+  NotificationBanner,
+  "id" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt" | "startsAt" | "endsAt"
+> & {
+  startsAt: Date | null;
+  endsAt: Date | null;
+};
+
+type NotificationBannerValidationResult =
+  { ok: true; value: ValidatedNotificationBannerInput } | { ok: false; message: string };
 
 const router = express.Router();
 
@@ -37,12 +49,13 @@ router.get("/active", async (req: Request, res: Response): Promise<void> => {
   try {
     const em = globalValues.orm.em;
     const rows = await em.find(Notification_Banner_db, { enabled: true });
-    const banners = selectBannersForPage(rows, missionId, new Date());
+    const banners = selectBannersForPage(rows, missionId, new Date()).map(serializeBanner);
     res
       .status(200)
       .json({ status: "success", message: "active notification banners", data: banners });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:notificationBanner:GET:errorRetrievingActiveNotificationBanners",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -72,6 +85,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:notificationBanner:GET:errorRetrievingNotificationBanners",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -91,7 +105,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   if (!rejectIfNotSuperAdmin(req, res, "POST")) return;
 
   try {
-    const validation = await validateBannerInputWithMissions(req.body);
+    const validation = validateBannerInput(req.body);
     if (validation.ok === false) {
       res.status(400).json({ status: "failure", message: validation.message });
       return;
@@ -117,6 +131,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:notificationBanner:POST:errorCreatingNotificationBanner",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -140,7 +155,7 @@ router.post("/:id", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const validation = await validateBannerInputWithMissions(req.body);
+    const validation = validateBannerInput(req.body);
     if (validation.ok === false) {
       res.status(400).json({ status: "failure", message: validation.message });
       return;
@@ -158,6 +173,7 @@ router.post("/:id", async (req: Request, res: Response): Promise<void> => {
 
     if (!result) {
       serverLogger.apiRoute({
+        logId: "api-route:notificationBanner:POST:failedToUpdateAfterOptimisticLockRetries",
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -187,6 +203,7 @@ router.post("/:id", async (req: Request, res: Response): Promise<void> => {
       .json({ status: "success", message: "notification banner updated", data: result.banner });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:notificationBanner:POST:errorUpdatingNotificationBanner",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -221,6 +238,7 @@ router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({ status: "success", message: "notification banner deleted", data: id });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:notificationBanner:DELETE:errorDeletingNotificationBanner",
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,
@@ -247,6 +265,7 @@ function rejectIfNotSuperAdmin(
   if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) return true;
 
   serverLogger.apiRoute({
+    logId: "api-route:notificationBanner:unauthorizedRequestNotSuperAdmin",
     logLevel: "warning",
     httpMethod,
     responseStatus: 401,
@@ -279,7 +298,7 @@ function onBannersChanged(): void {
 
 /**
  * Schedules one timer for the next banner start or end time. When it fires, clients are told to
- * refetch, so banners appear and disappear on schedule without a page refresh.
+ * re-fetch, so banners appear and disappear on schedule without a page refresh.
  */
 export async function rescheduleBannerTimer(): Promise<void> {
   if (globalValues.notificationBannerTimer) {
@@ -331,23 +350,12 @@ export function isBannerActive(
  * Active banners for a page, newest first. Application banners always apply; mission banners
  * apply only when `missionId` (null on non-mission pages) is in their list.
  */
-export function selectBannersForPage(
-  banners: Pick<
+export function selectBannersForPage<
+  BannerRow extends Pick<
     Notification_Banner_db,
-    | "id"
-    | "message"
-    | "enabled"
-    | "startsAt"
-    | "endsAt"
-    | "scope"
-    | "missionIds"
-    | "backgroundColor"
-    | "textColor"
-    | "updatedAt"
-  >[],
-  missionId: number | null,
-  now: Date
-): ActiveNotificationBanner[] {
+    "id" | "enabled" | "startsAt" | "endsAt" | "scope" | "missionIds"
+  >,
+>(banners: BannerRow[], missionId: number | null, now: Date): BannerRow[] {
   return banners
     .filter((banner) => isBannerActive(banner, now))
     .filter(
@@ -355,15 +363,7 @@ export function selectBannersForPage(
         banner.scope === "application" ||
         (missionId !== null && banner.missionIds.includes(missionId))
     )
-    .sort((a, b) => b.id - a.id)
-    .map((banner) => ({
-      id: banner.id,
-      message: banner.message,
-      endsAt: banner.endsAt?.toISOString() ?? null,
-      backgroundColor: banner.backgroundColor,
-      textColor: banner.textColor,
-      updatedAt: banner.updatedAt.toISOString(),
-    }));
+    .sort((a, b) => b.id - a.id);
 }
 
 /** Earliest start or end time strictly after `now` among enabled banners, or null if none. */
@@ -384,7 +384,7 @@ export function getNextBannerTransition(
 /** Checks and normalizes a create/update request body. Does not check that missions exist. */
 export function validateBannerInput(body: unknown): NotificationBannerValidationResult {
   if (!body || typeof body !== "object") return { ok: false, message: "Request body is required" };
-  const input = body as Partial<Record<keyof NotificationBannerInput, unknown>>;
+  const input = body as Partial<Record<keyof NotificationBanner, unknown>>;
 
   if (typeof input.message !== "string" || input.message.trim() === "") {
     return { ok: false, message: "Message is required" };
@@ -428,8 +428,8 @@ export function validateBannerInput(body: unknown): NotificationBannerValidation
     return { ok: false, message: "Background color must be a hex color like #1D4ED8" };
   }
 
-  if (input.textColor !== "white" && input.textColor !== "black") {
-    return { ok: false, message: 'Text color must be "white" or "black"' };
+  if (typeof input.textColor !== "string" || !HEX_COLOR_PATTERN.test(input.textColor)) {
+    return { ok: false, message: "Text color must be a hex color like #FFFFFF" };
   }
 
   return {
@@ -442,7 +442,7 @@ export function validateBannerInput(body: unknown): NotificationBannerValidation
       scope: input.scope,
       missionIds,
       backgroundColor: input.backgroundColor.toUpperCase(),
-      textColor: input.textColor,
+      textColor: input.textColor.toUpperCase(),
     },
   };
 }
@@ -455,27 +455,6 @@ function parseOptionalDate(value: unknown): Date | null | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-/** `validateBannerInput` plus a check that every selected mission exists. */
-async function validateBannerInputWithMissions(
-  body: unknown
-): Promise<NotificationBannerValidationResult> {
-  const validation = validateBannerInput(body);
-  if (validation.ok === false || validation.value.missionIds.length === 0) return validation;
-
-  const em = globalValues.orm.em;
-  const existing = await em.find(
-    Doc_Listing_db,
-    { missionId: { $in: validation.value.missionIds } },
-    { fields: ["missionId"] }
-  );
-  const existingIds = new Set(existing.map((row) => row.missionId));
-  const missingIds = validation.value.missionIds.filter((missionId) => !existingIds.has(missionId));
-  if (missingIds.length > 0) {
-    return { ok: false, message: `Missions not found: ${missingIds.join(", ")}` };
-  }
-  return validation;
-}
-
 function serializeBanner(row: Notification_Banner_db): NotificationBanner {
   return {
     id: row.id,
@@ -483,7 +462,8 @@ function serializeBanner(row: Notification_Banner_db): NotificationBanner {
     enabled: row.enabled,
     startsAt: row.startsAt?.toISOString() ?? null,
     endsAt: row.endsAt?.toISOString() ?? null,
-    scope: row.scope,
+    // validateBannerInput only stores "application" or "missions"
+    scope: row.scope as NotificationBanner["scope"],
     missionIds: row.missionIds,
     backgroundColor: row.backgroundColor,
     textColor: row.textColor,

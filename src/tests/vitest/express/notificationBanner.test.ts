@@ -25,19 +25,20 @@ const makeBanner = (
   overrides: Partial<Parameters<typeof selectBannersForPage>[0][number]> = {}
 ): Parameters<typeof selectBannersForPage>[0][number] => ({
   id: 1,
-  message: "Vitest banner",
   enabled: true,
   startsAt: null,
   endsAt: null,
   scope: "application",
   missionIds: [],
-  backgroundColor: "#1D4ED8",
-  textColor: "white",
-  updatedAt: NOW,
   ...overrides,
 });
 
-const validInput: NotificationBannerInput = {
+const validInput: NotificationBanner = {
+  id: null,
+  createdBy: null,
+  updatedBy: null,
+  createdAt: null,
+  updatedAt: null,
   message: "  Vitest maintenance tonight  ",
   enabled: true,
   startsAt: null,
@@ -45,7 +46,7 @@ const validInput: NotificationBannerInput = {
   scope: "application",
   missionIds: [],
   backgroundColor: "#1d4ed8",
-  textColor: "white",
+  textColor: "#ffffff",
 };
 
 describe("isBannerActive", () => {
@@ -97,22 +98,6 @@ describe("selectBannersForPage", () => {
   test("inactive banners are excluded", () => {
     expect(selectBannersForPage([expiredBanner], null, NOW)).toEqual([]);
   });
-
-  test("returns only the display fields as ISO strings", () => {
-    const [result] = selectBannersForPage(
-      [makeBanner({ id: 9, endsAt: hoursFromNow(2) })],
-      null,
-      NOW
-    );
-    expect(result).toEqual({
-      id: 9,
-      message: "Vitest banner",
-      endsAt: hoursFromNow(2).toISOString(),
-      backgroundColor: "#1D4ED8",
-      textColor: "white",
-      updatedAt: NOW.toISOString(),
-    });
-  });
 });
 
 describe("getNextBannerTransition", () => {
@@ -142,6 +127,7 @@ describe("validateBannerInput", () => {
     if (result.ok === false) return;
     expect(result.value.message).toBe("Vitest maintenance tonight");
     expect(result.value.backgroundColor).toBe("#1D4ED8");
+    expect(result.value.textColor).toBe("#FFFFFF");
     expect(result.value.startsAt).toBeNull();
   });
 
@@ -168,7 +154,8 @@ describe("validateBannerInput", () => {
     ["non-integer mission id", { scope: "missions", missionIds: ["1"] }],
     ["short hex color", { backgroundColor: "#FFF" }],
     ["color name", { backgroundColor: "blue" }],
-    ["unknown text color", { textColor: "grey" }],
+    ["text color name", { textColor: "black" }],
+    ["short hex text color", { textColor: "#000" }],
   ])("rejects %s", (_label, overrides) => {
     expect(validateBannerInput({ ...validInput, ...overrides }).ok).toBe(false);
   });
@@ -192,7 +179,7 @@ describe("Notification Banner API Endpoint", () => {
     return [res.header["set-cookie"][0], res.header["set-cookie"][1]];
   };
 
-  const createBanner = async (input: NotificationBannerInput): Promise<NotificationBanner> => {
+  const createBanner = async (input: NotificationBanner): Promise<NotificationBanner> => {
     const res = await supertest(app)
       .post("/api/v1/notificationBanner")
       .set("Cookie", superAdminCookies)
@@ -272,13 +259,19 @@ describe("Notification Banner API Endpoint", () => {
     expect(res.body.status).toBe("failure");
   });
 
-  test("rejects missions that do not exist", async () => {
-    const res = await supertest(app)
-      .post("/api/v1/notificationBanner")
-      .set("Cookie", superAdminCookies)
-      .send({ ...validInput, scope: "missions", missionIds: [missionId, -12345] });
-    expect(res.statusCode).toBe(400);
-    expect(res.body.message).toContain("-12345");
+  test("a mission id that does not exist is stored and still shows on the other missions", async () => {
+    const banner = await createBanner({
+      ...validInput,
+      scope: "missions",
+      missionIds: [missionId, -12345],
+    });
+    expect(banner.missionIds).toEqual([-12345, missionId]);
+
+    const res = await supertest(app).get(
+      `/api/v1/notificationBanner/active?missionId=${missionId}`
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.map((row: NotificationBanner) => row.id)).toContain(banner.id);
   });
 
   test("create notifies clients and records the creator", async () => {
@@ -300,21 +293,25 @@ describe("Notification Banner API Endpoint", () => {
 
     const homeRes = await supertest(app).get("/api/v1/notificationBanner/active");
     expect(homeRes.statusCode).toBe(200);
-    const homeIds = homeRes.body.data.map((banner: ActiveNotificationBanner) => banner.id);
+    const homeIds = homeRes.body.data.map((banner: NotificationBanner) => banner.id);
     expect(homeIds).toContain(applicationBanner.id);
+    // Full banner objects, the same shape the admin endpoints return
+    expect(
+      homeRes.body.data.find((banner: NotificationBanner) => banner.id === applicationBanner.id)
+    ).toEqual(applicationBanner);
     expect(homeIds).not.toContain(missionBanner.id);
 
     const missionRes = await supertest(app).get(
       `/api/v1/notificationBanner/active?missionId=${missionId}`
     );
-    const missionIds = missionRes.body.data.map((banner: ActiveNotificationBanner) => banner.id);
+    const missionIds = missionRes.body.data.map((banner: NotificationBanner) => banner.id);
     expect(missionIds).toContain(applicationBanner.id);
     expect(missionIds).toContain(missionBanner.id);
 
     const otherRes = await supertest(app).get(
       `/api/v1/notificationBanner/active?missionId=${otherMissionId}`
     );
-    const otherIds = otherRes.body.data.map((banner: ActiveNotificationBanner) => banner.id);
+    const otherIds = otherRes.body.data.map((banner: NotificationBanner) => banner.id);
     expect(otherIds).not.toContain(missionBanner.id);
   });
 
@@ -331,7 +328,7 @@ describe("Notification Banner API Endpoint", () => {
     });
 
     const res = await supertest(app).get("/api/v1/notificationBanner/active");
-    const ids = res.body.data.map((banner: ActiveNotificationBanner) => banner.id);
+    const ids = res.body.data.map((banner: NotificationBanner) => banner.id);
     expect(ids).not.toContain(disabledBanner.id);
     expect(ids).not.toContain(scheduledBanner.id);
     // The scheduled banner's start time is the next transition, so a timer is pending
@@ -345,10 +342,10 @@ describe("Notification Banner API Endpoint", () => {
     const res = await supertest(app)
       .post(`/api/v1/notificationBanner/${banner.id}`)
       .set("Cookie", superAdminCookies)
-      .send({ ...validInput, enabled: false, textColor: "black" });
+      .send({ ...validInput, enabled: false, textColor: "#000000" });
     expect(res.statusCode).toBe(200);
     expect(res.body.data.enabled).toBe(false);
-    expect(res.body.data.textColor).toBe("black");
+    expect(res.body.data.textColor).toBe("#000000");
     expect(res.body.data.updatedAt).not.toBe(banner.updatedAt);
     expect(emitMock).toHaveBeenCalledWith("bannersChanged");
   });

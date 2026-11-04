@@ -260,6 +260,7 @@ initializeBase64Wasm(automergeWasmBase64);
       });
     }
 
+    // Clear notification banner timer
     if (globalValues.notificationBannerTimer) {
       clearTimeout(globalValues.notificationBannerTimer);
       globalValues.notificationBannerTimer = null;

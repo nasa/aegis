@@ -9,7 +9,7 @@ export const Notification_Banner_dbSchema = defineEntity({
     // null means the window has no start / end limit
     startsAt: p.datetime(3).nullable(),
     endsAt: p.datetime(3).nullable(),
-    scope: p.text().$type<NotificationBannerScope>(),
+    scope: p.text(),
     // mission ids for scope "missions"; empty for scope "application"
     missionIds: p
       .array<number>(
@@ -19,7 +19,7 @@ export const Notification_Banner_dbSchema = defineEntity({
       .columnType("integer[]")
       .defaultRaw("'{}'"),
     backgroundColor: p.text(),
-    textColor: p.text().$type<NotificationBannerTextColor>(),
+    textColor: p.text(),
     createdBy: p.text().nullable(),
     updatedBy: p.text().nullable(),
     createdAt: p.datetime(3),

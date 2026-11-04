@@ -1,13 +1,13 @@
 /** Fetch the banners to display on a page. Pass null for pages that are not mission pages. */
 export async function getActiveNotificationBanners(
   missionId: number | null
-): Promise<WrappedResponse<ActiveNotificationBanner[]>> {
+): Promise<WrappedResponse<NotificationBanner[]>> {
   const query = missionId === null ? "" : `?missionId=${encodeURIComponent(missionId)}`;
   const res = await fetch(`/api/v1/notificationBanner/active${query}`, { cache: "no-store" });
   if (res.status !== 200) {
     return { status: "error", message: await readErrorMessage(res) };
   }
-  return res.json() as Promise<WrappedResponse<ActiveNotificationBanner[]>>;
+  return res.json() as Promise<WrappedResponse<NotificationBanner[]>>;
 }
 
 /** Fetch every banner, including disabled and expired ones (super admin only). */
@@ -19,14 +19,14 @@ export async function getAllNotificationBanners(): Promise<WrappedResponse<Notif
   return res.json() as Promise<WrappedResponse<NotificationBanner[]>>;
 }
 
-/** Create a banner (super admin only). */
+/** Create a banner (super admin only). Server-set fields are ignored. */
 export async function createNotificationBanner(
-  input: NotificationBannerInput
+  banner: NotificationBanner
 ): Promise<WrappedResponse<NotificationBanner>> {
   const res = await fetch("/api/v1/notificationBanner", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify(banner),
   });
   if (res.status !== 200) {
     return { status: "error", message: await readErrorMessage(res) };
@@ -34,15 +34,15 @@ export async function createNotificationBanner(
   return res.json() as Promise<WrappedResponse<NotificationBanner>>;
 }
 
-/** Replace a banner's editable fields (super admin only). */
+/** Replace a banner's editable fields (super admin only). Server-set fields are ignored. */
 export async function updateNotificationBanner(
   id: number,
-  input: NotificationBannerInput
+  banner: NotificationBanner
 ): Promise<WrappedResponse<NotificationBanner>> {
   const res = await fetch(`/api/v1/notificationBanner/${encodeURIComponent(id)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify(banner),
   });
   if (res.status !== 200) {
     return { status: "error", message: await readErrorMessage(res) };

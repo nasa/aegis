@@ -104,13 +104,13 @@ type EnvironmentConfigData = {
   isOverridden: boolean;
 };
 
-/** "application" shows on every page; "missions" shows only on the listed missions' pages. */
-type NotificationBannerScope = "application" | "missions";
-type NotificationBannerTextColor = "white" | "black";
-
-/** Banner as returned by the admin REST endpoints. Dates are ISO strings in UTC. */
+/**
+ * Banner as returned by the admin REST endpoints and sent on create and update. Dates are ISO
+ * strings in UTC. Server-set fields (`id`, `createdBy`, `updatedBy`, `createdAt`, `updatedAt`) are
+ * always set in responses; the client sends them as null and the server ignores them.
+ */
 type NotificationBanner = {
-  id: number;
+  id: number | null;
   message: string;
   /** Manual on/off switch, applied on top of the time window. */
   enabled: boolean;
@@ -118,42 +118,28 @@ type NotificationBanner = {
   startsAt: string | null;
   /** null means no end limit. */
   endsAt: string | null;
-  scope: NotificationBannerScope;
+  /** "application" shows on every page; "missions" shows only on the listed missions' pages. */
+  scope: "application" | "missions";
   /** Missions the banner shows on when `scope` is "missions"; empty otherwise. */
   missionIds: number[];
   /** "#RRGGBB" */
   backgroundColor: string;
-  textColor: NotificationBannerTextColor;
+  /** "#RRGGBB". The admin page only offers white and black. */
+  textColor: string;
   createdBy: string | null;
   updatedBy: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 };
-
-/** Fields the admin page sends on create and update. */
-type NotificationBannerInput = Pick<
-  NotificationBanner,
-  | "message"
-  | "enabled"
-  | "startsAt"
-  | "endsAt"
-  | "scope"
-  | "missionIds"
-  | "backgroundColor"
-  | "textColor"
->;
-
-/** Banner as shown to end users. `updatedAt` identifies the version a user dismissed. */
-type ActiveNotificationBanner = Pick<
-  NotificationBanner,
-  "id" | "message" | "endsAt" | "backgroundColor" | "textColor" | "updatedAt"
->;
 
 /**
  * Admin banner editor state. Times are `datetime-local` values in the admin's time zone;
  * an empty string means no limit.
  */
-type NotificationBannerFormValues = Omit<NotificationBannerInput, "startsAt" | "endsAt"> & {
+type NotificationBannerFormValues = Omit<
+  NotificationBanner,
+  "id" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt" | "startsAt" | "endsAt"
+> & {
   startsAtLocal: string;
   endsAtLocal: string;
 };

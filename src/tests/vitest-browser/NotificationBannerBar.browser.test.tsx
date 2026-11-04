@@ -28,19 +28,24 @@ vi.mock("utils/clientSocketHelpers", () => ({
   })),
 }));
 
-const makeBanner = (
-  overrides: Partial<ActiveNotificationBanner> = {}
-): ActiveNotificationBanner => ({
+const makeBanner = (overrides: Partial<NotificationBanner> = {}): NotificationBanner => ({
   id: 1,
   message: "Vitest maintenance tonight",
+  enabled: true,
+  startsAt: null,
   endsAt: null,
+  scope: "application",
+  missionIds: [],
   backgroundColor: "#B91C1C",
-  textColor: "white",
+  textColor: "#FFFFFF",
+  createdBy: "Vitest super admin",
+  updatedBy: "Vitest super admin",
+  createdAt: "2026-11-03T12:00:00.000Z",
   updatedAt: "2026-11-03T12:00:00.000Z",
   ...overrides,
 });
 
-const mockBanners = (banners: ActiveNotificationBanner[]) =>
+const mockBanners = (banners: NotificationBanner[]) =>
   vi.mocked(getActiveNotificationBanners).mockResolvedValue({
     status: "success",
     message: "",
@@ -108,7 +113,7 @@ describe("NotificationBannerBar", () => {
   it("renders each banner with its colors and end time", async () => {
     mockBanners([
       makeBanner({ id: 2, message: "Second", endsAt: "2026-11-04T00:00:00.000Z" }),
-      makeBanner({ id: 1, message: "First", backgroundColor: "#FACC15", textColor: "black" }),
+      makeBanner({ id: 1, message: "First", backgroundColor: "#FACC15", textColor: "#000000" }),
     ]);
     renderAt("/mission/1");
 

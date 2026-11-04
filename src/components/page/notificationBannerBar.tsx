@@ -21,8 +21,7 @@ export const isBannerHiddenOnPath = (pathname: string): boolean =>
   matchPath("/dashboard/*", pathname) !== null;
 
 /** Identifies one version of a banner, so editing a dismissed banner shows it again. */
-const getDismissKey = (banner: ActiveNotificationBanner): string =>
-  `${banner.id}:${banner.updatedAt}`;
+const getDismissKey = (banner: NotificationBanner): string => `${banner.id}:${banner.updatedAt}`;
 
 /**
  * Shows admin-managed notification banners at the top of every page except the dashboard. Mounted once in the app
@@ -33,7 +32,7 @@ const NotificationBannerBar: FunctionComponent = () => {
   const { pathname } = useLocation();
   const missionId = getMissionIdFromPath(pathname);
 
-  const [banners, setBanners] = useState<ActiveNotificationBanner[]>([]);
+  const [banners, setBanners] = useState<NotificationBanner[]>([]);
   const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => new Set());
 
   // Read by the socket handlers so they always fetch for the current page without reconnecting
@@ -86,7 +85,7 @@ const NotificationBannerBar: FunctionComponent = () => {
   const visibleBanners = banners.filter((banner) => !dismissedKeys.has(getDismissKey(banner)));
   if (isBannerHiddenOnPath(pathname) || visibleBanners.length === 0) return null;
 
-  const dismissBanner = (banner: ActiveNotificationBanner) => {
+  const dismissBanner = (banner: NotificationBanner) => {
     setDismissedKeys((previous) => new Set(previous).add(getDismissKey(banner)));
   };
 

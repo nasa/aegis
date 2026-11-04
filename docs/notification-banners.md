@@ -10,12 +10,18 @@ Admin-managed messages shown at the top of every AEGIS page except the dashboard
 - Columns: `message` (≤ 500 chars, plain text), `enabled` (manual on/off), `starts_at` /
   `ends_at` (UTC, nullable = no limit), `scope` (`"application"` | `"missions"`), `mission_ids`
   (`integer[]`, empty for application scope), `background_color` (`#RRGGBB`, stored uppercase),
-  `text_color` (`"white"` | `"black"`), audit columns, optimistic-lock `version`.
+  `text_color` (`#RRGGBB`, stored uppercase; the admin page only offers white `#FFFFFF` and black `#000000`), audit columns, optimistic-lock `version`.
 - Allowed values are enforced by `validateBannerInput` in the route, not by DB check constraints.
-- `mission_ids` has no foreign key. A deleted mission's id stays in the array, never matches a
-  page, and is dropped by the admin editor on the next save.
-- Types (ambient): `NotificationBanner`, `NotificationBannerInput`, `ActiveNotificationBanner`,
-  `NotificationBannerFormValues` in `typings/network/clientTypes.d.ts`;
+- `mission_ids` has no foreign key, and the server does not check that the missions exist; the
+  admin editor only offers existing missions. A deleted mission's id stays in the array and never
+  matches a page (mission ids are autoincrement and not reused). The banner still shows on its
+  other missions. The admin card lists it as "(deleted mission N)", and the editor drops it on the
+  next save.
+- Types (ambient): `NotificationBanner`,
+  `NotificationBannerFormValues` in `typings/network/clientTypes.d.ts`. Create and update requests
+  send a `NotificationBanner` with the server-set fields (`id`, `createdBy`, `updatedBy`,
+  `createdAt`, `updatedAt`) set to null; the server ignores them. `scope` is plain `text` in the
+  model and is cast to `"application" | "missions"` when serialized;
   `ValidatedNotificationBannerInput` / `NotificationBannerValidationResult` in
   `typings/network/internalApi.d.ts`.
 
@@ -31,16 +37,15 @@ no mission id) and listens for `bannersChanged`, but renders nothing. Results ar
 
 ## REST — `/api/v1/notificationBanner`
 
-| Method | Path                  | Auth                         | Purpose                                   |
-| ------ | --------------------- | ---------------------------- | ----------------------------------------- |
-| GET    | `/active?missionId=N` | none beyond nginx            | `ActiveNotificationBanner[]` for one page |
-| GET    | `/`                   | super admin or `EMSS_TOKEN`  | all banners for the admin page            |
-| POST   | `/`                   | super admin or `EMSS_TOKEN`  | create                                    |
-| POST   | `/:id`                | super admin or `EMSS_TOKEN`  | replace editable fields                   |
-| DELETE | `/:id`                | super admin or `EMSS_TOKEN`  | delete                                    |
+| Method | Path                  | Auth                        | Purpose                             |
+| ------ | --------------------- | --------------------------- | ----------------------------------- |
+| GET    | `/active?missionId=N` | none beyond nginx           | `NotificationBanner[]` for one page |
+| GET    | `/`                   | super admin or `EMSS_TOKEN` | all banners for the admin page      |
+| POST   | `/`                   | super admin or `EMSS_TOKEN` | create                              |
+| POST   | `/:id`                | super admin or `EMSS_TOKEN` | replace editable fields             |
+| DELETE | `/:id`                | super admin or `EMSS_TOKEN` | delete                              |
 
 Updates use `POST /:id` (not PUT) because `serverLogger.apiRoute` only accepts GET/POST/DELETE.
-Selected missions must exist in `doc_listing_db`.
 
 ## Live updates
 

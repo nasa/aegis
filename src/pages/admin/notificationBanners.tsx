@@ -16,18 +16,22 @@ import adminCommon from "./adminCommon.module.css";
 
 const MAX_MESSAGE_LENGTH = 500;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const WHITE_TEXT_COLOR = "#FFFFFF";
+const BLACK_TEXT_COLOR = "#000000";
+// Text color is stored as hex, but the editor only offers white and black
+const TEXT_COLOR_OPTIONS = [
+  { label: "White", textColor: WHITE_TEXT_COLOR },
+  { label: "Black", textColor: BLACK_TEXT_COLOR },
+];
 
 /** Preset background colors and the text color that reads best on each. */
 const PRESET_BANNER_COLORS = {
-  green: { backgroundColor: "#15803D", textColor: "white" },
-  blue: { backgroundColor: "#1D4ED8", textColor: "white" },
-  red: { backgroundColor: "#B91C1C", textColor: "white" },
-  orange: { backgroundColor: "#C2410C", textColor: "white" },
-  yellow: { backgroundColor: "#FACC15", textColor: "black" },
-} as const satisfies Record<
-  string,
-  { backgroundColor: string; textColor: NotificationBannerTextColor }
->;
+  green: { backgroundColor: "#15803D", textColor: WHITE_TEXT_COLOR },
+  blue: { backgroundColor: "#1D4ED8", textColor: WHITE_TEXT_COLOR },
+  red: { backgroundColor: "#B91C1C", textColor: WHITE_TEXT_COLOR },
+  orange: { backgroundColor: "#C2410C", textColor: WHITE_TEXT_COLOR },
+  yellow: { backgroundColor: "#FACC15", textColor: BLACK_TEXT_COLOR },
+} as const satisfies Record<string, { backgroundColor: string; textColor: string }>;
 
 const BANNER_STATUS_COLORS = {
   Active: "#4ade80",
@@ -89,7 +93,7 @@ const NotificationBanners: FunctionComponent = () => {
   const handleSaved = (saved: NotificationBanner) => {
     setBanners((previous) => {
       const others = (previous ?? []).filter((banner) => banner.id !== saved.id);
-      return [saved, ...others].sort((a, b) => b.id - a.id);
+      return [saved, ...others].sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
     });
     setEditing(null);
   };
@@ -174,8 +178,9 @@ const BannerCard: FunctionComponent<{
 
   const handleToggleEnabled = () =>
     action.run(banner.enabled ? "Disabling banner..." : "Enabling banner...", async () => {
+      if (banner.id === null) throw new Error("Banner has no id.");
       const res = await updateNotificationBanner(banner.id, {
-        ...toBannerInput(banner),
+        ...clearServerSetFields(banner),
         enabled: !banner.enabled,
       });
       if (res.status !== "success") throw new Error(res.message ?? "Failed to save.");
@@ -185,6 +190,7 @@ const BannerCard: FunctionComponent<{
   const handleDelete = () => {
     if (!window.confirm("Delete this notification banner?")) return;
     action.run("Deleting banner...", async () => {
+      if (banner.id === null) throw new Error("Banner has no id.");
       const res = await deleteNotificationBanner(banner.id);
       if (res.status !== "success") throw new Error(res.message ?? "Failed to delete.");
       onDeleted(banner.id);
@@ -236,7 +242,7 @@ const BannerCard: FunctionComponent<{
           <div className={adminCommon.definitionRow}>
             <dt style={dtStyle}>Colors</dt>
             <dd style={ddStyle}>
-              <code>{banner.backgroundColor}</code> background, {banner.textColor} text
+              <code>{banner.backgroundColor}</code> background, <code>{banner.textColor}</code> text
             </dd>
           </div>
         </dl>
@@ -313,10 +319,11 @@ const BannerEditor: FunctionComponent<{
     if (errorMessage) return;
 
     action.run("Saving banner...", async () => {
-      const input = toBannerInputFromForm(values);
+      const requestBanner = toBannerFromForm(values);
+      if (banner && banner.id === null) throw new Error("Banner has no id.");
       const res = banner
-        ? await updateNotificationBanner(banner.id, input)
-        : await createNotificationBanner(input);
+        ? await updateNotificationBanner(banner.id, requestBanner)
+        : await createNotificationBanner(requestBanner);
       if (res.status !== "success") throw new Error(res.message ?? "Failed to save.");
       onSaved(res.data);
     });
@@ -471,15 +478,15 @@ const BannerEditor: FunctionComponent<{
           <div className={adminCommon.formGroup}>
             <span className={adminCommon.formLabel}>Text color</span>
             <div style={{ display: "flex", gap: "16px" }}>
-              {(["white", "black"] as const).map((textColor) => (
+              {TEXT_COLOR_OPTIONS.map(({ label, textColor }) => (
                 <label key={textColor} className={adminCommon.checkboxItem}>
                   <input
                     type="radio"
                     name="banner-text-color"
-                    checked={values.textColor === textColor}
+                    checked={values.textColor.toUpperCase() === textColor}
                     onChange={() => setValue("textColor", textColor)}
                   />
-                  {textColor === "white" ? "White" : "Black"}
+                  {label}
                 </label>
               ))}
             </div>
@@ -572,7 +579,7 @@ const TimeWithUtc: FunctionComponent<{ isoTime: string | null; emptyLabel: strin
 const BannerPreview: FunctionComponent<{
   message: string;
   backgroundColor: string;
-  textColor: NotificationBannerTextColor;
+  textColor: string;
 }> = ({ message, backgroundColor, textColor }) => (
   <div
     className={bannerStyles.banner}
@@ -594,16 +601,15 @@ function getBannerStatus(banner: NotificationBanner, now: Date): keyof typeof BA
   return "Active";
 }
 
-function toBannerInput(banner: NotificationBanner): NotificationBannerInput {
+/** Copy of a banner for a create/update request, with the fields the server sets nulled out. */
+function clearServerSetFields(banner: NotificationBanner): NotificationBanner {
   return {
-    message: banner.message,
-    enabled: banner.enabled,
-    startsAt: banner.startsAt,
-    endsAt: banner.endsAt,
-    scope: banner.scope,
-    missionIds: banner.missionIds,
-    backgroundColor: banner.backgroundColor,
-    textColor: banner.textColor,
+    ...banner,
+    id: null,
+    createdBy: null,
+    updatedBy: null,
+    createdAt: null,
+    updatedAt: null,
   };
 }
 
@@ -642,8 +648,13 @@ function toFormValues(
   };
 }
 
-function toBannerInputFromForm(values: NotificationBannerFormValues): NotificationBannerInput {
+function toBannerFromForm(values: NotificationBannerFormValues): NotificationBanner {
   return {
+    id: null,
+    createdBy: null,
+    updatedBy: null,
+    createdAt: null,
+    updatedAt: null,
     message: values.message.trim(),
     enabled: values.enabled,
     startsAt: localInputToIso(values.startsAtLocal),
