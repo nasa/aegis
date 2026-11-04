@@ -222,7 +222,9 @@ async function createDustFixture(
         pathColor: "#ff0000",
       },
     ];
-    runningRex.posSources = [{ uuid: MISSION_IDS.posSource, name: source, abbr: "C" }];
+    runningRex.posSources = [
+      { uuid: MISSION_IDS.posSource, name: source, abbr: "C", pathColor: "#0088ff" },
+    ];
     runningRex.posEntries = initialRunningPositions.map((entry) =>
       seedPosEntry({
         uuid: entry.uuid,

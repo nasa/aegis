@@ -221,7 +221,9 @@ export function InteractionManager(): null {
       const target = event.target;
       if (
         target instanceof HTMLElement &&
-        target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')
+        target.closest(
+          'input, textarea, select, [contenteditable="true"], dialog[open], [role="dialog"]:not([aria-modal="false"])'
+        )
       ) {
         return;
       }

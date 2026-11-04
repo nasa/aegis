@@ -29,10 +29,10 @@ async function openPresetInfo(page: Page): Promise<void> {
   await expect(page.getByText("Preset Information", { exact: true })).toBeVisible();
 }
 
-async function setSunAzimuth(page: Page, degrees: string): Promise<void> {
-  await page.getByLabel("azimuth_panel", { exact: true }).click();
-  const dialog = await openPlanningField(page, "SunDegrees");
-  await dialog.getByLabel("SunDegrees", { exact: true }).fill(degrees);
+async function setPresetDescription(page: Page, description: string): Promise<void> {
+  await page.getByLabel("info_panel", { exact: true }).click();
+  const dialog = await openPlanningField(page, "Preset Description");
+  await dialog.getByLabel("Preset Description", { exact: true }).fill(description);
   await dialog.getByText("Save", { exact: true }).click();
   await expect(dialog).toHaveCount(0);
 }
@@ -84,8 +84,10 @@ test.describe("Preset lifecycle and defaults", () => {
       .poll(async () => (await mission.read()).presets[created.uuid].name)
       .toBe("Lifecycle source");
 
-    await setSunAzimuth(page, "45");
-    await expect.poll(async () => (await mission.read()).presets[created.uuid].sunAzimuth).toBe(45);
+    await setPresetDescription(page, "45");
+    await expect
+      .poll(async () => (await mission.read()).presets[created.uuid].description)
+      .toBe("45");
     const sourceWithStyle = (await mission.read()).presets[created.uuid];
     await setMissionDefault(page, mission, created.uuid);
 
@@ -98,7 +100,7 @@ test.describe("Preset lifecycle and defaults", () => {
     expect(copy).toBeDefined();
     expect(copy.name).toBe("Lifecycle source (copy 1)");
     expect(copy.missionDefault).toBe(false);
-    expect(copy.sunAzimuth).toBe(45);
+    expect(copy.description).toBe("45");
     expect(copy.uuid).not.toBe(created.uuid);
     expect({
       ...copy,
@@ -109,9 +111,11 @@ test.describe("Preset lifecycle and defaults", () => {
       updatedAt: sourceWithStyle.updatedAt,
     }).toEqual(sourceWithStyle);
 
-    await setSunAzimuth(page, "210");
-    await expect.poll(async () => (await mission.read()).presets[copy.uuid].sunAzimuth).toBe(210);
-    expect((await mission.read()).presets[created.uuid].sunAzimuth).toBe(45);
+    await setPresetDescription(page, "210");
+    await expect
+      .poll(async () => (await mission.read()).presets[copy.uuid].description)
+      .toBe("210");
+    expect((await mission.read()).presets[created.uuid].description).toBe("45");
     await expect
       .poll(
         async () =>
@@ -152,7 +156,7 @@ test.describe("Preset lifecycle and defaults", () => {
     const after = await mission.read();
     expect(after.presets[mission.ids.presetA].missionDefault).toBe(true);
     expect(after.folders[presetFolderUuid].items).toEqual([]);
-    expect(after.presets[created.uuid].sunAzimuth).toBe(45);
+    expect(after.presets[created.uuid].description).toBe("45");
     expect(after.presets[created.uuid].missionDefault).toBe(false);
     expect(after.evas).toEqual(initial.evas);
     expect(after.stations).toEqual(initial.stations);
@@ -161,7 +165,7 @@ test.describe("Preset lifecycle and defaults", () => {
     await openPresets(page);
     await expect(presetRow(page, "Overview").getByLabel("selectedPreset")).toBeVisible();
     const reloaded = await mission.read();
-    expect(reloaded.presets[created.uuid].sunAzimuth).toBe(45);
+    expect(reloaded.presets[created.uuid].description).toBe("45");
     expect(reloaded.presets[created.uuid].name).toBe("Lifecycle source");
     expect(reloaded.folders[presetFolderUuid].items).toEqual([]);
     expect(

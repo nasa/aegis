@@ -98,9 +98,10 @@ test("dashboard timeline scales known allotted and calculated work with PET and 
     { start: 18, duration: 5 },
     { start: 23, duration: 2 },
   ];
+  // Browsers serialize fractional CSS pixels to fewer decimals than the calculation.
   for (const [index, expected] of expectedMinutes.entries()) {
-    expect(actualRows[index].top).toBeCloseTo(expected.start * 60 * pixelsPerSecond, 4);
-    expect(actualRows[index].height).toBeCloseTo(expected.duration * 60 * pixelsPerSecond, 4);
+    expect(actualRows[index].top).toBeCloseTo(expected.start * 60 * pixelsPerSecond, 2);
+    expect(actualRows[index].height).toBeCloseTo(expected.duration * 60 * pixelsPerSecond, 2);
   }
   expect(actualRows.map((row) => row.numbering)).toEqual([
     ["1", "1"],
@@ -135,9 +136,9 @@ test("dashboard timeline scales known allotted and calculated work with PET and 
       };
     })
   );
-  expect(markerData[0].top).toBeCloseTo(expectedAllottedLine, 4);
+  expect(markerData[0].top).toBeCloseTo(expectedAllottedLine, 2);
   expect(markerData[0].border).toBe("5px solid var(--grey3)");
-  expect(markerData[1].top).toBeCloseTo(expectedPetLine, 4);
+  expect(markerData[1].top).toBeCloseTo(expectedPetLine, 2);
   expect(markerData[1].border).toBe("5px solid red");
   expect(markerData[1].filter).toBe("opacity(1)");
 

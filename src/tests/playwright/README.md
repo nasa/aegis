@@ -44,9 +44,13 @@ npm run test:playwright -- behavior/transportRecovery.spec.ts --project=chromium
 npm run test:playwright -- behavior/actionParentMatrixCoverage.spec.ts --project=chromium
 npm run test:playwright -- behavior/actionTemplateRoundTripCoverage.spec.ts --project=chromium
 npm run test:playwright -- behavior/calculationBoundaries.spec.ts --project=chromium
-npm run test:playwright -- behavior/celestialPresetCoverage.spec.ts --project=chromium
+npm run test:playwright -- behavior/celestialEvaCoverage.spec.ts --project=chromium
 npm run test:playwright -- behavior/dashboardFollowCoverage.spec.ts --project=chromium
 npm run test:playwright -- behavior/mapLifecycleHandoff.spec.ts --project=chromium
+npm run test:playwright -- behavior/crewPositionSources.spec.ts --project=chromium
+npm run test:playwright -- behavior/missionCatalog.spec.ts --project=chromium
+npm run test:playwright -- behavior/missionPrioritiesReport.spec.ts --project=chromium
+npm run test:playwright -- behavior/missionRulesTransfer.spec.ts --project=chromium
 ```
 
 The existing `test:playwright` and CI sharding commands also discover these tests.
@@ -130,6 +134,19 @@ Browser execution and functional completeness review are separate evidence.
 | Geometry edits                     | Interior vertex drag, finish/cancel distinction, endpoint pinning, straight-path reset, editing interaction removal on navigation, persisted paths                         | `behavior/mapEditing.spec.ts`      |
 | Dashboard/minimap consistency      | Shared scale-bar toggles and persistence, minimap limited to the active execution                                                                                          | `behavior/dashboardMap.spec.ts`    |
 | Collaboration                      | Two real browser contexts, live changes, independent local selection, concurrent unrelated edits, canceled edits, creation/deletion, late joining, disconnect/reconnect    | `behavior/collaboration.spec.ts`   |
+
+The EVA celestial contracts now live in `celestialControls.spec.ts` and
+`celestialEvaCoverage.spec.ts`: directions belong to EVAs and execution copies.
+Preset lifecycle and peer editing use preset descriptions and rendering styles.
+`crewPositionSources.spec.ts` covers the Positions/Assets widget and source-colored
+paths; `missionPrioritiesReport.spec.ts` and `missionRulesTransfer.spec.ts` cover
+the new report and rule backup workflows. `missionCatalog.spec.ts` verifies
+eventual summary updates and navigation without full-document list requests.
+
+Terrain geometry checks read the transient Redux profiles loaded through the real
+API. Raster-backed tests verify their elevations after edits and reload. Numeric
+report and segment-aggregation fixtures supply known profiles at the batch HTTP
+boundary; those assertions do not establish raster sampling accuracy.
 
 ## Fixtures and isolation
 

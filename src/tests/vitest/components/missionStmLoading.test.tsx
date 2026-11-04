@@ -1,3 +1,4 @@
+import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import MissionSTM from "components/admin/missionSTM";
@@ -36,15 +37,27 @@ it("offers STM mutations only after the mission handle and tree have loaded", as
   hooks.useDocHandle.mockReturnValue(undefined);
   hooks.useDocSelector.mockReturnValue(undefined);
   try {
-    await act(async () => root.render(<MissionSTM missionId={1} />));
+    await act(async () =>
+      root.render(
+        <MissionSTM missionId={1} automergeUrl={"automerge:loading-stm" as AutomergeUrl} />
+      )
+    );
     expect(container.querySelector("button")).toBeNull();
 
     hooks.useDocHandle.mockReturnValue({ change });
-    await act(async () => root.render(<MissionSTM missionId={1} />));
+    await act(async () =>
+      root.render(
+        <MissionSTM missionId={1} automergeUrl={"automerge:loading-stm" as AutomergeUrl} />
+      )
+    );
     expect(container.querySelector("button")).toBeNull();
 
     hooks.useDocSelector.mockReturnValue({ level1s: [], level2s: [], level3s: [] });
-    await act(async () => root.render(<MissionSTM missionId={1} />));
+    await act(async () =>
+      root.render(
+        <MissionSTM missionId={1} automergeUrl={"automerge:loading-stm" as AutomergeUrl} />
+      )
+    );
     const importButton = container.querySelector("button");
     expect(importButton?.textContent).toBe("Import STM");
     await act(async () => importButton!.click());

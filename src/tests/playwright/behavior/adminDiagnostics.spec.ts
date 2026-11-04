@@ -73,8 +73,7 @@ test("admin export and Automerge diagnostics address their mission and reject mi
     await expect(page.getByText(mission.name, { exact: true })).toBeVisible();
     await page.getByLabel("Mission Details", { exact: true }).check();
     await page.getByRole("button", { name: "Export JSON to Text Field", exact: true }).click();
-    const exported = await page.locator("textarea").inputValue();
-    expect(exported).toContain(mission.name);
+    await expect(page.locator("textarea")).toContainText(mission.name);
 
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Dump Mission to JSON File", exact: true }).click();
@@ -175,7 +174,7 @@ test("export route hides prior mission controls while a changed mission ID is lo
       window.dispatchEvent(new PopStateEvent("popstate"));
     }, missingMissionId);
     await expect(page).toHaveURL(new RegExp(`/admin/export/${missingMissionId}$`));
-    await expect(page.getByRole("status")).toHaveText("Loading mission…");
+    await expect(page.getByRole("status")).toHaveText("Loading mission for export...");
     await expect(
       page.getByRole("button", { name: "Dump Mission to JSON File", exact: true })
     ).toHaveCount(0);
@@ -225,6 +224,14 @@ test("super-admin connection monitors follow isolated visitors, refresh, leave, 
     await logInViewer(viewer, username);
     const viewerPage = await viewer.newPage();
 
+    await expect
+      .poll(
+        async () =>
+          (await (await request.get("/api/v1/missionHomepageItems")).json()).data.find(
+            (item: MissionHomepageItem) => item.id === mission.id
+          )?.name
+      )
+      .toBe(mission.name);
     await page.goto("/admin/serverSocketStatus");
     await expect(
       page.getByRole("heading", { name: "Visitor Connections", exact: true })

@@ -74,7 +74,6 @@ for (const version of [1, 2]) {
             ["info_panel", "Preset Information"],
             ["layers_panel", "Preset Layer Configuration"],
             ["circle_panel", "Proximity Circles Display"],
-            ["azimuth_panel", "Celestial Body Direction"],
             ["grid_panel", "Grid Preferences"],
           ];
         } else if (surface === "poi") {

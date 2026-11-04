@@ -19,7 +19,7 @@ const boxProviderUrl = `http://127.0.0.1:${process.env.PLAYWRIGHT_BOX_PORT ?? 41
 process.env.AEGIS_TEST_BOX_PROVIDER_URL = boxProviderUrl;
 
 const CROSS_BROWSER_TESTS =
-  /behavior[\\/](smoke|accessibilityCoverage|actions|rasterDisplay|layerStylesAssets|mapEditing|collaborationPresence)\.spec\.ts/;
+  /behavior[\\/](smoke|accessibilityCoverage|actions|rasterDisplay|layerStylesAssets|mapEditing|collaborationPresence|celestialControls|crewPositionSources|missionRulesTransfer)\.spec\.ts/;
 
 // Chromium 153 on Windows can fail loopback requests with ERR_NO_BUFFER_SPACE:
 // https://issues.chromium.org/issues/572515601. Keep Playwright 1.63's defaults
@@ -105,6 +105,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        viewport: { width: 1960, height: 1080 },
         storageState: storageStatePath,
         launchOptions: { args: windowsChromiumArgs },
       },
@@ -115,6 +116,7 @@ export default defineConfig({
       testMatch: CROSS_BROWSER_TESTS,
       use: {
         ...devices["Desktop Firefox"],
+        viewport: { width: 1960, height: 1080 },
         storageState: storageStatePath,
       },
       dependencies: ["auth"],
@@ -124,6 +126,7 @@ export default defineConfig({
       testMatch: CROSS_BROWSER_TESTS,
       use: {
         ...devices["Desktop Safari"],
+        viewport: { width: 1960, height: 1080 },
         storageState: storageStatePath,
       },
       dependencies: ["auth"],

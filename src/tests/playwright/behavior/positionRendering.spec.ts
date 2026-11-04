@@ -20,21 +20,17 @@ const POS_B = "10000000-0000-4000-8000-000000000041";
 async function openPositions(page: Page, mission: BehavioralMission): Promise<Locator> {
   await mission.open(page);
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-  const menu = page.getByTestId("rex-map-menu");
+  const menu = page.getByTestId("positions-menu");
   await expect(menu).toContainText("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
   await expect(menu.locator("table")).toHaveCount(2);
-  const handle = (await menu.getByTestId("rex-map-menu-drag-handle").boundingBox())!;
-  await page.mouse.move(handle.x + 60, handle.y + handle.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(handle.x + 60, handle.y + handle.height / 2 + 180, { steps: 10 });
-  await page.mouse.up();
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   for (const section of ["Sources", "Markers", "Labels", "Paths"]) {
     await visibility
       .locator('[class*="toggleMenuItemRow"]')
       .filter({ hasText: section })
+      .filter({ has: page.getByText("All", { exact: true }) })
       .getByText("All", { exact: true })
       .click();
   }
@@ -47,7 +43,8 @@ async function setMapChoice(page: Page, section: string, choice: string): Promis
   const row = page
     .getByTestId("map-menu-floating-panel")
     .locator('[class*="toggleMenuItemRow"]')
-    .filter({ hasText: section });
+    .filter({ hasText: section })
+    .filter({ has: page.getByText("All", { exact: true }) });
   await row.getByText(choice, { exact: true }).click();
   await page.getByTestId("map-menu-floating-panel").locator('svg[data-icon="xmark"]').click();
 }
@@ -151,7 +148,12 @@ test("marker types, source paths and PET ages remain scoped to active, historica
         icon: "1f469-200d-1f680",
         pathColor: "#0055ff",
       });
-      doc.rexes[rexUuid].posSources.push({ uuid: SECOND_SOURCE, name: "Rover", abbr: "R" });
+      doc.rexes[rexUuid].posSources.push({
+        uuid: SECOND_SOURCE,
+        name: "Rover",
+        abbr: "R",
+        pathColor: "#0088ff",
+      });
     }
     doc.rexes[mission.ids.rexB].posEntries.push(activeOld, activeNew);
     doc.rexes[mission.ids.rexA].posEntries.push(historyOld, historyNew);
@@ -244,6 +246,14 @@ test("marker types, source paths and PET ages remain scoped to active, historica
 
   await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
   await expect(menu).toContainText("Survey Alpha - Stopped Alpha");
+  await expect
+    .poll(async () =>
+      (await positionFeatures(page))
+        .filter((feature) => feature.geometryType === "Point")
+        .map((feature) => feature.id)
+    )
+    .toEqual([mission.ids.posA]);
+  await setSource(page, "All");
   await expect
     .poll(async () =>
       (await positionFeatures(page))

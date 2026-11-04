@@ -193,7 +193,12 @@ test.describe("Downloaded export contracts", () => {
         icon: "1f468-200d-1f680",
         pathColor: "#00ff00",
       });
-      rex.posSources.push({ uuid: secondSource, name: "Navigation", abbr: "N" });
+      rex.posSources.push({
+        uuid: secondSource,
+        name: "Navigation",
+        abbr: "N",
+        pathColor: "#0088ff",
+      });
       rex.posEntries.push(
         seedPosEntry({
           uuid: "30000000-0000-4000-8000-000000000003",

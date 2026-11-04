@@ -195,8 +195,8 @@ test.describe("Execution creation and view state", () => {
         }
       );
       rex.posSources.push(
-        { uuid: SECOND_POS_SOURCE, name: "Task", abbr: "T" },
-        { uuid: THIRD_POS_SOURCE, name: "Science", abbr: "S" }
+        { uuid: SECOND_POS_SOURCE, name: "Task", abbr: "T", pathColor: "#0088ff" },
+        { uuid: THIRD_POS_SOURCE, name: "Science", abbr: "S", pathColor: "#0088ff" }
       );
     });
     const before = await mission.read();

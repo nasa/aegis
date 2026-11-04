@@ -2,8 +2,8 @@ import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { goToV2MissionSection } from "./missionTestHelpers";
 
-export async function exportTest(page: Page): Promise<string> {
-  await goToV2MissionSection(page);
+export async function exportTest(page: Page, mission: BehavioralMission): Promise<string> {
+  await goToV2MissionSection(page, mission);
 
   // Navigate to export panel
   await page.getByLabel("export_panel", { exact: true }).click();

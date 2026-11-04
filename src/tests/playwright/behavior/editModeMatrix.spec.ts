@@ -106,19 +106,19 @@ test("global Edit gates shared fields and menus across mission, entity, preset, 
   expect((await mission.read()).stations[mission.ids.stationA].name).toBe("Alpha station");
 
   await openPreset(page);
-  await page.getByLabel("azimuth_panel", { exact: true }).click();
-  const presetDraft = await openPlanningField(page, "SunDegrees");
-  await presetDraft.getByLabel("SunDegrees", { exact: true }).fill("75");
+  await page.getByLabel("info_panel", { exact: true }).click();
+  const presetDraft = await openPlanningField(page, "Preset Description");
+  await presetDraft.getByLabel("Preset Description", { exact: true }).fill("Draft description");
   await presetDraft.getByText("Cancel", { exact: true }).click();
-  expect((await mission.read()).presets[mission.ids.presetA].sunAzimuth).toBe(
-    before.presets[mission.ids.presetA].sunAzimuth
+  expect((await mission.read()).presets[mission.ids.presetA].description).toBe(
+    before.presets[mission.ids.presetA].description
   );
-  const presetEdit = await openPlanningField(page, "SunDegrees");
-  await presetEdit.getByLabel("SunDegrees", { exact: true }).fill("42");
+  const presetEdit = await openPlanningField(page, "Preset Description");
+  await presetEdit.getByLabel("Preset Description", { exact: true }).fill("Saved description");
   await presetEdit.getByText("Save", { exact: true }).click();
   await expect
-    .poll(async () => (await mission.read()).presets[mission.ids.presetA].sunAzimuth)
-    .toBe(42);
+    .poll(async () => (await mission.read()).presets[mission.ids.presetA].description)
+    .toBe("Saved description");
 
   await openComparison(page);
   await page.getByText("Campaigns…", { exact: true }).click();

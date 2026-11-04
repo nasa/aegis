@@ -1,3 +1,4 @@
+import { duplicationResult } from "../fixtures/duplicationAssertions";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { rm } from "node:fs/promises";
@@ -49,12 +50,12 @@ test("duplicating a mission gives it a new document identity and preserves its g
       response.url().includes("/api/v1/missionDup") && response.request().method() === "POST"
   );
   await page.getByRole("button", { name: "Duplicate Mission", exact: true }).click();
-  const body = (await (await duplicateResponse).json()) as Wrapped<number>;
+  const body = await duplicationResult(await duplicateResponse);
   expect(body.status).toBe("success");
   const duplicateId = body.data;
   expect(duplicateId).not.toBe(mission.id);
   try {
-    await expect(page.getByRole("status")).toContainText(
+    await expect(page.getByRole("status").filter({ hasText: "Status:" })).toContainText(
       `Mission duplicated. New mission ID: ${duplicateId}`
     );
     await expect.poll(async () => (await readDump(request, duplicateId)).id).toBe(duplicateId);
@@ -129,8 +130,8 @@ test("mission duplication reports a missing-source failure without creating a pa
         response.url().includes("/api/v1/missionDup") && response.request().method() === "POST"
     );
     await page.getByRole("button", { name: "Duplicate Mission", exact: true }).click();
-    expect((await failureResponse).status()).toBe(500);
-    await expect(page.getByRole("status")).toContainText("Error duplicating mission");
+    expect(await duplicationResult(await failureResponse)).toMatchObject({ status: "error" });
+    await expect(page.getByRole("alert")).toContainText("Failed to duplicate mission");
     const listingsAfter = (
       (await (
         await request.get(`/api/v1/docListing?missionId=${listing.missionId}`)
@@ -613,12 +614,8 @@ test("admin file manager uploads, lists, renames, cancels deletion, and deletes 
     const originalRow = page.locator("tr").filter({ hasText: originalName });
     await originalRow.getByRole("button", { name: "Rename", exact: true }).click();
     await originalRow.getByTitle("New Name").fill(conflictName);
-    page.once("dialog", async (dialog) => {
-      expect(dialog.type()).toBe("alert");
-      expect(dialog.message()).toContain("Rename Error. Status 500");
-      await dialog.accept();
-    });
     await originalRow.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByRole("alert")).toContainText("Rename Error. Status 500");
     expect(
       Buffer.from(await (await request.get(`/static/${relativePath}/${originalName}`)).body())
     ).toEqual(bytes);

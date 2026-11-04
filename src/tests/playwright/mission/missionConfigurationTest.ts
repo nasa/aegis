@@ -8,7 +8,7 @@ import {
   displayField,
 } from "./missionTestHelpers";
 
-export async function missionConfigTest(page: Page): Promise<string> {
+export async function missionConfigTest(page: Page, mission: BehavioralMission): Promise<string> {
   const testValues = {
     missionName: `_TEST MISSION ${Math.floor(Math.random() * 1000)}`,
     topBanner: `Top Banner Test  ${Math.floor(Math.random() * 1000)}`,
@@ -19,7 +19,7 @@ export async function missionConfigTest(page: Page): Promise<string> {
   };
 
   // Navigate to mission section
-  await goToV2MissionSection(page);
+  await goToV2MissionSection(page, mission);
 
   // Turn on edit mode
   await toggleEditMode(page);

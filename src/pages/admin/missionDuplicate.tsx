@@ -46,9 +46,14 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
   const onDuplicateMission = async (missionId: number, missionRequestedBy: string) => {
     setStatus("Starting duplication...");
     try {
-      const response = await duplicateMission(missionId, missionRequestedBy, (progress) => {
-        setStatus(`${progress.message} (${progress.elapsedSeconds}s elapsed)`);
-      }, copyAssets);
+      const response = await duplicateMission(
+        missionId,
+        missionRequestedBy,
+        (progress) => {
+          setStatus(`${progress.message} (${progress.elapsedSeconds}s elapsed)`);
+        },
+        copyAssets
+      );
       if (response.status !== "success") {
         throw new Error(response.message || "Error duplicating mission");
       }

@@ -1,3 +1,4 @@
+import { readTerrainProfile } from "../fixtures/terrainAssertions";
 import type { APIRequestContext, Page } from "@playwright/test";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -204,7 +205,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
       station.elevation = null;
       station.walkbackPath = null;
       station.walkbackPathSegmentDistances = null;
-      station.walkbackPathSegmentElevations = null;
     });
     const original = (await mission.read()).stations[mission.ids.stationA];
     const landerProfile = await terrainProfile(request, mission.id, [LANDER, LANDER], [0]);
@@ -247,7 +247,7 @@ test.describe("Station geometry and walkback lifecycles", () => {
     expect(createdDistances).toEqual([
       expect.closeTo(haversineMeters(createdWalkback[0], LANDER), 2),
     ]);
-    expect(created.walkbackPathSegmentElevations).toEqual(
+    expect((await readTerrainProfile(page, mission.ids.stationA)).elevationsMeters).toEqual(
       await terrainProfile(request, mission.id, createdWalkback, createdDistances)
     );
     await expectStationFeature(page, mission.ids.stationA, created.location);
@@ -318,7 +318,7 @@ test.describe("Station geometry and walkback lifecycles", () => {
     expect(landed.walkbackPath?.[0]).toEqual(LANDER);
     expect(landed.walkbackPath?.at(-1)).toEqual(LANDER);
     expect(landed.walkbackPathSegmentDistances).toEqual([0]);
-    expect(landed.walkbackPathSegmentElevations).toEqual(
+    expect((await readTerrainProfile(page, mission.ids.stationA)).elevationsMeters).toEqual(
       await terrainProfile(request, mission.id, [LANDER, LANDER], [0])
     );
     await expect(
@@ -342,7 +342,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
       station.elevation = null;
       station.walkbackPath = null;
       station.walkbackPathSegmentDistances = null;
-      station.walkbackPathSegmentElevations = null;
     });
     await page.reload();
     await enablePlanningEditMode(page);
@@ -379,7 +378,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
         haversineMeters(STATION, INTERIOR),
         haversineMeters(INTERIOR, LANDER),
       ];
-      station.walkbackPathSegmentElevations = null;
     });
     const seededStation = (await mission.read()).stations[mission.ids.stationA];
     const independentProfile = await terrainProfile(
@@ -388,9 +386,7 @@ test.describe("Station geometry and walkback lifecycles", () => {
       seededStation.walkbackPath!,
       seededStation.walkbackPathSegmentDistances!
     );
-    await mission.change((doc) => {
-      doc.stations[mission.ids.stationA].walkbackPathSegmentElevations = independentProfile;
-    });
+    expect(independentProfile).toHaveLength(2);
     const before = (await mission.read()).stations[mission.ids.stationA];
     await mission.open(page);
     await enablePlanningEditMode(page);
@@ -445,7 +441,7 @@ test.describe("Station geometry and walkback lifecycles", () => {
     expect(edited.walkbackPathSegmentDistances?.every((d) => d > 0 && Number.isFinite(d))).toBe(
       true
     );
-    expect(edited.walkbackPathSegmentElevations).toEqual(
+    expect((await readTerrainProfile(page, mission.ids.stationA)).elevationsMeters).toEqual(
       await terrainProfile(
         request,
         mission.id,
@@ -495,7 +491,7 @@ test.describe("Station geometry and walkback lifecycles", () => {
     expect(reset.walkbackPathSegmentDistances).toEqual([
       expect.closeTo(haversineMeters(STATION, LANDER), 2),
     ]);
-    expect(reset.walkbackPathSegmentElevations).toEqual(
+    expect((await readTerrainProfile(page, mission.ids.stationA)).elevationsMeters).toEqual(
       await terrainProfile(
         request,
         mission.id,

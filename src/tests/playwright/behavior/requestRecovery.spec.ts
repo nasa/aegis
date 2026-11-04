@@ -67,7 +67,12 @@ test("401, 403, and 500 user-save failures preserve the open form and recover wi
       await expect(page.getByRole("heading", { name: "Create User", exact: true })).toBeVisible();
       await expect(page.getByLabel("Username", { exact: true })).toHaveValue(username);
       await expect(page.getByLabel("Password", { exact: true })).toHaveValue(password);
-      await expect(page.getByText("Error updating user", { exact: true })).toBeVisible();
+      await expect(
+        page
+          .getByRole("heading", { name: "Create User", exact: true })
+          .locator("../..")
+          .getByRole("alert")
+      ).toContainText(status === 401 ? "Unauthorized" : `Injected ${status} failure`);
       expect((await savedUsers(request)).filter((user) => user.username === username)).toEqual([]);
 
       // Re-establish the same super-admin session without closing the open dialog.

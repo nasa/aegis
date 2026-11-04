@@ -177,6 +177,9 @@ test.afterEach(async ({ mission }) => {
   });
 });
 
+// This raster golden uses measurement geometry at a fixed viewport.
+test.use({ viewport: { width: 1280, height: 720 } });
+
 test("golden terrain samples and a no-data break match the displayed segmented profile", async ({
   page,
   request,

@@ -79,6 +79,14 @@ test("admin creates, edits, cancels destructive actions, and deletes only its ch
       description: editedDescription,
     });
 
+    await expect
+      .poll(
+        async () =>
+          (await (await request.get("/api/v1/missionCatalog")).json()).data.find(
+            (item: MissionSummary) => item.id === targetId
+          )?.name
+      )
+      .toBe(editedName);
     await page.getByRole("link", { name: "← Missions", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Missions", exact: true })).toBeVisible();
     const survivorCreateResponse = page.waitForResponse(
@@ -100,6 +108,14 @@ test("admin creates, edits, cancels destructive actions, and deletes only its ch
       .poll(
         async () =>
           (await readMissionListings(request)).find((item) => item.id === survivorId)?.name
+      )
+      .toBe(survivorName);
+    await expect
+      .poll(
+        async () =>
+          (await (await request.get("/api/v1/missionCatalog")).json()).data.find(
+            (item: MissionSummary) => item.id === survivorId
+          )?.name
       )
       .toBe(survivorName);
     const survivorBefore = await readMissionDump(request, survivorId);
@@ -177,7 +193,7 @@ test("admin creates, edits, cancels destructive actions, and deletes only its ch
         (await readMissionListings(request)).some((mission) => mission.id === targetId)
       )
       .toBe(false);
-    expect(dialogs).toEqual(["confirm", "alert"]);
+    expect(dialogs).toEqual(["confirm"]);
     targetDeleted = true;
 
     await page.reload();

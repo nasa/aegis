@@ -26,7 +26,10 @@ async function findEquipmentIndexExactName(page: Page, name: string): Promise<nu
   return -1;
 }
 
-export async function missionEquipmentTest(page: Page): Promise<string> {
+export async function missionEquipmentTest(
+  page: Page,
+  mission: BehavioralMission
+): Promise<string> {
   // Equipment names are built per-run with a random suffix inside
   // missionEquipmentTest to avoid `Name must be unique` failures from leftover
   // automerge state.
@@ -52,7 +55,7 @@ export async function missionEquipmentTest(page: Page): Promise<string> {
     singleUse: false,
   };
 
-  await goToV2MissionSection(page);
+  await goToV2MissionSection(page, mission);
 
   // Go to equipment list
   await page.getByLabel("equipment_panel", { exact: true }).click();

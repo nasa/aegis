@@ -223,11 +223,13 @@ describe("executed mass presence", () => {
         a1: { rexStatus: "complete", ...(mass === undefined ? {} : { mass }) },
       };
       const expected = mass == null ? null : mass / 1000;
-      expect(computeComparisonColumnValues({ mission, column: rexColumn }).actualSampleMass).toBe(
-        expected
-      );
+      expect(
+        computeComparisonColumnValues({ terrainProfiles, mission, column: rexColumn })
+          .actualSampleMass
+      ).toBe(expected);
       expect(
         computeSequenceItemMetrics({
+          terrainProfiles,
           mission,
           column: rexColumn,
           item: { uuid: "s1", type: "station", name: "Station 1" },
@@ -235,6 +237,7 @@ describe("executed mass presence", () => {
       ).toBe(expected);
       expect(
         computeSequenceItemMetrics({
+          terrainProfiles,
           mission,
           column: rexColumn,
           item: { uuid: "s2", type: "station", name: "Station 2" },

@@ -1,5 +1,5 @@
 /**
- * Cross-section workflow tests for the OpenLayers map on Mission 22.
+ * Cross-section workflow tests for the OpenLayers map on Isolated mission.
  *
  * These tests exercise multi-step workflows that span across sections:
  * select an EVA → view its stations → switch back to stations section, etc.
@@ -8,17 +8,15 @@
  */
 
 import type { Page } from "@playwright/test";
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../fixtures/behavioralTest";
 import { waitForPageReady, minimizeRexMenu } from "../helpers";
-
-const MISSION_URL = "http://localhost:4000/mission/22";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function openMissionMap(page: Page): Promise<void> {
-  await page.goto(MISSION_URL);
+async function openMissionMap(page: Page, mission: BehavioralMission): Promise<void> {
+  await page.goto(mission.url);
   await waitForPageReady(page);
   await page.locator(".ol-viewport").first().waitFor({ state: "visible", timeout: 15000 });
 }
@@ -38,9 +36,9 @@ async function openEyeballMenu(page: Page): Promise<void> {
 // Cross-Section Workflows
 // ===========================================================================
 
-test.describe("Mission 22 — Cross-Section Workflows", () => {
-  test("EVA → select EVA → switch to stations → see station list", async ({ page }) => {
-    await openMissionMap(page);
+test.describe("Isolated mission — Cross-Section Workflows", () => {
+  test("EVA → select EVA → switch to stations → see station list", async ({ page, mission }) => {
+    await openMissionMap(page, mission);
 
     // Go to EVAs section and select the first EVA
     await page.getByLabel("evas Section", { exact: true }).click();
@@ -69,11 +67,14 @@ test.describe("Mission 22 — Cross-Section Workflows", () => {
     await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
   });
 
-  test("stations → select station → switch to POIs → select POI → no crash", async ({ page }) => {
+  test("stations → select station → switch to POIs → select POI → no crash", async ({
+    page,
+    mission,
+  }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
 
     // Select station
     await page.getByLabel("station Section", { exact: true }).click();
@@ -97,11 +98,11 @@ test.describe("Mission 22 — Cross-Section Workflows", () => {
     expect(fatal).toHaveLength(0);
   });
 
-  test("preset → switch preset → EVA section → no layer glitch", async ({ page }) => {
+  test("preset → switch preset → EVA section → no layer glitch", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
 
     // Open preset section
     await page.getByLabel("preset Section", { exact: true }).click();
@@ -128,8 +129,9 @@ test.describe("Mission 22 — Cross-Section Workflows", () => {
 
   test("switching from EVA section to station section and back keeps map alive", async ({
     page,
+    mission,
   }) => {
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
 
     // Re-visits the same section (EVA → station → EVA) to catch state-reentry
     // bugs a single-pass switch loop wouldn't surface.
@@ -148,12 +150,12 @@ test.describe("Mission 22 — Cross-Section Workflows", () => {
 // Keyboard & Focus Tests
 // ===========================================================================
 
-test.describe("Mission 22 — Keyboard & Focus", () => {
-  test("pressing Escape while map is focused does not crash", async ({ page }) => {
+test.describe("Isolated mission — Keyboard & Focus", () => {
+  test("pressing Escape while map is focused does not crash", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
 
     // Focus the map
     await minimizeRexMenu(page);
@@ -174,22 +176,26 @@ test.describe("Mission 22 — Keyboard & Focus", () => {
 // Edge Cases & Error Resilience
 // ===========================================================================
 
-test.describe("Mission 22 — Edge Cases", () => {
+test.describe("Isolated mission — Edge Cases", () => {
   test("loading mission page with a non-existent hash fragment does not crash", async ({
     page,
+    mission,
   }) => {
-    await page.goto(`${MISSION_URL}#nonexistent`);
+    await page.goto(`${mission.url}#nonexistent`);
     await waitForPageReady(page);
     // The map should still load
     await page.locator(".ol-viewport").first().waitFor({ state: "visible", timeout: 15000 });
     await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
   });
 
-  test("quickly switching sections 10 times does not leak memory or crash", async ({ page }) => {
+  test("quickly switching sections 10 times does not leak memory or crash", async ({
+    page,
+    mission,
+  }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
 
     const sections = ["station Section", "evas Section", "poi Section", "preset Section"];
 
@@ -211,12 +217,11 @@ test.describe("Mission 22 — Edge Cases", () => {
     expect(fatal).toHaveLength(0);
   });
 
-  test("zooming to max extent does not crash the map", async ({ page }) => {
+  test("zooming to max extent does not crash the map", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
-    await minimizeRexMenu(page);
+    await openMissionMap(page, mission);
 
     // Click zoom-out many times to reach max extent
     const zoomOut = page.locator(".ol-zoom-out").first();
@@ -233,12 +238,11 @@ test.describe("Mission 22 — Edge Cases", () => {
     expect(fatal).toHaveLength(0);
   });
 
-  test("zooming to min extent (max zoom in) does not crash", async ({ page }) => {
+  test("zooming to min extent (max zoom in) does not crash", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
-    await minimizeRexMenu(page);
+    await openMissionMap(page, mission);
 
     // Click zoom-in many times (may become disabled at max zoom)
     const zoomIn = page.locator(".ol-zoom-in").first();
@@ -260,11 +264,11 @@ test.describe("Mission 22 — Edge Cases", () => {
     expect(fatal).toHaveLength(0);
   });
 
-  test("page reloads cleanly (no JS errors on hard reload)", async ({ page }) => {
+  test("page reloads cleanly (no JS errors on hard reload)", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
     await page.reload();
     await waitForPageReady(page);
     await page.locator(".ol-viewport").first().waitFor({ state: "visible", timeout: 15000 });
@@ -280,15 +284,15 @@ test.describe("Mission 22 — Edge Cases", () => {
 // Page Navigation
 // ===========================================================================
 
-test.describe("Mission 22 — Page Navigation", () => {
-  test("navigating directly to mission/22 loads the map", async ({ page }) => {
-    await page.goto(MISSION_URL);
+test.describe("Isolated mission — Page Navigation", () => {
+  test("navigating directly to a mission loads the map", async ({ page, mission }) => {
+    await page.goto(mission.url);
     await waitForPageReady(page);
     await expect(page.locator(".ol-viewport").first()).toBeVisible({ timeout: 15000 });
   });
 
-  test("navigating away and back restores the map", async ({ page }) => {
-    await page.goto(MISSION_URL);
+  test("navigating away and back restores the map", async ({ page, mission }) => {
+    await page.goto(mission.url);
     await waitForPageReady(page);
     await page.locator(".ol-viewport").first().waitFor({ state: "visible", timeout: 15000 });
 
@@ -297,7 +301,7 @@ test.describe("Mission 22 — Page Navigation", () => {
     await waitForPageReady(page);
 
     // Navigate back
-    await page.goto(MISSION_URL);
+    await page.goto(mission.url);
     await waitForPageReady(page);
     await expect(page.locator(".ol-viewport").first()).toBeVisible({ timeout: 15000 });
   });
@@ -307,9 +311,9 @@ test.describe("Mission 22 — Page Navigation", () => {
 // Eyeball Menu — State Persistence
 // ===========================================================================
 
-test.describe("Mission 22 — Eyeball Menu State", () => {
-  test("eyeball menu state persists across section changes", async ({ page }) => {
-    await openMissionMap(page);
+test.describe("Isolated mission — Eyeball Menu State", () => {
+  test("eyeball menu state persists across section changes", async ({ page, mission }) => {
+    await openMissionMap(page, mission);
 
     // Open eyeball menu
     await openEyeballMenu(page);
@@ -331,11 +335,11 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
     await expect(menuPanel.getByText("Scale Bar")).toBeVisible();
   });
 
-  test("eyeball toggles produce no JS errors", async ({ page }) => {
+  test("eyeball toggles produce no JS errors", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
     await openEyeballMenu(page);
 
     // Click each "Labels" toggle to test state changes
@@ -361,11 +365,11 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
     expect(fatal).toHaveLength(0);
   });
 
-  test("toggling Walkbacks and Circles produces no errors", async ({ page }) => {
+  test("toggling Walkbacks and Circles produces no errors", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
     await openEyeballMenu(page);
 
     // Toggle Walkbacks off and on
@@ -393,11 +397,11 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
     expect(fatal).toHaveLength(0);
   });
 
-  test("toggling traverse arrows produces no errors", async ({ page }) => {
+  test("toggling traverse arrows produces no errors", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
     await openEyeballMenu(page);
 
     // The traverse section has Arrows toggle
@@ -420,14 +424,12 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
 // Dashboard Tests
 // ===========================================================================
 
-test.describe("Mission 22 — Dashboard Integration", () => {
-  const DASHBOARD_URL = "http://localhost:4000/dashboard/22";
-
-  test("dashboard page loads without JS errors", async ({ page }) => {
+test.describe("Isolated mission — Dashboard Integration", () => {
+  test("dashboard page loads without JS errors", async ({ page, mission }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
-    await page.goto(DASHBOARD_URL);
+    await page.goto(mission.dashboardUrl);
     await waitForPageReady(page);
 
     // Wait for either the map or the "No EVA running" message
@@ -451,20 +453,23 @@ test.describe("Mission 22 — Dashboard Integration", () => {
     expect(fatal).toHaveLength(0);
   });
 
-  test("navigating from mission to dashboard and back does not crash", async ({ page }) => {
+  test("navigating from mission to dashboard and back does not crash", async ({
+    page,
+    mission,
+  }) => {
     const errors: string[] = [];
     page.on("pageerror", (err) => errors.push(err.message));
 
     // Start at mission page
-    await openMissionMap(page);
+    await openMissionMap(page, mission);
 
     // Navigate to dashboard
-    await page.goto(DASHBOARD_URL);
+    await page.goto(mission.dashboardUrl);
     await waitForPageReady(page);
     await page.waitForTimeout(1000);
 
     // Navigate back to mission
-    await page.goto(MISSION_URL);
+    await page.goto(mission.url);
     await waitForPageReady(page);
     await page.locator(".ol-viewport").first().waitFor({ state: "visible", timeout: 15000 });
 

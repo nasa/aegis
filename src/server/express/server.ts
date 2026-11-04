@@ -9,7 +9,10 @@ import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
 import { Repo } from "@automerge/automerge-repo/slim";
 import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
-import { loadRunningMissionDocuments, startMissionCatalogRuntime } from "server/automerge/missionCatalogRuntime";
+import {
+  loadRunningMissionDocuments,
+  startMissionCatalogRuntime,
+} from "server/automerge/missionCatalogRuntime";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
 import app, { sessionMiddleware } from "./restApi";
 import { AuthorizedNetworkAdapter } from "server/automerge/authorized-network-adapter";

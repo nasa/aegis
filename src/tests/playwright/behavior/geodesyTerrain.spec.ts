@@ -184,7 +184,7 @@ for (const { name, radius } of [
       doc.projIsCustom = false;
       doc.projEpsg = "EPSG:3857";
       doc.usingLGRSCoordinates = false;
-      doc.demFilePath = "";
+      doc.demFilePath = "synthetic-profile.tif";
       const traverse = doc.traverses[mission.ids.traverseA];
       traverse.path = [
         knownPolarPath[0],
@@ -193,7 +193,24 @@ for (const { name, radius } of [
         { lat: 89.90003, lng: 0.00003 },
       ];
       traverse.pathSegmentDistances = [100, 100, 100];
-      traverse.pathSegmentElevations = disconnectedElevations;
+    });
+    await page.route("**/terrain-profile/batch?*", async (route) => {
+      const profiles = route.request().postDataJSON().profiles as TerrainProfilePostData[];
+      await route.fulfill({
+        json: {
+          status: "success",
+          data: profiles.map((profile) => ({
+            status: "success",
+            data: {
+              elevationsMeters:
+                profile.entityUuid === mission.ids.traverseA
+                  ? disconnectedElevations
+                  : profile.pathSegmentDistances.map(() => [0, 0]),
+              terrainSlopesDegrees: profile.pathSegmentDistances.map(() => [0, 0]),
+            },
+          })),
+        },
+      });
     });
     const missionDocument = await mission.read();
     await mission.open(page);

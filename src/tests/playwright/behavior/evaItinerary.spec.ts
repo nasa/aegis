@@ -1,3 +1,4 @@
+import { readTerrainProfile } from "../fixtures/terrainAssertions";
 import { randomUUID } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -216,7 +217,6 @@ async function prepareGoldenMission(
     }
     for (const [uuid, route] of Object.entries(routeData)) {
       doc.traverses[uuid].pathSegmentDistances = route.distances;
-      doc.traverses[uuid].pathSegmentElevations = route.profile;
     }
   });
 }
@@ -265,6 +265,7 @@ function traverseIds(sequence: EvaSequenceItem[]): string[] {
 }
 
 async function assertSequenceShape(
+  page: Page,
   mission: BehavioralMission,
   request: APIRequestContext,
   evaUuid: string
@@ -300,12 +301,9 @@ async function assertSequenceShape(
       normalizeTerrainProfile(independent, traverse.path, traverse.pathSegmentDistances),
       `Independent profile for traverse ${traverse.uuid} has aligned elevations and slopes`
     ).not.toBeNull();
-    await expect
-      .poll(async () => {
-        const persisted = await mission.read();
-        return persisted.traverses[traverse.uuid]?.pathSegmentElevations;
-      })
-      .toEqual(independent.elevationsMeters);
+    expect((await readTerrainProfile(page, traverse.uuid)).elevationsMeters).toEqual(
+      independent.elevationsMeters
+    );
   }
 }
 
@@ -449,7 +447,7 @@ test.describe("EVA itinerary station lifecycle", () => {
       true
     );
     expect(afterAdds.evas[mission.ids.evaB]).toEqual(otherEva);
-    await assertSequenceShape(mission, request, evaUuid);
+    await assertSequenceShape(page, mission, request, evaUuid);
 
     const moveAddedStation = async (uuid: string, direction: "up" | "down") => {
       const current = await evaSequence(mission, evaUuid);
@@ -466,7 +464,7 @@ test.describe("EVA itinerary station lifecycle", () => {
       await expect
         .poll(async () => stationIds(await evaSequence(mission, evaUuid)))
         .toEqual(expected);
-      await assertSequenceShape(mission, request, evaUuid);
+      await assertSequenceShape(page, mission, request, evaUuid);
     };
     await moveAddedStation(extras[0].uuid, "up");
     await moveAddedStation(extras[0].uuid, "up");
@@ -487,7 +485,7 @@ test.describe("EVA itinerary station lifecycle", () => {
     await expect
       .poll(async () => stationIds(await evaSequence(mission, evaUuid))[4])
       .toBe(extras[3].uuid);
-    await assertSequenceShape(mission, request, evaUuid);
+    await assertSequenceShape(page, mission, request, evaUuid);
     await row.getByRole("combobox").first().selectOption(mission.ids.stationB);
     await expect
       .poll(async () => stationIds(await evaSequence(mission, evaUuid))[0])
@@ -495,7 +493,7 @@ test.describe("EVA itinerary station lifecycle", () => {
     await expect
       .poll(async () => (await mission.read()).stations[mission.ids.stationB])
       .toEqual(before.stations[mission.ids.stationB]);
-    await assertSequenceShape(mission, request, evaUuid);
+    await assertSequenceShape(page, mission, request, evaUuid);
 
     // The ingress can be changed to a new regular station, then back to a managed lander copy.
     const ingressIndex = stationIds(await evaSequence(mission, evaUuid)).length - 1;
@@ -503,7 +501,7 @@ test.describe("EVA itinerary station lifecycle", () => {
     await expect
       .poll(async () => stationIds(await evaSequence(mission, evaUuid)).at(-1))
       .toBe(extras[4].uuid);
-    await assertSequenceShape(mission, request, evaUuid);
+    await assertSequenceShape(page, mission, request, evaUuid);
     await row.getByRole("combobox").nth(ingressIndex).selectOption("lander");
     await expect
       .poll(async () => {
@@ -535,7 +533,7 @@ test.describe("EVA itinerary station lifecycle", () => {
     for (const traverseUuid of otherEvaTraverseIds) {
       expect(afterAdds.traverses[traverseUuid]).toEqual(before.traverses[traverseUuid]);
     }
-    await assertSequenceShape(mission, request, evaUuid);
+    await assertSequenceShape(page, mission, request, evaUuid);
     await expectPeerSequence(peer, evaName, afterAdds, sequence);
     await mission.open(page);
     await openPlanningSection(page, "evas");
@@ -625,7 +623,7 @@ test.describe("EVA itinerary station lifecycle", () => {
       await expect
         .poll(async () => stationIds(await evaSequence(mission, mission.ids.evaA)))
         .toEqual(expected);
-      await assertSequenceShape(mission, request, mission.ids.evaA);
+      await assertSequenceShape(page, mission, request, mission.ids.evaA);
     };
     await move(mission.ids.stationA, "down");
     await move(extras[0].uuid, "up");
@@ -676,7 +674,7 @@ test.describe("EVA itinerary station lifecycle", () => {
       const after = await mission.read();
       expect(after.traverses[traverseToDelete]).toBeUndefined();
       expect(after.actions[ownedTraverseActionUuid]).toBeUndefined();
-      await assertSequenceShape(mission, request, mission.ids.evaA);
+      await assertSequenceShape(page, mission, request, mission.ids.evaA);
       return after;
     };
 

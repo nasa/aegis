@@ -25,7 +25,7 @@ async function arrangePositionChoices(mission: BehavioralMission, ticking = fals
       icon: "1f469-200d-1f680",
       pathColor: "#0000ff",
     });
-    rex.posSources.push({ uuid: SECOND_SOURCE, name: "Rover", abbr: "R" });
+    rex.posSources.push({ uuid: SECOND_SOURCE, name: "Rover", abbr: "R", pathColor: "#0088ff" });
   });
 }
 
@@ -44,17 +44,12 @@ async function controlClock(page: Page): Promise<void> {
 async function openPositions(page: Page, mission: BehavioralMission): Promise<Locator> {
   await mission.open(page);
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-  const menu = page.getByTestId("rex-map-menu");
+  const menu = page.getByTestId("positions-menu");
   await expect(menu).toContainText("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
   await expect(menu.locator("table")).toHaveCount(2);
   // The application defaults to Task/Crew sources; these cases also use Rover.
   // Move the position menu away from the visibility launcher using its drag handle.
-  const handle = await menu.getByTestId("rex-map-menu-drag-handle").boundingBox();
-  await page.mouse.move(handle.x + 60, handle.y + handle.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(handle.x + 60, handle.y + handle.height / 2 + 180, { steps: 10 });
-  await page.mouse.up();
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   const allSources = visibility
@@ -64,17 +59,12 @@ async function openPositions(page: Page, mission: BehavioralMission): Promise<Lo
   await allSources.click();
   await expect(allSources).toHaveClass(/toggleSelected/);
   await visibility.locator('svg[data-icon="xmark"]').click();
-  const moved = await menu.getByTestId("rex-map-menu-drag-handle").boundingBox();
-  await page.mouse.move(moved.x + 60, moved.y + moved.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(handle.x + 60, handle.y + handle.height / 2, { steps: 10 });
-  await page.mouse.up();
   return menu;
 }
 
 function positionRow(page: Page, pet: string): Locator {
   return page
-    .getByTestId("rex-map-menu")
+    .getByTestId("positions-menu")
     .locator("table")
     .last()
     .getByRole("row")
@@ -190,21 +180,10 @@ async function withMapVisibility(
   page: Page,
   run: (panel: Locator) => Promise<void>
 ): Promise<void> {
-  const menu = page.getByTestId("rex-map-menu");
-  const original = await menu.getByTestId("rex-map-menu-drag-handle").boundingBox();
-  await page.mouse.move(original.x + 60, original.y + original.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(original.x + 60, original.y + original.height / 2 + 180, { steps: 10 });
-  await page.mouse.up();
   await page.getByTestId("map-menu-launcher").click();
   const panel = page.getByTestId("map-menu-floating-panel");
   await run(panel);
   await panel.locator('svg[data-icon="xmark"]').click();
-  const moved = await menu.getByTestId("rex-map-menu-drag-handle").boundingBox();
-  await page.mouse.move(moved.x + 60, moved.y + moved.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(original.x + 60, original.y + original.height / 2, { steps: 10 });
-  await page.mouse.up();
 }
 
 function positionSourceRow(page: Page, name: string): Locator {
@@ -863,8 +842,8 @@ test.describe("Execution position contracts", () => {
         pathColor: "#0000ff",
       });
       rex.posSources.push(
-        { uuid: SECOND_SOURCE, name: "Task", abbr: "T" },
-        { uuid: THIRD_SOURCE, name: "SER", abbr: "S" }
+        { uuid: SECOND_SOURCE, name: "Task", abbr: "T", pathColor: "#0088ff" },
+        { uuid: THIRD_SOURCE, name: "SER", abbr: "S", pathColor: "#0088ff" }
       );
     });
     await mission.open(page);
@@ -974,12 +953,22 @@ test.describe("Execution position contracts", () => {
         .toBe(false);
     }
     expect((await mission.read()).rexes[mission.ids.rexB].posSources).toEqual([
-      expect.objectContaining({ uuid: mission.ids.posSource, name: "Crew", abbr: "C" }),
+      expect.objectContaining({
+        uuid: mission.ids.posSource,
+        name: "Crew",
+        abbr: "C",
+        pathColor: "#0088ff",
+      }),
     ]);
 
     await deletePositionSource(page, "Crew", "You must have at least one Position Source.");
     expect((await mission.read()).rexes[mission.ids.rexB].posSources).toEqual([
-      expect.objectContaining({ uuid: mission.ids.posSource, name: "Crew", abbr: "C" }),
+      expect.objectContaining({
+        uuid: mission.ids.posSource,
+        name: "Crew",
+        abbr: "C",
+        pathColor: "#0088ff",
+      }),
     ]);
 
     await mission.open(page);

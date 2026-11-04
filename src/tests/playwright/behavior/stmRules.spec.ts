@@ -164,7 +164,7 @@ test("satisfaction rules create and edit independently, protect referenced defin
   expect(reloaded.actions).toEqual(original.actions);
 });
 
-test("STM matching uses exact tuples and wildcards, excludes missing categories, and crosses the rule threshold at the boundary", async ({
+test("STM matching uses exact tuples and wildcards, matches missing categories through Any, and crosses the rule threshold at the boundary", async ({
   page,
   mission,
 }) => {
@@ -302,7 +302,7 @@ test("STM matching uses exact tuples and wildcards, excludes missing categories,
   await openRules(page);
   const stats = page.locator('[class*="matchingActionStats"]');
   await expect(stats.nth(0)).toContainText("3 Actions at 1");
-  await expect(stats.nth(1)).toContainText("4 Actions at 1");
+  await expect(stats.nth(1)).toContainText("5 Actions at 1");
   const exactRuleRow = page.locator('[class*="stmRuleRowContainer"]').nth(0);
   await expect(exactRuleRow).toContainText("Observe");
   await expect(exactRuleRow).toContainText("Core");
@@ -317,7 +317,7 @@ test("STM matching uses exact tuples and wildcards, excludes missing categories,
   const coverageCell = page.locator('[data-tooltip-html^="Survey Alpha:"]');
   await expect(coverageCell).toHaveAttribute(
     "data-tooltip-html",
-    /Survey Alpha: 5 matching actions, 1\/2 rules satisfied \(partially satisfied\)/
+    /Survey Alpha: 6 matching actions, 1\/2 rules satisfied \(partially satisfied\)/
   );
 
   await page.getByLabel("stmRules Section", { exact: true }).click();
@@ -332,7 +332,7 @@ test("STM matching uses exact tuples and wildcards, excludes missing categories,
   await page.getByText("EVA STM Coverage", { exact: true }).click();
   await expect(coverageCell).toHaveAttribute(
     "data-tooltip-html",
-    /Survey Alpha: 5 matching actions, 2\/2 rules satisfied \(all rules satisfied\)/
+    /Survey Alpha: 6 matching actions, 2\/2 rules satisfied \(all rules satisfied\)/
   );
 
   await page.getByLabel("stmRules Section", { exact: true }).click();
@@ -359,6 +359,6 @@ test("STM matching uses exact tuples and wildcards, excludes missing categories,
   await page.getByText("EVA STM Coverage", { exact: true }).click();
   await expect(coverageCell).toHaveAttribute(
     "data-tooltip-html",
-    /Survey Alpha: 5 matching actions, 2\/3 rules satisfied \(partially satisfied\)/
+    /Survey Alpha: 6 matching actions, 2\/3 rules satisfied \(partially satisfied\)/
   );
 });

@@ -113,7 +113,7 @@ test("REST mission routes enforce grants and return their declared validation an
         "error",
         "Invalid mission fields",
       ],
-      ["missionDup", {}, "failure", "missionId is required in the request body"],
+      ["missionDup", {}, "failure", "missionId must be a positive integer"],
     ] as const) {
       const invalid = await request.post(`/api/v1/${route}`, { data });
       expect(invalid.status(), `invalid input POST ${route}`).toBe(400);
@@ -203,11 +203,13 @@ test("REST mission routes enforce grants and return their declared validation an
     expect(missingMission.status()).toBe(404);
     expect(await missingMission.json()).toMatchObject({ status: "failure" });
 
-    const homepageItems = await viewer.request.get("/api/v1/missionHomepageItems");
-    expect(homepageItems.status()).toBe(200);
-    expect(((await homepageItems.json()) as WrappedResponse<MissionHomepageItem[]>).data).toEqual([
-      expect.objectContaining({ id: mission.id, name: mission.name }),
-    ]);
+    await expect
+      .poll(async () => {
+        const homepageItems = await viewer.request.get("/api/v1/missionHomepageItems");
+        expect(homepageItems.status()).toBe(200);
+        return ((await homepageItems.json()) as WrappedResponse<MissionHomepageItem[]>).data;
+      })
+      .toEqual([expect.objectContaining({ id: mission.id, name: mission.name })]);
     const anonymousHomepage = await anonymous.request.get("/api/v1/missionHomepageItems");
     expect(anonymousHomepage.status()).toBe(401);
 

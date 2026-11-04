@@ -299,6 +299,7 @@ test("known segmented terrain profile drives distance and slope display without 
 }) => {
   await mission.change((doc) => {
     doc.demFilePath = "playwright-golden-profile.dem";
+    doc.initialZoom = 18;
     doc.description = "profile isolation baseline";
   });
   await installDeterministicTerrain(page);
@@ -343,7 +344,11 @@ test("known segmented terrain profile drives distance and slope display without 
   await expect(displayedValue(2)).toHaveText("20");
   await expect(displayedValue(4)).toHaveText("8.0");
   const uphillGrade = Number(await displayedValue(3).innerText());
-  const expectedGrade = (Math.atan(10 / (distances[0] / 8)) * 180) / Math.PI;
+  const sampleSpacing = distances[0] / 8;
+  // The 10 m grade window includes adjacent samples on the straight ascent.
+  expect(sampleSpacing).toBeGreaterThan(2.5);
+  expect(sampleSpacing).toBeLessThan(5);
+  const expectedGrade = (Math.atan(10 / sampleSpacing) * 180) / Math.PI;
   expect(uphillGrade).toBeCloseTo(expectedGrade, 1);
 
   await hoverSample(0.5);
