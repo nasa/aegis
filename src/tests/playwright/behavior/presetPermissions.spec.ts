@@ -126,10 +126,6 @@ test("viewer access stays local while editor and admin preset edits converge acr
         };
       }
       doc.presets[mission.ids.presetA].description = "Overview baseline description";
-      doc.presets[mission.ids.presetA].sunEnabled = true;
-      doc.presets[mission.ids.presetA].sunAzimuth = 30;
-      doc.presets[mission.ids.presetB].sunEnabled = true;
-      doc.presets[mission.ids.presetB].sunAzimuth = 210;
     });
     const baseline = await mission.read();
 
@@ -218,7 +214,7 @@ test("viewer access stays local while editor and admin preset edits converge acr
     expect(duplicateUuid).toBeTruthy();
     expect((await mission.read()).presets[duplicateUuid!]).toMatchObject({
       missionDefault: false,
-      sunAzimuth: 30,
+      name: expect.stringMatching(/^Overview \(copy/),
       mapSublayerControls: {
         [sublayerUuid]: { style: { opacity: 0.4 } },
       },
@@ -248,11 +244,11 @@ test("viewer access stays local while editor and admin preset edits converge acr
       .toBeUndefined();
 
     await selectPreset(editorPage, "Overview");
-    await openPresetTab(editorPage, "azimuth_panel");
+    await openPresetTab(editorPage, "info_panel");
     await selectPreset(adminPage, "Overview");
     await openPresetTab(adminPage, "info_panel");
-    const sunDraft = await openPlanningField(editorPage, "SunDegrees");
-    await sunDraft.getByLabel("SunDegrees", { exact: true }).fill("75");
+    const sunDraft = await openPlanningField(editorPage, "Preset Title");
+    await sunDraft.getByLabel("Preset Title", { exact: true }).fill("75");
     await adminPage.locator('div[aria-label="Preset Description"]').click();
     const descriptionDraft = adminPage.locator("dialog[open]");
     await descriptionDraft
@@ -264,13 +260,13 @@ test("viewer access stays local while editor and admin preset edits converge acr
     ]);
 
     await expect
-      .poll(async () => (await mission.read()).presets[mission.ids.presetA].sunAzimuth)
-      .toBe(75);
+      .poll(async () => (await mission.read()).presets[mission.ids.presetA].name)
+      .toBe("75");
     await expect
       .poll(async () => (await mission.read()).presets[mission.ids.presetA].description)
       .toBe("Concurrent admin description");
     await expect
-      .poll(async () => editorPage.locator('input[name="SunDegrees"]').inputValue())
+      .poll(async () => editorPage.locator('div[aria-label="Preset Title"]').innerText())
       .toBe("75");
     await expect
       .poll(async () => adminPage.locator('div[aria-label="Preset Description"]').innerText())
@@ -280,18 +276,18 @@ test("viewer access stays local while editor and admin preset edits converge acr
     await adminPage.reload();
     const finalMission = await mission.read();
     expect(finalMission.presets[mission.ids.presetA]).toMatchObject({
-      sunAzimuth: 75,
+      name: "75",
       description: "Concurrent admin description",
       mapSublayerControls: {
         [sublayerUuid]: { style: { opacity: 0.4 }, visible: true },
       },
     });
-    expect(finalMission.presets[mission.ids.presetB]).toMatchObject({ sunAzimuth: 210 });
+    expect(finalMission.presets[mission.ids.presetB]).toMatchObject({ name: "Detail" });
     await enablePlanningEditMode(editorPage);
-    await selectPreset(editorPage, "Overview");
-    await openPresetTab(editorPage, "azimuth_panel");
-    await expect(editorPage.locator('input[name="SunDegrees"]')).toHaveValue("75");
-    await selectPreset(adminPage, "Overview");
+    await selectPreset(editorPage, "75");
+    await openPresetTab(editorPage, "info_panel");
+    await expect(editorPage.locator('div[aria-label="Preset Title"]')).toHaveText("75");
+    await selectPreset(adminPage, "75");
     await openPresetTab(adminPage, "info_panel");
     await expect(adminPage.locator('div[aria-label="Preset Description"]')).toHaveText(
       "Concurrent admin description"

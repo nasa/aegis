@@ -114,7 +114,17 @@ for (const role of ["viewer", "editor"] as const) {
       expect(items.map((item) => item.id).sort((a, b) => a - b)).toEqual(
         [mission.id, allowedId].sort((a, b) => a - b)
       );
-      const emptyName = items.find((item) => item.id === allowedId)!.name;
+      await expect
+        .poll(
+          async () =>
+            (await (await scoped.request.get("/api/v1/missionHomepageItems")).json()).data.find(
+              (item: MissionHomepageItem) => item.id === allowedId
+            )?.name
+        )
+        .toMatch(/^Allowed empty /);
+      const emptyName = (
+        await (await scoped.request.get("/api/v1/missionHomepageItems")).json()
+      ).data.find((item: MissionHomepageItem) => item.id === allowedId).name;
       const page = await scoped.newPage();
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));

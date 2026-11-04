@@ -146,7 +146,11 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
 export default router;
 
-const duplicateMission = async (missionId: number, onProgress: (message: string) => void, copyAssets: boolean): Promise<number> => {
+const duplicateMission = async (
+  missionId: number,
+  onProgress: (message: string) => void,
+  copyAssets: boolean
+): Promise<number> => {
   if (!missionId) {
     throw new Error("Mission ID is required");
   }

@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { test } from "../fixtures/behavioralTest";
 
 test.describe.configure({ mode: "serial" });
 
@@ -11,35 +11,42 @@ import { missionConfigTest } from "./missionConfigurationTest";
 import { missionEquipmentTest } from "./missionEquipmentTest";
 import { presetTest } from "./presetTest";
 
-test("Mission preferences", async ({ page }) => {
-  await missionConfigTest(page);
+test.beforeEach(async ({ mission }, testInfo) => {
+  await mission.change((doc) => {
+    doc.actionSystemVersion = testInfo.title === "Geographic units" ? 1 : 2;
+    doc.actionDefinitions = { verbs: {}, nouns: {}, adjectives: {} };
+  });
 });
 
-test("Circle definitions", async ({ page }) => {
-  await circleDefinitionsTest(page);
+test("Mission preferences", async ({ page, mission }) => {
+  await missionConfigTest(page, mission);
 });
 
-test("Action templates", async ({ page }) => {
-  await actionTemplatesTest(page);
+test("Circle definitions", async ({ page, mission }) => {
+  await circleDefinitionsTest(page, mission);
 });
 
-test("Equipment", async ({ page }) => {
-  await missionEquipmentTest(page);
+test("Action templates", async ({ page, mission }) => {
+  await actionTemplatesTest(page, mission);
 });
 
-test("Geographic units", async ({ page }) => {
-  await geographicUnitsTest(page);
+test("Equipment", async ({ page, mission }) => {
+  await missionEquipmentTest(page, mission);
 });
 
-test("Action definitions", async ({ page }) => {
-  await actionDefinitionsTest(page);
+test("Geographic units", async ({ page, mission }) => {
+  await geographicUnitsTest(page, mission);
 });
 
-test("Export data", async ({ page }) => {
-  await exportTest(page);
+test("Action definitions", async ({ page, mission }) => {
+  await actionDefinitionsTest(page, mission);
+});
+
+test("Export data", async ({ page, mission }) => {
+  await exportTest(page, mission);
 });
 
 // Preset test included here, as running preset test parallel to mission tests breaks the tests
-test("Preset", async ({ page }) => {
-  await presetTest(page);
+test("Preset", async ({ page, mission }) => {
+  await presetTest(page, mission);
 });

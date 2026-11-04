@@ -1,3 +1,4 @@
+import { duplicationResult } from "../fixtures/duplicationAssertions";
 import { randomUUID, randomBytes } from "node:crypto";
 import path from "node:path";
 import { mkdir, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
@@ -20,7 +21,7 @@ test("mission asset options preserve source bytes and roll back an interrupted a
   await page.getByLabel("Copy mission assets", { exact: true }).uncheck();
   let response = page.waitForResponse("**/api/v1/missionDup");
   await page.getByRole("button", { name: "Duplicate Mission", exact: true }).click();
-  const copied = (await (await response).json()) as WrappedResponse<number>;
+  const copied = await duplicationResult(await response);
   expect(copied.status).toBe("success");
   try {
     expect(
@@ -50,14 +51,16 @@ test("mission asset options preserve source bytes and roll back an interrupted a
     });
     response = page.waitForResponse("**/api/v1/missionDup");
     await page.getByRole("button", { name: "Duplicate Mission", exact: true }).click();
-    await expect(page.getByRole("status")).toContainText("Duplicating mission...");
+    await expect(
+      page.getByRole("status").filter({ hasText: "Duplicating mission and GIS files" })
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Duplicate Mission", exact: true })
     ).toBeDisabled();
     release();
     page.once("dialog", (dialog) => dialog.accept());
-    expect((await response).status()).toBe(500);
-    await expect(page.getByRole("status")).toContainText("Error duplicating mission");
+    expect(await duplicationResult(await response)).toMatchObject({ status: "error" });
+    await expect(page.getByRole("alert")).toContainText("Failed to duplicate mission");
     const missions = (await (
       await request.get("/api/v1/missionAutomerge")
     ).json()) as WrappedResponse<Mission[]>;

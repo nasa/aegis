@@ -50,7 +50,11 @@ const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
         }
         setAllLayers(layers.data);
         setAllSublayers(sublayers.data);
-        setEditSublayerParentUUID((selected) => layers.data.some((layer) => layer.uuid === selected) ? selected : (layers.data[0]?.uuid ?? "0"));
+        setEditSublayerParentUUID((selected) =>
+          layers.data.some((layer) => layer.uuid === selected)
+            ? selected
+            : (layers.data[0]?.uuid ?? "0")
+        );
       }),
     [missionId, runLoad]
   );
