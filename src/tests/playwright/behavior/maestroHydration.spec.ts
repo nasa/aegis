@@ -1,3 +1,4 @@
+import type { MissionsWithEvas } from "server/maestro/v2/routes/getMissions";
 import type { Socket } from "socket.io-client";
 import { randomUUID } from "node:crypto";
 import { io } from "socket.io-client";
@@ -205,33 +206,32 @@ test("Maestro auth, subscription hydration, UUID maps, unsubscribe, and leave ga
     socket = connectMaestro(baseURL!, emssToken as string, appVersion.serverEpochUuid);
     await waitForConnection(socket);
 
-    const missionListResponse = await request.get("/api/v1/maestro/v2/getMissions", {
-      headers: { "emss-token": emssToken as string },
-    });
-    expect(missionListResponse.status()).toBe(200);
-    const missionList = (await missionListResponse.json()) as WrappedResponse<
-      Record<
-        number,
-        {
-          missionName: string;
-          missionActionSystemVersion: number;
-          evas: { uuid: string; evaName: string }[];
-        }
-      >
-    >;
-    expect(missionList.status).toBe("success");
-    const listedMission = missionList.data[mission.id];
-    expect(listedMission).toEqual({
-      missionName: mission.name,
-      missionActionSystemVersion: missionData.actionSystemVersion,
-      evas: expect.any(Array),
-    });
-    expect(listedMission.evas.sort((a, b) => a.uuid.localeCompare(b.uuid))).toEqual(
-      [
-        { uuid: ids.evaA, evaName: "Survey Alpha" },
-        { uuid: ids.evaB, evaName: "Survey Bravo" },
-      ].sort((a, b) => a.uuid.localeCompare(b.uuid))
-    );
+    await expect
+      .poll(async () => {
+        const response = await request.get("/api/v1/maestro/v2/getMissions", {
+          headers: { "emss-token": emssToken as string },
+        });
+        expect(response.status()).toBe(200);
+        const result = (await response.json()) as WrappedResponse<MissionsWithEvas>;
+        expect(result.status).toBe("success");
+        const listed = result.data[mission.id];
+        return (
+          listed && {
+            ...listed,
+            evas: listed.evas.sort((a: { uuid: string }, b: { uuid: string }) =>
+              a.uuid.localeCompare(b.uuid)
+            ),
+          }
+        );
+      })
+      .toEqual({
+        missionName: mission.name,
+        missionActionSystemVersion: missionData.actionSystemVersion,
+        evas: [
+          { uuid: ids.evaA, evaName: "Survey Alpha" },
+          { uuid: ids.evaB, evaName: "Survey Bravo" },
+        ].sort((a, b) => a.uuid.localeCompare(b.uuid)),
+      });
 
     const refMapResponse = await request.get("/api/v1/maestro/v2/getRefUuidMap", {
       headers: { "emss-token": emssToken as string },

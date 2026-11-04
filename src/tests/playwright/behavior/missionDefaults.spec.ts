@@ -1,3 +1,4 @@
+import { readTerrainProfile } from "../fixtures/terrainAssertions";
 import { copyFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -197,7 +198,9 @@ test("lander relocation updates every EVA boundary and walkback with real DEM el
           (distance) => distance > 0 && Number.isFinite(distance)
         )
       ).toBe(true);
-      expect(station.walkbackPathSegmentElevations.at(-1).at(-1)).toBe(-1050.83740234375);
+      expect((await readTerrainProfile(page, station.uuid)).elevationsMeters.at(-1).at(-1)).toBe(
+        -1050.83740234375
+      );
     }
   }
   for (const [uuid, boundary] of [
@@ -213,9 +216,7 @@ test("lander relocation updates every EVA boundary and walkback with real DEM el
         : [...original.slice(0, -1), nextLander]
     );
     expect(
-      after.traverses[uuid].pathSegmentElevations[0][
-        boundary === "start" ? 0 : after.traverses[uuid].pathSegmentElevations[0].length - 1
-      ]
+      (await readTerrainProfile(page, uuid)).elevationsMeters[0].at(boundary === "start" ? 0 : -1)
     ).toBe(-1050.83740234375);
   }
   expect(after.traverses[mission.ids.traverseA]).toEqual(before.traverses[mission.ids.traverseA]);

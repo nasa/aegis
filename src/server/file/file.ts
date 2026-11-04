@@ -161,7 +161,10 @@ export async function deleteFile(path: string): Promise<boolean> {
     const target = resolveStaticPath(path);
     if (fs.existsSync(target)) {
       await rm(target, { recursive: true });
-      serverLogger.info({ logId: "file:deleteFile:fileOrDirectoryDeleted", logValue: `File/directory deleted ${target}` });
+      serverLogger.info({
+        logId: "file:deleteFile:fileOrDirectoryDeleted",
+        logValue: `File/directory deleted ${target}`,
+      });
       return true;
     } else {
       throw new Error(`File/directory does not exist ${target}`);

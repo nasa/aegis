@@ -61,7 +61,7 @@ async function createAndRenameTemplate(page: Page, t: string) {
   await editValidatedField(page, "Template Name", t, newIndex);
 }
 
-export async function actionTemplatesTest(page: Page): Promise<string> {
+export async function actionTemplatesTest(page: Page, mission: BehavioralMission): Promise<string> {
   // Test names are built per-run with a random suffix in the test body to avoid
   // `Name must be unique` collisions with entries left in the automerge mission
   // doc by previously failed runs.
@@ -71,7 +71,7 @@ export async function actionTemplatesTest(page: Page): Promise<string> {
   const t2 = `--TEST ACTION TEMPLATE TWO ${suffix}--`;
   const t2Edited = `--TEST ACTION TEMPLATE TWO ${suffix} EDITED--`;
 
-  await goToV2MissionSection(page);
+  await goToV2MissionSection(page, mission);
 
   // Go to action templates
   await page.getByLabel("actionTemplate_panel", { exact: true }).click();

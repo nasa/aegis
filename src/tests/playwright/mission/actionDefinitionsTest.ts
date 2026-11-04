@@ -30,9 +30,12 @@ async function findActionDefIndexExactName(
  * Test action definitions (create, update, delete). Only available on actionSystemVersion 2 missions.
  * If the panel is not available, the test will skip with a console message.
  */
-export async function actionDefinitionsTest(page: Page): Promise<string> {
+export async function actionDefinitionsTest(
+  page: Page,
+  mission: BehavioralMission
+): Promise<string> {
   const suffix = Math.floor(Math.random() * 1_000_000).toString(36);
-  await goToV2MissionSection(page);
+  await goToV2MissionSection(page, mission);
 
   // Check if actionDefinitions_panel exists (only on v2 missions)
   const panelButton = page.getByLabel("actionDefinitions_panel", { exact: true });

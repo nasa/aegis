@@ -96,8 +96,9 @@ test("mission priority traces sort, rename through actions/templates, block in-u
     .toBe(2);
   priorityRows = page.getByLabel("missionPriorities-item", { exact: true });
   await editField(page, "Trace", "SIMD-2", priorityRows.filter({ hasText: "(Trace)" }));
-  await expect(priorityRows.nth(0)).toContainText("SIMD-2");
-  await expect(priorityRows.nth(1)).toContainText("SIMD-10");
+  // SIMD short forms pad on the right: 10 denotes 1000, and 2 denotes 2000.
+  await expect(priorityRows.nth(0)).toContainText("SIMD-10");
+  await expect(priorityRows.nth(1)).toContainText("SIMD-2");
 
   // A second UI-created category proves the dropdown groups sort by category,
   // independently of the numeric trace ordering within Science.

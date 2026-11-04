@@ -20,7 +20,7 @@ async function findGeoUnitIndexExactName(page: Page, name: string): Promise<numb
   return -1;
 }
 
-export async function geographicUnitsTest(page: Page): Promise<string> {
+export async function geographicUnitsTest(page: Page, mission: BehavioralMission): Promise<string> {
   // Use per-run suffix to avoid `Name must be unique` failures from leftover
   // automerge state. Suffix is prefixed with
   // `aa`/`zb` etc. so alphabetical-sort assertions still hold (ONE < TWO).
@@ -29,7 +29,7 @@ export async function geographicUnitsTest(page: Page): Promise<string> {
   const geoUnitOneEditedName = `--TEST GEO UNIT ONE B ${suffix}--`; // Still starts with "ONE B", sorts after ONE
   const geoUnitTwoName = `--TEST GEO UNIT TWO ${suffix}--`;
 
-  await goToV1MissionSection(page);
+  await goToV1MissionSection(page, mission);
 
   // Geographic units panel only exists on v1 missions
   const panelButton = page.getByLabel("geographicUnit_panel", { exact: true });

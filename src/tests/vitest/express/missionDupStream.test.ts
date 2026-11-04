@@ -21,6 +21,7 @@ vi.mock("server/express/global", () => ({
   globalValues: {
     orm: { em },
     automergeRepo: {
+      delete: vi.fn().mockResolvedValue(undefined),
       find: (url: string) => (url === "automerge:source" ? sourceHandle : copiedHandle),
     },
   },

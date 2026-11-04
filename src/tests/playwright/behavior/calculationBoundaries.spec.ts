@@ -68,7 +68,6 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
       traverse.duration = 0;
       traverse.pathSegmentDistances = [];
       traverse.path = [];
-      traverse.pathSegmentElevations = [];
     }
     doc.stations[mission.ids.stationA].duration = null;
     doc.traverses[mission.ids.traverseA].duration = null;
@@ -78,7 +77,6 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
       { lat: 0, lng: 0 },
       { lat: 0, lng: ((500 / 6378137) * 180) / Math.PI },
     ];
-    doc.traverses[mission.ids.traverseA].pathSegmentElevations = [[0, 0]];
     doc.actions[mission.ids.actionA] = seedAction({
       uuid: mission.ids.actionA,
       refUuid: mission.ids.actionA,
@@ -195,7 +193,6 @@ test("fractional sequence estimates retain raw seconds while displayed totals ce
       traverse.duration = 0;
       traverse.pathSegmentDistances = [];
       traverse.path = [];
-      traverse.pathSegmentElevations = [];
     }
     doc.actions[mission.ids.actionA].duration = 1.2;
     doc.stations[mission.ids.stationA].duration = null;
@@ -278,7 +275,6 @@ test("ten minutes movement plus five minutes traverse work exposes combined dura
       traverse.duration = 0;
       traverse.pathSegmentDistances = [];
       traverse.path = [];
-      traverse.pathSegmentElevations = [];
     }
     doc.actions[mission.ids.actionA].enabled = false;
     doc.traverses[mission.ids.traverseA].duration = null;
@@ -287,7 +283,6 @@ test("ten minutes movement plus five minutes traverse work exposes combined dura
       { lat: 0, lng: 0 },
       { lat: 0, lng: ((500 / 6378137) * 180) / Math.PI },
     ];
-    doc.traverses[mission.ids.traverseA].pathSegmentElevations = [[0, 0]];
     doc.traverses[mission.ids.traverseA].traverseRate = 3;
     doc.actions[otherAction] = seedAction({
       uuid: otherAction,
@@ -390,7 +385,6 @@ test("empty graphs and large valid durations display finite totals and independe
       traverse.duration = null;
       traverse.path = [];
       traverse.pathSegmentDistances = [];
-      traverse.pathSegmentElevations = [];
     }
     doc.evas[mission.ids.evaB].sequence = [];
   });

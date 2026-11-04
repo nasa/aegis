@@ -8,8 +8,7 @@ import React from "react";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { getAccurateNow } from "utils/formatting";
 import { getAutomergeDocListing } from "http-client/docListing";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
+import { getMissionSummaries } from "http-client/mission";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUsers } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -19,7 +18,6 @@ const User: React.FunctionComponent = () => {
   const { run: runLoad } = loading;
   const navigate = useNavigate();
   const action = useAsyncStatus();
-  const automergeRepo = useRepo();
   const [userList, setUserList] = useState<AppUser[]>([]);
   const [user, setUser] = useState<AppUser>();
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -47,22 +45,22 @@ const User: React.FunctionComponent = () => {
         setAutomergeDocList(automergeDocListings);
         setDocListingLoaded(true);
 
-        const missionNamesAndIds = [];
-        // get their names
-        for (const record of automergeDocListings) {
-          const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(
-            record.automergeUrl as AutomergeUrl
-          );
-          const mission = missionDocHandle.doc();
-          missionNamesAndIds.push({ id: record.missionId, name: mission.name });
-        }
-        setMissionList(missionNamesAndIds);
+        const summaries = await getMissionSummaries();
+        if (!summaries.data) throw new Error(summaries.message || "Unable to load mission names");
+        setMissionList(
+          automergeDocListings.map((record) => ({
+            id: record.missionId,
+            name:
+              summaries.data.find((mission) => mission.id === record.missionId)?.name ??
+              `Mission ${record.missionId}`,
+          }))
+        );
       } else {
         navigate("/");
       }
     }
     runLoad("Loading users and mission permissions...", adminCheck);
-  }, [automergeRepo, navigate, runLoad]);
+  }, [navigate, runLoad]);
 
   const handleEdit = (user: AppUser) => {
     action.clearError();
@@ -422,7 +420,11 @@ const User: React.FunctionComponent = () => {
                 </h2>
                 <div className={adminCommon.details}>
                   <div className={adminCommon.formActions} style={{ marginBottom: 12 }}>
-                    <button className={adminCommon.buttonPrimary} disabled={!docListingLoaded} onClick={() => handleCreate()}>
+                    <button
+                      className={adminCommon.buttonPrimary}
+                      disabled={!docListingLoaded}
+                      onClick={() => handleCreate()}
+                    >
                       + Add User
                     </button>
                   </div>

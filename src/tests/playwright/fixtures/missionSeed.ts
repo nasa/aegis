@@ -90,7 +90,6 @@ function makeStation(
     duration: 15,
     walkbackPath: [{ lat: 0, lng: 0 }, location],
     walkbackPathSegmentDistances: [50],
-    walkbackPathSegmentElevations: [[0, 0]],
     ...extra,
   });
 }
@@ -102,8 +101,6 @@ function makeTraverse(uuid: string, name: string, path: AEGISPoint[]): Traverse 
     name,
     path,
     pathSegmentDistances: path.slice(1).map(() => 50),
-    pathSegmentElevations: path.slice(1).map(() => [0, 0]),
-    pathSegmentAbsoluteSlopes: path.slice(1).map(() => [0, 0]),
     status: "Candidate",
     duration: 5,
   });
@@ -138,8 +135,6 @@ export function buildBehavioralMission(
       [ids.presetB]: seedPreset({
         uuid: ids.presetB,
         name: MISSION_NAMES.presetB,
-        sunEnabled: true,
-        sunAzimuth: 90,
       }),
     },
     pois: {
@@ -345,7 +340,9 @@ function addExecutions(mission: Mission): void {
   const posTypes: PosType[] = [
     { uuid: ids.posType, name: "EV1", abbr: "1", icon: "1f468-200d-1f680", pathColor: "#ff0000" },
   ];
-  const posSources: PosSource[] = [{ uuid: ids.posSource, name: "Crew", abbr: "C" }];
+  const posSources: PosSource[] = [
+    { uuid: ids.posSource, name: "Crew", abbr: "C", pathColor: "#0088ff" },
+  ];
   mission.rexes[ids.rexA] = seedRex({
     uuid: ids.rexA,
     name: MISSION_NAMES.rexA,

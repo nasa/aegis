@@ -54,15 +54,10 @@ async function openPositionTypes(page: Page): Promise<void> {
 async function openPositions(page: Page, mission: BehavioralMission): Promise<Locator> {
   await mission.open(page);
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-  const menu = page.getByTestId("rex-map-menu");
+  const menu = page.getByTestId("positions-menu");
   await expect(menu).toContainText("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
   await expect(menu.locator("table")).toHaveCount(2);
-  const handle = await menu.getByTestId("rex-map-menu-drag-handle").boundingBox();
-  await page.mouse.move(handle.x + 60, handle.y + handle.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(handle.x + 60, handle.y + handle.height / 2 + 180, { steps: 10 });
-  await page.mouse.up();
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   const sourceRow = visibility
@@ -70,11 +65,6 @@ async function openPositions(page: Page, mission: BehavioralMission): Promise<Lo
     .filter({ hasText: "Sources" });
   await sourceRow.getByText("All", { exact: true }).click();
   await visibility.locator('svg[data-icon="xmark"]').click();
-  const moved = await menu.getByTestId("rex-map-menu-drag-handle").boundingBox();
-  await page.mouse.move(moved.x + 60, moved.y + moved.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(handle.x + 60, handle.y + handle.height / 2, { steps: 10 });
-  await page.mouse.up();
   return menu;
 }
 

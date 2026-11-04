@@ -130,7 +130,9 @@ const Missions: React.FunctionComponent = () => {
                 }
               })
             }
-            disabled={(user?.id !== 1 && !user?.isSuperAdmin) || !!loading.pending || !!action.pending}
+            disabled={
+              (user?.id !== 1 && !user?.isSuperAdmin) || !!loading.pending || !!action.pending
+            }
           >
             + Add New Mission
           </button>

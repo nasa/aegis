@@ -42,6 +42,7 @@ describe("Calculated fields", () => {
     ];
     const calculate = () =>
       getCalcFieldsForEva({
+        terrainProfiles: {},
         eva,
         evaStations: [start, end],
         missionWalkbackRate: 3,

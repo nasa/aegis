@@ -256,6 +256,13 @@ test("super-admin grant changes deny HTTP access and capture existing Automerge 
       });
     });
 
+    await expect
+      .poll(async () => {
+        const catalog = await request.get("/api/v1/missionCatalog");
+        const body = (await catalog.json()) as WrappedResponse<MissionSummary[]>;
+        return body.data.find((entry) => entry.id === mission.id)?.name;
+      })
+      .toBe(mission.name);
     await page.goto("/admin/user");
     await expect(page.getByRole("heading", { name: "User Management", exact: true })).toBeVisible();
     await docListingRequested;

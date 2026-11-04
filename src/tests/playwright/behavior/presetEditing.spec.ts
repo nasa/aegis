@@ -78,8 +78,7 @@ test("preset edits keep an unsaved value local until Save, Cancel restores it, a
         visible: presetUuid === mission.ids.presetA,
         style: { ...initialStyle },
       };
-      preset.sunEnabled = true;
-      preset.sunAzimuth = presetUuid === mission.ids.presetA ? 30 : 210;
+      preset.description = presetUuid === mission.ids.presetA ? "30" : "210";
     }
   });
 
@@ -90,32 +89,32 @@ test("preset edits keep an unsaved value local until Save, Cancel restores it, a
     await mission.open(peer);
     await enablePlanningEditMode(peer);
     await selectPreset(page, "Overview");
-    await page.getByLabel("azimuth_panel", { exact: true }).click();
+    await page.getByLabel("info_panel", { exact: true }).click();
     await selectPreset(peer, "Overview");
-    await peer.getByLabel("azimuth_panel", { exact: true }).click();
+    await peer.getByLabel("info_panel", { exact: true }).click();
     const peerInitial = await mission.read();
-    expect(peerInitial.presets[mission.ids.presetA].sunAzimuth).toBe(30);
-    const peerSunDegrees = peer.locator('input[name="SunDegrees"]');
-    await expect(peerSunDegrees).toHaveValue("30");
+    expect(peerInitial.presets[mission.ids.presetA].description).toBe("30");
+    const peerDescription = peer.locator('div[aria-label="Preset Description"]');
+    await expect(peerDescription).toHaveText("30");
 
-    const draft = await openPlanningField(page, "SunDegrees");
-    await draft.getByLabel("SunDegrees", { exact: true }).fill("75");
-    await expect(draft.locator('input[name="SunDegrees"]')).toHaveValue("75");
-    expect((await mission.read()).presets[mission.ids.presetA].sunAzimuth).toBe(30);
-    await expect(peerSunDegrees).toHaveValue("30");
-    expect((await mission.read()).presets[mission.ids.presetB].sunAzimuth).toBe(210);
+    const draft = await openPlanningField(page, "Preset Description");
+    await draft.getByLabel("Preset Description", { exact: true }).fill("75");
+    await expect(draft.getByLabel("Preset Description", { exact: true })).toHaveValue("75");
+    expect((await mission.read()).presets[mission.ids.presetA].description).toBe("30");
+    await expect(peerDescription).toHaveText("30");
+    expect((await mission.read()).presets[mission.ids.presetB].description).toBe("210");
     await draft.getByText("Cancel", { exact: true }).click();
     await expect(draft).toHaveCount(0);
-    expect((await mission.read()).presets[mission.ids.presetA].sunAzimuth).toBe(30);
+    expect((await mission.read()).presets[mission.ids.presetA].description).toBe("30");
 
-    const save = await openPlanningField(page, "SunDegrees");
-    await save.getByLabel("SunDegrees", { exact: true }).fill("75");
+    const save = await openPlanningField(page, "Preset Description");
+    await save.getByLabel("Preset Description", { exact: true }).fill("75");
     await save.getByText("Save", { exact: true }).click();
     await expect(save).toHaveCount(0);
     await expect
-      .poll(async () => (await mission.read()).presets[mission.ids.presetA].sunAzimuth)
-      .toBe(75);
-    await expect(peerSunDegrees).toHaveValue("75");
+      .poll(async () => (await mission.read()).presets[mission.ids.presetA].description)
+      .toBe("75");
+    await expect(peerDescription).toHaveText("75");
 
     await page.getByLabel("layers_panel", { exact: true }).click();
     await expect(page.getByText("Draft overlay (vector)", { exact: true })).toBeVisible();
@@ -167,13 +166,15 @@ test("preset edits keep an unsaved value local until Save, Cancel restores it, a
     await expect(peerCircleRow.locator('svg[data-icon="eye-slash"]')).toBeVisible();
 
     await selectPreset(page, "Detail");
-    await page.getByLabel("azimuth_panel", { exact: true }).click();
-    await expect(page.locator('input[name="SunDegrees"]')).toHaveValue("210");
+    await page.getByLabel("info_panel", { exact: true }).click();
+    await expect(page.locator('div[aria-label="Preset Description"]')).toHaveText("210");
     await selectPreset(page, "Overview");
-    await page.getByLabel("azimuth_panel", { exact: true }).click();
-    await expect(page.locator('input[name="SunDegrees"]')).toHaveValue("75");
+    await page.getByLabel("info_panel", { exact: true }).click();
+    await expect(page.locator('div[aria-label="Preset Description"]')).toHaveText("75");
     await page.reload();
-    expect((await mission.read()).presets[mission.ids.presetA]).toMatchObject({ sunAzimuth: 75 });
+    expect((await mission.read()).presets[mission.ids.presetA]).toMatchObject({
+      description: "75",
+    });
     expect(
       (await mission.read()).presets[mission.ids.presetA].mapSublayerControls[sublayerUuid].visible
     ).toBe(false);
@@ -184,7 +185,9 @@ test("preset edits keep an unsaved value local until Save, Cancel restores it, a
     expect(
       (await mission.read()).presets[mission.ids.presetA].mapCircleControls[circleUuid].visible
     ).toBe(false);
-    expect((await mission.read()).presets[mission.ids.presetB]).toMatchObject({ sunAzimuth: 210 });
+    expect((await mission.read()).presets[mission.ids.presetB]).toMatchObject({
+      description: "210",
+    });
     expect(
       (await mission.read()).presets[mission.ids.presetB].mapSublayerControls[sublayerUuid].visible
     ).toBe(false);

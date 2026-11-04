@@ -57,7 +57,7 @@ async function astronautPosition(page: Page): Promise<number[] | null> {
     const astronaut = map
       ?.getOverlays()
       .getArray()
-      .find((overlay) => overlay.getElement()?.textContent?.includes("🧑‍🚀"));
+      .find((overlay) => overlay.getElement()?.dataset.timelineMarker === "astronaut");
     return astronaut?.getPosition() ?? null;
   });
 }
@@ -80,13 +80,27 @@ async function expectDateSourceNear(
   evaName: string,
   expectedElapsedSeconds: number
 ): Promise<number> {
-  const source = page.getByLabel("sunEarthDateSource", { exact: true });
-  await expect(source).toContainText(`Timeline hover: ${evaName} (+`);
-  const text = await source.innerText();
-  const match = text.match(/\+(\d+) s/);
-  expect(match, `Timeline time is shown for ${evaName}: ${text}`).not.toBeNull();
-  const elapsedSeconds = Number(match![1]);
-  expect(Math.abs(elapsedSeconds - expectedElapsedSeconds)).toBeLessThanOrEqual(30);
+  const read = () =>
+    page.evaluate(async () => {
+      const modulePath = "/store/index.ts";
+      const { default: store } = await import(modulePath);
+      return {
+        time: store.getState().hover.timelineTime,
+        selected: store.getState().eva.selectedEvaUuid,
+      };
+    });
+  await expect
+    .poll(
+      async () => {
+        const { time, selected } = await read();
+        return (
+          time?.evaUuid === selected && Math.abs(time.elapsedSeconds - expectedElapsedSeconds) <= 30
+        );
+      },
+      { message: `Timeline hover follows ${evaName}` }
+    )
+    .toBe(true);
+  const elapsedSeconds = (await read()).time.elapsedSeconds;
   return elapsedSeconds;
 }
 
@@ -96,7 +110,7 @@ async function openPresetSection(page: Page): Promise<void> {
 }
 
 async function enableSunEarthOverlay(page: Page): Promise<void> {
-  const source = page.getByRole("button", { name: "Sun/Earth value source", exact: true });
+  const source = page.getByRole("group", { name: "Sun/Earth value source", exact: true });
   if (await source.count()) return;
   await page.getByTestId("map-menu-launcher").click();
   const menu = page.getByTestId("map-menu-floating-panel");
@@ -118,9 +132,9 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
     doc.traverses[mission.ids.traverseReturn].duration = 5;
     doc.traverses[mission.ids.traverseB].duration = 8;
     doc.traverses[mission.ids.traverseBReturn].duration = 5;
-    doc.presets[mission.ids.presetA].sunEnabled = true;
-    doc.presets[mission.ids.presetA].earthEnabled = true;
-    doc.presets[mission.ids.presetA].sunEarthFromDate = true;
+    doc.planetRadius = 1737400;
+    doc.evas[mission.ids.evaA].sunEarthFromDate = true;
+    doc.evas[mission.ids.evaB].sunEarthFromDate = true;
   });
   const beforePreview = await mission.read();
 
@@ -135,14 +149,11 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
     .filter({ hasText: "Overview" })
     .getByText("Overview", { exact: true })
     .click();
-  await page.getByLabel("azimuth_panel", { exact: true }).click();
+  await page.getByLabel("info_panel", { exact: true }).click();
   await enableSunEarthOverlay(page);
   await expect(
-    page.getByRole("button", { name: "Sun/Earth value source", exact: true })
-  ).toHaveAttribute("data-status", "Calculated");
-  await expect(page.getByLabel("sunEarthDateSource", { exact: true })).toContainText(
-    "Selected EVA: Survey Alpha"
-  );
+    page.getByRole("group", { name: "Sun/Earth value source", exact: true })
+  ).toHaveAttribute("aria-description", /Calculated at EVA start/);
 
   // Survey Alpha's selected station begins at 15 minutes and lasts 15 minutes.
   await hoverTimelineAt(page, beforePreview.evas[mission.ids.evaA].duration, 22.5 * 60);
@@ -170,7 +181,7 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
     .filter({ hasText: "Overview" })
     .getByText("Overview", { exact: true })
     .click();
-  await page.getByLabel("azimuth_panel", { exact: true }).click();
+  await page.getByLabel("info_panel", { exact: true }).click();
   await hoverTimelineAt(page, beforePreview.evas[mission.ids.evaB].duration, 12.5 * 60);
   const bravoTraverseElapsed = await expectDateSourceNear(page, "Survey Bravo", 12.5 * 60);
   await expectAstronautAt(
@@ -221,7 +232,7 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
     .filter({ hasText: "Overview" })
     .getByText("Overview", { exact: true })
     .click();
-  await page.getByLabel("azimuth_panel", { exact: true }).click();
+  await page.getByLabel("info_panel", { exact: true }).click();
   // The old traversal midpoint is now within Alpha's longer station interval.
   await hoverTimelineAt(page, beforePreview.evas[mission.ids.evaA].duration, 32.5 * 60);
   await expectDateSourceNear(page, "Survey Alpha", 32.5 * 60);

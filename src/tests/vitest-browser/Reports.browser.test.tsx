@@ -10,6 +10,8 @@ import { ReportIdProvider } from "components/panes/reports/reports-context";
 import gridStyles from "components/panes/reports/shared/report-grid.module.css";
 import comparisonStyles from "components/panes/reports/eva-comparison/eva-comparison.module.css";
 import { reportSetColumnDerivedData, reportSlice } from "store/report";
+import { userSlice } from "store/user";
+import { missionSlice } from "store/mission";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -34,7 +36,14 @@ vi.mock("components/panes/reports/poi-traceability/poi-traceability-page", () =>
   default: () => <div>Traceability content</div>,
 }));
 
-const makeStore = () => configureStore({ reducer: { report: reportSlice.reducer } });
+const makeStore = () =>
+  configureStore({
+    reducer: {
+      report: reportSlice.reducer,
+      user: userSlice.reducer,
+      mission: missionSlice.reducer,
+    },
+  });
 let store: ReturnType<typeof makeStore>;
 let harness: ReactHarness;
 

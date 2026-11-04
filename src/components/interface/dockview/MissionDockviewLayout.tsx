@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type FunctionComponent,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type FunctionComponent } from "react";
 import { DockviewReact, type DockviewApi, type DockviewReadyEvent } from "dockview-react";
 import "dockview-react/dist/styles/dockview.css";
 
