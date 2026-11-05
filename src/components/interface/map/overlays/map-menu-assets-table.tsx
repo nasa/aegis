@@ -577,12 +577,13 @@ const AssetRow: FunctionComponent<{
             hhmmssFromSeconds(petSeconds)
           )}
         </td>
-        <td
-          ref={emojiCellRef}
-          className={styles.emojiCell}
-          style={{ backgroundColor: asset.color ? withAlpha(asset.color, 0.5) : "transparent" }}
-        >
-          <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
+        <td ref={emojiCellRef} className={styles.emojiCell}>
+          <span
+            className={styles.emojiBackground}
+            style={{ backgroundColor: asset.color ? withAlpha(asset.color, 0.5) : "transparent" }}
+          >
+            <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
+          </span>
         </td>
         <td className={styles.nameCell} title={asset.name}>
           {isEditing && <FontAwesomeIcon icon={faPen} size="xs" className={styles.editingIcon} />}
