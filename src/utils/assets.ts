@@ -5,17 +5,17 @@ import { petSecondsAt, secondsFromhhmmss } from "utils/formatting";
 
 /** Emoji drawn for an asset with no icon (❔), matching stations. */
 export const DEFAULT_ASSET_ICON = "2754";
-/** Uncertainty ring color for an asset with no color. */
-export const DEFAULT_ASSET_RING_COLOR = "#999999";
+/** Clear radius fill and label accent for an asset with no color. */
+export const DEFAULT_ASSET_RADIUS_COLOR = "transparent";
 
 /**
- * Color of an asset's radius ring, also used for the disc behind its emoji on the map and in
- * the asset table. Null when the radius is zero, so no ring or disc is drawn.
+ * Color of an asset's radius circle. Uncolored assets have a clear fill so their radius can
+ * still be outlined while selected. Null when the radius is zero, so no circle is drawn.
  */
 export function getAssetRadiusColor(
   asset: Pick<Asset, "color" | "uncertaintyMeters">
 ): string | null {
-  return asset.uncertaintyMeters > 0 ? asset.color || DEFAULT_ASSET_RING_COLOR : null;
+  return asset.uncertaintyMeters > 0 ? asset.color || DEFAULT_ASSET_RADIUS_COLOR : null;
 }
 
 export const ASSET_EDIT_FIELDS: readonly (keyof AssetEditValues)[] = [
@@ -59,7 +59,7 @@ export function getAssetHiddenReason(
 }
 
 /**
- * The single map visibility rule for every asset artifact (marker, ring, label, hover,
+ * The single map visibility rule for every asset artifact (marker, radius, label, hover,
  * selection, preview, hit testing). Independent of the selected section, EVA, or REX.
  */
 export function isAssetVisibleOnMap(

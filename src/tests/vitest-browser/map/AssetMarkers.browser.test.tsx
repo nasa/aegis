@@ -229,34 +229,46 @@ describe("asset map behaviors", () => {
   });
 
   it("fills a radius circle in the asset color with no stroke, and none for zero radius", () => {
-    const ringed = placed({ uncertaintyMeters: 12, color: "#ff0000" });
-    const unringed = placed({
+    const withRadius = placed({ uncertaintyMeters: 12, color: "#ff0000" });
+    const withoutRadius = placed({
       uncertaintyMeters: 0,
       color: "#00ff00",
       location: { lat: 0.02, lng: 0.02 },
     });
-    mockMissionDoc.assets = { [ringed.uuid]: ringed, [unringed.uuid]: unringed };
+    mockMissionDoc.assets = { [withRadius.uuid]: withRadius, [withoutRadius.uuid]: withoutRadius };
     render();
     const circles = radiusCircles();
     expect(circles).toHaveLength(1);
     const circle = circles[0];
     expect(circle.getId()).toBeUndefined();
-    const ring = (circle.getGeometry() as Polygon).getCoordinates()[0];
-    expect(ring[0][0]).toBeCloseTo(32);
-    expect(ring[0][1]).toBeCloseTo(10);
+    const coordinates = (circle.getGeometry() as Polygon).getCoordinates()[0];
+    expect(coordinates[0][0]).toBeCloseTo(32);
+    expect(coordinates[0][1]).toBeCloseTo(10);
     const style = radiusStyle(circle);
     expect(style.getFill()!.getColor()).toBe("rgba(255,0,0,0.3)");
     expect(style.getStroke()).toBeNull();
-    expect(assetSource!.getFeatureById(ringed.uuid).get("hasRadius")).toBe(true);
-    expect(assetSource!.getFeatureById(unringed.uuid).get("hasRadius")).toBe(false);
+    expect(assetSource!.getFeatureById(withRadius.uuid).get("hasRadius")).toBe(true);
+    expect(assetSource!.getFeatureById(withoutRadius.uuid).get("hasRadius")).toBe(false);
   });
 
-  it("strokes the selected asset's radius circle", () => {
+  it.each(["editor", "dashboard"] as const)(
+    "keeps an uncolored asset's radius fill transparent on the %s map",
+    (mode) => {
+      const asset = placed({ uncertaintyMeters: 12, color: null });
+      mockMissionDoc.assets = { [asset.uuid]: asset };
+      render(mode);
+      expect(radiusStyle(radiusCircles()[0]).getFill()!.getColor()).toBe("transparent");
+      expect(radiusStyle(radiusCircles()[0]).getStroke()).toBeNull();
+    }
+  );
+
+  it("strokes the selected asset's radius circle while keeping its fill transparent", () => {
     const asset = placed({ uncertaintyMeters: 12 });
     mockMissionDoc.assets = { [asset.uuid]: asset };
     render();
     expect(radiusStyle(radiusCircles()[0]).getStroke()).toBeNull();
     flushSync(() => store.dispatch(setSelectedAssetUuid(asset.uuid)));
+    expect(radiusStyle(radiusCircles()[0]).getFill()!.getColor()).toBe("transparent");
     expect(radiusStyle(radiusCircles()[0]).getStroke()!.getColor()).toBe("#ffffff");
   });
 

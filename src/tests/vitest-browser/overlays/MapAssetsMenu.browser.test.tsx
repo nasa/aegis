@@ -230,7 +230,7 @@ describe("MapAssetsMenu", () => {
     expect(q(`[data-testid='asset-row-${zed.uuid}']`)?.textContent).toContain("Not placed");
   });
 
-  it.each([0, 5])("shows chosen and default emoji background colors at radius %s", (radius) => {
+  it.each([0, 5])("shows chosen or transparent emoji backgrounds at radius %s", (radius) => {
     const colored = generateBlankAsset({ color: "#ff0000", uncertaintyMeters: radius });
     const uncolored = generateBlankAsset({ color: null, uncertaintyMeters: radius });
     mockMissionDoc.assets = { [colored.uuid]: colored, [uncolored.uuid]: uncolored };
@@ -239,7 +239,7 @@ describe("MapAssetsMenu", () => {
     const emojiCell = (uuid: string) =>
       q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[2] as HTMLElement;
     expect(emojiCell(colored.uuid).style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
-    expect(emojiCell(uncolored.uuid).style.backgroundColor).toBe("rgba(153, 153, 153, 0.5)");
+    expect(emojiCell(uncolored.uuid).style.backgroundColor).toBe("transparent");
   });
 
   it.each([false, true])("toggles folders from the header or icon (can edit: %s)", (canEdit) => {

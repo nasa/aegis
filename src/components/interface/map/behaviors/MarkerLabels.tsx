@@ -38,7 +38,7 @@ import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
-import { DEFAULT_ASSET_RING_COLOR, getVisibleMapAssets } from "utils/assets";
+import { DEFAULT_ASSET_RADIUS_COLOR, getVisibleMapAssets } from "utils/assets";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -527,7 +527,7 @@ export function MarkerLabels(): null {
         infos.push({
           id: `asset-${asset.uuid}`,
           name: asset.name,
-          accentColor: asset.color || DEFAULT_ASSET_RING_COLOR,
+          accentColor: asset.color || DEFAULT_ASSET_RADIUS_COLOR,
           labelType: "asset",
           anchorCoord: toMapCoord(asset.location) as [number, number],
           priority: PRIORITY_ASSET,
@@ -603,7 +603,7 @@ export function MarkerLabels(): null {
             infos.push({
               id: hoverLabelId,
               name: asset.name,
-              accentColor: asset.color || DEFAULT_ASSET_RING_COLOR,
+              accentColor: asset.color || DEFAULT_ASSET_RADIUS_COLOR,
               labelType: "asset",
               anchorCoord: toMapCoord(asset.location) as [number, number],
               priority: PRIORITY_ASSET,

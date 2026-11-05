@@ -16,7 +16,7 @@
  *    they are NOT force-shown when labels are turned off
  *  - Hover-induced labels appear and are flagged isHover
  *  - The lander label is hover-only (no permanent label)
- *  - Asset labels carry the asset's color as accentColor (default ring color fallback)
+ *  - Asset labels carry the asset's color as accentColor (transparent radius color fallback)
  *  - Labels stay visible as reference while an unrelated mapDirective is active
  *  - Stale labels removed when the underlying station is removed
  *  - Label opacities computed and stored on features (default = 1, since no overlap)
@@ -53,7 +53,6 @@ import { measureSlice } from "store/measure";
 import { actionSlice } from "store/action";
 import { hoverSlice } from "store/hover";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
-import { DEFAULT_ASSET_RING_COLOR } from "utils/assets";
 
 vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
   useCoordConverters: () => ({
@@ -604,9 +603,9 @@ describe("MarkerLabels", () => {
     expect(colored.get("name")).toBe("Asset 1");
     expect(colored.get("accentColor")).toBe("#ff0000");
 
-    // No color set — falls back to the default asset ring color
+    // No color set — the accent stays clear
     const uncolored = labelSource!.getFeatureById(`asset-${ASSET_UUID_2}`)!;
-    expect(uncolored.get("accentColor")).toBe(DEFAULT_ASSET_RING_COLOR);
+    expect(uncolored.get("accentColor")).toBe("transparent");
 
     // Non-asset labels carry no accent
     const stationLabel = labelSource!.getFeatureById(`station-${STATION_A_UUID}`)!;

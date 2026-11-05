@@ -53,11 +53,7 @@ import {
   thunkMoveAssetToFolder,
   thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
-import {
-  DEFAULT_ASSET_ICON,
-  DEFAULT_ASSET_RING_COLOR,
-  getAssetFolderUuidByItem,
-} from "utils/assets";
+import { DEFAULT_ASSET_ICON, getAssetFolderUuidByItem } from "utils/assets";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { AssetEditor, formatUtcTime } from "./map-menu-assets-editor";
 import { hhmmssFromSeconds } from "utils/formatting";
@@ -521,7 +517,6 @@ const AssetRow: FunctionComponent<{
     isDragging ? styles.assetRowDragging : "",
     !asset.visible || inheritedHidden ? styles.assetRowHidden : "",
   ].join(" ");
-  const iconBackgroundColor = asset.color || DEFAULT_ASSET_RING_COLOR;
 
   return (
     <>
@@ -585,7 +580,7 @@ const AssetRow: FunctionComponent<{
         <td
           ref={emojiCellRef}
           className={styles.emojiCell}
-          style={{ backgroundColor: withAlpha(iconBackgroundColor, 0.5) }}
+          style={{ backgroundColor: asset.color ? withAlpha(asset.color, 0.5) : "transparent" }}
         >
           <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
         </td>
