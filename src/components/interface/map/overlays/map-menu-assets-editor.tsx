@@ -1,13 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
-import {
-  faBan,
-  faCrosshairs,
-  faEdit,
-  faFloppyDisk,
-  faTrashAlt,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
+import { faBan, faCrosshairs, faFloppyDisk, faXmark } from "@fortawesome/free-solid-svg-icons";
 import CompactColor from "@uiw/react-color-compact";
 
 import styles from "./map-menu-assets.module.css";
@@ -22,7 +15,6 @@ import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import {
   thunkCancelAssetEdit,
   thunkCancelAssetMapDirective,
-  thunkDeleteAsset,
   thunkSaveAssetEdit,
   thunkSetAssetEditLocation,
   thunkStartAssetMapDirective,
@@ -62,10 +54,8 @@ type Props =
   | {
       mode: "view";
       asset: Asset;
-      canEdit: boolean;
       canMutate: boolean;
       coordinateContext: CoordinateEntryContext;
-      onEdit: () => void;
     };
 
 // Asset form panel used for Add Asset (above the table) and inside expanded asset rows (view or edit).
@@ -222,34 +212,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         : `This asset's folder "${hidden.folderName}" is hidden on the map. Show the folder to edit its position on the map, or enter coordinates.`
       : null;
 
-  const actions = isView ? (
-    props.canEdit ? (
-      <div className={styles.editorActions}>
-        <Button
-          onClick={props.onEdit}
-          icon={faEdit}
-          ariaLabel="Edit"
-          toolTip="Edit"
-          className={styles.iconOnlyButton}
-          enabled={canMutate}
-        />
-        <Button
-          onClick={() => {
-            if (
-              window.confirm(`Are you sure you want to delete the asset "${props.asset.name}"?`)
-            ) {
-              dispatch(thunkDeleteAsset({ assetUuid: props.asset.uuid }));
-            }
-          }}
-          icon={faTrashAlt}
-          ariaLabel="Delete"
-          toolTip="Delete"
-          className={styles.iconOnlyButton}
-          enabled={canMutate}
-        />
-      </div>
-    ) : null
-  ) : (
+  const actions = !isView && (
     <div className={styles.editorActions}>
       <Button
         onClick={async () => {
@@ -287,79 +250,72 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
       className={`${styles.editor} ${isView ? styles.editorView : ""}`}
       data-testid="asset-editor"
     >
-      <div className={styles.editorHeader}>
-        <div className={styles.editorHeading}>
-          {isView ? "Asset Details" : inEdit?.isNew ? "Add Asset" : "Edit Asset"}
+      {!isView && (
+        <div className={styles.editorHeader}>
+          <div className={styles.editorHeading}>{inEdit?.isNew ? "Add Asset" : "Edit Asset"}</div>
+          {actions}
         </div>
-        {actions}
-      </div>
+      )}
 
       <div className={styles.editorForm}>
-        <span className={styles.fieldLabel}>Name</span>
-        {isView ? (
-          <div className={styles.fieldControls}>
-            <span className={styles.viewEmoji} data-testid="asset-editor-emoji">
-              <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
-            </span>
-            <span className={styles.viewValue} data-testid="asset-editor-name">
-              {values.name}
-            </span>
-          </div>
-        ) : (
-          <div className={styles.fieldControls}>
-            <button
-              type="button"
-              className={styles.emojiButton}
-              onClick={() => emojiDialogRef.current?.showModal()}
-              disabled={!editable}
-              aria-label="Choose emoji"
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-content="Choose emoji"
-              data-testid="asset-editor-emoji"
-            >
-              <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
-            </button>
-            <dialog
-              ref={emojiDialogRef}
-              className={styles.dialogContainer}
-              onClick={() => emojiDialogRef.current?.close()}
-            >
-              <div className={styles.pickerMenu} onClick={(e) => e.stopPropagation()}>
-                <EmojiPicker
-                  emojiButtonSize={30}
-                  emojiSize={20}
-                  perLine={9}
-                  darkMode={true}
-                  onEmojiSelect={(e) => {
-                    dispatch(updateAssetInEditValues({ icon: e.unified || e.id || null }));
-                    emojiDialogRef.current?.close();
-                  }}
-                />
-                {values.icon && (
-                  <button
-                    type="button"
-                    className={styles.textButton}
-                    onClick={() => {
-                      dispatch(updateAssetInEditValues({ icon: null }));
+        {!isView && (
+          <>
+            <span className={styles.fieldLabel}>Name</span>
+            <div className={styles.fieldControls}>
+              <button
+                type="button"
+                className={styles.emojiButton}
+                onClick={() => emojiDialogRef.current?.showModal()}
+                disabled={!editable}
+                aria-label="Choose emoji"
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-content="Choose emoji"
+                data-testid="asset-editor-emoji"
+              >
+                <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
+              </button>
+              <dialog
+                ref={emojiDialogRef}
+                className={styles.dialogContainer}
+                onClick={() => emojiDialogRef.current?.close()}
+              >
+                <div className={styles.pickerMenu} onClick={(e) => e.stopPropagation()}>
+                  <EmojiPicker
+                    emojiButtonSize={30}
+                    emojiSize={20}
+                    perLine={9}
+                    darkMode={true}
+                    onEmojiSelect={(e) => {
+                      dispatch(updateAssetInEditValues({ icon: e.unified || e.id || null }));
                       emojiDialogRef.current?.close();
                     }}
-                  >
-                    No emoji
-                  </button>
-                )}
-              </div>
-            </dialog>
-            <input
-              className={`${styles.editorInput} ${styles.growInput}`}
-              value={values.name}
-              placeholder="Required"
-              aria-label="Asset name"
-              data-testid="asset-editor-name"
-              disabled={!editable}
-              maxLength={80}
-              onChange={(e) => dispatch(updateAssetInEditValues({ name: e.target.value }))}
-            />
-          </div>
+                  />
+                  {values.icon && (
+                    <button
+                      type="button"
+                      className={styles.textButton}
+                      onClick={() => {
+                        dispatch(updateAssetInEditValues({ icon: null }));
+                        emojiDialogRef.current?.close();
+                      }}
+                    >
+                      No emoji
+                    </button>
+                  )}
+                </div>
+              </dialog>
+              <input
+                className={`${styles.editorInput} ${styles.growInput}`}
+                value={values.name}
+                placeholder="Required"
+                aria-label="Asset name"
+                data-testid="asset-editor-name"
+                disabled={!editable}
+                maxLength={80}
+                onChange={(e) => dispatch(updateAssetInEditValues({ name: e.target.value }))}
+              />
+            </div>
+          </>
         )}
 
         <span className={styles.fieldLabel}>Radius</span>

@@ -51,6 +51,7 @@ import {
 } from "store/thunk/thunkFolder";
 import {
   thunkCancelAssetEdit,
+  thunkDeleteAsset,
   thunkMoveAssetToFolder,
   thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
@@ -617,7 +618,33 @@ const AssetRow: FunctionComponent<{
                 <FontAwesomeIcon icon={asset.visible ? faEye : faEyeSlash} size="xs" />
               </button>
             </td>
-            <td />
+            <td>
+              {canMutate && (
+                <RowMenu
+                  label="Asset actions"
+                  items={[
+                    {
+                      icon: faEdit,
+                      label: "Edit Asset",
+                      onClick: () => onEdit(asset.uuid),
+                    },
+                    {
+                      icon: faTrashAlt,
+                      label: "Delete Asset",
+                      onClick: () => {
+                        if (
+                          window.confirm(
+                            `Are you sure you want to delete the asset "${asset.name}"?`
+                          )
+                        ) {
+                          dispatch(thunkDeleteAsset({ assetUuid: asset.uuid }));
+                        }
+                      },
+                    },
+                  ]}
+                />
+              )}
+            </td>
           </>
         )}
       </tr>
@@ -634,10 +661,8 @@ const AssetRow: FunctionComponent<{
               <AssetEditor
                 mode="view"
                 asset={asset}
-                canEdit={canEdit}
                 canMutate={canMutate}
                 coordinateContext={coordinateContext}
-                onEdit={() => onEdit(asset.uuid)}
               />
             )}
           </td>

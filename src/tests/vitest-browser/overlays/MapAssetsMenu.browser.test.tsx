@@ -168,7 +168,11 @@ describe("MapAssetsMenu", () => {
     expect(q(`[data-testid='asset-visibility-${asset.uuid}']`)).not.toBeNull();
     expect(q(`[data-testid='asset-folder-visibility-${folder.uuid}']`)).not.toBeNull();
     flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
-    flushSync(() => q("[data-testid='asset-editor'] [aria-label='Edit']")!.click());
+    flushSync(() => q("[aria-label='Asset actions']")!.click());
+    const edit = [...harness.container.querySelectorAll<HTMLElement>("[role='menuitem']")].find(
+      (item) => item.textContent === "Edit Asset"
+    )!;
+    flushSync(() => edit.click());
     expect(editAsset).toHaveBeenCalledWith({ assetUuid: asset.uuid });
   });
 
@@ -226,7 +230,7 @@ describe("MapAssetsMenu", () => {
       .left;
     expect(inFolderEyeLeft).toBe(rootEyeLeft);
     expect(inFolderEyeLeft).toBe(folderEyeLeft);
-    expect(q(`[aria-label='Asset actions']`)).toBeNull();
+    expect(harness.container.querySelectorAll("[aria-label='Asset actions']")).toHaveLength(3);
     expect(q(`[data-testid='asset-row-${zed.uuid}']`)?.textContent).toContain("Not placed");
   });
 
@@ -541,9 +545,11 @@ describe("MapAssetsMenu", () => {
       });
       const firstDetail = q(`[data-testid='asset-detail-row-${first.uuid}']`);
       expect(firstDetail).not.toBeNull();
-      expect(firstDetail?.textContent).toContain("Asset Details");
+      expect(firstDetail?.textContent).not.toContain("Asset Details");
+      expect(firstDetail?.querySelector("[aria-label='Edit'], [aria-label='Delete']")).toBeNull();
       expect(firstDetail?.querySelectorAll("input, textarea")).toHaveLength(0);
-      expect(q("[data-testid='asset-editor-name']")?.textContent).toBe("First");
+      expect(q("[data-testid='asset-editor-name']")).toBeNull();
+      expect(q("[data-testid='asset-editor-emoji']")).toBeNull();
       expect(q("[data-testid='asset-editor-notes']")?.textContent).toBe("First note");
       // Expanded headers and details share a background without an outline or an internal gap.
       const detailCellStyle = getComputedStyle(firstDetail!.querySelector("td")!);
@@ -574,11 +580,29 @@ describe("MapAssetsMenu", () => {
       expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)).toBeNull();
       expect(q(`[data-testid='asset-detail-row-${second.uuid}']`)).not.toBeNull();
 
-      // Clicking Edit or Delete inside the expanded panel acts on that asset.
-      flushSync(() => q("[data-testid='asset-editor'] [aria-label='Edit']")!.click());
+      // The row menu acts on its asset without changing selection or expansion.
+      const secondRow = q(`[data-testid='asset-row-${second.uuid}']`)!;
+      const openActions = () =>
+        flushSync(() =>
+          secondRow.querySelector<HTMLButtonElement>("[aria-label='Asset actions']")!.click()
+        );
+      const menuItem = (label: string) =>
+        [...secondRow.querySelectorAll<HTMLElement>("[role='menuitem']")].find(
+          (item) => item.textContent === label
+        )!;
+      openActions();
+      expect(store.getState().asset.selectedAssetUuid).toBe(first.uuid);
+      expect(store.getState().asset.expandedAssetUuid).toBe(second.uuid);
+      flushSync(() => menuItem("Edit Asset").click());
       expect(editAsset).toHaveBeenCalledWith({ assetUuid: second.uuid });
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-      flushSync(() => q("[data-testid='asset-editor'] [aria-label='Delete']")!.click());
+      expect(secondRow.querySelector("dialog")!.open).toBe(false);
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+      openActions();
+      flushSync(() => menuItem("Delete Asset").click());
+      expect(deleteAsset).not.toHaveBeenCalled();
+      confirmSpy.mockReturnValue(true);
+      openActions();
+      flushSync(() => menuItem("Delete Asset").click());
       expect(deleteAsset).toHaveBeenCalledWith({ assetUuid: second.uuid });
       confirmSpy.mockRestore();
 

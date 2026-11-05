@@ -157,6 +157,8 @@ describe("thunkAddAsset", () => {
     await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
     store.dispatch(updateAssetInEditValues({ petSeconds: 0 }));
     await store.dispatch(thunkCancelAssetEdit());
+    expect(inEdit()).toBeNull();
+    expect(store.getState().asset.expandedAssetUuid).toBe(asset.uuid);
     expect(doc().assets[asset.uuid].petSeconds).toBe(1200);
     expect(doc().assets[asset.uuid].petRex).toEqual(asset.petRex);
     await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));

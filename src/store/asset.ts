@@ -72,8 +72,13 @@ export const assetSlice = createSlice({
       state.inEdit.values.elevation = elevation;
       state.inEdit.elevationPending = false;
     },
-    clearAssetInEdit: (state) => {
-      if (state.inEdit && !state.inEdit.isNew && state.expandedAssetUuid === state.inEdit.uuid) {
+    clearAssetInEdit: (state, action: { payload: { keepExpanded: boolean } | undefined }) => {
+      if (
+        !action.payload?.keepExpanded &&
+        state.inEdit &&
+        !state.inEdit.isNew &&
+        state.expandedAssetUuid === state.inEdit.uuid
+      ) {
         state.expandedAssetUuid = null;
       }
       state.inEdit = null;
