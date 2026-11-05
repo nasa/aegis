@@ -463,6 +463,14 @@
   background-color: #6ee5ff1f;
   color: #a5dcec;
 }
+.cellSkippedOnly {
+  background-color: #ff70701f;
+  color: #f0aeae;
+}
+.cellDisabledOnly {
+  background-color: #f5b9421f;
+  color: #e8c987;
+}
 .cellNone {
   color: var(--grey4);
 }

@@ -41,7 +41,10 @@ class ErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // log to logging service
     clientLogger.error(
-      { logId: "react-error-boundary", componentStack: errorInfo.componentStack },
+      {
+        logId: "react-error-boundary:componentDidCatch:uncaughtReactRenderError",
+        componentStack: errorInfo.componentStack,
+      },
       error
     );
   }

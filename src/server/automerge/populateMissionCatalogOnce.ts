@@ -12,7 +12,7 @@ export async function populateMissionCatalogOnce(repo: Repo, missionIds?: number
 
   const started = Date.now();
   serverLogger.info({
-    logId: "mission-catalog",
+    logId: "mission-catalog:populateMissionCatalogOnce:startingSequentialMissionSummaryPopulation",
     logValue: `Populating ${pending.length} mission summaries sequentially`,
   });
   for (const listing of pending) {
@@ -21,7 +21,7 @@ export async function populateMissionCatalogOnce(repo: Repo, missionIds?: number
     await releaseMissionDocument(repo, handle.documentId);
   }
   serverLogger.info({
-    logId: "mission-catalog",
+    logId: "mission-catalog:populateMissionCatalogOnce:initialCatalogPopulationComplete",
     logValue: "Initial catalog population complete",
     missions: pending.length,
     durationMs: Date.now() - started,

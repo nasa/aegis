@@ -55,6 +55,16 @@ Never modify the runtime logic, version, name, or data transformations of an exi
 
 When shared types change, use migration-local historical types to preserve the old migration's original input and output shapes. Only type declarations and type annotations may be adjusted for compatibility; do not add new fields, defaults, or transformations to an old migration to satisfy current types. Keep these type-only edits minimal and avoid reformatting the migration body.
 
+## Database Models
+
+Every persistent application table must have its own matching `.model.ts` file in `src/server/database/models/`, including tables created with raw SQL in manual migrations. Define the entity schema and class, add the schema to `allSchemas`, and export the class from `_allModels.ts` in dependency order.
+
+When creating or changing a table, update its model in the same change. Match the table and column names, types, nullability, defaults, primary keys, foreign keys, unique constraints, and indexes. Check for an existing model before adding one, and keep migration-local historical schemas in `_legacyModels.ts` separate from current models.
+
+Framework-owned tables such as `mikro_orm_migrations` are managed by the framework and must not have application models or application migrations. MikroORM handles its migration table automatically. The application-owned `automerge_migration_db` table does require a registered model. Temporary tables and implicit ORM join tables do not need separate model files.
+
+Verify entity discovery and schema generation after model changes. Adding a model for an existing table should not generate schema changes when the model matches the database. Preserve migration immutability when fixing missing or outdated models.
+
 ## Comments
 
 Keep comments short. Write comments that explain what the code does or why — never comments that narrate what wasn't done, what a previous approach was, or what you chose not to do. Delete such notes rather than adding them.
@@ -70,6 +80,15 @@ During development, format changed files with the root `.prettierrc.json` and ru
 Run `npm run test:all` before committing, opening or updating a merge request, or preparing changes for merge or release, and whenever explicitly requested. It is not required after every edit or batch of changes. The full check runs lint (JS/TS + CSS), tsc, build, vitest, and vitest:browser in sequence. Its API build recreates the output directory watched by the dev server, which restarts the API and forces open tabs to reload, interrupting HMR.
 
 Fix failures in the required checks before committing or handing changes off for review. Include lint checks for changed code during development; this project has non-standard CSS and JS/TS lint rules. If lint fails, read the error output carefully and fix exactly what it reports rather than guessing at the rule.
+
+## Logging
+
+Log through `clientLogger` (`utils/logging/clientLogger`) in browser code and `serverLogger` (`utils/logging/serverLogger`) in server code; both wrap `ConsoleLogger`.
+
+- **Every `logId` must be unique across the project** so a log entry in the logging server traces back to exactly one call site. The custom ESLint rule `aegis-logging/unique-log-id` (defined inline in `eslint.config.mjs`) enforces this for every `serverLogger` / `clientLogger` / `ConsoleLogger` / `rawServerLogger` call outside `src/tests/**`. The first argument must be an object literal and `logId` must be a string literal (no variables or template substitutions, no string-only shorthand). Uniqueness is checked across all files linted in one ESLint process, so `npm run lint` catches cross-file duplicates; an editor only compares against files it has already linted.
+- **Format:** `<category>:<function or handler>:<verbose camelCase description of the event>`, e.g. `socket-maestro-v2:sendMDAU:rejectedPayloadFailedSchemaValidation`. The first segment is the area of code (`server`, `automerge-migration`, `thunk-eva`, `socket-dust-v1`, ...), so you can still filter by area with a prefix query.
+- **`serverLogger.apiRoute()`** requires a `logId` in the form `api-route:<routeName>:<HTTP METHOD>:<description>`, e.g. `api-route:appUsers:GET:unauthorizedRequest`.
+- **Maestro v2 socket connection logs:** the `/maestro/v2` namespace logs every connection (`socket-maestro-v2:connection:maestroClientConnectedOrReconnected`, with `connectionStateRecovered` = Socket.IO's `socket.recovered`) and every disconnect, as `info` for client- or server-requested reasons and `warning` for lost connections (ping timeout, transport close/error). The disconnect log includes the Socket.IO `reason`, `description`, Maestro name, and joined mission ids. Connection state recovery is not enabled on the Socket.IO server, so `socket.recovered` is currently always `false`, and a reconnecting client arrives as a new socket id.
 
 ## Map / OpenLayers
 

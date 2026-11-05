@@ -73,7 +73,7 @@ const ExportPage: React.FunctionComponent = () => {
     <main className={adminCommon.page}>
       <div className={adminCommon.container}>
         <Link to="/admin/missions" className={adminCommon.backLink}>
-          â† Missions
+          ← Missions
         </Link>
         <h1 className={adminCommon.pageTitle}>Export Mission</h1>
         {missionName && (

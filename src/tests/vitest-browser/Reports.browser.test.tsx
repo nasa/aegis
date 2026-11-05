@@ -10,8 +10,19 @@ import { ReportIdProvider } from "components/panes/reports/reports-context";
 import gridStyles from "components/panes/reports/shared/report-grid.module.css";
 import comparisonStyles from "components/panes/reports/eva-comparison/eva-comparison.module.css";
 import { reportSetColumnDerivedData, reportSlice } from "store/report";
+import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankStation } from "store/storeUtils/station";
+import { generateBlankAction } from "store/storeUtils/action";
+import { generateBlankPoi } from "store/storeUtils/poi";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
 import "styles/globals.css";
+
+const fixture = vi.hoisted(() => ({ mission: null as Mission | null }));
+vi.mock("utils/useDocSelector", () => ({
+  useMissionDocSelector: (selector: (mission: Mission | null) => unknown) =>
+    selector(fixture.mission),
+}));
 
 vi.mock("components/panes/reports/eva-stm-coverage/eva-stm-coverage-page", () => ({
   default: () => <div>Coverage content</div>,
@@ -28,6 +39,49 @@ let store: ReturnType<typeof makeStore>;
 let harness: ReactHarness;
 
 beforeEach(() => {
+  const mission = generateBlankMission({ actionSystemVersion: 2 });
+  mission.missionPriorities = {
+    p1: { trace: "SIMD-0002.1", category: "Sample Collection" },
+    p2: { trace: "SIMD-0010.1", category: "Sample Collection" },
+    pPoiOnly: { trace: "GEO-0004.1", category: "Field Geology" },
+  };
+  mission.stations = {
+    s1: generateBlankStation({ uuid: "s1", name: "Station 1" }),
+  };
+  mission.pois = {
+    poi1: generateBlankPoi({ uuid: "poi1", name: "Rim POI", actionOrderUuids: ["poiAct"] }),
+  };
+  mission.evas = {
+    eva1: generateBlankEVA({
+      uuid: "eva1",
+      name: "EVA Alpha",
+      sequence: [{ type: "station", uuid: "s1" }],
+    }),
+  };
+  mission.actions = {
+    actEnabled: generateBlankAction({
+      uuid: "actEnabled",
+      stationUuid: "s1",
+      name: "Collect regolith",
+      enabled: true,
+      missionPriorityUuid: "p1",
+    }),
+    actDisabled: generateBlankAction({
+      uuid: "actDisabled",
+      stationUuid: "s1",
+      name: "Backup sample",
+      enabled: false,
+      missionPriorityUuid: "p2",
+    }),
+    poiAct: generateBlankAction({
+      uuid: "poiAct",
+      poiUuid: "poi1",
+      name: "Characterize rim",
+      enabled: true,
+      missionPriorityUuid: "pPoiOnly",
+    }),
+  };
+  fixture.mission = mission;
   store = makeStore();
   harness = createReactHarness();
 });
@@ -98,6 +152,46 @@ describe("Reports navigation and grid", () => {
     render();
     expect(harness.container.textContent).toContain("Traceability content");
     expect(store.getState().report.activeTab).toBe("poiTrace");
+
+    await page.getByText("Mission Priorities", { exact: true }).click();
+    harness.render(null);
+    render();
+    expect(store.getState().report.activeTab).toBe("missionPriorities");
+    expect(harness.container.textContent).toContain("SIMD-0002.1");
+  });
+
+  it("renders Mission Priorities categories, disabled-only indicator, POI-only badge, and drilldown on cell click", async () => {
+    harness.render(
+      <Provider store={store}>
+        <ReportsPage />
+      </Provider>
+    );
+    await page.getByText("Mission Priorities", { exact: true }).click();
+
+    const grid = harness.container.querySelector(`.${gridStyles.gridScroll}`)!;
+    expect(grid.textContent).toContain("Field Geology");
+    expect(grid.textContent).toContain("Sample Collection");
+    expect(grid.textContent).toContain("SIMD-0002.1");
+    expect(grid.textContent).toContain("SIMD-0010.1");
+    expect(grid.textContent).toContain("POI only (1)");
+    expect(grid.textContent).toContain("0 (D)");
+
+    // Clicking the priority row opens the drilldown side panel
+    await page.getByRole("button", { name: "SIMD-0002.1 (Sample Collection)" }).click();
+    expect(harness.container.textContent).toContain("In EVA Alpha");
+    expect(harness.container.textContent).toContain("Collect regolith");
+
+    // Clicking the disabled-only row shows the disabled action in the drilldown
+    await page.getByRole("button", { name: "SIMD-0010.1 (Sample Collection)" }).click();
+    expect(harness.container.textContent).toContain("0 active (disabled only)");
+    expect(harness.container.textContent).toContain("Disabled in this EVA / REX (1)");
+    expect(harness.container.textContent).toContain("Backup sample");
+
+    // Toggling off "Show disabled" hides the 0 (D) indicator and updates the drilldown status
+    await page.getByText("Show disabled", { exact: true }).click();
+    expect(grid.textContent).not.toContain("0 (D)");
+    expect(harness.container.textContent).toContain("0 active (no active actions)");
+    expect(harness.container.textContent).not.toContain("Disabled in this EVA / REX");
   });
 
   it("expands to the right from title clicks and keeps the baseline unchanged", async () => {

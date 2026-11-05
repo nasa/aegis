@@ -48,7 +48,8 @@ export const Migration20261028000000: AutomergeMigration = {
         docHandle.removeAllListeners("change");
         repo.delete(docHandle.url);
         serverLogger.info({
-          logId: "automerge-migration",
+          logId:
+            "automerge-migration:Migration20261028000000:replacedMissionDocumentAndRequestedOldDocumentDeletion",
           logValue: `Mission ${docListing.missionId}: replaced ${oldUrl} with ${replacement.url} and requested deletion of the old document.`,
         });
       });

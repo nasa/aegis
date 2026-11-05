@@ -123,10 +123,10 @@ interface STMState {
 
 /**
  * UI + derived state for the column-family reports (EVA STM Coverage, EVA
- * Comparison). Both reports share the same column header band, grouping,
- * expansion, baseline + diff grammar and controls, so they share this shape.
- * The per-report instances are kept apart in ReportState so each tab keeps its
- * own baseline/diff/hidden/expanded columns and derived data.
+ * Comparison, Mission Priorities). These reports share the same column header
+ * band, grouping, expansion, baseline + diff grammar and controls, so they
+ * share this shape. The per-report instances are kept apart in ReportState so
+ * each tab keeps its own baseline/diff/hidden/expanded columns and derived data.
  */
 interface ColumnReportState {
   baselineColumnKey: string | null;
@@ -140,23 +140,29 @@ interface ColumnReportState {
   drilldownWidth: number;
   // Drilldown diff filter: hide matched rows, show only plus/minus rows.
   drilldownChangesOnly: boolean;
-  // Currently-selected cell (drives the coverage drilldown panel).
+  // Currently-selected cell (drives the coverage / mission-priorities drilldown panel).
   cellSelection: StmCoverageCellSelection;
   // Derived data, computed once in the report page from the mission doc + the
   // stm slice and mirrored here so the grid components can read it without
   // prop-drilling. coverageByColumnKey is used by EVA STM Coverage;
-  // metricsByColumnKey by EVA Comparison.
+  // metricsByColumnKey by EVA Comparison; priorityCoverageByColumnKey by
+  // Mission Priorities.
   visibleColumns: EvaReportColumn[];
   resolvedBaselineKey: string | null;
   sequenceByColumnKey: { [columnKey: string]: StmCoverageSequenceItem[] };
   // Left-axis row ids to show when "differences only" is on; null = show all.
-  // (level3 uuids for coverage, metric-row ids for comparison.) Array, not Set,
-  // to keep the store serializable.
+  // (level3 uuids for coverage, metric-row ids for comparison, priority uuids
+  // for mission priorities.) Array, not Set, to keep the store serializable.
   visibleRowIds: string[] | null;
   coverageByColumnKey: {
     [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 };
   };
   metricsByColumnKey: { [columnKey: string]: EvaComparisonColumnValues };
+  priorityCoverageByColumnKey?: {
+    [columnKey: string]: { [priorityUuid: string]: MissionPriorityCellCoverage };
+  };
+  includeDisabledActions?: boolean;
+  collapsedPriorityCategories?: string[];
 }
 
 /** Patch pushed into a column report each render by its page's derived-data effect. */
@@ -167,6 +173,9 @@ type ColumnReportDerivedData = {
   visibleRowIds: string[] | null;
   coverageByColumnKey?: { [columnKey: string]: { [stmUuid: string]: StmCoverageLevel3 } };
   metricsByColumnKey?: { [columnKey: string]: EvaComparisonColumnValues };
+  priorityCoverageByColumnKey?: {
+    [columnKey: string]: { [priorityUuid: string]: MissionPriorityCellCoverage };
+  };
 };
 
 /** Which set of EVAs the POI Traceability report is scoped to. */
@@ -180,15 +189,16 @@ interface PoiTraceState {
   selectedPoiUuid: string | null;
 }
 
-type ColumnReportId = "stmCoverage" | "comparison";
+type ColumnReportId = "stmCoverage" | "comparison" | "missionPriorities";
 type ReportId = ColumnReportId | "poiTrace";
-type ReportsTab = "coverage" | "comparison" | "poiTrace";
+type ReportsTab = "coverage" | "comparison" | "poiTrace" | "missionPriorities";
 
 /** All Reports-pane UI/derived state, keyed by report id. */
 interface ReportState {
   activeTab: ReportsTab;
   stmCoverage: ColumnReportState;
   comparison: ColumnReportState;
+  missionPriorities: ColumnReportState;
   poiTrace: PoiTraceState;
 }
 

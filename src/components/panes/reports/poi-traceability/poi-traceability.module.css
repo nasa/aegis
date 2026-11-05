@@ -348,9 +348,10 @@
 }
 
 .itemIcon {
-  display: inline-flex;
-  align-items: center;
   margin-right: 4px;
+}
+
+.itemIcon img {
   vertical-align: middle;
 }
 

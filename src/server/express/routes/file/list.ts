@@ -27,6 +27,7 @@ router.get("/", async (req: Request, res: Response) => {
   });
   if (!viewPermission || (!req.session.appUser.isAdmin && !req.session.appUser.isSuperAdmin)) {
     serverLogger.apiRoute({
+      logId: "api-route:file/list:GET:unauthorizedRequestRequiresViewPermissionAndAdmin",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -44,6 +45,7 @@ router.get("/", async (req: Request, res: Response) => {
     res.status(200).json({ data: listing });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:file/list:GET:failedToListFiles",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,

@@ -260,7 +260,7 @@ export class VersionGatedNetworkAdapter
         ? "An epoch is missing, so this page predates the gate"
         : "The server epoch changed";
     clientLogger.warning({
-      logId: "automergeGate",
+      logId: "automergeGate:VersionGatedNetworkAdapter:serverEpochMismatchReloadRequired",
       logValue: `${reason}; a reload is required. page epoch: ${pageEpoch}, server epoch: ${serverEpoch}`,
     });
 

@@ -38,7 +38,8 @@ export const Migration20260930000000: AutomergeMigration = {
           const uuid = sequenceUuids.has(key) ? key : uuidByRefUuid[key];
           if (!uuid) {
             serverLogger.warning({
-              logId: "automerge-migration",
+              logId:
+                "automerge-migration:Migration20260930000000:droppedMaestroActivityPropertyKeyThatCouldNotResolveToSequenceItem",
               logValue: `Mission ${mission.id} REX ${rex.uuid} could not resolve maestro activity property key "${key}" to a sequence item; dropping it`,
             });
             continue;

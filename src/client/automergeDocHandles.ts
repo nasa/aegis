@@ -12,7 +12,7 @@ export const getMissionDocHandle = (): DocHandle<Mission> | null => {
     import("utils/logging/clientLogger").then(({ clientLogger }) => {
       clientLogger.error(
         {
-          logId: "automergeDocHandles",
+          logId: "automergeDocHandles:getMissionDocHandle:missionDocHandleNotSet",
           logValue: "getMissionDocHandle: Mission doc handle is not set",
         },
         new Error("Mission doc handle is not set")

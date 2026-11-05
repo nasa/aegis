@@ -33,6 +33,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
     serverLogger.apiRoute({
+      logId: "api-route:appUsers:GET:unauthorizedRequestNotSuperAdmin",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -55,6 +56,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:appUsers:GET:failedToRetrieveAppUsers",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -74,6 +76,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
     serverLogger.apiRoute({
+      logId: "api-route:appUsers:POST:unauthorizedRequestNotSuperAdmin",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -90,6 +93,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // validate
     if (!users || users.length === 0) {
       serverLogger.apiRoute({
+        logId: "api-route:appUsers:POST:rejectedNoUsersProvidedInRequestBody",
         logLevel: "notice",
         httpMethod: "POST",
         responseStatus: 400,
@@ -106,6 +110,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     // Check response
     if (!upsertResponse || upsertResponse.length === 0) {
       serverLogger.apiRoute({
+        logId: "api-route:appUsers:POST:failedToUpsertAppUsersAfterOptimisticLockingRetries",
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -132,6 +137,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:appUsers:POST:unexpectedErrorUpsertingAppUsers",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -151,6 +157,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
   //only super admin can view/edit users
   if (!req.session.appUser?.isSuperAdmin) {
     serverLogger.apiRoute({
+      logId: "api-route:appUsers:DELETE:unauthorizedRequestNotSuperAdmin",
       logLevel: "warning",
       httpMethod: "DELETE",
       responseStatus: 401,
@@ -173,6 +180,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
       });
     } else {
       serverLogger.apiRoute({
+        logId: "api-route:appUsers:DELETE:deleteAppUsersQueryFailed",
         logLevel: "error",
         httpMethod: "DELETE",
         responseStatus: 500,
@@ -186,6 +194,7 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
     }
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:appUsers:DELETE:unexpectedErrorDeletingAppUsers",
       logLevel: "error",
       httpMethod: "DELETE",
       responseStatus: 500,

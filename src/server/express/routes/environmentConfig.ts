@@ -30,6 +30,7 @@ const isKnownKey = (key: string): key is EnvConfigKey =>
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   if (!req.session.appUser?.isSuperAdmin) {
     serverLogger.apiRoute({
+      logId: "api-route:environmentConfig:GET:unauthorizedListAllConfigsNotSuperAdmin",
       logLevel: "warning",
       httpMethod: "GET",
       responseStatus: 401,
@@ -48,6 +49,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       .json({ status: "success", message: "environment configs retrieved", data: configs });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:environmentConfig:GET:failedToRetrieveAllEnvironmentConfigs",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -82,6 +84,7 @@ router.get("/:key", async (req: Request, res: Response): Promise<void> => {
       .json({ status: "success", message: "environment config retrieved", data: config });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:environmentConfig:GET:failedToRetrieveEnvironmentConfigByKey",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -98,6 +101,7 @@ router.get("/:key", async (req: Request, res: Response): Promise<void> => {
 router.post("/:key", async (req: Request, res: Response): Promise<void> => {
   if (!req.session.appUser?.isSuperAdmin) {
     serverLogger.apiRoute({
+      logId: "api-route:environmentConfig:POST:unauthorizedSetConfigValueNotSuperAdmin",
       logLevel: "warning",
       httpMethod: "POST",
       responseStatus: 401,
@@ -122,6 +126,8 @@ router.post("/:key", async (req: Request, res: Response): Promise<void> => {
 
     if (!config) {
       serverLogger.apiRoute({
+        logId:
+          "api-route:environmentConfig:POST:failedToSetConfigValueAfterOptimisticLockingRetries",
         logLevel: "error",
         httpMethod: "POST",
         responseStatus: 500,
@@ -147,6 +153,7 @@ router.post("/:key", async (req: Request, res: Response): Promise<void> => {
       .json({ status: "success", message: "environment config updated", data: config });
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:environmentConfig:POST:unexpectedErrorSettingConfigValue",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,

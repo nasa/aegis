@@ -69,7 +69,7 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
 
       if (!areTraverseProfileUpdatesCurrent([stageData])) {
         clientLogger.debug({
-          logId: "thunk-traverse",
+          logId: "thunk-traverse:thunkDocUpdateTraverse:supersededTraverseProfileSkippingApply",
           logValue: `thunkDocUpdateTraverse: superseded traverse profile for traverse ${traverseUuid}, skipping apply`,
         });
         return;
@@ -226,7 +226,8 @@ export const thunkDocUpdateTraversesAroundStation = appCreateAsyncThunk<{
   // topology/profile application would leave the EVA internally inconsistent.
   if (!areTraverseProfileUpdatesCurrent(validUpdates)) {
     clientLogger.debug({
-      logId: "thunk-traverse",
+      logId:
+        "thunk-traverse:thunkDocUpdateTraversesAroundStation:supersededTraverseProfileSkippingApply",
       logValue: `thunkDocUpdateTraversesAroundStation: superseded traverse profile for station ${stationUuid}, skipping apply`,
     });
     return;

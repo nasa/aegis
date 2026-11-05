@@ -43,18 +43,21 @@ const user = await getCurrentUser();
 let repoClientID = `client-${Math.random().toString(36).slice(2, 5)}`;
 if (!user || user instanceof Error) {
   clientLogger.error(
-    { logId: "launchpadLogin", logValue: `Unable to get current user, ${user}` },
+    {
+      logId: "launchpadLogin:clientStartup:unableToGetCurrentLaunchpadUser",
+      logValue: `Unable to get current user, ${user}`,
+    },
     new Error(`Unable to get current user: ${user}`)
   );
 } else {
   clientLogger.info({
-    logId: "launchpadLogin",
+    logId: "launchpadLogin:clientStartup:currentLaunchpadUserLoaded",
     launchpadDisplayName: `${user.display_name || "unknown user"}`,
   });
   repoClientID = `${user.auid}-${Math.random().toString(36).slice(2, 5)}`;
 }
 clientLogger.info({
-  logId: "automergeId",
+  logId: "automergeId:clientStartup:automergeRepoClientIdAssigned",
   automergeId: `${repoClientID}`,
 });
 
@@ -64,7 +67,10 @@ try {
   serverAppVersion = await fetchServerAppVersion();
 } catch (error) {
   clientLogger.critical(
-    { logId: "appVersion", logValue: "Unable to start AEGIS: server version is unavailable" },
+    {
+      logId: "appVersion:clientStartup:serverAppVersionUnavailableCannotStart",
+      logValue: "Unable to start AEGIS: server version is unavailable",
+    },
     error instanceof Error ? error : new Error(String(error))
   );
   const failureContainer = document.getElementById("root");
@@ -88,7 +94,7 @@ const clientAppVersion: AppVersion = {
 };
 store.dispatch(setClientAppVersion(clientAppVersion));
 clientLogger.info({
-  logId: "appVersion",
+  logId: "appVersion:clientStartup:clientAppVersionAndServerEpochLoaded",
   version: `AEGIS Client Version: ${clientAppVersion.version}, Git Commit: ${clientAppVersion.gitCommit}, Server Epoch: ${clientAppVersion.serverEpochUuid}`,
 });
 

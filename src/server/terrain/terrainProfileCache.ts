@@ -152,7 +152,7 @@ export function watchTerrainCache(handle: DocHandle<Mission>): void {
       deleteTerrainProfileFromDb(mission, () => handle.doc()).catch((error) =>
         serverLogger.error(
           {
-            logId: "terrain-cache",
+            logId: "terrain-cache:watchTerrainCache:failedToDeleteRemovedEntityTerrainProfiles",
             logValue: "Could not delete terrain profiles",
             missionId: mission.id,
           },

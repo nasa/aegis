@@ -102,9 +102,10 @@ export function stageDuplicateEva(
     }
     const newUuid = traverseUuidMap.get(item.uuid);
     if (newUuid === undefined) {
-      clientLogger.warning(
-        `stageDuplicateEva: source traverse uuid "${item.uuid}" not found in traverseUuidMap — setting sequence item uuid to empty string`
-      );
+      clientLogger.warning({
+        logId: "stage-eva:stageDuplicateEva:sourceTraverseUuidNotFoundInTraverseUuidMap",
+        logValue: `stageDuplicateEva: source traverse uuid "${item.uuid}" not found in traverseUuidMap — setting sequence item uuid to empty string`,
+      });
       return { type: "traverse", uuid: "" };
     }
     return { type: "traverse", uuid: newUuid };

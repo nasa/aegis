@@ -25,6 +25,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     res.status(200).json(loginResult);
   } catch (error) {
     serverLogger.apiRoute({
+      logId: "api-route:auth/login:POST:unexpectedErrorDuringLogin",
       logLevel: "error",
       httpMethod: "POST",
       responseStatus: 500,
@@ -44,6 +45,7 @@ router.get("/logout", async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({ status: "success", message: "Logged out", data: true });
   } catch (error) {
     serverLogger.apiRoute({
+      logId: "api-route:auth/logout:GET:unexpectedErrorDuringLogout",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -70,6 +72,7 @@ router.get("/isLoggedIn", async (req: Request, res: Response): Promise<void> => 
     }
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:auth/isLoggedIn:GET:unexpectedErrorCheckingLoginStatus",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
@@ -99,6 +102,7 @@ router.get("/adminRecovery", async (req: Request, res: Response): Promise<void> 
     }
   } catch (e) {
     serverLogger.apiRoute({
+      logId: "api-route:auth/adminRecovery:GET:unexpectedErrorDuringAdminRecovery",
       logLevel: "error",
       httpMethod: "GET",
       responseStatus: 500,
