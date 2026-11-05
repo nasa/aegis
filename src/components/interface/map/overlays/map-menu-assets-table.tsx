@@ -622,10 +622,7 @@ const AssetRow: FunctionComponent<{
         )}
       </tr>
       {isExpanded && (
-        <tr
-          className={`${styles.assetDetailRow} ${isEditing ? styles.assetDetailRowEditing : ""}`}
-          data-testid={`asset-detail-row-${asset.uuid}`}
-        >
+        <tr className={styles.assetDetailRow} data-testid={`asset-detail-row-${asset.uuid}`}>
           <td colSpan={columnCount} className={styles.assetDetailCell}>
             {isEditing && inEdit ? (
               <AssetEditor
