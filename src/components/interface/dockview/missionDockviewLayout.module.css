@@ -123,6 +123,56 @@
   pointer-events: none;
 }
 
+/* Enlarge the invisible mouse targets around floating windows without thickening their borders.
+   Leave Dockview's larger touch targets in place for coarse pointers. */
+@media (pointer: fine) {
+  .container :global(.dv-resize-container .dv-resize-handle-top),
+  .container :global(.dv-resize-container .dv-resize-handle-bottom) {
+    height: 12px;
+    width: calc(100% - 12px);
+    left: 6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-left),
+  .container :global(.dv-resize-container .dv-resize-handle-right) {
+    width: 12px;
+    height: calc(100% - 12px);
+    top: 6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-topleft),
+  .container :global(.dv-resize-container .dv-resize-handle-topright),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomleft),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomright) {
+    width: 12px;
+    height: 12px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-top),
+  .container :global(.dv-resize-container .dv-resize-handle-topleft),
+  .container :global(.dv-resize-container .dv-resize-handle-topright) {
+    top: -6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-bottom),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomleft),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomright) {
+    bottom: -6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-left),
+  .container :global(.dv-resize-container .dv-resize-handle-topleft),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomleft) {
+    left: -6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-right),
+  .container :global(.dv-resize-container .dv-resize-handle-topright),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomright) {
+    right: -6px;
+  }
+}
+
 /* The Rex Menu widget (Positions + Assets tabs) cannot be dragged/resized smaller than this. */
 .container
   :global(
