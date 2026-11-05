@@ -48,6 +48,11 @@ const deleteAsset = vi.fn((args: { assetUuid: string }) => ({
   payload: args,
 }));
 const cancelEdit = vi.fn(() => assetSlice.actions.clearAssetInEdit({ keepExpanded: true }));
+const setLocation = vi.fn(
+  (_args: { uuid: string; location: AEGISPoint | null; saveImmediately?: boolean }) => ({
+    type: "mock/setLocation",
+  })
+);
 const updateFields = vi.fn(
   (_args: {
     assetUuid: string;
@@ -64,7 +69,7 @@ vi.mock("store/thunk/thunkAsset", () => ({
   thunkCancelAssetMapDirective: () => ({ type: "mock/cancelMapDirective" }),
   thunkCancelAssetEdit: () => cancelEdit(),
   thunkSaveAssetEdit: (options?: { petUpdate?: "current" | "clear" }) => saveAsset(options),
-  thunkSetAssetEditLocation: () => ({ type: "mock/setLocation" }),
+  thunkSetAssetEditLocation: (args: Parameters<typeof setLocation>[0]) => setLocation(args),
   thunkEditAsset: (args: { assetUuid: string }) => editAsset(args),
   thunkDeleteAsset: (args: { assetUuid: string }) => deleteAsset(args),
   thunkMoveAssetToFolder: () => ({ type: "mock/move" }),
@@ -461,7 +466,7 @@ describe("MapAssetsMenu", () => {
     await vi.waitFor(() => expect(q("dialog[open]")?.textContent).toContain("Must be a number"));
     clickAction("Save");
     expect(updateFields).toHaveBeenCalledTimes(1);
-    changeInput("Radius in meters", "0");
+    changeInput("Radius in meters", "");
     await vi.waitFor(() =>
       expect(q("dialog[open]")?.textContent).not.toContain("Must be a number")
     );
@@ -562,6 +567,59 @@ describe("MapAssetsMenu", () => {
       expect(byText("Pick Icon")).toBeDefined();
     }
   );
+
+  it.each([false, true])("allows clearing Position (creating: %s)", async (creating) => {
+    const asset = generateBlankAsset({
+      name: "Drill",
+      location: { lat: 1, lng: 2 },
+      locationSetAt: 1,
+      uncertaintyMeters: 20,
+    });
+    if (!creating) mockMissionDoc.assets = { [asset.uuid]: asset };
+    store = makeStore(true);
+    render();
+    flushSync(() =>
+      store.dispatch(
+        setAssetInEdit({
+          uuid: asset.uuid,
+          isNew: creating,
+          values: getAssetEditValues(asset),
+          base: creating ? null : getAssetEditValues(asset),
+          elevationPending: false,
+        })
+      )
+    );
+    const clearInput = (input: HTMLInputElement) => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    if (creating) {
+      const radius = q("[aria-label='Radius in meters']") as HTMLInputElement;
+      radius.focus();
+      clearInput(radius);
+      await vi.waitFor(() =>
+        expect(store.getState().asset.inEdit?.values.uncertaintyMeters).toBe(0)
+      );
+      radius.blur();
+      await vi.waitFor(() => expect(radius.value).toBe("0"));
+      expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true");
+    } else {
+      flushSync(() => q("div[aria-label='Asset coordinates']")!.click());
+    }
+    const position = q("input[aria-label='Asset coordinates']") as HTMLInputElement;
+    position.focus();
+    clearInput(position);
+    await vi.waitFor(() => expect(position.value).toBe(""));
+    if (creating) position.blur();
+    else flushSync(() => dialogAction("Save").click());
+    await vi.waitFor(() =>
+      expect(setLocation).toHaveBeenCalledWith({
+        uuid: asset.uuid,
+        location: null,
+        ...(!creating ? { saveImmediately: true } : {}),
+      })
+    );
+  });
 
   it("edits and clears PET during planning and prevents saving invalid text", async () => {
     const asset = generateBlankAsset({

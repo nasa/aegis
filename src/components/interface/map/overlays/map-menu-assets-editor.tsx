@@ -77,7 +77,7 @@ export const AssetEditor: FunctionComponent<{
   }, [values.uncertaintyMeters]);
   const uncertaintyValid = (() => {
     const parsed = Number(uncertaintyText);
-    return uncertaintyText.trim() !== "" && Number.isFinite(parsed) && parsed >= 0;
+    return Number.isFinite(parsed) && parsed >= 0;
   })();
 
   const formattedPet = values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds);
@@ -107,13 +107,14 @@ export const AssetEditor: FunctionComponent<{
 
   const submitCoordinates = () => {
     const text = coordinateText.trim();
-    // Unchanged or cleared text never moves or clears an existing location.
-    if (text === formattedLocation.trim() || !text) {
+    if (text === formattedLocation.trim()) {
       setCoordinateText(formattedLocation);
       setSubmitError(null);
       return;
     }
-    const result = parseCoordinateEntry(text, coordinateContext);
+    const result = text
+      ? parseCoordinateEntry(text, coordinateContext)
+      : { location: null, error: null };
     if (result.error) {
       setSubmitError(result.error);
       return;
@@ -175,7 +176,7 @@ export const AssetEditor: FunctionComponent<{
 
       <div className={styles.editorForm}>
         <>
-          <span className={styles.fieldLabel}>Name</span>
+          <span className={styles.fieldLabel}>Name *</span>
           <div className={styles.fieldControls}>
             <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
             <Button
@@ -232,9 +233,12 @@ export const AssetEditor: FunctionComponent<{
             onChange={(e) => {
               setUncertaintyText(e.target.value);
               const parsed = Number(e.target.value);
-              if (e.target.value.trim() !== "" && Number.isFinite(parsed) && parsed >= 0) {
+              if (Number.isFinite(parsed) && parsed >= 0) {
                 dispatch(updateAssetInEditValues({ uncertaintyMeters: parsed }));
               }
+            }}
+            onBlur={() => {
+              if (!uncertaintyText.trim()) setUncertaintyText("0");
             }}
           />
           <span className={styles.fieldNote}>m</span>
@@ -384,7 +388,7 @@ export const AssetEditor: FunctionComponent<{
           </div>
         )}
 
-        <span className={styles.fieldLabel}>Notes</span>
+        <span className={`${styles.fieldLabel} ${styles.notesLabel}`}>Notes</span>
         <textarea
           className={`${styles.editorInput} ${styles.editorNotes}`}
           value={values.notes ?? ""}
