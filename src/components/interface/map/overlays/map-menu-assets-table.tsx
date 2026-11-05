@@ -22,6 +22,7 @@ import {
   faFloppyDisk,
   faFolder,
   faFolderOpen,
+  faNoteSticky,
   faPen,
   faTrashAlt,
   faBan,
@@ -56,11 +57,10 @@ import {
 import { DEFAULT_ASSET_ICON, getAssetFolderUuidByItem } from "utils/assets";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { AssetEditor, formatUtcTime } from "./map-menu-assets-editor";
-import { hhmmssFromSeconds } from "utils/formatting";
 import { withAlpha } from "../utils/layers/layerFactory";
 
 const ROOT_DROP_ID = "asset-root";
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 7;
 
 /** Case-insensitive name order with a uuid tie-breaker, for folders and assets alike. */
 export function compareByName(
@@ -100,7 +100,7 @@ export const AssetTable: FunctionComponent<Props> = ({
   const foldersInterface = useAppSelector((state) => state.interface.foldersInterface, deepEqual);
   const expandedAssetUuid = useAppSelector((state) => state.asset.expandedAssetUuid, refEqual);
   const editingAssetUuid = inEdit?.uuid ?? null;
-  // View mode drops the visibility + actions columns, leaving the room to notes.
+  // View mode drops the visibility + actions columns, leaving the room to the name.
   const columnCount = canEdit ? COLUMN_COUNT : COLUMN_COUNT - 2;
   const [activeDragUuid, setActiveDragUuid] = useState<string | null>(null);
   const [dragChipOffset, setDragChipOffset] = useState(0);
@@ -177,11 +177,10 @@ export const AssetTable: FunctionComponent<Props> = ({
       <table className={styles.assetTable} data-testid="asset-table">
         <colgroup>
           <col className={styles.colNumber} />
-          <col className={styles.colPet} />
           <col className={styles.colEmoji} />
           <col className={styles.colName} />
           <col className={styles.colCoords} />
-          <col className={canEdit ? styles.colNotes : styles.colNotesView} />
+          <col className={styles.colNotes} />
           {canEdit && (
             <>
               <col className={styles.colVisible} />
@@ -192,11 +191,10 @@ export const AssetTable: FunctionComponent<Props> = ({
         <thead>
           <tr className={styles.headerRow}>
             <th>#</th>
-            <th>PET</th>
             <th aria-label="Emoji" />
             <th>Name</th>
             <th>Coords</th>
-            <th>Notes</th>
+            <th aria-label="Notes" />
             {canEdit && (
               <>
                 <th aria-label="Visibility" />
@@ -493,7 +491,7 @@ const AssetRow: FunctionComponent<{
   }, [isSelected]);
 
   const placed = !!asset.location;
-  const petSeconds = asset.petSeconds;
+  const hasNotes = !!asset.notes?.trim();
   const inheritedHidden = asset.visible && folder && !folder.visible;
   const locationDetails = placed
     ? [
@@ -568,13 +566,6 @@ const AssetRow: FunctionComponent<{
             <span>{number}</span>
           </button>
         </td>
-        <td>
-          {petSeconds === null ? (
-            <span title="No PET set for this asset">—</span>
-          ) : (
-            hhmmssFromSeconds(petSeconds)
-          )}
-        </td>
         <td ref={emojiCellRef} className={styles.emojiCell}>
           <span
             className={styles.emojiBackground}
@@ -592,7 +583,15 @@ const AssetRow: FunctionComponent<{
             ? formatCoordinateEntry(asset.location, { ...coordinateContext, dynamicLgrs: false })
             : "Not placed"}
         </td>
-        <td title={asset.notes ?? undefined}>{asset.notes}</td>
+        <td title={hasNotes ? asset.notes : "No notes"}>
+          <span
+            className={`${styles.notesIndicator} ${hasNotes ? styles.notesPresent : ""}`}
+            role="img"
+            aria-label={hasNotes ? "Has notes" : "No notes"}
+          >
+            <FontAwesomeIcon icon={faNoteSticky} />
+          </span>
+        </td>
         {canEdit && (
           <>
             <td>

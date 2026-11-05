@@ -237,7 +237,7 @@ describe("MapAssetsMenu", () => {
     store = makeStore(true);
     render();
     const emojiCell = (uuid: string) =>
-      q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[2] as HTMLElement;
+      q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[1] as HTMLElement;
     const coloredBackground = emojiCell(colored.uuid).firstElementChild as HTMLElement;
     const uncoloredBackground = emojiCell(uncolored.uuid).firstElementChild as HTMLElement;
     expect(coloredBackground.style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
@@ -347,7 +347,7 @@ describe("MapAssetsMenu", () => {
     mockMissionDoc.assets = { [asset.uuid]: asset };
     store = makeStore(true);
     render();
-    expect(q(`[data-testid='asset-row-${asset.uuid}']`)?.children[1].textContent).toBe("+00:10:00");
+    expect(q(`[data-testid='asset-row-${asset.uuid}']`)?.textContent).not.toContain("+00:10:00");
     flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
     expect(q("[data-testid='asset-editor-pet']")?.textContent).toBe("+00:10:00");
     expect(q("[data-testid='asset-editor-rex']")?.textContent).toBe("Recorded REX");
