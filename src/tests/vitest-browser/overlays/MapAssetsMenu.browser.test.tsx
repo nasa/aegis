@@ -238,8 +238,12 @@ describe("MapAssetsMenu", () => {
     render();
     const emojiCell = (uuid: string) =>
       q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[2] as HTMLElement;
-    expect(emojiCell(colored.uuid).style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
-    expect(emojiCell(uncolored.uuid).style.backgroundColor).toBe("transparent");
+    const coloredBackground = emojiCell(colored.uuid).firstElementChild as HTMLElement;
+    const uncoloredBackground = emojiCell(uncolored.uuid).firstElementChild as HTMLElement;
+    expect(coloredBackground.style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
+    expect(uncoloredBackground.style.backgroundColor).toBe("transparent");
+    expect(getComputedStyle(emojiCell(colored.uuid)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(coloredBackground).borderRadius).toBe("45%");
   });
 
   it.each([false, true])("toggles folders from the header or icon (can edit: %s)", (canEdit) => {

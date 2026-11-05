@@ -582,11 +582,21 @@
   border-radius: 0;
 }
 
-/* Full-height swatch of the asset color behind the emoji, as on the map */
+/* Keep the row background visible around the rounded asset color swatch. */
 .assetTable .emojiCell {
   padding: 0;
   text-align: center;
   text-overflow: clip;
+}
+
+.emojiBackground {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: auto;
+  border-radius: 45%;
 }
 
 .editingIcon {
