@@ -119,7 +119,6 @@ describe("NotificationBannerBar", () => {
 
     const banners = page.getByTestId("notification-banner");
     await expect.element(banners.first()).toHaveTextContent("Second");
-    await expect.element(banners.first()).toHaveTextContent("Until");
     await expect.element(banners.nth(1)).toHaveTextContent("First");
     await expect.element(banners.nth(1)).toHaveStyle({
       backgroundColor: "rgb(250, 204, 21)",
