@@ -78,6 +78,7 @@
   grid-column: 1 / -1;
   min-width: 0;
   margin-top: 8px;
+  text-align: right;
   overflow-wrap: anywhere;
   color: var(--grey4);
 }
@@ -148,12 +149,6 @@
 
 .rexName {
   color: var(--rex);
-}
-
-.viewEmoji {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.85rem;
 }
 
 .viewColorSwatch {

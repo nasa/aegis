@@ -127,7 +127,7 @@ export const thunkEditAsset = appCreateAsyncThunk<{ assetUuid: string }>(
 export const thunkCancelAssetEdit = appCreateAsyncThunk<void>(
   "asset/cancelEdit",
   async (__, { dispatch }) => {
-    dispatch(clearAssetInEdit());
+    dispatch(clearAssetInEdit({ keepExpanded: true }));
     await dispatch(thunkCancelAssetMapDirective());
   }
 );
@@ -297,6 +297,7 @@ export const thunkJumpToAsset = appCreateAsyncThunk<{ assetUuid: string }>(
     if (!mission?.assets?.[assetUuid]) return;
     if (getState().asset.inEdit && getState().asset.inEdit.uuid !== assetUuid) {
       await dispatch(thunkCancelAssetEdit());
+      dispatch(setExpandedAssetUuid(null));
     }
     dispatch(setRexMenuIsMinimized(false));
     dispatch(requestAssetsTab());
