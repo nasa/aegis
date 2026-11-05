@@ -350,10 +350,7 @@ describe("MapAssetsMenu", () => {
     expect(q(`[data-testid='asset-row-${asset.uuid}']`)?.children[1].textContent).toBe("+00:10:00");
     flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
     expect(q("[data-testid='asset-editor-pet']")?.textContent).toBe("+00:10:00");
-    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-id")).toBe("aegis-tooltip");
-    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-content")).toContain(
-      "Recorded REX"
-    );
+    expect(q("[data-testid='asset-editor-rex']")?.textContent).toBe("Recorded REX");
     expect(q("[data-testid='asset-editor-placement']")).toBeNull();
 
     flushSync(() =>
@@ -377,9 +374,6 @@ describe("MapAssetsMenu", () => {
     type("12:34:56");
     await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBe(45296));
     expect(store.getState().asset.inEdit?.values.petRex).toBeNull();
-    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-content")).toContain(
-      "entered manually"
-    );
     type("-00:00:30");
     await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBe(-30));
     type("+00:60:00");
@@ -390,9 +384,6 @@ describe("MapAssetsMenu", () => {
     type("");
     await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBeNull());
     expect(q("[data-testid='asset-editor-pet-error']")).toBeNull();
-    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-content")).toBe(
-      "No PET set."
-    );
     expect(mockMissionDoc.assets[asset.uuid].petSeconds).toBe(600);
   });
 
@@ -424,9 +415,7 @@ describe("MapAssetsMenu", () => {
       select.dispatchEvent(new Event("change", { bubbles: true }));
     });
     expect(q("[data-testid='asset-editor-pet']")).toBeNull();
-    expect(q("[aria-label='PET source']")?.getAttribute("data-tooltip-content")).toContain(
-      petUpdate === "current" ? "running REX" : "cleared when saved"
-    );
+    expect(byText(petUpdate === "current" ? "Captured when saved" : "No PET")).toBeDefined();
     expect(q("[aria-label='Save']")?.getAttribute("data-tooltip-content")).toBe("Save");
     expect(store.getState().asset.inEdit?.values.petSeconds).toBe(600);
     flushSync(() => q("[aria-label='Save']")!.click());

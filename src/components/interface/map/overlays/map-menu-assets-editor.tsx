@@ -2,14 +2,12 @@ import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   faBan,
-  faCircleInfo,
   faCrosshairs,
   faEdit,
   faFloppyDisk,
   faTrashAlt,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import CompactColor from "@uiw/react-color-compact";
 
 import styles from "./map-menu-assets.module.css";
@@ -20,6 +18,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { updateAssetInEditValues } from "store/asset";
+import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import {
   thunkCancelAssetEdit,
   thunkCancelAssetMapDirective,
@@ -83,6 +82,14 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
     (m) => (isView ? props.asset.updatedAt : (m.assets?.[assetUuid]?.updatedAt ?? null)),
     refEqual
   );
+  const petSourceNames = useMissionDocSelector((m) => {
+    const rex = values.petRex ? m.rexes?.[values.petRex.uuid] : null;
+    const rexEva = rex ? m.evas?.[rex.evaUuid] : null;
+    return {
+      eva: rexEva ? getAsPlannedEvaFromRefUuid(m, rexEva.refUuid)?.name : null,
+      rex: rex?.name || values.petRex?.name || values.petRex?.uuid,
+    };
+  }, shallowEqual);
 
   const mapAction = useAppSelector(
     (s) =>
@@ -214,17 +221,6 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
         ? "This asset is hidden on the map. Show it in the table to edit its position on the map, or enter coordinates."
         : `This asset's folder "${hidden.folderName}" is hidden on the map. Show the folder to edit its position on the map, or enter coordinates.`
       : null;
-
-  const petInfo =
-    !isView && petUpdate === "current"
-      ? "PET and its source REX will be captured from the running REX when saved."
-      : !isView && petUpdate === "clear"
-        ? "PET and its source REX will be cleared when saved."
-        : values.petRex
-          ? `PET captured from REX "${values.petRex.name || values.petRex.uuid}".`
-          : values.petSeconds === null
-            ? "No PET set."
-            : "PET entered manually; no source REX.";
 
   const actions = isView ? (
     props.canEdit ? (
@@ -429,6 +425,7 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
                 <CompactColor
                   color={values.color ?? undefined}
                   colors={COLOR_PALATTE}
+                  rectProps={{ style: { borderRadius: "50%" } }}
                   onChange={(color) => {
                     dispatch(updateAssetInEditValues({ color: color.hex }));
                     colorDialogRef.current?.close();
@@ -532,18 +529,30 @@ export const AssetEditor: FunctionComponent<Props> = (props) => {
           </div>
         )}
 
-        <span className={`${styles.fieldLabel} ${styles.petLabel}`}>
-          PET
-          <button
-            type="button"
-            className={styles.petInfo}
-            aria-label="PET source"
-            data-tooltip-id="aegis-tooltip"
-            data-tooltip-content={petInfo}
-          >
-            <FontAwesomeIcon icon={faCircleInfo} />
-          </button>
-        </span>
+        {isView && (
+          <>
+            <span className={styles.fieldLabel}>EVA/REX</span>
+            <div className={styles.petSourceNames}>
+              <span
+                className={styles.evaName}
+                data-testid="asset-editor-eva"
+                title={petSourceNames.eva || undefined}
+              >
+                {petSourceNames.eva || "—"}
+              </span>
+              <span>/</span>
+              <span
+                className={styles.rexName}
+                data-testid="asset-editor-rex"
+                title={petSourceNames.rex || undefined}
+              >
+                {petSourceNames.rex || "—"}
+              </span>
+            </div>
+          </>
+        )}
+
+        <span className={styles.fieldLabel}>PET</span>
         {isView ? (
           <span className={styles.viewValue} data-testid="asset-editor-pet">
             {formattedPet || "—"}
