@@ -7,9 +7,7 @@
   min-height: 0;
   box-sizing: border-box;
   padding: 5px;
-  border: 1px solid var(--grey3);
-  border-radius: var(--radius);
-  background-color: var(--grey2);
+  background-color: var(--grey1);
   font-size: 0.8rem;
   overflow: hidden;
 }
@@ -328,7 +326,6 @@
 .tableContainer {
   flex: 1 1 60px;
   min-height: 60px;
-  padding-left: 5px;
   overflow: auto;
   border-radius: var(--radius);
   background-color: var(--grey1);
