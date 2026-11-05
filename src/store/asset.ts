@@ -50,21 +50,21 @@ export const assetSlice = createSlice({
       Object.assign(state.inEdit.values, action.payload.changes);
       Object.assign(state.inEdit.base, action.payload.changes);
     },
-    /** Accept a new in-edit location and record when it was set. */
+    /** Accept or clear an in-edit location and its timestamp. */
     setAssetInEditLocation: (
       state,
       action: {
         payload: {
           uuid: string;
-          location: AEGISPoint;
-          locationSetAt: number;
+          location: AEGISPoint | null;
+          locationSetAt: number | null;
           elevationPending: boolean;
         };
       }
     ) => {
       const { uuid, location, locationSetAt, elevationPending } = action.payload;
       if (state.inEdit?.uuid !== uuid) return;
-      state.inEdit.values.location = { lat: location.lat, lng: location.lng };
+      state.inEdit.values.location = location ? { lat: location.lat, lng: location.lng } : null;
       state.inEdit.values.locationSetAt = locationSetAt;
       state.inEdit.values.elevation = null;
       state.inEdit.elevationPending = elevationPending;

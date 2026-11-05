@@ -155,33 +155,33 @@ export const thunkStartAssetMapDirective = appCreateAsyncThunk<void>(
 );
 
 /**
- * Accept a new in-edit location from a map click, a completed drag, or coordinate entry:
- * record the location timestamp and fetch the elevation. Existing assets can save
+ * Accept or clear an in-edit location from a map click, a completed drag, or coordinate entry:
+ * record the location timestamp and fetch the elevation when placed. Existing assets can save
  * the position immediately; new assets keep their draft until the creation form is saved.
  */
 export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
   uuid: string;
-  location: AEGISPoint;
+  location: AEGISPoint | null;
   saveImmediately?: boolean;
 }>("asset/setEditLocation", async ({ uuid, location, saveImmediately }, { dispatch, getState }) => {
   const inEdit = getState().asset.inEdit;
   if (!inEdit || inEdit.uuid !== uuid) return;
   const mission = getMissionDocHandle()?.doc();
   if (!mission) return;
-  if (!Number.isFinite(location?.lat) || !Number.isFinite(location?.lng)) return;
+  if (location && (!Number.isFinite(location.lat) || !Number.isFinite(location.lng))) return;
 
-  const point = { lat: location.lat, lng: location.lng };
-  const hasDem = !!mission.demFilePath;
+  const point = location ? { lat: location.lat, lng: location.lng } : null;
+  const hasDem = !!point && !!mission.demFilePath;
   dispatch(
     setAssetInEditLocation({
       uuid,
       location: point,
-      locationSetAt: getAccurateNow().getTime(),
+      locationSetAt: point ? getAccurateNow().getTime() : null,
       elevationPending: hasDem,
     })
   );
   const fetchElevation = (async () => {
-    if (!hasDem) return;
+    if (!hasDem || !point) return;
     const result = await dispatch(thunkFetchPointElevation({ point, uuid }));
     const elevation =
       result.meta.requestStatus === "fulfilled" ? ((result.payload as number) ?? null) : null;
@@ -198,8 +198,8 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
     saveImmediately &&
     latest?.uuid === uuid &&
     !latest.isNew &&
-    latest.values.location?.lat === point.lat &&
-    latest.values.location?.lng === point.lng &&
+    latest.values.location?.lat === point?.lat &&
+    latest.values.location?.lng === point?.lng &&
     !latest.elevationPending &&
     getState().user.missionPerms?.permissions.edit &&
     isConnected(getState())

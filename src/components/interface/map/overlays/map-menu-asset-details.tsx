@@ -13,7 +13,7 @@ import {
 import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
-import { formatUtcTime } from "./map-menu-assets-editor";
+import { LastEditedNumeric } from "components/interface/_global-elements";
 import { useMapMenuSetters } from "../MapMenuProvider";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
@@ -108,7 +108,7 @@ export const AssetDetails: FunctionComponent<{
       <div className={styles.editorForm} key={String(editMode)}>
         {inEdit && (
           <>
-            <span className={styles.fieldLabel}>Name</span>
+            <span className={styles.fieldLabel}>Name *</span>
             <div className={styles.fieldControls}>
               <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
               <Button
@@ -170,7 +170,7 @@ export const AssetDetails: FunctionComponent<{
               fieldProps={{
                 name: "assetRadius",
                 ariaLabel: "Radius in meters",
-                validators: [validators.required, validators.mustBeNumberGTEZero],
+                validators: [validators.mustBeNumberGTEZero],
               }}
               onSubmit={(radius) => {
                 save({ uncertaintyMeters: Number(radius) });
@@ -211,12 +211,17 @@ export const AssetDetails: FunctionComponent<{
               name: "assetCoordinates",
               ariaLabel: "Asset coordinates",
               validators: [
-                (v) => parseCoordinateEntry(String(v ?? ""), coordinateContext).error ?? undefined,
+                (v) =>
+                  String(v ?? "").trim()
+                    ? (parseCoordinateEntry(String(v), coordinateContext).error ?? undefined)
+                    : undefined,
               ],
             }}
             onSubmit={(text) => {
-              const result = parseCoordinateEntry(text, coordinateContext);
-              if (!result.error && result.location) {
+              const result = text.trim()
+                ? parseCoordinateEntry(text, coordinateContext)
+                : { location: null, error: null };
+              if (!result.error) {
                 dispatch(thunkCancelAssetMapDirective());
                 dispatch(
                   thunkSetAssetEditLocation({
@@ -355,7 +360,7 @@ export const AssetDetails: FunctionComponent<{
             );
           }}
         />
-        <span className={styles.fieldLabel}>Notes</span>
+        <span className={`${styles.fieldLabel} ${styles.notesLabel}`}>Notes</span>
         <div className={styles.viewNotes} data-testid="asset-editor-notes">
           <ValidatedTextArea
             value={asset.notes || ""}
@@ -368,7 +373,12 @@ export const AssetDetails: FunctionComponent<{
           />
         </div>
         <div className={styles.editorLastModified} data-testid="asset-editor-last-modified">
-          Last modified {formatUtcTime(asset.updatedAt)}
+          <span className={styles.fieldLabel}>Last Edited:</span>
+          <LastEditedNumeric
+            updatedAt={asset.updatedAt}
+            createdAt={asset.createdAt}
+            info={[["Asset UUID", asset.uuid]]}
+          />
         </div>
       </div>
     </div>

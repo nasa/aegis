@@ -171,6 +171,29 @@ describe("thunkAddAsset", () => {
 });
 
 describe("thunkSetAssetEditLocation", () => {
+  it("clears a draft position without waiting for an obsolete elevation fetch", async () => {
+    await store.dispatch(thunkAddAsset());
+    store.dispatch(updateAssetInEditValues({ name: "Drill" }));
+    const uuid = inEdit().uuid;
+    const pending = store.dispatch(
+      thunkSetAssetEditLocation({ uuid, location: { lat: 1, lng: 2 } })
+    );
+    await flush();
+    await store.dispatch(thunkSetAssetEditLocation({ uuid, location: null })).unwrap();
+    expect(inEdit()).toMatchObject({
+      elevationPending: false,
+      values: { location: null, locationSetAt: null, elevation: null },
+    });
+    expect(await store.dispatch(thunkSaveAssetEdit()).unwrap()).toBe(true);
+    elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 25 });
+    await pending.unwrap();
+    expect(doc().assets[uuid]).toMatchObject({
+      location: null,
+      locationSetAt: null,
+      elevation: null,
+    });
+  });
+
   it("captures PET from the running REX, not the selected one, and fetches elevation", async () => {
     const running = generateBlankRex({
       evaUuid: "eva-running",
@@ -367,6 +390,40 @@ describe("atomic asset editing", () => {
       expect(inEdit().base.locationSetAt).toBe(doc().assets[asset.uuid].locationSetAt);
     }
   );
+
+  it.each([false, true])("clears a saved position (pending elevation: %s)", async (fetching) => {
+    const pending = fetching
+      ? store.dispatch(
+          thunkSetAssetEditLocation({
+            uuid: asset.uuid,
+            location: { lat: 2, lng: 3 },
+            saveImmediately: true,
+          })
+        )
+      : null;
+    await flush();
+    await store
+      .dispatch(
+        thunkSetAssetEditLocation({ uuid: asset.uuid, location: null, saveImmediately: true })
+      )
+      .unwrap();
+    if (fetching) {
+      elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 25 });
+      await pending!.unwrap();
+    }
+    expect(doc().assets[asset.uuid]).toMatchObject({
+      location: null,
+      locationSetAt: null,
+      elevation: null,
+      notes: "Original notes",
+    });
+    expect(inEdit()).toMatchObject({
+      uuid: asset.uuid,
+      elevationPending: false,
+      values: { location: null, locationSetAt: null, elevation: null },
+      base: { location: null, locationSetAt: null, elevation: null },
+    });
+  });
 
   it("does not save a superseded position or a fetch canceled by turning off edit mode", async () => {
     const first = store.dispatch(

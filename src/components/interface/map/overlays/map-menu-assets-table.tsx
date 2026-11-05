@@ -585,7 +585,7 @@ const AssetRow: FunctionComponent<{
             ? formatCoordinateEntry(asset.location, { ...coordinateContext, dynamicLgrs: false })
             : "Not placed"}
         </td>
-        <td title={hasNotes ? asset.notes : "No notes"}>
+        <td className={styles.notesCell} title={hasNotes ? asset.notes : "No notes"}>
           <span
             className={`${styles.notesIndicator} ${hasNotes ? styles.notesPresent : ""}`}
             role="img"
