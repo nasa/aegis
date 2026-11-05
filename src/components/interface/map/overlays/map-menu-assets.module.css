@@ -334,6 +334,7 @@
 .assetTable {
   --folder-indent: 10px;
   --group-gap: 5px;
+  --detail-indent: 24px;
 
   width: 100%;
   table-layout: fixed;
@@ -490,8 +491,7 @@
   cursor: default;
 }
 
-.assetRowHover,
-.assetRowExpanded:not(.assetRowSelected) {
+.assetRowHover {
   background-color: var(--grey1);
 }
 
@@ -504,34 +504,9 @@
   color: #806000;
 }
 
-/* Enclose the expanded row and its details row in one shared border */
-.assetTable .assetRowExpanded td {
-  padding-top: 1px;
-  border-top: 1px solid var(--grey4, #a9a9a9);
-}
-
-.assetTable .assetRowExpanded td:first-child {
-  padding-left: 2px;
-  border-left: 1px solid var(--grey4, #a9a9a9);
-  border-top-left-radius: var(--radius);
-}
-
-.assetTable .assetRowExpanded td:last-child {
-  padding-right: 2px;
-  border-right: 1px solid var(--grey4, #a9a9a9);
-  border-top-right-radius: var(--radius);
-}
-
-.assetTable .assetRowEditing.assetRowExpanded td {
-  border-top-color: #ffffff;
-}
-
-.assetTable .assetRowEditing.assetRowExpanded td:first-child {
-  border-left-color: #ffffff;
-}
-
-.assetTable .assetRowEditing.assetRowExpanded td:last-child {
-  border-right-color: #ffffff;
+.assetRowExpanded:not(.assetRowSelected) {
+  background-color: var(--grey2);
+  color: var(--grey5);
 }
 
 .assetRowEditing .nameCell {
@@ -578,25 +553,47 @@
 
 .assetTable .assetDetailCell {
   padding: 0;
-  border-right: 1px solid var(--grey4, #a9a9a9);
-  border-bottom: 1px solid var(--grey4, #a9a9a9);
-  border-left: 1px solid var(--grey4, #a9a9a9);
-  border-bottom-right-radius: var(--radius);
-  border-bottom-left-radius: var(--radius);
   overflow: visible;
   white-space: normal;
   text-overflow: clip;
 }
 
-.assetTable .assetDetailRowEditing .assetDetailCell {
-  border-right-color: #ffffff;
-  border-bottom-color: #ffffff;
-  border-left-color: #ffffff;
+/* Paint the inset top divider inside the cells to preserve the table columns. */
+.assetRowExpanded:not(.assetRowSelected) td {
+  background-image: linear-gradient(var(--grey3), var(--grey3));
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+}
+
+.assetRowExpanded:not(.assetRowSelected) td:first-child {
+  background-position: top right;
+  background-size: calc(100% - var(--detail-indent)) 1px;
+}
+
+.assetRowExpanded:not(.assetRowSelected) td:last-child {
+  background-size: calc(100% - 6px) 1px;
 }
 
 .assetDetailCell .editor {
+  position: relative;
+  padding-left: var(--detail-indent);
   border: 0;
   border-radius: 0;
+}
+
+.assetDetailCell .editor::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 6px;
+  left: var(--detail-indent);
+  border-top: 1px solid var(--grey3);
+  pointer-events: none;
+}
+
+.folderItem,
+.folderItem + .assetDetailRow {
+  --detail-indent: calc(24px + var(--folder-indent));
 }
 
 /* Keep the row background visible around the rounded asset color swatch. */

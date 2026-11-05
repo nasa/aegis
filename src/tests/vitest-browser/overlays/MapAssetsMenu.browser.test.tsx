@@ -512,7 +512,7 @@ describe("MapAssetsMenu", () => {
       const second = generateBlankAsset({ name: "Second", notes: "Second note" });
       mockMissionDoc.assets = { [first.uuid]: first, [second.uuid]: second };
       if (withFolders) {
-        const folder = generateBlankFolder({ type: "asset", name: "Cache" });
+        const folder = generateBlankFolder({ type: "asset", name: "Cache", items: [first.uuid] });
         mockMissionDoc.folders = { [folder.uuid]: folder };
       }
       store = makeStore(true);
@@ -530,23 +530,44 @@ describe("MapAssetsMenu", () => {
       );
       expect(store.getState().asset.selectedAssetUuid).toBeNull();
       const firstRowCells = q(`[data-testid='asset-row-${first.uuid}']`)!.querySelectorAll("td");
+      const secondRowCells = q(`[data-testid='asset-row-${second.uuid}']`)!.querySelectorAll("td");
+      firstRowCells.forEach((cell, index) => {
+        expect(cell.getBoundingClientRect().left).toBe(
+          secondRowCells[index].getBoundingClientRect().left
+        );
+        expect(cell.getBoundingClientRect().width).toBe(
+          secondRowCells[index].getBoundingClientRect().width
+        );
+      });
       const firstDetail = q(`[data-testid='asset-detail-row-${first.uuid}']`);
       expect(firstDetail).not.toBeNull();
       expect(firstDetail?.textContent).toContain("Asset Details");
       expect(firstDetail?.querySelectorAll("input, textarea")).toHaveLength(0);
       expect(q("[data-testid='asset-editor-name']")?.textContent).toBe("First");
       expect(q("[data-testid='asset-editor-notes']")?.textContent).toBe("First note");
-      // The opened row and its details row share one continuous outer border with no inner editor border.
+      // Expanded headers and details share a background without an outline or an internal gap.
       const detailCellStyle = getComputedStyle(firstDetail!.querySelector("td")!);
-      expect(getComputedStyle(firstRowCells[0]).borderTopWidth).toBe("1px");
-      expect(getComputedStyle(firstRowCells[0]).borderLeftWidth).toBe("1px");
-      expect(getComputedStyle(firstRowCells[firstRowCells.length - 1]).borderRightWidth).toBe(
-        "1px"
+      expect(getComputedStyle(firstRow).backgroundColor).toBe(
+        getComputedStyle(firstDetail!).backgroundColor
       );
-      expect(detailCellStyle.borderLeftWidth).toBe("1px");
-      expect(detailCellStyle.borderRightWidth).toBe("1px");
-      expect(detailCellStyle.borderBottomWidth).toBe("1px");
+      expect(getComputedStyle(firstRowCells[0]).borderTopWidth).toBe("0px");
+      expect(getComputedStyle(firstRowCells[0]).borderLeftWidth).toBe("0px");
+      expect(getComputedStyle(firstRowCells[firstRowCells.length - 1]).borderRightWidth).toBe(
+        "0px"
+      );
+      expect(detailCellStyle.borderTopWidth).toBe("0px");
+      expect(detailCellStyle.borderLeftWidth).toBe("0px");
+      expect(detailCellStyle.borderRightWidth).toBe("0px");
+      expect(detailCellStyle.borderBottomWidth).toBe("0px");
       expect(getComputedStyle(q("[data-testid='asset-editor']")!).borderTopWidth).toBe("0px");
+      const nextCellStyle = getComputedStyle(
+        q(`[data-testid='asset-row-${second.uuid}']`)!.querySelector("td")!
+      );
+      expect(nextCellStyle.borderTopWidth).toBe("0px");
+      flushSync(() => firstRow.click());
+      expect(getComputedStyle(firstRow).backgroundColor).toBe("rgb(224, 224, 224)");
+      expect(getComputedStyle(firstRow).color).toBe("rgb(0, 0, 0)");
+      expect(getComputedStyle(firstRowCells[0]).color).toBe("rgb(0, 0, 0)");
 
       // Expanding 'second' collapses 'first' so only one row is expanded at a time.
       flushSync(() => q(`[data-testid='asset-expand-${second.uuid}']`)!.click());
@@ -578,6 +599,11 @@ describe("MapAssetsMenu", () => {
         "Edit Asset"
       );
       expect(q("[data-testid='asset-editor-name']")?.hasAttribute("disabled")).toBe(false);
+      expect(getComputedStyle(firstRow).backgroundColor).toBe("rgb(224, 224, 224)");
+      expect(
+        getComputedStyle(q(`[data-testid='asset-detail-row-${first.uuid}']`)!.querySelector("td")!)
+          .borderBottomWidth
+      ).toBe("0px");
     }
   );
 });
