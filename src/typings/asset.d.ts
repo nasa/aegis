@@ -8,7 +8,7 @@ interface Asset {
   name: string;
   /** Emoji code point string from the emoji picker (e.g. "1F534"); null renders "2754" (❔). */
   icon: string | null;
-  /** Radius ring color, also the disc behind the emoji; null uses the default ring color. */
+  /** Radius fill and emoji background color; null renders transparent. */
   color: string | null;
   /** Shared map visibility of this asset. */
   visible: boolean;
@@ -17,7 +17,7 @@ interface Asset {
   /** UTC epoch ms when the location was last set; null exactly when `location` is null. */
   locationSetAt: number | null;
   elevation: number | null;
-  /** Uncertainty radius in meters; zero draws no ring or emoji disc. */
+  /** Uncertainty radius in meters; zero draws no radius circle. */
   uncertaintyMeters: number;
   notes: string | null;
   /** Editable PET in seconds, initially captured from the running REX when adding the asset. */

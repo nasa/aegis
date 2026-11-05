@@ -314,7 +314,7 @@ outside. The style builders each keep a `Map` cache; know its **key**, because a
 a cache key omits a varying input:
 
 - `markers.ts` (`buildStation/Poi/Action/Asset/LanderStyleFunction`): keyed by emoji + selection
-  (+ in-progress; assets: + whether the selection ring shows, i.e. selected with no radius). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
+  (+ in-progress; assets: + whether the selection outline shows, i.e. selected with no radius). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
   size change requires rebuilding the whole builder, not re-calling it. Selected marker →
   `zIndex 9999`; dashboard in-progress stations get a green ring (triggered by
   `config.station.hoverable === false`).
@@ -331,7 +331,7 @@ a cache key omits a varying input:
   Measurement style hardcodes label colors and ignores stale segment arrays while editing.
 - `assetRadius.ts` (`buildAssetRadiusStyleFunction`): asset radius circles, filled in
   `getAssetRadiusColor` with no stroke; the selected asset gets a white stroke instead of a
-  marker ring. Keyed by color + selection.
+  marker outline. Uncolored assets use a transparent fill. Keyed by color + selection.
 - `posPath.ts`: style cache is **cleared wholesale when size > 500** (crude cap). Has its own
   duplicate `arrowCache`.
 - `gazetteerLabels.ts` (`createGazetteerLabelStyle(style, dataLayer)`): draggable data-layer
@@ -527,8 +527,8 @@ Overlay gotchas:
 | `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                                                                                                |
 | `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition)                                                                              |
 | `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                                                                                                       |
-| `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also rings/labels); draws nothing when `MODE_CONFIGS[mode].asset.show` is false (minimap); editor draws the in-edit asset under the asset's id; click → `thunkJumpToAsset` |
-| `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; gated by `asset.show` like AssetMarkers (minimap: off); no ids, not interactive; zero radius draws nothing (table row disc too)                         |
+| `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also radii/labels); draws nothing when `MODE_CONFIGS[mode].asset.show` is false (minimap); editor draws the in-edit asset under the asset's id; click → `thunkJumpToAsset` |
+| `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; gated by `asset.show` like AssetMarkers (minimap: off); no ids, not interactive; zero radius draws no circle                         |
 | `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                                                                                                           |
 | `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                                                                                                  |
 | `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                                                                                                     |

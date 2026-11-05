@@ -2,7 +2,6 @@ import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankRex } from "store/storeUtils/rex";
 import {
-  DEFAULT_ASSET_RING_COLOR,
   getAssetEditValues,
   getAssetRadiusColor,
   getAssetHiddenReason,
@@ -132,11 +131,9 @@ describe("parseAssetPetSeconds", () => {
 });
 
 describe("defaults", () => {
-  test("radius color is the asset color, or the default ring color, only for a positive radius", () => {
+  test("radius color is the asset color, or transparent, only for a positive radius", () => {
     expect(getAssetRadiusColor({ color: "#ff0000", uncertaintyMeters: 5 })).toBe("#ff0000");
-    expect(getAssetRadiusColor({ color: null, uncertaintyMeters: 5 })).toBe(
-      DEFAULT_ASSET_RING_COLOR
-    );
+    expect(getAssetRadiusColor({ color: null, uncertaintyMeters: 5 })).toBe("transparent");
     expect(getAssetRadiusColor({ color: "#ff0000", uncertaintyMeters: 0 })).toBeNull();
   });
 });

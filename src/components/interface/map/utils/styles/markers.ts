@@ -159,9 +159,9 @@ export function buildActionStyleFunction(
 }
 
 /**
- * Asset markers: the emoji, plus a white ring while selected when the asset has no radius
+ * Asset markers: the emoji, plus a white outline while selected when the asset has no radius
  * circle to highlight (`hasRadius` false). Missing icons fall back to ❔ like stations. Cache
- * key: emoji + selection ring (iconSize is captured at builder creation).
+ * key: emoji + selection outline (iconSize is captured at builder creation).
  */
 export function buildAssetStyleFunction(
   selectedAssetUuid: string | null,
@@ -173,15 +173,15 @@ export function buildAssetStyleFunction(
     const uuid = feature.getId() as string;
     const emoji = (feature.get("emoji") as string) || "2754";
     const isSelected = uuid === selectedAssetUuid;
-    const showRing = isSelected && !feature.get("hasRadius");
+    const showSelectionOutline = isSelected && !feature.get("hasRadius");
 
-    const cacheKey = `asset-${emoji}-${isSelected}-${showRing}`;
+    const cacheKey = `asset-${emoji}-${isSelected}-${showSelectionOutline}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
     const styles: Style[] = [];
     const baseZIndex = isSelected ? 9999 : 0;
-    if (showRing) {
+    if (showSelectionOutline) {
       styles.push(
         new Style({
           image: new CircleStyle({
