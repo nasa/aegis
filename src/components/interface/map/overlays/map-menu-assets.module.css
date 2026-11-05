@@ -353,10 +353,6 @@
   width: 42px;
 }
 
-.colPet {
-  width: 66px;
-}
-
 .colEmoji {
   width: 22px;
 }
@@ -370,12 +366,15 @@
 }
 
 .colNotes {
-  width: 22%;
+  width: 20px;
 }
 
-/* View mode: the visibility + actions columns are dropped and notes takes the room */
-.colNotesView {
-  width: 32%;
+.notesIndicator {
+  color: var(--grey4);
+}
+
+.notesPresent {
+  color: var(--warning);
 }
 
 .colVisible {
@@ -492,6 +491,10 @@
 .assetRowSelected {
   background-color: var(--grey5);
   color: #000000;
+}
+
+.assetRowSelected .notesPresent {
+  color: #806000;
 }
 
 /* Enclose the expanded row and its details row in one shared border */
