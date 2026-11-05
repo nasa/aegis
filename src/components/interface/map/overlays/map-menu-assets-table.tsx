@@ -57,7 +57,8 @@ import {
 } from "store/thunk/thunkAsset";
 import { DEFAULT_ASSET_ICON, getAssetFolderUuidByItem } from "utils/assets";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
-import { AssetEditor, formatUtcTime } from "./map-menu-assets-editor";
+import { formatUtcTime } from "./map-menu-assets-editor";
+import { AssetDetails } from "./map-menu-asset-details";
 import { withAlpha } from "../utils/layers/layerFactory";
 
 const ROOT_DROP_ID = "asset-root";
@@ -624,9 +625,10 @@ const AssetRow: FunctionComponent<{
                   label="Asset actions"
                   items={[
                     {
-                      icon: faEdit,
-                      label: "Edit Asset",
-                      onClick: () => onEdit(asset.uuid),
+                      icon: isEditing ? faBan : faEdit,
+                      label: isEditing ? "Turn Off Edit Mode" : "Edit Asset",
+                      onClick: () =>
+                        isEditing ? dispatch(thunkCancelAssetEdit()) : onEdit(asset.uuid),
                     },
                     {
                       icon: faTrashAlt,
@@ -651,20 +653,13 @@ const AssetRow: FunctionComponent<{
       {isExpanded && (
         <tr className={styles.assetDetailRow} data-testid={`asset-detail-row-${asset.uuid}`}>
           <td colSpan={columnCount} className={styles.assetDetailCell}>
-            {isEditing && inEdit ? (
-              <AssetEditor
-                inEdit={inEdit}
-                canMutate={canMutate}
-                coordinateContext={coordinateContext}
-              />
-            ) : (
-              <AssetEditor
-                mode="view"
-                asset={asset}
-                canMutate={canMutate}
-                coordinateContext={coordinateContext}
-              />
-            )}
+            <AssetDetails
+              asset={asset}
+              inEdit={isEditing ? inEdit : null}
+              canEdit={canEdit}
+              canMutate={canMutate}
+              coordinateContext={coordinateContext}
+            />
           </td>
         </tr>
       )}

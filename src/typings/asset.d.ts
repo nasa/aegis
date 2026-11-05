@@ -43,12 +43,12 @@ type AssetEditValues = Pick<
   | "petRex"
 >;
 
-/** The asset being edited in the editor (added or changed), held in Redux until Save. */
+/** Creation draft, or an existing asset's edit mode and pending position preview. */
 interface AssetInEdit {
   uuid: string;
   isNew: boolean;
   values: AssetEditValues;
-  /** Values when the edit opened; drives the Save dirty check. Null for a new asset. */
+  /** Baseline for unsaved changes; rebased after field saves. Null for a new asset. */
   base: AssetEditValues | null;
   /** True while an elevation fetch for `values.location` is in flight. */
   elevationPending: boolean;

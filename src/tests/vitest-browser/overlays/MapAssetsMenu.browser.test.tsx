@@ -8,6 +8,7 @@
  */
 
 import { configureStore } from "@reduxjs/toolkit";
+import { userEvent } from "vitest/browser";
 import { Provider } from "react-redux";
 import { flushSync } from "react-dom";
 import { CookiesProvider, Cookies } from "react-cookie";
@@ -46,7 +47,14 @@ const deleteAsset = vi.fn((args: { assetUuid: string }) => ({
   type: "mock/delete",
   payload: args,
 }));
-const cancelEdit = vi.fn(() => ({ type: "mock/cancelEdit" }));
+const cancelEdit = vi.fn(() => assetSlice.actions.clearAssetInEdit({ keepExpanded: true }));
+const updateFields = vi.fn(
+  (_args: {
+    assetUuid: string;
+    changes?: Partial<AssetEditValues>;
+    petUpdate?: "current" | "clear";
+  }) => undefined
+);
 const saveAsset = vi.fn((_options?: { petUpdate?: "current" | "clear" }) => ({
   type: "mock/save",
 }));
@@ -61,6 +69,10 @@ vi.mock("store/thunk/thunkAsset", () => ({
   thunkDeleteAsset: (args: { assetUuid: string }) => deleteAsset(args),
   thunkMoveAssetToFolder: () => ({ type: "mock/move" }),
   thunkToggleAssetVisible: () => ({ type: "mock/toggleVisible" }),
+  thunkUpdateAssetFields: (args: Parameters<typeof updateFields>[0]) => () => {
+    updateFields(args);
+    return { unwrap: () => Promise.resolve(true) };
+  },
 }));
 
 const connectedState = {
@@ -117,6 +129,10 @@ function render() {
 }
 
 const q = (selector: string) => harness.container.querySelector<HTMLElement>(selector);
+const dialogAction = (label: string) =>
+  [...q("dialog[open]")!.querySelectorAll<HTMLElement>("div")].find(
+    (el) => el.textContent === label && el.children.length === 0
+  )!;
 const byText = (text: string) =>
   [...harness.container.querySelectorAll<HTMLElement>("div, button, span")].find(
     (el) => el.textContent?.trim() === text && el.children.length === 0
@@ -135,6 +151,52 @@ beforeEach(() => {
 afterEach(() => harness.unmount());
 
 describe("MapAssetsMenu", () => {
+  it.each([false, true])(
+    "keeps expanded details compact at the floating widget width (editing: %s)",
+    async (editing) => {
+      harness.container.style.width = "420px";
+      harness.container.style.height = "360px";
+      const asset = generateBlankAsset({
+        name: "test4",
+        uncertaintyMeters: 50,
+        color: "#8055ff",
+        location: { lat: -84.214738, lng: 33.589402 },
+        locationSetAt: 1,
+        elevation: 539.71,
+        notes: "Near the boulder",
+      });
+      mockMissionDoc.assets = { [asset.uuid]: asset };
+      store = makeStore(true);
+      render();
+      flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
+      if (editing)
+        flushSync(() =>
+          store.dispatch(
+            setAssetInEdit({
+              uuid: asset.uuid,
+              isNew: false,
+              values: getAssetEditValues(asset),
+              base: getAssetEditValues(asset),
+              elevationPending: false,
+            })
+          )
+        );
+      await document.fonts.ready;
+      const editor = q("[data-testid='asset-editor']")!;
+      const radius = q("[data-testid='asset-editor-uncertainty']")!.getBoundingClientRect();
+      const color = q("[data-testid='asset-editor-color']")!.getBoundingClientRect();
+      expect(Math.abs(radius.top + radius.height / 2 - color.top - color.height / 2)).toBeLessThan(
+        3
+      );
+      expect(editor.getBoundingClientRect().height).toBeLessThan(editing ? 280 : 200);
+      expect(editor.scrollWidth).toBeLessThanOrEqual(editor.clientWidth);
+      if (!editing) {
+        expect(q("[aria-label='assetEditToggle']")).toBeNull();
+        expect(q("div[aria-label='Asset name']")).toBeNull();
+      }
+    }
+  );
+
   it.each([false, true])("lets an editor add assets with global Edit set to %s", (editMode) => {
     store = makeStore(true, editMode);
     render();
@@ -301,6 +363,9 @@ describe("MapAssetsMenu", () => {
       )
     );
     expect(q("[data-testid='asset-editor']")?.textContent).toContain("Add Asset");
+    expect(q("[aria-label='Save']")).not.toBeNull();
+    expect(q("[aria-label='Cancel']")).not.toBeNull();
+    expect(q("[aria-label='assetEditToggle']")).toBeNull();
     expect(byText("Place on Map")).toBeDefined();
     // The editor has no folder field.
     expect(q("[data-testid='asset-editor'] [aria-label='Asset folder']")).toBeNull();
@@ -342,6 +407,162 @@ describe("MapAssetsMenu", () => {
     await vi.waitFor(() => expect(q("[data-testid='asset-editor-coordinate-error']")).toBeNull());
   });
 
+  it("uses the standard field modals to save or cancel individual fields", async () => {
+    const asset = generateBlankAsset({ name: "Drill" });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    store = makeStore(true);
+    render();
+    flushSync(() =>
+      store.dispatch(
+        setAssetInEdit({
+          uuid: asset.uuid,
+          isNew: false,
+          values: getAssetEditValues(asset),
+          base: getAssetEditValues(asset),
+          elevationPending: false,
+        })
+      )
+    );
+    const changeInput = (label: string, value: string) => {
+      const input = q(`dialog[open] input[aria-label='${label}']`) as HTMLInputElement;
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    const clickAction = (label: string) => {
+      const action = [...q("dialog[open]")!.querySelectorAll<HTMLElement>("div")].find(
+        (el) => el.textContent === label && el.children.length === 0
+      )!;
+      flushSync(() => action.click());
+    };
+    flushSync(() => q("div[aria-label='Asset name']")!.click());
+    changeInput("Asset name", "Canceled name");
+    await vi.waitFor(() =>
+      expect((q("dialog[open] input") as HTMLInputElement).value).toBe("Canceled name")
+    );
+    clickAction("Cancel");
+    expect(q("dialog[open]")).toBeNull();
+    expect(updateFields).not.toHaveBeenCalled();
+
+    flushSync(() => q("div[aria-label='Asset name']")!.click());
+    expect((q("dialog[open] input") as HTMLInputElement).value).toBe("Drill");
+    changeInput("Asset name", "Renamed drill");
+    await vi.waitFor(() =>
+      expect((q("dialog[open] input") as HTMLInputElement).value).toBe("Renamed drill")
+    );
+    clickAction("Save");
+    expect(updateFields).toHaveBeenCalledWith({
+      assetUuid: asset.uuid,
+      changes: { name: "Renamed drill" },
+    });
+    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
+
+    flushSync(() => q("div[aria-label='Radius in meters']")!.click());
+    changeInput("Radius in meters", "-5");
+    await vi.waitFor(() => expect(q("dialog[open]")?.textContent).toContain("Must be a number"));
+    clickAction("Save");
+    expect(updateFields).toHaveBeenCalledTimes(1);
+    changeInput("Radius in meters", "0");
+    await vi.waitFor(() =>
+      expect(q("dialog[open]")?.textContent).not.toContain("Must be a number")
+    );
+    clickAction("Save");
+    expect(updateFields).toHaveBeenLastCalledWith({
+      assetUuid: asset.uuid,
+      changes: { uncertaintyMeters: 0 },
+    });
+    flushSync(() => q("[aria-label='Asset actions']")!.click());
+    const stopEditing = [
+      ...harness.container.querySelectorAll<HTMLElement>("[role='menuitem']"),
+    ].find((item) => item.textContent === "Turn Off Edit Mode")!;
+    flushSync(() => stopEditing.click());
+    expect(store.getState().asset.inEdit).toBeNull();
+    expect(q("dialog[open]")).toBeNull();
+    expect(q("div[aria-label='Asset name']")).toBeNull();
+    flushSync(() => q("div[aria-label='Radius in meters']")!.click());
+    expect(q("dialog[open]")).toBeNull();
+  });
+
+  it.each([false, true])(
+    "uses floating appearance pickers outside clipped panels (creating: %s)",
+    async (creating) => {
+      Object.assign(harness.container.style, {
+        width: "420px",
+        height: "240px",
+        overflow: "hidden",
+        transform: "translate(60px, 40px)",
+      });
+      const asset = generateBlankAsset({ name: "Drill", icon: "1f929", color: null });
+      mockMissionDoc.assets = creating ? {} : { [asset.uuid]: asset };
+      store = makeStore(true);
+      render();
+      flushSync(() =>
+        store.dispatch(
+          setAssetInEdit({
+            uuid: asset.uuid,
+            isNew: creating,
+            values: getAssetEditValues(asset),
+            base: creating ? null : getAssetEditValues(asset),
+            elevationPending: false,
+          })
+        )
+      );
+      const color = q("[data-testid='asset-editor-color']")!;
+      const editor = q("[data-testid='asset-editor']")!;
+      const originalHeight = editor.getBoundingClientRect().height;
+      const expectFloating = (picker: HTMLElement) => {
+        expect(picker.matches(":popover-open")).toBe(true);
+        expect(editor.getBoundingClientRect().height).toBe(originalHeight);
+        const bounds = picker.getBoundingClientRect();
+        const panel = editor.getBoundingClientRect();
+        const container = harness.container.getBoundingClientRect();
+        const clippedBottom = Math.min(panel.bottom, container.bottom);
+        const clippedTop = Math.max(panel.top, container.top);
+        expect(bounds.bottom > clippedBottom || bounds.top < clippedTop).toBe(true);
+        expect(bounds.left).toBeGreaterThanOrEqual(8);
+        expect(bounds.right).toBeLessThanOrEqual(window.innerWidth - 8);
+        const y = bounds.bottom > clippedBottom ? bounds.bottom - 8 : bounds.top + 8;
+        expect(picker.contains(document.elementFromPoint(bounds.left + bounds.width / 2, y))).toBe(
+          true
+        );
+      };
+      const preview = color.firstElementChild!.firstElementChild!.firstElementChild as HTMLElement;
+      expect(getComputedStyle(preview).borderRadius).toBe("50%");
+      expect(preview.getBoundingClientRect().width).toBe(preview.getBoundingClientRect().height);
+      flushSync(() => (color.firstElementChild!.firstElementChild as HTMLElement).click());
+      expect(q("dialog[open]")).toBeNull();
+      const colorPopover = q("[popover]")!;
+      await vi.waitFor(() => expectFloating(colorPopover));
+      const swatch = q(".w-color-compact .w-color-swatch [title]")!;
+      expect(getComputedStyle(swatch).borderRadius).toBe("50%");
+      const selected = swatch.title.toLowerCase();
+      flushSync(() => swatch.click());
+      if (creating) expect(store.getState().asset.inEdit?.values.color).toBe(selected);
+      else
+        expect(updateFields).toHaveBeenCalledWith({
+          assetUuid: asset.uuid,
+          changes: { color: selected },
+        });
+      await userEvent.keyboard("{Escape}");
+      await vi.waitFor(() => expect(q("[popover]:popover-open")).toBeNull());
+      flushSync(() => byText("Pick Icon")!.click());
+      expect(byText("Close")).toBeDefined();
+      expect(q("dialog[open]")).toBeNull();
+      await vi.waitFor(() => {
+        const emojiPopover = q("[popover]:popover-open")!;
+        expect(emojiPopover.getBoundingClientRect().height).toBeGreaterThan(250);
+        expectFloating(emojiPopover);
+      });
+      flushSync(() => byText("No emoji")!.click());
+      if (creating) expect(store.getState().asset.inEdit?.values.icon).toBeNull();
+      else
+        expect(updateFields).toHaveBeenCalledWith({
+          assetUuid: asset.uuid,
+          changes: { icon: null },
+        });
+      expect(byText("Pick Icon")).toBeDefined();
+    }
+  );
+
   it("edits and clears PET during planning and prevents saving invalid text", async () => {
     const asset = generateBlankAsset({
       name: "Drill",
@@ -368,7 +589,9 @@ describe("MapAssetsMenu", () => {
         })
       )
     );
-    const input = q("[data-testid='asset-editor-pet']") as HTMLInputElement;
+    expect(q("[aria-label='Save']")).toBeNull();
+    flushSync(() => q("div[aria-label='Asset PET']")!.click());
+    const input = q("[data-testid='asset-editor-pet-input']") as HTMLInputElement;
     const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
     const type = (text: string) => {
       setValue.call(input, text);
@@ -376,19 +599,29 @@ describe("MapAssetsMenu", () => {
     };
     expect(input.disabled).toBe(false);
     type("12:34:56");
-    await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBe(45296));
-    expect(store.getState().asset.inEdit?.values.petRex).toBeNull();
+    await vi.waitFor(() => expect(input.value).toBe("12:34:56"));
+    expect(store.getState().asset.inEdit?.values.petSeconds).toBe(600);
     type("-00:00:30");
-    await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBe(-30));
+    await vi.waitFor(() => expect(input.value).toBe("-00:00:30"));
     type("+00:60:00");
-    await vi.waitFor(() => expect(q("[data-testid='asset-editor-pet-error']")).not.toBeNull());
-    expect(q("[aria-label='Save']")?.getAttribute("data-tooltip-content")).toContain("Enter PET");
-    expect(store.getState().asset.inEdit?.values.petSeconds).toBe(-30);
+    await vi.waitFor(() => expect(q("dialog[open]")?.textContent).toContain("Enter PET"));
+    flushSync(() => dialogAction("Save").click());
+    expect(updateFields).not.toHaveBeenCalled();
 
     type("");
-    await vi.waitFor(() => expect(store.getState().asset.inEdit?.values.petSeconds).toBeNull());
-    expect(q("[data-testid='asset-editor-pet-error']")).toBeNull();
+    await vi.waitFor(() => expect(q("dialog[open]")?.textContent).not.toContain("Enter PET"));
     expect(mockMissionDoc.assets[asset.uuid].petSeconds).toBe(600);
+    flushSync(() => dialogAction("Save").click());
+    await vi.waitFor(() =>
+      expect(updateFields).toHaveBeenCalledWith({
+        assetUuid: asset.uuid,
+        changes: { petSeconds: null },
+      })
+    );
+    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
+    flushSync(() => q("[aria-label='assetEditToggle']")!.click());
+    expect(store.getState().asset.inEdit).toBeNull();
+    expect(q(`[data-testid='asset-detail-row-${asset.uuid}']`)).not.toBeNull();
   });
 
   it.each(["current", "clear"] as const)("offers a %s PET update when saving", (petUpdate) => {
@@ -409,6 +642,7 @@ describe("MapAssetsMenu", () => {
         })
       )
     );
+    flushSync(() => q("div[aria-label='Asset PET']")!.click());
     const select = q("[aria-label='PET update']") as HTMLSelectElement;
     expect(select.querySelector<HTMLOptionElement>("option[value='current']")!.disabled).toBe(
       petUpdate !== "current"
@@ -418,12 +652,11 @@ describe("MapAssetsMenu", () => {
       select.value = petUpdate;
       select.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    expect(q("[data-testid='asset-editor-pet']")).toBeNull();
+    expect(q("[data-testid='asset-editor-pet-input']")).toBeNull();
     expect(byText(petUpdate === "current" ? "Captured when saved" : "No PET")).toBeDefined();
-    expect(q("[aria-label='Save']")?.getAttribute("data-tooltip-content")).toBe("Save");
     expect(store.getState().asset.inEdit?.values.petSeconds).toBe(600);
-    flushSync(() => q("[aria-label='Save']")!.click());
-    expect(saveAsset).toHaveBeenCalledWith({ petUpdate });
+    flushSync(() => dialogAction("Save").click());
+    expect(updateFields).toHaveBeenCalledWith({ assetUuid: asset.uuid, petUpdate });
   });
 
   it("disables Edit Pos. for an asset hidden by its folder, naming the folder", () => {
@@ -547,10 +780,12 @@ describe("MapAssetsMenu", () => {
       expect(firstDetail).not.toBeNull();
       expect(firstDetail?.textContent).not.toContain("Asset Details");
       expect(firstDetail?.querySelector("[aria-label='Edit'], [aria-label='Delete']")).toBeNull();
-      expect(firstDetail?.querySelectorAll("input, textarea")).toHaveLength(0);
+      expect(firstDetail?.querySelectorAll("dialog[open]")).toHaveLength(0);
       expect(q("[data-testid='asset-editor-name']")).toBeNull();
       expect(q("[data-testid='asset-editor-emoji']")).toBeNull();
-      expect(q("[data-testid='asset-editor-notes']")?.textContent).toBe("First note");
+      expect(q("[data-testid='asset-editor-notes'] [aria-label='Asset notes']")?.textContent).toBe(
+        "First note"
+      );
       // Expanded headers and details share a background without an outline or an internal gap.
       const detailCellStyle = getComputedStyle(firstDetail!.querySelector("td")!);
       expect(getComputedStyle(firstRow).backgroundColor).toBe(
@@ -622,7 +857,9 @@ describe("MapAssetsMenu", () => {
       expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)?.textContent).toContain(
         "Edit Asset"
       );
-      expect(q("[data-testid='asset-editor-name']")?.hasAttribute("disabled")).toBe(false);
+      expect(q("[aria-label='assetEditToggle']")).not.toBeNull();
+      expect(q("dialog[open]")).toBeNull();
+      expect(q("[aria-label='Save']")).toBeNull();
       expect(getComputedStyle(firstRow).backgroundColor).toBe("rgb(224, 224, 224)");
       expect(
         getComputedStyle(q(`[data-testid='asset-detail-row-${first.uuid}']`)!.querySelector("td")!)

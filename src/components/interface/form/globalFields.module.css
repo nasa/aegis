@@ -349,24 +349,34 @@
   cursor: pointer;
 }
 
-.colorPickerMenu {
+.pickerPopover {
   position: fixed;
-  display: flex;
-  flex-direction: column;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--grey5);
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
   font-weight: normal;
 }
-.colorPickerCover {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  left: 0;
-}
-.colorPickerPopover {
-  position: absolute;
-  z-index: 100;
+
+.propertyCircular {
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
 }
 
+.propertyCircular .pathColorSample {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border-radius: 50%;
+}
 .dialogContainer {
   position: relative;
   padding: 0;

@@ -16,6 +16,7 @@ import {
   setAssetInEditLocation,
   setExpandedAssetUuid,
   setSelectedAssetUuid,
+  syncAssetInEditFields,
 } from "store/asset";
 import { setHoverAssetUuid } from "store/hover";
 import { getFolderInterface, setRexMenuIsMinimized } from "store/interface";
@@ -32,6 +33,7 @@ import {
   applyUpdateAsset,
 } from "operations/apply/apply-asset";
 import { getAccurateNow } from "utils/formatting";
+import { isConnected } from "store/selectors";
 
 // Elevation fetches still in flight, keyed by asset uuid. Save waits for them to settle.
 const pendingElevationFetches = new Map<string, Promise<void>>();
@@ -139,11 +141,14 @@ export const thunkStartAssetMapDirective = appCreateAsyncThunk<void>(
     const state = getState();
     const inEdit = state.asset.inEdit;
     if (!inEdit) return;
+    const location = inEdit.isNew
+      ? inEdit.values.location
+      : getMissionDocHandle()?.doc()?.assets?.[inEdit.uuid]?.location;
     await dispatch(
       thunkUpdateMapDirective({
         mapItemType: "asset",
         uuid: inEdit.uuid,
-        mapAction: inEdit.values.location ? "editMarker" : "createMarker",
+        mapAction: location ? "editMarker" : "createMarker",
       })
     );
   }
@@ -151,13 +156,14 @@ export const thunkStartAssetMapDirective = appCreateAsyncThunk<void>(
 
 /**
  * Accept a new in-edit location from a map click, a completed drag, or coordinate entry:
- * record the location timestamp and fetch the elevation. The document is
- * not touched until Save.
+ * record the location timestamp and fetch the elevation. Existing assets can save
+ * the position immediately; new assets keep their draft until the creation form is saved.
  */
 export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
   uuid: string;
   location: AEGISPoint;
-}>("asset/setEditLocation", async ({ uuid, location }, { dispatch, getState }) => {
+  saveImmediately?: boolean;
+}>("asset/setEditLocation", async ({ uuid, location, saveImmediately }, { dispatch, getState }) => {
   const inEdit = getState().asset.inEdit;
   if (!inEdit || inEdit.uuid !== uuid) return;
   const mission = getMissionDocHandle()?.doc();
@@ -174,9 +180,8 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
       elevationPending: hasDem,
     })
   );
-  if (!hasDem) return;
-
   const fetchElevation = (async () => {
+    if (!hasDem) return;
     const result = await dispatch(thunkFetchPointElevation({ point, uuid }));
     const elevation =
       result.meta.requestStatus === "fulfilled" ? ((result.payload as number) ?? null) : null;
@@ -188,6 +193,66 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
   } finally {
     if (pendingElevationFetches.get(uuid) === fetchElevation) pendingElevationFetches.delete(uuid);
   }
+  const latest = getState().asset.inEdit;
+  if (
+    saveImmediately &&
+    latest?.uuid === uuid &&
+    !latest.isNew &&
+    latest.values.location?.lat === point.lat &&
+    latest.values.location?.lng === point.lng &&
+    !latest.elevationPending &&
+    getState().user.missionPerms?.permissions.edit &&
+    isConnected(getState())
+  ) {
+    const { location, locationSetAt, elevation } = latest.values;
+    const changes = { location, locationSetAt, elevation };
+    getMissionDocHandle()?.change((m: Mission) =>
+      applyUpdateAsset(m, { assetUuid: uuid, changes })
+    );
+    dispatch(syncAssetInEditFields({ uuid, changes }));
+    await dispatch(thunkCancelAssetMapDirective());
+  }
+});
+
+/** Save one metadata field (or PET and its source) without ending item edit mode. */
+export const thunkUpdateAssetFields = appCreateAsyncThunk<
+  {
+    assetUuid: string;
+    changes?: Partial<
+      Pick<
+        AssetEditValues,
+        "name" | "icon" | "color" | "uncertaintyMeters" | "notes" | "petSeconds"
+      >
+    >;
+    petUpdate?: "current" | "clear";
+  },
+  boolean
+>("asset/updateFields", async ({ assetUuid, changes = {}, petUpdate }, { dispatch, getState }) => {
+  const state = getState();
+  if (!state.user.missionPerms?.permissions.edit || !isConnected(state)) return false;
+  if (state.asset.inEdit?.uuid !== assetUuid || state.asset.inEdit.isNew) return false;
+  const handle = getMissionDocHandle();
+  const mission = handle?.doc();
+  const asset = mission?.assets?.[assetUuid];
+  if (!asset) return false;
+  const values = { ...getAssetEditValues(asset), ...changes };
+  if ("name" in changes) values.name = values.name.trim();
+  if (petUpdate === "current") {
+    const pet = getCurrentAssetPet(mission, getAccurateNow().getTime());
+    if (pet.petSeconds === null) throw new Error("No running REX with a valid PET");
+    Object.assign(values, pet);
+  } else if (petUpdate === "clear") {
+    values.petSeconds = null;
+    values.petRex = null;
+  } else if ("petSeconds" in changes && values.petSeconds !== asset.petSeconds) {
+    values.petRex = null;
+  }
+  const invalid = validateAssetEditValues(values);
+  if (invalid) throw new Error(invalid);
+  const changed = getChangedAssetFields(getAssetEditValues(asset), values);
+  handle.change((m: Mission) => applyUpdateAsset(m, { assetUuid, changes: changed }));
+  dispatch(syncAssetInEditFields({ uuid: assetUuid, changes: changed }));
+  return true;
 });
 
 /**

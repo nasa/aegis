@@ -15,6 +15,7 @@ import {
   thunkSaveAssetEdit,
   thunkSetAssetEditLocation,
   thunkToggleAssetVisible,
+  thunkUpdateAssetFields,
 } from "store/thunk/thunkAsset";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { generateBlankAsset } from "store/storeUtils/asset";
@@ -243,6 +244,153 @@ describe("thunkSetAssetEditLocation", () => {
       thunkSetAssetEditLocation({ uuid: inEdit().uuid, location: { lat: 1, lng: 1 } })
     );
     expect(inEdit().values.petRex).toBeNull();
+  });
+});
+
+describe("atomic asset editing", () => {
+  const asset = generateBlankAsset({
+    name: "Drill",
+    notes: "Original notes",
+    petSeconds: 600,
+    petRex: { uuid: "original", name: "Original REX" },
+    location: { lat: 1, lng: 1 },
+    locationSetAt: 7,
+    elevation: 3,
+  });
+  beforeEach(async () => {
+    getMissionDocHandle().change((m) => {
+      m.assets[asset.uuid] = asset;
+    });
+    await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+  });
+
+  it("saves fields independently, preserves concurrent edits, and keeps edit mode on", async () => {
+    getMissionDocHandle().change((m) => {
+      m.assets[asset.uuid].color = "#00ff00";
+    });
+    await store
+      .dispatch(thunkUpdateAssetFields({ assetUuid: asset.uuid, changes: { name: "  Renamed  " } }))
+      .unwrap();
+    await store
+      .dispatch(thunkUpdateAssetFields({ assetUuid: asset.uuid, changes: { notes: "New notes" } }))
+      .unwrap();
+    expect(doc().assets[asset.uuid]).toMatchObject({
+      name: "Renamed",
+      notes: "New notes",
+      color: "#00ff00",
+      locationSetAt: 7,
+      elevation: 3,
+    });
+    expect(inEdit()).toMatchObject({
+      uuid: asset.uuid,
+      values: { name: "Renamed", notes: "New notes" },
+      base: { name: "Renamed", notes: "New notes" },
+    });
+    expect(store.getState().asset.expandedAssetUuid).toBe(asset.uuid);
+    await store.dispatch(thunkCancelAssetEdit());
+    expect(doc().assets[asset.uuid].notes).toBe("New notes");
+    expect(store.getState().asset.expandedAssetUuid).toBe(asset.uuid);
+  });
+
+  it.each(["manual", "current", "clear"] as const)(
+    "saves %s PET and its source together",
+    async (update) => {
+      const rex = generateBlankRex({
+        evaUuid: "eva",
+        isRunning: true,
+        petRunning: false,
+        petValueAtStartStop: "+00:45:00",
+      });
+      getMissionDocHandle().change((m) => {
+        m.rexes[rex.uuid] = rex;
+      });
+      await store
+        .dispatch(
+          thunkUpdateAssetFields({
+            assetUuid: asset.uuid,
+            ...(update === "manual" ? { changes: { petSeconds: -30 } } : { petUpdate: update }),
+          })
+        )
+        .unwrap();
+      expect(doc().assets[asset.uuid]).toMatchObject({
+        petSeconds: update === "manual" ? -30 : update === "current" ? 2700 : null,
+        petRex: update === "current" ? { uuid: rex.uuid, name: rex.name } : null,
+        locationSetAt: 7,
+      });
+      expect(inEdit()?.uuid).toBe(asset.uuid);
+    }
+  );
+
+  it("keeps saved fields unchanged when validation fails", async () => {
+    await expect(
+      store
+        .dispatch(
+          thunkUpdateAssetFields({ assetUuid: asset.uuid, changes: { uncertaintyMeters: -1 } })
+        )
+        .unwrap()
+    ).rejects.toThrow(/Radius/);
+    expect(doc().assets[asset.uuid].uncertaintyMeters).toBe(asset.uncertaintyMeters);
+    expect(inEdit()?.uuid).toBe(asset.uuid);
+  });
+
+  it.each([false, true])(
+    "saves position with its elevation as one field (DEM: %s)",
+    async (hasDem) => {
+      getMissionDocHandle().change((m) => {
+        m.demFilePath = hasDem ? "dem.tif" : "";
+      });
+      const saving = store.dispatch(
+        thunkSetAssetEditLocation({
+          uuid: asset.uuid,
+          location: { lat: 2, lng: 3 },
+          saveImmediately: true,
+        })
+      );
+      await flush();
+      if (hasDem) {
+        expect(doc().assets[asset.uuid].location).toEqual(asset.location);
+        await store
+          .dispatch(
+            thunkUpdateAssetFields({ assetUuid: asset.uuid, changes: { notes: "While fetching" } })
+          )
+          .unwrap();
+        elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 25 });
+      }
+      await saving.unwrap();
+      expect(doc().assets[asset.uuid]).toMatchObject({
+        location: { lat: 2, lng: 3 },
+        elevation: hasDem ? 25 : null,
+        notes: hasDem ? "While fetching" : "Original notes",
+      });
+      expect(inEdit()).toMatchObject({ uuid: asset.uuid, elevationPending: false });
+      expect(inEdit().base.location).toEqual({ lat: 2, lng: 3 });
+      expect(inEdit().base.locationSetAt).toBe(doc().assets[asset.uuid].locationSetAt);
+    }
+  );
+
+  it("does not save a superseded position or a fetch canceled by turning off edit mode", async () => {
+    const first = store.dispatch(
+      thunkSetAssetEditLocation({
+        uuid: asset.uuid,
+        location: { lat: 2, lng: 2 },
+        saveImmediately: true,
+      })
+    );
+    const second = store.dispatch(
+      thunkSetAssetEditLocation({
+        uuid: asset.uuid,
+        location: { lat: 3, lng: 3 },
+        saveImmediately: true,
+      })
+    );
+    await flush();
+    elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 2 });
+    await first;
+    expect(doc().assets[asset.uuid].location).toEqual(asset.location);
+    await store.dispatch(thunkCancelAssetEdit());
+    elevationCalls[1].resolve({ meta: { requestStatus: "fulfilled" }, payload: 3 });
+    await second;
+    expect(doc().assets[asset.uuid].location).toEqual(asset.location);
   });
 });
 

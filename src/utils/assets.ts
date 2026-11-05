@@ -96,7 +96,12 @@ export function getVisibleMapAssets({
       (inEdit.isNew ? ({ uuid: inEdit.uuid, visible: true } as Asset) : null)
     : null;
   const candidates = assets.filter((asset) => asset.uuid !== inEditAsset?.uuid);
-  if (inEditAsset) candidates.push({ ...inEditAsset, ...inEdit.values });
+  if (inEditAsset) {
+    const changes = inEdit.isNew
+      ? inEdit.values
+      : getChangedAssetFields(inEdit.base, inEdit.values);
+    candidates.push({ ...inEditAsset, ...changes });
+  }
 
   const result: AssetMapItem[] = [];
   for (const asset of candidates) {

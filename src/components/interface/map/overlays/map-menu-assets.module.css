@@ -103,6 +103,13 @@
   min-width: 0;
 }
 
+.atomicControls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
 .inlineFieldLabel {
   margin-left: auto;
 }
@@ -117,12 +124,6 @@
   flex-flow: row wrap;
   gap: 2px 10px;
   color: var(--grey4);
-}
-
-.viewValue {
-  min-width: 0;
-  color: #ffffff;
-  overflow-wrap: anywhere;
 }
 
 .viewNotes {
@@ -149,14 +150,6 @@
 
 .rexName {
   color: var(--rex);
-}
-
-.viewColorSwatch {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--grey4);
-  border-radius: 50%;
 }
 
 .editorInput {
@@ -222,84 +215,6 @@
 .saveButtonDisabled {
   background-color: var(--alert-disabled);
   color: var(--grey4);
-}
-
-.emojiButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 1px solid var(--grey3);
-  border-radius: var(--radius);
-  background-color: var(--grey1);
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.colorSwatch {
-  display: block;
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--grey4);
-  border-radius: 50%;
-  background-image: linear-gradient(
-    45deg,
-    transparent 45%,
-    var(--grey4) 45%,
-    var(--grey4) 55%,
-    transparent 55%
-  );
-  cursor: pointer;
-}
-
-/* Top-layer dialog so the palette escapes the scrolling editor box; positioned next to the swatch. */
-.colorDialog {
-  inset: auto;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background-color: transparent;
-}
-
-.colorDialog::backdrop {
-  background: transparent;
-}
-
-.colorMenu {
-  display: flex;
-  flex-direction: column;
-  row-gap: 4px;
-  padding: 4px;
-  border-radius: var(--radius);
-  background-color: var(--grey1);
-}
-
-.textButton {
-  border: 0;
-  background: transparent;
-  color: var(--grey5);
-  text-decoration: underline;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
-.dialogContainer {
-  padding: 0;
-  border: none;
-  background-color: transparent;
-}
-
-.dialogContainer::backdrop {
-  background: transparent;
-}
-
-.pickerMenu {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  row-gap: 4px;
 }
 
 .editorNotes {

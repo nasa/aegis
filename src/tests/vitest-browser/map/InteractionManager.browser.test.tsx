@@ -281,7 +281,7 @@ describe("InteractionManager", () => {
     expect(interactionCount()).toBe(0);
   });
 
-  it("routes an asset createMarker click to the inEdit, never to a document thunk", async () => {
+  it("routes asset placement through its edit session with field saving enabled", async () => {
     const { thunkSetAssetEditLocation } = await import("store/thunk/thunkAsset");
     const { thunkDocUpdatePoiLocation } = await import("store/thunk/thunkPoi");
     store = makeStore({
@@ -297,6 +297,7 @@ describe("InteractionManager", () => {
     expect(vi.mocked(thunkSetAssetEditLocation)).toHaveBeenCalledWith({
       uuid: "asset-1",
       location: { lat: 30, lng: 50 },
+      saveImmediately: true,
     });
     expect(vi.mocked(thunkDocUpdatePoiLocation)).not.toHaveBeenCalled();
     expect(store.getState().map.mapDirective).toBeNull();

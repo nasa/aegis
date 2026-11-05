@@ -73,7 +73,7 @@ function findFeatureOnMap(map: OLMap, featureId: string): Feature<Geometry> | nu
 
 /**
  * Dispatch the correct save-position thunk based on `mapItemType`. Assets go to the open
- * in-edit session, not the document; they are written on Save.
+ * edit session: existing assets save the position, while new assets keep a creation draft.
  */
 function saveItemPosition(
   dispatch: ReturnType<typeof useAppDispatch>,
@@ -98,7 +98,7 @@ function saveItemPosition(
       dispatch(thunkDocUpdatePosEntryWithLocation({ location, posEntryUuid: uuid }));
       break;
     case "asset":
-      dispatch(thunkSetAssetEditLocation({ location, uuid }));
+      dispatch(thunkSetAssetEditLocation({ location, uuid, saveImmediately: true }));
       break;
   }
 }

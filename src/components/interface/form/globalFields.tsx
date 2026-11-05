@@ -2,7 +2,8 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon, type CSSVariables } from "@fortawesome/react-fontawesome";
 import { faCheckSquare, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import type { FunctionComponent, CSSProperties, ChangeEvent, ReactNode } from "react";
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
+import { PickerPopover } from "./PickerPopover";
 import { EmojiRenderer } from "components/interface/emojis";
 import type { FieldRenderProps } from "react-final-form";
 import formStyles from "./globalFields.module.css";
@@ -622,6 +623,7 @@ export const PathColorPickerMenu: FunctionComponent<{
   styleContainer?: CSSProperties;
   direction?: "left" | "right";
   hasDarkBorder?: boolean;
+  circular?: boolean;
 }> = ({
   currentColor,
   editMode,
@@ -629,19 +631,20 @@ export const PathColorPickerMenu: FunctionComponent<{
   styleContainer,
   direction = "left",
   hasDarkBorder,
+  circular = false,
 }) => {
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const closePicker = useCallback(() => setAnchor(null), []);
 
   return (
     <>
       <div>
         <div
           style={styleContainer}
-          className={`${formStyles.propertyPathColor} ${hasDarkBorder ? formStyles.propertyPathColorDark : formStyles.propertyPathColorLight} ${editMode ? formStyles.propertyEditMode : ""}`}
-          onClick={() => {
+          className={`${formStyles.propertyPathColor} ${hasDarkBorder ? formStyles.propertyPathColorDark : formStyles.propertyPathColorLight} ${editMode ? formStyles.propertyEditMode : ""} ${circular ? formStyles.propertyCircular : ""}`}
+          onClick={(e) => {
             if (!editMode) return;
-            setShowColorPicker(true);
+            setAnchor(e.currentTarget);
           }}
         >
           <div
@@ -651,34 +654,21 @@ export const PathColorPickerMenu: FunctionComponent<{
             }}
           ></div>
         </div>
-        {showColorPicker ? (
-          <>
-            <div className={formStyles.colorPickerPopover}>
-              <div
-                className={formStyles.colorPickerCover}
-                onClick={() => {
-                  setShowColorPicker(false);
-                }}
-              ></div>
-              <div
-                className={formStyles.colorPickerMenu}
-                ref={menuRef}
-                style={direction === "left" ? { transform: "translateX(-180px)" } : null}
-              >
-                <CompactColor
-                  color={currentColor}
-                  colors={COLOR_PALATTE}
-                  onChange={(color) => {
-                    updateColor(color.hex);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        ) : null}
+        {anchor && editMode && (
+          <PickerPopover anchor={anchor} onClose={closePicker} direction={direction}>
+            <CompactColor
+              color={currentColor}
+              colors={COLOR_PALATTE}
+              rectProps={circular ? { style: { borderRadius: "50%" } } : undefined}
+              onChange={(color) => {
+                updateColor(color.hex);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            />
+          </PickerPopover>
+        )}
       </div>
     </>
   );

@@ -41,6 +41,15 @@ export const assetSlice = createSlice({
       }
       state.inEdit.values = { ...state.inEdit.values, ...action.payload };
     },
+    /** Rebase fields saved independently while keeping the item's edit mode on. */
+    syncAssetInEditFields: (
+      state,
+      action: { payload: { uuid: string; changes: Partial<AssetEditValues> } }
+    ) => {
+      if (state.inEdit?.uuid !== action.payload.uuid || state.inEdit.isNew) return;
+      Object.assign(state.inEdit.values, action.payload.changes);
+      Object.assign(state.inEdit.base, action.payload.changes);
+    },
     /** Accept a new in-edit location and record when it was set. */
     setAssetInEditLocation: (
       state,
@@ -104,6 +113,7 @@ export const {
   setExpandedAssetUuid,
   setAssetInEdit,
   updateAssetInEditValues,
+  syncAssetInEditFields,
   setAssetInEditLocation,
   setAssetInEditElevation,
   clearAssetInEdit,
