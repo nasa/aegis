@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { faFolderPlus, faPlus } from "@fortawesome/free-solid-svg-icons";
 
 import assetsMenuStyles from "./map-menu-assets.module.css";
@@ -12,7 +12,7 @@ import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { isConnected } from "store/selectors";
 import { thunkCreateFolder } from "store/thunk/thunkFolder";
-import { thunkEditAsset, thunkAddAsset } from "store/thunk/thunkAsset";
+import { thunkEditAsset, thunkAddAsset, thunkCancelAssetEdit } from "store/thunk/thunkAsset";
 
 /** The mission's coordinate presentation for typed and displayed asset coordinates. */
 function useCoordinateEntryContext(): CoordinateEntryContext {
@@ -58,8 +58,13 @@ export const MapAssetsMenu: FunctionComponent = () => {
     dispatch(thunkEditAsset({ assetUuid }));
   };
 
-  const showTopEditor =
-    !!inEdit && (inEdit.isNew || !assets.some((asset) => asset.uuid === inEdit.uuid));
+  const editingAssetMissing =
+    !!inEdit && !inEdit.isNew && !assets.some((asset) => asset.uuid === inEdit.uuid);
+  useEffect(() => {
+    if (editingAssetMissing) {
+      dispatch(thunkCancelAssetEdit());
+    }
+  }, [dispatch, editingAssetMissing]);
 
   return (
     <div className={assetsMenuStyles.assetsMenu} data-testid="assets-map-menu">
@@ -69,7 +74,13 @@ export const MapAssetsMenu: FunctionComponent = () => {
             onClick={() => dispatch(thunkAddAsset())}
             icon={faPlus}
             label="Add Asset"
-            toolTip={inEdit ? "Save or cancel the open asset first" : undefined}
+            toolTip={
+              inEdit
+                ? inEdit.isNew
+                  ? "Save or cancel the open asset first"
+                  : "Turn off asset edit mode first"
+                : undefined
+            }
             className={assetsMenuStyles.toolbarButton}
             enabled={canMutate && !inEdit}
           />
@@ -83,7 +94,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
           {!connected && <span className={assetsMenuStyles.offline}>Not connected</span>}
         </div>
       )}
-      {showTopEditor && (
+      {inEdit?.isNew && (
         <AssetEditor inEdit={inEdit} canMutate={canMutate} coordinateContext={coordinateContext} />
       )}
       <div className={assetsMenuStyles.tableContainer}>

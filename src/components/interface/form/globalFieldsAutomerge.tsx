@@ -1,10 +1,11 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPencil } from "@fortawesome/free-solid-svg-icons";
 import { useRef, useEffect, useState } from "react";
-import type { FunctionComponent, CSSProperties } from "react";
+import type { FunctionComponent, CSSProperties, ReactNode } from "react";
 import formStyles from "./globalFieldsAutomerge.module.css";
 import paneStyles from "../../panes/global-pane-styles.module.css";
 import { Field, Form, FormSpy } from "react-final-form";
+import type { FieldRenderProps } from "react-final-form";
 import type { FormApi } from "final-form";
 import React from "react";
 import {
@@ -467,7 +468,10 @@ export const ValidatedInputField: FunctionComponent<{
   focusContents?: boolean;
   onChange?: React.ChangeEventHandler;
   displayStyle?: CSSProperties;
-  displayValue?: string;
+  displayValue?: ReactNode;
+  /** Custom control inside the standard validated field dialog (e.g. PET and its source selector). */
+  renderInput?: (input: FieldRenderProps<string>["input"]) => ReactNode;
+  minDialogWidth?: number;
 }> = ({
   value,
   editMode,
@@ -478,6 +482,8 @@ export const ValidatedInputField: FunctionComponent<{
   onChange,
   displayStyle,
   displayValue,
+  renderInput,
+  minDialogWidth = 160,
 }) => {
   const valueToShow = value || "";
 
@@ -495,7 +501,7 @@ export const ValidatedInputField: FunctionComponent<{
     if (!containerRef.current || !dialogChildrenRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const width = Math.max(160, rect.width);
+    const width = Math.min(window.innerWidth - 16, Math.max(minDialogWidth, rect.width));
     setIsNarrowDialog(width <= 160); // Check if we're using the minimum width (meaning container was <= 130px)
 
     // Check if dialog would overflow right edge of viewport
@@ -586,29 +592,36 @@ export const ValidatedInputField: FunctionComponent<{
                       }
                       type="input"
                     >
-                      {({ input }) => (
-                        <React.Fragment>
-                          <input
-                            {...input}
-                            className={`${formStyles.editField} ${fieldProps.className}`}
-                            type="text"
-                            aria-label={fieldProps.ariaLabel}
-                            style={{ width: "100%", textAlign: isRightAligned ? "right" : "left" }}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                            }}
-                            onFocus={(event) => {
-                              handleFocus(event);
-                              input.onFocus(event); // call native onFocus
-                            }}
-                            onChange={(event) => {
-                              if (onChange) onChange(event);
-                              input.onChange(composedFilter(event.target.value));
-                            }}
-                            ref={inputRef}
-                          />
-                        </React.Fragment>
-                      )}
+                      {({ input }) =>
+                        renderInput ? (
+                          <div onClick={(e) => e.stopPropagation()}>{renderInput(input)}</div>
+                        ) : (
+                          <React.Fragment>
+                            <input
+                              {...input}
+                              className={`${formStyles.editField} ${fieldProps.className}`}
+                              type="text"
+                              aria-label={fieldProps.ariaLabel}
+                              style={{
+                                width: "100%",
+                                textAlign: isRightAligned ? "right" : "left",
+                              }}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                              }}
+                              onFocus={(event) => {
+                                handleFocus(event);
+                                input.onFocus(event); // call native onFocus
+                              }}
+                              onChange={(event) => {
+                                if (onChange) onChange(event);
+                                input.onChange(composedFilter(event.target.value));
+                              }}
+                              ref={inputRef}
+                            />
+                          </React.Fragment>
+                        )
+                      }
                     </Field>
                   </div>
                   <div

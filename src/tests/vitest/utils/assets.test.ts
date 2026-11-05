@@ -182,6 +182,30 @@ describe("map visibility", () => {
     expect(result[0].icon).toBe("2754");
   });
 
+  test("edit mode shows concurrent saved fields while previewing a position change", () => {
+    const saved = placed();
+    const session: AssetInEdit = {
+      uuid: saved.uuid,
+      isNew: false,
+      base: getAssetEditValues(saved),
+      values: { ...getAssetEditValues(saved), location: { lat: 2, lng: 3 } },
+      elevationPending: true,
+    };
+    expect(
+      getVisibleMapAssets({
+        assets: [{ ...saved, name: "Remote name", color: "#00ff00", uncertaintyMeters: 25 }],
+        folders: [],
+        inEdit: session,
+        showAssets: true,
+      })[0]
+    ).toMatchObject({
+      name: "Remote name",
+      color: "#00ff00",
+      uncertaintyMeters: 25,
+      location: { lat: 2, lng: 3 },
+    });
+  });
+
   test("the in-edit asset replaces its saved asset and a new asset draws once placed", () => {
     const saved = placed();
     const editSession: AssetInEdit = {
