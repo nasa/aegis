@@ -199,9 +199,7 @@ export const AssetTable: FunctionComponent<Props> = ({
             <th>Notes</th>
             {canEdit && (
               <>
-                <th aria-label="Visibility">
-                  <FontAwesomeIcon icon={faEye} size="xs" />
-                </th>
+                <th aria-label="Visibility" />
                 <th aria-label="Actions" />
               </>
             )}
