@@ -328,12 +328,16 @@
 .tableContainer {
   flex: 1 1 60px;
   min-height: 60px;
+  padding-left: 5px;
   overflow: auto;
   border-radius: var(--radius);
   background-color: var(--grey1);
 }
 
 .assetTable {
+  --folder-indent: 10px;
+  --group-gap: 5px;
+
   width: 100%;
   table-layout: fixed;
   border-collapse: separate;
@@ -350,7 +354,7 @@
 }
 
 .colNumber {
-  width: 42px;
+  width: calc(42px + var(--folder-indent));
 }
 
 .colEmoji {
@@ -397,13 +401,19 @@
 .folderGroup,
 .rootGroup {
   background-color: var(--grey2);
+  clip-path: inset(0 round var(--radius));
+}
+
+/* The separator belongs to the next tbody; round the group below that gap. */
+.assetTable tbody + tbody {
+  clip-path: inset(var(--group-gap) 0 0 round var(--radius));
 }
 
 /* A small gutter separates groups while keeping every item in the shared table columns. */
 .assetTable tbody + tbody::before {
   content: "";
   display: table-row;
-  height: 5px;
+  height: var(--group-gap);
   background-color: var(--grey1);
 }
 
@@ -562,7 +572,7 @@
 
 /* Folder children indent under their folder header; root assets stay at the left edge. */
 .folderItem .rowToggle {
-  margin-left: 4px;
+  margin-left: var(--folder-indent);
 }
 
 .assetDetailRow {
