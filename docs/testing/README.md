@@ -15,6 +15,8 @@ downloads, reload/recovery and selected browser parity. A harness remount proves
 UI rehydration from the document; a Playwright reload proves the server boundary.
 The [migration expansion record](browser-behavior-expansion-2026-11-06.md) lists
 the current split, browser parity, measured runtime and retained integration checks.
+The [CI layout](ci-layout.md) describes the current shard allocation, reports
+and deployment gates.
 
 ## AI-assisted functionality audit
 
@@ -130,5 +132,5 @@ node node_modules/@playwright/test/cli.js test --config=src/tests/playwright/pla
 
 Discovery supplies test identities and configured projects; it does not evaluate
 assertion sufficiency or establish runtime results. Run affected tests during
-development and all eight CI shards for the candidate commit before merge, as
+development and all four Playwright CI shards for the candidate commit before merge, as
 described in the browser behavior guide.
