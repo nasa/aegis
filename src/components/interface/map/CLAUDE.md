@@ -79,9 +79,10 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
   projection for the box to render correctly. Also carries the two eyeball toggles the minimap
   mirrors from the dashboard menu (`showScaleBar`, `showArrows`) — the shared dashboard↔minimap
   channel for those values (see `MapMenuProvider` above) — plus `gridSpacing`, the grid line/label
-  spacing in metres that the dashboard `Grid` last drew (see §12 Grid). `setGridSpacing` keeps the
-  previous object when the numbers are unchanged, because the dashboard republishes every
-  animation frame while panning. `useOptionalDashboardBoundsContext()` returns `null` instead of
+  spacing in metres that the dashboard `Grid` last drew (see §12 Grid). A dynamic grid's spacing
+  carries its `system.key`, and a minimap on another system (e.g. mid scheme switch) ignores it.
+  `setGridSpacing` keeps the previous object when the values are unchanged, because the
+  dashboard republishes every animation frame while panning. `useOptionalDashboardBoundsContext()` returns `null` instead of
   throwing, for behaviors that also run on the editor map.
 
 ---

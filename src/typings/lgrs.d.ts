@@ -229,12 +229,16 @@ interface LgrsGridSystem {
   getCandidateRegions(envelope: LgrsViewEnvelope, samples: LgrsViewSamples): LgrsCrsId[];
   /** The polar cap of `crs`, or null for a zone region. Caps are clipped by shared code. */
   getCap(crs: LgrsCrsId): LgrsCap | null;
-  /** E/N bounding box `[minE, minN, maxE, maxN]` of a whole zone region (not called for caps). */
+  /**
+   * E/N bounding box `[minE, minN, maxE, maxN]` of a whole zone region (not called for caps).
+   * May overestimate, never underestimate.
+   */
   getRegionBounds(crs: LgrsCrsId, out: Float64Array): void;
   /**
    * Parts of the constant-easting (`axis` "easting") or constant-northing line `value` inside
-   * the zone region `crs`, as `[from, to]` ranges of the other coordinate written to `out`
-   * (length ≥ 4). Returns the part count (0–2). Not called for caps.
+   * the zone region `crs`, as sorted, disjoint `[from, to]` ranges of the other coordinate
+   * written to `out` (length ≥ 6). Returns the part count (0–3; the Moon's LTM zones give at
+   * most 2, Earth's zone 31N up to 3). Not called for caps.
    */
   clipGridLine(
     crs: LgrsCrsId,
@@ -282,8 +286,10 @@ type LgrsMissionGridSelection = Pick<Mission, never>;
 type LgrsMissionGridFields = LgrsMissionGridSelection &
   Pick<Mission, "id" | "planetRadius" | "projIsCustom" | "projEpsg" | "projProj4String">;
 
-/** proj4 `Proj` fields read to select and run a closed-form fast path. */
+/** proj4 `Proj` fields read to select and run a closed-form fast path or match a grid CRS. */
 type LgrsProj4Params = {
+  /** proj4 datum; `datum_type` 4 (`PJD_WGS84`) and 5 (`PJD_NODATUM`) convert without a shift. */
+  datum?: { datum_type?: number };
   projName?: string;
   sphere?: boolean;
   approx?: boolean;

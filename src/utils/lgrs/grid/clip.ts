@@ -46,7 +46,7 @@ export function getRegionBounds(
 
 /**
  * Parts of the constant-E/N line `value` inside the region of `crs`, as `[from, to]` ranges of
- * the other coordinate written to `out` (length ≥ 4). Returns the number of parts (0–2).
+ * the other coordinate written to `out` (length ≥ 6). Returns the number of parts (0–3).
  */
 export function clipGridLineToRegion(
   system: LgrsGridSystem,

@@ -1,4 +1,5 @@
 import { getLgrsCompatibility } from "./compatibility";
+import { getEarthGridSystem } from "./earth/system";
 import { moonGridSystem } from "./moon/system";
 
 /** Label scheme a mission uses unless the user overrides it. */
@@ -10,10 +11,12 @@ export function getMissionGridSystemId(_mission: LgrsMissionGridSelection): Miss
 }
 
 /** The grid system for an id and label scheme. The Moon has only the lunar ACC scheme. */
-export function getGridSystem(id: MissionGridSystemId, _scheme: GridLabelScheme): LgrsGridSystem {
+export function getGridSystem(id: MissionGridSystemId, scheme: GridLabelScheme): LgrsGridSystem {
   switch (id) {
     case "moon-m2025":
       return moonGridSystem;
+    case "earth-wgs84":
+      return getEarthGridSystem(scheme);
     default:
       throw new Error(`Grid system "${id}" is not available.`);
   }

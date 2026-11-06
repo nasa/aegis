@@ -1,6 +1,7 @@
 import { bench, describe } from "vitest";
 
 import { formatLgrsFromLatLon } from "utils/lgrs/display";
+import { getEarthGridSystem } from "utils/lgrs/earth/system";
 import { createLgrsRenderPlan } from "utils/lgrs/grid/plan";
 import { getLgrsGridBinding } from "utils/lgrs/gridBinding";
 import { formatLatLonAsLgrs, formatLgrsAtMapCoordinate } from "utils/lgrs/moon/format";
@@ -173,6 +174,81 @@ function consumePlan(plan: LgrsRenderPlan): void {
 
 describe("LGRS dynamic grid plan (1920×1080)", () => {
   for (const [name, options] of planViews) {
+    bench(name, () => {
+      consumePlan(createLgrsRenderPlan(options));
+    });
+  }
+});
+
+// Earth (plan §6): the same budgets, in both label schemes.
+
+const earthAcc = getEarthGridSystem("lunar-acc");
+const earthMgrs = getEarthGridSystem("mgrs");
+const earthMercatorAcc = getLgrsGridBinding({ projCode: "EPSG:3857", proj4Def: null }, earthAcc);
+const earthMercatorMgrs = getLgrsGridBinding({ projCode: "EPSG:3857", proj4Def: null }, earthMgrs);
+const earthUtm15 = getLgrsGridBinding(
+  { projCode: "EPSG:32615", proj4Def: "+proj=utm +zone=15 +datum=WGS84 +units=m +no_defs" },
+  earthAcc
+);
+const earthUpsNorth = getLgrsGridBinding(
+  {
+    projCode: "EPSG:32661",
+    proj4Def:
+      "+proj=stere +lat_0=90 +lat_ts=90 +lon_0=0 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs",
+  },
+  earthAcc
+);
+const jscSamples = createMapSamples(earthMercatorAcc, 29.3, 29.8, -95.4, -94.8);
+const earthLatLon = new Float64Array(2);
+
+describe("Earth per-point display", () => {
+  bench("lat/lon → 10 m ACC full (whole Earth)", () => {
+    const index = next() * 2;
+    consume(earthAcc.formatPoint(latLons[index], latLons[index + 1], 10, "full"));
+  });
+
+  bench("lat/lon → 10 m MGRS full (whole Earth)", () => {
+    const index = next() * 2;
+    consume(earthMgrs.formatPoint(latLons[index], latLons[index + 1], 10, "full"));
+  });
+
+  bench("map coord → 10 m ACC full, EPSG:3857 (readout path)", () => {
+    const index = next() * 2;
+    if (!earthMercatorAcc.mapToLatLon(jscSamples[index], jscSamples[index + 1], earthLatLon)) {
+      return;
+    }
+    consume(earthAcc.formatPoint(earthLatLon[0], earthLatLon[1], 10, "full"));
+  });
+
+  bench("map coord → 10 m MGRS full, EPSG:3857 (readout path)", () => {
+    const index = next() * 2;
+    if (!earthMercatorMgrs.mapToLatLon(jscSamples[index], jscSamples[index + 1], earthLatLon)) {
+      return;
+    }
+    consume(earthMgrs.formatPoint(earthLatLon[0], earthLatLon[1], 10, "full"));
+  });
+});
+
+const earthPlanViews: [string, LgrsRenderOptions][] = [
+  ...(
+    [
+      ["ACC", earthMercatorAcc],
+      ["MGRS", earthMercatorMgrs],
+    ] as const
+  ).flatMap(([scheme, binding]): [string, LgrsRenderOptions][] => [
+    [`JSC ~5 km, ${scheme}, EPSG:3857`, screenView(binding, 29.5593, -95.09, 3)],
+    [`JSC ~50 km, ${scheme}, EPSG:3857`, screenView(binding, 29.5593, -95.09, 30)],
+    [`JSC ~200 km, ${scheme}, EPSG:3857`, screenView(binding, 29.5593, -95.09, 120)],
+    [`JSC fixed 100 m, ${scheme}, EPSG:3857`, screenView(binding, 29.5593, -95.09, 2, 100)],
+    [`Texas 14/15 seam, ${scheme}, EPSG:3857`, screenView(binding, 30, -96, 30)],
+  ]),
+  ["Norway 31V/32V, ACC, EPSG:3857", screenView(earthMercatorAcc, 60, 3, 60)],
+  ["JSC ~50 km, ACC, UTM 15N map (affine)", screenView(earthUtm15, 29.5593, -95.09, 25)],
+  ["84° N seam, ACC, UPS North map", screenView(earthUpsNorth, 84, 1, 25)],
+];
+
+describe("Earth dynamic grid plan (1920×1080)", () => {
+  for (const [name, options] of earthPlanViews) {
     bench(name, () => {
       consumePlan(createLgrsRenderPlan(options));
     });

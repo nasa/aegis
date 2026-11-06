@@ -54,7 +54,7 @@ export function getFixedGridSpacings(system: LgrsGridSystem): readonly LgrsPreci
 
 const scratch = new Float64Array(2);
 const scratchLatLon = new Float64Array(2);
-const intervals = new Float64Array(4);
+const intervals = new Float64Array(6);
 const regionBounds = new Float64Array(4);
 
 function emptyPlan(): LgrsRenderPlan {

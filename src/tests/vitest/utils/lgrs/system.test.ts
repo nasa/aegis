@@ -1,4 +1,5 @@
 import { getLgrsCompatibility } from "utils/lgrs/compatibility";
+import { getEarthGridSystem } from "utils/lgrs/earth/system";
 import { getFixedGridSpacings } from "utils/lgrs/grid/plan";
 import { getLtmCrsId, LGRS_CRS_LPS_NORTH, LGRS_CRS_LPS_SOUTH } from "utils/lgrs/moon/crs";
 import { moonGridSystem } from "utils/lgrs/moon/system";
@@ -63,9 +64,11 @@ describe("getMissionCoordinateSystem", () => {
 });
 
 describe("getGridSystem", () => {
-  test("returns the Moon and rejects systems that are not available", () => {
+  test("returns the Moon, the Earth per scheme, and rejects unknown systems", () => {
     expect(getGridSystem("moon-m2025", "lunar-acc")).toBe(moonGridSystem);
-    expect(() => getGridSystem("earth-wgs84", "mgrs")).toThrow(/earth-wgs84/);
+    expect(getGridSystem("earth-wgs84", "mgrs")).toBe(getEarthGridSystem("mgrs"));
+    expect(getGridSystem("earth-wgs84", "lunar-acc")).toBe(getEarthGridSystem("lunar-acc"));
+    expect(() => getGridSystem("mars" as MissionGridSystemId, "mgrs")).toThrow(/mars/);
   });
 });
 

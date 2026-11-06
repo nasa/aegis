@@ -1,8 +1,9 @@
 /**
  * Grid — behavior component that draws the mission grid lines and labels.
  *
- * Draws either the server-file grid (a loaded coordinate lattice) or the dynamic LGRS grid
- * (`createLgrsRenderPlan`, any lunar map projection) as OL features on dedicated VectorLayers.
+ * Draws either the server-file grid (a loaded coordinate lattice) or the dynamic grid of the
+ * mission's grid system (`createLgrsRenderPlan`: lunar LGRS, or Earth UTM/UPS in ACC or MGRS
+ * labels) as OL features on dedicated VectorLayers.
  * Grid density adapts to the visible portion (zoom level) to avoid rendering thousands of lines.
  *
  * Density is decided by the dashboard: the dashboard map publishes the spacing it
@@ -141,6 +142,12 @@ export function Grid(): null {
 
       if (resolvedGrid.kind === "dynamic-lgrs") {
         if (!gridBinding) return null;
+        const systemKey = gridBinding.system.key;
+        // A spacing published under another system (e.g. mid scheme switch) does not apply.
+        const inheritedLgrsSpacing =
+          inheritedSpacing?.systemKey === undefined || inheritedSpacing.systemKey === systemKey
+            ? inheritedSpacing
+            : null;
         const plan = createLgrsRenderPlan({
           binding: gridBinding,
           extent: [extent[0], extent[1], extent[2], extent[3]],
@@ -148,7 +155,7 @@ export function Grid(): null {
           gridSpacingMode,
           gridLabelInterval,
           labelsVisible: labelsEnabled,
-          inheritedSpacing,
+          inheritedSpacing: inheritedLgrsSpacing,
         });
 
         const lineFeatures = plan.lines.map((line) => {
@@ -163,7 +170,9 @@ export function Grid(): null {
         });
         lineSource.addFeatures(lineFeatures);
         labelSource.addFeatures(labelFeatures);
-        return plan.tier === "box" ? { line: plan.lineSpacing, label: plan.labelSpacing } : null;
+        return plan.tier === "box"
+          ? { line: plan.lineSpacing, label: plan.labelSpacing, systemKey }
+          : null;
       }
 
       if (!planetRadius) return null;
