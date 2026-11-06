@@ -6,7 +6,7 @@
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
-  padding: 5px;
+  padding: 5px 5px 0;
   background-color: var(--grey1);
   font-size: 0.8rem;
   overflow: hidden;
@@ -273,8 +273,8 @@
   text-align: left;
 }
 
-.colNumber {
-  width: calc(42px + var(--folder-indent));
+.colToggle {
+  width: calc(18px + var(--folder-indent));
 }
 
 .colEmoji {
@@ -450,14 +450,6 @@
   color: var(--grey4);
 }
 
-.numberCell {
-  color: var(--grey4);
-}
-
-.assetRowSelected .numberCell {
-  color: #000000;
-}
-
 .rowToggle {
   display: inline-flex;
   align-items: center;
@@ -468,6 +460,10 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+.rowToggle > svg {
+  color: white;
 }
 
 /* Folder children indent under their folder header; root assets stay at the left edge. */

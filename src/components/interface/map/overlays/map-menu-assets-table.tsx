@@ -137,15 +137,6 @@ export const AssetTable: FunctionComponent<Props> = ({
     }
   };
 
-  // Row numbers are display only: folder contents in folder order, then root assets.
-  const rowNumbers = new Map(
-    [
-      ...sortedFolders.flatMap((folder) =>
-        sortedAssets.filter((asset) => folderUuidByItem[asset.uuid] === folder.uuid)
-      ),
-      ...rootAssets,
-    ].map((asset, index) => [asset.uuid, index + 1])
-  );
   const renderAssetRow = (asset: Asset, folder: Folder | null) => {
     const isEditing = editingAssetUuid === asset.uuid;
     const isExpanded = expandedAssetUuid === asset.uuid || isEditing;
@@ -154,7 +145,6 @@ export const AssetTable: FunctionComponent<Props> = ({
         key={asset.uuid}
         asset={asset}
         folder={folder}
-        number={rowNumbers.get(asset.uuid)}
         columnCount={columnCount}
         canEdit={canEdit}
         canMutate={canMutate}
@@ -177,7 +167,7 @@ export const AssetTable: FunctionComponent<Props> = ({
     >
       <table className={styles.assetTable} data-testid="asset-table">
         <colgroup>
-          <col className={styles.colNumber} />
+          <col className={styles.colToggle} />
           <col className={styles.colEmoji} />
           <col className={styles.colName} />
           <col className={styles.colCoords} />
@@ -191,7 +181,7 @@ export const AssetTable: FunctionComponent<Props> = ({
         </colgroup>
         <thead>
           <tr className={styles.headerRow}>
-            <th>#</th>
+            <th aria-label="Expand or collapse" />
             <th aria-label="Emoji" />
             <th>Name</th>
             <th>Coords</th>
@@ -447,7 +437,6 @@ const FolderGroup: FunctionComponent<{
 const AssetRow: FunctionComponent<{
   asset: Asset;
   folder: Folder | null;
-  number: number;
   columnCount: number;
   canEdit: boolean;
   canMutate: boolean;
@@ -459,7 +448,6 @@ const AssetRow: FunctionComponent<{
 }> = ({
   asset,
   folder,
-  number,
   columnCount,
   canEdit,
   canMutate,
@@ -497,7 +485,7 @@ const AssetRow: FunctionComponent<{
   const locationDetails = placed
     ? [
         formatCoordinateEntry(asset.location, coordinateContext),
-        formatLatLng(asset.location),
+        coordinateContext.usingLGRSCoordinates && formatLatLng(asset.location),
         `Elevation ${asset.elevation === null ? "unavailable" : `${asset.elevation.toFixed(1)} m`}`,
         `Last modified ${formatUtcTime(asset.updatedAt)}`,
       ]
@@ -544,7 +532,7 @@ const AssetRow: FunctionComponent<{
           dispatch(setSelectedAssetUuid(asset.uuid));
         }}
       >
-        <td className={styles.numberCell}>
+        <td>
           <button
             type="button"
             className={styles.rowToggle}
@@ -563,7 +551,6 @@ const AssetRow: FunctionComponent<{
             data-testid={`asset-expand-${asset.uuid}`}
           >
             <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="lg" />
-            <span>{number}</span>
           </button>
         </td>
         <td ref={emojiCellRef} className={styles.emojiCell}>
