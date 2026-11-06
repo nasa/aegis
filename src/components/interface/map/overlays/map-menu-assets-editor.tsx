@@ -71,6 +71,10 @@ export const AssetEditor: FunctionComponent<{
   const formattedLocation = formatCoordinateEntry(values.location, coordinateContext);
   const [coordinateText, setCoordinateText] = useState(formattedLocation);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const coordinateValidationError =
+    coordinateText.trim() && coordinateText.trim() !== formattedLocation.trim()
+      ? parseCoordinateEntry(coordinateText, coordinateContext).error
+      : null;
   useEffect(() => {
     setCoordinateText(formattedLocation);
     setSubmitError(null);
@@ -106,7 +110,8 @@ export const AssetEditor: FunctionComponent<{
         : null;
 
   const [saving, setSaving] = useState(false);
-  const saveEnabled = editable && !invalid && !petError && uncertaintyValid && !saving;
+  const saveEnabled =
+    editable && !invalid && !petError && !coordinateValidationError && uncertaintyValid && !saving;
   const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null);
   const closeEmojiPicker = useCallback(() => setEmojiAnchor(null), []);
 
@@ -115,18 +120,19 @@ export const AssetEditor: FunctionComponent<{
     if (text === formattedLocation.trim()) {
       setCoordinateText(formattedLocation);
       setSubmitError(null);
-      return;
+      return true;
     }
     const result = text
       ? parseCoordinateEntry(text, coordinateContext)
       : { location: null, error: null };
     if (result.error) {
       setSubmitError(result.error);
-      return;
+      return false;
     }
     setSubmitError(null);
     dispatch(thunkCancelAssetMapDirective());
     dispatch(thunkSetAssetEditLocation({ uuid: inEdit.uuid, location: result.location }));
+    return true;
   };
 
   // Live validation while typing; the authoritative submit check reports on blur/Enter.
@@ -143,6 +149,7 @@ export const AssetEditor: FunctionComponent<{
     <div className={styles.editorActions}>
       <Button
         onClick={async () => {
+          if (!submitCoordinates()) return;
           setSaving(true);
           try {
             await dispatch(thunkSaveAssetEdit(petUpdate === "manual" ? undefined : { petUpdate }));
@@ -157,7 +164,7 @@ export const AssetEditor: FunctionComponent<{
             ? inEdit?.elevationPending
               ? "Waiting for elevation…"
               : "Saving…"
-            : petError || invalid || "Save"
+            : petError || coordinateValidationError || invalid || "Save"
         }
         className={`${styles.iconOnlyButton} ${saveEnabled ? styles.saveButton : styles.saveButtonDisabled}`}
         enabled={saveEnabled}

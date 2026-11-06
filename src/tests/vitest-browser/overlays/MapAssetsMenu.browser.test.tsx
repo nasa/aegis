@@ -673,6 +673,64 @@ describe("MapAssetsMenu", () => {
     await vi.waitFor(() => expect(q("[data-testid='asset-editor-coordinate-error']")).toBeNull());
   });
 
+  it.each(["-91, 0", "-89.5,"])(
+    "blocks creation with invalid coordinates %s and submits corrected coordinates on Save",
+    async (text) => {
+      store = makeStore(true);
+      render();
+      openDraft(generateBlankAsset({ name: "Drill" }), true);
+      const input = q("[data-testid='asset-editor-coordinates']") as HTMLInputElement;
+      input.focus();
+      enterValue(input, text);
+      expect(q("[aria-label='Save']")!.getAttribute("aria-disabled")).toBe("true");
+      await userEvent.click(q("[aria-label='Save']")!);
+      expect(saveAsset).not.toHaveBeenCalled();
+      expect(setLocation).not.toHaveBeenCalled();
+
+      enterValue(input, "-89.5, 45.2");
+      expect(q("[aria-label='Save']")!.getAttribute("aria-disabled")).toBe("false");
+      flushSync(() => q("[aria-label='Save']")!.click());
+      await vi.waitFor(() => expect(saveAsset).toHaveBeenCalledTimes(1));
+      expect(setLocation).toHaveBeenCalledWith({
+        uuid: store.getState().asset.inEdit!.uuid,
+        location: { lat: -89.5, lng: 45.2 },
+      });
+      expect(setLocation.mock.invocationCallOrder[0]).toBeLessThan(
+        saveAsset.mock.invocationCallOrder[0]
+      );
+    }
+  );
+
+  it.each([false, true])(
+    "does not submit an unchanged position (LGRS: %s)",
+    (usingLGRSCoordinates) => {
+      const point = { lat: -89.500012345, lng: 45.200012345 };
+      mockMissionDoc.usingLGRSCoordinates = usingLGRSCoordinates;
+      mockMissionDoc.landerLocation = point;
+      mockMissionDoc.planetRadius = 1737400;
+      const asset = generateBlankAsset({ name: "Drill", location: point, locationSetAt: 123456 });
+      mockMissionDoc.assets = { [asset.uuid]: asset };
+      store = makeStore(true);
+      render();
+      openDraft(asset, false);
+      flushSync(() => q("div[aria-label='Asset coordinates']")!.click());
+      const input = q("dialog[open] input") as HTMLInputElement;
+      expect(input.value).not.toBe("");
+      enterValue(input, ` ${input.value} `);
+      flushSync(() => dialogAction("Save").click());
+      expect(setLocation).not.toHaveBeenCalled();
+
+      flushSync(() => q("div[aria-label='Asset coordinates']")!.click());
+      enterValue(q("dialog[open] input") as HTMLInputElement, "-89.6, 45.3");
+      flushSync(() => dialogAction("Save").click());
+      expect(setLocation).toHaveBeenCalledExactlyOnceWith({
+        uuid: asset.uuid,
+        location: { lat: -89.6, lng: 45.3 },
+        saveImmediately: true,
+      });
+    }
+  );
+
   it("uses the standard field modals to save or cancel individual fields", async () => {
     const asset = generateBlankAsset({ name: "Drill" });
     mockMissionDoc.assets = { [asset.uuid]: asset };
