@@ -269,7 +269,10 @@ interface LgrsGridSystem {
 
   // * Missions
 
-  /** Null when a mission with this planet radius can use the system, otherwise the reason. */
+  /**
+   * Null when a mission with this planet radius can use the system, otherwise the reason. For
+   * `earth-wgs84` the reason is an admin warning and does not block the dynamic grid.
+   */
   checkPlanetRadius(planetRadius: number | null | undefined): string | null;
 }
 
@@ -279,8 +282,8 @@ type LgrsMissionGridSystem = {
   compatibility: LgrsCompatibility;
 };
 
-/** Mission fields that select its grid system (none yet: every mission is lunar). */
-type LgrsMissionGridSelection = Pick<Mission, never>;
+/** Mission fields that select its grid system and default label scheme. */
+type LgrsMissionGridSelection = Pick<Mission, "gridSystem" | "earthGridLabelScheme">;
 
 /** Mission fields that select and gate its grid system. */
 type LgrsMissionGridFields = LgrsMissionGridSelection &

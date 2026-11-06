@@ -124,6 +124,13 @@ CRS ids mean something only together with their system. `getMissionGridSystem(mi
 (`utils/lgrs/system.ts`) resolves a mission's system and its dynamic-grid compatibility;
 components use `useMissionGridSystem()` / `useMissionCoordinateSystem()`
 (`hooks/useMissionGridSystem.ts`, the latter null without `usingLGRSCoordinates`).
+The system comes from `mission.gridSystem` (lunar when unset), never from the radius. Earth
+missions (`earth-wgs84`) are labelled in the user's override
+(`interface.gridLabelSchemeOverride`, cookie `AEGIS_Grid_Label_Scheme`, set from the map
+menu's Grid Scheme row) or else `mission.earthGridLabelScheme`; the Moon ignores the override.
+Exports always use the mission default. On Earth the mouse readout and the map menu show the
+active scheme (`ACC` / `MGRS`). `MapMenuProvider` keeps any saved fixed grid spacing but
+exposes it only while the active system offers it (`getFixedGridSpacings`), otherwise `auto`.
 `getLgrsMapProjector(getLgrsMapProjection(mission))` (`utils/lgrs/mapProjection.ts`) is the
 cached, system-independent map ↔ lat/lon converter used by the mouse readout. It builds proj4
 converters once per projection and has closed-form fast paths (bit-identical to proj4) for polar

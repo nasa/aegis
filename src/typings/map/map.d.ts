@@ -132,5 +132,7 @@ type MissionSelectProperties = Pick<
   | "circleDefinitions"
   | "usingLGRSCoordinates"
   | "gridRenderMode"
+  | "gridSystem"
+  | "earthGridLabelScheme"
   | "actionDefinitions"
 >;

@@ -12,6 +12,7 @@ import { Migration20261022000000 } from "server/automerge/migrations/Migration20
 import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 import { Migration20261028000000 } from "server/automerge/migrations/Migration20261028000000";
+import { Migration20261106000000 } from "server/automerge/migrations/Migration20261106000000";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -110,7 +111,8 @@ describe("clear Automerge document history", () => {
   };
 
   it("is registered after the existing document migrations", () => {
-    expect(AUTOMERGE_MIGRATIONS.at(-1)).toBe(Migration20261028000000);
+    const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261028000000);
+    expect(AUTOMERGE_MIGRATIONS[index - 1]).toBe(Migration20261026000000);
   });
 
   it("runs after schema migrations and passes replacement handles to later migrations and release", async () => {
@@ -126,6 +128,9 @@ describe("clear Automerge document history", () => {
       for (const source of mission.rexes.rex.posSources) {
         delete (source as Partial<PosSource>).pathColor;
       }
+      // Fields added after this migration must not fail its schema validation.
+      delete mission.gridSystem;
+      delete mission.earthGridLabelScheme;
     });
     const listings = [first.listing, second.listing];
     const oldUrls = listings.map(({ automergeUrl }) => automergeUrl);
@@ -137,6 +142,7 @@ describe("clear Automerge document history", () => {
       Migration20261022010000,
       Migration20261026000000,
       Migration20261028000000,
+      Migration20261106000000,
     ]);
     globalValues.automergeRepo = repo;
 
@@ -146,7 +152,7 @@ describe("clear Automerge document history", () => {
       [
         ...schemaMigrations,
         {
-          version: 20261029000000,
+          version: 20261107000000,
           name: "edit-replacement",
           migrate: async (handle, { docListing }) => {
             expect(handle.url).toBe(docListing.automergeUrl);
@@ -162,10 +168,14 @@ describe("clear Automerge document history", () => {
 
     expect(Object.keys(repo.handles)).toEqual([]);
     const reader = makeRepo();
-    for (const listing of listings) {
+    // The replacement, then the edit; the first mission also has its grid system backfill.
+    for (const [listing, changes] of [
+      [first.listing, 3],
+      [second.listing, 2],
+    ] as const) {
       const reloaded = await reader.find<Mission>(listing.automergeUrl as AutomergeUrl);
       expect(reloaded.doc().description).toBe("Edited after replacement");
-      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(2);
+      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(changes);
     }
     const mission = (await reader.find<Mission>(first.listing.automergeUrl as AutomergeUrl)).doc();
     expect(mission.evas.eva.sunEarthFromDate).toBe(true);
@@ -176,6 +186,8 @@ describe("clear Automerge document history", () => {
       "#009CE0",
       "#68BC00",
     ]);
+    expect(mission.gridSystem).toBe("moon-m2025");
+    expect(mission.earthGridLabelScheme).toBe("lunar-acc");
     await vi.waitFor(async () => {
       expect(await storage.loadRange([first.handle.documentId])).toEqual([]);
       expect(await storage.loadRange([second.handle.documentId])).toEqual([]);

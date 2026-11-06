@@ -99,3 +99,14 @@
   border-radius: var(--radius);
   background-color: var(--grey2);
 }
+
+/* Active Earth label scheme beside the grid readout, so a screenshot names its scheme. */
+.gridSchemeTag {
+  margin-left: 6px;
+  padding: 0 3px;
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  font-size: 0.85em;
+  font-weight: 600;
+  color: var(--grey5);
+}

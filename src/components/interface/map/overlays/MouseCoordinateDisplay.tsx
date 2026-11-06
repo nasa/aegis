@@ -15,12 +15,17 @@ import type { Coordinate } from "ol/coordinate";
 import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridCoordinatesFromPoint } from "utils/mapping/geoMath";
-import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
+import {
+  formatLgrsFromLatLon,
+  GRID_LABEL_SCHEME_NAMES,
+  LGRS_DISPLAY_PRECISION_METERS,
+} from "utils/lgrs/display";
 import { getLgrsMapProjection, getLgrsMapProjector } from "utils/lgrs/mapProjection";
 import { useMapContext } from "../MapProvider";
 import { useMissionCoordinateSystem } from "../hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { MODE_CONFIGS } from "../utils/modeConfig";
+import styles from "./mapOverlays.module.css";
 
 interface MouseCoordinateDisplayProps {
   className?: string;
@@ -110,7 +115,16 @@ export function MouseCoordinateDisplay({
   return (
     <div className={className}>
       {readout && <div style={{ ...READOUT_STYLE, width: "150px" }}>{readout.latLng}</div>}
-      {readout?.grid && <div style={{ ...READOUT_STYLE, minWidth: "150px" }}>{readout.grid}</div>}
+      {readout?.grid && (
+        <div style={{ ...READOUT_STYLE, minWidth: "150px" }}>
+          {readout.grid}
+          {gridSystem?.id === "earth-wgs84" && (
+            <span className={styles.gridSchemeTag} data-testid="mouse-grid-scheme">
+              {GRID_LABEL_SCHEME_NAMES[gridSystem.scheme]}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

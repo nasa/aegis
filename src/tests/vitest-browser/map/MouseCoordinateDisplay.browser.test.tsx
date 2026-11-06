@@ -2,7 +2,10 @@
  * Browser-mode tests for `MouseCoordinateDisplay`.
  *
  * Mocks:
- *  - `utils/useDocSelector` — provides projection, planetRadius + usingLGRSCoordinates
+ *  - `utils/useDocSelector` — provides projection, planetRadius, usingLGRSCoordinates and the
+ *    grid system fields
+ *  - `utils/useAppSelector` — provides the user's label scheme override
+ *  - `utils/lgrs/system` — stands in a lunar-formatted system for `earth-wgs84`
  *  - `utils/mapping/geoMath` — stubs getGridCoordinatesFromPoint (server-file grid path)
  *  - `useResolvedMissionGrid` — provides the resolved grid kind
  *
@@ -11,6 +14,7 @@
  *  - Shows lat/lng identical to proj4 after a pointermove event
  *  - Shows whole-Moon LGRS strings (LTM, LPS N, LPS S; condensed and full)
  *  - Shows / skips the server-file grid coordinate
+ *  - Shows the active Earth label scheme beside the grid readout, and none on the Moon
  *  - Coalesces pointermoves into one update per animation frame
  *  - Does not re-render for pointermoves that leave the displayed text unchanged
  *  - Removes the pointermove listener and cancels the pending frame on unmount
@@ -24,6 +28,7 @@ import OLEvent from "ol/events/Event";
 import proj4 from "proj4";
 
 import { MapContext } from "components/interface/map/MapProvider";
+import type * as SystemModule from "utils/lgrs/system";
 import { MouseCoordinateDisplay } from "components/interface/map/overlays/MouseCoordinateDisplay";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
@@ -42,7 +47,24 @@ const mockMissionDoc = {
   projProj4String: MOON_EQC,
   planetRadius: 1737400,
   usingLGRSCoordinates: false,
+  gridSystem: undefined as MissionGridSystemId | undefined,
+  earthGridLabelScheme: undefined as GridLabelScheme | undefined,
 };
+
+let mockSchemeOverride: GridLabelScheme | null = null;
+
+vi.mock("utils/useAppSelector", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  useAppSelector: <TSel,>(selector: (state: unknown) => TSel): TSel =>
+    selector({ interface: { gridLabelSchemeOverride: mockSchemeOverride } }),
+}));
+
+// The indicator only reads the system's id and scheme, so lunar formatting stands in for Earth.
+vi.mock("utils/lgrs/system", async (importOriginal) =>
+  (await import("./helpers/earthStandIn")).withEarthStandIn(
+    await importOriginal<typeof SystemModule>()
+  )
+);
 
 vi.mock("utils/useDocSelector", () => ({
   useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
@@ -103,6 +125,9 @@ beforeEach(() => {
   mockGridCoordResult = null;
   mockResolvedGrid = { kind: "none" };
   mockMissionDoc.usingLGRSCoordinates = false;
+  mockMissionDoc.gridSystem = undefined;
+  mockMissionDoc.earthGridLabelScheme = undefined;
+  mockSchemeOverride = null;
   setMockProjection("TEST:MOON-EQC", MOON_EQC);
   renderCount = 0;
   harness = createReactHarness();
@@ -172,6 +197,50 @@ describe("MouseCoordinateDisplay", () => {
       expect(document.body.textContent).toContain(expected);
     });
   });
+
+  it.each([
+    { scheme: undefined, override: null, expected: "ACC" },
+    { scheme: "mgrs", override: null, expected: "MGRS" },
+    { scheme: "mgrs", override: "lunar-acc", expected: "ACC" },
+    { scheme: "lunar-acc", override: "mgrs", expected: "MGRS" },
+  ] as const)(
+    "shows $expected for an Earth mission with default $scheme and override $override",
+    async ({ scheme, override, expected }) => {
+      mockMissionDoc.gridSystem = "earth-wgs84";
+      mockMissionDoc.earthGridLabelScheme = scheme;
+      mockMissionDoc.usingLGRSCoordinates = true;
+      mockSchemeOverride = override;
+      renderMouseCoordinateDisplay("editor");
+
+      pointerMove(toMap(45, 90));
+
+      await vi.waitFor(() => {
+        expect(document.querySelector("[data-testid='mouse-grid-scheme']")?.textContent).toBe(
+          expected
+        );
+      });
+    }
+  );
+
+  it.each([
+    { gridSystem: "moon-m2025", usingLGRSCoordinates: true, override: "mgrs" },
+    { gridSystem: "earth-wgs84", usingLGRSCoordinates: false, override: null },
+  ] as const)(
+    "shows no scheme for $gridSystem with grid coordinates $usingLGRSCoordinates",
+    async ({ gridSystem, usingLGRSCoordinates, override }) => {
+      mockMissionDoc.gridSystem = gridSystem;
+      mockMissionDoc.usingLGRSCoordinates = usingLGRSCoordinates;
+      mockSchemeOverride = override;
+      renderMouseCoordinateDisplay("editor");
+
+      pointerMove(toMap(45, 90));
+
+      await vi.waitFor(() => {
+        expect(document.body.textContent).toContain("45.000000, 90.000000");
+      });
+      expect(document.querySelector("[data-testid='mouse-grid-scheme']")).toBeNull();
+    }
+  );
 
   it("shows the server-file grid coordinate when one is found", async () => {
     mockGridCoordResult = "A-3";

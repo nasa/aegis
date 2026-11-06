@@ -11,15 +11,20 @@ const PROBE_POINTS: [lat: number, lon: number][] = [
 const probe = new Float64Array(2);
 
 /**
- * Whether the dynamic grid of `system` can be drawn for a mission: the system must accept the
- * mission's planet radius, and the map projection must be one proj4 can build.
+ * Whether the dynamic grid of `system` can be drawn for a mission: the map projection must be
+ * one proj4 can build, and the Moon also requires the lunar planet radius. On Earth a radius
+ * issue is only a warning, since WGS84 does not depend on the mission's sphere.
  */
 export function getLgrsCompatibility(
   system: LgrsGridSystem,
   mission: Pick<Mission, "id" | "planetRadius" | "projIsCustom" | "projEpsg" | "projProj4String">
 ): LgrsCompatibility {
   const radiusIssue = system.checkPlanetRadius(mission.planetRadius);
-  if (radiusIssue !== null) return { compatible: false, reason: radiusIssue, projection: null };
+  const radiusBlocks = system.id !== "earth-wgs84";
+  if (radiusIssue !== null && radiusBlocks) {
+    return { compatible: false, reason: radiusIssue, projection: null, warning: null };
+  }
+  const warning = radiusBlocks ? null : radiusIssue;
   const projection = getLgrsMapProjection(mission);
   const projector = getLgrsMapProjector(projection);
   const parseable = PROBE_POINTS.some(([lat, lon]) => projector.latLonToMap(lat, lon, probe));
@@ -28,11 +33,13 @@ export function getLgrsCompatibility(
       compatible: false,
       reason: "LGRS requires a map projection that proj4 can parse.",
       projection: null,
+      warning,
     };
   }
   return {
     compatible: true,
     reason: "Dynamic LGRS grid is available for this mission's projection.",
     projection,
+    warning,
   };
 }

@@ -18,3 +18,11 @@ export function isEarthScale(planetRadius: number | null | undefined): boolean {
 export function maxZoomForPlanet(planetRadius: number | null | undefined): number {
   return isEarthScale(planetRadius) ? 19 : 17;
 }
+
+/**
+ * Grid system suggested for a planet radius. Used only to initialize or suggest
+ * `mission.gridSystem`; the grid system is never inferred from the radius at runtime.
+ */
+export function suggestGridSystemId(planetRadius: number | null | undefined): MissionGridSystemId {
+  return isEarthScale(planetRadius) ? "earth-wgs84" : "moon-m2025";
+}

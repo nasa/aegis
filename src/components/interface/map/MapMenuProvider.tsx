@@ -24,6 +24,8 @@ import {
   type SetStateAction,
 } from "react";
 import { useCookies } from "react-cookie";
+import { getFixedGridSpacings } from "utils/lgrs/grid/plan";
+import { useMissionGridSystem } from "./hooks/useMissionGridSystem";
 
 export interface MapMenuSettings {
   submenuStations: MapSubmenuStations;
@@ -88,7 +90,18 @@ const DEFAULT_SETTINGS: MapMenuSettings = {
   gridLabelInterval: "auto",
 };
 
-const GRID_SPACING_MODES: GridSpacingMode[] = ["auto", 10, 100, 1000];
+/** Whether `mode` is "auto" or one of the grid system's fixed spacings. */
+function isOfferedGridSpacing(mode: GridSpacingMode, system: LgrsGridSystem): boolean {
+  return mode === "auto" || (getFixedGridSpacings(system) as readonly number[]).includes(mode);
+}
+
+/**
+ * Whether a saved spacing is "auto" or a whole number of metres. Which spacings apply depends
+ * on the grid system, so a saved spacing is kept and checked against the system when read.
+ */
+function isGridSpacingMode(value: unknown): value is GridSpacingMode {
+  return value === "auto" || (Number.isInteger(value) && (value as number) > 0);
+}
 
 /**
  * Fill every setting missing from the saved cookie (including fields inside the
@@ -110,9 +123,7 @@ function mergeCookieWithDefaults(saved: Partial<MapMenuCookie> | undefined): Map
       }
       (merged as Record<string, unknown>)[key] = mergedSubmenu;
     } else if (key === "gridSpacingMode" || key === "gridLabelInterval") {
-      if (GRID_SPACING_MODES.includes(savedValue as GridSpacingMode)) {
-        merged[key] = savedValue as GridSpacingMode;
-      }
+      if (isGridSpacingMode(savedValue)) merged[key] = savedValue;
     } else if (typeof savedValue === typeof defaultValue) {
       (merged as Record<string, unknown>)[key] = savedValue;
     }
@@ -150,6 +161,7 @@ interface MapMenuProviderProps {
 export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element {
   // --- Cookie persistence ---
   const [cookie, setCookie] = useCookies(["AEGIS_Map_Menu_Settings"]);
+  const gridSystem = useMissionGridSystem();
 
   // Read the cookie once, during the first render, so every setting starts from the saved
   // value (or its default when missing). The persist effect below then writes the complete
@@ -180,6 +192,15 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
   const [gridLabelInterval, setGridLabelInterval] = useState<GridSpacingMode>(
     initialSettings.gridLabelInterval
   );
+
+  // Only the grid system's fixed spacings apply (MGRS offers 10 km, ACC and the Moon do not).
+  // Any other spacing reads as auto and returns when a system that offers it is active.
+  const activeGridSpacingMode = isOfferedGridSpacing(gridSpacingMode, gridSystem)
+    ? gridSpacingMode
+    : "auto";
+  const activeGridLabelInterval = isOfferedGridSpacing(gridLabelInterval, gridSystem)
+    ? gridLabelInterval
+    : "auto";
 
   // The default source selection depends on the REX's source uuids, so it can't be part of
   // DEFAULT_SETTINGS. Tracks which REX the current `submenuPos.sourceUuids` selection belongs
@@ -246,8 +267,8 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       showScaleBar,
       showMouseLatLon,
       showSunEarth,
-      gridSpacingMode,
-      gridLabelInterval,
+      gridSpacingMode: activeGridSpacingMode,
+      gridLabelInterval: activeGridLabelInterval,
     }),
     [
       submenuStations,
@@ -260,8 +281,8 @@ export function MapMenuProvider({ children }: MapMenuProviderProps): JSX.Element
       showScaleBar,
       showMouseLatLon,
       showSunEarth,
-      gridSpacingMode,
-      gridLabelInterval,
+      activeGridSpacingMode,
+      activeGridLabelInterval,
     ]
   );
 

@@ -7,6 +7,7 @@
  *  - cookie persistence (writes to AEGIS_Map_Menu_Settings)
  *  - cookie load on mount overrides defaults
  *  - missing cookie values fall back to defaults and the cookie is resaved
+ *  - grid spacings are validated against the mission's grid system
  *  - useMapDisplaySetters throws outside provider
  *
  * The provider uses `react-cookie`, so each test wraps in <CookiesProvider>
@@ -27,6 +28,7 @@ import {
   getCompatibleGridLabelInterval,
   MapMenuPosSourceSync,
 } from "components/interface/map/overlays/map-menu";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 // Mutable mock Automerge doc for MapMenuPosSourceSync.
@@ -45,12 +47,27 @@ vi.mock("utils/useAppSelector", async (importOriginal) => ({
     selector({ rex: { selectedRexUuid: mockSelectedRexUuid } }),
 }));
 
+/** Lunar geometry with the MGRS spacings (10 km box, 100 km square). */
+const mgrsLikeSystem: LgrsGridSystem = {
+  ...moonGridSystem,
+  key: "earth-wgs84/test-mgrs",
+  id: "earth-wgs84",
+  scheme: "mgrs",
+  getBoxSpacings: () => [10, 100, 1000, 10000, 100000],
+};
+let mockGridSystem: LgrsGridSystem = moonGridSystem;
+
+vi.mock("components/interface/map/hooks/useMissionGridSystem", () => ({
+  useMissionGridSystem: (): LgrsGridSystem => mockGridSystem,
+}));
+
 let harness: ReactHarness;
 let cookies: Cookies;
 
 beforeEach(() => {
   harness = createReactHarness();
   mockSelectedRexUuid = "rex-1";
+  mockGridSystem = moonGridSystem;
   // Each test gets its own Cookies instance — react-cookie also writes to
   // document.cookie though, so clear that too.
   document.cookie.split(";").forEach((c) => {
@@ -327,6 +344,59 @@ describe("MapMenuProvider — cookie persistence", () => {
     expect(settings!.showArrows).toBe(true);
     expect(settings!.gridSpacingMode).toBe("auto");
     expect(settings!.submenuPos.show).toBe(true);
+  });
+
+  it("accepts a saved spacing only when the grid system offers it", () => {
+    let settings: MapMenuSettings | null = null;
+    function Probe(): null {
+      settings = useMapMenuContext();
+      return null;
+    }
+    const renderWithSaved = (saved: Partial<MapMenuCookie>) => {
+      harness.unmount();
+      harness = createReactHarness();
+      const savedCookies = new Cookies();
+      savedCookies.set("AEGIS_Map_Menu_Settings", saved, { path: "/" });
+      harness.render(withCookies(<Probe />, savedCookies));
+      return savedCookies;
+    };
+
+    const lunarCookies = renderWithSaved({ gridSpacingMode: 10000, gridLabelInterval: 10000 });
+    expect(settings!.gridSpacingMode).toBe("auto");
+    expect(settings!.gridLabelInterval).toBe("auto");
+    // The saved choice survives a lunar mission for the next Earth MGRS mission.
+    expect(lunarCookies.get("AEGIS_Map_Menu_Settings").gridSpacingMode).toBe(10000);
+
+    mockGridSystem = mgrsLikeSystem;
+    renderWithSaved({ gridSpacingMode: 10000, gridLabelInterval: 10000 });
+    expect(settings!.gridSpacingMode).toBe(10000);
+    expect(settings!.gridLabelInterval).toBe(10000);
+
+    // The 100 km square is prefix-only, not a fixed spacing.
+    renderWithSaved({ gridSpacingMode: 100000 });
+    expect(settings!.gridSpacingMode).toBe("auto");
+  });
+
+  it("reads a spacing the active scheme does not offer as auto, and keeps it", () => {
+    mockGridSystem = mgrsLikeSystem;
+    let settings: MapMenuSettings | null = null;
+    let setters: MapMenuSetters | null = null;
+    function Probe(): null {
+      settings = useMapMenuContext();
+      setters = useMapMenuSetters();
+      return null;
+    }
+    harness.render(withCookies(<Probe />));
+    flushSync(() => setters!.setGridSpacingMode(10000));
+    expect(settings!.gridSpacingMode).toBe(10000);
+
+    mockGridSystem = moonGridSystem;
+    flushSync(() => setters!.setShowSunEarth(true));
+    expect(settings!.gridSpacingMode).toBe("auto");
+
+    mockGridSystem = mgrsLikeSystem;
+    flushSync(() => setters!.setShowSunEarth(false));
+    expect(settings!.gridSpacingMode).toBe(10000);
   });
 
   it("persists submenuPos.pathMode to the cookie", () => {

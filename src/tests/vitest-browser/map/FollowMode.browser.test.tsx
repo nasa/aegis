@@ -40,6 +40,7 @@ import { traverseSlice } from "store/traverse";
 import { rexSlice } from "store/rex";
 import { evaSlice } from "store/eva";
 import { actionSlice } from "store/action";
+import { interfaceSlice } from "store/interface";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 // ---------------------------------------------------------------------------
@@ -181,6 +182,7 @@ function makeStore(preloadedState: PartialPreloadedState = {}) {
       rex: rexSlice.reducer,
       eva: evaSlice.reducer,
       action: actionSlice.reducer,
+      interface: interfaceSlice.reducer,
     },
     preloadedState,
   });

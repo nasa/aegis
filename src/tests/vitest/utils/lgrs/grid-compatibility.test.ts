@@ -56,4 +56,54 @@ describe("getLgrsCompatibility", () => {
     expect(result.compatible).toBe(false);
     expect(result.reason).toMatch(/proj4/);
   });
+
+  test("reports no warning for the Moon", () => {
+    expect(getLgrsCompatibility(moonGridSystem, base).warning).toBeNull();
+    expect(
+      getLgrsCompatibility(moonGridSystem, { ...base, planetRadius: null }).warning
+    ).toBeNull();
+  });
+
+  describe("on earth-wgs84", () => {
+    const radiusWarning = "Not an Earth radius.";
+    const earthLike: LgrsGridSystem = {
+      ...moonGridSystem,
+      key: "earth-wgs84/test",
+      id: "earth-wgs84",
+      checkPlanetRadius: (planetRadius) => (planetRadius > 4000000 ? null : radiusWarning),
+    };
+    const webMercator = {
+      ...base,
+      planetRadius: 6378137,
+      projIsCustom: false,
+      projEpsg: "EPSG:3857",
+    };
+
+    test("needs only a parseable projection", () => {
+      expect(getLgrsCompatibility(earthLike, webMercator)).toMatchObject({
+        compatible: true,
+        projection: { projCode: "EPSG:3857", proj4Def: null },
+        warning: null,
+      });
+    });
+
+    test("warns about a radius that is not Earth-scale without blocking", () => {
+      for (const planetRadius of [1737400, null]) {
+        expect(getLgrsCompatibility(earthLike, { ...webMercator, planetRadius })).toMatchObject({
+          compatible: true,
+          warning: radiusWarning,
+        });
+      }
+    });
+
+    test("still requires a projection proj4 can parse", () => {
+      const result = getLgrsCompatibility(earthLike, {
+        ...base,
+        planetRadius: 1737400,
+        projProj4String: "+proj=notaprojection",
+      });
+      expect(result).toMatchObject({ compatible: false, projection: null, warning: radiusWarning });
+      expect(result.reason).toMatch(/proj4/);
+    });
+  });
 });

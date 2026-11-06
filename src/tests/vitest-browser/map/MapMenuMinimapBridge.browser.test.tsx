@@ -8,9 +8,10 @@
  * maps without sharing a single menu provider.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { flushSync } from "react-dom";
 import { CookiesProvider, Cookies } from "react-cookie";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 import {
   MapMenuProvider,
   useMapMenuContext,
@@ -28,6 +29,11 @@ import {
   MinimapMenuSubscriber,
 } from "components/interface/map/MapMenuMinimapBridge";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
+
+// MapMenuProvider validates grid spacings against the mission's grid system.
+vi.mock("components/interface/map/hooks/useMissionGridSystem", () => ({
+  useMissionGridSystem: (): LgrsGridSystem => moonGridSystem,
+}));
 
 let harness: ReactHarness;
 let cookies: Cookies;

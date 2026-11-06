@@ -16,6 +16,10 @@ import {
   makeReadableActionDefinition,
   makeReadableMissionPriority,
 } from "utils/export";
+import { getLgrsGridBearing } from "utils/lgrs/bearing";
+import { moonGridSystem } from "utils/lgrs/moon/system";
+import { getGridSystem } from "utils/lgrs/system";
+import { getTrueBearingFromLatLngPoints } from "utils/mapping/geoMath";
 import { v4 as uuidv4 } from "uuid";
 
 describe("Export tests", () => {
@@ -285,5 +289,145 @@ describe("Export tests", () => {
     });
     expect(exportTraverse.calculatedFields).not.toHaveProperty("ascentDescentAvailable");
     expect(exportEva.calculatedFields).not.toHaveProperty("totalTraverseAscentDescentAvailable");
+  });
+
+  describe("grid systems", () => {
+    const JSC = { lat: 29.5593, lng: -95.09 };
+    const JSC_MGRS = "15R TN 9751 7177";
+    const path = [JSC, { lat: 29.5693, lng: -95.07 }];
+
+    /** A mission with a POI, a station, an action and a one-traverse EVA, exported in full. */
+    const exportAll = (fields: Partial<Mission>) => {
+      const poi = generateBlankPoi({ location: JSC });
+      const station = generateBlankStation({ location: JSC });
+      const action = generateBlankAction({ location: JSC });
+      const traverse = generateBlankTraverse({ path, pathSegmentDistances: [2200] });
+      const eva = generateBlankEVA({
+        sequence: [
+          { type: "station", uuid: station.uuid },
+          { type: "traverse", uuid: traverse.uuid },
+        ],
+      });
+      const mission = generateBlankMission({
+        landerLocation: JSC,
+        pois: { [poi.uuid]: poi },
+        stations: { [station.uuid]: station },
+        actions: { [action.uuid]: action },
+        traverses: { [traverse.uuid]: traverse },
+        evas: { [eva.uuid]: eva },
+        ...fields,
+      });
+      const output = JSON.parse(
+        makeExportString({
+          terrainProfiles: {},
+          mission,
+          selectEvas: true,
+          selectMission: true,
+          selectPois: true,
+          selectStations: true,
+          selectActions: true,
+          selectTraverses: true,
+          selectRexes: false,
+        })
+      );
+      const located: ExportCoordinates[] = [
+        output.exportMission,
+        ...output.pois,
+        ...output.stations,
+        ...output.actions,
+        output.evas[0].sequenceReadable[0],
+      ];
+      const bearings: number[] = [
+        output.traverses[0].calculatedFields.bearings[0],
+        output.evas[0].sequenceReadable[1].calculatedFields.bearings[0],
+      ];
+      return { output, located, bearings };
+    };
+
+    test("adds MGRS to every located item of an Earth mission with grid coordinates off", () => {
+      const { output, located, bearings } = exportAll({
+        planetRadius: 6378137,
+        gridSystem: "earth-wgs84",
+        usingLGRSCoordinates: false,
+      });
+      expect(output.exportMission).toMatchObject({
+        gridSystem: "earth-wgs84",
+        earthGridLabelScheme: "lunar-acc",
+      });
+      for (const item of located) {
+        expect(item).toMatchObject({ gridCoordinates: null, mgrsCoordinates: JSC_MGRS });
+      }
+      // True-north great-circle azimuths without grid coordinates.
+      for (const bearing of bearings) {
+        expect(bearing).toBe(getTrueBearingFromLatLngPoints(path[0], path[1]));
+      }
+    });
+
+    test("gives null MGRS for an item without a location", () => {
+      const { output } = exportAll({
+        gridSystem: "earth-wgs84",
+        landerLocation: { lat: null, lng: null },
+      });
+      expect(output.exportMission).toHaveProperty("mgrsCoordinates", null);
+    });
+
+    // Depends on the Earth grid system (`getGridSystem("earth-wgs84", scheme)`).
+    test.each([
+      ["lunar-acc", "15RTNDC X51 W77"],
+      ["mgrs", JSC_MGRS],
+    ] as const)(
+      "exports %s grid coordinates in the mission default scheme, plus MGRS",
+      (earthGridLabelScheme, expected) => {
+        const { output, located, bearings } = exportAll({
+          planetRadius: 6378137,
+          gridSystem: "earth-wgs84",
+          earthGridLabelScheme,
+          usingLGRSCoordinates: true,
+        });
+        expect(output.exportMission.earthGridLabelScheme).toBe(earthGridLabelScheme);
+        for (const item of located) {
+          expect(item).toMatchObject({ gridCoordinates: expected, mgrsCoordinates: JSC_MGRS });
+        }
+        // Grid north in the origin's UTM zone, the same in either scheme.
+        const gridBearing = getLgrsGridBearing(
+          getGridSystem("earth-wgs84", "lunar-acc"),
+          path[0],
+          path[1]
+        );
+        expect(gridBearing).not.toBe(getTrueBearingFromLatLngPoints(path[0], path[1]));
+        for (const bearing of bearings) expect(bearing).toBe(gridBearing);
+      }
+    );
+
+    test.each([true, false])(
+      "keeps lunar exports unchanged with usingLGRSCoordinates %s",
+      (usingLGRSCoordinates) => {
+        const { output, located, bearings } = exportAll({
+          gridSystem: "moon-m2025",
+          earthGridLabelScheme: "mgrs",
+          usingLGRSCoordinates,
+        });
+        expect(output.exportMission).toMatchObject({
+          gridSystem: "moon-m2025",
+          earthGridLabelScheme: "lunar-acc",
+        });
+        for (const item of located) {
+          expect(item).not.toHaveProperty("mgrsCoordinates");
+          expect(item.gridCoordinates).toBe(
+            usingLGRSCoordinates ? moonGridSystem.formatPoint(JSC.lat, JSC.lng, 10, "full") : null
+          );
+        }
+        // Lunar exports have always used LGRS grid north, whatever usingLGRSCoordinates.
+        for (const bearing of bearings) {
+          expect(bearing).toBe(getLgrsGridBearing(moonGridSystem, path[0], path[1]));
+        }
+      }
+    );
+
+    test("treats a mission without a grid system as lunar", () => {
+      const { output, located } = exportAll({ gridSystem: undefined, planetRadius: 6378137 });
+      expect(output.exportMission.gridSystem).toBe("moon-m2025");
+      for (const item of located) expect(item).not.toHaveProperty("mgrsCoordinates");
+    });
   });
 });

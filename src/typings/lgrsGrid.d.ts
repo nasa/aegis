@@ -81,6 +81,8 @@ type LgrsCompatibility = {
   reason: string;
   /** The mission's map projection when it is compatible. */
   projection: LgrsMapProjection | null;
+  /** A problem that does not block the dynamic grid, shown to admins; null when there is none. */
+  warning: string | null;
 };
 
 type LgrsViewSamples = {

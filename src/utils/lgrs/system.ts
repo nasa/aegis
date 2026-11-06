@@ -2,12 +2,19 @@ import { getLgrsCompatibility } from "./compatibility";
 import { getEarthGridSystem } from "./earth/system";
 import { moonGridSystem } from "./moon/system";
 
-/** Label scheme a mission uses unless the user overrides it. */
+/** Label scheme of the Moon, and of an Earth mission without `earthGridLabelScheme`. */
 const DEFAULT_LABEL_SCHEME: GridLabelScheme = "lunar-acc";
 
-/** The grid system a mission uses. Every mission is lunar. */
-export function getMissionGridSystemId(_mission: LgrsMissionGridSelection): MissionGridSystemId {
-  return "moon-m2025";
+/** The grid system a mission uses; lunar when `gridSystem` is not set. */
+export function getMissionGridSystemId(mission: LgrsMissionGridSelection): MissionGridSystemId {
+  return mission.gridSystem ?? "moon-m2025";
+}
+
+/** A mission's default label scheme, ignoring any user override. */
+export function getMissionDefaultLabelScheme(mission: LgrsMissionGridSelection): GridLabelScheme {
+  return getMissionGridSystemId(mission) === "earth-wgs84"
+    ? (mission.earthGridLabelScheme ?? DEFAULT_LABEL_SCHEME)
+    : DEFAULT_LABEL_SCHEME;
 }
 
 /** The grid system for an id and label scheme. The Moon has only the lunar ACC scheme. */
@@ -24,13 +31,27 @@ export function getGridSystem(id: MissionGridSystemId, scheme: GridLabelScheme):
 
 /**
  * A mission's grid system, labelled in the user's scheme override or else the mission default.
- * Cheap: use it where compatibility is not needed (readouts, bearings, exports).
+ * The override applies only to Earth missions. Cheap: use it where compatibility is not needed
+ * (readouts, bearings, exports).
  */
 export function resolveMissionGridSystem(
   mission: LgrsMissionGridSelection,
   userSchemeOverride?: GridLabelScheme | null
 ): LgrsGridSystem {
-  return getGridSystem(getMissionGridSystemId(mission), userSchemeOverride ?? DEFAULT_LABEL_SCHEME);
+  return getGridSystem(
+    getMissionGridSystemId(mission),
+    getMissionLabelScheme(mission, userSchemeOverride)
+  );
+}
+
+/** The label scheme a mission is shown in: the user's override on Earth, else the default. */
+export function getMissionLabelScheme(
+  mission: LgrsMissionGridSelection,
+  userSchemeOverride?: GridLabelScheme | null
+): GridLabelScheme {
+  return getMissionGridSystemId(mission) === "earth-wgs84"
+    ? (userSchemeOverride ?? getMissionDefaultLabelScheme(mission))
+    : DEFAULT_LABEL_SCHEME;
 }
 
 /** A mission's grid system and whether its dynamic grid can be drawn. */

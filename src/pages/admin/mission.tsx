@@ -16,13 +16,28 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
-import { getMissionGridSystem } from "utils/lgrs/system";
+import {
+  getMissionDefaultLabelScheme,
+  getMissionGridSystem,
+  getMissionGridSystemId,
+} from "utils/lgrs/system";
 import { getGridRenderMode } from "utils/mapping/grid";
+import { suggestGridSystemId } from "components/interface/map/utils/planetScale";
 
 type RouteParams = {
   id: string;
   automergeUrl: string;
 };
+
+const GRID_SYSTEM_OPTIONS: readonly { id: MissionGridSystemId; label: string }[] = [
+  { id: "moon-m2025", label: "Moon (LGRS)" },
+  { id: "earth-wgs84", label: "Earth (WGS84 UTM/UPS)" },
+];
+
+const EARTH_LABEL_SCHEME_OPTIONS: readonly { scheme: GridLabelScheme; label: string }[] = [
+  { scheme: "lunar-acc", label: "ACC (lunar-style letters)" },
+  { scheme: "mgrs", label: "MGRS" },
+];
 
 const Mission: React.FunctionComponent = () => {
   const elevationStatus = useAsyncStatus();
@@ -90,6 +105,12 @@ const Mission: React.FunctionComponent = () => {
     ? getMissionGridSystem(automergeMission).compatibility
     : null;
   const dynamicLgrsCompatible = dynamicLgrsCompatibility?.compatible ?? false;
+  const gridSystemId = automergeMission ? getMissionGridSystemId(automergeMission) : null;
+  const isEarthGrid = gridSystemId === "earth-wgs84";
+  // Changing the radius only suggests a grid system; the admin applies it with "Use".
+  const suggestedGridSystemId = automergeMission
+    ? suggestGridSystemId(automergeMission.planetRadius)
+    : null;
 
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
@@ -499,6 +520,65 @@ const Mission: React.FunctionComponent = () => {
                 <section className={adminCommon.section} style={{ marginBottom: 16 }}>
                   <h2 className={adminCommon.sectionHeading}>Coordinate System</h2>
                   <div className={adminCommon.details}>
+                    <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+                      <legend className={adminStyles.editLabel}>Grid System</legend>
+                      {GRID_SYSTEM_OPTIONS.map(({ id, label }) => (
+                        <label key={id} className={adminCommon.checkboxItem}>
+                          <input
+                            type="radio"
+                            name="gridSystem"
+                            checked={gridSystemId === id}
+                            onChange={() => {
+                              changeAutomergeMission((m: Mission) => {
+                                m.gridSystem = id;
+                              });
+                            }}
+                          />
+                          {label}
+                        </label>
+                      ))}
+                      {suggestedGridSystemId !== gridSystemId ? (
+                        <p className={adminCommon.formHint} data-testid="grid-system-suggestion">
+                          The planet radius suggests the{" "}
+                          {GRID_SYSTEM_OPTIONS.find(({ id }) => id === suggestedGridSystemId).label}{" "}
+                          grid.{" "}
+                          <button
+                            className={adminCommon.button}
+                            type="button"
+                            onClick={() => {
+                              changeAutomergeMission((m: Mission) => {
+                                m.gridSystem = suggestedGridSystemId;
+                              });
+                            }}
+                          >
+                            Use
+                          </button>
+                        </p>
+                      ) : null}
+                    </fieldset>
+                    {isEarthGrid ? (
+                      <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+                        <legend className={adminStyles.editLabel}>Default Label Scheme</legend>
+                        {EARTH_LABEL_SCHEME_OPTIONS.map(({ scheme, label }) => (
+                          <label key={scheme} className={adminCommon.checkboxItem}>
+                            <input
+                              type="radio"
+                              name="earthGridLabelScheme"
+                              checked={getMissionDefaultLabelScheme(automergeMission) === scheme}
+                              onChange={() => {
+                                changeAutomergeMission((m: Mission) => {
+                                  m.earthGridLabelScheme = scheme;
+                                });
+                              }}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                        <span className={adminCommon.formHint}>
+                          Users can override the scheme from the map menu.
+                        </span>
+                      </fieldset>
+                    ) : null}
                     <div id="usingLGRSCoordinates">
                       <div className={adminStyles.editDiv}>
                         <label className={adminCommon.checkboxItem}>
@@ -511,7 +591,9 @@ const Mission: React.FunctionComponent = () => {
                               });
                             }}
                           />
-                          Using LGRS Coordinate System
+                          {isEarthGrid
+                            ? "Show Earth Grid Coordinates (ACC/MGRS)"
+                            : "Using LGRS Coordinate System"}
                         </label>
                       </div>
                     </div>
@@ -542,10 +624,15 @@ const Mission: React.FunctionComponent = () => {
                             });
                           }}
                         />
-                        Dynamic LGRS
+                        {isEarthGrid ? "Dynamic Earth Grid" : "Dynamic LGRS"}
                       </label>
                       {dynamicLgrsCompatibility && !dynamicLgrsCompatible ? (
                         <p>{dynamicLgrsCompatibility.reason}</p>
+                      ) : null}
+                      {dynamicLgrsCompatibility?.warning ? (
+                        <p data-testid="grid-compatibility-warning">
+                          Warning: {dynamicLgrsCompatibility.warning}
+                        </p>
                       ) : null}
                     </fieldset>
                   </div>
