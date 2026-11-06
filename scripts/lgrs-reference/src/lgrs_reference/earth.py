@@ -1040,6 +1040,10 @@ def point_format_cases() -> dict:
 def box_case(
     crs: Crs, ll_e: int, ll_n: int, precision: int, category: str
 ) -> dict | None:
+    if ll_e % precision or ll_n % precision:
+        raise RuntimeError(
+            f"{category}: lower-left {ll_e}, {ll_n} not a multiple of {precision}"
+        )
     centre_lat, centre_lon = unproject(crs, ll_e + precision / 2, ll_n + precision / 2)
     square = square_id(crs, ll_e + precision / 2, ll_n + precision / 2)
     if square is None:
@@ -1130,7 +1134,8 @@ def box_cases() -> dict:
     for crs in (UPS_N, UPS_S):
         cap_lat = UTM_MAX_LAT + 0.001 if crs.hemisphere == "N" else UTM_MIN_LAT - 0.001
         for p in BOX_PRECISIONS:
-            for n in (1_850_000, 2_000_000, 2_150_000):
+            # Boxes either side of the false easting split and the false northing line.
+            for n in (UPS_FALSE_ORIGIN - p, UPS_FALSE_ORIGIN, UPS_FALSE_ORIGIN + p):
                 for e in (UPS_FALSE_ORIGIN - p, UPS_FALSE_ORIGIN):
                     cases.append(box_case(crs, e, n, p, "ups-split"))
             for lon in (-135.0, -45.0, 45.0, 135.0):

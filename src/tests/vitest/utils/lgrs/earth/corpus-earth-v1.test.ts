@@ -109,27 +109,6 @@ const SHIFTS = [-ADJACENT_SHIFT_METERS, ADJACENT_SHIFT_METERS];
 const STYLES: LgrsDisplayStyle[] = ["condensed", "full"];
 const SHOWN_MISMATCHES = 10;
 
-/**
- * Box cases skipped because the oracle is wrong, keyed `crsId:E:N:precision`. The generator's
- * `ups-split` loop pairs N = 1,850,000 and 2,150,000 with p = 100,000, so these lower-lefts are
- * not multiples of the precision (the README requires that). It then takes the square from the
- * centre, N + 50,000, which is the 100 km box north of the one the lower-left lies in.
- */
-const BOX_ALLOW_LIST = new Set([
-  "1:1900000:1850000:100000",
-  "1:2000000:1850000:100000",
-  "1:1900000:2150000:100000",
-  "1:2000000:2150000:100000",
-  "0:1900000:1850000:100000",
-  "0:2000000:1850000:100000",
-  "0:1900000:2150000:100000",
-  "0:2000000:2150000:100000",
-]);
-
-function boxKey({ crsId, lowerLeft, precision }: BoxCase): string {
-  return `${crsId}:${lowerLeft[0]}:${lowerLeft[1]}:${precision}`;
-}
-
 function loadFixture<T>(filename: string): T {
   const path = resolve(process.cwd(), "src/tests/vitest/fixtures/lgrs-earth/v1", filename);
   return JSON.parse(readFileSync(path, "utf8")) as T;
@@ -377,13 +356,7 @@ describe("Earth grid reference corpus v1", () => {
 
     it("formats every box label exactly from the crs and lower-left", () => {
       const mismatches = new Mismatches("format-boxes");
-      const skipped = boxCases.filter((testCase) => BOX_ALLOW_LIST.has(boxKey(testCase)));
-      expect(skipped).toHaveLength(BOX_ALLOW_LIST.size);
-      for (const testCase of skipped) {
-        expect(testCase.lowerLeft[1] % testCase.precision).not.toBe(0);
-      }
       boxCases.forEach((testCase, index) => {
-        if (BOX_ALLOW_LIST.has(boxKey(testCase))) return;
         const { crsId, lowerLeft, precision, expected } = testCase;
         const id = boxId(index, testCase);
         const acc = EARTH_ACC_PRECISIONS.includes(precision as EarthAccPrecision)
