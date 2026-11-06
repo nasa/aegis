@@ -209,4 +209,18 @@
   --dv-activegroup-hiddenpanel-tab-color: var(--grey4);
   --dv-inactivegroup-hiddenpanel-tab-color: var(--grey4);
 }
+/* The selected Rex Menu tab matches the Assets background; the rest of the tab bar is black. */
+.container
+  :global(
+    .dv-groupview-floating:has(
+      [data-testid="positions-floating-panel"],
+      [data-testid="assets-floating-panel"]
+    )
+  ) {
+  --dv-tabs-and-actions-container-background-color: black;
+  --dv-activegroup-visiblepanel-tab-background-color: var(--grey1);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--grey1);
+  --dv-activegroup-hiddenpanel-tab-background-color: black;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: black;
+}
 /* stylelint-enable selector-class-pattern */
