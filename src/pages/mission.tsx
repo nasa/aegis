@@ -162,7 +162,7 @@ const Main: React.FunctionComponent = () => {
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
     if (!partialMission) return;
-    if (getGridRenderMode(partialMission) === "dynamic-lgrs" || !partialMission.serverFileGrid) {
+    if (getGridRenderMode(partialMission) !== "server-file" || !partialMission.serverFileGrid) {
       clearLoadedGrid();
       dispatch(setGridCornerPoint(null));
       return;

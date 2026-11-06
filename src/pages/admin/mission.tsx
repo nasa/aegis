@@ -1,4 +1,4 @@
-import { PLANETS, usesLgrsCoordinates } from "utils/planets";
+import { PLANETS, supportsUploadedGrid, usesLgrsCoordinates } from "utils/planets";
 import { getMissionDems, updateMissionFields } from "http-client/mission";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
@@ -60,7 +60,7 @@ const Mission: React.FunctionComponent = () => {
         const previousLocation = JSON.stringify(m.landerLocation);
         updateFn(m);
         if (JSON.stringify(m.landerLocation) !== previousLocation) m.landerElevationMeters = null;
-        if (usesLgrsCoordinates(m)) m.serverFileGrid = null;
+        if (!supportsUploadedGrid(m)) m.serverFileGrid = null;
         m.updatedAt = new Date().getTime();
       });
     },
@@ -701,7 +701,7 @@ const Mission: React.FunctionComponent = () => {
                 </section>
 
                 {/* Grid Section */}
-                {!usesLgrsCoordinates(automergeMission) && (
+                {supportsUploadedGrid(automergeMission) && (
                   <AdminMissionGrid
                     missionId={automergeMission.id}
                     grid={automergeMission.serverFileGrid ?? null}

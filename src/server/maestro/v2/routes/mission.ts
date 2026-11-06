@@ -1,4 +1,4 @@
-import { usesLgrsCoordinates } from "utils/planets";
+import { supportsUploadedGrid } from "utils/planets";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
@@ -80,7 +80,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     const exportMissions: ExportMission[] = await Promise.all(
       records.map(async (mission) => {
         const gridCoordinates: MissionGridPoint[][] =
-          mission.serverFileGrid && !usesLgrsCoordinates(mission)
+          mission.serverFileGrid && supportsUploadedGrid(mission)
             ? (await getGrid(mission.id, true))?.coordinates
             : null;
         return makeExportMission({

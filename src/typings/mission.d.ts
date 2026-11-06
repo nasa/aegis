@@ -234,14 +234,14 @@ type MissionGrid = {
   coordinates: MissionGridPoint[][];
 };
 
-type GridRenderMode = "server-file" | "dynamic-lgrs";
+type GridRenderMode = "none" | "server-file" | "dynamic-lgrs";
 
 type ResolvedMissionGrid =
   { kind: "none" } | { kind: "dynamic-lgrs" } | { kind: "server-file"; grid: MissionGrid };
 
 /**
  * Grid metadata stored on the mission Automerge doc (`mission.serverFileGrid`).
- * There is exactly one grid per mission; the coordinate array lives on disk
+ * Earth missions may have one uploaded grid; the coordinate array lives on disk
  * (Data/<fileName>) and is loaded into `globalGrid` at runtime.
  */
 type MissionGridDefinition = {

@@ -1,6 +1,6 @@
 import { getGrid } from "http-client/grid";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
-import { usesLgrsCoordinates } from "utils/planets";
+import { supportsUploadedGrid, usesLgrsCoordinates } from "utils/planets";
 
 type GridMission = Pick<Mission, "planet" | "landerLocation">;
 
@@ -23,14 +23,16 @@ export function getLoadedGridSnapshot(): MissionGrid {
 }
 
 export function getGridRenderMode(mission: GridMission): GridRenderMode {
-  return usesLgrsCoordinates(mission) ? "dynamic-lgrs" : "server-file";
+  if (usesLgrsCoordinates(mission)) return "dynamic-lgrs";
+  return supportsUploadedGrid(mission) ? "server-file" : "none";
 }
 
 export function resolveMissionGrid(
   mission: Pick<Mission, "serverFileGrid"> & GridMission,
   serverGrid: MissionGrid = globalGrid
 ): ResolvedMissionGrid {
-  if (getGridRenderMode(mission) === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
+  const mode = getGridRenderMode(mission);
+  if (mode !== "server-file") return { kind: mode };
   if (!mission.serverFileGrid || !serverGrid?.coordinates?.length) return { kind: "none" };
   return { kind: "server-file", grid: serverGrid };
 }

@@ -8,6 +8,10 @@ export const PLANETS = {
 export const getPlanetRadius = (mission: Pick<Mission, "planet"> | null | undefined): number =>
   PLANETS[mission?.planet ?? "moon"].radius;
 
+/** Manual grid uploads are supported only for Earth missions. */
+export const supportsUploadedGrid = (mission: Pick<Mission, "planet">): boolean =>
+  mission.planet === "earth";
+
 /** The current LGRS implementation supports the lunar south polar cap. */
 export const usesLgrsCoordinates = (
   mission: Pick<Mission, "planet" | "landerLocation">
