@@ -307,7 +307,7 @@
 }
 
 .notesPresent {
-  color: var(--warning);
+  color: white;
 }
 
 .colVisible {
@@ -430,7 +430,7 @@
 }
 
 .assetRowSelected .notesPresent {
-  color: #806000;
+  color: #000000;
 }
 
 .assetRowExpanded:not(.assetRowSelected) {
