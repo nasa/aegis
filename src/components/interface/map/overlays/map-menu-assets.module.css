@@ -33,11 +33,6 @@
   align-self: center;
 }
 
-.offline {
-  color: var(--warning);
-  margin-left: auto;
-}
-
 /* Editor area above the table (Add) or inside an expanded row (View/Edit) */
 .editor {
   flex: 0 1 auto;
