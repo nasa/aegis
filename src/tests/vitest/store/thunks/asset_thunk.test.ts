@@ -144,6 +144,28 @@ describe("getMostRecentAsset", () => {
 });
 
 describe("thunkAddAsset", () => {
+  it("cancels an existing asset edit and its map directive before starting a new draft", async () => {
+    const asset = generateBlankAsset({ name: "Drill", uncertaintyMeters: 7 });
+    getMissionDocHandle().change((m) => {
+      m.assets[asset.uuid] = asset;
+    });
+    await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+    store.dispatch(updateAssetInEditValues({ name: "Unsaved", uncertaintyMeters: 99 }));
+    store.dispatch(
+      updateMapDirective({ mapItemType: "asset", uuid: asset.uuid, mapAction: "createMarker" })
+    );
+
+    await store.dispatch(thunkAddAsset());
+
+    expect(inEdit().isNew).toBe(true);
+    expect(inEdit().uuid).not.toBe(asset.uuid);
+    expect(inEdit().values).toMatchObject({ name: "", uncertaintyMeters: 7, location: null });
+    expect(store.getState().asset.selectedAssetUuid).toBe(inEdit().uuid);
+    expect(store.getState().asset.expandedAssetUuid).toBeNull();
+    expect(store.getState().map.mapDirective).toBeNull();
+    expect(doc().assets).toEqual({ [asset.uuid]: asset });
+  });
+
   it("prefills radius and color from the most recently created asset", async () => {
     const older = generateBlankAsset({
       name: "Old",

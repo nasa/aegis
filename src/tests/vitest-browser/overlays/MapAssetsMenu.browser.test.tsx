@@ -222,9 +222,16 @@ describe("MapAssetsMenu", () => {
         notesDisplay.scrollTop = notesDisplay.scrollHeight;
         expect(notesDisplay.scrollTop).toBeGreaterThan(0);
         const row = q(`[data-testid='asset-row-${asset.uuid}']`)!;
-        const name = row.querySelector<HTMLElement>("td > div > span[title]")!;
+        const name = row.querySelector<HTMLElement>("td > div > span:last-child")!;
         expect(name.textContent).toBe(asset.name);
-        expect(name.getAttribute("title")).toBe(asset.name);
+        expect(name.hasAttribute("title")).toBe(false);
+        const coordinatesCell = row.querySelectorAll("td")[1];
+        expect(coordinatesCell.hasAttribute("title")).toBe(false);
+        expect(coordinatesCell.hasAttribute("data-tooltip-id")).toBe(false);
+        const notesCell = row.querySelector("[aria-label='Has notes']")!.closest("td")!;
+        expect(notesCell.hasAttribute("title")).toBe(false);
+        expect(notesCell.getAttribute("data-tooltip-id")).toBe("aegis-tooltip");
+        expect(notesCell.getAttribute("data-tooltip-content")).toBe(notes);
         expect(name.scrollWidth).toBeGreaterThan(name.clientWidth);
         expect(getComputedStyle(name).textOverflow).toBe("ellipsis");
         const actions = row.querySelector<HTMLElement>("[aria-label='Asset actions']")!;
@@ -522,6 +529,21 @@ describe("MapAssetsMenu", () => {
     byText("Asset")!.click();
     expect(addAsset).toHaveBeenCalledTimes(1);
   });
+
+  it.each([false, true])(
+    "allows Add Asset during an existing edit but not a new draft (%s)",
+    (isNew) => {
+      const asset = generateBlankAsset({ name: "Drill" });
+      mockMissionDoc.assets = { [asset.uuid]: asset };
+      store = makeStore(true);
+      render();
+      openDraft(asset, isNew);
+
+      byText("Asset")!.click();
+
+      expect(addAsset).toHaveBeenCalledTimes(isNew ? 0 : 1);
+    }
+  );
 
   it("is read-only without edit permission", () => {
     const asset = generateBlankAsset({ name: "Drill" });

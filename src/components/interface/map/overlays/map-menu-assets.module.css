@@ -112,7 +112,7 @@
 .petControls > input {
   flex: 0 1 auto;
   min-width: 0;
-  width: 10ch;
+  width: 12ch;
 }
 
 .petControls .editorButton {
