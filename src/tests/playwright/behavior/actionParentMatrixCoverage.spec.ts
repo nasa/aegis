@@ -29,16 +29,6 @@ async function openParent(page: Page, parent: "poi" | "station" | "traverse") {
   }
 }
 
-async function command(page: Page, name: string, command: string) {
-  const collapse = row(page, name).locator('svg[data-icon="caret-down"]');
-  if (await collapse.count()) await collapse.click();
-  await row(page, name)
-    .locator('svg[data-icon="ellipsis-vertical"]')
-    .evaluate((element) => element.scrollIntoView({ block: "center" }));
-  await row(page, name).locator('svg[data-icon="ellipsis-vertical"]').click();
-  await page.locator("dialog[open]").getByText(command, { exact: true }).click();
-}
-
 async function editText(page: Page, label: string, text: string, save = true) {
   await planningField(page, label).locator("..").click();
   const dialog = page.locator("dialog[open]");
@@ -113,99 +103,6 @@ test.describe("Action parent matrix coverage", () => {
       expect((await mission.read()).actions).toEqual(arranged.actions);
       await expect(page.locator('svg[data-icon="grip-vertical"]')).toHaveCount(0);
       expect(new Set(order(await mission.read())).size).toBe(3);
-    });
-    test(`${parent} action creation, editing, duplication and deletion preserve exact parent ownership`, async ({
-      page,
-      mission,
-    }) => {
-      const initial = await mission.read();
-      await mission.open(page);
-      await openParent(page, parent);
-      await expect(page.getByText("Add Action", { exact: true })).toHaveCount(0);
-      await enablePlanningEditMode(page);
-      await page.getByText("Add Action", { exact: true }).click();
-      await expect
-        .poll(async () => Object.keys((await mission.read()).actions).length)
-        .toBe(Object.keys(initial.actions).length + 1);
-      const newAction = Object.values((await mission.read()).actions).find(
-        (a) => !initial.actions[a.uuid]
-      )!;
-      await row(page, newAction.name).locator('div[aria-label="Action Name"]').click();
-      await page
-        .locator("dialog[open]")
-        .getByLabel("Action Name", { exact: true })
-        .fill(`${parent} unique action`);
-      await page.locator("dialog[open]").getByText("Save", { exact: true }).click();
-      const name = `${parent} unique action`;
-      await expect
-        .poll(
-          async () =>
-            Object.values((await mission.read()).actions).find((a) => a.name === name)?.name
-        )
-        .toBe(name);
-      const created = Object.values((await mission.read()).actions).find((a) => a.name === name)!;
-      expect(created).toMatchObject({
-        poiUuid: parent === "poi" ? mission.ids.poiA : null,
-        stationUuid: parent === "station" ? mission.ids.stationA : null,
-        traverseUuid: parent === "traverse" ? mission.ids.traverseA : null,
-      });
-      await row(page, name).locator('svg[data-icon="caret-right"]').click();
-      await row(page, name).locator('div[aria-label="Duration in minutes"]').locator("..").click();
-      await page
-        .locator("dialog[open]")
-        .getByLabel("Duration in minutes", { exact: true })
-        .fill("17");
-      await page.locator("dialog[open]").getByText("Save", { exact: true }).click();
-      await expect(planningField(page, "Task Description")).toHaveCount(parent === "poi" ? 0 : 1);
-      await command(page, name, "Duplicate Action");
-      await expect
-        .poll(async () => Object.keys((await mission.read()).actions).length)
-        .toBe(Object.keys(initial.actions).length + 2);
-      const copy = Object.values((await mission.read()).actions).find(
-        (a) => !initial.actions[a.uuid] && a.uuid !== created.uuid
-      )!;
-      expect(copy).toMatchObject({
-        poiUuid: created.poiUuid,
-        stationUuid: created.stationUuid,
-        traverseUuid: created.traverseUuid,
-        duration: 17,
-      });
-      expect(copy.refUuid).not.toBe(created.refUuid);
-      const names = page.locator('div[aria-label="Action Name"]').filter({ hasText: name });
-      await names.last().click();
-      await page
-        .locator("dialog[open]")
-        .getByLabel("Action Name", { exact: true })
-        .fill(`${parent} independent copy`);
-      await page.locator("dialog[open]").getByText("Save", { exact: true }).click();
-      await expect
-        .poll(async () => (await mission.read()).actions[copy.uuid].name)
-        .toBe(`${parent} independent copy`);
-      expect((await mission.read()).actions[created.uuid].name).toBe(name);
-      const owner = (doc: Mission) =>
-        parent === "poi"
-          ? doc.pois[mission.ids.poiA]
-          : parent === "station"
-            ? doc.stations[mission.ids.stationA]
-            : doc.traverses[mission.ids.traverseA];
-      expect(owner(await mission.read()).actionOrderUuids).toContain(copy.uuid);
-      page.once("dialog", (d) => d.dismiss());
-      await command(page, `${parent} independent copy`, "Delete Action");
-      expect((await mission.read()).actions[copy.uuid]).toBeDefined();
-      for (const [actionName, uuid] of [
-        [`${parent} independent copy`, copy.uuid],
-        [name, created.uuid],
-      ]) {
-        page.once("dialog", (d) => d.accept());
-        await command(page, actionName, "Delete Action");
-        await expect.poll(async () => (await mission.read()).actions[uuid]).toBeUndefined();
-        expect(owner(await mission.read()).actionOrderUuids).not.toContain(uuid);
-      }
-      await mission.open(page);
-      await openParent(page, parent);
-      expect((await mission.read()).actions).toEqual(initial.actions);
-      expect(owner(await mission.read()).actionOrderUuids).toEqual(owner(initial).actionOrderUuids);
-      await expect(row(page, name)).toHaveCount(0);
     });
 
     test(`${parent} action text and icon save, Cancel preserves exact content, and aggregate cards retain supported fields`, async ({

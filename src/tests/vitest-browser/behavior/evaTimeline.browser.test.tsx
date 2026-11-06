@@ -1,7 +1,9 @@
-import type { Page } from "@playwright/test";
+import store from "store";
+import { commands } from "vitest/browser";
+import type { BrowserPage as Page } from "vitest/browser";
 import LineString from "ol/geom/LineString.js";
 import proj4 from "proj4";
-import { test, expect } from "../fixtures/behavioralTest";
+import { test, expect } from "./missionHarness";
 import {
   openPlanningSection,
   planningEvaRow,
@@ -11,28 +13,30 @@ import {
 
 async function sequenceRow(page: Page, evaName: string, itemIndex: number) {
   return planningEvaRow(page, evaName)
-    .locator('[class*="evaSequence"] > [class*="evaItem"]')
+    .getBySelector('[class*="evaSequence"] > [class*="evaItem"]')
     .nth(itemIndex);
 }
 
 async function expandEvaSequence(page: Page, evaName: string): Promise<void> {
   const row = planningEvaRow(page, evaName);
-  const collapsed = row.locator('svg[data-icon="caret-right"]');
-  if (await collapsed.count()) await collapsed.click();
-  await expect(row.locator('[class*="evaSequence"] > [class*="evaItem"]').first()).toBeVisible();
+  const collapsed = row.getBySelector('svg[data-icon="caret-right"]');
+  if (await collapsed.length) await collapsed.click();
+  await expect
+    .element(row.getBySelector('[class*="evaSequence"] > [class*="evaItem"]').first())
+    .toBeVisible();
 }
 
 async function hoverTimelineAt(page: Page, evaDurationMinutes: number, elapsedSeconds: number) {
-  const canvas = page.locator('[class*="canvasContainer"] canvas');
-  await expect(canvas).toBeVisible();
-  const bounds = await canvas.boundingBox();
+  const canvas = page.getBySelector('[class*="canvasContainer"] canvas');
+  await expect.element(canvas).toBeVisible();
+  const bounds = await canvas.element().getBoundingClientRect();
   expect(bounds).not.toBeNull();
   const timelineWidth = bounds!.width - 150;
   const x = bounds!.x + 75 + (elapsedSeconds * timelineWidth) / (evaDurationMinutes * 60);
   const y = bounds!.y + 12;
-  await page.mouse.move(x - 2, y);
-  await page.waitForTimeout(35);
-  await page.mouse.move(x, y);
+  await commands.mapPointer("move", x - 2, y);
+  await new Promise((resolve) => setTimeout(resolve, 35));
+  await commands.mapPointer("move", x, y);
   return { x, y };
 }
 
@@ -49,23 +53,21 @@ function mapPathCoordinate(points: AEGISPoint[], fraction: number): number[] {
   return new LineString(points.map(mapCoordinate)).getCoordinateAt(fraction);
 }
 
-async function astronautPosition(page: Page): Promise<number[] | null> {
-  return page.evaluate(() => {
-    const map = window.__aegisMaps?.find(
-      (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
-    )?.map;
-    const astronaut = map
-      ?.getOverlays()
-      .getArray()
-      .find((overlay) => overlay.getElement()?.dataset.timelineMarker === "astronaut");
-    return astronaut?.getPosition() ?? null;
-  });
+async function astronautPosition(): Promise<number[] | null> {
+  const map = window.__aegisMaps?.find(
+    (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
+  )?.map;
+  const astronaut = map
+    ?.getOverlays()
+    .getArray()
+    .find((overlay) => overlay.getElement()?.dataset.timelineMarker === "astronaut");
+  return astronaut?.getPosition() ?? null;
 }
 
 async function expectAstronautAt(page: Page, expected: number[]): Promise<void> {
   await expect
     .poll(async () => {
-      const actual = await astronautPosition(page);
+      const actual = await astronautPosition();
       return (
         actual != null &&
         Math.abs(actual[0] - expected[0]) < 1 &&
@@ -80,15 +82,10 @@ async function expectDateSourceNear(
   evaName: string,
   expectedElapsedSeconds: number
 ): Promise<number> {
-  const read = () =>
-    page.evaluate(async () => {
-      const modulePath = "/store/index.ts";
-      const { default: store } = await import(modulePath);
-      return {
-        time: store.getState().hover.timelineTime,
-        selected: store.getState().eva.selectedEvaUuid,
-      };
-    });
+  const read = () => ({
+    time: store.getState().hover.timelineTime,
+    selected: store.getState().eva.selectedEvaUuid,
+  });
   await expect
     .poll(
       async () => {
@@ -105,19 +102,21 @@ async function expectDateSourceNear(
 }
 
 async function openPresetSection(page: Page): Promise<void> {
-  await page.getByLabel("preset Section", { exact: true }).click();
-  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("Presets");
+  await page.getByLabelText("preset Section", { exact: true }).click();
+  await expect
+    .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+    .toHaveTextContent("Presets");
 }
 
 async function enableSunEarthOverlay(page: Page): Promise<void> {
   const source = page.getByRole("group", { name: "Sun/Earth value source", exact: true });
-  if (await source.count()) return;
+  if (await source.length) return;
   await page.getByTestId("map-menu-launcher").click();
   const menu = page.getByTestId("map-menu-floating-panel");
-  await expect(menu).toBeVisible();
+  await expect.element(menu).toBeVisible();
   await menu.getByText("Sun/Earth Directions", { exact: true }).click();
-  await menu.locator('svg[data-icon="xmark"]').click();
-  await expect(source).toBeVisible();
+  await menu.getBySelector('svg[data-icon="xmark"]').click();
+  await expect.element(source).toBeVisible();
 }
 
 test("timeline selection and scrubbing preview the selected EVA and refresh after duration edits", async ({
@@ -138,22 +137,27 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
   });
   const beforePreview = await mission.read();
 
-  await mission.open(page);
+  await mission.open();
   await openPlanningSection(page, "evas");
   await selectPlanningEva(page, "Survey Alpha");
   await expandEvaSequence(page, "Survey Alpha");
 
   await openPresetSection(page);
   await page
-    .getByLabel("mapPreset", { exact: true })
+    .getByLabelText("mapPreset", { exact: true })
     .filter({ hasText: "Overview" })
     .getByText("Overview", { exact: true })
     .click();
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
   await enableSunEarthOverlay(page);
-  await expect(
-    page.getByRole("group", { name: "Sun/Earth value source", exact: true })
-  ).toHaveAttribute("aria-description", /Calculated at EVA start/);
+  await expect
+    .poll(() =>
+      page
+        .getByRole("group", { name: "Sun/Earth value source", exact: true })
+        .element()
+        .getAttribute("aria-description")
+    )
+    .toMatch(/Calculated at EVA start/);
 
   // Survey Alpha's selected station begins at 15 minutes and lasts 15 minutes.
   await hoverTimelineAt(page, beforePreview.evas[mission.ids.evaA].duration, 22.5 * 60);
@@ -169,19 +173,19 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
   );
   await openPlanningSection(page, "evas");
   await (await sequenceRow(page, "Survey Alpha", 3)).click();
-  await expect(page.getByText("Traverse Information", { exact: true })).toBeVisible();
-  await expect(page.locator('input[name="duration"]')).toHaveValue("5");
+  await expect.element(page.getByText("Traverse Information", { exact: true })).toBeVisible();
+  await expect.element(page.getBySelector('input[name="duration"]')).toHaveValue("5");
 
   // Selecting Survey Bravo changes both the timeline's identity and the map's EVA date.
   await openPlanningSection(page, "evas");
   await selectPlanningEva(page, "Survey Bravo");
   await openPresetSection(page);
   await page
-    .getByLabel("mapPreset", { exact: true })
+    .getByLabelText("mapPreset", { exact: true })
     .filter({ hasText: "Overview" })
     .getByText("Overview", { exact: true })
     .click();
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
   await hoverTimelineAt(page, beforePreview.evas[mission.ids.evaB].duration, 12.5 * 60);
   const bravoTraverseElapsed = await expectDateSourceNear(page, "Survey Bravo", 12.5 * 60);
   await expectAstronautAt(
@@ -190,8 +194,8 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
   );
   await openPlanningSection(page, "evas");
   await (await sequenceRow(page, "Survey Bravo", 1)).click();
-  await expect(page.getByText("Traverse Information", { exact: true })).toBeVisible();
-  await expect(page.locator('input[name="duration"]')).toHaveValue("8");
+  await expect.element(page.getByText("Traverse Information", { exact: true })).toBeVisible();
+  await expect.element(page.getBySelector('input[name="duration"]')).toHaveValue("8");
 
   // Selection and hover preview are view state only.
   expect(await mission.read()).toEqual(beforePreview);
@@ -205,8 +209,8 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
   )
     .getByText("Alpha station", { exact: true })
     .click();
-  await expect(page.getByText("Station Information", { exact: true })).toBeVisible();
-  await page.getByLabel("globalEditToggle", { exact: true }).click();
+  await expect.element(page.getByText("Station Information", { exact: true })).toBeVisible();
+  await page.getByLabelText("globalEditToggle", { exact: true }).click();
   await savePlanningField(page, "Time in minutes", "25");
   await expect
     .poll(async () => (await mission.read()).stations[mission.ids.stationA].duration)
@@ -228,11 +232,11 @@ test("timeline selection and scrubbing preview the selected EVA and refresh afte
 
   await openPresetSection(page);
   await page
-    .getByLabel("mapPreset", { exact: true })
+    .getByLabelText("mapPreset", { exact: true })
     .filter({ hasText: "Overview" })
     .getByText("Overview", { exact: true })
     .click();
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
   // The old traversal midpoint is now within Alpha's longer station interval.
   await hoverTimelineAt(page, beforePreview.evas[mission.ids.evaA].duration, 32.5 * 60);
   await expectDateSourceNear(page, "Survey Alpha", 32.5 * 60);

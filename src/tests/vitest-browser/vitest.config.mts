@@ -15,8 +15,16 @@ import path from "path";
 import dotenv from "dotenv";
 import { aliases, config as viteConfig } from "../../../vite.config.mts";
 import { missionSchemaPlugin } from "./missionSchemaPlugin";
+import { mapPointerCommands } from "./behavior/mapPointerCommands";
 
 const workspaceRoot = path.resolve(__dirname, "../../..");
+const parityFiles = [
+  "src/tests/vitest-browser/behavior/actions.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/accessibilityCoverage.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/mapEditing.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/celestialControls.browser.test.tsx",
+];
+const hidpiFiles = ["src/tests/vitest-browser/behavior/*.hidpi.browser.test.tsx"];
 
 dotenv.config({ path: path.resolve(workspaceRoot, ".env"), override: true, quiet: true });
 
@@ -34,18 +42,34 @@ export default defineConfig(
     },
     optimizeDeps: {
       // Paper.js requires CommonJS interop, so it must remain pre-bundled.
-      include: ["paper"],
+      include: ["paper", "use-window-size-v2"],
       needsInterop: ["paper"],
     },
     test: {
       globals: true,
       browser: {
         enabled: true,
+        commands: mapPointerCommands,
         // Keep the browser API outside ports commonly reserved by Windows Hyper-V.
         api: { port: 15315 },
-        provider: playwright(),
+        provider: playwright({ contextOptions: { viewport: { width: 1960, height: 1080 } } }),
         headless: true,
-        instances: [{ browser: "chromium" }],
+        instances: [
+          { browser: "chromium", exclude: hidpiFiles },
+          { browser: "firefox", include: parityFiles },
+          { browser: "webkit", include: parityFiles },
+          ...(["chromium", "firefox", "webkit"] as const).map((browser) => ({
+            name: `${browser}-hidpi`,
+            browser,
+            include: hidpiFiles,
+            provider: playwright({
+              contextOptions: {
+                deviceScaleFactor: 2,
+                viewport: { width: 1960, height: 1080 },
+              },
+            }),
+          })),
+        ],
       },
       include: [
         "src/tests/vitest-browser/**/*.browser.test.ts",

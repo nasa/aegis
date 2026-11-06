@@ -1,32 +1,37 @@
-import type { Locator, Page } from "@playwright/test";
+import { vi } from "vitest";
+import { commands } from "vitest/browser";
+import { isVisible } from "./browserAssertions";
+import type { Locator, BrowserPage as Page } from "vitest/browser";
 import type VectorLayer from "ol/layer/Vector";
-import { test, expect } from "../fixtures/behavioralTest";
-import { readMapFeatures } from "../fixtures/mapAssertions";
-import { seedPosEntry } from "../fixtures/entitySeeds";
-import { BEHAVIORAL_NOW } from "../fixtures/missionSeed";
+import { test as base, expect } from "./missionHarness";
+import { readMapFeatures } from "./mapObserver";
+import { seedPosEntry } from "tests/playwright/fixtures/entitySeeds";
+import { BEHAVIORAL_NOW } from "tests/playwright/fixtures/missionSeed";
 
 const SECOND_TYPE = "30000000-0000-4000-8000-000000000021";
 
-test.use({ scenario: "execution" });
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
 async function selectExecution(page: Page, plannedName: string, evaUuid: string): Promise<void> {
-  await page.getByLabel("evas Section", { exact: true }).click();
-  const showAll = page.getByLabel("Show All EVAs", { exact: true });
-  if (await showAll.isVisible()) await showAll.click();
-  const eva = page.getByLabel("evaList-item", { exact: true }).filter({ hasText: plannedName });
-  await expect(eva).toHaveCount(1);
-  await eva.locator("select").selectOption(evaUuid);
+  await page.getByLabelText("evas Section", { exact: true }).click();
+  const showAll = page.getByLabelText("Show All EVAs", { exact: true });
+  if (await isVisible(showAll)) await showAll.click();
+  const eva = page.getByLabelText("evaList-item", { exact: true }).filter({ hasText: plannedName });
+  await expect.poll(() => eva.length).toBe(1);
+  await eva.getBySelector("select").selectOptions(evaUuid);
 }
 
 function typeRows(page: Page): Locator {
-  return page.locator('div[aria-label="Position Marker Name"]').locator("xpath=ancestor::li");
+  return page
+    .getBySelector('div[aria-label="Position Marker Name"]')
+    .getBySelector("xpath=ancestor::li");
 }
 
 function namedTypeRow(page: Page, name: string): Locator {
   return page
-    .locator('div[aria-label="Position Marker Name"]')
+    .getBySelector('div[aria-label="Position Marker Name"]')
     .filter({ hasText: name })
-    .locator("xpath=ancestor::li");
+    .getBySelector("xpath=ancestor::li");
 }
 
 async function updateTypeField(
@@ -35,36 +40,38 @@ async function updateTypeField(
   label: "Position Marker Name" | "Position Marker Abbr.",
   value: string
 ): Promise<void> {
-  await row.locator(`div[aria-label="${label}"]`).click();
-  const dialog = page.locator("dialog[open]");
-  await dialog.getByLabel(label, { exact: true }).fill(value);
+  await row.getBySelector(`div[aria-label="${label}"]`).click();
+  const dialog = page.getBySelector("dialog[open]");
+  await dialog.getByLabelText(label, { exact: true }).fill(value);
   await dialog.getByText("Save", { exact: true }).click();
 }
 
 async function openPositionTypes(page: Page): Promise<void> {
-  await page.getByLabel("rex_positions_panel", { exact: true }).click();
-  await expect(page.getByText("REX Position Types and Sources", { exact: true })).toBeVisible();
-  const editToggle = page.getByLabel("globalEditToggle", { exact: true });
-  if ((await editToggle.getAttribute("data-tooltip-content")) === "Turn On Edit Mode") {
+  await page.getByLabelText("rex_positions_panel", { exact: true }).click();
+  await expect
+    .element(page.getByText("REX Position Types and Sources", { exact: true }))
+    .toBeVisible();
+  const editToggle = page.getByLabelText("globalEditToggle", { exact: true });
+  if ((await editToggle.element().getAttribute("data-tooltip-content")) === "Turn On Edit Mode") {
     await editToggle.click();
   }
-  await expect(editToggle).toHaveAttribute("data-tooltip-content", "Turn Off Edit Mode");
+  await expect.element(editToggle).toHaveAttribute("data-tooltip-content", "Turn Off Edit Mode");
 }
 
-async function openPositions(page: Page, mission: BehavioralMission): Promise<Locator> {
-  await mission.open(page);
+async function openPositions(page: Page, mission: BrowserMission): Promise<Locator> {
+  await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
-  await expect(menu).toContainText("Survey Bravo - Active Bravo");
+  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
-  await expect(menu.locator("table")).toHaveCount(2);
+  await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   const sourceRow = visibility
-    .locator('[class*="toggleMenuItemRow"]')
+    .getBySelector('[class*="toggleMenuItemRow"]')
     .filter({ hasText: "Sources" });
   await sourceRow.getByText("All", { exact: true }).click();
-  await visibility.locator('svg[data-icon="xmark"]').click();
+  await visibility.getBySelector('svg[data-icon="xmark"]').click();
   return menu;
 }
 
@@ -74,16 +81,16 @@ async function createPositionWithBeacon(
   point: AEGISPoint
 ): Promise<void> {
   await choice(menu, "EV1").click();
-  await menu.getByLabel("New Pos.", { exact: true }).click();
-  await expect(menu.getByLabel("Cancel Pos.", { exact: true })).toBeVisible();
+  await menu.getByLabelText("New Pos.", { exact: true }).click();
+  await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
   await choice(menu, "Beacon").click();
   await choice(menu, "EV1").click();
   await placePosition(page, point);
-  await expect(menu.getByLabel("Cancel Pos.", { exact: true })).toHaveCount(0);
+  await expect.poll(() => menu.getByLabelText("Cancel Pos.", { exact: true }).length).toBe(0);
 }
 
 function choice(menu: Locator, name: string): Locator {
-  return menu.locator(`[data-tooltip-content="${name}"]`);
+  return menu.getBySelector(`[data-tooltip-content="${name}"]`);
 }
 
 function projected(point: AEGISPoint): number[] {
@@ -96,41 +103,38 @@ function projected(point: AEGISPoint): number[] {
 async function placePosition(page: Page, point: AEGISPoint): Promise<void> {
   await expect
     .poll(() =>
-      page.evaluate(() =>
+      (() =>
         window.__aegisMaps
           .find((entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected)
           .map.getView()
-          .getAnimating()
-      )
+          .getAnimating())()
     )
     .toBe(false);
-  const pixel = await page.evaluate((coordinate) => {
+  const pixel = await ((coordinate) => {
     const map = window.__aegisMaps.find(
       (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
     ).map;
     const [x, y] = map.getPixelFromCoordinate(coordinate);
     const bounds = map.getTargetElement().getBoundingClientRect();
     return { x: bounds.left + x, y: bounds.top + y };
-  }, projected(point));
-  const hitIsMap = await page.evaluate(({ x, y }) => {
+  })(projected(point));
+  const hitIsMap = await (({ x, y }) => {
     return !!document.elementFromPoint(x, y)?.closest(".ol-viewport canvas");
-  }, pixel);
+  })(pixel);
   expect(hitIsMap, "The placement click must hit the map canvas").toBe(true);
-  await page.mouse.click(pixel.x, pixel.y);
+  await commands.mapPointer("click", pixel.x, pixel.y);
 }
 
 async function pathColor(page: Page, id: string): Promise<string | undefined> {
-  return page.evaluate((id) => {
-    const map = window.__aegisMaps.find(
-      (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
-    )?.map;
-    for (const layer of map?.getLayers().getArray() ?? []) {
-      const source = (layer as VectorLayer).getSource?.();
-      const feature = source && "getFeatureById" in source ? source.getFeatureById(id) : null;
-      if (feature) return feature.get("color");
-    }
-    return undefined;
-  }, id);
+  const map = window.__aegisMaps.find(
+    (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
+  )?.map;
+  for (const layer of map?.getLayers().getArray() ?? []) {
+    const source = (layer as VectorLayer).getSource?.();
+    const feature = source && "getFeatureById" in source ? source.getFeatureById(id) : null;
+    if (feature) return feature.get("color");
+  }
+  return undefined;
 }
 
 test("position types create, rename, reorder, style, guard used deletion and update map labels and paths", async ({
@@ -159,7 +163,7 @@ test("position types create, rename, reorder, style, guard used deletion and upd
   });
   const before = await mission.read();
 
-  await mission.open(page);
+  await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   await openPositionTypes(page);
   expect((await mission.read()).rexes[mission.ids.rexB].posTypes.map((type) => type.uuid)).toEqual([
@@ -171,18 +175,18 @@ test("position types create, rename, reorder, style, guard used deletion and upd
   await updateTypeField(page, namedTypeRow(page, "Tool"), "Position Marker Abbr.", "T");
 
   const toolRow = namedTypeRow(page, "Tool");
-  await toolRow.locator('[class*="propertyIconDisplay"]').click();
-  const iconDialog = page.locator("dialog[open]");
-  const emojiSearch = iconDialog.locator('input[type="search"]');
+  await toolRow.getBySelector('[class*="propertyIconDisplay"]').click();
+  const iconDialog = page.getBySelector("dialog[open]");
+  const emojiSearch = iconDialog.getBySelector('input[type="search"]');
   await emojiSearch.fill("rocket");
   await iconDialog.getByRole("button", { name: "🚀", exact: true }).click();
-  await expect(iconDialog).toHaveCount(0);
+  await expect.poll(() => iconDialog.length).toBe(0);
 
-  await namedTypeRow(page, "Tool").locator('[class*="propertyPathColor"]').click();
-  const swatch = page.locator('[class*="colorPickerMenu"] [title="#F44E3B"]');
-  await expect(swatch).toBeVisible();
+  await namedTypeRow(page, "Tool").getBySelector('[class*="propertyPathColor"]').click();
+  const swatch = page.getBySelector('[class*="colorPickerMenu"] [title="#F44E3B"]');
+  await expect.element(swatch).toBeVisible();
   await swatch.click();
-  await page.locator('[class*="colorPickerCover"]').click();
+  await page.getBySelector('[class*="colorPickerCover"]').click();
   await expect
     .poll(async () =>
       (await mission.read()).rexes[mission.ids.rexB].posTypes
@@ -199,27 +203,39 @@ test("position types create, rename, reorder, style, guard used deletion and upd
   const typeOrder = async () =>
     (await mission.read()).rexes[mission.ids.rexB].posTypes.map((t) => t.uuid);
   const currentRows = typeRows(page);
-  const moveHandle = await currentRows.nth(1).locator("a.rexTypeReorder").boundingBox();
-  const firstRow = await currentRows.nth(0).boundingBox();
-  await page.mouse.move(moveHandle.x + moveHandle.width / 2, moveHandle.y + moveHandle.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(firstRow.x + firstRow.width / 2, firstRow.y + firstRow.height / 3, {
-    steps: 12,
-  });
-  await page.mouse.up();
+  const moveHandle = await currentRows
+    .nth(1)
+    .getBySelector("a.rexTypeReorder")
+    .element()
+    .getBoundingClientRect();
+  const firstRow = await currentRows.nth(0).element().getBoundingClientRect();
+  await commands.mapPointer(
+    "move",
+    moveHandle.x + moveHandle.width / 2,
+    moveHandle.y + moveHandle.height / 2
+  );
+  await commands.mapPointer("down");
+  await commands.mapPointer(
+    "move",
+    firstRow.x + firstRow.width / 2,
+    firstRow.y + firstRow.height / 3,
+    12
+  );
+  await commands.mapPointer("up");
   await expect.poll(typeOrder).toEqual([SECOND_TYPE, mission.ids.posType]);
 
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toContain("This Position Item Type is being used");
-    await dialog.accept();
+  vi.spyOn(window, "alert").mockImplementationOnce((message) => {
+    expect(String(message)).toContain("This Position Item Type is being used");
+
+    return true;
   });
-  await namedTypeRow(page, "Tool").locator('svg[data-icon="trash-can"]').click();
+  await namedTypeRow(page, "Tool").getBySelector('svg[data-icon="trash-can"]').click();
   expect((await mission.read()).rexes[mission.ids.rexB].posTypes.map((type) => type.uuid)).toEqual([
     SECOND_TYPE,
     mission.ids.posType,
   ]);
 
-  await page.getByLabel("Add Position Marker", { exact: true }).click();
+  await page.getByLabelText("Add Position Marker", { exact: true }).click();
   await expect.poll(typeOrder).toHaveLength(3);
   const addedTypeId = (await mission.read()).rexes[mission.ids.rexB].posTypes[2].uuid;
   await updateTypeField(page, typeRows(page).nth(2), "Position Marker Name", "Beacon");
@@ -246,21 +262,22 @@ test("position types create, rename, reorder, style, guard used deletion and upd
     },
   });
 
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toContain("This Position Item Type is being used");
-    await dialog.accept();
+  vi.spyOn(window, "alert").mockImplementationOnce((message) => {
+    expect(String(message)).toContain("This Position Item Type is being used");
+
+    return true;
   });
   await openPositionTypes(page);
-  await namedTypeRow(page, "Beacon").locator('svg[data-icon="trash-can"]').click();
+  await namedTypeRow(page, "Beacon").getBySelector('svg[data-icon="trash-can"]').click();
   expect(
     (await mission.read()).rexes[mission.ids.rexB].posTypes.map((type) => type.uuid)
   ).toContain(addedTypeId);
 
-  await page.getByLabel("rex_positions_panel", { exact: true }).click();
-  await page.getByLabel("Add Position Marker", { exact: true }).click();
+  await page.getByLabelText("rex_positions_panel", { exact: true }).click();
+  await page.getByLabelText("Add Position Marker", { exact: true }).click();
   await expect.poll(typeOrder).toHaveLength(4);
   const unusedTypeId = (await mission.read()).rexes[mission.ids.rexB].posTypes[3].uuid;
-  await typeRows(page).nth(3).locator('svg[data-icon="trash-can"]').click();
+  await typeRows(page).nth(3).getBySelector('svg[data-icon="trash-can"]').click();
   await expect.poll(typeOrder).toHaveLength(3);
   expect(
     (await mission.read()).rexes[mission.ids.rexB].posTypes.map((type) => type.uuid)
@@ -275,18 +292,18 @@ test("position types create, rename, reorder, style, guard used deletion and upd
   await expect
     .poll(
       async () =>
-        (await readMapFeatures(page)).find(
+        (await readMapFeatures()).find(
           (feature) => feature.id === `pos-${beaconEntry!.uuid}` && feature.labelType === "pos"
         )?.name
     )
     .toContain("B");
   await expect.poll(async () => pathColor(page, `posPath-${SECOND_TYPE}-latest`)).toBe("#f44e3b");
 
-  await mission.open(page);
+  await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-  await expect(page.getByLabel("rex_positions_panel", { exact: true })).toBeVisible();
-  await page.getByLabel("rex_positions_panel", { exact: true }).click();
-  await expect(namedTypeRow(page, "Tool")).toContainText("T");
+  await expect.element(page.getByLabelText("rex_positions_panel", { exact: true })).toBeVisible();
+  await page.getByLabelText("rex_positions_panel", { exact: true }).click();
+  await expect.element(namedTypeRow(page, "Tool")).toHaveTextContent("T");
   expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual(
     afterTypeCrud.rexes[mission.ids.rexB].posEntries
   );

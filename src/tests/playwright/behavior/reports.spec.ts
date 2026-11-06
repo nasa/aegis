@@ -29,48 +29,6 @@ test.describe("EVA comparison report contracts", () => {
     });
   });
 
-  test("comparison shows known plan metrics, signed differences, and station breakdowns without changing mission data", async ({
-    page,
-    mission,
-  }) => {
-    const before = await mission.read();
-    await mission.open(page);
-    await openComparison(page);
-    // Alpha visits egress, Alpha, Bravo, ingress; Bravo visits egress, Bravo, ingress.
-    await expect(metricCells(page, "Station count")).toHaveText(["4", "3"]);
-    await expect(metricCells(page, "Action count")).toHaveText(["1", "0"]);
-    await expect(metricCells(page, "Total action time")).toHaveText(["6", "0"]);
-    await expect(metricCells(page, "Total EVA time (allotted)")).toHaveText(["240", "180"]);
-    await page.getByText("Diff", { exact: true }).click();
-    await expect(metricCells(page, "Station count")).toHaveText(["4", "−1"]);
-    await expect(metricCells(page, "Action count")).toHaveText(["1", "−1"]);
-    await expect(metricCells(page, "Total EVA time (allotted)")).toHaveText(["240", "−60"]);
-    await page.getByText("Diff", { exact: true }).click();
-    await expect(metricCells(page, "Action count")).toHaveText(["1", "0"]);
-
-    await page
-      .getByRole("button", { name: "Survey Alpha: Expand into stations", exact: true })
-      .click();
-    await expect(page.getByText("Alpha station", { exact: true })).toBeVisible();
-    // Total plus egress, outbound traverse, Alpha, middle traverse, Bravo, return, ingress.
-    await expect(metricCells(page, "Action count")).toHaveText([
-      "1",
-      "0",
-      "0",
-      "1",
-      "0",
-      "0",
-      "0",
-      "0",
-      "0",
-    ]);
-    await page
-      .getByRole("button", { name: "Survey Alpha: Collapse stations", exact: true })
-      .click();
-    await expect(metricCells(page, "Action count")).toHaveText(["1", "0"]);
-    expect(await mission.read()).toEqual(before);
-  });
-
   test("a saved action duration reaches an open report in another client and survives reload", async ({
     page,
     context,

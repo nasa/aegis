@@ -18,29 +18,6 @@ function row(page: Page, trace = "SCI-1") {
   return page.getByRole("button", { name: `${trace} (Science)`, exact: true }).locator("..");
 }
 
-test("legacy missions hide reports and empty v2 missions explain missing priorities", async ({
-  page,
-  mission,
-}) => {
-  await mission.change((doc) => {
-    doc.actionSystemVersion = 1;
-  });
-  await mission.open(page);
-  await expect(page.getByLabel("reports Section", { exact: true })).toHaveCount(0);
-  await mission.change((doc) => {
-    doc.actionSystemVersion = 2;
-    doc.actionDefinitions = { verbs: {}, nouns: {}, adjectives: {} };
-    doc.missionPriorities = {};
-  });
-  await page.reload();
-  await openReport(page);
-  await expect(
-    page.getByText("No Mission Priority Identifiers are configured for this mission.", {
-      exact: true,
-    })
-  ).toBeVisible();
-});
-
 test.describe("Mission priority comparison and execution", () => {
   test.use({ scenario: "execution" });
   test("counts, disabled and unscheduled usages, execution filters, drilldown, diff and peer changes preserve mission data", async ({

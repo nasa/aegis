@@ -11,3 +11,9 @@ export function isVisible(locator: Locator): boolean {
   const bounds = element.getBoundingClientRect();
   return bounds.width > 0 && bounds.height > 0;
 }
+
+export async function setChecked(locator: Locator, checked: boolean): Promise<void> {
+  const input = locator.element();
+  if (!(input instanceof HTMLInputElement)) throw new Error("Expected a checkbox or radio input");
+  if (input.checked !== checked) await locator.click();
+}

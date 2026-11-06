@@ -1,9 +1,6 @@
 import { createRequire } from "node:module";
 import type { Page } from "@playwright/test";
-import type VectorLayer from "ol/layer/Vector";
-import type LineString from "ol/geom/LineString";
 import { test, expect } from "../fixtures/behavioralTest";
-import { enablePlanningEditMode } from "./planningHelpers";
 import { selectExecution } from "./executionHelpers";
 
 const require = createRequire(import.meta.url);
@@ -23,9 +20,6 @@ const sublayerIds = {
   manySlices: "30000000-0000-4000-8000-000000009804",
 };
 const fixtureBase = "http://localhost:4000/preset-time-fixture";
-const circleUuid = "30000000-0000-4000-8000-000000009805";
-const circleCenter = { lat: 0.001, lng: 0.001 };
-const circleRadiusMeters = 750;
 
 const initialStyle: MapSublayerStyle = {
   opacity: 1,
@@ -102,31 +96,6 @@ async function activeTimePaths(page: Page, uuid: string): Promise<string[]> {
         .map((layer) => layer.get("_resolvedPath") as string);
     },
     { uuid }
-  );
-}
-
-async function circleRings(page: Page, mode: "editor" | "dashboard") {
-  return page.evaluate(
-    ({ mode }) => {
-      const map = window.__aegisMaps.find(
-        (entry) => entry.mode === mode && entry.map.getTargetElement()?.isConnected
-      )?.map;
-      if (!map) return [];
-      return map
-        .getLayers()
-        .getArray()
-        .flatMap((layer) => {
-          const source = (layer as VectorLayer).getSource?.();
-          if (!source || !("getFeatures" in source)) return [];
-          return source.getFeatures().flatMap((feature) => {
-            const geometry = feature.getGeometry() as LineString | undefined;
-            if (!geometry || geometry.getType() !== "LineString") return [];
-            const coordinates = geometry.getCoordinates();
-            return coordinates.length > 100 ? [coordinates] : [];
-          });
-        });
-    },
-    { mode }
   );
 }
 
@@ -307,80 +276,5 @@ test.describe("PRESET-006 time-aware map layers", () => {
         },
       },
     });
-  });
-});
-
-test.describe("PRESET-008 lander circles", () => {
-  test.use({ scenario: "execution" });
-
-  test("lander circle uses the saved metre radius in the editor and dashboard", async ({
-    page,
-    mission,
-  }) => {
-    await mission.change((doc) => {
-      doc.projIsCustom = false;
-      doc.projEpsg = "EPSG:3857";
-      doc.landerLocation = circleCenter;
-      doc.circleDefinitions[circleUuid] = {
-        name: "Known 750 metre ring",
-        radius: circleRadiusMeters,
-      };
-      doc.presets[mission.ids.presetA].mapCircleControls[circleUuid] = {
-        uuid: circleUuid,
-        visible: false,
-        style: { ...initialStyle },
-      };
-    });
-    await mission.open(page);
-    await enablePlanningEditMode(page);
-    await selectPreset(page, "Overview");
-    await page.getByLabel("circle_panel", { exact: true }).click();
-    const circleRow = page
-      .locator('[class*="sublayerItemContainer"]')
-      .filter({ hasText: "Known 750 metre ring" });
-    await expect(circleRow).toContainText("750m");
-    await expect.poll(() => circleRings(page, "editor")).toHaveLength(0);
-    await circleRow.locator('svg[data-icon="eye-slash"]').click();
-
-    const expectedCenter = {
-      x: (6_378_137 * circleCenter.lng * Math.PI) / 180,
-      y: 6_378_137 * Math.log(Math.tan(Math.PI / 4 + (circleCenter.lat * Math.PI) / 360)),
-    };
-    const assertMeterRadius = async (mode: "editor" | "dashboard") => {
-      const rings = await circleRings(page, mode);
-      expect(rings).toHaveLength(1);
-      const radialDistances = rings[0].map(([x, y]) =>
-        Math.hypot(x - expectedCenter.x, y - expectedCenter.y)
-      );
-      expect(Math.min(...radialDistances)).toBeCloseTo(circleRadiusMeters, 5);
-      expect(Math.max(...radialDistances)).toBeCloseTo(circleRadiusMeters, 5);
-    };
-    await expect.poll(() => circleRings(page, "editor")).toHaveLength(1);
-    await assertMeterRadius("editor");
-
-    await circleRow.locator('svg[data-icon="sliders"]').click();
-    await page.getByLabel("weight", { exact: true }).fill("5");
-    await expect
-      .poll(
-        async () =>
-          (await mission.read()).presets[mission.ids.presetA].mapCircleControls[circleUuid].style
-            .weight
-      )
-      .toBe(5);
-    await page.reload();
-    await selectPreset(page, "Overview");
-    await expect.poll(() => circleRings(page, "editor")).toHaveLength(1);
-    await assertMeterRadius("editor");
-    expect(
-      (await mission.read()).presets[mission.ids.presetA].mapCircleControls[circleUuid]
-    ).toMatchObject({
-      visible: true,
-      style: { weight: 5 },
-    });
-
-    await page.goto(mission.dashboardUrl);
-    await expect(page.locator('[data-map-mode="dashboard"] .ol-viewport')).toBeVisible();
-    await expect.poll(() => circleRings(page, "dashboard")).toHaveLength(1);
-    await assertMeterRadius("dashboard");
   });
 });

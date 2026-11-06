@@ -1,6 +1,10 @@
-import { test, expect } from "../fixtures/behavioralTest";
-import type { Page } from "@playwright/test";
-import { mapFeaturePixel, readMapFeatures } from "../fixtures/mapAssertions";
+import { commands, userEvent } from "vitest/browser";
+import { exactText, isVisible } from "./browserAssertions";
+import { test as base, expect } from "./missionHarness";
+const test = base;
+import type { BrowserPage as Page } from "vitest/browser";
+import { readMapFeatures } from "./mapObserver";
+import { mapFeaturePixel } from "./mapInteractions";
 import {
   enablePlanningEditMode,
   openPlanningField,
@@ -12,13 +16,11 @@ import {
 } from "./planningHelpers";
 import { selectExecution } from "./executionHelpers";
 
-async function mapCursor(page: Page): Promise<string> {
-  return page.evaluate(() => {
-    const map = window.__aegisMaps.find(
-      (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
-    )?.map;
-    return map?.getTargetElement()?.style.cursor ?? "";
-  });
+async function mapCursor(): Promise<string> {
+  const map = window.__aegisMaps.find(
+    (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
+  )?.map;
+  return map?.getTargetElement()?.style.cursor ?? "";
 }
 
 function projectedPoint(point: { lat: number; lng: number }): number[] {
@@ -29,22 +31,22 @@ function projectedPoint(point: { lat: number; lng: number }): number[] {
 }
 
 async function clickProjectedPoint(page: Page, point: { lat: number; lng: number }): Promise<void> {
-  const pixel = await page.evaluate((coordinate) => {
+  const pixel = await ((coordinate) => {
     const map = window.__aegisMaps.find(
       (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
     )?.map;
     if (!map) throw new Error("Editor map is not available");
     return map.getPixelFromCoordinate(coordinate);
-  }, projectedPoint(point));
-  const bounds = await page.locator('[data-map-mode="editor"] .ol-viewport').boundingBox();
+  })(projectedPoint(point));
+  const bounds = await page
+    .getBySelector('[data-map-mode="editor"] .ol-viewport')
+    .element()
+    .getBoundingClientRect();
   if (!bounds || !pixel) throw new Error("Editor map pixel is not available");
-  await page.mouse.click(bounds.x + pixel[0], bounds.y + pixel[1]);
+  await commands.mapPointer("click", bounds.x + pixel[0], bounds.y + pixel[1]);
 }
 
-type DirectiveTarget = "poi" | "station" | "action" | "walkback" | "traverse" | "position";
-type DirectiveExit = "Escape" | "Edit off" | "navigation";
-
-async function startDirective(page: Page, mission: BehavioralMission, target: DirectiveTarget) {
+async function startDirective(page: Page, mission: BrowserMission, target: MapDirectiveTestTarget) {
   if (target === "walkback") {
     await mission.change((doc) => {
       const path = doc.stations[mission.ids.stationA].walkbackPath;
@@ -61,58 +63,64 @@ async function startDirective(page: Page, mission: BehavioralMission, target: Di
       }
     });
   }
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
 
   switch (target) {
     case "poi":
       await selectPlanningPoi(page, "Reference POI");
-      await page.getByLabel("info_panel", { exact: true }).click();
-      await page.getByLabel("Edit on Map", { exact: true }).click();
+      await page.getByLabelText("info_panel", { exact: true }).click();
+      await page.getByLabelText("Edit on Map", { exact: true }).click();
       break;
     case "station":
       await selectPlanningStation(page, "Alpha station");
-      await page.getByLabel("info_panel", { exact: true }).click();
-      await page.getByLabel("Edit on Map", { exact: true }).click();
+      await page.getByLabelText("info_panel", { exact: true }).click();
+      await page.getByLabelText("Edit on Map", { exact: true }).click();
       break;
     case "action": {
       await selectPlanningStationActions(page, "Alpha station");
       const row = page.getByRole("listitem").filter({
-        has: page.locator('div[aria-label="Action Name"]').filter({ hasText: "Sample regolith" }),
+        has: page
+          .getBySelector('div[aria-label="Action Name"]')
+          .filter({ hasText: "Sample regolith" }),
       });
-      if (!(await row.getByText("Location", { exact: true }).isVisible())) {
-        await row.locator('svg[data-icon="caret-right"]').click();
+      if (!(await isVisible(row.getByText("Location", { exact: true })))) {
+        await row.getBySelector('svg[data-icon="caret-right"]').click();
       }
-      await row.getByLabel("Edit on Map", { exact: true }).click();
+      await row.getByLabelText("Edit on Map", { exact: true }).click();
       break;
     }
     case "walkback":
       await selectPlanningStation(page, "Alpha station");
-      await page.getByLabel("info_panel", { exact: true }).click();
-      await page.getByLabel("Edit Path on Map", { exact: true }).click();
+      await page.getByLabelText("info_panel", { exact: true }).click();
+      await page.getByLabelText("Edit Path on Map", { exact: true }).click();
       break;
     case "traverse":
       await selectPlanningEva(page, "Survey Alpha");
       await planningEvaRow(page, "Survey Alpha")
         .getByText("Alpha to Bravo", { exact: true })
         .click();
-      await page.getByLabel("Edit Path on Map", { exact: true }).click();
+      await page.getByLabelText("Edit Path on Map", { exact: true }).click();
       break;
     case "position": {
       await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
       const menu = page.getByTestId("positions-menu");
       await menu.getByText("All Positions", { exact: true }).click();
-      const row = menu.locator("table").last().getByRole("row").filter({ hasText: "00:02:00" });
-      await row.locator('svg[data-icon="ellipsis-vertical"]').click();
-      await page.locator("dialog[open]").getByText("Edit", { exact: true }).click();
-      await menu.getByLabel("Edit Pos.", { exact: true }).click();
+      const row = menu
+        .getBySelector("table")
+        .last()
+        .getByRole("row")
+        .filter({ hasText: "00:02:00" });
+      await row.getBySelector('svg[data-icon="ellipsis-vertical"]').click();
+      await page.getBySelector("dialog[open]").getByText("Edit", { exact: true }).click();
+      await menu.getByLabelText("Edit Pos.", { exact: true }).click();
       break;
     }
   }
-  await expect.poll(() => mapCursor(page)).toBe("crosshair");
+  await expect.poll(() => mapCursor()).toBe("crosshair");
 }
 
-async function directiveSnapshot(mission: BehavioralMission, target: DirectiveTarget) {
+async function directiveSnapshot(mission: BrowserMission, target: MapDirectiveTestTarget) {
   const doc = await mission.read();
   switch (target) {
     case "poi":
@@ -131,7 +139,7 @@ async function directiveSnapshot(mission: BehavioralMission, target: DirectiveTa
   }
 }
 
-async function navigateAway(page: Page, target: DirectiveTarget) {
+async function navigateAway(page: Page, target: MapDirectiveTestTarget) {
   if (target === "station" || target === "walkback") {
     await selectPlanningStation(page, "Bravo station");
   } else if (target === "action") {
@@ -143,17 +151,17 @@ async function navigateAway(page: Page, target: DirectiveTarget) {
 
 async function exitDirective(
   page: Page,
-  target: DirectiveTarget,
-  exit: DirectiveExit
+  target: MapDirectiveTestTarget,
+  exit: MapDirectiveTestExit
 ): Promise<void> {
   if (exit === "Escape") {
-    await page.keyboard.press("Escape");
+    await userEvent.keyboard("{Escape}");
   } else if (exit === "Edit off") {
-    await page.getByLabel("globalEditToggle", { exact: true }).click();
+    await page.getByLabelText("globalEditToggle", { exact: true }).click();
   } else {
     await navigateAway(page, target);
   }
-  await expect.poll(() => mapCursor(page)).toBe("");
+  await expect.poll(() => mapCursor()).toBe("");
 }
 
 test("Escape dismisses a field dialog before cancelling the POI marker edit and preserving its point", async ({
@@ -161,26 +169,28 @@ test("Escape dismisses a field dialog before cancelling the POI marker edit and 
   mission,
 }) => {
   const before = (await mission.read()).pois[mission.ids.poiA];
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningPoi(page, "Reference POI");
-  await page.getByLabel("info_panel", { exact: true }).click();
-  await page.getByLabel("Edit on Map", { exact: true }).click();
-  await expect.poll(() => mapCursor(page)).toBe("crosshair");
+  await page.getByLabelText("info_panel", { exact: true }).click();
+  await page.getByLabelText("Edit on Map", { exact: true }).click();
+  await expect.poll(() => mapCursor()).toBe("crosshair");
 
   const fieldDialog = await openPlanningField(page, "POI");
-  await page.keyboard.press("Escape");
-  await expect(fieldDialog).toHaveCount(0);
-  await expect.poll(() => mapCursor(page)).toBe("crosshair");
+  await userEvent.keyboard("{Escape}");
+  await expect.poll(() => fieldDialog.length).toBe(0);
+  await expect.poll(() => mapCursor()).toBe("crosshair");
 
-  await page.keyboard.press("Escape");
+  await userEvent.keyboard("{Escape}");
 
-  await expect.poll(() => mapCursor(page)).toBe("");
-  await expect(page.getByLabel("Cancel", { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel("Edit on Map", { exact: true })).toBeVisible();
+  await expect.poll(() => mapCursor()).toBe("");
+  await expect.poll(() => page.getByLabelText("Cancel", { exact: true }).length).toBe(0);
+  await expect.element(page.getByLabelText("Edit on Map", { exact: true })).toBeVisible();
   expect((await mission.read()).pois[mission.ids.poiA]).toEqual(before);
-  await page.getByLabel("station Section", { exact: true }).click();
-  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("Stations");
+  await page.getByLabelText("station Section", { exact: true }).click();
+  await expect
+    .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+    .toHaveTextContent("Stations");
 });
 
 test("turning Edit off exits a pending POI placement without creating a coordinate", async ({
@@ -191,21 +201,23 @@ test("turning Edit off exits a pending POI placement without creating a coordina
     doc.pois[mission.ids.poiA].location = null;
     doc.pois[mission.ids.poiA].elevation = null;
   });
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningPoi(page, "Reference POI");
-  await page.getByLabel("info_panel", { exact: true }).click();
-  await page.getByLabel("Create Location", { exact: true }).click();
-  await expect.poll(() => mapCursor(page)).toBe("crosshair");
+  await page.getByLabelText("info_panel", { exact: true }).click();
+  await page.getByLabelText("Create Location", { exact: true }).click();
+  await expect.poll(() => mapCursor()).toBe("crosshair");
   const before = (await mission.read()).pois[mission.ids.poiA];
 
-  await page.getByLabel("globalEditToggle", { exact: true }).click();
+  await page.getByLabelText("globalEditToggle", { exact: true }).click();
 
-  await expect.poll(() => mapCursor(page)).toBe("");
-  await expect(page.getByLabel("Cancel", { exact: true })).toHaveCount(0);
+  await expect.poll(() => mapCursor()).toBe("");
+  await expect.poll(() => page.getByLabelText("Cancel", { exact: true }).length).toBe(0);
   expect((await mission.read()).pois[mission.ids.poiA]).toEqual(before);
-  await page.getByLabel("station Section", { exact: true }).click();
-  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("Stations");
+  await page.getByLabelText("station Section", { exact: true }).click();
+  await expect
+    .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+    .toHaveTextContent("Stations");
 });
 
 test("station location can be cancelled, cleared, and recreated from a known map pixel", async ({
@@ -215,28 +227,28 @@ test("station location can be cancelled, cleared, and recreated from a known map
   const before = await mission.read();
   const originalStation = before.stations[mission.ids.stationA];
   expect(originalStation.location).not.toBeNull();
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningStation(page, "Alpha station");
-  await page.getByLabel("info_panel", { exact: true }).click();
-  await expect(page.getByLabel("Clear Location", { exact: true })).toBeVisible();
+  await page.getByLabelText("info_panel", { exact: true }).click();
+  await expect.element(page.getByLabelText("Clear Location", { exact: true })).toBeVisible();
 
   const originalPixelCoordinates = projectedPoint(originalStation.location!);
   await expect
     .poll(async () =>
-      (await readMapFeatures(page)).find((feature) => feature.id === mission.ids.stationA)
+      (await readMapFeatures()).find((feature) => feature.id === mission.ids.stationA)
     )
     .toMatchObject({
       geometryType: "Point",
       coordinates: originalPixelCoordinates.map((coordinate) => expect.closeTo(coordinate, 4)),
     });
 
-  await page.getByLabel("Edit on Map", { exact: true }).click();
-  await expect.poll(() => mapCursor(page)).toBe("crosshair");
-  await page.getByLabel("Cancel", { exact: true }).click();
+  await page.getByLabelText("Edit on Map", { exact: true }).click();
+  await expect.poll(() => mapCursor()).toBe("crosshair");
+  await page.getByLabelText("Cancel", { exact: true }).click();
   expect((await mission.read()).stations[mission.ids.stationA]).toEqual(originalStation);
 
-  await page.getByLabel("Clear Location", { exact: true }).click();
+  await page.getByLabelText("Clear Location", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).stations[mission.ids.stationA].location)
     .toBeNull();
@@ -249,36 +261,34 @@ test("station location can be cancelled, cleared, and recreated from a known map
   expect(clearedDoc.traverses[mission.ids.traverseA].path).toEqual(
     before.traverses[mission.ids.traverseA].path
   );
-  await expect(page.getByLabel("Clear Location", { exact: true })).toHaveCount(0);
+  await expect.poll(() => page.getByLabelText("Clear Location", { exact: true }).length).toBe(0);
   await expect
     .poll(async () =>
-      (await readMapFeatures(page)).find((feature) => feature.id === mission.ids.stationA)
+      (await readMapFeatures()).find((feature) => feature.id === mission.ids.stationA)
     )
     .toBeUndefined();
   await expect
     .poll(async () =>
-      (await readMapFeatures(page)).find(
-        (feature) => feature.id === `walkback-${mission.ids.stationA}`
-      )
+      (await readMapFeatures()).find((feature) => feature.id === `walkback-${mission.ids.stationA}`)
     )
     .toBeUndefined();
 
-  await page.reload();
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningStation(page, "Alpha station");
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
   expect((await mission.read()).stations[mission.ids.stationA].location).toBeNull();
-  await page.getByLabel("Create Location", { exact: true }).click();
-  await expect.poll(() => mapCursor(page)).toBe("crosshair");
-  await page.getByLabel("Cancel", { exact: true }).click();
+  await page.getByLabelText("Create Location", { exact: true }).click();
+  await expect.poll(() => mapCursor()).toBe("crosshair");
+  await page.getByLabelText("Cancel", { exact: true }).click();
   expect((await mission.read()).stations[mission.ids.stationA].location).toBeNull();
 
   const target = {
     lat: originalStation.location!.lat + 0.0002,
     lng: originalStation.location!.lng + 0.0002,
   };
-  await page.getByLabel("Create Location", { exact: true }).click();
-  await expect.poll(() => mapCursor(page)).toBe("crosshair");
+  await page.getByLabelText("Create Location", { exact: true }).click();
+  await expect.poll(() => mapCursor()).toBe("crosshair");
   await clickProjectedPoint(page, target);
   await expect
     .poll(async () => (await mission.read()).stations[mission.ids.stationA].location)
@@ -287,15 +297,15 @@ test("station location can be cancelled, cleared, and recreated from a known map
   expect(recreated.walkbackPath?.[0]).toEqual(recreated.location);
   await expect
     .poll(async () =>
-      (await readMapFeatures(page)).find((feature) => feature.id === mission.ids.stationA)
+      (await readMapFeatures()).find((feature) => feature.id === mission.ids.stationA)
     )
     .toMatchObject({
       geometryType: "Point",
       coordinates: projectedPoint(target).map((coordinate) => expect.closeTo(coordinate, 4)),
     });
-  await page.reload();
+  await mission.open();
   await selectPlanningStation(page, "Alpha station");
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
   expect((await mission.read()).stations[mission.ids.stationA]).toEqual(recreated);
 });
 
@@ -304,38 +314,40 @@ test("Escape restores a dragged traverse and removes the modify interaction", as
   mission,
 }) => {
   const original = (await mission.read()).traverses[mission.ids.traverseA].path;
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningEva(page, "Survey Alpha");
   await planningEvaRow(page, "Survey Alpha").getByText("Alpha to Bravo", { exact: true }).click();
-  await page.getByLabel("Edit Path on Map", { exact: true }).click();
-  await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
-  await expect.poll(() => mapCursor(page)).toBe("crosshair");
+  await page.getByLabelText("Edit Path on Map", { exact: true }).click();
+  await expect.element(page.getByLabelText("Cancel", { exact: true })).toBeVisible();
+  await expect.poll(() => mapCursor()).toBe("crosshair");
 
-  const vertex = await mapFeaturePixel(page, mission.ids.traverseA, "editor", 1);
-  await page.mouse.move(vertex.x, vertex.y);
-  await page.mouse.down();
-  await page.mouse.move(vertex.x + 45, vertex.y - 35, { steps: 12 });
-  await page.mouse.up();
+  const vertex = await mapFeaturePixel(mission.ids.traverseA, "editor", 1);
+  await commands.mapPointer("move", vertex.x, vertex.y);
+  await commands.mapPointer("down");
+  await commands.mapPointer("move", vertex.x + 45, vertex.y - 35, 12);
+  await commands.mapPointer("up");
   await expect
     .poll(async () => (await mission.read()).traverses[mission.ids.traverseA].path)
     .not.toEqual(original);
-  await page.keyboard.press("Escape");
+  await userEvent.keyboard("{Escape}");
 
-  await expect.poll(() => mapCursor(page)).toBe("");
-  await expect(page.getByLabel("Cancel", { exact: true })).toHaveCount(0);
+  await expect.poll(() => mapCursor()).toBe("");
+  await expect.poll(() => page.getByLabelText("Cancel", { exact: true }).length).toBe(0);
   await expect
     .poll(async () => (await mission.read()).traverses[mission.ids.traverseA].path)
     .toEqual(original);
   await expect
     .poll(
       async () =>
-        (await readMapFeatures(page)).find((feature) => feature.id === mission.ids.traverseA)
+        (await readMapFeatures()).find((feature) => feature.id === mission.ids.traverseA)
           ?.coordinates
     )
     .toHaveLength(original.length);
   await selectPlanningPoi(page, "Reference POI");
-  await expect(page.locator('div[aria-label="POI"]')).toHaveText("Reference POI");
+  await expect
+    .element(page.getBySelector('div[aria-label="POI"]'))
+    .toHaveTextContent(exactText("Reference POI"));
 });
 
 const planningDirectiveTargets = ["poi", "station", "action", "walkback", "traverse"] as const;
@@ -351,42 +363,43 @@ for (const target of planningDirectiveTargets) {
       const before = await directiveSnapshot(mission, target);
       await exitDirective(page, target, exit);
       expect(await directiveSnapshot(mission, target)).toEqual(before);
-      await expect(page.getByLabel("Cancel", { exact: true })).toHaveCount(0);
+      await expect.poll(() => page.getByLabelText("Cancel", { exact: true }).length).toBe(0);
       await selectPlanningStation(page, "Bravo station");
-      await expect(page.locator('div[aria-label="Station"]')).toHaveText("Bravo station");
+      await expect
+        .element(page.getBySelector('div[aria-label="Station"]'))
+        .toHaveTextContent(exactText("Bravo station"));
     });
   }
 }
 
 test.describe("execution position map directives", () => {
-  test.use({ scenario: "execution" });
+  const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
   test("Escape cancels an existing position edit without saving a map move", async ({
     page,
     mission,
   }) => {
-    await mission.open(page);
+    await mission.open();
     await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
     const menu = page.getByTestId("positions-menu");
     await menu.getByText("All Positions", { exact: true }).click();
-    const row = menu.locator("table").last().getByRole("row").filter({ hasText: "00:02:00" });
-    await row.locator('svg[data-icon="ellipsis-vertical"]').click();
-    await page.locator("dialog[open]").getByText("Edit", { exact: true }).click();
-    await menu.getByLabel("Edit Pos.", { exact: true }).click();
-    await expect(menu.getByLabel("Cancel Pos.", { exact: true })).toBeVisible();
-    await expect.poll(() => mapCursor(page)).toBe("crosshair");
+    const row = menu.getBySelector("table").last().getByRole("row").filter({ hasText: "00:02:00" });
+    await row.getBySelector('svg[data-icon="ellipsis-vertical"]').click();
+    await page.getBySelector("dialog[open]").getByText("Edit", { exact: true }).click();
+    await menu.getByLabelText("Edit Pos.", { exact: true }).click();
+    await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
+    await expect.poll(() => mapCursor()).toBe("crosshair");
     const before = await mission.read();
 
-    await page.keyboard.press("Escape");
+    await userEvent.keyboard("{Escape}");
 
-    await expect.poll(() => mapCursor(page)).toBe("");
-    await expect(menu.getByLabel("Cancel Pos.", { exact: true })).toHaveCount(0);
+    await expect.poll(() => mapCursor()).toBe("");
+    await expect.poll(() => menu.getByLabelText("Cancel Pos.", { exact: true }).length).toBe(0);
     expect(await mission.read()).toEqual(before);
     await expect
       .poll(
         async () =>
-          (await readMapFeatures(page)).find((feature) => feature.id === mission.ids.posB)
-            ?.geometryType
+          (await readMapFeatures()).find((feature) => feature.id === mission.ids.posB)?.geometryType
       )
       .toBe("Point");
   });
@@ -400,8 +413,10 @@ test.describe("execution position map directives", () => {
       const before = await directiveSnapshot(mission, "position");
       await exitDirective(page, "position", exit);
       expect(await directiveSnapshot(mission, "position")).toEqual(before);
-      await page.getByLabel("station Section", { exact: true }).click();
-      await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("Stations");
+      await page.getByLabelText("station Section", { exact: true }).click();
+      await expect
+        .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+        .toHaveTextContent("Stations");
     });
   }
 });
