@@ -19,6 +19,7 @@
     "tsc": "tsc --pretty",
     "test:vitest": "vitest run --config src/tests/vitest/vitest.config.mts",
     "test:vitest:browser": "vitest run --config src/tests/vitest-browser/vitest.config.mts",
+    "test:vitest:browser:behavior": "vitest run --config src/tests/vitest-browser/vitest.config.mts src/tests/vitest-browser/behavior",
     "test:all": "npm run lint && npm run tsc && npm run build && npm run test:vitest && npm run test:vitest:browser",
     "test:coverage": "vitest run --coverage --config src/tests/vitest/vitest.config.mts",
     "test:coverage:browser": "vitest run --coverage --config src/tests/vitest-browser/vitest.config.mts",

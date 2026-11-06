@@ -1,4 +1,5 @@
-import { test, expect } from "../fixtures/behavioralTest";
+import { exactText } from "./browserAssertions";
+import { test, expect } from "./missionHarness";
 import {
   enablePlanningEditMode,
   planningField,
@@ -48,17 +49,17 @@ test("legacy action type, title, task priority and all STM priority choices pers
       updatedAt: 1,
     };
   });
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningStationActions(page, "Alpha station");
   await savePlanningField(page, "Action Name", "Collect legacy specimen");
   const action = page.getByRole("listitem").filter({
     has: planningField(page, "Action Name").filter({ hasText: "Collect legacy specimen" }),
   });
-  await action.locator("select").selectOption("sample");
-  await action.locator('svg[data-icon="caret-right"]').click();
+  await action.getBySelector("select").selectOptions("sample");
+  await action.getBySelector('svg[data-icon="caret-right"]').click();
   await savePlanningField(page, "Priority", "42");
-  const stm = action.locator('[data-tooltip-content="STM Priority"]');
+  const stm = action.getBySelector('[data-tooltip-content="STM Priority"]');
   for (const [label, expected] of [
     ["H", 1],
     ["M", 2],
@@ -77,14 +78,18 @@ test("legacy action type, title, task priority and all STM priority choices pers
   await expect
     .poll(async () => (await mission.read()).actions[mission.ids.actionA].stmPriorities)
     .toEqual({ [ids.level3]: 1 });
-  await expect(action.getByText("Non-STM", { exact: true })).toHaveCount(0);
-  await expect(action.getByText("Mission Priority Identifier:", { exact: true })).toHaveCount(0);
-  await mission.open(page);
+  await expect.poll(() => action.getByText("Non-STM", { exact: true }).length).toBe(0);
+  await expect
+    .poll(() => action.getByText("Mission Priority Identifier:", { exact: true }).length)
+    .toBe(0);
+  await mission.open();
   await selectPlanningStationActions(page, "Alpha station");
-  await action.locator('svg[data-icon="caret-right"]').click();
-  await expect(planningField(page, "Priority")).toHaveText("42");
-  await expect(action).toContainText("sample");
-  await expect(action.locator('[data-stm-uuid="' + ids.level3 + '"]')).toHaveCount(1);
+  await action.getBySelector('svg[data-icon="caret-right"]').click();
+  await expect.element(planningField(page, "Priority")).toHaveTextContent(exactText("42"));
+  await expect.element(action).toHaveTextContent("sample");
+  await expect
+    .poll(() => action.getBySelector('[data-stm-uuid="' + ids.level3 + '"]').length)
+    .toBe(1);
   expect((await mission.read()).actions[mission.ids.actionA]).toMatchObject({
     name: "Collect legacy specimen",
     type: "sample",
@@ -92,9 +97,11 @@ test("legacy action type, title, task priority and all STM priority choices pers
     stmPriorities: { [ids.level3]: 1 },
   });
   await selectPlanningEva(page, "Survey Alpha");
-  await page.getByLabel("actions_panel", { exact: true }).click();
-  await expect(planningField(page, "Action Name")).toHaveText("Collect legacy specimen");
-  await expect(page.locator('[class*="stmCoverage"]').first()).toBeVisible();
+  await page.getByLabelText("actions_panel", { exact: true }).click();
+  await expect
+    .element(planningField(page, "Action Name"))
+    .toHaveTextContent(exactText("Collect legacy specimen"));
+  await expect.element(page.getBySelector('[class*="stmCoverage"]').first()).toBeVisible();
 });
 
 test("v2 action verb noun adjective and mission priority survive STM toggles and refresh aggregate wording", async ({
@@ -146,10 +153,10 @@ test("v2 action verb noun adjective and mission priority survive STM toggles and
       updatedAt: 1,
     };
   });
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningStationActions(page, "Alpha station");
-  await page.getByRole("listitem").locator('svg[data-icon="caret-right"]').click();
+  await page.getByRole("listitem").getBySelector('svg[data-icon="caret-right"]').click();
   await page.getByRole("listitem").getByText("STM", { exact: true }).click();
   for (const [placeholder, name] of [
     ["Verb", "Collect"],
@@ -157,13 +164,13 @@ test("v2 action verb noun adjective and mission priority survive STM toggles and
     ["Adjective", "Frozen"],
   ]) {
     await page.getByRole("listitem").getByText(placeholder, { exact: true }).first().click();
-    await page.locator("dialog[open]").getByText(name, { exact: true }).click();
+    await page.getBySelector("dialog[open]").getByText(name, { exact: true }).click();
   }
   await page
     .getByText("Mission Priority Identifier:", { exact: true })
-    .locator("../..")
-    .getByLabel("dropdown", { exact: true })
-    .selectOption(ids.priority);
+    .getBySelector("../..")
+    .getByLabelText("dropdown", { exact: true })
+    .selectOptions(ids.priority);
   await expect
     .poll(async () => (await mission.read()).actions[mission.ids.actionA])
     .toMatchObject({
@@ -171,8 +178,8 @@ test("v2 action verb noun adjective and mission priority survive STM toggles and
       actionDefinition: { verbUuid: ids.verb, nounUuid: ids.noun, adjectiveUuid: ids.adjective },
       missionPriorityUuid: ids.priority,
     });
-  await expect(planningField(page, "Priority")).toHaveCount(0);
-  await expect(page.getByText("STM Coverage", { exact: true })).toHaveCount(0);
+  await expect.poll(() => planningField(page, "Priority").length).toBe(0);
+  await expect.poll(() => page.getByText("STM Coverage", { exact: true }).length).toBe(0);
   await page.getByRole("listitem").getByText("Non-STM", { exact: true }).click();
   await savePlanningField(page, "Action Name", "Retained non-STM wording");
   await page.getByRole("listitem").getByText("STM", { exact: true }).click();
@@ -180,21 +187,29 @@ test("v2 action verb noun adjective and mission priority survive STM toggles and
     .poll(async () => (await mission.read()).actions[mission.ids.actionA].stmAction)
     .toBe(true);
   const saved = (await mission.read()).actions[mission.ids.actionA];
-  await mission.open(page);
+  await mission.open();
   await selectPlanningStationActions(page, "Alpha station");
-  await expect(page.getByRole("listitem")).toContainText("Collect");
-  await expect(page.getByRole("listitem")).toContainText("Core");
-  await expect(page.getByRole("listitem")).toContainText("Frozen");
-  await expect(page.getByLabel("Mission priority: SCI-42", { exact: true })).toBeVisible();
+  await expect.element(page.getByRole("listitem")).toHaveTextContent("Collect");
+  await expect.element(page.getByRole("listitem")).toHaveTextContent("Core");
+  await expect.element(page.getByRole("listitem")).toHaveTextContent("Frozen");
+  await expect
+    .element(page.getByLabelText("Mission priority: SCI-42", { exact: true }))
+    .toBeVisible();
   await selectPlanningEva(page, "Survey Alpha");
-  await page.getByLabel("actions_panel", { exact: true }).click();
+  await page.getByLabelText("actions_panel", { exact: true }).click();
   for (const name of ["Collect", "Core", "Frozen"])
-    await expect(page.getByRole("listitem").getByText(name, { exact: true }).first()).toBeVisible();
-  await page.getByLabel("reports Section", { exact: true }).click();
+    await expect
+      .element(page.getByRole("listitem").getByText(name, { exact: true }).first())
+      .toBeVisible();
+  await page.getByLabelText("reports Section", { exact: true }).click();
   await page.getByText("EVA STM Coverage", { exact: true }).click();
-  await expect(page.locator('[data-tooltip-html^="Survey Alpha:"]')).toHaveAttribute(
-    "data-tooltip-html",
-    /Survey Alpha: 1 matching actions, 1\/1 rules satisfied \(all rules satisfied\)/
-  );
+  await expect
+    .poll(() =>
+      page
+        .getBySelector('[data-tooltip-html^="Survey Alpha:"]')
+        .element()
+        .getAttribute("data-tooltip-html")
+    )
+    .toMatch(/Survey Alpha: 1 matching actions, 1\/1 rules satisfied \(all rules satisfied\)/);
   expect((await mission.read()).actions[mission.ids.actionA]).toEqual(saved);
 });

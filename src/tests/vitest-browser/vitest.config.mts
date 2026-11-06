@@ -14,6 +14,7 @@ import { playwright } from "@vitest/browser-playwright";
 import path from "path";
 import dotenv from "dotenv";
 import { aliases, config as viteConfig } from "../../../vite.config.mts";
+import { missionSchemaPlugin } from "./missionSchemaPlugin";
 
 const workspaceRoot = path.resolve(__dirname, "../../..");
 
@@ -22,6 +23,8 @@ dotenv.config({ path: path.resolve(workspaceRoot, ".env"), override: true, quiet
 export default defineConfig(
   mergeConfig(viteConfig, {
     root: workspaceRoot,
+    publicDir: path.resolve(workspaceRoot, "src/public"),
+    plugins: [missionSchemaPlugin(workspaceRoot)],
     resolve: {
       alias: aliases,
       // Prevent multiple React copies when third-party deps are pre-bundled —

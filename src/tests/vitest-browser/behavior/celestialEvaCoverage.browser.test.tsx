@@ -1,8 +1,10 @@
-import { test, expect } from "../fixtures/behavioralTest";
-import reference from "../../vitest/fixtures/lunarSky/reference.json" with { type: "json" };
+import { test as base, expect } from "./missionHarness";
+import reference from "tests/vitest/fixtures/lunarSky/reference.json" with { type: "json" };
 import { enablePlanningEditMode, selectPlanningEva } from "./planningHelpers";
 import { selectExecution } from "./executionHelpers";
 import { expectAngles, showDirections } from "./celestialHelpers";
+
+const test = base;
 
 for (const polar of [false, true]) {
   test(`EVA calculations match independent SPICE values with ${polar ? "polar" : "Mercator"} map north and preserve manual values`, async ({
@@ -41,13 +43,13 @@ for (const polar of [false, true]) {
         });
       }
     });
-    await mission.open(page);
+    await mission.open();
     await selectPlanningEva(page, "Survey Alpha");
-    await page.getByLabel("info_panel", { exact: true }).click();
+    await page.getByLabelText("info_panel", { exact: true }).click();
     await enablePlanningEditMode(page);
     await showDirections(page);
     await expectAngles(page, 17, 263);
-    await page.getByRole("radio", { name: "Calculate", exact: true }).check();
+    await page.getByRole("radio", { name: "Calculate", exact: true }).click();
     await expect
       .poll(async () => (await mission.read()).evas[mission.ids.evaA].sunEarthFromDate)
       .toBe(true);
@@ -67,19 +69,19 @@ for (const polar of [false, true]) {
         sunEarthFromDate: true,
       });
     }
-    await page.getByRole("radio", { name: "Set manually", exact: true }).check();
+    await page.getByRole("radio", { name: "Set manually", exact: true }).click();
     await expect
       .poll(async () => (await mission.read()).evas[mission.ids.evaA].sunEarthFromDate)
       .toBe(false);
     await expectAngles(page, 17, 263);
-    await page.reload();
+    await mission.open();
     await selectPlanningEva(page, "Survey Alpha");
     await expectAngles(page, 17, 263);
   });
 }
 
 test.describe("Execution celestial ownership", () => {
-  test.use({ scenario: "execution" });
+  const test = base.extend({ scenario: "execution" as BehavioralScenario });
   test("planned, stopped and running EVAs supply their own directions and execution duplication freezes an independent copy", async ({
     page,
     mission,
@@ -90,7 +92,7 @@ test.describe("Execution celestial ownership", () => {
       Object.assign(doc.evas[mission.ids.rexEvaA], { sunAzimuth: 34, earthAzimuth: 278 });
       Object.assign(doc.evas[mission.ids.rexEvaB], { sunAzimuth: 90, earthAzimuth: 180 });
     });
-    await mission.open(page);
+    await mission.open();
     await selectExecution(page, "Survey Alpha", mission.ids.evaA);
     await showDirections(page);
     await expectAngles(page, 17, 263);
@@ -103,7 +105,7 @@ test.describe("Execution celestial ownership", () => {
     });
     await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
     await expectAngles(page, 34, 278);
-    await page.reload();
+    await mission.open();
     await selectExecution(page, "Survey Alpha", mission.ids.evaA);
     await expectAngles(page, 55, 263);
   });
