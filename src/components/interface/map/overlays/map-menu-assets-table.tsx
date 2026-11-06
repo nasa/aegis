@@ -198,12 +198,10 @@ export const AssetTable: FunctionComponent<Props> = ({
               key={folder.uuid}
               folder={folder}
               folders={sortedFolders}
-              itemCount={children.length}
               isOpen={isOpen}
               columnCount={columnCount}
               canEdit={canEdit}
               canMutate={canMutate}
-              dragActive={!!activeDragUuid}
             >
               {isOpen && children.map((asset) => renderAssetRow(asset, folder))}
             </FolderGroup>
@@ -248,7 +246,7 @@ const RootGroup: FunctionComponent<{
       {children}
       {dragActive && (
         <tr className={styles.dropHintRow}>
-          <td colSpan={columnCount}>Drop here to move to the root</td>
+          <td colSpan={columnCount}>Drag here to remove item from folder</td>
         </tr>
       )}
     </tbody>
@@ -258,24 +256,12 @@ const RootGroup: FunctionComponent<{
 const FolderGroup: FunctionComponent<{
   folder: Folder;
   folders: Folder[];
-  itemCount: number;
   isOpen: boolean;
   columnCount: number;
   canEdit: boolean;
   canMutate: boolean;
-  dragActive: boolean;
   children: ReactNode;
-}> = ({
-  folder,
-  folders,
-  itemCount,
-  isOpen,
-  columnCount,
-  canEdit,
-  canMutate,
-  dragActive,
-  children,
-}) => {
+}> = ({ folder, folders, isOpen, columnCount, canEdit, canMutate, children }) => {
   const dispatch = useAppDispatch();
   const folderInterface = useAppSelector(
     (state) => getFolderInterface(state.interface.foldersInterface, folder.uuid),
@@ -421,11 +407,6 @@ const FolderGroup: FunctionComponent<{
         )}
       </tr>
       {children}
-      {isOpen && itemCount === 0 && (
-        <tr className={styles.emptyFolderRow}>
-          <td colSpan={columnCount}>{dragActive ? "Drop here" : "Empty folder"}</td>
-        </tr>
-      )}
     </tbody>
   );
 };

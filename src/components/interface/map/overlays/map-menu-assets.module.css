@@ -406,7 +406,6 @@
   color: var(--grey4);
 }
 
-.emptyFolderRow td,
 .dropHintRow td {
   color: var(--grey4);
   font-style: italic;
@@ -414,8 +413,7 @@
 }
 
 .dropTarget {
-  outline: 1px dashed var(--grey5);
-  outline-offset: -1px;
+  background-color: var(--grey3);
 }
 
 .assetRow {
