@@ -1,11 +1,13 @@
 import { bench, describe } from "vitest";
 
 import { formatLatLonAsLgrs } from "utils/lgrs/format";
+import { createLgrsRenderPlan } from "utils/lgrs/grid/plan";
 import { formatLgrsAtMapCoordinate, getLgrsMapAdapter } from "utils/lgrs/mapAdapter";
 
 import { createSeededRandom } from "../helpers/seededRandom";
 
-// Plan §6.1 budgets: lat/lon → 10 m string ≤ 2 µs median; map coord → string ≤ 5 µs median.
+// Plan §6.1 budgets: lat/lon → 10 m string ≤ 2 µs median; map coord → string ≤ 5 µs median;
+// a 1920×1080 dynamic grid plan ≤ 4 ms p95 and ≤ 2,000 vertices.
 
 const MOON = "+a=1737400 +b=1737400 +units=m +no_defs";
 const SAMPLE_COUNT = 1024;
@@ -96,6 +98,58 @@ describe("LGRS per-point display", () => {
       formatLgrsAtMapCoordinate(moonEqc, eqcSamples[index], eqcSamples[index + 1], 10, "acc")
     );
   });
+});
+
+const northCap = getLgrsMapAdapter({
+  projCode: "BENCH:NORTH",
+  proj4Def: `+proj=stere +lat_0=90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`,
+});
+
+/** Options for a 1920×1080 view centred on `[lat, lon]` at `resolution` map units per pixel. */
+function screenView(
+  adapter: LgrsMapAdapter,
+  lat: number,
+  lon: number,
+  resolution: number,
+  spacing: LgrsGridSpacing = "auto"
+): LgrsRenderOptions {
+  const centre = new Float64Array(2);
+  adapter.latLonToMap(lat, lon, centre);
+  return {
+    adapter,
+    extent: [
+      centre[0] - 960 * resolution,
+      centre[1] - 540 * resolution,
+      centre[0] + 960 * resolution,
+      centre[1] + 540 * resolution,
+    ],
+    resolution,
+    gridSpacingMode: spacing,
+    gridLabelInterval: spacing,
+    labelsVisible: true,
+  };
+}
+
+const planViews: [string, LgrsRenderOptions][] = [
+  ["canonical south LPS, auto (affine)", screenView(southCap, -89.5, 30, 5)],
+  ["south cap edge with LTM zones", screenView(southCap, -80.3, 30, 60)],
+  ["north cap edge, ±80° seam", screenView(northCap, 80.2, -100, 60)],
+  ["Apollo 14 Web Mercator, auto", screenView(mercator, -3.6, -17.5, 40)],
+  ["zone seam + equator, equirectangular (proj4)", screenView(moonEqc, 0, -4, 80)],
+  ["fixed 100 m, equirectangular (proj4)", screenView(moonEqc, 40, 4, 10, 100)],
+  ["whole hemisphere zone tier (proj4)", screenView(moonEqc, 0, 0, 2500)],
+];
+
+function consumePlan(plan: LgrsRenderPlan): void {
+  sink += plan.vertexCount;
+}
+
+describe("LGRS dynamic grid plan (1920×1080)", () => {
+  for (const [name, options] of planViews) {
+    bench(name, () => {
+      consumePlan(createLgrsRenderPlan(options));
+    });
+  }
 });
 
 export { sink };
