@@ -10,7 +10,6 @@ import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { isConnected } from "store/selectors";
 import { thunkCreateFolder } from "store/thunk/thunkFolder";
 import { thunkEditAsset, thunkAddAsset, thunkCancelAssetEdit } from "store/thunk/thunkAsset";
 
@@ -37,13 +36,10 @@ function useCoordinateEntryContext(): CoordinateEntryContext {
   );
 }
 
-// Content of the "Assets" tab in the floating Rex Menu widget on the map. Mutations need
-// mission edit permission and a live connection.
+// Content of the "Assets" tab in the floating Rex Menu widget on the map.
 export const MapAssetsMenu: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const canEdit = useAppSelector((s) => !!s.user.missionPerms?.permissions.edit, refEqual);
-  const connected = useAppSelector(isConnected, refEqual);
-  const canMutate = canEdit && connected;
   const inEdit = useAppSelector((s) => s.asset.inEdit, deepEqual);
   const assets = useMissionDocSelector((m) => Object.values(m.assets ?? {}), deepEqual) ?? [];
   const assetFolders =
@@ -82,27 +78,26 @@ export const MapAssetsMenu: FunctionComponent = () => {
                 : undefined
             }
             className={assetsMenuStyles.toolbarButton}
-            enabled={canMutate && !inEdit}
+            enabled={canEdit && !inEdit}
           />
           <Button
             onClick={() => dispatch(thunkCreateFolder({ type: "asset" }))}
             icon={faFolderPlus}
             label="Add Folder"
             className={assetsMenuStyles.toolbarButton}
-            enabled={canMutate}
+            enabled={canEdit}
           />
-          {!connected && <span className={assetsMenuStyles.offline}>Not connected</span>}
         </div>
       )}
       {inEdit?.isNew && (
-        <AssetEditor inEdit={inEdit} canMutate={canMutate} coordinateContext={coordinateContext} />
+        <AssetEditor inEdit={inEdit} canMutate={canEdit} coordinateContext={coordinateContext} />
       )}
       <div className={assetsMenuStyles.tableContainer}>
         <AssetTable
           assets={assets}
           folders={assetFolders}
           canEdit={canEdit}
-          canMutate={canMutate}
+          canMutate={canEdit}
           inEdit={inEdit && !inEdit.isNew ? inEdit : null}
           coordinateContext={coordinateContext}
           onEdit={editAsset}
