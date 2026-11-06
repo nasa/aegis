@@ -256,7 +256,7 @@ export const AssetEditor: FunctionComponent<{
           <div data-testid="asset-editor-color">
             <PathColorPickerMenu
               circular={true}
-              currentColor={values.color || "#00000000"}
+              currentColor={values.color}
               editMode={editable}
               updateColor={(color) => dispatch(updateAssetInEditValues({ color }))}
             />
@@ -271,7 +271,7 @@ export const AssetEditor: FunctionComponent<{
               enabled={editable}
             />
           ) : (
-            <span className={styles.fieldNote}>Default</span>
+            <span className={styles.fieldNote}>None</span>
           )}
         </div>
 
