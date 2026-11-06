@@ -6,7 +6,7 @@
 
 import type { Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
-import { waitForPageReady, minimizeRexMenu, displayField, editValidatedField } from "../helpers";
+import { waitForPageReady, minimizeRexMenu, displayField } from "../helpers";
 
 const MISSION_URL = "http://localhost:4000/mission/22";
 
@@ -56,20 +56,28 @@ test.describe("Mission 22 — Asset tracking", () => {
     await expect(editor.getByText("Edit Pos.", { exact: true })).toBeVisible();
     await expect(page.getByTestId("asset-editor-elevation")).not.toContainText("Fetching");
     await editor.getByLabel("Save", { exact: true }).click();
-    await expect(editor).toBeHidden();
+    await expect(editor).toBeVisible();
+    await expect(editor.getByLabel("Save", { exact: true })).toBeHidden();
     await expect(assetRow).toBeVisible();
     await expect(assetRow).not.toContainText("Not placed");
-    await assetRow.getByLabel("Expand asset", { exact: true }).click();
+    await expect(assetRow.getByLabel("Collapse asset", { exact: true })).toBeVisible();
     await expect(displayField(page, "Radius in meters")).toHaveText("15");
     await expect(displayField(page, "Asset coordinates")).toHaveText(coordinates);
     await expect(editor.getByLabel("assetEditToggle", { exact: true })).toBeHidden();
 
     await assetRow.getByRole("button", { name: "Asset actions", exact: true }).click();
     await page.getByRole("menuitem", { name: "Edit Asset", exact: true }).click();
-    await expect(displayField(page, "Asset name")).toHaveText(assetName);
-    await editValidatedField(page, "Radius in meters", "20");
+    await expect(editor.getByLabel("Asset name", { exact: true })).toHaveValue(assetName);
+    await editor.getByLabel("Radius in meters", { exact: true }).fill("99");
+    await editor.getByLabel("Cancel", { exact: true }).click();
+    await expect(displayField(page, "Radius in meters")).toHaveText("15");
+    await assetRow.getByRole("button", { name: "Asset actions", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Edit Asset", exact: true }).click();
+    await editor.getByLabel("Radius in meters", { exact: true }).fill("20");
+    await editor.getByLabel("Save", { exact: true }).click();
+    await expect(editor).toBeVisible();
     await expect(displayField(page, "Radius in meters")).toHaveText("20");
-    await editor.getByLabel("assetEditToggle", { exact: true }).click();
+    await expect(editor.getByLabel("Save", { exact: true })).toBeHidden();
     await assetRow.getByLabel("Collapse asset", { exact: true }).click();
 
     // Assets are mission data: they stay listed across EVA selection and reload.

@@ -3,15 +3,17 @@ import { useCallback, useEffect, useState } from "react";
 import { PickerPopover } from "components/interface/form/PickerPopover";
 import { faBan, faCrosshairs, faFloppyDisk, faXmark } from "@fortawesome/free-solid-svg-icons";
 
+import { LastEditedNumeric } from "components/interface/_global-elements";
+import { AssetPetSource } from "./map-menu-asset-details";
 import styles from "./map-menu-assets.module.css";
 import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
 import { filterHHMMSS, validators } from "components/interface/form/formValidators";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { useMapMenuSetters } from "../MapMenuProvider";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { updateAssetInEditValues } from "store/asset";
+import { setAssetInEditPet, updateAssetInEditValues } from "store/asset";
 import {
   thunkCancelAssetEdit,
   thunkCancelAssetMapDirective,
@@ -24,6 +26,8 @@ import {
   ASSET_NOTES_MAX_LENGTH,
   DEFAULT_ASSET_ICON,
   getCurrentAssetPet,
+  getAssetFolderUuidByItem,
+  getAssetHiddenReason,
   parseAssetPetSeconds,
   validateAssetEditValues,
   validateAssetName,
@@ -44,17 +48,33 @@ export function formatUtcTime(ms: number): string {
   return `${new Date(ms).toISOString().replace("T", " ").slice(0, 19)} UTC`;
 }
 
-// Creation keeps a draft with Save/Cancel; saved assets use AssetDetails.
+// Add and Edit share one draft form; Save commits its changed fields together.
 export const AssetEditor: FunctionComponent<{
   inEdit: AssetInEdit;
+  asset?: Asset;
   canMutate: boolean;
   coordinateContext: CoordinateEntryContext;
-}> = ({ inEdit, canMutate, coordinateContext }) => {
+}> = ({ inEdit, asset, canMutate, coordinateContext }) => {
   const dispatch = useAppDispatch();
   const { setSubmenuAssets } = useMapMenuSetters();
   const assetUuid = inEdit.uuid;
   const values = inEdit.values;
   const editable = canMutate;
+  const visibility = useMissionDocSelector((m) => {
+    const savedAsset = m.assets?.[assetUuid];
+    const folderUuid = getAssetFolderUuidByItem(Object.values(m.folders ?? {}))[assetUuid];
+    const folder = m.folders?.[folderUuid];
+    return {
+      hidden: savedAsset ? getAssetHiddenReason(savedAsset, folder) : null,
+      folder: folder?.name,
+    };
+  }, shallowEqual);
+  const blocked =
+    values.location && visibility.hidden
+      ? visibility.hidden === "asset"
+        ? "This asset is hidden on the map. Show it in the table to edit its position on the map, or enter coordinates."
+        : `This asset's folder "${visibility.folder}" is hidden on the map. Show the folder to edit its position on the map, or enter coordinates.`
+      : undefined;
   const mapAction = useAppSelector(
     (s) =>
       s.map.mapDirective?.mapItemType === "asset" && s.map.mapDirective.uuid === assetUuid
@@ -176,7 +196,7 @@ export const AssetEditor: FunctionComponent<{
   return (
     <div className={styles.editor} data-testid="asset-editor">
       <div className={styles.editorHeader}>
-        <div className={styles.editorHeading}>Add Asset</div>
+        <div className={styles.editorHeading}>{inEdit.isNew ? "Add Asset" : "Edit Asset"}</div>
         {actions}
       </div>
 
@@ -322,7 +342,8 @@ export const AssetEditor: FunctionComponent<{
               label={values.location ? "Edit Pos." : "Place on Map"}
               className={styles.editorButton}
               iconStyle={{ marginRight: 2 }}
-              enabled={editable}
+              enabled={editable && !blocked}
+              toolTip={blocked}
             />
           )}
         </div>
@@ -358,6 +379,7 @@ export const AssetEditor: FunctionComponent<{
           </div>
         )}
 
+        {!inEdit.isNew && <AssetPetSource petRex={values.petRex} />}
         <span className={styles.fieldLabel}>PET</span>
         <div className={styles.petControls}>
           <input
@@ -388,10 +410,10 @@ export const AssetEditor: FunctionComponent<{
               enabled={editable && currentPetAvailable}
               toolTip={currentPetAvailable ? undefined : "No running REX with a valid PET"}
               onClick={() => {
-                const { petSeconds } = getCurrentAssetPet({ rexes }, getAccurateNow().getTime());
-                if (petSeconds === null) return;
-                setPetText(hhmmssFromSeconds(petSeconds));
-                dispatch(updateAssetInEditValues({ petSeconds }));
+                const pet = getCurrentAssetPet({ rexes }, getAccurateNow().getTime());
+                if (pet.petSeconds === null) return;
+                setPetText(hhmmssFromSeconds(pet.petSeconds));
+                dispatch(setAssetInEditPet(pet));
               }}
             />
           )}
@@ -423,6 +445,16 @@ export const AssetEditor: FunctionComponent<{
         {notesError && (
           <div id="asset-notes-error" className={`${styles.fieldError} ${styles.fieldValueColumn}`}>
             {notesError}
+          </div>
+        )}
+        {asset && (
+          <div className={styles.editorLastModified} data-testid="asset-editor-last-modified">
+            <span className={styles.fieldLabel}>Last Edited:</span>
+            <LastEditedNumeric
+              updatedAt={asset.updatedAt}
+              createdAt={asset.createdAt}
+              info={[["Asset UUID", asset.uuid]]}
+            />
           </div>
         )}
       </div>

@@ -26,6 +26,7 @@ import { missionSlice } from "store/mission";
 import { userSlice } from "store/user";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
+import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import {
   ASSET_NAME_MAX_LENGTH,
@@ -53,18 +54,9 @@ const deleteAsset = vi.fn((args: { assetUuid: string }) => ({
   payload: args,
 }));
 const cancelEdit = vi.fn(() => assetSlice.actions.clearAssetInEdit({ keepExpanded: true }));
-const setLocation = vi.fn(
-  (_args: { uuid: string; location: AEGISPoint | null; saveImmediately?: boolean }) => ({
-    type: "mock/setLocation",
-  })
-);
-const updateFields = vi.fn(
-  (_args: {
-    assetUuid: string;
-    changes?: Partial<AssetEditValues>;
-    petUpdate?: "current" | "clear";
-  }) => undefined
-);
+const setLocation = vi.fn((_args: { uuid: string; location: AEGISPoint | null }) => ({
+  type: "mock/setLocation",
+}));
 const saveAsset = vi.fn((_options?: { petUpdate?: "current" | "clear" }) => ({
   type: "mock/save",
 }));
@@ -79,10 +71,6 @@ vi.mock("store/thunk/thunkAsset", () => ({
   thunkDeleteAsset: (args: { assetUuid: string }) => deleteAsset(args),
   thunkMoveAssetToFolder: () => ({ type: "mock/move" }),
   thunkToggleAssetVisible: () => ({ type: "mock/toggleVisible" }),
-  thunkUpdateAssetFields: (args: Parameters<typeof updateFields>[0]) => () => {
-    updateFields(args);
-    return { unwrap: () => Promise.resolve(true) };
-  },
 }));
 
 const connectedState = {
@@ -139,10 +127,6 @@ function render() {
 }
 
 const q = (selector: string) => harness.container.querySelector<HTMLElement>(selector);
-const dialogAction = (label: string) =>
-  [...q("dialog[open]")!.querySelectorAll<HTMLElement>("div")].find(
-    (el) => el.textContent === label && el.children.length === 0
-  )!;
 const byText = (text: string) =>
   [...harness.container.querySelectorAll<HTMLElement>("div, button, span")].find(
     (el) => el.textContent?.trim() === text && el.children.length === 0
@@ -211,9 +195,13 @@ describe("MapAssetsMenu", () => {
       for (const editing of [false, true]) {
         if (editing) openDraft(asset, false);
         const editor = q("[data-testid='asset-editor']")!;
-        const notesDisplay = q("div[aria-label='Asset notes']")!;
+        const notesDisplay = q(
+          editing ? "textarea[aria-label='Asset notes']" : "div[aria-label='Asset notes']"
+        )!;
         const menu = q("[data-testid='asset-table']")!.parentElement!;
-        expect(notesDisplay.textContent).toBe(notes);
+        expect(
+          editing ? (notesDisplay as HTMLTextAreaElement).value : notesDisplay.textContent
+        ).toBe(notes);
         expect(notesDisplay.scrollWidth).toBeLessThanOrEqual(notesDisplay.clientWidth + 1);
         expect(notesDisplay.scrollHeight).toBeGreaterThan(notesDisplay.clientHeight);
         expect(getComputedStyle(notesDisplay).whiteSpace).toBe("pre-wrap");
@@ -238,11 +226,8 @@ describe("MapAssetsMenu", () => {
         expect(actions.getBoundingClientRect().right).toBeLessThanOrEqual(
           menu.getBoundingClientRect().right + 1
         );
-        if (editing) {
-          const nameDisplay = q("div[aria-label='Asset name']")!;
-          expect(nameDisplay.scrollWidth).toBeLessThanOrEqual(nameDisplay.clientWidth + 1);
-          expect(nameDisplay.getBoundingClientRect().height).toBeGreaterThan(20);
-        }
+        if (editing)
+          expect((q("input[aria-label='Asset name']") as HTMLInputElement).value).toBe(asset.name);
       }
     }
   );
@@ -360,20 +345,10 @@ describe("MapAssetsMenu", () => {
     };
 
     checkHeightAndScroll(q("div[aria-label='Asset notes']")!);
-    openDraft(asset, false);
-    checkHeightAndScroll(q("div[aria-label='Asset notes']")!);
-    flushSync(() => q("div[aria-label='Asset notes']")!.click());
-    const textarea = q("textarea[aria-label='Asset notes']") as HTMLTextAreaElement;
-    await vi.waitFor(() => checkHeightAndScroll(textarea));
-    // Shrinking and growing while editing keeps the same six-line cap.
-    enterValue(textarea, "Short note");
-    expect(textarea.scrollHeight).toBeLessThanOrEqual(textarea.clientHeight + 1);
-    enterValue(textarea, notes);
-    await vi.waitFor(() => checkHeightAndScroll(textarea));
-    flushSync(() => dialogAction("Cancel").click());
-
-    openDraft(asset, true);
-    checkHeightAndScroll(q("textarea[aria-label='Asset notes']")!, 3);
+    for (const creating of [false, true]) {
+      openDraft(asset, creating);
+      checkHeightAndScroll(q("textarea[aria-label='Asset notes']")!, 3);
+    }
   });
 
   it.each([true, false])(
@@ -386,9 +361,8 @@ describe("MapAssetsMenu", () => {
       store = makeStore(true);
       render();
       openDraft(asset, creating);
-      if (!creating) flushSync(() => q("div[aria-label='Asset notes']")!.click());
       const textarea = q("textarea[aria-label='Asset notes']") as HTMLTextAreaElement;
-      await vi.waitFor(() => expect(textarea.clientHeight).toBeGreaterThan(creating ? 40 : 60));
+      await vi.waitFor(() => expect(textarea.clientHeight).toBeGreaterThan(40));
       expect(getComputedStyle(textarea).resize).toBe("both");
       // Native resize writes inline dimensions; reproduce them to exercise preservation on input.
       textarea.style.height = "240px";
@@ -398,11 +372,6 @@ describe("MapAssetsMenu", () => {
       enterValue(textarea, "Updated note");
       expect(textarea.getBoundingClientRect().height).toBe(240);
       expect(textarea.getBoundingClientRect().width).toBe(500);
-      if (!creating) {
-        await vi.waitFor(() =>
-          expect(textarea.closest("form")!.getBoundingClientRect().width).toBe(500)
-        );
-      }
       textarea.style.height = "70px";
       textarea.style.width = "220px";
       enterValue(textarea, "More lines\n".repeat(20));
@@ -423,52 +392,27 @@ describe("MapAssetsMenu", () => {
       store = makeStore(true);
       render();
       openDraft(asset, creating);
-      for (const [label, invalidValue, validValue, message] of [
-        [
-          "Asset name",
-          "n".repeat(ASSET_NAME_MAX_LENGTH + 1),
-          "n".repeat(ASSET_NAME_MAX_LENGTH),
-          "Name",
-        ],
-        [
-          "Asset notes",
-          "x".repeat(ASSET_NOTES_MAX_LENGTH + 1),
-          "x".repeat(ASSET_NOTES_MAX_LENGTH),
-          "Notes",
-        ],
+      for (const [label, invalidValue, validValue] of [
+        ["Asset name", "n".repeat(ASSET_NAME_MAX_LENGTH + 1), "n".repeat(ASSET_NAME_MAX_LENGTH)],
+        ["Asset notes", "x".repeat(ASSET_NOTES_MAX_LENGTH + 1), "x".repeat(ASSET_NOTES_MAX_LENGTH)],
         [
           "Radius in meters",
           String(ASSET_RADIUS_MAX_METERS + 0.01),
           String(ASSET_RADIUS_MAX_METERS),
-          "Radius",
         ],
       ]) {
-        if (!creating) flushSync(() => q(`div[aria-label='${label}']`)!.click());
         const input = q(`input[aria-label='${label}'], textarea[aria-label='${label}']`) as
           HTMLInputElement | HTMLTextAreaElement;
         // Programmatic input bypasses native maxLength to also exercise validation of existing/imported content.
         enterValue(input, invalidValue);
-        if (creating) {
-          expect(input.getAttribute("aria-invalid")).toBe("true");
-          expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).toBe("true");
-          flushSync(() => q("[aria-label='Save']")!.click());
-          expect(saveAsset).not.toHaveBeenCalled();
-          if (label === "Radius in meters")
-            expect(store.getState().asset.inEdit?.values.uncertaintyMeters).toBe(0);
-        } else {
-          await vi.waitFor(() => expect(q("dialog[open]")?.textContent).toContain(message));
-          flushSync(() => dialogAction("Save").click());
-          expect(updateFields).not.toHaveBeenCalled();
-        }
+        expect(input.getAttribute("aria-invalid")).toBe("true");
+        expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).toBe("true");
+        flushSync(() => q("[aria-label='Save']")!.click());
+        expect(saveAsset).not.toHaveBeenCalled();
+        if (label === "Radius in meters")
+          expect(store.getState().asset.inEdit?.values.uncertaintyMeters).toBe(0);
         enterValue(input, validValue);
-        if (creating) {
-          expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true");
-        } else {
-          await vi.waitFor(() => expect(q("dialog[open]")?.textContent).not.toContain(`must be`));
-          flushSync(() => dialogAction("Save").click());
-          await vi.waitFor(() => expect(updateFields).toHaveBeenCalledTimes(1));
-          updateFields.mockClear();
-        }
+        expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true");
       }
       expect(saveAsset).not.toHaveBeenCalled();
     }
@@ -511,7 +455,7 @@ describe("MapAssetsMenu", () => {
       expect(Math.abs(radius.top + radius.height / 2 - color.top - color.height / 2)).toBeLessThan(
         3
       );
-      expect(editor.getBoundingClientRect().height).toBeLessThan(editing ? 280 : 200);
+      expect(editor.getBoundingClientRect().height).toBeLessThan(editing ? 350 : 200);
       expect(editor.scrollWidth).toBeLessThanOrEqual(editor.clientWidth);
       if (!editing) {
         expect(q("[aria-label='assetEditToggle']")).toBeNull();
@@ -786,7 +730,7 @@ describe("MapAssetsMenu", () => {
 
   it.each([false, true])(
     "does not submit an unchanged position (LGRS: %s)",
-    (usingLGRSCoordinates) => {
+    async (usingLGRSCoordinates) => {
       const point = { lat: -89.500012345, lng: 45.200012345 };
       mockMissionDoc.usingLGRSCoordinates = usingLGRSCoordinates;
       mockMissionDoc.landerLocation = point;
@@ -796,102 +740,52 @@ describe("MapAssetsMenu", () => {
       store = makeStore(true);
       render();
       openDraft(asset, false);
-      flushSync(() => q("div[aria-label='Asset coordinates']")!.click());
-      const input = q("dialog[open] input") as HTMLInputElement;
+      const input = q("input[aria-label='Asset coordinates']") as HTMLInputElement;
       expect(input.value).not.toBe("");
       enterValue(input, ` ${input.value} `);
-      flushSync(() => dialogAction("Save").click());
+      flushSync(() => q("[aria-label='Save']")!.click());
       expect(setLocation).not.toHaveBeenCalled();
+      await vi.waitFor(() =>
+        expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true")
+      );
 
-      flushSync(() => q("div[aria-label='Asset coordinates']")!.click());
-      enterValue(q("dialog[open] input") as HTMLInputElement, "-89.6, 45.3");
-      flushSync(() => dialogAction("Save").click());
+      enterValue(input, "-89.6, 45.3");
+      flushSync(() => q("[aria-label='Save']")!.click());
       expect(setLocation).toHaveBeenCalledExactlyOnceWith({
         uuid: asset.uuid,
         location: { lat: -89.6, lng: 45.3 },
-        saveImmediately: true,
       });
     }
   );
 
-  it("uses the standard field modals to save or cancel individual fields", async () => {
-    const asset = generateBlankAsset({ name: "Drill" });
+  it("stages the shared form, discards every field on Cancel, and submits once on Save", () => {
+    const asset = generateBlankAsset({ name: "Drill", notes: "Saved note" });
     mockMissionDoc.assets = { [asset.uuid]: asset };
     store = makeStore(true);
     render();
-    flushSync(() =>
-      store.dispatch(
-        setAssetInEdit({
-          uuid: asset.uuid,
-          isNew: false,
-          values: getAssetEditValues(asset),
-          base: getAssetEditValues(asset),
-          elevationPending: false,
-        })
-      )
-    );
-    const changeInput = (label: string, value: string) => {
-      const input = q(`dialog[open] input[aria-label='${label}']`) as HTMLInputElement;
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    };
-    const clickAction = (label: string) => {
-      const action = [...q("dialog[open]")!.querySelectorAll<HTMLElement>("div")].find(
-        (el) => el.textContent === label && el.children.length === 0
-      )!;
-      flushSync(() => action.click());
-    };
-    flushSync(() => q("div[aria-label='Asset name']")!.click());
-    changeInput("Asset name", "Canceled name");
-    await vi.waitFor(() =>
-      expect((q("dialog[open] input") as HTMLInputElement).value).toBe("Canceled name")
-    );
-    clickAction("Cancel");
+    openDraft(asset, false);
+    expect(q("[data-testid='asset-editor']")?.textContent).toContain("Edit Asset");
     expect(q("dialog[open]")).toBeNull();
-    expect(updateFields).not.toHaveBeenCalled();
-
-    flushSync(() => q("div[aria-label='Asset name']")!.click());
-    expect((q("dialog[open] input") as HTMLInputElement).value).toBe("Drill");
-    changeInput("Asset name", "Renamed drill");
-    await vi.waitFor(() =>
-      expect((q("dialog[open] input") as HTMLInputElement).value).toBe("Renamed drill")
-    );
-    await userEvent.keyboard("{Enter}");
-    expect(q("dialog[open]")).toBeNull();
-    expect(updateFields).toHaveBeenCalledWith({
-      assetUuid: asset.uuid,
-      changes: { name: "Renamed drill" },
+    enterValue(q("input[aria-label='Asset name']") as HTMLInputElement, "Renamed drill");
+    enterValue(q("input[aria-label='Radius in meters']") as HTMLInputElement, "20");
+    enterValue(q("textarea[aria-label='Asset notes']") as HTMLTextAreaElement, "Draft note");
+    expect(store.getState().asset.inEdit?.values).toMatchObject({
+      name: "Renamed drill",
+      uncertaintyMeters: 20,
+      notes: "Draft note",
     });
-    expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
-
-    flushSync(() => q("div[aria-label='Radius in meters']")!.click());
-    changeInput("Radius in meters", "-5");
-    await vi.waitFor(() =>
-      expect(q("dialog[open]")?.textContent).toContain("Radius must be between")
-    );
-    clickAction("Save");
-    await userEvent.keyboard("{Enter}");
-    expect(q("dialog[open]")).not.toBeNull();
-    expect(updateFields).toHaveBeenCalledTimes(1);
-    changeInput("Radius in meters", "");
-    await vi.waitFor(() =>
-      expect(q("dialog[open]")?.textContent).not.toContain("Must be a number")
-    );
-    clickAction("Save");
-    expect(updateFields).toHaveBeenLastCalledWith({
-      assetUuid: asset.uuid,
-      changes: { uncertaintyMeters: 0 },
-    });
-    flushSync(() => q("[aria-label='Asset actions']")!.click());
-    const stopEditing = [
-      ...harness.container.querySelectorAll<HTMLElement>("[role='menuitem']"),
-    ].find((item) => item.textContent === "Turn Off Edit Mode")!;
-    flushSync(() => stopEditing.click());
+    expect(mockMissionDoc.assets[asset.uuid]).toEqual(asset);
+    expect(saveAsset).not.toHaveBeenCalled();
+    flushSync(() => q("[aria-label='Cancel']")!.click());
     expect(store.getState().asset.inEdit).toBeNull();
-    expect(q("dialog[open]")).toBeNull();
-    expect(q("div[aria-label='Asset name']")).toBeNull();
-    flushSync(() => q("div[aria-label='Radius in meters']")!.click());
-    expect(q("dialog[open]")).toBeNull();
+    expect(q(`[data-testid='asset-detail-row-${asset.uuid}']`)).not.toBeNull();
+    expect(q("div[aria-label='Asset notes']")?.textContent).toBe("Saved note");
+    openDraft(asset, false);
+    expect((q("input[aria-label='Asset name']") as HTMLInputElement).value).toBe("Drill");
+    expect((q("input[aria-label='Radius in meters']") as HTMLInputElement).value).toBe("0");
+    enterValue(q("input[aria-label='Asset name']") as HTMLInputElement, "Saved drill");
+    flushSync(() => q("[aria-label='Save']")!.click());
+    expect(saveAsset).toHaveBeenCalledExactlyOnceWith(undefined);
   });
 
   it.each([false, true])(
@@ -948,12 +842,8 @@ describe("MapAssetsMenu", () => {
       expect(getComputedStyle(swatch).borderRadius).toBe("50%");
       const selected = swatch.title.toLowerCase();
       flushSync(() => swatch.click());
-      if (creating) expect(store.getState().asset.inEdit?.values.color).toBe(selected);
-      else
-        expect(updateFields).toHaveBeenCalledWith({
-          assetUuid: asset.uuid,
-          changes: { color: selected },
-        });
+      expect(store.getState().asset.inEdit?.values.color).toBe(selected);
+      expect(saveAsset).not.toHaveBeenCalled();
       await userEvent.keyboard("{Escape}");
       await vi.waitFor(() => expect(q("[popover]:popover-open")).toBeNull());
       flushSync(() => byText("Pick Icon")!.click());
@@ -969,12 +859,8 @@ describe("MapAssetsMenu", () => {
         "button[aria-label='\u{1f600}']"
       )!;
       flushSync(() => emoji.click());
-      if (creating) expect(store.getState().asset.inEdit?.values.icon).toBe("1f600");
-      else
-        expect(updateFields).toHaveBeenCalledWith({
-          assetUuid: asset.uuid,
-          changes: { icon: "1f600" },
-        });
+      expect(store.getState().asset.inEdit?.values.icon).toBe("1f600");
+      expect(saveAsset).not.toHaveBeenCalled();
       expect(byText("Pick Icon")).toBeDefined();
     }
   );
@@ -1014,20 +900,16 @@ describe("MapAssetsMenu", () => {
       radius.blur();
       await vi.waitFor(() => expect(radius.value).toBe("0"));
       expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true");
-    } else {
-      flushSync(() => q("div[aria-label='Asset coordinates']")!.click());
     }
     const position = q("input[aria-label='Asset coordinates']") as HTMLInputElement;
     position.focus();
     clearInput(position);
     await vi.waitFor(() => expect(position.value).toBe(""));
-    if (creating) position.blur();
-    else flushSync(() => dialogAction("Save").click());
+    position.blur();
     await vi.waitFor(() =>
       expect(setLocation).toHaveBeenCalledWith({
         uuid: asset.uuid,
         location: null,
-        ...(!creating ? { saveImmediately: true } : {}),
       })
     );
   });
@@ -1058,9 +940,8 @@ describe("MapAssetsMenu", () => {
         })
       )
     );
-    expect(q("[aria-label='Save']")).toBeNull();
-    flushSync(() => q("div[aria-label='Asset PET']")!.click());
-    const input = q("[data-testid='asset-editor-pet-input']") as HTMLInputElement;
+    expect(q("[aria-label='Save']")).not.toBeNull();
+    const input = q("input[aria-label='Asset PET']") as HTMLInputElement;
     const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
     const type = (text: string) => {
       setValue.call(input, text);
@@ -1069,7 +950,7 @@ describe("MapAssetsMenu", () => {
     expect(input.disabled).toBe(false);
     type("abc12:34:56def");
     await vi.waitFor(() => expect(input.value).toBe("12:34:56"));
-    expect(store.getState().asset.inEdit?.values.petSeconds).toBe(600);
+    expect(store.getState().asset.inEdit?.values.petSeconds).toBe(45296);
     type("-00:00:30");
     await vi.waitFor(() => expect(input.value).toBe("-00:00:30"));
     for (const invalid of [
@@ -1081,22 +962,19 @@ describe("MapAssetsMenu", () => {
     ]) {
       type(invalid);
       await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("true"));
-      flushSync(() => dialogAction("Save").click());
-      expect(updateFields).not.toHaveBeenCalled();
+      flushSync(() => q("[aria-label='Save']")!.click());
+      expect(saveAsset).not.toHaveBeenCalled();
     }
 
     type("");
     await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("false"));
     expect(mockMissionDoc.assets[asset.uuid].petSeconds).toBe(600);
-    flushSync(() => dialogAction("Save").click());
-    await vi.waitFor(() =>
-      expect(updateFields).toHaveBeenCalledWith({
-        assetUuid: asset.uuid,
-        changes: { petSeconds: null },
-      })
-    );
+    flushSync(() => q("[aria-label='Save']")!.click());
+    expect(store.getState().asset.inEdit?.values.petSeconds).toBeNull();
+    expect(store.getState().asset.inEdit?.values.petRex).toBeNull();
+    expect(saveAsset).toHaveBeenCalledWith(undefined);
     expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
-    flushSync(() => q("[aria-label='assetEditToggle']")!.click());
+    flushSync(() => q("[aria-label='Cancel']")!.click());
     expect(store.getState().asset.inEdit).toBeNull();
     expect(q(`[data-testid='asset-detail-row-${asset.uuid}']`)).not.toBeNull();
   });
@@ -1105,13 +983,17 @@ describe("MapAssetsMenu", () => {
     "fills current PET immediately and leaves it editable (creating: %s)",
     async (creating) => {
       const asset = generateBlankAsset({ name: "Drill", petSeconds: 600 });
+      const plannedEva = generateBlankEVA({ name: "EVA 1" });
+      const rexEva = generateBlankEVA({ refUuid: plannedEva.refUuid });
       const rex = generateBlankRex({
-        evaUuid: "eva",
+        name: "REX 1",
+        evaUuid: rexEva.uuid,
         isRunning: true,
         petValueAtStartStop: "-00:02:30",
       });
       if (!creating) mockMissionDoc.assets = { [asset.uuid]: asset };
       mockMissionDoc.rexes = { [rex.uuid]: rex };
+      mockMissionDoc.evas = { [plannedEva.uuid]: plannedEva, [rexEva.uuid]: rexEva };
       store = makeStore(true);
       render();
       flushSync(() =>
@@ -1125,37 +1007,32 @@ describe("MapAssetsMenu", () => {
           })
         )
       );
-      if (!creating) flushSync(() => q("div[aria-label='Asset PET']")!.click());
       const input = q("input[aria-label='Asset PET']") as HTMLInputElement;
       expect(q("select[aria-label='PET update']")).toBeNull();
       flushSync(() => q("[aria-label='Set to current PET']")!.click());
       await vi.waitFor(() => expect(input.value).toBe("-00:02:30"));
       expect(input.disabled).toBe(false);
-      expect(updateFields).not.toHaveBeenCalled();
+      expect(store.getState().asset.inEdit?.values.petRex).toEqual({
+        uuid: rex.uuid,
+        name: rex.name,
+      });
+      if (!creating) {
+        expect(q("[data-testid='asset-editor-eva']")?.textContent).toBe("EVA 1");
+        expect(q("[data-testid='asset-editor-rex']")?.textContent).toBe("REX 1");
+      }
       expect(saveAsset).not.toHaveBeenCalled();
       enterValue(input, "+00:60:00");
       await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("true"));
-      flushSync(() => {
-        if (creating) q("[aria-label='Save']")!.click();
-        else dialogAction("Save").click();
-      });
-      expect(updateFields).not.toHaveBeenCalled();
+      flushSync(() => q("[aria-label='Save']")!.click());
       expect(saveAsset).not.toHaveBeenCalled();
       // Changing the clock after filling must not change the value that will be saved.
       mockMissionDoc.rexes[rex.uuid] = { ...rex, petValueAtStartStop: "+01:00:00" };
       enterValue(input, "abc+00:03:00def");
       await vi.waitFor(() => expect(input.value).toBe("+00:03:00"));
-      if (creating) {
-        expect(store.getState().asset.inEdit?.values.petSeconds).toBe(180);
-        flushSync(() => q("[aria-label='Save']")!.click());
-        expect(saveAsset).toHaveBeenCalledWith(undefined);
-      } else {
-        flushSync(() => dialogAction("Save").click());
-        expect(updateFields).toHaveBeenCalledWith({
-          assetUuid: asset.uuid,
-          changes: { petSeconds: 180 },
-        });
-      }
+      expect(store.getState().asset.inEdit?.values.petSeconds).toBe(180);
+      expect(store.getState().asset.inEdit?.values.petRex).toBeNull();
+      flushSync(() => q("[aria-label='Save']")!.click());
+      expect(saveAsset).toHaveBeenCalledWith(undefined);
     }
   );
 
@@ -1167,7 +1044,6 @@ describe("MapAssetsMenu", () => {
     store = makeStore(true);
     render();
     openDraft(asset, creating);
-    if (!creating) flushSync(() => q("div[aria-label='Asset PET']")!.click());
     expect(q("[aria-label='Set to current PET']")).toBeNull();
     expect((q("input[aria-label='Asset PET']") as HTMLInputElement).value).toBe("+00:10:00");
   });
@@ -1370,9 +1246,9 @@ describe("MapAssetsMenu", () => {
       expect(q(`[data-testid='asset-detail-row-${first.uuid}']`)?.textContent).toContain(
         "Edit Asset"
       );
-      expect(q("[aria-label='assetEditToggle']")).not.toBeNull();
+      expect(q("[aria-label='Cancel']")).not.toBeNull();
       expect(q("dialog[open]")).toBeNull();
-      expect(q("[aria-label='Save']")).toBeNull();
+      expect(q("[aria-label='Save']")).not.toBeNull();
       expect(getComputedStyle(firstRow).backgroundColor).toBe("rgb(224, 224, 224)");
       expect(
         getComputedStyle(q(`[data-testid='asset-detail-row-${first.uuid}']`)!.querySelector("td")!)
