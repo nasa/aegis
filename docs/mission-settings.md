@@ -8,10 +8,17 @@ requires a code change; radius and LGRS are no longer editable mission settings.
 `usesLgrsCoordinates` enables the current lunar south-pole coordinate implementation
 when the lander latitude is strictly south of 80°S on the Moon. These missions always
 use dynamic LGRS, including through coordinate conversion for other map projections.
-Uploaded grids are ignored, their stored mission metadata is cleared during migration,
-and new grid uploads are rejected. Earth missions retain server-file grids. Grid mode
-is derived, not stored or editable. Calculated Sun/Earth directions remain available
-only for Moon missions.
+Manual grid uploads are supported only for Earth missions that need a grid. Moon
+missions outside the supported LGRS region and Mars missions have no grid; they do
+not fall back to uploaded grids. Existing uploaded grids are ignored for all non-Earth
+missions, and switching an Earth mission to another body clears its uploaded grid
+metadata. Grid mode is derived, not stored or editable. Calculated Sun/Earth directions
+remain available only for Moon missions.
+
+Earth grid uploads use a GeoJSON Point feature collection with `name`, `row_total`,
+and `column_total` at the top level and `id`, `row`, and `column` on each point.
+Point labels can use `properties.name`; existing `L_coord`/`R_coord` labels remain
+supported. No lunar LGRS field is required.
 
 Lander elevation starts as `null` and is read-only in the admin interface. The server
 automatically samples it when a DEM or the lander location changes, clearing the old
