@@ -1,3 +1,5 @@
+type Planet = "earth" | "moon" | "mars";
+
 /**
  * The mission object
  */
@@ -7,20 +9,11 @@ interface Mission {
   description: string | null;
   maestroDocId: string | null;
   missionBanner: string | null;
-  usingLGRSCoordinates: boolean;
-  gridRenderMode: GridRenderMode;
-  /**
-   * Grid system for grid coordinates, grid-north bearings and the dynamic grid. Optional because
-   * schema validation in earlier migrations runs before Migration20261106000000 sets it.
-   */
-  gridSystem?: MissionGridSystemId;
-  /** Default label scheme on `earth-wgs84`; each user may override it. */
-  earthGridLabelScheme?: GridLabelScheme;
   actionSystemVersion: number;
   actionDefinitions: ActionDefinitions | null;
   landerLocation: AEGISPoint;
   landerElevationMeters: number | null;
-  planetRadius: number | null;
+  planet: Planet;
   initialZoom: number | null;
   traverseRate: number | null;
   defaultEvaDuration: number | null;
@@ -106,6 +99,13 @@ type ActionTemplate = Omit<
 type DemConfig = {
   dem: string;
   resolution: number;
+};
+
+/** GeoTIFF selection metadata. Resolution is detected in metres per pixel. */
+type MissionDem = {
+  filePath: string;
+  resolution: number | null;
+  error: string | null;
 };
 
 type GISfile = {

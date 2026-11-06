@@ -1,3 +1,4 @@
+import { generateBlankMission } from "store/storeUtils/mission";
 import {
   getGridBaseSpacingMeters,
   getGridRenderMode,
@@ -58,22 +59,49 @@ describe("resolveMissionGrid", () => {
   const serverFileGrid = serverGrid.gridDefinition;
 
   test("defaults existing missions without a mode to server-file", () => {
-    expect(getGridRenderMode({})).toBe("server-file");
-    expect(resolveMissionGrid({ serverFileGrid }, serverGrid)).toEqual({
+    expect(getGridRenderMode(generateBlankMission())).toBe("server-file");
+    expect(resolveMissionGrid(generateBlankMission({ serverFileGrid }), serverGrid)).toEqual({
       kind: "server-file",
       grid: serverGrid,
     });
   });
 
-  test("resolves dynamic mode without exposing an uploaded matrix", () => {
+  test("automatically selects dynamic LGRS without requiring a saved mode or projection", () => {
     expect(
-      resolveMissionGrid({ serverFileGrid, gridRenderMode: "dynamic-lgrs" }, serverGrid)
+      resolveMissionGrid(
+        generateBlankMission({
+          serverFileGrid,
+          landerLocation: { lat: -85, lng: 0 },
+          projIsCustom: false,
+          projProj4String: "",
+        }),
+        serverGrid
+      )
     ).toEqual({ kind: "dynamic-lgrs" });
   });
 
   test("resolves an absent server-file grid to none", () => {
-    expect(
-      resolveMissionGrid({ serverFileGrid: null, gridRenderMode: "server-file" }, serverGrid)
-    ).toEqual({ kind: "none" });
+    expect(resolveMissionGrid(generateBlankMission({ serverFileGrid: null }), serverGrid)).toEqual({
+      kind: "none",
+    });
+  });
+
+  test.each([
+    { planet: "earth" as Planet, lat: -85 },
+    { planet: "mars" as Planet, lat: -85 },
+    { planet: "moon" as Planet, lat: -80 },
+  ])("falls back to the uploaded grid outside the supported LGRS cap: %s", ({ planet, lat }) => {
+    const mission = generateBlankMission({
+      planet,
+      landerLocation: { lat, lng: 0 },
+      serverFileGrid,
+      projIsCustom: true,
+      projProj4String:
+        "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
+    });
+    expect(resolveMissionGrid(mission, serverGrid)).toEqual({
+      kind: "server-file",
+      grid: serverGrid,
+    });
   });
 });

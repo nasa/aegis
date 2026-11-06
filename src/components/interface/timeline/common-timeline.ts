@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import isNumber from "lodash/isNumber";
 import type { MutableRefObject } from "react";
 import { isNotNumber } from "utils/formatting";
@@ -27,7 +28,7 @@ export const processEvaDataFromStore = ({
     | "demResolution"
     | "landerElevationMeters"
     | "landerLocation"
-    | "planetRadius"
+    | "planet"
     | "defaultEvaDuration"
   >;
   selectedEva: Eva;
@@ -100,7 +101,7 @@ export const processEvaDataFromStore = ({
         const landerDistance = getDistanceBetweenTwoCoordinates(
           station.location,
           partialMission.landerLocation,
-          partialMission.planetRadius
+          getPlanetRadius(partialMission)
         );
 
         if (landerDistance > storeRef.current.maxDistFromLanderMeters)
@@ -147,7 +148,7 @@ export const processEvaDataFromStore = ({
           const newWalkbackPath: AEGISPoint[] = addPointsAtMeters(
             walkbackPath,
             divisor,
-            partialMission.planetRadius
+            getPlanetRadius(partialMission)
           );
           walkback.subdividedPath = newWalkbackPath;
 
@@ -157,7 +158,7 @@ export const processEvaDataFromStore = ({
             const landerDistance = getDistanceBetweenTwoCoordinates(
               newWalkbackPath[i],
               partialMission.landerLocation,
-              partialMission.planetRadius
+              getPlanetRadius(partialMission)
             );
 
             if (landerDistance > storeRef.current.maxDistFromLanderMeters)
@@ -169,7 +170,7 @@ export const processEvaDataFromStore = ({
               const distanceSegment = getDistanceBetweenTwoCoordinates(
                 newWalkbackPath[i],
                 newWalkbackPath[i + 1],
-                partialMission.planetRadius
+                getPlanetRadius(partialMission)
               );
               walkback.subdividedDistMeters.push(distanceSegment);
               const walkbackTraverseRate = isNumber(station.walkbackTraverseRate)
@@ -238,7 +239,7 @@ export const processEvaDataFromStore = ({
       const newTraverse: AEGISPoint[] = addPointsAtMeters(
         terrain?.path ?? traverse.path,
         divisor,
-        partialMission.planetRadius
+        getPlanetRadius(partialMission)
       );
       EVASequenceItemForTimeline.traverse.subdividedPath = newTraverse;
 
@@ -252,7 +253,7 @@ export const processEvaDataFromStore = ({
           const landerDistance = getDistanceBetweenTwoCoordinates(
             newTraverse[i],
             partialMission.landerLocation,
-            partialMission.planetRadius
+            getPlanetRadius(partialMission)
           );
           if (landerDistance > storeRef.current.maxDistFromLanderMeters)
             storeRef.current.maxDistFromLanderMeters = landerDistance;
@@ -264,7 +265,7 @@ export const processEvaDataFromStore = ({
           const distanceSegment = getDistanceBetweenTwoCoordinates(
             newTraverse[i],
             newTraverse[i + 1],
-            partialMission.planetRadius
+            getPlanetRadius(partialMission)
           );
           EVASequenceItemForTimeline.traverse.subdividedDistMeters.push(distanceSegment);
           if (!durationIsManual) {
@@ -301,7 +302,7 @@ export const processEvaDataFromStore = ({
     const newDistance = +getDistanceBetweenTwoCoordinates(
       posEntry.location,
       partialMission.landerLocation,
-      partialMission.planetRadius
+      getPlanetRadius(partialMission)
     ).toFixed(2);
     if (newDistance > storeRef.current.maxDistFromLanderMeters)
       storeRef.current.maxDistFromLanderMeters = newDistance;

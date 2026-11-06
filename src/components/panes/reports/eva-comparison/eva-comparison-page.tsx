@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import type { CSSProperties, FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
 import styles from "../shared/report-grid.module.css";
@@ -95,7 +96,7 @@ const EvaComparisonPage: FunctionComponent = () => {
       reportCampaigns: m?.reportCampaigns,
       equipmentItems: m?.equipmentItems,
       landerLocation: m?.landerLocation,
-      planetRadius: m?.planetRadius,
+      planetRadius: getPlanetRadius(m),
       defaultEvaDuration: m?.defaultEvaDuration,
     }),
     shallowEqual

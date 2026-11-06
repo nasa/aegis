@@ -200,7 +200,6 @@ describe("Export tests", () => {
 
   test("exports full LGRS coordinates", () => {
     const mission = generateBlankMission({ name: "LGRS Export Mission" });
-    mission.usingLGRSCoordinates = true;
     mission.landerLocation = { lat: -89, lng: -133 };
 
     const output = makeExportString({

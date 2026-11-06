@@ -2,6 +2,35 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
 import { applyTraverseUpdatesStage } from "./apply-traverse";
+import { getPlanetRadius, usesLgrsCoordinates } from "utils/planets";
+import { getTotalDistance } from "utils/mapping/geoMath";
+
+/** Keep saved path lengths and terrain cache inputs consistent when a mission changes bodies. */
+export function applyMissionPlanet(mission: Mission, planet: Planet): void {
+  if (mission.planet === planet) return;
+  mission.planet = planet;
+  if (usesLgrsCoordinates(mission)) mission.serverFileGrid = null;
+  recalculateMissionDistances(mission);
+}
+
+export function recalculateMissionDistances(mission: Mission): void {
+  const radius = getPlanetRadius(mission);
+  const distances = (points: AEGISPoint[]): number[] =>
+    points.slice(1).map((point, index) => getTotalDistance([points[index], point], radius));
+  const differs = (before: number[] | null, after: number[]): boolean =>
+    before?.length !== after.length || after.some((distance, index) => distance !== before[index]);
+  for (const traverse of Object.values(mission.traverses ?? {})) {
+    if (!traverse.path) continue;
+    const updated = distances(traverse.path);
+    if (differs(traverse.pathSegmentDistances, updated)) traverse.pathSegmentDistances = updated;
+  }
+  for (const station of Object.values(mission.stations ?? {})) {
+    if (!station.walkbackPath) continue;
+    const updated = distances(station.walkbackPath);
+    if (differs(station.walkbackPathSegmentDistances, updated))
+      station.walkbackPathSegmentDistances = updated;
+  }
+}
 
 /**
  * Update a top-level field on the Mission draft.
@@ -58,6 +87,8 @@ export function applyUpdateMissionByField<
 
     const map = m[fieldName] as NonNullable<Mission[K]>;
     map[mapKey] = cloneDeep(mapValue) as NonNullable<Mission[K]>[MapKey];
+  } else if (fieldName === "planet") {
+    applyMissionPlanet(m, value as Planet);
   } else {
     m[fieldName] = cloneDeep(value) as Mission[K];
   }
@@ -80,9 +111,8 @@ export function applyLanderLocationUpdateStage(
 ): void {
   // 1. Update mission-level lander fields
   m.landerLocation = cloneDeep(stage.newLocation);
-  if (stage.newElevation !== null) {
-    m.landerElevationMeters = stage.newElevation;
-  }
+  if (usesLgrsCoordinates(m)) m.serverFileGrid = null;
+  m.landerElevationMeters = stage.newElevation;
   m.updatedAt = getAccurateNow().getTime();
 
   // 2. Update each station's walkback
@@ -98,7 +128,7 @@ export function applyLanderLocationUpdateStage(
     const station = m.stations?.[stationUuid];
     if (!station) continue;
     station.location = cloneDeep(stage.newLocation);
-    if (stage.newElevation !== null) station.elevation = stage.newElevation;
+    station.elevation = stage.newElevation;
     station.updatedAt = getAccurateNow().getTime();
   }
 

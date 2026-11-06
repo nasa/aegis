@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import isEqual from "lodash/isEqual";
 import cloneDeep from "lodash/cloneDeep";
 import { v4 as uuidv4 } from "uuid";
@@ -112,7 +113,9 @@ export function stageTraverseUpdate(
   // Recalculate per-segment distances
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < newPath.length; i++) {
-    pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
+    pathSegmentDistances.push(
+      getTotalDistance([newPath[i - 1], newPath[i]], getPlanetRadius(mission))
+    );
   }
 
   return {

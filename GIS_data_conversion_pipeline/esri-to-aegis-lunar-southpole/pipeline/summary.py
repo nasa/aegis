@@ -115,7 +115,7 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
     row("missionId", str(args.mission_id) if args.mission_id is not None else "(unset)")
     row("landerLocation (lat)", str(lander_lat))
     row("landerLocation (lng)", str(lander_lng))
-    row("planetRadius", str(config.PLANET_RADIUS))
+    row("planet", "moon")
     row("projIsCustom", "true")
     row("projEpsg", config.PROJ_EPSG)
     row("projProj4String", config.PROJ_PROJ4)
@@ -126,7 +126,6 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
     row("projResZoomLevel", "0")
     row("projResUnitsPerPixel", z0_res if z0_res != _TBD else str(config.CAP_Z0_RES))
     row("actionSystemVersion", "2")
-    row("usingLGRSCoordinates", "true")
     tee("  └───────────────────────────────────────────────────────────────┘")
 
     def mark(path: Path) -> str:
@@ -134,7 +133,7 @@ def print_aegis_summary(p: config.PipelinePaths, args: argparse.Namespace) -> No
 
     tee("\n  ┌─ Products ────────────────────────────────────────────────────┐")
     row("DEM (demFilePath)", f"Data/{p.dem_out.name}  {mark(p.dem_out)}")
-    row("demResolution", str(args.dem_resolution))
+    row("demResolution", "detected by AEGIS from GeoTIFF")
     if p.layer_prefix:
         row("layer prefix", f"{p.layer_prefix}_  (folders + AEGIS layer names)")
     for name in _raster_layer_names(args):

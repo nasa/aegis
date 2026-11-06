@@ -86,14 +86,15 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   in the browser.
 - **HTTP registration** (the `register` step, `register.py` + `aegis_api.py`) replaces admin
   clicking: `POST /api/v1/missionAutomerge/fields` (projection/DEM/lander/`actionSystemVersion=2`/
-  `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
-  `POST /api/v1/sublayer`. The
-  server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
-  app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
-  token. Changed lander coordinates are rejected when affected mission assets already exist,
-  because the browser-only lander-location workflow must update station walkbacks and
-  lander-connected EVA traverses. Each run also writes a `Data/conversion_report.md` (full
-  console log + per-step timings).
+  `planet="moon"`; AEGIS detects DEM resolution and lunar south-pole coordinates), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
+  and `POST /api/v1/sublayer`. AEGIS generates the lunar south-pole grid dynamically;
+  no grid is uploaded or registered. The
+    server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
+    app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
+    token. Changed lander coordinates are rejected when affected mission assets already exist,
+    because the browser-only lander-location workflow must update station walkbacks and
+    lander-connected EVA traverses. Each run also writes a `Data/conversion_report.md` (full
+    console log + per-step timings).
 
 ## Gotchas
 

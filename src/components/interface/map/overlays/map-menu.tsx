@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-solid-svg-icons";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
@@ -153,7 +154,8 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
 
   // Base grid spacing (metres) drives which fixed-spacing options are selectable.
   // Derived from the loaded grid geometry so it always matches what's drawn.
-  const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
+  const planet = useMissionDocSelector((m) => m.planet, refEqual);
+  const planetRadius = useMissionDocSelector((m) => getPlanetRadius(m), refEqual);
   const resolvedGrid = useResolvedMissionGrid();
   const gridSystem = useMissionGridSystem();
   const missionLabelScheme = useMissionDocSelector(
@@ -825,7 +827,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
               collapsible={false}
             />
             <MenuItem
-              title={`Sun/${planetRadius === 1737400 ? "Earth" : "Moon"} Directions`}
+              title={`Sun/${planet === "earth" ? "Moon" : "Earth"} Directions`}
               selected={showSunEarth}
               setSelected={() => {
                 setShowSunEarth(!showSunEarth);

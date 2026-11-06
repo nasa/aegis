@@ -44,7 +44,10 @@ const Main = (): JSX.Element => {
     (doc) => ({
       name: doc.name,
       serverFileGrid: doc.serverFileGrid,
-      gridRenderMode: doc.gridRenderMode,
+      planet: doc.planet,
+      landerLocation: doc.landerLocation,
+      projIsCustom: doc.projIsCustom,
+      projProj4String: doc.projProj4String,
     }),
     deepEqual
   );

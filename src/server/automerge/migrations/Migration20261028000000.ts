@@ -1,3 +1,4 @@
+import { migrateMissionPlanet } from "utils/planets";
 import { toJS } from "@automerge/automerge/slim";
 import type { AutomergeMigration } from "server/automerge/migrations/types";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
@@ -15,6 +16,8 @@ export const Migration20261028000000: AutomergeMigration = {
     // Copy only the current content. Cloning or exporting would retain the old history.
     // A new URL keeps cached peers from merging the discarded history back into this document.
     const mission = toJS(docHandle.doc());
+    // Validate against the current schema even when later migrations are pending.
+    migrateMissionPlanet(mission);
     if (!missionValidator(mission)) {
       throw new Error(
         `Cannot replace invalid mission ${docListing.missionId}: ${missionValidator.errors

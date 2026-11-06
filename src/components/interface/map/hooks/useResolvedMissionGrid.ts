@@ -8,7 +8,10 @@ export function useResolvedMissionGrid(): ResolvedMissionGrid {
   const missionGrid = useMissionDocSelector(
     (mission) => ({
       serverFileGrid: mission.serverFileGrid,
-      gridRenderMode: mission.gridRenderMode,
+      planet: mission.planet,
+      landerLocation: mission.landerLocation,
+      projIsCustom: mission.projIsCustom,
+      projProj4String: mission.projProj4String,
     }),
     deepEqual
   );

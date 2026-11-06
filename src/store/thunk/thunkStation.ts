@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import { setTerrainPreview, clearTerrainPreview } from "store/terrainProfiles";
 import { profileInputSignature } from "utils/terrainProfileInputs";
 import appCreateAsyncThunk from "./thunkUtil";
@@ -66,7 +67,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
   const walkbackSegmentDistances: number[] = [];
   for (let i = 1; i < newWalkbackPath.length; i++) {
     walkbackSegmentDistances.push(
-      getTotalDistance([newWalkbackPath[i - 1], newWalkbackPath[i]], mission.planetRadius)
+      getTotalDistance([newWalkbackPath[i - 1], newWalkbackPath[i]], getPlanetRadius(mission))
     );
   }
 
@@ -150,7 +151,7 @@ export const thunkDocUpdateStationLocation = appCreateAsyncThunk<{
 
     const distances: number[] = [];
     for (let i = 1; i < path.length; i++) {
-      distances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
+      distances.push(getTotalDistance([path[i - 1], path[i]], getPlanetRadius(mission)));
     }
     return { path, distances, nameBefore, nameAfter };
   };
@@ -264,7 +265,9 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
   // Calculate new path distances
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < newPath.length; i++) {
-    pathSegmentDistances.push(getTotalDistance([newPath[i - 1], newPath[i]], mission.planetRadius));
+    pathSegmentDistances.push(
+      getTotalDistance([newPath[i - 1], newPath[i]], getPlanetRadius(mission))
+    );
   }
 
   if (!preview) {
@@ -353,7 +356,7 @@ export const thunkDocResetWalkback = appCreateAsyncThunk<{
 
   // Get new distances
   const newPathSegmentDistances = [
-    getDistanceBetweenTwoCoordinates(newPath[0], newPath[1], mission.planetRadius),
+    getDistanceBetweenTwoCoordinates(newPath[0], newPath[1], getPlanetRadius(mission)),
   ];
 
   // Claim the walkback revision so an in-flight drag preview cannot reappear after the reset.

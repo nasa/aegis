@@ -1276,11 +1276,9 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
     # --dem-products-only the DEM is products-only, so leave demFilePath/demResolution untouched.
     if args.dem_products_only:
         dem_rel = None
-        dem_resolution = None
     else:
         dem_file = find_dem_file(p.data)
         dem_rel = f"{config.OUT_DATA_DIRNAME}/{dem_file.name}" if dem_file else None
-        dem_resolution = args.dem_resolution
     mission_fields = None
     if not args.register_no_mission_fields:
         mission_fields = build_mission_fields(
@@ -1288,7 +1286,6 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             lander_lat=args.lander_lat,
             lander_lng=args.lander_lng,
             dem_rel_path=dem_rel,
-            dem_resolution=dem_resolution,
         )
 
     client = AegisApiClient(args.aegis_url, token)

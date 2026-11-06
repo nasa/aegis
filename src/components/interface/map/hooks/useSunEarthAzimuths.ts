@@ -1,3 +1,4 @@
+import { PLANETS } from "utils/planets";
 import { useMemo } from "react";
 import proj4 from "proj4";
 
@@ -5,8 +6,6 @@ import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getLunarSunEarthPositions, getMapAzimuthFromTrueAzimuth } from "utils/mapping/lunarSky";
 import { useCoordConverters } from "./useCoordConverters";
-
-const DEFAULT_LUNAR_RADIUS_METERS = 1737400;
 
 export function useSunEarthAzimuths(followTimelineHover = false): SunEarthAzimuths {
   const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
@@ -18,7 +17,7 @@ export function useSunEarthAzimuths(followTimelineHover = false): SunEarthAzimut
   const { toMapCoord } = useCoordConverters();
   const landerLocation = useMissionDocSelector((m) => m.landerLocation, deepEqual);
   const landerElevationMeters = useMissionDocSelector((m) => m.landerElevationMeters, refEqual);
-  const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
+  const planet = useMissionDocSelector((m) => m.planet, refEqual);
   const customProjection = useMissionDocSelector(
     (m) => (m.projIsCustom ? m.projProj4String : null),
     refEqual
@@ -46,7 +45,7 @@ export function useSunEarthAzimuths(followTimelineHover = false): SunEarthAzimut
     });
     if (!eva) return unavailable("No EVA selected.");
     if (!fromDate) return manual;
-    if (planetRadius !== DEFAULT_LUNAR_RADIUS_METERS)
+    if (planet !== "moon")
       return unavailable(
         "Calculated values are unavailable because this mission is not on the Moon."
       );
@@ -66,7 +65,7 @@ export function useSunEarthAzimuths(followTimelineHover = false): SunEarthAzimut
     const { sun, earth } = getLunarSunEarthPositions(
       landerLocation,
       landerElevationMeters ?? 0,
-      planetRadius ?? DEFAULT_LUNAR_RADIUS_METERS,
+      PLANETS.moon.radius,
       epochMs
     );
     const toMapAzimuth = (trueAzimuth: number) => {
@@ -105,7 +104,7 @@ export function useSunEarthAzimuths(followTimelineHover = false): SunEarthAzimut
     timelineTime,
     landerLocation,
     landerElevationMeters,
-    planetRadius,
+    planet,
     customProjection,
     toMapCoord,
   ]);

@@ -61,7 +61,10 @@ const Main: React.FunctionComponent = () => {
       archivedAt: mission.archivedAt,
       name: mission.name,
       serverFileGrid: mission.serverFileGrid,
-      gridRenderMode: mission.gridRenderMode,
+      planet: mission.planet,
+      landerLocation: mission.landerLocation,
+      projIsCustom: mission.projIsCustom,
+      projProj4String: mission.projProj4String,
     }),
     deepEqual
   );

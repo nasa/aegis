@@ -176,7 +176,7 @@ def tri_ramp_for_resolution(resolution: float | None) -> Path:
     return DEFAULT_COLOR_RAMPS_DIR / "tri.txt"
 
 
-# Default DEM native resolution (m/px) written to the mission demResolution.
+# Default DEM native resolution (m/px) used for derived product processing.
 DEFAULT_DEM_RESOLUTION = 1.0
 
 # ---------------------------------------------------------------------------

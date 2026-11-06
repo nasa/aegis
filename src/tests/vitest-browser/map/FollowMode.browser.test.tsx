@@ -56,10 +56,10 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
 }));
 
 const mockMissionDoc: Partial<Mission> & {
-  planetRadius: number;
+  planet: Planet;
   landerLocation: AEGISPoint | null;
 } = {
-  planetRadius: 1737400,
+  planet: "moon",
   landerLocation: null,
 };
 
@@ -231,7 +231,7 @@ function renderFollowMode(mode: "editor" | "dashboard" | "minimap" = "dashboard"
 }
 
 beforeEach(() => {
-  mockMissionDoc.planetRadius = 1737400;
+  mockMissionDoc.planet = "moon";
   mockMissionDoc.landerLocation = null;
   mockMissionDoc.rexes = undefined;
   mockMissionDoc.evas = undefined;

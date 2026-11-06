@@ -1,4 +1,5 @@
 import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
+import { isKnownElevation } from "utils/elevation";
 
 /** Fetch a mission's pending profiles in one request; each result has its own error status. */
 export async function getTerrainProfiles(
@@ -133,5 +134,9 @@ export async function getElevationSinglePoint({
     pathSegmentDistances: [0],
     getElevationOnly: true,
   });
-  return { ...response, data: response.data?.elevationsMeters[0]?.[0] };
+  const elevation = response.data?.elevationsMeters[0]?.[0];
+  if (response.status === "success" && !isKnownElevation(elevation)) {
+    return { status: "error", message: "The DEM has no elevation at this location", data: null };
+  }
+  return { ...response, data: elevation };
 }

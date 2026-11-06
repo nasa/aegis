@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import type { FunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import posMenuStyles from "./map-menu-pos.module.css";
@@ -435,7 +436,7 @@ export const PositionRow: FunctionComponent<{
   const partialMission = useMissionDocSelector(
     (mission) => ({
       landerLocation: mission.landerLocation,
-      planetRadius: mission.planetRadius,
+      planetRadius: getPlanetRadius(mission),
       traverseRate: mission.traverseRate,
     }),
     deepEqual

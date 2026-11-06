@@ -5,7 +5,7 @@ Given a built output root (``<static>/missionFiles/<id>`` with ``Data/`` and ``L
 and an existing mission id, this:
 
   1. Updates the mission's GIS/setup fields (projection cap-grid profile, lander location,
-     demFilePath/demResolution, name, actionSystemVersion=2, usingLGRSCoordinates=true) via
+     demFilePath, name, actionSystemVersion=2, planet=moon) via
      ``POST /api/v1/missionAutomerge/fields``.
   2. Ensures the header layer exists: ``All Layers`` (all pipeline-generated sublayers).
   3. Builds one sublayer per built ``Layers/<dir>``, classified by folder contents: a raster tile
@@ -59,7 +59,6 @@ def build_mission_fields(
     lander_lat: float | None,
     lander_lng: float | None,
     dem_rel_path: str | None,
-    dem_resolution: float | None,
 ) -> dict:
     """Assemble the cap-grid projection profile + supplied metadata for the fields update."""
     fields: dict = {
@@ -74,10 +73,9 @@ def build_mission_fields(
         "projOriginY": config.CAP_MIN,
         "projResZoomLevel": 0,
         "projResUnitsPerPixel": config.CAP_Z0_RES,
-        "planetRadius": config.PLANET_RADIUS,
+        "planet": "moon",
         # AEGIS lunar south-pole missions use the v2 action system and LGRS coordinates.
         "actionSystemVersion": 2,
-        "usingLGRSCoordinates": True,
     }
     if name:
         fields["name"] = name
@@ -85,8 +83,7 @@ def build_mission_fields(
         fields["landerLocation"] = {"lat": lander_lat, "lng": lander_lng}
     if dem_rel_path:
         fields["demFilePath"] = dem_rel_path
-    if dem_resolution is not None:
-        fields["demResolution"] = dem_resolution
+    # The AEGIS server derives DEM resolution from the selected GeoTIFF.
     return fields
 
 
@@ -507,7 +504,7 @@ def register_mission(
     include_external_nac: bool = True,
     dry_run: bool = False,
 ) -> None:
-    """Update mission fields, ensure header layers, upsert sublayers."""
+    """Update mission fields, ensure header layers, and upsert sublayers."""
     out_dir = out_dir.resolve()
     layers_dir = out_dir / config.OUT_LAYERS_DIRNAME
     data_dir = out_dir / config.OUT_DATA_DIRNAME
@@ -657,9 +654,6 @@ def main() -> None:
         "--out", type=Path, required=True, help="Built mission folder (Data/, Layers/)."
     )
     parser.add_argument(
-        "--dem-resolution", type=float, default=None, help="DEM resolution (m/px)."
-    )
-    parser.add_argument(
         "--token", default=None, help="EMSS token (default: EMSS_TOKEN from .env)."
     )
     parser.add_argument(
@@ -693,7 +687,6 @@ def main() -> None:
             lander_lat=args.lander_lat,
             lander_lng=args.lander_lng,
             dem_rel_path=dem_rel,
-            dem_resolution=args.dem_resolution,
         )
 
     client = AegisApiClient(args.aegis_url, token)

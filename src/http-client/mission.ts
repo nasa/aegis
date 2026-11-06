@@ -1,3 +1,24 @@
+export async function getMissionDems(missionId: number): Promise<MissionDem[]> {
+  const response = await fetch(`/api/v1/missionAutomerge/dems?missionId=${missionId}`);
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || "Could not load DEM files");
+  return result.data;
+}
+
+export async function updateMissionFields(
+  missionId: number,
+  fields: MissionFieldsUpdate
+): Promise<Mission> {
+  const response = await fetch("/api/v1/missionAutomerge/fields", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ missionId, fields }),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.message || "Could not update mission settings");
+  return result.data;
+}
+
 export async function getMissionSummaries(): Promise<WrappedResponse<MissionSummary[]>> {
   const res = await fetch("/api/v1/missionCatalog");
   if (!res.ok) throw new Error("Could not load mission summaries");

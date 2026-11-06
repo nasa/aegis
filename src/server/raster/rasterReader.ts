@@ -9,6 +9,10 @@ export type OpenRaster = {
 
 export const openRaster = async (absolutePath: string): Promise<OpenRaster> => {
   const { image } = await getCachedRaster(absolutePath);
+  return { image, metadata: getRasterMetadata(image) };
+};
+
+export const getRasterMetadata = (image: RasterImage): RasterMetadata => {
   const fileDirectory = image.getFileDirectory() as {
     ModelTransformation?: ArrayLike<number>;
   };
@@ -52,5 +56,5 @@ export const openRaster = async (absolutePath: string): Promise<OpenRaster> => {
     offset: parseBandNumber("OFFSET", 0),
     geoKeys: (image.getGeoKeys() ?? {}) as Record<string, unknown>,
   };
-  return { image, metadata };
+  return metadata;
 };

@@ -29,7 +29,7 @@ export function AutoFitBounds(): null {
   const { toMapCoord } = useCoordConverters();
   const { bigMapExtent } = useDashboardBoundsContext();
 
-  const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual);
+  const planet = useMissionDocSelector((doc) => doc.planet, refEqual);
 
   const runningRex = useMissionDocSelector(
     (m) => Object.values(m.rexes ?? {}).find((r) => r.isRunning),
@@ -94,7 +94,7 @@ export function AutoFitBounds(): null {
     return points;
   }, [stationsToShow, traversesToShow, latestPosEntriesByType, toMapCoord]);
 
-  const maxZoom = maxZoomForPlanet(planetRadius);
+  const maxZoom = maxZoomForPlanet(planet);
 
   // Track the last extent each effect explicitly fit to so we don't re-fit
   // redundantly. `missionPoints` gets a fresh array reference on *any* mission

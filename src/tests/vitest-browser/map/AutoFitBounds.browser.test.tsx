@@ -53,8 +53,8 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
   }),
 }));
 
-const mockMissionDoc: Partial<Mission> & { planetRadius: number | null } = {
-  planetRadius: 1737400, // Moon
+const mockMissionDoc: Partial<Mission> & { planet: Planet } = {
+  planet: "moon", // Moon
 };
 
 vi.mock("utils/useDocSelector", () => ({
@@ -151,7 +151,7 @@ function renderAutoFitBounds(mode: "editor" | "dashboard" | "minimap" = "minimap
 }
 
 beforeEach(() => {
-  mockMissionDoc.planetRadius = 1737400;
+  mockMissionDoc.planet = "moon";
   mockMissionDoc.rexes = undefined;
   mockMissionDoc.evas = undefined;
   mockMissionDoc.stations = undefined;

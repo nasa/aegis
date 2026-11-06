@@ -29,7 +29,7 @@ export function FollowMode(): null {
   const { followMode, followModeOptions } = useFollowModeContext();
   const { submenuPos: mapDisplayPos } = useMapMenuContext();
 
-  const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual);
+  const planet = useMissionDocSelector((doc) => doc.planet, refEqual);
 
   const runningRex = useMissionDocSelector(
     (m) => Object.values(m.rexes ?? {}).find((r) => r.isRunning) ?? null,
@@ -161,7 +161,7 @@ export function FollowMode(): null {
     if (points.length === 0) return;
 
     const extent = boundingExtent(points);
-    const maxZoom = maxZoomForPlanet(planetRadius);
+    const maxZoom = maxZoomForPlanet(planet);
     map.getView().fit(extent, { padding: [100, 100, 100, 100], maxZoom, duration: 500 });
   }, [
     mode,
@@ -173,7 +173,7 @@ export function FollowMode(): null {
     mapDisplayPos.show,
     allActionsFromDoc,
     runningRex,
-    planetRadius,
+    planet,
     toMapCoord,
     map,
   ]);
