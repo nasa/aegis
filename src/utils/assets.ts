@@ -1,5 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
+import { validators } from "components/interface/form/formValidators";
 
 import { petSecondsAt, secondsFromhhmmss } from "utils/formatting";
 
@@ -160,7 +161,7 @@ export function getCurrentAssetPet(
 /** Parse signed or unsigned HH:MM:SS, allowing hours beyond 99. Blank/invalid input returns null. */
 export function parseAssetPetSeconds(text: string): number | null {
   const trimmed = text.trim();
-  if (!/^[+-]?\d{2,}:[0-5]\d:[0-5]\d$/.test(trimmed)) return null;
+  if (!trimmed || validators.mustBeHHMMSS(trimmed)) return null;
   const seconds = secondsFromhhmmss(/^[+-]/.test(trimmed) ? trimmed : `+${trimmed}`);
   return Number.isSafeInteger(seconds) ? seconds : null;
 }

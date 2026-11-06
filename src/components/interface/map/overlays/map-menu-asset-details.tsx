@@ -11,6 +11,7 @@ import {
   ValidatedTextArea,
 } from "components/interface/form/globalFieldsAutomerge";
 import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
+import { filterHHMMSS, validators } from "components/interface/form/formValidators";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { LastEditedNumeric } from "components/interface/_global-elements";
 import { useMapMenuSetters } from "../MapMenuProvider";
@@ -56,10 +57,10 @@ export const AssetDetails: FunctionComponent<{
   useEffect(() => {
     if (!editMode) closeEmojiPicker();
   }, [editMode, closeEmojiPicker]);
-  const currentPetAvailable = useMissionDocSelector(
-    (m) => getCurrentAssetPet(m, getAccurateNow().getTime()).petSeconds !== null,
-    refEqual
-  );
+  const rexes = useMissionDocSelector((m) => m.rexes, refEqual);
+  const hasRunningRex = Object.values(rexes ?? {}).some((rex) => rex.isRunning);
+  const currentPetAvailable =
+    getCurrentAssetPet({ rexes }, getAccurateNow().getTime()).petSeconds !== null;
   const formattedPet = asset.petSeconds === null ? "" : hhmmssFromSeconds(asset.petSeconds);
 
   const save = (changes: Parameters<typeof thunkUpdateAssetFields>[0]["changes"]) =>
@@ -298,62 +299,49 @@ export const AssetDetails: FunctionComponent<{
           editMode={editMode}
           styleContainer={compactFieldStyle}
           displayStyle={{ fontSize: "inherit" }}
-          minDialogWidth={300}
+          fitDialogToContents={true}
           displayValue={<span data-testid="asset-editor-pet">{formattedPet || "—"}</span>}
           fieldProps={{
             name: "assetPet",
             ariaLabel: "Asset PET",
-            validators: [
-              (value) => {
-                if (value === "current")
-                  return currentPetAvailable ? undefined : "No running REX with a valid PET";
-                if (value === "clear" || !String(value ?? "").trim()) return undefined;
-                return parseAssetPetSeconds(String(value)) === null
-                  ? "Enter PET as +HH:MM:SS or -HH:MM:SS"
-                  : undefined;
-              },
-            ],
+            validators: [validators.mustBeHHMMSS],
           }}
           onSubmit={(value) => {
             dispatch(
               thunkUpdateAssetFields({
                 assetUuid: asset.uuid,
-                ...(value === "current" || value === "clear"
-                  ? { petUpdate: value }
-                  : { changes: { petSeconds: parseAssetPetSeconds(value) } }),
+                changes: { petSeconds: parseAssetPetSeconds(value) },
               })
             );
           }}
           renderInput={(input) => {
-            const mode =
-              input.value === "current" || input.value === "clear" ? input.value : "manual";
+            const error = validators.mustBeHHMMSS(input.value);
             return (
-              <div className={styles.atomicControls}>
-                {mode === "manual" ? (
-                  <input
-                    {...input}
-                    className={formStyles.editField}
-                    aria-label="Asset PET"
-                    data-testid="asset-editor-pet-input"
-                    placeholder="+HH:MM:SS"
+              <div className={`${styles.petControls} ${styles.petPopoverControls}`}>
+                <input
+                  {...input}
+                  onChange={(e) => input.onChange(filterHHMMSS(e.target.value))}
+                  className={formStyles.editField}
+                  aria-label="Asset PET"
+                  aria-invalid={!!error}
+                  data-testid="asset-editor-pet-input"
+                  placeholder="+HH:MM:SS"
+                />
+                {hasRunningRex && (
+                  <Button
+                    label="Set to current PET"
+                    className={styles.editorButton}
+                    enabled={currentPetAvailable}
+                    toolTip={currentPetAvailable ? undefined : "No running REX with a valid PET"}
+                    onClick={() => {
+                      const { petSeconds } = getCurrentAssetPet(
+                        { rexes },
+                        getAccurateNow().getTime()
+                      );
+                      if (petSeconds !== null) input.onChange(hhmmssFromSeconds(petSeconds));
+                    }}
                   />
-                ) : (
-                  <span>{mode === "current" ? "Captured when saved" : "No PET"}</span>
                 )}
-                <select
-                  className={styles.editorInput}
-                  aria-label="PET update"
-                  value={mode}
-                  onChange={(e) =>
-                    input.onChange(e.target.value === "manual" ? formattedPet : e.target.value)
-                  }
-                >
-                  <option value="manual">Keep / edit PET</option>
-                  <option value="current" disabled={!currentPetAvailable}>
-                    Use current PET on save
-                  </option>
-                  <option value="clear">Clear PET on save</option>
-                </select>
               </div>
             );
           }}

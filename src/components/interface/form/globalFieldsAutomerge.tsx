@@ -472,6 +472,7 @@ export const ValidatedInputField: FunctionComponent<{
   /** Custom control inside the standard validated field dialog (e.g. PET and its source selector). */
   renderInput?: (input: FieldRenderProps<string>["input"]) => ReactNode;
   minDialogWidth?: number;
+  fitDialogToContents?: boolean;
 }> = ({
   value,
   editMode,
@@ -484,6 +485,7 @@ export const ValidatedInputField: FunctionComponent<{
   displayValue,
   renderInput,
   minDialogWidth = 160,
+  fitDialogToContents = false,
 }) => {
   const valueToShow = value || "";
 
@@ -501,7 +503,11 @@ export const ValidatedInputField: FunctionComponent<{
     if (!containerRef.current || !dialogChildrenRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const width = Math.min(window.innerWidth - 16, Math.max(minDialogWidth, rect.width));
+    if (fitDialogToContents) dialogChildrenRef.current.style.width = "max-content";
+    const contentWidth = fitDialogToContents
+      ? dialogChildrenRef.current.getBoundingClientRect().width
+      : rect.width;
+    const width = Math.min(window.innerWidth - 16, Math.max(minDialogWidth, contentWidth));
     setIsNarrowDialog(width <= 160); // Check if we're using the minimum width (meaning container was <= 130px)
 
     // Check if dialog would overflow right edge of viewport
@@ -548,8 +554,8 @@ export const ValidatedInputField: FunctionComponent<{
 
         // open the dialog for editing
         e.stopPropagation();
-        setDialogLocation();
         dialogRef.current?.showModal();
+        setDialogLocation();
         initialValueRef.current = valueToShow; // Initialize valid value when dialog opens
       }}
     >
