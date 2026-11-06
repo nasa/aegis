@@ -110,14 +110,11 @@ export function clipGridLineToRegion(
   return 2;
 }
 
-/** Curve point at parameter `t ∈ [0, 1]` in map coordinates; false when not finite. */
-type CurveEvaluator = (t: number, out: Float64Array) => boolean;
-
 const curvePoint = new Float64Array(2);
 const ENDPOINT_BISECTIONS = 30;
 
 class CurveDensifier {
-  private evaluate: CurveEvaluator = null;
+  private evaluate: LgrsCurveEvaluator = null;
   private toleranceSquared = 0;
   private jumpSquared = 0;
   private maxDepth = 0;
@@ -125,7 +122,7 @@ class CurveDensifier {
   private current: number[] = null;
 
   run(
-    evaluate: CurveEvaluator,
+    evaluate: LgrsCurveEvaluator,
     tolerance: number,
     maxDepth: number,
     jumpLength: number,
@@ -230,7 +227,7 @@ const densifier = new CurveDensifier();
  * split where it is not finite or jumps by more than `jumpLength` at the depth cap.
  */
 export function densifyCurve(
-  evaluate: CurveEvaluator,
+  evaluate: LgrsCurveEvaluator,
   tolerance: number,
   maxDepth: number,
   jumpLength: number,

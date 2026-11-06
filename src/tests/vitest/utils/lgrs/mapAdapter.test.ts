@@ -65,6 +65,18 @@ describe("getLgrsMapProjection", () => {
 });
 
 describe("getLgrsMapAdapter fast paths", () => {
+  test("reports cylindrical world widths in map units regardless of false origin", () => {
+    expect(getLgrsMapAdapter({ projCode: "EPSG:3857", proj4Def: null }).worldWidth).toBeCloseTo(
+      2 * Math.PI * 6378137,
+      6
+    );
+    const shiftedEqc = `+proj=eqc +lat_ts=30 +lat_0=0 +lon_0=180 +x_0=12345 +y_0=6789 +a=1737400 +b=1737400 +units=km +no_defs`;
+    expect(
+      getLgrsMapAdapter({ projCode: "EQC:SHIFTED", proj4Def: shiftedEqc }).worldWidth
+    ).toBeCloseTo((2 * Math.PI * 1737400 * Math.cos(Math.PI / 6)) / 1000, 6);
+    expect(getLgrsMapAdapter({ projCode: "S", proj4Def: SOUTH_CAP }).worldWidth).toBeNull();
+  });
+
   test("selects the closed form for supported spherical projections", () => {
     expect(getLgrsMapAdapter({ projCode: "S", proj4Def: SOUTH_CAP }).fastPath).toBe("stere-polar");
     expect(getLgrsMapAdapter({ projCode: "N", proj4Def: NORTH_CAP }).fastPath).toBe("stere-polar");

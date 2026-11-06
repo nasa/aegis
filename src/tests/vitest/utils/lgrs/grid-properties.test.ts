@@ -130,6 +130,17 @@ const VIEWPORTS: Viewport[] = [
     tier: "box",
     regions: [getLtmCrsId(45, "N"), getLtmCrsId(1, "N")],
   },
+  ...["mercator", "eqc"].flatMap((projection) =>
+    [179.9, -179.9].map((lon) => ({
+      name: `antimeridian ${projection} at ${lon}`,
+      projection,
+      lat: 10,
+      lon,
+      resolution: projection === "mercator" ? 100 : 30,
+      tier: "box" as const,
+      regions: [getLtmCrsId(45, "N"), getLtmCrsId(1, "N")],
+    }))
+  ),
   {
     name: "fixed 10 m on a 10 m/px view (falls back)",
     projection: "eqc",
@@ -329,6 +340,27 @@ describe.each(VIEWPORTS)("createLgrsRenderPlan: $name", (viewport) => {
 });
 
 describe("createLgrsRenderPlan caps and tiers", () => {
+  test.each([179.9, -179.9])("wraps zone-tier seams and labels at longitude %s", (lon) => {
+    const { plan } = buildPlan({
+      name: "wrapped zone framework",
+      projection: "mercator",
+      lat: 10,
+      lon,
+      resolution: 10000,
+      tier: "zone",
+    });
+    expect(plan.tier).toBe("zone");
+    expect(plan.labels.map((label) => label.text)).toEqual(expect.arrayContaining(["1P", "45P"]));
+    const seam = plan.lines.filter((line) => line.axis === "meridian" && line.value === -180);
+    expect(seam.length).toBeGreaterThan(0);
+    const expectedX = Math.sign(lon) * Math.PI * 6378137;
+    for (const line of seam) {
+      for (let i = 0; i < line.coordinates.length; i += 2) {
+        expect(line.coordinates[i]).toBeCloseTo(expectedX, 6);
+      }
+    }
+  });
+
   test("a fixed 10 m grid that would exceed the caps falls back to a coarser spacing", () => {
     const { plan } = buildPlan(VIEWPORTS.find((v) => v.spacing === 10));
     expect(plan.capped).toBe(true);

@@ -65,55 +65,6 @@ export function coarsenForMinimap(spacing: number, unitsPerPixel: number): numbe
   return factor <= 1 ? spacing : spacing * 2 ** Math.ceil(Math.log2(factor));
 }
 
-type ViewSamples = {
-  count: number;
-  lat: Float64Array;
-  lon: Float64Array;
-  crs: Int32Array;
-};
-
-type Envelope = {
-  minLat: number;
-  maxLat: number;
-  /** `minLon` is in [-180, 180); `maxLon` may exceed 180 when the view crosses the antimeridian. */
-  minLon: number;
-  maxLon: number;
-  fullLon: boolean;
-};
-
-type RegionView = {
-  crs: LgrsCrsId;
-  affine: LgrsMapAffine | null;
-  /** E/N bounding box of the view in this crs (unpadded). */
-  view: Float64Array;
-  /** Box used to generate lines: the padded view box ∩ the region bounds. */
-  lines: Float64Array;
-};
-
-type SpacingChoice = { line: number; label: number; hideLabels: boolean };
-
-type PlanContext = {
-  options: LgrsRenderOptions;
-  adapter: LgrsMapAdapter;
-  extent: LgrsMapExtent;
-  resolution: number;
-  caps: LgrsRenderCaps;
-  envelope: Envelope;
-  centreX: number;
-  centreY: number;
-};
-
-type BoxResult = {
-  /** "lines" when the lines alone exceed the caps at this spacing. */
-  status: "ok" | "lines";
-  lines: LgrsRenderLine[];
-  labels: LgrsRenderLabel[];
-  /** Factor the label spacing was doubled to so the labels fit the cap. */
-  labelScale: number;
-  regions: LgrsCrsId[];
-  vertexCount: number;
-};
-
 const scratch = new Float64Array(2);
 const scratchLatLon = new Float64Array(2);
 const intervals = new Float64Array(4);
@@ -146,9 +97,9 @@ function isInExtent(x: number, y: number, extent: LgrsMapExtent): boolean {
 
 // * VIEW SAMPLING ────────────────────────────────────────────────────
 
-function sampleView(adapter: LgrsMapAdapter, extent: LgrsMapExtent): ViewSamples {
+function sampleView(adapter: LgrsMapAdapter, extent: LgrsMapExtent): LgrsViewSamples {
   const total = RING_STEPS * 4 + (LATTICE_STEPS - 1) ** 2;
-  const samples: ViewSamples = {
+  const samples: LgrsViewSamples = {
     count: 0,
     lat: new Float64Array(total),
     lon: new Float64Array(total),
@@ -193,10 +144,10 @@ function getPoleVisibility(adapter: LgrsMapAdapter, extent: LgrsMapExtent, lat: 
 }
 
 function computeEnvelope(
-  samples: ViewSamples,
+  samples: LgrsViewSamples,
   adapter: LgrsMapAdapter,
   extent: LgrsMapExtent
-): Envelope {
+): LgrsViewEnvelope {
   let minLat = Infinity;
   let maxLat = -Infinity;
   const lons: number[] = [];
@@ -242,7 +193,7 @@ function computeEnvelope(
 }
 
 /** Values `origin + k·step` inside the envelope's longitudes (unwrapped to the envelope). */
-function getEnvelopeLongitudes(envelope: Envelope, step: number, origin: number): number[] {
+function getEnvelopeLongitudes(envelope: LgrsViewEnvelope, step: number, origin: number): number[] {
   const values: number[] = [];
   if (envelope.fullLon) {
     for (let value = origin; value < origin + 360; value += step) values.push(value);
@@ -255,7 +206,7 @@ function getEnvelopeLongitudes(envelope: Envelope, step: number, origin: number)
 }
 
 /** LTM zones overlapping the envelope's longitudes. */
-function getEnvelopeZones(envelope: Envelope): number[] {
+function getEnvelopeZones(envelope: LgrsViewEnvelope): number[] {
   if (envelope.fullLon) return Array.from({ length: LTM_ZONE_COUNT }, (_, index) => index + 1);
   const first = Math.floor((envelope.minLon + 180) / 8);
   const last = Math.floor((envelope.maxLon + 180) / 8 - 1e-12);
@@ -266,7 +217,7 @@ function getEnvelopeZones(envelope: Envelope): number[] {
   return zones;
 }
 
-function getCandidateRegions(envelope: Envelope): LgrsCrsId[] {
+function getCandidateRegions(envelope: LgrsViewEnvelope): LgrsCrsId[] {
   const regions: LgrsCrsId[] = [];
   const { minLat, maxLat } = envelope;
   if (minLat <= -LTM_MAX_ABS_LATITUDE) regions.push(LGRS_CRS_LPS_SOUTH);
@@ -282,7 +233,11 @@ function getCandidateRegions(envelope: Envelope): LgrsCrsId[] {
 
 // * REGION GEOMETRY ──────────────────────────────────────────────────
 
-function getRegionView(ctx: PlanContext, samples: ViewSamples, crs: LgrsCrsId): RegionView | null {
+function getRegionView(
+  ctx: LgrsPlanContext,
+  samples: LgrsViewSamples,
+  crs: LgrsCrsId
+): LgrsRegionView | null {
   const affine = ctx.adapter.getAffine(crs);
   const view = new Float64Array(4);
   if (affine) {
@@ -323,7 +278,7 @@ function getRegionView(ctx: PlanContext, samples: ViewSamples, crs: LgrsCrsId): 
 }
 
 /** Base-lattice cells of the region's visible part (today's density heuristic input). */
-function getVisibleBaseCellCount(region: RegionView): number {
+function getVisibleBaseCellCount(region: LgrsRegionView): number {
   let [minE, minN, maxE, maxN] = region.view;
   if (isLpsCrs(region.crs)) {
     getRegionBounds(region.crs, regionBounds);
@@ -338,7 +293,7 @@ function getVisibleBaseCellCount(region: RegionView): number {
 }
 
 /** LGRS metres per screen pixel of `crs` at the view centre. */
-function getMetersPerPixel(ctx: PlanContext, region: RegionView): number {
+function getMetersPerPixel(ctx: LgrsPlanContext, region: LgrsRegionView): number {
   if (region.affine) return ctx.resolution * Math.abs(region.affine.scale);
   const { adapter, centreX, centreY, resolution } = ctx;
   if (!adapter.mapToLgrs(centreX, centreY, region.crs, scratch)) return NaN;
@@ -351,10 +306,18 @@ function getMetersPerPixel(ctx: PlanContext, region: RegionView): number {
   return Math.sqrt(dx * dy);
 }
 
+/** Project into the horizontal world containing the view centre before clipping. */
+function latLonToView(ctx: LgrsPlanContext, lat: number, lon: number, out: Float64Array): boolean {
+  if (!ctx.adapter.latLonToMap(lat, lon, out)) return false;
+  const width = ctx.adapter.worldWidth;
+  if (width !== null) out[0] += Math.round((ctx.centreX - out[0]) / width) * width;
+  return true;
+}
+
 /** Region E/N → map, keeping LTM longitudes continuous across the zone (e.g. zone 45 at 180°). */
 function regionToMap(
-  ctx: PlanContext,
-  region: RegionView,
+  ctx: LgrsPlanContext,
+  region: LgrsRegionView,
   e: number,
   n: number,
   out: Float64Array
@@ -369,7 +332,7 @@ function regionToMap(
     else if (offset >= 180) offset -= 360;
     lon = centralMeridian + offset;
   }
-  return ctx.adapter.latLonToMap(scratchLatLon[0], lon, out);
+  return latLonToView(ctx, scratchLatLon[0], lon, out);
 }
 
 // * SPACING ──────────────────────────────────────────────────────────
@@ -380,7 +343,7 @@ function chooseSpacing(
   cells: number,
   metersPerPixel: number,
   lineOverride: number | null
-): SpacingChoice {
+): LgrsSpacingChoice {
   let spacingMode = options.gridSpacingMode;
   let labelInterval = options.gridLabelInterval;
   const inherited = options.inheritedSpacing;
@@ -415,7 +378,7 @@ function chooseSpacing(
 
 /** Densifies, view-clips and appends one curve; returns the vertices added. */
 function emitCurve(
-  ctx: PlanContext,
+  ctx: LgrsPlanContext,
   evaluate: (t: number, out: Float64Array) => boolean,
   tolerance: number,
   template: Omit<LgrsRenderLine, "coordinates">,
@@ -436,8 +399,8 @@ function emitCurve(
 }
 
 function emitGridLine(
-  ctx: PlanContext,
-  region: RegionView,
+  ctx: LgrsPlanContext,
+  region: LgrsRegionView,
   axis: "easting" | "northing",
   value: number,
   from: number,
@@ -472,8 +435,8 @@ function emitGridLine(
 
 /** Lines of one region; returns the vertices added, or -1 when a cap is exceeded. */
 function emitRegionLines(
-  ctx: PlanContext,
-  region: RegionView,
+  ctx: LgrsPlanContext,
+  region: LgrsRegionView,
   spacing: number,
   out: LgrsRenderLine[],
   vertexBudget: number
@@ -512,7 +475,7 @@ function emitRegionLines(
 }
 
 function emitMeridian(
-  ctx: PlanContext,
+  ctx: LgrsPlanContext,
   lon: number,
   minLat: number,
   maxLat: number,
@@ -524,7 +487,7 @@ function emitMeridian(
   const span = maxLat - minLat;
   return emitCurve(
     ctx,
-    (t, point) => ctx.adapter.latLonToMap(minLat + t * span, lon, point),
+    (t, point) => latLonToView(ctx, minLat + t * span, lon, point),
     tolerance,
     { kind, axis: "meridian", crs: -1, value: conformLongitude(lon) },
     out
@@ -532,7 +495,7 @@ function emitMeridian(
 }
 
 function emitParallel(
-  ctx: PlanContext,
+  ctx: LgrsPlanContext,
   lat: number,
   kind: LgrsRenderLineKind,
   tolerance: number,
@@ -543,7 +506,7 @@ function emitParallel(
   const span = maxLon - minLon;
   return emitCurve(
     ctx,
-    (t, point) => ctx.adapter.latLonToMap(lat, minLon + t * span, point),
+    (t, point) => latLonToView(ctx, lat, minLon + t * span, point),
     tolerance,
     { kind, axis: "parallel", crs: -1, value: lat },
     out
@@ -555,7 +518,7 @@ function emitParallel(
  * 8° band parallels and the LPS A/B (Y/Z) split meridians.
  */
 function emitFramework(
-  ctx: PlanContext,
+  ctx: LgrsPlanContext,
   includeBands: boolean,
   tolerance: number,
   out: LgrsRenderLine[]
@@ -601,8 +564,8 @@ function emitFramework(
 
 /** Labels of one region; returns false when the label cap is exceeded. */
 function emitRegionLabels(
-  ctx: PlanContext,
-  region: RegionView,
+  ctx: LgrsPlanContext,
+  region: LgrsRegionView,
   spacing: number,
   out: LgrsRenderLabel[]
 ): boolean {
@@ -634,7 +597,7 @@ function emitRegionLabels(
 }
 
 /** Accepts a zone-tier label unless one is already within `ZONE_LABEL_MIN_PX`. */
-function createLabelDeclutter(ctx: PlanContext) {
+function createLabelDeclutter(ctx: LgrsPlanContext) {
   const cells = new Map<string, [number, number][]>();
   return (x: number, y: number): boolean => {
     const px = (x - ctx.extent[0]) / ctx.resolution;
@@ -656,12 +619,12 @@ function createLabelDeclutter(ctx: PlanContext) {
   };
 }
 
-function emitZoneLabels(ctx: PlanContext, out: LgrsRenderLabel[]): void {
+function emitZoneLabels(ctx: LgrsPlanContext, out: LgrsRenderLabel[]): void {
   const accept = createLabelDeclutter(ctx);
   const { minLat, maxLat } = ctx.envelope;
   const tryLabel = (lat: number, lon: number, crs: LgrsCrsId, text: string) => {
     if (out.length >= ctx.caps.maxLabels || lat < minLat || lat > maxLat) return;
-    if (!ctx.adapter.latLonToMap(lat, lon, scratch)) return;
+    if (!latLonToView(ctx, lat, lon, scratch)) return;
     if (!isInExtent(scratch[0], scratch[1], ctx.extent) || !accept(scratch[0], scratch[1])) return;
     out.push({
       crs,
@@ -689,7 +652,7 @@ function emitZoneLabels(ctx: PlanContext, out: LgrsRenderLabel[]): void {
 
 // * TIERS ────────────────────────────────────────────────────────────
 
-function buildZonePlan(ctx: PlanContext): LgrsRenderPlan {
+function buildZonePlan(ctx: LgrsPlanContext): LgrsRenderPlan {
   let tolerance = TOLERANCE_PX * ctx.resolution;
   let lines: LgrsRenderLine[] = [];
   let vertexCount = 0;
@@ -719,12 +682,16 @@ function buildZonePlan(ctx: PlanContext): LgrsRenderPlan {
   };
 }
 
-function buildBox(ctx: PlanContext, regions: RegionView[], spacings: SpacingChoice[]): BoxResult {
+function buildBox(
+  ctx: LgrsPlanContext,
+  regions: LgrsRegionView[],
+  spacings: LgrsSpacingChoice[]
+): LgrsBoxResult {
   const lines: LgrsRenderLine[] = [];
   let labels: LgrsRenderLabel[] = [];
   const lineRegions = new Set<LgrsCrsId>();
   let vertexCount = 0;
-  const failed = (): BoxResult => ({
+  const failed = (): LgrsBoxResult => ({
     status: "lines",
     lines,
     labels,
@@ -782,7 +749,7 @@ export function createLgrsRenderPlan(options: LgrsRenderOptions): LgrsRenderPlan
   const samples = sampleView(adapter, extent);
   if (samples.count === 0) return emptyPlan();
 
-  const ctx: PlanContext = {
+  const ctx: LgrsPlanContext = {
     options,
     adapter,
     extent,
@@ -803,7 +770,7 @@ export function createLgrsRenderPlan(options: LgrsRenderOptions): LgrsRenderPlan
   }
   if (centreCrs < 0) centreCrs = samples.crs[samples.count - 1];
 
-  const regions: RegionView[] = [];
+  const regions: LgrsRegionView[] = [];
   for (const crs of getCandidateRegions(ctx.envelope)) {
     const region = getRegionView(ctx, samples, crs);
     if (region) regions.push(region);

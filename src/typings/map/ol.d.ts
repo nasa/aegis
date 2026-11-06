@@ -157,3 +157,8 @@ type MouseCoordinateReadout = {
   latLng: string;
   grid: string | null;
 };
+
+type GridLineStyles = { grid: import("ol/style").Style; seam: import("ol/style").Style };
+
+/** Grid label style for `text`, cached per builder. */
+type GridLabelStyleFn = (text: string, centered: boolean) => import("ol/style").Style;

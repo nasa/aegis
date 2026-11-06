@@ -9,11 +9,6 @@ const SEAM_WIDTH_FACTOR = 2.5;
 /** Panning produces new label texts; the cache is cleared wholesale past this size. */
 const LABEL_CACHE_LIMIT = 2000;
 
-type GridLineStyles = { grid: Style; seam: Style };
-
-/** Grid label style for `text`, cached per builder. */
-type GridLabelStyleFn = (text: string, centered: boolean) => Style;
-
 function resolveGridStyle(style: Partial<MapSublayerStyle> | undefined): MapSublayerStyle {
   return { ...defaultGridStyle, ...(style ?? {}) };
 }

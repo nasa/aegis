@@ -62,6 +62,8 @@ type LgrsMapAffine = {
  */
 interface LgrsMapAdapter {
   readonly projection: LgrsMapProjection;
+  /** Horizontal repeat distance for Mercator/equirectangular maps, otherwise null. */
+  readonly worldWidth: number | null;
   /** Closed-form path in use, or null when every call goes through proj4. */
   readonly fastPath: LgrsMapFastPath | null;
   /** Map → `[lat, lon]`, identical to `proj4(projCode, "EPSG:4326")` (longitude not conformed). */
@@ -98,3 +100,10 @@ type LgrsProj4Params = {
 
 /** `"condensed"`: `B95 D44`; `"full"`: prefix + condensed, e.g. `AZM B95 D44`, `23NFF -00 -00`. */
 type LgrsDisplayStyle = "condensed" | "full";
+
+type LgrsFastPathFunctions = {
+  /** lat/lon (radians) → map; false on failure. */
+  forward(p: LgrsProj4Params, lat: number, lon: number, out: Float64Array): boolean;
+  /** map → lat/lon (radians) in `out` as `[lat, lon]`; false on failure. */
+  inverse(p: LgrsProj4Params, x: number, y: number, out: Float64Array): boolean;
+};

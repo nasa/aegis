@@ -35,11 +35,16 @@ async function createLgrsMission(request: APIRequestContext): Promise<number> {
     usingLGRSCoordinates: true,
     gridRenderMode: "dynamic-lgrs",
   };
-  const fieldsResponse = await request.post("/api/v1/missionAutomerge/fields", {
-    data: { missionId, fields },
-  });
-  expect(fieldsResponse.ok()).toBe(true);
-  return missionId;
+  try {
+    const fieldsResponse = await request.post("/api/v1/missionAutomerge/fields", {
+      data: { missionId, fields },
+    });
+    expect(fieldsResponse.ok()).toBe(true);
+    return missionId;
+  } catch (error) {
+    await deleteMission(request, missionId);
+    throw error;
+  }
 }
 
 async function deleteMission(request: APIRequestContext, missionId: number): Promise<void> {
@@ -79,6 +84,39 @@ async function setGridCheckbox(page: Page, label: string, checked: boolean): Pro
 }
 
 test.describe("Equatorial mission — whole-Moon LGRS", () => {
+  test("deletes the mission when configuring it fails", async ({ page }) => {
+    const request = page.request;
+    const post = request.post.bind(request);
+    let missionId: number | undefined;
+    request.post = async (url, options) => {
+      if (url === "/api/v1/missionAutomerge/fields") {
+        throw new Error("Simulated mission configuration failure");
+      }
+      const response = await post(url, options);
+      if (url === "/api/v1/missionAutomerge") {
+        const created = (await response.json()) as WrappedResponse<AutomergeDocListing>;
+        missionId = created.data?.missionId;
+      }
+      return response;
+    };
+    try {
+      await expect(createLgrsMission(request)).rejects.toThrow(
+        "Simulated mission configuration failure"
+      );
+      expect(missionId).toBeTruthy();
+      const response = await request.get("/api/v1/docListing", { params: { missionId } });
+      expect(response.ok()).toBe(true);
+      const listings = (await response.json()) as WrappedResponse<AutomergeDocListing[]>;
+      expect(listings.data).toEqual([]);
+      missionId = undefined;
+    } finally {
+      request.post = post;
+      if (missionId) {
+        await request.delete("/api/v1/missionAutomerge", { data: { missionIds: [missionId] } });
+      }
+    }
+  });
+
   test("mouse readout shows LTM LGRS and the dynamic grid renders", async ({ page }) => {
     const missionId = await createLgrsMission(page.request);
 

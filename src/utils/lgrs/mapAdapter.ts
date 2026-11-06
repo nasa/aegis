@@ -42,14 +42,7 @@ function adjustLon(x: number, skipAdjust: boolean): number {
   return Math.abs(x) <= SPI ? x : x - (x < 0 ? -1 : 1) * TWO_PI;
 }
 
-type FastPathFunctions = {
-  /** lat/lon (radians) → map; false on failure. */
-  forward(p: LgrsProj4Params, lat: number, lon: number, out: Float64Array): boolean;
-  /** map → lat/lon (radians) in `out` as `[lat, lon]`; false on failure. */
-  inverse(p: LgrsProj4Params, x: number, y: number, out: Float64Array): boolean;
-};
-
-const STERE_POLAR: FastPathFunctions = {
+const STERE_POLAR: LgrsFastPathFunctions = {
   forward(p, lat, lon, out) {
     const sinlat = Math.sin(lat);
     const coslat = Math.cos(lat);
@@ -78,7 +71,7 @@ const STERE_POLAR: FastPathFunctions = {
   },
 };
 
-const MERC: FastPathFunctions = {
+const MERC: LgrsFastPathFunctions = {
   forward(p, lat, lon, out) {
     if (Math.abs(Math.abs(lat) - HALF_PI) <= EPSLN) return false;
     out[0] = p.x0 + p.a * p.k0 * adjustLon(lon - p.long0, p.over);
@@ -94,7 +87,7 @@ const MERC: FastPathFunctions = {
   },
 };
 
-const TMERC_SPHERE: FastPathFunctions = {
+const TMERC_SPHERE: LgrsFastPathFunctions = {
   forward(p, lat, lon, out) {
     const deltaLon = adjustLon(lon - p.long0, p.over);
     const cosPhi = Math.cos(lat);
@@ -128,7 +121,7 @@ const TMERC_SPHERE: FastPathFunctions = {
   },
 };
 
-const FAST_PATHS: Record<LgrsMapFastPath, FastPathFunctions> = {
+const FAST_PATHS: Record<LgrsMapFastPath, LgrsFastPathFunctions> = {
   "stere-polar": STERE_POLAR,
   merc: MERC,
   tmerc: TMERC_SPHERE,
@@ -151,7 +144,7 @@ const PROBE_LONGITUDES = [-179, -90, -17.47, -4, 0, 3, 45, 120, 179];
 
 /** True when the closed form matches proj4 bit-for-bit on every probe proj4 can convert. */
 function verifyFastPath(
-  fast: FastPathFunctions,
+  fast: LgrsFastPathFunctions,
   p: LgrsProj4Params,
   converter: proj4.Converter
 ): boolean {
@@ -219,13 +212,26 @@ function createAffines(
   return [];
 }
 
+function getWorldWidth(
+  params: LgrsProj4Params | null,
+  converter: proj4.Converter | null
+): number | null {
+  if (!converter || (params?.projName !== "merc" && params?.projName !== "eqc")) return null;
+  const longitude = params.long0 * R2D;
+  const west = converter.inverse([longitude - 90, 0]);
+  const east = converter.inverse([longitude + 90, 0]);
+  const width = 2 * (east[0] - west[0]);
+  return Number.isFinite(width) && width > 0 ? width : null;
+}
+
 class MapAdapter implements LgrsMapAdapter {
   readonly projection: LgrsMapProjection;
+  readonly worldWidth: number | null;
   readonly fastPath: LgrsMapFastPath | null;
   readonly isUsable: boolean;
   private readonly converter: proj4.Converter | null;
   private readonly params: LgrsProj4Params | null;
-  private readonly fast: FastPathFunctions | null;
+  private readonly fast: LgrsFastPathFunctions | null;
   private readonly affines: LgrsMapAffine[];
   private readonly scratch = new Float64Array(2);
 
@@ -243,6 +249,7 @@ class MapAdapter implements LgrsMapAdapter {
     this.converter = converter;
     this.params = params;
     this.isUsable = converter !== null;
+    this.worldWidth = getWorldWidth(params, converter);
 
     let fastPath = converter ? selectFastPath(params) : null;
     if (fastPath && !verifyFastPath(FAST_PATHS[fastPath], params, converter)) fastPath = null;

@@ -81,3 +81,55 @@ type LgrsCompatibility = {
   /** The mission's map projection when it is compatible. */
   projection: LgrsMapProjection | null;
 };
+
+type LgrsViewSamples = {
+  count: number;
+  lat: Float64Array;
+  lon: Float64Array;
+  crs: Int32Array;
+};
+
+type LgrsViewEnvelope = {
+  minLat: number;
+  maxLat: number;
+  /** `minLon` is in [-180, 180); `maxLon` may exceed 180 when the view crosses the antimeridian. */
+  minLon: number;
+  maxLon: number;
+  fullLon: boolean;
+};
+
+type LgrsRegionView = {
+  crs: LgrsCrsId;
+  affine: LgrsMapAffine | null;
+  /** E/N bounding box of the view in this crs (unpadded). */
+  view: Float64Array;
+  /** Box used to generate lines: the padded view box ∩ the region bounds. */
+  lines: Float64Array;
+};
+
+type LgrsSpacingChoice = { line: number; label: number; hideLabels: boolean };
+
+type LgrsPlanContext = {
+  options: LgrsRenderOptions;
+  adapter: LgrsMapAdapter;
+  extent: LgrsMapExtent;
+  resolution: number;
+  caps: LgrsRenderCaps;
+  envelope: LgrsViewEnvelope;
+  centreX: number;
+  centreY: number;
+};
+
+type LgrsBoxResult = {
+  /** "lines" when the lines alone exceed the caps at this spacing. */
+  status: "ok" | "lines";
+  lines: LgrsRenderLine[];
+  labels: LgrsRenderLabel[];
+  /** Factor the label spacing was doubled to so the labels fit the cap. */
+  labelScale: number;
+  regions: LgrsCrsId[];
+  vertexCount: number;
+};
+
+/** Curve point at parameter `t ∈ [0, 1]` in map coordinates; false when not finite. */
+type LgrsCurveEvaluator = (t: number, out: Float64Array) => boolean;
