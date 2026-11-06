@@ -14,12 +14,43 @@ import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
 import { createMissionSummary } from "server/automerge/missionCatalog";
 import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
+import { listMissionDems, readMissionDem } from "server/raster/missionDems";
+import { applyMissionPlanet } from "operations/apply/apply-mission";
+import { usesLgrsCoordinates } from "utils/planets";
 
 /**
  * Endpoint for working with the mission document in automerge
  */
 
 const router = express.Router();
+
+router.get("/dems", async (req: Request, res: Response): Promise<void> => {
+  const missionId = Number(req.query.missionId);
+  if (!Number.isSafeInteger(missionId) || missionId <= 0) {
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
+    return;
+  }
+  if (
+    !hasPerms({
+      missionId,
+      permission: "edit",
+      appUser: req.session?.appUser,
+      emssToken: req.headers["emss-token"] as string,
+    })
+  ) {
+    res.status(401).json({ status: "failure", message: "Unauthorized" });
+    return;
+  }
+  try {
+    if (!(await getAutomergeMissionHandle(missionId))) {
+      res.status(404).json({ status: "failure", message: "Mission not found" });
+      return;
+    }
+    res.json({ status: "success", data: await listMissionDems(missionId) });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: asError(error).message });
+  }
+});
 
 // Await persistence and summary creation so an immediate admin-list refresh sees the archive change.
 router.post("/archive", async (req: Request, res: Response) => {
@@ -211,7 +242,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  if (!missionId || isNaN(missionId)) {
+  if (!Number.isSafeInteger(missionId) || missionId <= 0) {
     res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -262,8 +293,29 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    let demResolution: number | null | undefined;
+    if (fields.demFilePath !== undefined) {
+      try {
+        demResolution = fields.demFilePath
+          ? (await readMissionDem(missionId, fields.demFilePath)).resolution
+          : null;
+      } catch (error) {
+        res
+          .status(400)
+          .json({ status: "error", message: `Invalid DEM: ${asError(error).message}` });
+        return;
+      }
+    }
+
     handle.change((m: Mission) => {
+      const demChanged =
+        fields.demFilePath !== undefined &&
+        (fields.demFilePath !== m.demFilePath || demResolution !== m.demResolution);
+      if (fields.planet !== undefined) applyMissionPlanet(m, fields.planet);
       Object.assign(m, fields);
+      if (usesLgrsCoordinates(m)) m.serverFileGrid = null;
+      if (demResolution !== undefined) m.demResolution = demResolution;
+      if (demChanged || landerLocationChanged) m.landerElevationMeters = null;
       m.updatedAt = new Date().getTime();
     });
 

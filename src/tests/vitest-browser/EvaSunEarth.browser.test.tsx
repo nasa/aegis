@@ -76,7 +76,7 @@ beforeEach(() => {
     evas: {
       "eva-1": generateBlankEVA({ uuid: "eva-1", datetime: Date.parse("2026-04-15T12:00:00Z") }),
     },
-    planetRadius: 1737400,
+    planet: "moon",
     landerLocation: { lat: -84.2, lng: 33.5 },
     landerElevationMeters: 5414,
     projIsCustom: true,
@@ -143,7 +143,7 @@ describe("EVA Sun/Earth", () => {
     expect(info()).toBe("Manual EVA directions");
   });
   it("explains why calculation is unavailable off the Moon and permits manual mode", async () => {
-    mission.planetRadius = 6371000;
+    mission.planet = "earth";
     render();
     expect(info()).toContain("not on the Moon");
     expect(harness.container.querySelectorAll('[data-icon="moon"]')).toHaveLength(2);
@@ -152,7 +152,7 @@ describe("EVA Sun/Earth", () => {
     expect(info()).toBe("Manual EVA directions");
     await expect.element(page.getByLabelText("Moon azimuth", { exact: true }).last()).toBeVisible();
     updateMission((doc) => {
-      doc.planetRadius = 1737400;
+      doc.planet = "moon";
     });
     await expect
       .element(page.getByLabelText("Earth azimuth", { exact: true }).last())

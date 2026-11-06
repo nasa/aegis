@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
@@ -59,7 +60,7 @@ export async function stageLanderLocationUpdate(
       const distances: number[] = [];
       for (let i = 1; i < newWalkbackPath.length; i++) {
         distances.push(
-          getTotalDistance([newWalkbackPath[i - 1], newWalkbackPath[i]], mission.planetRadius)
+          getTotalDistance([newWalkbackPath[i - 1], newWalkbackPath[i]], getPlanetRadius(mission))
         );
       }
 
@@ -101,7 +102,7 @@ export async function stageLanderLocationUpdate(
     if (snapEnd) path[path.length - 1] = newLocation;
     const distances: number[] = [];
     for (let i = 1; i < path.length; i++) {
-      distances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
+      distances.push(getTotalDistance([path[i - 1], path[i]], getPlanetRadius(mission)));
     }
     return { traverseUuid, newPath: path, distances };
   };

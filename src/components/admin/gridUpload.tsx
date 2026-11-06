@@ -81,8 +81,7 @@ const parseFullGrid = async (selectedFile: Blob): Promise<MissionGrid> => {
 const AdminMissionGrid: FunctionComponent<{
   missionId: number | null;
   grid: Mission["serverFileGrid"] | null;
-  gridRenderMode: GridRenderMode;
-}> = ({ missionId, grid, gridRenderMode }) => {
+}> = ({ missionId, grid }) => {
   const action = useAsyncStatus();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isFilePicked, setIsFilePicked] = useState(false);
@@ -132,7 +131,7 @@ const AdminMissionGrid: FunctionComponent<{
 
   return (
     <section className={adminCommon.section}>
-      <h2 className={adminCommon.sectionHeading}>Server File Grid (Legacy / Custom)</h2>
+      <h2 className={adminCommon.sectionHeading}>Server File Grid</h2>
       <AsyncStatus {...action} />
       {missionId ? (
         <div>
@@ -171,66 +170,55 @@ const AdminMissionGrid: FunctionComponent<{
             )}
           </div>
 
-          {gridRenderMode === "server-file" ? (
-            <div className={adminCommon.details}>
-              <h3 style={{ margin: "0 0 12px", color: "#e2e8f0" }}>
-                {grid ? "Replace Grid" : "Upload Grid"}
-              </h3>
-              <p>
-                Upload grid (LGRS.json from the GIS pipeline, or .geojson). Uploading replaces the
-                mission&apos;s grid.
-              </p>
-              <p>
-                <a
-                  href="https://eegitlab.fit.nasa.gov/emss/aegis/-/wikis/Formatting-for-geoJSON-grid-uploads"
-                  style={{ color: "#60a5fa" }}
-                >
-                  Grid Upload Instructions
-                </a>
-              </p>
-              <input
-                type="file"
-                name="gridFile"
-                title="Upload File"
-                onChange={fileChangeHandler}
-                style={{ marginTop: 8 }}
-              />
-              <div style={{ marginTop: 8 }}>
-                {isFilePicked && selectedFile ? (
-                  <p>
-                    Filename: {selectedFile.name}
-                    <br />
-                    Filetype: {selectedFile.type}
-                    <br />
-                    File size: {prettyBytes(selectedFile.size)}
-                  </p>
-                ) : null}
-              </div>
-              {!isSubmitValid && isFilePicked ? (
-                <p style={{ color: "#f87171" }}>Please select a valid .json/.geojson file</p>
+          <div className={adminCommon.details}>
+            <h3 style={{ margin: "0 0 12px", color: "#e2e8f0" }}>
+              {grid ? "Replace Grid" : "Upload Grid"}
+            </h3>
+            <p>Upload a grid (.json or .geojson). Uploading replaces the mission&apos;s grid.</p>
+            <p>
+              <a
+                href="https://eegitlab.fit.nasa.gov/emss/aegis/-/wikis/Formatting-for-geoJSON-grid-uploads"
+                style={{ color: "#60a5fa" }}
+              >
+                Grid Upload Instructions
+              </a>
+            </p>
+            <input
+              type="file"
+              name="gridFile"
+              title="Upload File"
+              onChange={fileChangeHandler}
+              style={{ marginTop: 8 }}
+            />
+            <div style={{ marginTop: 8 }}>
+              {isFilePicked && selectedFile ? (
+                <p>
+                  Filename: {selectedFile.name}
+                  <br />
+                  Filetype: {selectedFile.type}
+                  <br />
+                  File size: {prettyBytes(selectedFile.size)}
+                </p>
               ) : null}
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button
-                  className={adminCommon.buttonPrimary}
-                  type="submit"
-                  onClick={() =>
-                    action.run("Reading and uploading grid...", () =>
-                      readAndUploadGrid(selectedFile)
-                    )
-                  }
-                  disabled={!isSubmitValid || !!action.pending}
-                >
-                  {action.pending === "Reading and uploading grid..."
-                    ? "Uploading..."
-                    : "Upload Grid"}
-                </button>
-              </div>
             </div>
-          ) : (
-            <div className={adminCommon.details}>
-              <p>Switch Grid Rendering to Server File to manage uploaded grid data.</p>
+            {!isSubmitValid && isFilePicked ? (
+              <p style={{ color: "#f87171" }}>Please select a valid .json/.geojson file</p>
+            ) : null}
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button
+                className={adminCommon.buttonPrimary}
+                type="submit"
+                onClick={() =>
+                  action.run("Reading and uploading grid...", () => readAndUploadGrid(selectedFile))
+                }
+                disabled={!isSubmitValid || !!action.pending}
+              >
+                {action.pending === "Reading and uploading grid..."
+                  ? "Uploading..."
+                  : "Upload Grid"}
+              </button>
             </div>
-          )}
+          </div>
         </div>
       ) : (
         <div className={adminCommon.emptyState}>

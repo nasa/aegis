@@ -6,7 +6,8 @@ import {
   type TerrainProfileSamplingWorkerResult,
 } from "server/raster/rasterSamplingWorkerPool";
 
-export const TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS = -1100101;
+import { TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS } from "utils/elevation";
+export { TERRAIN_PROFILE_NO_DATA_ELEVATION_METERS } from "utils/elevation";
 export const MAX_RASTER_PROFILE_SAMPLES = 100_000;
 
 export type TerrainProfileResult = {

@@ -1,3 +1,4 @@
+import { usesLgrsCoordinates } from "utils/planets";
 import type { MutableRefObject, FunctionComponent } from "react";
 import { useRef, useLayoutEffect, useCallback, useEffect, useState } from "react";
 import styles from "./measure.module.css";
@@ -45,7 +46,7 @@ const Measure: FunctionComponent = () => {
   }, deepEqual);
 
   const usingLGRSCoordinates = useMissionDocSelector(
-    (mission) => mission.usingLGRSCoordinates,
+    (mission) => usesLgrsCoordinates(mission),
     refEqual
   );
 
