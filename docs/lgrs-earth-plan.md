@@ -446,6 +446,57 @@ it's achievable.
   Playwright scenario for an Earth mission that switches schemes, benches, and updates to
   `src/components/interface/map/CLAUDE.md`.
 
+### 9.1 Gate 0 findings
+
+**Status: unresolved** (2026-11-06). The grid shapefiles couldn't be downloaded without a
+browser, so questions 1 and 3 are still open, and question 2 is only partly answered. The
+release's FGDC metadata (`Publication_Data_Release_LGRS4.xml`) was retrieved, and nothing in it
+contradicts §3.2. §3.2 stands provisionally until the shapefiles are checked.
+
+**What was tried.** The DOI resolves to ScienceBase item `6751db29d34e5c4500cf2c7b`. Its JSON
+lists `JSC.zip` (198,914,577 B), `JETT2_Icelandic_Highlands.zip` (516,485,512 B), six other site
+zips and the XML. The zips are S3-backed and unpublished (`published: false`):
+
+| Route                                                         | Result                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| File `url` / `downloadUri` (`sciencebase.usgs.gov/manager/…`) | HTML file-manager app, no file                                            |
+| `api.sciencebase.gov/graphql`, `file(cuid)` → `downloadUri`   | `UNAUTHENTICATED`: needs a Keycloak login                                 |
+| Item page link (`catalog/item/managerRequestDownload/…`)      | reCAPTCHA page ("Before downloading, please complete the captcha")        |
+| S3 object URL                                                 | 403                                                                       |
+| "Download Attached Files" bulk zip (`catalog/file/get/<id>`)  | 6,849 B: only the XML; every site zip is a 0-byte entry                   |
+| data.usgs.gov catalog entry                                   | Links back to the DOI only                                                |
+| GitHub search for mirrors                                     | Only `rbeyer/lgrs` (vendored USGS **lunar** reference code, no UTM grids) |
+
+**What the metadata establishes:**
+
+| Question            | Finding                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Line positions   | **Open.** The lineage says only "written using standard UTM map projections to the specified grid spacing of LGRS", and the grids are "projected … based on their positions in LGRS and centered on a specific location for … display". That reads like an LGRS-anchored grid clipped around a site, but it doesn't say whether the 25 km origin is a UTM multiple.                    |
+| 2. Attributes       | Features are **polygons, one per grid cell**, not lines. Fields: `ID`, `LGRS_ACC_E`, `LGRS_ACC_N` (strings), `centX`, `centY` (cell centre), `ULX`, `ULY`, `LRX`, `LRY` (corners, UTM metres). Only the JETT5 100 m table is documented. No field names the zone, band or 25 km area, so the release doesn't name 25 km areas (as §2.1 assumed). The metadata gives no example values. |
+| 3. `-` for km 0     | **Open** for the terrestrial grids. The USGS lunar reference code (`LGRS_Coordinate_Conversion.py`) uses `'-ABCDEFGHJKLMNPQRSTUVWXYZ'  # "-" is a zero character`, and its ACC regex allows `[-A-Z]` for the 1 km letters.                                                                                                                                                             |
+| 4. CRS              | "UTM Zone, ESPG [sic]: 326XX", WGS84 ellipsoid (6,378,137 m, 1/298.257223563), but the horizontal datum is given as `North_American_Datum_1983`. That's inconsistent, so the `.prj` files must settle it. NAD83 and WGS84 differ by about 1–2 m in the US, which matters for line positions but not for labels.                                                                        |
+| 4. Spacings, digits | 1 km, 100 m and 10 m shapefiles per site (HAATS also has three clipped sets). Digits are truncated to 10 m ("truncating the grid precision to 10m"). Coordinates are relative to the lower-left corner of the 25 km area, and the zone is left off but "can be reported".                                                                                                              |
+| 4. Other            | License CC0 1.0. The metadata bounding box (south 35.571°) leaves out JSC (29.56° N), so it is incomplete. Parts of the abstract are copied from the lunar release ("projected in the LTM or LPS PCRSs").                                                                                                                                                                              |
+
+**Our side.** pyproj (EPSG:32601/32613/32615/32628) reproduces all four §3.4 rows exactly,
+both E/N to 0.01 m and the ACC strings.
+
+**Effect on the fixtures (§8.4).** The comparison is per cell, not per line: each cell's
+`LGRS_ACC_E`/`LGRS_ACC_N` should equal the §3.2 axis labels of its lower-left corner
+(`ULX`, `LRY`), at the cell's precision.
+
+**To close Gate 0:** someone downloads `JSC.zip` and `JETT2_Icelandic_Highlands.zip` from the
+item page in a browser (the captcha), then:
+
+1. reads each `.prj`, the field list and a few records;
+2. measures `max |v − round(v / s) · s|` over all vertices for the file's spacing `s`, and over
+   vertices near 25 km lines for `s = 25,000`;
+3. compares `LGRS_ACC_E`/`LGRS_ACC_N` with the §3.2 labels of each cell's lower-left corner;
+4. adds the 2–3 km extracts to `src/tests/vitest/fixtures/lgrs-earth/usgs/`, and replaces this
+   subsection's status with a verdict.
+
+Workstream B is Moon-only and doesn't depend on these answers.
+
 ## 10. Done when
 
 - Gate 0 findings are recorded, and the USGS JSC/JETT2 extracts match our lines and condensed
