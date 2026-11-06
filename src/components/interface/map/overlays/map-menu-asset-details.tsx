@@ -152,21 +152,13 @@ export const AssetDetails: FunctionComponent<{
                 closeEmojiPicker();
               }}
             />
-            <Button
-              label="No emoji"
-              onClick={() => {
-                save({ icon: null });
-                closeEmojiPicker();
-              }}
-            />
           </PickerPopover>
         )}
-        <span className={styles.fieldLabel}>Radius</span>
+        <span className={styles.fieldLabel}>Radius (m)</span>
         <div className={styles.fieldControls}>
           <div data-testid="asset-editor-uncertainty">
             <ValidatedInputField
               value={String(asset.uncertaintyMeters)}
-              displayValue={`${asset.uncertaintyMeters} m`}
               editMode={editMode}
               styleContainer={compactFieldStyle}
               displayStyle={{ fontSize: "inherit" }}

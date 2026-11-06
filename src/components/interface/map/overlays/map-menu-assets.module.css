@@ -483,19 +483,19 @@
   text-overflow: clip;
 }
 
-/* Paint the inset top divider inside the cells to preserve the table columns. */
-.assetRowExpanded:not(.assetRowSelected) td {
+/* Separate expanded assets from adjacent assets within the same group. */
+.assetRow + .assetRowExpanded:not(.assetRowSelected) td {
   background-image: linear-gradient(var(--grey3), var(--grey3));
   background-size: 100% 1px;
   background-repeat: no-repeat;
 }
 
-.assetRowExpanded:not(.assetRowSelected) td:first-child {
+.assetRow + .assetRowExpanded:not(.assetRowSelected) td:first-child {
   background-position: top right;
   background-size: calc(100% - var(--detail-indent)) 1px;
 }
 
-.assetRowExpanded:not(.assetRowSelected) td:last-child {
+.assetRow + .assetRowExpanded:not(.assetRowSelected) td:last-child {
   background-size: calc(100% - 6px) 1px;
 }
 
@@ -506,7 +506,7 @@
   border-radius: 0;
 }
 
-.assetDetailCell .editor::after {
+.assetDetailRow:has(+ .assetRow) .editor::after {
   content: "";
   position: absolute;
   bottom: 0;

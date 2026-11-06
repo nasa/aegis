@@ -265,6 +265,67 @@ describe("MapAssetsMenu", () => {
     await vi.waitFor(() => expect(saveAsset).toHaveBeenCalledTimes(1));
   });
 
+  it("fits the empty add form without scrolling at the default panel size", async () => {
+    // The 360px floating widget includes a 30px tab strip.
+    harness.container.style.width = "420px";
+    harness.container.style.height = "330px";
+    store = makeStore(true);
+    render();
+    openDraft(generateBlankAsset(), true);
+    await document.fonts.ready;
+    const editor = q("[data-testid='asset-editor']")!;
+    expect(editor.scrollHeight).toBeLessThanOrEqual(editor.clientHeight);
+    expect(q("[data-testid='assets-map-menu']")!.scrollWidth).toBeLessThanOrEqual(420);
+    expect(byText("Radius (m)")).toBeDefined();
+  });
+
+  it("ends the table at the last folder without a trailing empty strip", () => {
+    const asset = generateBlankAsset({ name: "Drill" });
+    const folder = generateBlankFolder({ type: "asset", items: [asset.uuid] });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    mockMissionDoc.folders = { [folder.uuid]: folder };
+    store = makeStore(true);
+    render();
+    expect(q("[data-testid='asset-table']")!.getBoundingClientRect().bottom).toBe(
+      q(`[data-testid='asset-folder-${folder.uuid}']`)!.getBoundingClientRect().bottom
+    );
+  });
+
+  it.each([
+    { withFolder: false, count: 1 },
+    { withFolder: false, count: 3 },
+    { withFolder: true, count: 1 },
+    { withFolder: true, count: 3 },
+  ])(
+    "draws dividers only between assets ($count assets, folder: $withFolder)",
+    ({ withFolder, count }) => {
+      const assets = Array.from({ length: count }, (_, i) =>
+        generateBlankAsset({ name: `Asset ${i}` })
+      );
+      const otherAsset = generateBlankAsset({ name: "Other asset" });
+      const folder = generateBlankFolder({
+        type: "asset",
+        items: withFolder ? assets.map((asset) => asset.uuid) : [otherAsset.uuid],
+      });
+      mockMissionDoc.assets = Object.fromEntries(
+        [...assets, otherAsset].map((asset) => [asset.uuid, asset])
+      );
+      mockMissionDoc.folders = { [folder.uuid]: folder };
+      store = makeStore(true);
+      render();
+
+      assets.forEach((asset, index) => {
+        flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
+        const row = q(`[data-testid='asset-row-${asset.uuid}']`)!;
+        const editor = q("[data-testid='asset-editor']")!;
+        expect(getComputedStyle(row.querySelector("td")!).backgroundImage !== "none").toBe(
+          index > 0
+        );
+        expect(getComputedStyle(editor, "::after").content !== "none").toBe(index < count - 1);
+      });
+    }
+  );
+
   it.each([1, 6, 7, 20])("scrolls asset notes after six lines (%i lines)", async (lines) => {
     harness.container.style.width = "420px";
     harness.container.style.height = "500px";
@@ -276,12 +337,12 @@ describe("MapAssetsMenu", () => {
     flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
     await document.fonts.ready;
 
-    const checkHeightAndScroll = (element: HTMLElement) => {
+    const checkHeightAndScroll = (element: HTMLElement, maxRows = 6) => {
       const styles = getComputedStyle(element);
       const lineHeight = parseFloat(styles.lineHeight);
       const padding = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
-      expect(element.clientHeight - padding).toBeLessThanOrEqual(6 * lineHeight + 1);
-      if (lines > 6) {
+      expect(element.clientHeight - padding).toBeLessThanOrEqual(maxRows * lineHeight + 1);
+      if (lines > maxRows) {
         expect(element.scrollHeight).toBeGreaterThan(element.clientHeight);
         element.scrollTop = element.scrollHeight;
         expect(element.scrollTop).toBeGreaterThan(0);
@@ -305,7 +366,7 @@ describe("MapAssetsMenu", () => {
     flushSync(() => dialogAction("Cancel").click());
 
     openDraft(asset, true);
-    checkHeightAndScroll(q("textarea[aria-label='Asset notes']")!);
+    checkHeightAndScroll(q("textarea[aria-label='Asset notes']")!, 3);
   });
 
   it.each([true, false])(
@@ -320,7 +381,7 @@ describe("MapAssetsMenu", () => {
       openDraft(asset, creating);
       if (!creating) flushSync(() => q("div[aria-label='Asset notes']")!.click());
       const textarea = q("textarea[aria-label='Asset notes']") as HTMLTextAreaElement;
-      await vi.waitFor(() => expect(textarea.clientHeight).toBeGreaterThan(60));
+      await vi.waitFor(() => expect(textarea.clientHeight).toBeGreaterThan(creating ? 40 : 60));
       expect(getComputedStyle(textarea).resize).toBe("both");
       // Native resize writes inline dimensions; reproduce them to exercise preservation on input.
       textarea.style.height = "240px";
@@ -773,7 +834,8 @@ describe("MapAssetsMenu", () => {
     await vi.waitFor(() =>
       expect((q("dialog[open] input") as HTMLInputElement).value).toBe("Renamed drill")
     );
-    clickAction("Save");
+    await userEvent.keyboard("{Enter}");
+    expect(q("dialog[open]")).toBeNull();
     expect(updateFields).toHaveBeenCalledWith({
       assetUuid: asset.uuid,
       changes: { name: "Renamed drill" },
@@ -786,6 +848,8 @@ describe("MapAssetsMenu", () => {
       expect(q("dialog[open]")?.textContent).toContain("Radius must be between")
     );
     clickAction("Save");
+    await userEvent.keyboard("{Enter}");
+    expect(q("dialog[open]")).not.toBeNull();
     expect(updateFields).toHaveBeenCalledTimes(1);
     changeInput("Radius in meters", "");
     await vi.waitFor(() =>
@@ -878,12 +942,16 @@ describe("MapAssetsMenu", () => {
         expect(emojiPopover.getBoundingClientRect().height).toBeGreaterThan(250);
         expectFloating(emojiPopover);
       });
-      flushSync(() => byText("No emoji")!.click());
-      if (creating) expect(store.getState().asset.inEdit?.values.icon).toBeNull();
+      expect(byText("No emoji")).toBeUndefined();
+      const emoji = q("em-emoji-picker")!.shadowRoot!.querySelector<HTMLButtonElement>(
+        "button[aria-label='\u{1f600}']"
+      )!;
+      flushSync(() => emoji.click());
+      if (creating) expect(store.getState().asset.inEdit?.values.icon).toBe("1f600");
       else
         expect(updateFields).toHaveBeenCalledWith({
           assetUuid: asset.uuid,
-          changes: { icon: null },
+          changes: { icon: "1f600" },
         });
       expect(byText("Pick Icon")).toBeDefined();
     }

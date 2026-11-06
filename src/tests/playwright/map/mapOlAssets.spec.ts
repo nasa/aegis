@@ -56,7 +56,7 @@ test.describe("Mission 22 — Asset tracking", () => {
     await expect(assetRow).toBeVisible();
     await expect(assetRow).not.toContainText("Not placed");
     await assetRow.getByLabel("Expand asset", { exact: true }).click();
-    await expect(displayField(page, "Radius in meters")).toHaveText("15 m");
+    await expect(displayField(page, "Radius in meters")).toHaveText("15");
     await expect(displayField(page, "Asset coordinates")).toHaveText(coordinates);
     await expect(editor.getByLabel("assetEditToggle", { exact: true })).toBeHidden();
 
@@ -64,7 +64,7 @@ test.describe("Mission 22 — Asset tracking", () => {
     await page.getByRole("menuitem", { name: "Edit Asset", exact: true }).click();
     await expect(displayField(page, "Asset name")).toHaveText(assetName);
     await editValidatedField(page, "Radius in meters", "20");
-    await expect(displayField(page, "Radius in meters")).toHaveText("20 m");
+    await expect(displayField(page, "Radius in meters")).toHaveText("20");
     await editor.getByLabel("assetEditToggle", { exact: true }).click();
     await assetRow.getByLabel("Collapse asset", { exact: true }).click();
 
@@ -76,7 +76,7 @@ test.describe("Mission 22 — Asset tracking", () => {
     await openAssetsTab(page);
     await expect(assetRow).toBeVisible();
     await assetRow.getByLabel("Expand asset", { exact: true }).click();
-    await expect(displayField(page, "Radius in meters")).toHaveText("20 m");
+    await expect(displayField(page, "Radius in meters")).toHaveText("20");
     await assetRow.getByLabel("Collapse asset", { exact: true }).click();
 
     await page.getByText("Add Folder", { exact: true }).click();

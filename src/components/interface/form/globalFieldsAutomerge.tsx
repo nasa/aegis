@@ -574,7 +574,10 @@ export const ValidatedInputField: FunctionComponent<{
               // final-form omits cleared fields from formValues, yielding undefined.
               // Automerge rejects undefined, so normalize to an empty string.
               const newValue = formValues[fieldProps.name] ?? "";
+              if (!isOnline) return;
               onSubmit(newValue);
+              initialValueRef.current = newValue;
+              dialogRef.current?.close();
             }}
             initialValues={{ [fieldProps.name]: valueToShow }}
             render={({ handleSubmit, form }) => {
@@ -651,7 +654,6 @@ export const ValidatedInputField: FunctionComponent<{
                                 className={`${formStyles.saveButton} ${(hasError || !isOnline) && formStyles.saveButtonDisabled}`}
                                 onClick={(e) => {
                                   if (hasError || !isOnline) return;
-                                  dialogRef.current?.close();
                                   form.submit();
                                   e.stopPropagation();
                                 }}

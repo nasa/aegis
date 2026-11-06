@@ -209,9 +209,11 @@ export const AssetTable: FunctionComponent<Props> = ({
             </FolderGroup>
           );
         })}
-        <RootGroup dragActive={!!activeDragUuid} columnCount={columnCount} canMutate={canMutate}>
-          {rootAssets.map((asset) => renderAssetRow(asset, null))}
-        </RootGroup>
+        {(rootAssets.length > 0 || activeDragUuid) && (
+          <RootGroup dragActive={!!activeDragUuid} columnCount={columnCount} canMutate={canMutate}>
+            {rootAssets.map((asset) => renderAssetRow(asset, null))}
+          </RootGroup>
+        )}
       </table>
       {assets.length === 0 && (
         <div className={styles.emptyState} data-testid="asset-table-empty">
