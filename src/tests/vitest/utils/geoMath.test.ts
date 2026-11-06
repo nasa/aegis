@@ -8,29 +8,50 @@ import {
   getTotalDistance,
   getTrueBearingFromLatLngPoints,
   calcPathDurationMins,
+  formatBearingDegrees,
 } from "utils/mapping/geoMath";
-import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
+import { getLgrsGridBearing } from "utils/lgrs/bearing";
 
 describe("Geomath Functions", () => {
   const earthRadius = 6371000; //6378137;
 
-  test("uses the LGRS display port for LGRS grid coordinates", () => {
-    expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true)).toBe("B95 D44");
-  });
+  describe("getGridCoordinatesFromPoint", () => {
+    test("uses the LGRS display port for LGRS grid coordinates", () => {
+      expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true)).toBe("B95 D44");
+    });
 
-  test("uses the full ACC identifier for dynamic LGRS grids", () => {
-    expect(
-      getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true, undefined, true)
-    ).toBe("AZM B95 D44");
+    test("uses the full ACC identifier for dynamic LGRS grids", () => {
+      expect(
+        getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true, undefined, true)
+      ).toBe("AZM B95 D44");
+    });
+
+    // Oracle (lgrs 0.4.0) 10 m ACC labels; these points are outside the south LPS cap.
+    test.each([
+      [{ lat: 0, lng: 0 }, "-00 -00", "23NFF -00 -00"],
+      [{ lat: -0.0001, lng: 0.0001 }, "-00 Z99", "23MFE -00 Z99"],
+      [{ lat: 45, lng: 90 }, "S84 N71", "34TGQ S84 N71"],
+      [{ lat: -45, lng: -90 }, "G15 L28", "12GDR G15 L28"],
+      [{ lat: 0, lng: -180 }, "C72 -00", "1NAA C72 -00"],
+      [{ lat: 79.9, lng: 10 }, "K62 V59", "24XFG K62 V59"],
+      [{ lat: 80, lng: 10 }, "B47 B40", "ZCA B47 B40"],
+    ])("formats %o for LTM and north LPS", (point, condensed, full) => {
+      expect(getGridCoordinatesFromPoint(point, 1737400, true)).toBe(condensed);
+      expect(getGridCoordinatesFromPoint(point, 1737400, true, undefined, true)).toBe(full);
+    });
+
+    test("returns null if point not given", () => {
+      expect(getGridCoordinatesFromPoint(null, 1737400, true, undefined, true)).toBe(null);
+    });
+
+    test("returns null without LGRS or a global grid", () => {
+      expect(getGridCoordinatesFromPoint({ lat: 0, lng: 0 }, 1737400, false)).toBe(null);
+    });
   });
 
   test("Returns 0 distance between two identical coordinates", () => {
     const point: AEGISPoint = { lat: 0, lng: 0 };
     expect(getDistanceBetweenTwoCoordinates(point, point, 0)).toBe(0);
-  });
-
-  test("returns null if point not given", () => {
-    expect(getGridCoordinatesFromPoint(null, 1737400, true, undefined, true)).toBe(null);
   });
 
   describe("getDistanceBetweenTwoCoordinates", () => {
@@ -231,25 +252,30 @@ describe("getSegmentBearing()", () => {
     });
   });
 
-  describe("LGRS / lunar missions (LPS grid bearing)", () => {
-    test("uses the lunar LPS frame, so an Earth horizontal line does NOT read ~90°", () => {
+  describe("LGRS / lunar missions (grid bearing in the origin's LGRS CRS)", () => {
+    test("an east-west line reads the LTM grid bearing, close to but not exactly 90°", () => {
+      // LTM zone 10N; grid north differs from true north by the meridian convergence.
       const bearing = getSegmentBearing(horizontalWest, horizontalEast, true);
-      // Same points through the LPS south-pole projection → ~338°, not 90°.
-      expect(bearing).toBeCloseTo(338.278, 2);
-      expect(bearing).not.toBeCloseTo(90, 0);
+      expect(bearing).toBeCloseTo(89.8385637380594, 9);
     });
 
-    test("delegates to getBearingFromLatLngPoints", () => {
+    test("delegates to getLgrsGridBearing", () => {
       expect(getSegmentBearing(horizontalWest, horizontalEast, true)).toBe(
-        getBearingFromLatLngPoints(horizontalWest, horizontalEast)
+        getLgrsGridBearing(horizontalWest, horizontalEast)
       );
     });
-  });
 
-  test("LGRS and Mercator disagree for the same Earth segment", () => {
-    const lgrs = getSegmentBearing(horizontalWest, horizontalEast, true);
-    const mercator = getSegmentBearing(horizontalWest, horizontalEast, false);
-    expect(Math.abs(lgrs - mercator)).toBeGreaterThan(1);
+    test("keeps the south LPS grid bearing", () => {
+      const origin: AEGISPoint = { lat: -89.5, lng: 10 };
+      const destination: AEGISPoint = { lat: -89.4, lng: 12 };
+      expect(getSegmentBearing(origin, destination, true)).toBe(
+        getLgrsGridBearing(origin, destination)
+      );
+    });
+
+    test("returns NaN when a point cannot be projected", () => {
+      expect(getSegmentBearing({ lat: 95, lng: 0 }, horizontalEast, true)).toBeNaN();
+    });
   });
 
   test("returns 0 when the segment has no direction", () => {
@@ -311,5 +337,16 @@ describe("calcPathDurationMins()", () => {
 
   test("returns 0 when segmentDistances and traverseRate are both 0", () => {
     expect(calcPathDurationMins([0, 0], 0)).toBe(0);
+  });
+});
+
+describe("formatBearingDegrees()", () => {
+  test("rounds to whole degrees", () => {
+    expect(formatBearingDegrees(89.8385637380594)).toBe("90°");
+    expect(formatBearingDegrees(0)).toBe("0°");
+  });
+
+  test("shows an em dash for a bearing that could not be computed", () => {
+    expect(formatBearingDegrees(NaN)).toBe("—");
   });
 });

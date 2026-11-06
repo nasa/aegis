@@ -106,13 +106,24 @@ Bug-prone details:
 - `toMapCoord` returns `[0, 0]` (projection origin) for a null lat/lng — **fails silently**, not
   an error.
 - The projection **must be registered** before the converters run (MapProvider handles it).
-- The `projCode` derivation logic is **duplicated** in `MapProvider` and `useCoordConverters` —
-  keep them in sync or the View and the converters target different CRS.
+- The `projCode` derivation logic is **duplicated** in `MapProvider`, `useCoordConverters` and
+  `getLgrsMapProjection` (`utils/lgrs/mapAdapter.ts`) — keep all three in sync or the View, the
+  converters and the LGRS grid/readout target different CRS.
 - Distances/bearings for traverses/measurements are computed **geodesically from lat/lng**
-  (haversine, LGRS-aware via `usingLGRSCoordinates`) in `utils/mapping/geoMath.ts`, **not** from
+  (haversine; with `usingLGRSCoordinates`, the grid-north bearing in the origin's LGRS CRS from
+  `utils/lgrs/bearing.ts`, NaN → `—` via `formatBearingDegrees`) in `utils/mapping/geoMath.ts`, **not** from
   projected geometry — projected length over-reports on distorted projections (Web Mercator
   ≈ sec(lat)) and near the pole. `TimelineAstronaut` interpolates position with
   `LineString.getCoordinateAt()` in projected CRS (fine — it's a screen position, not a distance).
+
+**LGRS map adapter.** `getLgrsMapAdapter(getLgrsMapProjection(mission))` (`utils/lgrs/mapAdapter.ts`)
+is the cached map ↔ lat/lon ↔ LGRS (LPS S/N, LTM zone) converter used by the dynamic grid and the
+mouse readout. It builds proj4 converters once per projection and has closed-form fast paths
+(bit-identical to proj4) for polar stereographic, Web Mercator and `+approx` tmerc maps.
+`getAffine(crs)` reports when the map CRS is affine to an LGRS CRS, so grid lines can stay
+two-vertex segments. `getLgrsCompatibility(mission)` (`utils/lgrs/compatibility.ts`) gates dynamic
+LGRS: exact lunar radius plus a projection the adapter can build (any lunar projection, including
+the default EPSG:3857).
 
 Tile resolutions for legacy raster layers come from `buildLegacyResolutions()`
 (`utils/parsers/leafletShim.ts`). **Critical:** use the API `projResUnitsPerPixel`, NOT the XML
@@ -316,6 +327,9 @@ a cache key omits a varying input:
   (`=== false` hides; undefined shows), matching `buildVectorStyleFn`. The font size comes
   from `dataLayer` (see §10) and is **not** in either cache key — it's captured at
   builder-creation time, so a size change means rebuilding the builder.
+- `grid.ts` (`createGridLineStyles`, `createGridLabelStyleFn`): grid line styles built once per
+  render (seams heavier), and a label `Style` cache keyed by text and centring, cleared past 2,000
+  entries. Style and font size are captured at builder-creation time.
 - `emojiRenderer.ts`: unbounded canvas cache keyed `emoji-size`. A failed lander SVG load caches a
   **blank** canvas permanently (sticky failure until cache clears).
 
@@ -471,6 +485,8 @@ Overlay gotchas:
 - Dashboard menus are hover-gated (mouseenter/mouseleave on `map.getTargetElement()`); if the
   target element isn't ready when the effect runs, listeners silently don't attach.
 - `MouseCoordinateDisplay` needs BOTH `config.map.showMouseCoords` (editor) AND the eyeball toggle.
+  It converts through the memoised LGRS map adapter, coalesces `pointermove` with
+  `requestAnimationFrame`, and only sets state when the formatted text changes.
 - `ScaleBar` assumes resolution == meters/pixel — only exact for a metric projected CRS;
   approximate on EPSG:3857 away from the equator. Updates on `moveend` only.
 
@@ -478,27 +494,27 @@ Overlay gotchas:
 
 ## 12. Behavior component reference
 
-| Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                           |
-| -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/feature labels                                        |
-| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density; dashboard publishes its spacing, minimap mirrors it       |
-| `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                     |
-| `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                             |
-| `WalkbackLines`      | shared `walkbackSource`                                | all         | ✅                           | feature id `walkback-${uuid}`; edit-drag dance                                                                                                  |
-| `MeasurementLines`   | shared `measurementSource`                             | editor      | ✅                           | edit-drag dance; new measurements spawn at viewport thirds                                                                                      |
-| `StationMarkers`     | shared `stationSource`                                 | all         | ✅                           | dashboard in-progress green ring; drag = selected only                                                                                          |
-| `PoiMarkers`         | shared `poiSource`                                     | all         | ✅                           | selected POI always shown; `source.changed()` repaint                                                                                           |
-| `ActionMarkers`      | shared `actionSource`                                  | all         | ✅                           | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`)    |
-| `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                   |
-| `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
-| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | only when section=="evas" & selectedRex; epsilon egress skip; keeps edited entry visible                                                        |
-| `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                              |
-| `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                     |
-| `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                        |
-| `TimelineAstronaut`  | `ol/Overlay`                                           | editor      | —                            | `getCoordinateAt(fraction)`; `percentElapsed === 0` is valid                                                                                    |
-| `FollowMode`         | drives `view.fit()`                                    | dashboard   | —                            | sorts pos entries newest-first (documented fix); publishes `bigMapExtent`                                                                       |
-| `AutoFitBounds`      | drives `view.fit()`                                    | minimap     | —                            | fits objects + dashboard box                                                                                                                    |
-| `BigMapBoundsBox`    | own source                                             | minimap     | rebuild                      | draws dashboard viewport box                                                                                                                    |
+| Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/feature labels                                                                                                                                                                                                                                                               |
+| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; dynamic LGRS = whole-Moon `createLgrsRenderPlan` (`utils/lgrs/grid/`): box tier per LPS/LTM region or zone-framework tier when zoomed out, seams stroked heavier, hard caps coarsen spacing; label `Style`s cached by text (`utils/styles/grid.ts`); dashboard publishes its spacing (null in zone tier), minimap mirrors it |
+| `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                                                                                                                                                                                                                                            |
+| `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                                                                                                                                                                                                                                                    |
+| `WalkbackLines`      | shared `walkbackSource`                                | all         | ✅                           | feature id `walkback-${uuid}`; edit-drag dance                                                                                                                                                                                                                                                                                                                         |
+| `MeasurementLines`   | shared `measurementSource`                             | editor      | ✅                           | edit-drag dance; new measurements spawn at viewport thirds                                                                                                                                                                                                                                                                                                             |
+| `StationMarkers`     | shared `stationSource`                                 | all         | ✅                           | dashboard in-progress green ring; drag = selected only                                                                                                                                                                                                                                                                                                                 |
+| `PoiMarkers`         | shared `poiSource`                                     | all         | ✅                           | selected POI always shown; `source.changed()` repaint                                                                                                                                                                                                                                                                                                                  |
+| `ActionMarkers`      | shared `actionSource`                                  | all         | ✅                           | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`)                                                                                                                                                                                                                           |
+| `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                                                                                                                                                                                                                                          |
+| `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition)                                                                                                                                                                                                                        |
+| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | only when section=="evas" & selectedRex; epsilon egress skip; keeps edited entry visible                                                                                                                                                                                                                                                                               |
+| `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                                                                                                                                                                                                                                                     |
+| `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                                                                                                                                                                                                                                            |
+| `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                                                                                                                                                                                                                                               |
+| `TimelineAstronaut`  | `ol/Overlay`                                           | editor      | —                            | `getCoordinateAt(fraction)`; `percentElapsed === 0` is valid                                                                                                                                                                                                                                                                                                           |
+| `FollowMode`         | drives `view.fit()`                                    | dashboard   | —                            | sorts pos entries newest-first (documented fix); publishes `bigMapExtent`                                                                                                                                                                                                                                                                                              |
+| `AutoFitBounds`      | drives `view.fit()`                                    | minimap     | —                            | fits objects + dashboard box                                                                                                                                                                                                                                                                                                                                           |
+| `BigMapBoundsBox`    | own source                                             | minimap     | rebuild                      | draws dashboard viewport box                                                                                                                                                                                                                                                                                                                                           |
 
 > **Grid density is owned by the dashboard.** After each rebuild the dashboard `Grid` publishes the
 > line + label spacing it used (in projection metres) to `DashboardBoundsProvider`; the minimap
@@ -506,7 +522,8 @@ Overlay gotchas:
 > as many grid lines as the dashboard shows. The editor map has no provider and is unaffected.
 > One safety valve: because the minimap is far more zoomed out, the inherited spacing is doubled
 > until adjacent lines are ≥ `MINIMAP_MIN_LINE_PX` (3px) apart — doubling keeps the drawn lines a
-> subset of the dashboard's. Both paths (dynamic-LGRS and server-file grid) implement this.
+> subset of the dashboard's. Both paths (dynamic-LGRS and server-file grid) implement this; the
+> dynamic-LGRS plan applies the coarsening per region via `inheritedSpacing`.
 
 ---
 

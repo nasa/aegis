@@ -145,3 +145,20 @@ interface OLMapHandle {
 
 // Map modes — one component, three configurations
 type MapMode = "editor" | "dashboard" | "minimap";
+
+/** Per-mission inputs of `MouseCoordinateDisplay`, resolved once rather than per pointer event. */
+type MouseCoordinateInputs = {
+  adapter: LgrsMapAdapter;
+  formatGrid: (point: AEGISPoint) => string | null;
+};
+
+/** Text shown by `MouseCoordinateDisplay`. */
+type MouseCoordinateReadout = {
+  latLng: string;
+  grid: string | null;
+};
+
+type GridLineStyles = { grid: import("ol/style").Style; seam: import("ol/style").Style };
+
+/** Grid label style for `text`, cached per builder. */
+type GridLabelStyleFn = (text: string, centered: boolean) => import("ol/style").Style;

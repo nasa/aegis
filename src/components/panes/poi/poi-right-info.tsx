@@ -25,7 +25,7 @@ import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { getCalcFieldsForPoi } from "store/processing/calculatedFields";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
-import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
+import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
@@ -108,8 +108,9 @@ const Info_Panel: FunctionComponent<{
   const poiGridCoordinates = useMemo(() => {
     if (selectedPoi?.location && partialMission.usingLGRSCoordinates) {
       return (
-        getSouthLpsDisplayCoordinate(
+        formatLgrsFromLatLon(
           selectedPoi.location,
+          LGRS_DISPLAY_PRECISION_METERS,
           resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
         ) ?? "Not set"
       );
