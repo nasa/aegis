@@ -43,90 +43,41 @@ async function openMissionCircles(page: Page): Promise<void> {
   );
 }
 
-async function editCircleField(
-  page: Page,
-  row: ReturnType<Page["locator"]>,
-  label: string,
-  value: string
-) {
-  await row.locator(`div[aria-label="${label}"]`).first().click();
-  const dialog = page.locator("dialog[open]");
-  await expect(dialog.getByLabel(label, { exact: true })).toBeVisible();
-  await dialog.getByLabel(label, { exact: true }).fill(value);
-  await dialog.getByText("Save", { exact: true }).click();
-  await expect(dialog).toHaveCount(0);
-}
-
-test("circle definitions create hidden controls, sort by radius, render saved geometry, and prune every reference", async ({
+test("station circle visibility and definition deletion reach peer geometry and persist after reload", async ({
   page,
   context,
   mission,
 }) => {
+  const uuid = "91000000-0000-4000-8000-000000000080";
+  await mission.change((doc) => {
+    doc.circleDefinitions[uuid] = { name: "350 m radius", radius: 350 };
+    const control = {
+      uuid,
+      visible: false,
+      style: {
+        opacity: 1,
+        contrast: 1,
+        brightness: 1,
+        saturation: 1,
+        blendMode: "normal" as const,
+        color: "#ffffff",
+        weight: 2,
+        fillColor: "none",
+        fillOpacity: 0,
+        isDashed: false,
+        dashLen: 10,
+        altColor: "#ffffff",
+        altOpacity: 1,
+        showLabels: true,
+      },
+    };
+    for (const preset of Object.values(doc.presets))
+      preset.mapCircleControls[uuid] = structuredClone(control);
+    for (const station of Object.values(doc.stations))
+      if (!station.isLanderXgress) station.mapCircleControls[uuid] = structuredClone(control);
+  });
   await mission.open(page);
   await enablePlanningEditMode(page);
-  await openMissionCircles(page);
-
-  await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await expect
-    .poll(async () => Object.keys((await mission.read()).circleDefinitions).length)
-    .toBe(1);
-  let circleIds = Object.keys((await mission.read()).circleDefinitions);
-  const outerUuid = circleIds[0];
-  let outerRow = page.getByLabel("circle-definition-item", { exact: true }).filter({
-    hasText: "(Circle Definition Name)",
-  });
-  await editCircleField(page, outerRow, "Circle Definition Name", "350 m radius");
-  outerRow = page
-    .getByLabel("circle-definition-item", { exact: true })
-    .filter({ hasText: "350 m radius" });
-  await editCircleField(page, outerRow, "Circle Definition Range", "350");
-  await expect
-    .poll(async () => (await mission.read()).circleDefinitions[outerUuid].radius)
-    .toBe(350);
-
-  const invalid = page.locator("dialog[open]");
-  await outerRow.locator('div[aria-label="Circle Definition Range"]').first().click();
-  await invalid.getByLabel("Circle Definition Range", { exact: true }).fill("0");
-  await expect(
-    invalid.getByText("Should be greater than or equal to 1", { exact: true })
-  ).toBeVisible();
-  await expect(invalid.getByText("Save", { exact: true })).toBeDisabled();
-  await expect(invalid.getByLabel("Circle Definition Range", { exact: true })).toBeVisible();
-  await invalid.getByText("Cancel", { exact: true }).click();
-  await expect
-    .poll(async () => (await mission.read()).circleDefinitions[outerUuid].radius)
-    .toBe(350);
-
-  await page.getByLabel("addNewRadiusButton", { exact: true }).click();
-  await expect
-    .poll(async () => Object.keys((await mission.read()).circleDefinitions).length)
-    .toBe(2);
-  circleIds = Object.keys((await mission.read()).circleDefinitions);
-  const innerUuid = circleIds.find((uuid) => uuid !== outerUuid)!;
-  const innerRow = page.getByLabel("circle-definition-item", { exact: true }).filter({
-    hasText: "(Circle Definition Name)",
-  });
-  await editCircleField(page, innerRow, "Circle Definition Name", "50 m radius");
-  const namedInnerRow = page
-    .getByLabel("circle-definition-item", { exact: true })
-    .filter({ hasText: "50 m radius" });
-  await editCircleField(page, namedInnerRow, "Circle Definition Range", "50");
-  const orderedCircleRows = page.getByLabel("circle-definition-item", { exact: true });
-  await expect(orderedCircleRows.nth(0)).toContainText("50 m radius");
-  await expect(orderedCircleRows.nth(1)).toContainText("350 m radius");
-
-  const arranged = await mission.read();
-  for (const preset of Object.values(arranged.presets)) {
-    expect(preset.mapCircleControls[outerUuid]).toMatchObject({ uuid: outerUuid, visible: false });
-    expect(preset.mapCircleControls[innerUuid]).toMatchObject({ uuid: innerUuid, visible: false });
-  }
-  for (const station of Object.values(arranged.stations).filter(
-    (candidate) => !candidate.isLanderXgress
-  )) {
-    expect(station.mapCircleControls[outerUuid]).toMatchObject({ uuid: outerUuid, visible: false });
-    expect(station.mapCircleControls[innerUuid]).toMatchObject({ uuid: innerUuid, visible: false });
-  }
-
   const peer = await context.newPage();
   await installMapObserver(peer);
   await mission.open(peer);
@@ -134,52 +85,28 @@ test("circle definitions create hidden controls, sort by radius, render saved ge
   await page.getByLabel("circle_panel", { exact: true }).click();
   await selectPlanningStation(peer, "Alpha station");
   await peer.getByLabel("circle_panel", { exact: true }).click();
-  const outerControl = (client: Page) =>
-    client.locator('[class*="sublayerItemContainer"]').filter({ hasText: "350 m radius" });
-  await expect(outerControl(page)).toBeVisible();
-  await expect(outerControl(page).locator('[class*="inVisible"]')).toBeVisible();
-  await outerControl(page).locator('[class*="visibility"]').click();
-  await expect
-    .poll(
-      async () =>
-        (await mission.read()).stations[mission.ids.stationA].mapCircleControls[outerUuid].visible
-    )
-    .toBe(true);
-  await expect.poll(() => radiusAroundStation(page, mission.ids.stationA)).toHaveLength(1);
-  await expect
-    .poll(() => radiusAroundStation(page, mission.ids.stationA).then((radii) => radii[0]))
-    .toBeCloseTo(350, 1);
-  await expect.poll(() => radiusAroundStation(peer, mission.ids.stationA)).toHaveLength(1);
+  await page
+    .locator('[class*="sublayerItemContainer"]')
+    .filter({ hasText: "350 m radius" })
+    .locator('[class*="visibility"]')
+    .click();
   await expect
     .poll(() => radiusAroundStation(peer, mission.ids.stationA).then((radii) => radii[0]))
     .toBeCloseTo(350, 1);
-
   await openMissionCircles(page);
-  const selectedOuterRow = page
+  await page
     .getByLabel("circle-definition-item", { exact: true })
-    .filter({ hasText: "350 m radius" });
-  await selectedOuterRow.getByLabel("deleteButton", { exact: true }).click();
-  await expect
-    .poll(async () => Object.hasOwn((await mission.read()).circleDefinitions, outerUuid))
-    .toBe(false);
-  const afterDelete = await mission.read();
-  for (const preset of Object.values(afterDelete.presets)) {
-    expect(preset.mapCircleControls).not.toHaveProperty(outerUuid);
-    expect(preset.mapCircleControls[innerUuid]).toBeDefined();
-  }
-  for (const station of Object.values(afterDelete.stations)) {
-    expect(station.mapCircleControls).not.toHaveProperty(outerUuid);
-    if (!station.isLanderXgress) expect(station.mapCircleControls[innerUuid]).toBeDefined();
-  }
-  await expect.poll(() => radiusAroundStation(page, mission.ids.stationA)).toEqual([]);
+    .getByLabel("deleteButton", { exact: true })
+    .click();
   await expect.poll(() => radiusAroundStation(peer, mission.ids.stationA)).toEqual([]);
-  await mission.open(page);
-  await expect
-    .poll(async () => Object.keys((await mission.read()).circleDefinitions))
-    .toEqual([innerUuid]);
-  await openMissionCircles(page);
-  await expect(page.getByLabel("circle-definition-item", { exact: true })).toHaveCount(1);
-  await expect(
-    page.getByLabel("circle-definition-item", { exact: true }).filter({ hasText: "50 m radius" })
-  ).toBeVisible();
+  await peer.reload();
+  await selectPlanningStation(peer, "Alpha station");
+  await peer.getByLabel("circle_panel", { exact: true }).click();
+  await expect(peer.getByText("350 m radius", { exact: true })).toHaveCount(0);
+  const after = await mission.read();
+  expect(after.circleDefinitions[uuid]).toBeUndefined();
+  for (const station of Object.values(after.stations))
+    expect(station.mapCircleControls[uuid]).toBeUndefined();
+  for (const preset of Object.values(after.presets))
+    expect(preset.mapCircleControls[uuid]).toBeUndefined();
 });

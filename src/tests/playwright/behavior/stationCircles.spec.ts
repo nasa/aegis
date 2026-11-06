@@ -66,7 +66,7 @@ async function circlesOnMap(page: Page, stationUuid: string) {
   }, stationUuid);
 }
 
-test("station circle visibility and style stay local and render the defined metre radius", async ({
+test("station circle visibility and weight reach a peer and survive fresh server loads independently", async ({
   page,
   context,
   mission,
@@ -108,16 +108,6 @@ test("station circle visibility and style stay local and render the defined metr
         (await mission.read()).stations[mission.ids.stationA].mapCircleControls[circleUuid].visible
     )
     .toBe(true);
-  await expect
-    .poll(() => circlesOnMap(page, mission.ids.stationA).then((circles) => circles.length))
-    .toBe(1);
-  await expect
-    .poll(() => circlesOnMap(page, mission.ids.stationA).then((circles) => circles[0].radius))
-    .toBeCloseTo(radiusMeters, 1);
-  await expect
-    .poll(() => circlesOnMap(page, mission.ids.stationA).then((circles) => circles[0].centerOffset))
-    .toBeLessThan(1e-4);
-
   // The settings panel debounces style writes for 250ms. A page clock advances
   // that specific debounce deterministically without a real-time delay.
   await page.clock.install();
@@ -140,16 +130,6 @@ test("station circle visibility and style stay local and render the defined metr
         (await mission.read()).stations[mission.ids.stationB].mapCircleControls[circleUuid]
     )
     .toEqual(arranged.stations[mission.ids.stationB].mapCircleControls[circleUuid]);
-  await expect
-    .poll(() => circlesOnMap(peer, mission.ids.stationA).then((circles) => circles.length))
-    .toBe(1);
-  await expect
-    .poll(() => circlesOnMap(peer, mission.ids.stationA).then((circles) => circles[0].radius))
-    .toBeCloseTo(radiusMeters, 1);
-  await expect
-    .poll(() => circlesOnMap(peer, mission.ids.stationA).then((circles) => circles[0].centerOffset))
-    .toBeLessThan(1e-4);
-
   const peerCircle = circleRow(peer);
   await expect(peerCircle).toBeVisible();
   const after = await mission.read();

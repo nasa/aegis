@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { setChecked } from "./browserAssertions";
 
 import type { BrowserPage as Page } from "vitest/browser";
@@ -81,6 +82,11 @@ test.describe("Downloaded export contracts", () => {
     const before = await mission.read();
     await mission.open();
     await openExport(page);
+    for (const [id] of categories) {
+      if (id === "all-evas")
+        await expect.element(page.getBySelector(`#export-${id}`)).toBeChecked();
+      else await expect.element(page.getBySelector(`#export-${id}`)).not.toBeChecked();
+    }
     await selectCategories(
       page,
       categories.map(([id]) => id)
@@ -265,4 +271,26 @@ test.describe("Downloaded export contracts", () => {
     expect(data.actions.find((a) => a.uuid === mission.ids.rexActionA).duration).toBeNull();
     expect(JSON.stringify(data)).not.toContain("NaN");
   });
+});
+
+test("repeated exports preserve identical contents and recover after a download URL failure without document changes", async ({
+  page,
+  mission,
+}) => {
+  const before = await mission.read();
+  await mission.open();
+  await openExport(page);
+  await selectCategories(page, ["mission"]);
+  const first = await downloadJson<BrowserMissionExport>(page, mission, "Export JSON File");
+  const repeated = await downloadJson<BrowserMissionExport>(page, mission, "Export JSON File");
+  expect(repeated).toEqual(first);
+  const createURL = vi.spyOn(URL, "createObjectURL").mockImplementationOnce(() => {
+    throw new Error("Synthetic export URL creation failure");
+  });
+  await page.getByLabelText("Export JSON File", { exact: true }).click();
+  await expect.element(page.getByRole("alert").filter({ hasText: "Export failed" })).toBeVisible();
+  createURL.mockRestore();
+  const recovered = await downloadJson<BrowserMissionExport>(page, mission, "Export JSON File");
+  expect(recovered).toEqual(first);
+  expect(await mission.read()).toEqual(before);
 });

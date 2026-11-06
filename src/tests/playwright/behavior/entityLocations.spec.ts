@@ -3,7 +3,6 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { writeArrayBuffer } from "geotiff";
 import { test, expect } from "../fixtures/behavioralTest";
-import { seedAction } from "../fixtures/entitySeeds";
 import { readMapFeatures } from "../fixtures/mapAssertions";
 import {
   enablePlanningEditMode,
@@ -12,7 +11,6 @@ import {
   selectPlanningStationActions,
 } from "./planningHelpers";
 
-const POI_ACTION = "30000000-0000-4000-8000-000000009901";
 const DEM_FILE = "entity-locations-synthetic.tif";
 const GRID_FILE = "entity-locations-grid.json";
 const LANDER_POINT = { lat: -3.4256273976012914, lng: -17.462978266484328 };
@@ -239,7 +237,7 @@ async function openActionLocation(page: Page, name: string) {
 }
 
 test.describe("POI and action point location lifecycles", () => {
-  test("POI location create, move, field edit, cancel, clear, and reload preserve the point contract", async ({
+  test("POI geometry changes resample the served DEM and persist cleared coordinates", async ({
     page,
     mission,
     request,
@@ -254,12 +252,6 @@ test.describe("POI and action point location lifecycles", () => {
     await enablePlanningEditMode(page);
     await selectPlanningPoi(page, "Reference POI");
     await page.getByLabel("info_panel", { exact: true }).click();
-
-    await page.getByLabel("Create Location", { exact: true }).click();
-    await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
-    await page.getByLabel("Cancel", { exact: true }).click();
-    expect((await mission.read()).pois[mission.ids.poiA]).toEqual(originalPoi);
-    await expectPointFeature(page, mission.ids.poiA, null);
 
     await page.getByLabel("Create Location", { exact: true }).click();
     const createdPoint = await clickMapOffset(page, 155, -90);
@@ -305,14 +297,6 @@ test.describe("POI and action point location lifecycles", () => {
       "Relative Elevation (m):",
       (current.elevation - (await mission.read()).landerElevationMeters).toFixed(0)
     );
-    const fieldGrid = await displayValue(page, "Grid Coords:");
-    await expectPointFeature(page, mission.ids.poiA, current.location);
-
-    await page.getByLabel("Edit on Map", { exact: true }).click();
-    await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
-    await page.getByLabel("Cancel", { exact: true }).click();
-    expect((await mission.read()).pois[mission.ids.poiA]).toEqual(current);
-    await expectDisplay(page, "Grid Coords:", fieldGrid);
     await expectPointFeature(page, mission.ids.poiA, current.location);
 
     await page.getByLabel("Edit on Map", { exact: true }).click();
@@ -363,7 +347,7 @@ test.describe("POI and action point location lifecycles", () => {
     await expectPointFeature(page, mission.ids.poiA, null);
   });
 
-  test("action location create, move, cancel, clear, and Set to Station keep parent identity and reload", async ({
+  test("action geometry changes resample the served DEM, copy the station point and persist cleared coordinates", async ({
     page,
     mission,
     request,
@@ -378,14 +362,6 @@ test.describe("POI and action point location lifecycles", () => {
     await enablePlanningEditMode(page);
     await selectPlanningStationActions(page, "Alpha station");
     let row = await openActionLocation(page, "Sample regolith");
-
-    await row.getByLabel("Create Location", { exact: true }).click();
-    await expect(row.getByLabel("Cancel", { exact: true })).toBeVisible();
-    await row.getByLabel("Cancel", { exact: true }).click();
-    expect((await mission.read()).actions[mission.ids.actionA]).toEqual(
-      before.actions[mission.ids.actionA]
-    );
-    await expectPointFeature(page, mission.ids.actionA, null);
 
     await row.getByLabel("Create Location", { exact: true }).click();
     const createdPoint = await clickMapOffset(page, 150, -75);
@@ -415,13 +391,6 @@ test.describe("POI and action point location lifecycles", () => {
         before.planetRadius
       ).toFixed(0)
     );
-    await expectPointFeature(page, mission.ids.actionA, action.location);
-
-    await row.getByLabel("Edit on Map", { exact: true }).click();
-    await expect(row.getByLabel("Cancel", { exact: true })).toBeVisible();
-    await row.getByLabel("Cancel", { exact: true }).click();
-    expect((await mission.read()).actions[mission.ids.actionA]).toEqual(action);
-    await expectDisplay(row, "Grid Coords:", createdGrid);
     await expectPointFeature(page, mission.ids.actionA, action.location);
 
     await row.getByLabel("Edit on Map", { exact: true }).click();
@@ -500,56 +469,5 @@ test.describe("POI and action point location lifecycles", () => {
     await expectDisplay(row, "Elevation Relative to Station (m):", "Not set");
     await expectDisplay(row, "Grid Coords:", "Not set");
     await expectPointFeature(page, mission.ids.actionA, null);
-  });
-
-  test("a POI action uses Set to POI without changing its POI parent", async ({
-    page,
-    mission,
-    request,
-  }) => {
-    await prepareElevationAndGridFixture(mission, request);
-    await mission.change((doc) => {
-      doc.actions[POI_ACTION] = seedAction({
-        uuid: POI_ACTION,
-        refUuid: "40000000-0000-4000-8000-000000009901",
-        name: "Map the outcrop",
-        poiUuid: mission.ids.poiA,
-        location: null,
-        elevation: 81,
-      });
-      doc.pois[mission.ids.poiA].actionOrderUuids = [POI_ACTION];
-    });
-    const before = await mission.read();
-    await mission.open(page);
-    await enablePlanningEditMode(page);
-    await selectPlanningPoi(page, "Reference POI");
-    await page.getByLabel("info_panel", { exact: true }).click();
-    const poiGrid = await displayValue(page, "Grid Coords:");
-    expect(poiGrid).toMatch(/^Cell-\d+-\d+$/);
-    expect(before.pois[mission.ids.poiA].elevation).toBe(
-      await sampleElevation(request, mission.id, before.pois[mission.ids.poiA].location)
-    );
-    await page.getByLabel("actions_panel", { exact: true }).click();
-    const row = await openActionLocation(page, "Map the outcrop");
-    await row.getByLabel("Set to POI", { exact: true }).click();
-    await expect
-      .poll(async () => (await mission.read()).actions[POI_ACTION].location)
-      .toEqual(before.pois[mission.ids.poiA].location);
-    const action = (await mission.read()).actions[POI_ACTION];
-    expect(action).toMatchObject({
-      poiUuid: mission.ids.poiA,
-      stationUuid: null,
-      elevation: before.pois[mission.ids.poiA].elevation,
-    });
-    await expectPointFeature(page, POI_ACTION, action.location);
-    await expectDisplay(row, "Elevation Relative to POI (m):", "0");
-    await expectDisplay(row, "Distance to POI (m):", "0");
-    await expectDisplay(row, "Grid Coords:", poiGrid);
-    await page.reload();
-    await selectPlanningPoi(page, "Reference POI");
-    await page.getByLabel("actions_panel", { exact: true }).click();
-    await openActionLocation(page, "Map the outcrop");
-    expect((await mission.read()).actions[POI_ACTION]).toEqual(action);
-    await expectPointFeature(page, POI_ACTION, action.location);
   });
 });

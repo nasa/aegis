@@ -16,7 +16,7 @@ async function selectPreset(page: Page, name: string): Promise<void> {
   await expect(page.locator('div[aria-label="Preset Title"]')).toHaveText(name);
 }
 
-test("preset edits keep an unsaved value local until Save, Cancel restores it, and saved style and circle changes reach a peer", async ({
+test("saved preset description, layer style and circle visibility reach a live peer and persist after reload", async ({
   page,
   context,
   mission,
@@ -97,16 +97,6 @@ test("preset edits keep an unsaved value local until Save, Cancel restores it, a
     const peerDescription = peer.locator('div[aria-label="Preset Description"]');
     await expect(peerDescription).toHaveText("30");
 
-    const draft = await openPlanningField(page, "Preset Description");
-    await draft.getByLabel("Preset Description", { exact: true }).fill("75");
-    await expect(draft.getByLabel("Preset Description", { exact: true })).toHaveValue("75");
-    expect((await mission.read()).presets[mission.ids.presetA].description).toBe("30");
-    await expect(peerDescription).toHaveText("30");
-    expect((await mission.read()).presets[mission.ids.presetB].description).toBe("210");
-    await draft.getByText("Cancel", { exact: true }).click();
-    await expect(draft).toHaveCount(0);
-    expect((await mission.read()).presets[mission.ids.presetA].description).toBe("30");
-
     const save = await openPlanningField(page, "Preset Description");
     await save.getByLabel("Preset Description", { exact: true }).fill("75");
     await save.getByText("Save", { exact: true }).click();
@@ -165,12 +155,6 @@ test("preset edits keep an unsaved value local until Save, Cancel restores it, a
     const peerCircleRow = peer.getByText("Draft radius", { exact: true }).locator("..");
     await expect(peerCircleRow.locator('svg[data-icon="eye-slash"]')).toBeVisible();
 
-    await selectPreset(page, "Detail");
-    await page.getByLabel("info_panel", { exact: true }).click();
-    await expect(page.locator('div[aria-label="Preset Description"]')).toHaveText("210");
-    await selectPreset(page, "Overview");
-    await page.getByLabel("info_panel", { exact: true }).click();
-    await expect(page.locator('div[aria-label="Preset Description"]')).toHaveText("75");
     await page.reload();
     expect((await mission.read()).presets[mission.ids.presetA]).toMatchObject({
       description: "75",

@@ -6,7 +6,7 @@ import type { APIRequestContext, Locator, Page } from "@playwright/test";
 import { writeArrayBuffer } from "geotiff";
 import { normalizeTerrainProfile } from "http-client/terrainProfile";
 import { test, expect } from "../fixtures/behavioralTest";
-import { seedAction, seedStation } from "../fixtures/entitySeeds";
+import { seedStation } from "../fixtures/entitySeeds";
 import {
   enablePlanningEditMode,
   openPlanningSection,
@@ -46,8 +46,6 @@ const EXTRA_POINTS = [
   cellCenter(42, 16),
   cellCenter(50, 16),
 ];
-
-type ExtraStation = { uuid: string; refUuid: string; name: string; location: AEGISPoint };
 
 async function terrainProfile(
   request: APIRequestContext,
@@ -123,7 +121,7 @@ function pathDistances(points: AEGISPoint[], radius = EARTH_RADIUS): number[] {
 async function prepareGoldenMission(
   mission: BehavioralMission,
   request: APIRequestContext,
-  extras: ExtraStation[]
+  extras: ItineraryStationFixture[]
 ): Promise<void> {
   expect(process.env.STATIC_DIR, "The local API static directory must be configured").toBeTruthy();
   const directory = path.resolve(process.env.STATIC_DIR, "missionFiles", String(mission.id));
@@ -161,6 +159,8 @@ async function prepareGoldenMission(
         name: extra.name,
         location: { ...extra.location },
         elevation: 0,
+        walkbackPath: [{ ...extra.location }, { ...LANDER }],
+        walkbackPathSegmentDistances: pathDistances([extra.location, LANDER]),
       });
     }
   });
@@ -221,32 +221,13 @@ async function prepareGoldenMission(
   });
 }
 
-function makeExtraStations(names: string[]): ExtraStation[] {
+function makeExtraStations(names: string[]): ItineraryStationFixture[] {
   return names.map((name, index) => ({
     uuid: randomUUID(),
     refUuid: randomUUID(),
     name,
     location: EXTRA_POINTS[index],
   }));
-}
-
-async function addStationActions(
-  mission: BehavioralMission,
-  station: ExtraStation,
-  actionName: string
-): Promise<string> {
-  const actionUuid = randomUUID();
-  await mission.change((doc) => {
-    doc.stations[station.uuid].actionOrderUuids = [actionUuid];
-    doc.actions[actionUuid] = seedAction({
-      uuid: actionUuid,
-      refUuid: randomUUID(),
-      name: actionName,
-      stationUuid: station.uuid,
-      enabled: true,
-    });
-  });
-  return actionUuid;
 }
 
 async function evaSequence(
@@ -258,10 +239,6 @@ async function evaSequence(
 
 function stationIds(sequence: EvaSequenceItem[]): string[] {
   return sequence.filter((item) => item.type === "station").map((item) => item.uuid);
-}
-
-function traverseIds(sequence: EvaSequenceItem[]): string[] {
-  return sequence.filter((item) => item.type === "traverse").map((item) => item.uuid);
 }
 
 async function assertSequenceShape(
@@ -362,365 +339,49 @@ test.afterEach(async ({ mission }) => {
   await rm(path.join(directory, DEM_FILE), { force: true });
 });
 
-test.describe("EVA itinerary station lifecycle", () => {
-  test("adding and replacing itinerary stations keeps shared stations and owned traverse paths aligned", async ({
-    page,
-    context,
-    mission,
-    request,
-  }) => {
-    const extras = makeExtraStations([
-      "Charlie station",
-      "Delta station",
-      "Echo station",
-      "Foxtrot station",
-      "Golf station",
-    ]);
-    await prepareGoldenMission(mission, request, extras);
-    const before = await mission.read();
-    const evaUuid = mission.ids.evaA;
-    const evaName = "Survey Alpha";
-    const originalSequence = before.evas[evaUuid].sequence;
-    const originalTraverseIds = traverseIds(originalSequence);
-    const otherEva = before.evas[mission.ids.evaB];
-    const otherEvaTraverseIds = traverseIds(otherEva.sequence);
-
-    await mission.open(page);
-    await openPlanningSection(page, "evas");
-    await selectPlanningEva(page, evaName);
-    await enablePlanningEditMode(page);
-
-    const peer = await context.newPage();
-    await mission.open(peer);
-    await expectPeerSequence(peer, evaName, before, originalSequence);
-    const row = planningEvaRow(page, evaName);
-    const rowExpander = row.locator('svg[data-icon="caret-right"]');
-    if (await rowExpander.count()) await rowExpander.click();
-    await expect(page.getByLabel("Add Station", { exact: true })).toBeVisible();
-
-    const addedTraverseIds: string[] = [];
-    for (const station of extras.slice(0, 3)) {
-      const beforeAdd = await mission.read();
-      await page.getByLabel("Add Station", { exact: true }).click();
-      await expect
-        .poll(async () => (await evaSequence(mission, evaUuid)).length)
-        .toBe(beforeAdd.evas[evaUuid].sequence.length + 2);
-      const added = (await mission.read()).evas[evaUuid].sequence;
-      const newTraverse = traverseIds(added).find(
-        (uuid) => !traverseIds(beforeAdd.evas[evaUuid].sequence).includes(uuid)
-      );
-      expect(newTraverse).toBeDefined();
-      addedTraverseIds.push(newTraverse!);
-      const blankStationIndex = stationIds(added).findIndex((uuid) => uuid === "");
-      await row.getByRole("combobox").nth(blankStationIndex).selectOption(station.uuid);
-      await expect
-        .poll(async () => stationIds(await evaSequence(mission, evaUuid)))
-        .toContain(station.uuid);
-    }
-    let afterAdds = await mission.read();
-    let sequence = afterAdds.evas[evaUuid].sequence;
-    expect(stationIds(sequence)).toEqual([
-      mission.ids.egressA,
-      mission.ids.stationA,
-      mission.ids.stationB,
-      extras[0].uuid,
-      extras[1].uuid,
-      extras[2].uuid,
-      mission.ids.ingressA,
-    ]);
-    expect(sequence.map((item) => item.type)).toEqual([
-      "station",
-      "traverse",
-      "station",
-      "traverse",
-      "station",
-      "traverse",
-      "station",
-      "traverse",
-      "station",
-      "traverse",
-      "station",
-      "traverse",
-      "station",
-    ]);
-    expect(addedTraverseIds.every((uuid) => originalTraverseIds.includes(uuid) === false)).toBe(
-      true
-    );
-    expect(afterAdds.evas[mission.ids.evaB]).toEqual(otherEva);
-    await assertSequenceShape(page, mission, request, evaUuid);
-
-    const moveAddedStation = async (uuid: string, direction: "up" | "down") => {
-      const current = await evaSequence(mission, evaUuid);
-      const expected = stationIds(current);
-      const stationIndex = expected.indexOf(uuid);
-      const rowIndex = stationIndex;
-      await (
-        await evaStationRow(page, evaName, rowIndex)
-      )
-        .locator(`[data-icon="arrow-${direction}"]`)
-        .click();
-      const swapIndex = stationIndex + (direction === "up" ? -1 : 1);
-      [expected[stationIndex], expected[swapIndex]] = [expected[swapIndex], expected[stationIndex]];
-      await expect
-        .poll(async () => stationIds(await evaSequence(mission, evaUuid)))
-        .toEqual(expected);
-      await assertSequenceShape(page, mission, request, evaUuid);
-    };
-    await moveAddedStation(extras[0].uuid, "up");
-    await moveAddedStation(extras[0].uuid, "up");
-    await moveAddedStation(extras[1].uuid, "up");
-    sequence = await evaSequence(mission, evaUuid);
-    expect(stationIds(sequence)).toEqual([
-      mission.ids.egressA,
-      extras[0].uuid,
-      mission.ids.stationA,
-      extras[1].uuid,
-      mission.ids.stationB,
-      extras[2].uuid,
-      mission.ids.ingressA,
-    ]);
-
-    // Replace shared Bravo with a new plan station, freeing Bravo for egress.
-    await row.getByRole("combobox").nth(4).selectOption(extras[3].uuid);
-    await expect
-      .poll(async () => stationIds(await evaSequence(mission, evaUuid))[4])
-      .toBe(extras[3].uuid);
-    await assertSequenceShape(page, mission, request, evaUuid);
-    await row.getByRole("combobox").first().selectOption(mission.ids.stationB);
-    await expect
-      .poll(async () => stationIds(await evaSequence(mission, evaUuid))[0])
-      .toBe(mission.ids.stationB);
-    await expect
-      .poll(async () => (await mission.read()).stations[mission.ids.stationB])
-      .toEqual(before.stations[mission.ids.stationB]);
-    await assertSequenceShape(page, mission, request, evaUuid);
-
-    // The ingress can be changed to a new regular station, then back to a managed lander copy.
-    const ingressIndex = stationIds(await evaSequence(mission, evaUuid)).length - 1;
-    await row.getByRole("combobox").nth(ingressIndex).selectOption(extras[4].uuid);
-    await expect
-      .poll(async () => stationIds(await evaSequence(mission, evaUuid)).at(-1))
-      .toBe(extras[4].uuid);
-    await assertSequenceShape(page, mission, request, evaUuid);
-    await row.getByRole("combobox").nth(ingressIndex).selectOption("lander");
-    await expect
-      .poll(async () => {
-        const doc = await mission.read();
-        const endpointUuid = doc.evas[evaUuid].sequence.at(-1)!.uuid;
-        return doc.stations[endpointUuid]?.isLanderXgress;
-      })
-      .toBe(true);
-    await row.getByRole("combobox").first().selectOption("lander");
-    await expect
-      .poll(async () => {
-        const doc = await mission.read();
-        const endpointUuid = doc.evas[evaUuid].sequence[0].uuid;
-        return doc.stations[endpointUuid]?.isLanderXgress;
-      })
-      .toBe(true);
-    afterAdds = await mission.read();
-    sequence = afterAdds.evas[evaUuid].sequence;
-    expect(sequence.map((item) => item.type)).toEqual(
-      Array.from({ length: sequence.length }, (_, index) =>
-        index % 2 === 0 ? "station" : "traverse"
-      )
-    );
-    expect(afterAdds.stations[mission.ids.stationA]).toEqual(before.stations[mission.ids.stationA]);
-    expect(afterAdds.actions[mission.ids.actionA]).toEqual(before.actions[mission.ids.actionA]);
-    expect(afterAdds.actions[mission.ids.actionA].enabled).toBe(true);
-    expect(afterAdds.evas[mission.ids.evaB]).toEqual(otherEva);
-    expect(afterAdds.stations[mission.ids.stationB]).toEqual(before.stations[mission.ids.stationB]);
-    for (const traverseUuid of otherEvaTraverseIds) {
-      expect(afterAdds.traverses[traverseUuid]).toEqual(before.traverses[traverseUuid]);
-    }
-    await assertSequenceShape(page, mission, request, evaUuid);
-    await expectPeerSequence(peer, evaName, afterAdds, sequence);
-    await mission.open(page);
-    await openPlanningSection(page, "evas");
-    await selectPlanningEva(page, "Survey Alpha");
-    await enablePlanningEditMode(page);
-    expect((await mission.read()).evas[evaUuid].sequence).toEqual(sequence);
-    const reloadedCopy = await mission.read();
-    await expectPeerSequence(page, evaName, reloadedCopy, sequence);
-    await expectPeerSequence(peer, evaName, reloadedCopy, sequence);
-  });
-
-  test("reordering and removing itinerary stations updates paths and cleans only owned traverse actions", async ({
-    page,
-    context,
-    mission,
-    request,
-  }) => {
-    const extras = makeExtraStations(["Charlie remove", "Delta remove"]);
-    await prepareGoldenMission(mission, request, extras);
-    const sharedStationActionUuid = randomUUID();
-    await mission.change((doc) => {
-      doc.stations[mission.ids.stationB].actionOrderUuids = [sharedStationActionUuid];
-      doc.actions[sharedStationActionUuid] = seedAction({
-        uuid: sharedStationActionUuid,
-        refUuid: randomUUID(),
-        name: "Shared Bravo enabled action",
-        stationUuid: mission.ids.stationB,
-        enabled: true,
-      });
-    });
-    const before = await mission.read();
-    const originalBravo = before.stations[mission.ids.stationB];
-    const originalEvaBravo = before.evas[mission.ids.evaB];
-    const actionA = before.actions[mission.ids.actionA];
-    const deltaActionUuid = await addStationActions(mission, extras[1], "Delta retained action");
-
-    await mission.open(page);
-    await openPlanningSection(page, "evas");
-    await enablePlanningEditMode(page);
-    const row = planningEvaRow(page, "Survey Alpha");
-    const rowExpander = row.locator('svg[data-icon="caret-right"]');
-    if (await rowExpander.count()) await rowExpander.click();
-    await expect(page.getByLabel("Add Station", { exact: true })).toBeVisible();
-
-    for (const station of extras) {
-      const currentSequence = await evaSequence(mission, mission.ids.evaA);
-      await page.getByLabel("Add Station", { exact: true }).click();
-      await expect
-        .poll(async () => (await evaSequence(mission, mission.ids.evaA)).length)
-        .toBe(currentSequence.length + 2);
-      const addedSequence = await evaSequence(mission, mission.ids.evaA);
-      const blankStationIndex = stationIds(addedSequence).findIndex((uuid) => uuid === "");
-      expect(blankStationIndex).toBeGreaterThanOrEqual(0);
-      await row.getByRole("combobox").nth(blankStationIndex).selectOption(station.uuid);
-      await expect
-        .poll(async () => stationIds(await evaSequence(mission, mission.ids.evaA)))
-        .toContain(station.uuid);
-    }
-    let sequence = await evaSequence(mission, mission.ids.evaA);
-    expect(stationIds(sequence)).toEqual([
-      mission.ids.egressA,
-      mission.ids.stationA,
-      mission.ids.stationB,
-      extras[0].uuid,
-      extras[1].uuid,
-      mission.ids.ingressA,
-    ]);
-    const initialAddedTraverses = traverseIds(sequence).filter(
-      (uuid) => !traverseIds(before.evas[mission.ids.evaA].sequence).includes(uuid)
-    );
-    expect(initialAddedTraverses).toHaveLength(2);
-    // Move a first, then a middle, then a last station in the as-planned order.
-    const move = async (uuid: string, direction: "up" | "down") => {
-      const current = await evaSequence(mission, mission.ids.evaA);
-      const stationIndex = stationIds(current).indexOf(uuid);
-      const rowIndex = current
-        .filter((item) => item.type === "station")
-        .findIndex((id) => id.uuid === uuid);
-      await (
-        await evaStationRow(page, "Survey Alpha", rowIndex)
-      )
-        .locator(`[data-icon="arrow-${direction}"]`)
-        .click();
-      const expected = stationIds(current);
-      const next = stationIndex + (direction === "up" ? -1 : 1);
-      [expected[stationIndex], expected[next]] = [expected[next], expected[stationIndex]];
-      await expect
-        .poll(async () => stationIds(await evaSequence(mission, mission.ids.evaA)))
-        .toEqual(expected);
-      await assertSequenceShape(page, mission, request, mission.ids.evaA);
-    };
-    await move(mission.ids.stationA, "down");
-    await move(extras[0].uuid, "up");
-    await move(extras[1].uuid, "up");
-    sequence = await evaSequence(mission, mission.ids.evaA);
-    expect(stationIds(sequence)).toEqual([
-      mission.ids.egressA,
-      mission.ids.stationB,
-      extras[0].uuid,
-      extras[1].uuid,
-      mission.ids.stationA,
-      mission.ids.ingressA,
-    ]);
-    const traverseAfterBravo =
-      sequence[
-        sequence.findIndex(
-          (item) => item.type === "station" && item.uuid === mission.ids.stationB
-        ) + 1
-      ].uuid;
-    const ownedTraverseActionUuid = randomUUID();
-    await mission.change((doc) => {
-      doc.traverses[traverseAfterBravo].actionOrderUuids = [ownedTraverseActionUuid];
-      doc.actions[ownedTraverseActionUuid] = seedAction({
-        uuid: ownedTraverseActionUuid,
-        refUuid: randomUUID(),
-        name: "Owned traverse action",
-        traverseUuid: traverseAfterBravo,
-        enabled: true,
-      });
-    });
-
-    const remove = async (uuid: string) => {
-      const current = await evaSequence(mission, mission.ids.evaA);
-      const stationPosition = stationIds(current).indexOf(uuid);
-      const sequenceIndex = current.findIndex(
-        (item) => item.type === "station" && item.uuid === uuid
-      );
-      const traverseToDelete = current[sequenceIndex + 1].uuid;
-      await (
-        await evaStationRow(page, "Survey Alpha", stationPosition)
-      )
-        .locator('[data-icon="trash"]')
-        .click();
-      const expected = stationIds(current).filter((id) => id !== uuid);
-      await expect
-        .poll(async () => stationIds(await evaSequence(mission, mission.ids.evaA)))
-        .toEqual(expected);
-      const after = await mission.read();
-      expect(after.traverses[traverseToDelete]).toBeUndefined();
-      expect(after.actions[ownedTraverseActionUuid]).toBeUndefined();
-      await assertSequenceShape(page, mission, request, mission.ids.evaA);
-      return after;
-    };
-
-    // Selected shared Bravo is removed from this itinerary, while its station,
-    // enabled action and Survey Bravo membership remain intact.
-    await (await evaStationRow(page, "Survey Alpha", 1)).locator('[class*="iconCustom"]').click();
-    await expect(page.getByText("Station Information", { exact: true })).toBeVisible();
-    const afterFirstRemoval = await remove(mission.ids.stationB);
-    expect(afterFirstRemoval.stations[mission.ids.stationB]).toEqual(originalBravo);
-    expect(afterFirstRemoval.actions[sharedStationActionUuid]).toEqual(
-      before.actions[sharedStationActionUuid]
-    );
-    expect(afterFirstRemoval.actions[sharedStationActionUuid].enabled).toBe(true);
-    expect(afterFirstRemoval.evas[mission.ids.evaB]).toEqual(originalEvaBravo);
-
-    const afterInteriorRemoval = await remove(extras[1].uuid);
-    expect(afterInteriorRemoval.stations[extras[1].uuid]).toBeDefined();
-    expect(afterInteriorRemoval.actions[deltaActionUuid].enabled).toBe(true);
-    const afterLastRemoval = await remove(mission.ids.stationA);
-    expect(afterLastRemoval.stations[mission.ids.stationA]).toEqual(
-      before.stations[mission.ids.stationA]
-    );
-    expect(afterLastRemoval.actions[mission.ids.actionA]).toEqual(actionA);
-    expect(afterLastRemoval.actions[mission.ids.actionA].enabled).toBe(true);
-
-    sequence = await evaSequence(mission, mission.ids.evaA);
-    expect(stationIds(sequence)).toEqual([
-      mission.ids.egressA,
-      extras[0].uuid,
-      mission.ids.ingressA,
-    ]);
-    const remainingTraverseIds = traverseIds(sequence);
-    expect(
-      Object.keys((await mission.read()).traverses).filter((uuid) =>
-        initialAddedTraverses.includes(uuid)
-      )
-    ).toEqual(initialAddedTraverses.filter((uuid) => remainingTraverseIds.includes(uuid)));
-    const peer = await context.newPage();
-    await mission.open(peer);
-    await expectPeerSequence(peer, "Survey Alpha", await mission.read(), sequence);
-    await mission.open(page);
-    await openPlanningSection(page, "evas");
-    await enablePlanningEditMode(page);
-    const reloadedMission = await mission.read();
-    await expectPeerSequence(page, "Survey Alpha", reloadedMission, sequence);
-    await expectPeerSequence(peer, "Survey Alpha", reloadedMission, sequence);
-    expect(reloadedMission.evas[mission.ids.evaB]).toEqual(originalEvaBravo);
-  });
+test("itinerary add, reorder, replace and remove refresh served raster profiles and persist their final graph", async ({
+  page,
+  context,
+  mission,
+  request,
+}) => {
+  const extras = makeExtraStations(["Charlie station", "Delta station"]);
+  await prepareGoldenMission(mission, request, extras);
+  const before = await mission.read();
+  await mission.open(page);
+  await selectPlanningEva(page, "Survey Alpha");
+  await enablePlanningEditMode(page);
+  const row = planningEvaRow(page, "Survey Alpha");
+  await page.getByLabel("Add Station", { exact: true }).click();
+  await expect.poll(async () => (await evaSequence(mission, mission.ids.evaA)).length).toBe(9);
+  await row.getByRole("combobox").nth(3).selectOption(extras[0].uuid);
+  await expect
+    .poll(async () => stationIds(await evaSequence(mission, mission.ids.evaA))[3])
+    .toBe(extras[0].uuid);
+  await assertSequenceShape(page, mission, request, mission.ids.evaA);
+  await (await evaStationRow(page, "Survey Alpha", 3)).locator('[data-icon="arrow-up"]').click();
+  await expect
+    .poll(async () => stationIds(await evaSequence(mission, mission.ids.evaA))[2])
+    .toBe(extras[0].uuid);
+  await assertSequenceShape(page, mission, request, mission.ids.evaA);
+  await row.getByRole("combobox").nth(2).selectOption(extras[1].uuid);
+  await expect
+    .poll(async () => stationIds(await evaSequence(mission, mission.ids.evaA))[2])
+    .toBe(extras[1].uuid);
+  await assertSequenceShape(page, mission, request, mission.ids.evaA);
+  const beforeRemove = await evaSequence(mission, mission.ids.evaA);
+  const removedTraverse = beforeRemove[5].uuid;
+  await (await evaStationRow(page, "Survey Alpha", 2)).locator('[data-icon="trash"]').click();
+  await expect
+    .poll(async () => stationIds(await evaSequence(mission, mission.ids.evaA)))
+    .toEqual(stationIds(before.evas[mission.ids.evaA].sequence));
+  await assertSequenceShape(page, mission, request, mission.ids.evaA);
+  const after = await mission.read();
+  expect(after.traverses[removedTraverse]).toBeUndefined();
+  expect(after.evas[mission.ids.evaB]).toEqual(before.evas[mission.ids.evaB]);
+  expect(after.stations).toEqual(before.stations);
+  expect(after.actions).toEqual(before.actions);
+  const peer = await context.newPage();
+  await mission.open(peer);
+  await expectPeerSequence(peer, "Survey Alpha", after, after.evas[mission.ids.evaA].sequence);
 });

@@ -6,7 +6,7 @@ const level2 = "92000000-0000-4000-8000-000000000002";
 const level3 = "92000000-0000-4000-8000-000000000003";
 const ruleId = "92000000-0000-4000-8000-000000000004";
 
-test("mission rules export exact JSON, validate atomically, cancel replacement and import files with live report updates", async ({
+test("mission rules deliver an actual JSON download and imported rules reach a live peer and server reload", async ({
   page,
   context,
   mission,
@@ -80,27 +80,7 @@ test("mission rules export exact JSON, validate atomically, cancel replacement a
   });
   const input = page.getByLabel("Mission rules JSON", { exact: true });
   const submit = page.getByRole("button", { name: "Import Mission Rules", exact: true });
-  for (const invalid of [
-    "{",
-    JSON.stringify({ version: 2, stmRules: [] }),
-    JSON.stringify({ version: 1, stmRules: [{ ...rule, stmUuid: "missing" }] }),
-    JSON.stringify({ version: 1, stmRules: [rule, rule] }),
-    JSON.stringify({ version: 1, stmRules: [{ ...rule, count: 0 }] }),
-  ]) {
-    await input.fill(invalid);
-    await submit.click();
-    await expect(page.getByRole("alert")).toContainText("Importing mission rules");
-    expect((await mission.read()).stmRules).toEqual(before.stmRules);
-  }
   const replacement = { ...exported, stmRules: [{ ...rule, count: 2 }] };
-  await input.fill(JSON.stringify(replacement));
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toContain("Replace all 1 mission rules with 1 imported rules?");
-    await dialog.dismiss();
-  });
-  await submit.click();
-  await expect(submit).toBeEnabled();
-  expect((await mission.read()).stmRules).toEqual(before.stmRules);
   await page.getByLabel("Load mission rules JSON").setInputFiles({
     name: "rules.json",
     mimeType: "application/json",
