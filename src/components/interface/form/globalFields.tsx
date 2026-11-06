@@ -59,6 +59,7 @@ export const Button: FunctionComponent<{
       }}
       style={style}
       aria-label={ariaLabel || label || ""}
+      aria-disabled={!enabled}
     >
       {icon && (
         <FontAwesomeIcon

@@ -19,10 +19,15 @@ import {
   thunkStartAssetMapDirective,
 } from "store/thunk/thunkAsset";
 import {
+  ASSET_NAME_MAX_LENGTH,
+  ASSET_NOTES_MAX_LENGTH,
   DEFAULT_ASSET_ICON,
   getCurrentAssetPet,
   parseAssetPetSeconds,
   validateAssetEditValues,
+  validateAssetName,
+  validateAssetNotes,
+  validateAssetRadius,
 } from "utils/assets";
 import {
   formatCoordinateEntry,
@@ -59,6 +64,8 @@ export const AssetEditor: FunctionComponent<{
   const mapDirectiveActive = mapAction === "createMarker" || mapAction === "editMarker";
 
   const invalid = validateAssetEditValues({ ...values, name: values.name.trim() });
+  const nameError = validateAssetName(values.name);
+  const notesError = validateAssetNotes(values.notes);
 
   // --- Text fields kept local so partial input can be typed ---
   const formattedLocation = formatCoordinateEntry(values.location, coordinateContext);
@@ -75,10 +82,8 @@ export const AssetEditor: FunctionComponent<{
       Number(current) === values.uncertaintyMeters ? current : String(values.uncertaintyMeters)
     );
   }, [values.uncertaintyMeters]);
-  const uncertaintyValid = (() => {
-    const parsed = Number(uncertaintyText);
-    return Number.isFinite(parsed) && parsed >= 0;
-  })();
+  const uncertaintyError = validateAssetRadius(Number(uncertaintyText));
+  const uncertaintyValid = !uncertaintyError;
 
   const formattedPet = values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds);
   const [petUpdate, setPetUpdate] = useState<"manual" | "current" | "clear">("manual");
@@ -192,10 +197,20 @@ export const AssetEditor: FunctionComponent<{
               aria-label="Asset name"
               data-testid="asset-editor-name"
               disabled={!editable}
-              maxLength={80}
+              maxLength={ASSET_NAME_MAX_LENGTH}
+              aria-invalid={!!nameError}
+              aria-describedby={nameError ? "asset-name-error" : undefined}
               onChange={(e) => dispatch(updateAssetInEditValues({ name: e.target.value }))}
             />
           </div>
+          {nameError && (
+            <div
+              id="asset-name-error"
+              className={`${styles.fieldError} ${styles.fieldValueColumn}`}
+            >
+              {nameError}
+            </div>
+          )}
         </>
 
         {editable && emojiAnchor && (
@@ -228,12 +243,14 @@ export const AssetEditor: FunctionComponent<{
             value={uncertaintyText}
             inputMode="decimal"
             aria-label="Radius in meters"
+            aria-invalid={!!uncertaintyError}
+            aria-describedby={uncertaintyError ? "asset-radius-error" : undefined}
             data-testid="asset-editor-uncertainty"
             disabled={!editable}
             onChange={(e) => {
               setUncertaintyText(e.target.value);
               const parsed = Number(e.target.value);
-              if (Number.isFinite(parsed) && parsed >= 0) {
+              if (!validateAssetRadius(parsed)) {
                 dispatch(updateAssetInEditValues({ uncertaintyMeters: parsed }));
               }
             }}
@@ -264,6 +281,15 @@ export const AssetEditor: FunctionComponent<{
             <span className={styles.fieldNote}>Default</span>
           )}
         </div>
+
+        {uncertaintyError && (
+          <div
+            id="asset-radius-error"
+            className={`${styles.fieldError} ${styles.fieldValueColumn}`}
+          >
+            {uncertaintyError}
+          </div>
+        )}
 
         <span className={styles.fieldLabel}>Position</span>
         <div className={styles.fieldControls}>
@@ -394,11 +420,19 @@ export const AssetEditor: FunctionComponent<{
           value={values.notes ?? ""}
           placeholder="Optional"
           aria-label="Asset notes"
+          maxLength={ASSET_NOTES_MAX_LENGTH}
+          aria-invalid={!!notesError}
+          aria-describedby={notesError ? "asset-notes-error" : undefined}
           data-testid="asset-editor-notes"
           disabled={!editable}
-          rows={1}
+          rows={6}
           onChange={(e) => dispatch(updateAssetInEditValues({ notes: e.target.value || null }))}
         />
+        {notesError && (
+          <div id="asset-notes-error" className={`${styles.fieldError} ${styles.fieldValueColumn}`}>
+            {notesError}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -11,7 +11,6 @@ import {
   ValidatedTextArea,
 } from "components/interface/form/globalFieldsAutomerge";
 import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
-import { validators } from "components/interface/form/formValidators";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { LastEditedNumeric } from "components/interface/_global-elements";
 import { useMapMenuSetters } from "../MapMenuProvider";
@@ -32,6 +31,9 @@ import {
   getAssetHiddenReason,
   getCurrentAssetPet,
   parseAssetPetSeconds,
+  validateAssetName,
+  validateAssetNotes,
+  validateAssetRadius,
 } from "utils/assets";
 import { formatCoordinateEntry, formatLatLng, parseCoordinateEntry } from "utils/coordinateEntry";
 import { getAccurateNow, hhmmssFromSeconds } from "utils/formatting";
@@ -123,16 +125,17 @@ export const AssetDetails: FunctionComponent<{
                 fieldProps={{
                   name: "assetName",
                   ariaLabel: "Asset name",
-                  validators: [
-                    (v) => (String(v ?? "").trim() ? undefined : "Name is required"),
-                    validators.maxLength(80),
-                  ],
+                  validators: [(v) => validateAssetName(String(v ?? "")) || undefined],
                 }}
                 onSubmit={(name) => {
                   save({ name });
                 }}
                 styleContainer={{ ...compactFieldStyle, flex: "1 1 100px" }}
-                displayStyle={{ fontSize: "inherit" }}
+                displayStyle={{
+                  fontSize: "inherit",
+                  overflowWrap: "anywhere",
+                  whiteSpace: "pre-wrap",
+                }}
               />
             </div>
           </>
@@ -170,7 +173,7 @@ export const AssetDetails: FunctionComponent<{
               fieldProps={{
                 name: "assetRadius",
                 ariaLabel: "Radius in meters",
-                validators: [validators.mustBeNumberGTEZero],
+                validators: [(v) => validateAssetRadius(Number(v ?? "")) || undefined],
               }}
               onSubmit={(radius) => {
                 save({ uncertaintyMeters: Number(radius) });
@@ -364,9 +367,15 @@ export const AssetDetails: FunctionComponent<{
         <div className={styles.viewNotes} data-testid="asset-editor-notes">
           <ValidatedTextArea
             value={asset.notes || ""}
+            maxRows={6}
+            resizable={true}
             editMode={editMode}
             styleContainer={compactFieldStyle}
-            fieldProps={{ name: "assetNotes", ariaLabel: "Asset notes" }}
+            fieldProps={{
+              name: "assetNotes",
+              ariaLabel: "Asset notes",
+              validators: [(v) => validateAssetNotes(String(v ?? "")) || undefined],
+            }}
             onSubmit={(notes) => {
               save({ notes: notes || null });
             }}

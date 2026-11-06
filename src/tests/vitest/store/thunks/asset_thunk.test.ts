@@ -22,6 +22,11 @@ import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import {
+  ASSET_NAME_MAX_LENGTH,
+  ASSET_NOTES_MAX_LENGTH,
+  ASSET_RADIUS_MAX_METERS,
+} from "utils/assets";
 
 type ElevationResult = { meta: { requestStatus: string }; payload?: number };
 const elevationCalls: { point: AEGISPoint; resolve: (r: ElevationResult) => void }[] = [];
@@ -59,6 +64,73 @@ beforeEach(() => {
     m.demFilePath = "dem.tif";
   });
   store = createCustomTestStore({ connection: connected, user: editor });
+});
+
+describe("asset save boundaries", () => {
+  const atLimits = {
+    name: "名".repeat(ASSET_NAME_MAX_LENGTH),
+    notes: `First line\n${"x".repeat(ASSET_NOTES_MAX_LENGTH - 11)}`,
+    uncertaintyMeters: ASSET_RADIUS_MAX_METERS,
+  };
+  const invalidChanges: Partial<AssetEditValues>[] = [
+    { name: "x".repeat(ASSET_NAME_MAX_LENGTH + 1) },
+    { name: " \t\n " },
+    { notes: "x".repeat(ASSET_NOTES_MAX_LENGTH + 1) },
+    { uncertaintyMeters: ASSET_RADIUS_MAX_METERS + 0.01 },
+    { uncertaintyMeters: -0.01 },
+    { uncertaintyMeters: Infinity },
+    { uncertaintyMeters: NaN },
+  ];
+
+  it("persists exact limits on creation and individual field updates without losing multiline notes", async () => {
+    await store.dispatch(thunkAddAsset());
+    const uuid = inEdit().uuid;
+    store.dispatch(updateAssetInEditValues({ ...atLimits, name: `  ${atLimits.name}  ` }));
+    expect(await store.dispatch(thunkSaveAssetEdit()).unwrap()).toBe(true);
+    expect(doc().assets[uuid]).toMatchObject(atLimits);
+    await store.dispatch(thunkEditAsset({ assetUuid: uuid }));
+    await store
+      .dispatch(
+        thunkUpdateAssetFields({
+          assetUuid: uuid,
+          changes: { name: "Short", notes: null, uncertaintyMeters: 0 },
+        })
+      )
+      .unwrap();
+    expect(
+      await store.dispatch(thunkUpdateAssetFields({ assetUuid: uuid, changes: atLimits })).unwrap()
+    ).toBe(true);
+    expect(doc().assets[uuid]).toMatchObject(atLimits);
+  });
+
+  it.each(invalidChanges)(
+    "rejects invalid creation values without writing (case %#)",
+    async (changes) => {
+      await store.dispatch(thunkAddAsset());
+      store.dispatch(updateAssetInEditValues({ name: "Drill", ...changes }));
+      await expect(store.dispatch(thunkSaveAssetEdit()).unwrap()).rejects.toThrow();
+      expect(doc().assets).toEqual({});
+      expect(inEdit()).not.toBeNull();
+    }
+  );
+
+  it.each(invalidChanges)(
+    "rejects invalid updates without changing the saved asset (case %#)",
+    async (changes) => {
+      const asset = generateBlankAsset({ name: "Drill", notes: "Keep me", uncertaintyMeters: 10 });
+      getMissionDocHandle().change((m) => {
+        m.assets[asset.uuid] = asset;
+      });
+      await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
+      await expect(
+        store.dispatch(thunkUpdateAssetFields({ assetUuid: asset.uuid, changes })).unwrap()
+      ).rejects.toThrow();
+      expect(doc().assets[asset.uuid]).toEqual(asset);
+      store.dispatch(updateAssetInEditValues(changes));
+      await expect(store.dispatch(thunkSaveAssetEdit()).unwrap()).rejects.toThrow();
+      expect(doc().assets[asset.uuid]).toEqual(asset);
+    }
+  );
 });
 
 describe("getMostRecentAsset", () => {

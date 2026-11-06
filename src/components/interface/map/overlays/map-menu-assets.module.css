@@ -131,6 +131,8 @@
 }
 
 .viewNotes {
+  min-width: 0;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
@@ -224,10 +226,15 @@
 
 .editorNotes {
   width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
   min-height: 22px;
+  height: auto;
+  line-height: 1.4;
+  overflow-y: auto;
   padding-top: 3px;
   font-family: inherit;
-  resize: vertical;
+  resize: both;
 }
 
 .editorActions {
@@ -539,10 +546,15 @@
   align-items: center;
   justify-content: center;
   padding: 0 2px;
+  max-width: 100%;
   border: 0;
   background: transparent;
   color: var(--grey5);
   cursor: pointer;
+}
+
+.iconButton > svg {
+  min-width: 0;
 }
 
 .iconButton:disabled {
