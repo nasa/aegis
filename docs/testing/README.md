@@ -13,12 +13,13 @@ in-memory missions. Prefer that harness for client behavior. Use Playwright for
 real authentication, REST/database persistence, sockets, multiple UI clients,
 downloads, reload/recovery and selected browser parity. A harness remount proves
 UI rehydration from the document; a Playwright reload proves the server boundary.
-The [runner completion record](browser-runner-completion-2026-11-06.md) lists
-the current split, browser parity, measured runtime and retained integration checks.
-The [earlier expansion record](browser-behavior-expansion-2026-11-06.md) preserves
-the preceding migration's evidence.
 The [CI layout](ci-layout.md) describes the current shard allocation, reports
 and deployment gates.
+
+Keep this directory for reusable testing guidance. Store run logs, generated
+reports and benchmark results in CI artifacts or ignored local files, and
+summarize commit-specific validation and scenario mappings in the MR description.
+Use the tests themselves as the current scenario inventory.
 
 ## AI-assisted functionality audit
 

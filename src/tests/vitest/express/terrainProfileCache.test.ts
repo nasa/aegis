@@ -58,6 +58,7 @@ beforeEach(async () => {
   missionId = listing.missionId;
 });
 afterEach(async () => {
+  await waitForTerrainCache(missionId);
   vi.restoreAllMocks();
   await globalValues.orm.em.fork().nativeDelete(Doc_Listing_db, { missionId });
 });
@@ -79,8 +80,15 @@ it("loads a whole cached mission with one query and no sampling", async () => {
     ...args(),
     entityUuid: `traverse-${index}`,
   }));
-  await Promise.all(requests.map(cachedTerrainProfile));
-  requests.forEach((request) => request.compute.mockClear());
+  await globalValues.orm.em.fork().insertMany(
+    Terrain_Profile_Cache_db,
+    requests.map(({ entityUuid, inputSignature }) => ({
+      missionId,
+      entityUuid,
+      inputSignature,
+      profile,
+    }))
+  );
   const driver = globalValues.orm.em.getDriver();
   const find = vi.spyOn(driver, "find");
   const findOne = vi.spyOn(driver, "findOne");

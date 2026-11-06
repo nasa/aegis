@@ -7,6 +7,7 @@ import {
   measurements,
   featurePixel,
   editMeasurement,
+  clickMeasurementPoint,
 } from "./measurementHelpers";
 
 async function hoverGraphAtDistance(
@@ -159,7 +160,7 @@ test("measurement editing inserts, drags and removes vertices, and cancel restor
   const original = (await measurements())[0];
   await editMeasurement(page);
   const insertAt = await featurePixel(original.id);
-  await commands.mapPointer("click", insertAt.x, insertAt.y);
+  await clickMeasurementPoint(insertAt);
   await expect.poll(async () => (await measurements())[0].coordinates).toHaveLength(3);
 
   const afterInsert = (await measurements())[0];
@@ -176,7 +177,7 @@ test("measurement editing inserts, drags and removes vertices, and cancel restor
   const moved = (await measurements())[0];
   const movedVertex = await featurePixel(moved.id, 2);
   await commands.mapPointer("move", movedVertex.x, movedVertex.y);
-  await commands.mapPointer("dblclick", movedVertex.x, movedVertex.y);
+  await clickMeasurementPoint(movedVertex);
   await expect.poll(async () => (await measurements())[0].coordinates).toHaveLength(2);
   await expect
     .element(page.getBySelector('[data-tooltip-content="Add Temporary Measurement"]'))
@@ -247,7 +248,7 @@ test("known segmented terrain profile drives distance and slope display without 
   const first = (await measurements())[0];
   await editMeasurement(page);
   const midpoint = await featurePixel(first.id);
-  await commands.mapPointer("click", midpoint.x, midpoint.y);
+  await clickMeasurementPoint(midpoint);
   await expect.poll(async () => (await measurements())[0].coordinates).toHaveLength(3);
   await page.getByLabelText("Finished", { exact: true }).click();
   await expect
@@ -315,7 +316,7 @@ test("signed path grades stay distinct from terrain slope at inclusive color bou
   const initial = (await measurements())[0];
   await editMeasurement(page);
   const midpoint = await featurePixel(initial.id);
-  await commands.mapPointer("click", midpoint.x, midpoint.y);
+  await clickMeasurementPoint(midpoint);
   await expect.poll(async () => (await measurements())[0].coordinates).toHaveLength(3);
   await page.getByLabelText("Finished", { exact: true }).click();
   await expect.poll(async () => (await measurements())[0].segmentDistances.length).toBe(2);

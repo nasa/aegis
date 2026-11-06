@@ -1,8 +1,18 @@
-import type { BrowserPage as Page } from "vitest/browser";
+import { commands, type BrowserPage as Page } from "vitest/browser";
 import type VectorLayer from "ol/layer/Vector";
 import type LineString from "ol/geom/LineString";
 import { expect } from "./missionHarness";
-import { mapFeaturePixel } from "./mapInteractions";
+import { mapFeaturePixel, waitForMapIdle } from "./mapInteractions";
+
+export async function clickMeasurementPoint(point: BrowserScreenPoint): Promise<void> {
+  const map = window.__aegisMaps.find(
+    (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
+  )!.map;
+  // OpenLayers delays singleclick; let it finish before another gesture resets Modify's state.
+  const singleClick = new Promise<void>((resolve) => map.once("singleclick", () => resolve()));
+  await commands.mapPointer("click", point.x, point.y);
+  await singleClick;
+}
 
 export async function openMeasurements(page: Page): Promise<void> {
   await page.getBySelector('[data-tooltip-content="Measurements"]').click();
@@ -44,4 +54,5 @@ export function featurePixel(id: string, vertexIndex?: number): BrowserScreenPoi
 export async function editMeasurement(page: Page): Promise<void> {
   await page.getByLabelText("Edit Path on Map", { exact: true }).click();
   await expect.element(page.getByLabelText("Finished", { exact: true })).toBeVisible();
+  await waitForMapIdle();
 }

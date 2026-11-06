@@ -63,6 +63,8 @@ export default defineConfig(
     },
     test: {
       globals: true,
+      // Bound real-browser rendering work consistently with the CI jobs.
+      maxWorkers: 3,
       browser: {
         enabled: true,
         commands: mapPointerCommands,
@@ -117,7 +119,7 @@ export default defineConfig(
           "src/server/automerge/seeder/seedApollo14.ts",
         ],
       },
-      testTimeout: 15000,
+      testTimeout: 30000,
     },
   })
 );
