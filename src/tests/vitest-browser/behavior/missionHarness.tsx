@@ -6,6 +6,7 @@ import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { CookiesProvider } from "react-cookie";
 import MissionPage from "pages/mission";
+import DashboardPage from "pages/dashboard";
 import store, { initialState, sliceReducers } from "store";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { stopMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
@@ -14,6 +15,7 @@ import { buildBehavioralMission, MISSION_IDS } from "tests/playwright/fixtures/m
 import { createReactHarness } from "../map/helpers/reactBrowserHarness";
 import missionSchema from "virtual:aegis-mission-schema";
 import { observeMissionMaps } from "./mapObserver";
+import { clearLoadedGrid } from "utils/mapping/grid";
 import "styles/globals.css";
 
 // Socket transport and REST are the boundary; hydration, selectors and mutations stay real.
@@ -30,7 +32,8 @@ export { expect } from "vitest";
 export const test = base.extend<BrowserMissionFixtures>({
   page: async ({}, runFixture) => runFixture(page),
   scenario: "planning",
-  mission: async ({ scenario }, runFixture) => {
+  requestHandlers: {},
+  mission: async ({ scenario, requestHandlers }, runFixture) => {
     const repo = new Repo({ network: [] });
     const seed = buildBehavioralMission(
       1,
@@ -59,6 +62,8 @@ export const test = base.extend<BrowserMissionFixtures>({
 
     vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(input instanceof Request ? input.url : String(input), location.origin);
+      const handler = requestHandlers[url.pathname];
+      if (handler) return handler(url, init ?? {});
       const success = (data: unknown) => Response.json({ status: "success", data });
       switch (url.pathname) {
         case "/api/v1/auth/isLoggedIn":
@@ -93,6 +98,7 @@ export const test = base.extend<BrowserMissionFixtures>({
       harness?.unmount();
       harness = undefined;
       stopMissionTerrainProfiles();
+      clearLoadedGrid();
       setMissionAutomergeDocHandle(null);
     };
     const resetStore = () => {
@@ -106,6 +112,87 @@ export const test = base.extend<BrowserMissionFixtures>({
       store.replaceReducer(sliceReducers);
     };
 
+    const open = async (route: "mission" | "dashboard") => {
+      unmount();
+      resetStore();
+      harness = createReactHarness();
+      harness.container.id = "root";
+      harness.render(
+        <Provider store={store}>
+          <RepoContext.Provider value={repo}>
+            <CookiesProvider>
+              <MemoryRouter initialEntries={[`/${route}/1`]}>
+                <Routes>
+                  <Route path="/mission/:id" element={<MissionPage />} />
+                  <Route path="/dashboard/:id" element={<DashboardPage />} />
+                </Routes>
+              </MemoryRouter>
+            </CookiesProvider>
+          </RepoContext.Provider>
+        </Provider>
+      );
+      if (route === "mission") {
+        await expect
+          .element(page.getByLabelText("missionNameHeader", { exact: true }))
+          .toHaveTextContent(handle.doc().name);
+        await expect.poll(() => page.getBySelector(".ol-viewport").length).toBe(1);
+        await expect
+          .element(page.getByLabelText("globalEditToggle", { exact: true }))
+          .toBeEnabled();
+      } else if (Object.values(handle.doc().rexes).some((rex) => rex.isRunning)) {
+        await expect.element(page.getByTestId("dashboard-pet-clock")).toBeVisible();
+        await expect.poll(() => page.getBySelector(".ol-viewport").length).toBe(2);
+      } else {
+        await expect
+          .element(page.getByText("No EVA is currently running.", { exact: true }))
+          .toBeVisible();
+      }
+    };
+
+    const captureDownload = async (action: () => Promise<void>): Promise<BrowserDownload> => {
+      const blobs = new Map<string, Blob>();
+      const anchors = new Set<HTMLAnchorElement>();
+      const errors: string[] = [];
+      let attempts = 0;
+      let download: BrowserDownload | undefined;
+      const createObjectURL = URL.createObjectURL.bind(URL);
+      const objectURLs = vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+        if (!(blob instanceof Blob)) throw new Error("Expected an exported Blob");
+        const url = createObjectURL(blob);
+        blobs.set(url, blob);
+        return url;
+      });
+      const anchorClick = vi
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          anchors.add(this);
+          attempts += 1;
+          const blob = blobs.get(this.href);
+          if (!blob || !this.download || download) {
+            const message = download
+              ? "Expected exactly one download"
+              : "Expected a named Blob download";
+            errors.push(message);
+            throw new Error(message);
+          }
+          download = { filename: this.download, blob, text: () => blob.text() };
+        });
+      try {
+        await action();
+        await expect
+          .poll(() => Boolean(download), { message: "Wait for the export link" })
+          .toBe(true);
+        expect(errors, "The export must produce one valid download").toEqual([]);
+        expect(attempts).toBe(1);
+        return download!;
+      } finally {
+        objectURLs.mockRestore();
+        anchorClick.mockRestore();
+        for (const url of blobs.keys()) URL.revokeObjectURL(url);
+        for (const anchor of anchors) anchor.remove();
+      }
+    };
+
     try {
       await page.viewport(1960, 1080);
       localStorage.clear();
@@ -116,32 +203,9 @@ export const test = base.extend<BrowserMissionFixtures>({
         ids: MISSION_IDS,
         read: async () => JSON.parse(JSON.stringify(handle.doc())) as Mission,
         change: async (mutator) => handle.change(mutator),
-        open: async () => {
-          unmount();
-          resetStore();
-          harness = createReactHarness();
-          harness.container.id = "root";
-          harness.render(
-            <Provider store={store}>
-              <RepoContext.Provider value={repo}>
-                <CookiesProvider>
-                  <MemoryRouter initialEntries={["/mission/1"]}>
-                    <Routes>
-                      <Route path="/mission/:id" element={<MissionPage />} />
-                    </Routes>
-                  </MemoryRouter>
-                </CookiesProvider>
-              </RepoContext.Provider>
-            </Provider>
-          );
-          await expect
-            .element(page.getByLabelText("missionNameHeader", { exact: true }))
-            .toHaveTextContent(handle.doc().name);
-          await expect.poll(() => page.getBySelector(".ol-viewport").length).toBe(1);
-          await expect
-            .element(page.getByLabelText("globalEditToggle", { exact: true }))
-            .toBeEnabled();
-        },
+        open: () => open("mission"),
+        openDashboard: () => open("dashboard"),
+        captureDownload,
       });
     } finally {
       unmount();

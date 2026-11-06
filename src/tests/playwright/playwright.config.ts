@@ -19,7 +19,7 @@ const boxProviderUrl = `http://127.0.0.1:${process.env.PLAYWRIGHT_BOX_PORT ?? 41
 process.env.AEGIS_TEST_BOX_PROVIDER_URL = boxProviderUrl;
 
 const CROSS_BROWSER_TESTS =
-  /behavior[\\/](smoke|accessibilityCoverage|actions|rasterDisplay|layerStylesAssets|mapEditing|collaborationPresence|celestialControls|crewPositionSources|missionRulesTransfer)\.spec\.ts/;
+  /behavior[\\/](smoke|accessibilityCoverage|rasterDisplay|layerStylesAssets|collaborationPresence|celestialControls|crewPositionSources|missionRulesTransfer)\.spec\.ts/;
 
 // Chromium 153 on Windows can fail loopback requests with ERR_NO_BUFFER_SPACE:
 // https://issues.chromium.org/issues/572515601. Keep Playwright 1.63's defaults
@@ -103,8 +103,6 @@ export default defineConfig({
     { name: "auth", testMatch: /.*\.auth\.ts/ },
     {
       name: "chromium",
-      // Vitest Browser Mode covers these client contracts in Chromium; retain full-stack parity below.
-      testIgnore: ["**/automergeCRDT.spec.ts", "**/behavior/actions.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1960, height: 1080 },

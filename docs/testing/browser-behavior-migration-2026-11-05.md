@@ -2,6 +2,10 @@
 
 Baseline commit: `d3645bea179d1db57c616f97ed5e056f068f5a19`.
 
+This records the first pass, committed as `fe2415eb`. The
+[second pass](browser-behavior-expansion-2026-11-06.md) expands the migration and
+supersedes the suite counts below.
+
 95 Chromium scenarios move from server-backed Playwright fixtures to Vitest
 Browser Mode. Playwright discovery drops from 481 to 386 Chromium scenarios;
 Firefox and WebKit retain all 41 scenarios each. Including authentication setup,

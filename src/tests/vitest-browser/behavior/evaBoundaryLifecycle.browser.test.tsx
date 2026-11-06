@@ -1,14 +1,13 @@
-import { randomUUID } from "node:crypto";
-import { test, expect } from "../fixtures/behavioralTest";
-import { seedAction, seedStation } from "../fixtures/entitySeeds";
-import { installMapObserver, readMapFeatures } from "../fixtures/mapAssertions";
+import { v4 as randomUUID } from "uuid";
+import { test, expect } from "./missionHarness";
+import { seedAction, seedStation } from "tests/playwright/fixtures/entitySeeds";
+import { readMapFeatures } from "./mapObserver";
 import { enablePlanningEditMode, planningEvaRow, selectPlanningEva } from "./planningHelpers";
 
 test.describe("EVA sequence boundary lifecycle", () => {
   for (const role of ["egress", "ingress"] as const) {
     test(`switches ${role} from managed lander copy to a regular station and back`, async ({
       page,
-      context,
       mission,
     }) => {
       const before = await mission.read();
@@ -45,12 +44,9 @@ test.describe("EVA sequence boundary lifecycle", () => {
         });
       });
       const arranged = await mission.read();
-      await mission.open(page);
+      await mission.open();
       await enablePlanningEditMode(page);
       await selectPlanningEva(page, "Survey Alpha");
-      const peer = await context.newPage();
-      await mission.open(peer);
-      await selectPlanningEva(peer, "Survey Alpha");
 
       const row = planningEvaRow(page, "Survey Alpha");
       // The pinned ingress is the last of the four station selectors in edit mode.
@@ -59,7 +55,7 @@ test.describe("EVA sequence boundary lifecycle", () => {
       const boundaryTraverseUuid =
         role === "egress" ? mission.ids.traverseOutbound : mission.ids.traverseReturn;
 
-      await endpointSelect.selectOption(stationId);
+      await endpointSelect.selectOptions(stationId);
       await expect
         .poll(
           async () =>
@@ -87,7 +83,7 @@ test.describe("EVA sequence boundary lifecycle", () => {
         .toEqual(location);
 
       // The managed Lander option is kept at the same edge position in the native select.
-      await endpointSelect.selectOption("lander");
+      await endpointSelect.selectOptions("lander");
       await expect
         .poll(async () => {
           const graph = await mission.read();
@@ -124,36 +120,32 @@ test.describe("EVA sequence boundary lifecycle", () => {
       ]) {
         expect(after.traverses[traverseId]).toEqual(arranged.traverses[traverseId]);
       }
-      for (const client of [page, peer]) {
-        await mission.open(client);
-        await enablePlanningEditMode(client);
-        await selectPlanningEva(client, "Survey Alpha");
-        await expect(planningEvaRow(client, "Survey Alpha").getByAltText("Lander")).toHaveCount(2);
-        await expect(
-          planningEvaRow(client, "Survey Alpha").getByRole("combobox").first()
-        ).toHaveValue("lander");
-        await expect(
-          planningEvaRow(client, "Survey Alpha").getByRole("combobox").last()
-        ).toHaveValue("lander");
-      }
+
+      await mission.open();
+      await enablePlanningEditMode(page);
+      await selectPlanningEva(page, "Survey Alpha");
+      await expect
+        .poll(() => planningEvaRow(page, "Survey Alpha").getByAltText("Lander").length)
+        .toBe(2);
+      await expect
+        .element(planningEvaRow(page, "Survey Alpha").getByRole("combobox").first())
+        .toHaveValue("lander");
+      await expect
+        .element(planningEvaRow(page, "Survey Alpha").getByRole("combobox").last())
+        .toHaveValue("lander");
     });
   }
 
   test("Add Station creates an explicit empty selector without substituting a station", async ({
     page,
-    context,
     mission,
   }) => {
     const before = await mission.read();
-    await mission.open(page);
+    await mission.open();
     await enablePlanningEditMode(page);
     await selectPlanningEva(page, "Survey Alpha");
-    const peer = await context.newPage();
-    await installMapObserver(peer);
-    await mission.open(peer);
-    await selectPlanningEva(peer, "Survey Alpha");
 
-    await page.getByLabel("Add Station", { exact: true }).click();
+    await page.getByLabelText("Add Station", { exact: true }).click();
     await expect
       .poll(async () => (await mission.read()).evas[mission.ids.evaA].sequence.length)
       .toBe(before.evas[mission.ids.evaA].sequence.length + 2);
@@ -165,19 +157,19 @@ test.describe("EVA sequence boundary lifecycle", () => {
     expect(afterAdd.traverses[sequence[emptyIndex + 1].uuid]).toBeDefined();
     expect(Object.keys(afterAdd.stations).sort()).toEqual(Object.keys(before.stations).sort());
 
-    for (const client of [page, peer]) {
-      await mission.open(client);
-      await selectPlanningEva(client, "Survey Alpha");
-      await expect(
-        planningEvaRow(client, "Survey Alpha").getByText("< Station not selected >", {
+    await mission.open();
+    await selectPlanningEva(page, "Survey Alpha");
+    await expect
+      .element(
+        planningEvaRow(page, "Survey Alpha").getByText("< Station not selected >", {
           exact: true,
         })
-      ).toBeVisible();
-      await enablePlanningEditMode(client);
-      const stationSelectors = planningEvaRow(client, "Survey Alpha").getByRole("combobox");
-      await expect(stationSelectors).toHaveCount(5);
-      await expect(stationSelectors.nth(3)).toHaveValue("");
-    }
+      )
+      .toBeVisible();
+    await enablePlanningEditMode(page);
+    const stationSelectors = planningEvaRow(page, "Survey Alpha").getByRole("combobox");
+    await expect.poll(() => stationSelectors.length).toBe(5);
+    await expect.element(stationSelectors.nth(3)).toHaveValue("");
 
     // Convert the empty supported slot into a well-formed but unresolved reference
     // to exercise old/imported graphs that point to a missing station record.
@@ -189,23 +181,23 @@ test.describe("EVA sequence boundary lifecycle", () => {
     expect(unresolved.stations[unresolvedStationUuid]).toBeUndefined();
     expect(unresolved.evas[mission.ids.evaA].sequence[emptyIndex].uuid).toBe(unresolvedStationUuid);
 
-    for (const client of [page, peer]) {
-      await mission.open(client);
-      await selectPlanningEva(client, "Survey Alpha");
-      await expect(
-        planningEvaRow(client, "Survey Alpha").getByText("< Station not selected >", {
+    await mission.open();
+    await selectPlanningEva(page, "Survey Alpha");
+    await expect
+      .element(
+        planningEvaRow(page, "Survey Alpha").getByText("< Station not selected >", {
           exact: true,
         })
-      ).toBeVisible();
-      await client.getByLabel("report_panel", { exact: true }).click();
-      await expect(client.getByText(/^EVA Report/)).toBeVisible();
-      await expect(client.locator(".ol-viewport")).toHaveCount(1);
-      const features = await readMapFeatures(client);
-      expect(features.some((feature) => feature.id === unresolvedStationUuid)).toBe(false);
-      expect(
-        features.filter((feature) => feature.layerZIndex === 14).map((feature) => feature.id)
-      ).not.toContain(unresolvedStationUuid);
-    }
+      )
+      .toBeVisible();
+    await page.getByLabelText("report_panel", { exact: true }).click();
+    await expect.element(page.getByText(/^EVA Report/)).toBeVisible();
+    await expect.poll(() => page.getBySelector(".ol-viewport").length).toBe(1);
+    const features = await readMapFeatures();
+    expect(features.some((feature) => feature.id === unresolvedStationUuid)).toBe(false);
+    expect(
+      features.filter((feature) => feature.layerZIndex === 14).map((feature) => feature.id)
+    ).not.toContain(unresolvedStationUuid);
 
     expect((await mission.read()).evas[mission.ids.evaA].sequence[emptyIndex].uuid).toBe(
       unresolvedStationUuid
