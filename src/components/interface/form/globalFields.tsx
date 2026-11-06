@@ -618,7 +618,7 @@ export const DegreesInputSlider: FunctionComponent<{
  * Color picker
  */
 export const PathColorPickerMenu: FunctionComponent<{
-  currentColor: string;
+  currentColor: string | null;
   editMode: boolean;
   updateColor: (color: string) => void;
   styleContainer?: CSSProperties;
@@ -649,16 +649,17 @@ export const PathColorPickerMenu: FunctionComponent<{
           }}
         >
           <div
-            className={formStyles.pathColorSample}
+            className={`${formStyles.pathColorSample} ${currentColor === null ? formStyles.pathColorSampleNone : ""}`}
+            title={currentColor === null ? "No color selected" : undefined}
             style={{
-              backgroundColor: currentColor,
+              backgroundColor: currentColor ?? "#ffffff",
             }}
           ></div>
         </div>
         {anchor && editMode && (
           <PickerPopover anchor={anchor} onClose={closePicker} direction={direction}>
             <CompactColor
-              color={currentColor}
+              color={currentColor ?? undefined}
               colors={COLOR_PALATTE}
               rectProps={circular ? { style: { borderRadius: "50%" } } : undefined}
               onChange={(color) => {

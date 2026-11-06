@@ -177,7 +177,7 @@ export const AssetDetails: FunctionComponent<{
           <div data-testid="asset-editor-color">
             <PathColorPickerMenu
               circular={true}
-              currentColor={asset.color || "#00000000"}
+              currentColor={asset.color}
               editMode={editMode}
               updateColor={(color) => {
                 save({ color });
