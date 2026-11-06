@@ -6,7 +6,7 @@ import NotificationBannerBar, {
   isBannerHiddenOnPath,
 } from "components/page/notificationBannerBar";
 import { getActiveNotificationBanners } from "http-client/notificationBanner";
-import { createClientSocket } from "utils/clientSocketHelpers";
+import { getClientSocket } from "utils/clientSocketHelpers";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
 
 vi.mock("http-client/notificationBanner", () => ({
@@ -17,7 +17,7 @@ vi.mock("http-client/notificationBanner", () => ({
 const socketHandlers = new Map<string, () => void>();
 const managerHandlers = new Map<string, () => void>();
 vi.mock("utils/clientSocketHelpers", () => ({
-  createClientSocket: vi.fn(() => ({
+  getClientSocket: vi.fn(() => ({
     on: (event: string, handler: () => void) => socketHandlers.set(event, handler),
     off: (event: string) => socketHandlers.delete(event),
     disconnect: vi.fn(),
@@ -130,7 +130,7 @@ describe("NotificationBannerBar", () => {
     mockBanners([]);
     renderAt("/");
     await vi.waitFor(() => expect(getActiveNotificationBanners).toHaveBeenCalledTimes(1));
-    expect(createClientSocket).toHaveBeenCalledTimes(1);
+    expect(getClientSocket).toHaveBeenCalledTimes(1);
 
     mockBanners([makeBanner({ message: "Live update" })]);
     socketHandlers.get("bannersChanged")();
@@ -138,6 +138,19 @@ describe("NotificationBannerBar", () => {
 
     managerHandlers.get("reconnect")();
     await vi.waitFor(() => expect(getActiveNotificationBanners).toHaveBeenCalledTimes(3));
+  });
+
+  it("removes its handlers on unmount without disconnecting the shared socket", async () => {
+    mockBanners([]);
+    renderAt("/");
+    await vi.waitFor(() => expect(getActiveNotificationBanners).toHaveBeenCalledTimes(1));
+    const sharedSocket = vi.mocked(getClientSocket).mock.results[0].value;
+
+    harness.unmount();
+
+    expect(socketHandlers.has("bannersChanged")).toBe(false);
+    expect(managerHandlers.has("reconnect")).toBe(false);
+    expect(sharedSocket.disconnect).not.toHaveBeenCalled();
   });
 
   it("hides a dismissed banner until the banner is edited", async () => {

@@ -4,7 +4,7 @@ import { matchPath, useLocation } from "react-router";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { getActiveNotificationBanners } from "http-client/notificationBanner";
-import { createClientSocket } from "utils/clientSocketHelpers";
+import { getClientSocket } from "utils/clientSocketHelpers";
 import { clientLogger } from "utils/logging/clientLogger";
 import styles from "./notificationBannerBar.module.css";
 
@@ -67,8 +67,7 @@ const NotificationBannerBar: FunctionComponent = () => {
   }, [missionId, refreshBanners]);
 
   useEffect(() => {
-    // Default namespace; this socket never sends visitorJoin, so it is not counted as a visitor
-    const socket = createClientSocket(window.location.origin);
+    const socket = getClientSocket();
     const handleBannersChanged = (): void => {
       refreshBanners();
     };
@@ -78,7 +77,6 @@ const NotificationBannerBar: FunctionComponent = () => {
     return () => {
       socket.off("bannersChanged", handleBannersChanged);
       socket.io.off("reconnect", handleBannersChanged);
-      socket.disconnect();
     };
   }, [refreshBanners]);
 

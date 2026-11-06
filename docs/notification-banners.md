@@ -63,9 +63,8 @@ Updates use `POST /:id` (not PUT) because `serverLogger.apiRoute` only accepts G
 - `NotificationBannerBar` is mounted once in `App.tsx`, above `<Routes>`, inside an app shell
   (`appShell` / `appContent` classes in `notificationBannerBar.module.css`). The routed page fills
   the remaining height, so full-height pages use `height: 100%`, not `100vh`.
-- It opens its own default-namespace socket with `createClientSocket` and never sends
-  `visitorJoin`, so it is not counted as a visitor. Mission and dashboard pages therefore hold two
-  `/api/socket` connections per tab (this one and `SocketClient`'s).
+- It listens on the tab's shared default-namespace socket (`getClientSocket`, see
+  `docs/app-socket.md`). It adds and removes only its own handlers and never disconnects the socket.
 - Refetches on mission id change, `bannersChanged`, and manager `reconnect`. Responses for older
   requests are dropped.
 - Dismissal: component state holds `id:updatedAt` keys. It lasts across in-app navigation and is

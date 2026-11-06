@@ -20,6 +20,7 @@ import EnvironmentConfig from "pages/admin/environmentConfig";
 import NotificationBanners from "pages/admin/notificationBanners";
 import ManageAutomergeDoc from "pages/admin/automerge";
 import NotificationBannerBar from "components/page/notificationBannerBar";
+import SocketClient from "components/page/socketClient";
 import bannerStyles from "components/page/notificationBannerBar.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { setLaunchpadUser } from "store/user";
@@ -34,6 +35,7 @@ const App = (props: { launchpadUser: LaunchpadUser | Error }): React.ReactElemen
 
   return (
     <div className={bannerStyles.appShell}>
+      <SocketClient />
       <NotificationBannerBar />
       <div className={bannerStyles.appContent}>
         <Routes>
