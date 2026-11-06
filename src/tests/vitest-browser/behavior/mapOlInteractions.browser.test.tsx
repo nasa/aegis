@@ -1,3 +1,6 @@
+import { commands } from "vitest/browser";
+import { recordBrowserErrors, waitForMapIdle } from "./mapInteractions";
+import { isVisible } from "./browserAssertions";
 /**
  * Integration tests for OpenLayers map interactions on Isolated mission.
  *
@@ -7,37 +10,36 @@
  * Each test creates a validated mission with presets, stations, POIs and EVAs.
  */
 
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
-import { waitForPageReady } from "../helpers";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test, expect } from "./missionHarness";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function openMissionMap(page: Page, mission: BehavioralMission): Promise<void> {
-  await page.goto(mission.url);
-  await waitForPageReady(page);
-  await page.locator(".ol-viewport").first().waitFor({ state: "visible", timeout: 15000 });
+async function openMissionMap(page: Page, mission: BrowserMission): Promise<void> {
+  await mission.open();
+
+  await expect.element(page.getBySelector(".ol-viewport").first()).toBeVisible();
 }
 
 /** Open the eyeball (Map Item Visibility) menu. */
 async function openEyeballMenu(page: Page): Promise<void> {
   const menuPanel = page.getByTestId("map-menu-floating-panel");
-  const isOpen = await menuPanel.isVisible().catch(() => false);
+  const isOpen = await isVisible(menuPanel);
   if (!isOpen) {
     await page.getByTestId("map-menu-launcher").click();
   }
-  await expect(menuPanel).toBeVisible();
-  await expect(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
+  await expect.element(menuPanel).toBeVisible();
+  await expect.element(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
 }
 
 /** Wait for the OL map to have painted pixels (tiles loaded). */
-async function waitForMapPainted(page: Page): Promise<void> {
+async function waitForMapPainted(): Promise<void> {
   await expect
     .poll(
       () =>
-        page.evaluate(() => {
+        (() => {
           const canvas = document.querySelector(".ol-viewport canvas") as HTMLCanvasElement | null;
           if (!canvas) return false;
           try {
@@ -53,8 +55,8 @@ async function waitForMapPainted(page: Page): Promise<void> {
           } catch {
             return true;
           }
-        }),
-      { timeout: 10000, intervals: [100, 200, 500] }
+        })(),
+      { timeout: 10000, interval: 100 }
     )
     .toBe(true);
 }
@@ -67,10 +69,10 @@ test.describe("Isolated mission — Page Load & Rendering", () => {
   test("OL canvas is sized and visible", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    const canvas = page.locator(".ol-viewport canvas").first();
-    await expect(canvas).toBeVisible();
+    const canvas = page.getBySelector(".ol-viewport canvas").first();
+    await expect.element(canvas).toBeVisible();
 
-    const box = await canvas.boundingBox();
+    const box = await canvas.element().getBoundingClientRect();
     expect(box).not.toBeNull();
     expect(box!.width).toBeGreaterThan(100);
     expect(box!.height).toBeGreaterThan(100);
@@ -78,23 +80,23 @@ test.describe("Isolated mission — Page Load & Rendering", () => {
 
   test("OL canvas paints non-blank pixels (tiles or vector content)", async ({ page, mission }) => {
     await openMissionMap(page, mission);
-    await waitForMapPainted(page);
+    await waitForMapPainted();
   });
 
   test("scale bar is visible by default in editor mode", async ({ page, mission }) => {
     await openMissionMap(page, mission);
     // ScaleBar renders text like "100 m" or "1 km" inside an aria-labelled element.
-    const scaleBar = page.getByLabel("scaleBar", { exact: true });
-    await expect(scaleBar).toBeVisible({ timeout: 5000 });
+    const scaleBar = page.getByLabelText("scaleBar", { exact: true });
+    await expect.element(scaleBar).toBeVisible();
   });
 
   test("zoom controls (+ / -) are present in editor mode", async ({ page, mission }) => {
     await openMissionMap(page, mission);
     // OL renders default zoom controls as .ol-zoom buttons
-    const zoomIn = page.locator(".ol-zoom-in");
-    const zoomOut = page.locator(".ol-zoom-out");
-    await expect(zoomIn).toBeVisible({ timeout: 5000 });
-    await expect(zoomOut).toBeVisible({ timeout: 5000 });
+    const zoomIn = page.getBySelector(".ol-zoom-in");
+    const zoomOut = page.getBySelector(".ol-zoom-out");
+    await expect.element(zoomIn).toBeVisible();
+    await expect.element(zoomOut).toBeVisible();
   });
 
   test("map canvas does not become blank after waiting 3 seconds", async ({ page, mission }) => {
@@ -102,8 +104,8 @@ test.describe("Isolated mission — Page Load & Rendering", () => {
     // Wait 3s then verify canvas still has pixels. Distinct from the poll-based
     // paint check: this asserts the canvas STAYS painted, not just that it
     // eventually paints.
-    await page.waitForTimeout(3000);
-    const hasPaintedPixels = await page.evaluate(() => {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    const hasPaintedPixels = await (() => {
       const canvas = document.querySelector(".ol-viewport canvas") as HTMLCanvasElement | null;
       if (!canvas) return false;
       try {
@@ -119,24 +121,24 @@ test.describe("Isolated mission — Page Load & Rendering", () => {
       } catch {
         return true; // tainted canvas = content present
       }
-    });
+    })();
     expect(hasPaintedPixels).toBe(true);
   });
 
   test("page title reflects the mission name", async ({ page, mission }) => {
     await openMissionMap(page, mission);
     // Just check the page didn't return an error page
-    const title = await page.title();
+    const title = await document.title;
     expect(title).not.toContain("Error");
     expect(title.length).toBeGreaterThan(0);
   });
 
   test("ol-viewport has correct CSS classes applied", async ({ page, mission }) => {
     await openMissionMap(page, mission);
-    const viewport = page.locator(".ol-viewport").first();
-    await expect(viewport).toBeVisible();
+    const viewport = page.getBySelector(".ol-viewport").first();
+    await expect.element(viewport).toBeVisible();
     // OL adds these classes to the viewport element
-    await expect(viewport).toHaveClass(/ol-viewport/);
+    await expect.element(viewport).toHaveClass(/ol-viewport/);
   });
 });
 
@@ -149,7 +151,7 @@ test.describe("Isolated mission — Eyeball Menu", () => {
     await openMissionMap(page, mission);
     await openEyeballMenu(page);
     const menuPanel = page.getByTestId("map-menu-floating-panel");
-    await expect(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
+    await expect.element(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
   });
 
   test("eyeball menu shows POIs, Stations, Actions, Positions labels", async ({
@@ -160,11 +162,11 @@ test.describe("Isolated mission — Eyeball Menu", () => {
     await openEyeballMenu(page);
 
     const menuPanel = page.getByTestId("map-menu-floating-panel");
-    await expect(menuPanel.getByText("POIs")).toBeVisible();
-    await expect(menuPanel.getByText("Stations")).toBeVisible();
-    await expect(menuPanel.getByText("Actions")).toBeVisible();
+    await expect.element(menuPanel.getByText("POIs")).toBeVisible();
+    await expect.element(menuPanel.getByText("Stations")).toBeVisible();
+    await expect.element(menuPanel.getByText("Actions")).toBeVisible();
     // "Positions" may be within a collapsible section
-    await expect(menuPanel.getByText("Positions")).toBeVisible();
+    await expect.element(menuPanel.getByText("Positions")).toBeVisible();
   });
 
   test("eyeball menu shows Scale Bar and Mouse Coordinates toggles", async ({ page, mission }) => {
@@ -172,8 +174,8 @@ test.describe("Isolated mission — Eyeball Menu", () => {
     await openEyeballMenu(page);
 
     const menuPanel = page.getByTestId("map-menu-floating-panel");
-    await expect(menuPanel.getByText("Scale Bar")).toBeVisible();
-    await expect(menuPanel.getByText("Mouse Coordinates")).toBeVisible();
+    await expect.element(menuPanel.getByText("Scale Bar")).toBeVisible();
+    await expect.element(menuPanel.getByText("Mouse Coordinates")).toBeVisible();
   });
 
   test("eyeball menu shows Stations sub-toggles: Labels, Walkbacks, Circles", async ({
@@ -186,16 +188,16 @@ test.describe("Isolated mission — Eyeball Menu", () => {
     // Station row has Labels, Walkbacks, Circles sub-toggles
     // Note: "Labels" appears for POIs, Stations, and Actions rows
     const menuPanel = page.getByTestId("map-menu-floating-panel");
-    await expect(menuPanel.getByText("Walkbacks")).toBeVisible();
-    await expect(menuPanel.getByText("Circles")).toBeVisible();
+    await expect.element(menuPanel.getByText("Walkbacks")).toBeVisible();
+    await expect.element(menuPanel.getByText("Circles")).toBeVisible();
   });
 
   test("toggling scale bar off hides the scale bar from the map", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
     // Scale bar should be visible by default
-    const scaleBar = page.getByLabel("scaleBar", { exact: true });
-    await expect(scaleBar).toBeVisible({ timeout: 5000 });
+    const scaleBar = page.getByLabelText("scaleBar", { exact: true });
+    await expect.element(scaleBar).toBeVisible();
 
     // Open eyeball menu and toggle Scale Bar off
     await openEyeballMenu(page);
@@ -203,12 +205,12 @@ test.describe("Isolated mission — Eyeball Menu", () => {
     // Click the eye icon next to "Scale Bar" to toggle it off
     // The Scale Bar row has an eye icon to its left
     const scaleBarRow = page.getByTestId("map-menu-floating-panel").getByText("Scale Bar");
-    const scaleBarContainer = scaleBarRow.locator("..");
+    const scaleBarContainer = scaleBarRow.getBySelector("..");
     // Find the eye icon within the same parent container
-    await scaleBarContainer.locator("[class*='menuEyeIcon'], [class*='Eye']").first().click();
+    await scaleBarContainer.getBySelector("[class*='menuEyeIcon'], [class*='Eye']").first().click();
 
     // Scale bar should be hidden now
-    await expect(scaleBar).not.toBeVisible({ timeout: 3000 });
+    await expect.poll(() => isVisible(scaleBar)).toBe(false);
   });
 
   test("toggling scale bar back on re-shows the scale bar", async ({ page, mission }) => {
@@ -216,19 +218,21 @@ test.describe("Isolated mission — Eyeball Menu", () => {
     await openEyeballMenu(page);
 
     const scaleBarRow = page.getByTestId("map-menu-floating-panel").getByText("Scale Bar");
-    const scaleBarContainer = scaleBarRow.locator("..");
-    const eyeIcon = scaleBarContainer.locator("[class*='menuEyeIcon'], [class*='Eye']").first();
+    const scaleBarContainer = scaleBarRow.getBySelector("..");
+    const eyeIcon = scaleBarContainer
+      .getBySelector("[class*='menuEyeIcon'], [class*='Eye']")
+      .first();
 
     // Toggle off
     await eyeIcon.click();
-    await page.waitForTimeout(300);
+    await waitForMapIdle();
 
     // Toggle back on
     await eyeIcon.click();
 
     // Scale bar should reappear
-    const scaleBar = page.getByLabel("scaleBar", { exact: true });
-    await expect(scaleBar).toBeVisible({ timeout: 5000 });
+    const scaleBar = page.getByLabelText("scaleBar", { exact: true });
+    await expect.element(scaleBar).toBeVisible();
   });
 
   test("eyeball menu closes when clicking the X button", async ({ page, mission }) => {
@@ -237,13 +241,13 @@ test.describe("Isolated mission — Eyeball Menu", () => {
 
     const menuPanel = page.getByTestId("map-menu-floating-panel");
     const title = menuPanel.getByText("Map Item Visibility", { exact: true });
-    await expect(title).toBeVisible();
+    await expect.element(title).toBeVisible();
 
     // Click the close (X) icon in the header
-    await page.locator("[class*='menuHeaderClose']").first().click();
+    await page.getBySelector("[class*='menuHeaderClose']").first().click();
 
     // The menu content should be hidden
-    await expect(menuPanel).not.toBeVisible({ timeout: 3000 });
+    await expect.poll(() => isVisible(menuPanel)).toBe(false);
   });
 });
 
@@ -257,38 +261,44 @@ test.describe("Isolated mission — Section Navigation", () => {
 
     const sections = ["station Section", "poi Section", "evas Section", "preset Section"];
     for (const section of sections) {
-      await expect(page.getByLabel(section, { exact: true })).toBeVisible();
+      await expect.element(page.getByLabelText(section, { exact: true })).toBeVisible();
     }
   });
 
   test("clicking station section shows Stations panel title", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("station Section", { exact: true }).click();
-    await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("Stations");
+    await page.getByLabelText("station Section", { exact: true }).click();
+    await expect
+      .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+      .toHaveTextContent("Stations");
   });
 
   test("clicking POI section shows Points of Interest panel title", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("poi Section", { exact: true }).click();
-    await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
-      "Points of Interest"
-    );
+    await page.getByLabelText("poi Section", { exact: true }).click();
+    await expect
+      .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+      .toHaveTextContent("Points of Interest");
   });
 
   test("clicking EVAs section shows EVAs panel title", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("evas Section", { exact: true }).click();
-    await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("EVAs");
+    await page.getByLabelText("evas Section", { exact: true }).click();
+    await expect
+      .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+      .toHaveTextContent("EVAs");
   });
 
   test("clicking presets section shows preset panel", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("preset Section", { exact: true }).click();
-    await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("Presets");
+    await page.getByLabelText("preset Section", { exact: true }).click();
+    await expect
+      .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+      .toHaveTextContent("Presets");
   });
 
   test("station section shows a list of stations when mission has station data", async ({
@@ -297,15 +307,12 @@ test.describe("Isolated mission — Section Navigation", () => {
   }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("station Section", { exact: true }).click();
+    await page.getByLabelText("station Section", { exact: true }).click();
     // Wait for the station list to populate (may take a moment after section change)
     await expect
       .poll(
         async () => {
-          const count = await page
-            .getByLabel("stationList-item", { exact: true })
-            .count()
-            .catch(() => 0);
+          const count = await page.getByLabelText("stationList-item", { exact: true }).length;
           return count;
         },
         { timeout: 5000 }
@@ -316,14 +323,11 @@ test.describe("Isolated mission — Section Navigation", () => {
   test("EVA section shows a list of EVAs when mission has EVA data", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("evas Section", { exact: true }).click();
+    await page.getByLabelText("evas Section", { exact: true }).click();
     await expect
       .poll(
         async () => {
-          const count = await page
-            .getByLabel("evaList-item", { exact: true })
-            .count()
-            .catch(() => 0);
+          const count = await page.getByLabelText("evaList-item", { exact: true }).length;
           return count;
         },
         { timeout: 5000 }
@@ -334,14 +338,11 @@ test.describe("Isolated mission — Section Navigation", () => {
   test("POI section shows a list of POIs when mission has POI data", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("poi Section", { exact: true }).click();
+    await page.getByLabelText("poi Section", { exact: true }).click();
     await expect
       .poll(
         async () => {
-          const count = await page
-            .getByLabel("poiList-item", { exact: true })
-            .count()
-            .catch(() => 0);
+          const count = await page.getByLabelText("poiList-item", { exact: true }).length;
           return count;
         },
         { timeout: 5000 }
@@ -351,7 +352,7 @@ test.describe("Isolated mission — Section Navigation", () => {
 
   test("rapid section switching does not crash the map", async ({ page, mission }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    recordBrowserErrors(errors);
 
     await openMissionMap(page, mission);
 
@@ -364,12 +365,12 @@ test.describe("Isolated mission — Section Navigation", () => {
       "evas Section",
     ];
     for (const section of sections) {
-      await page.getByLabel(section, { exact: true }).click();
+      await page.getByLabelText(section, { exact: true }).click();
       // Don't wait too long — we're testing rapid switching
-      await page.waitForTimeout(200);
+      await waitForMapIdle();
     }
 
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
 
     const fatal = errors.filter(
       (e) => !e.includes("ResizeObserver") && !e.includes("Script error")
@@ -382,8 +383,8 @@ test.describe("Isolated mission — Section Navigation", () => {
 
     const sections = ["station Section", "poi Section", "evas Section", "preset Section"];
     for (const section of sections) {
-      await page.getByLabel(section, { exact: true }).click();
-      await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+      await page.getByLabelText(section, { exact: true }).click();
+      await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
     }
   });
 
@@ -391,11 +392,11 @@ test.describe("Isolated mission — Section Navigation", () => {
     await openMissionMap(page, mission);
 
     // Measurement section may use a different label depending on implementation
-    const measureBtn = page.getByLabel("measurement Section", { exact: true });
-    const hasMeasureSection = await measureBtn.isVisible().catch(() => false);
+    const measureBtn = page.getByLabelText("measurement Section", { exact: true });
+    const hasMeasureSection = await isVisible(measureBtn);
     if (hasMeasureSection) {
       await measureBtn.click();
-      await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+      await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
     }
   });
 });
@@ -411,12 +412,14 @@ test.describe("Isolated mission — Station Interactions", () => {
   }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("station Section", { exact: true }).click();
-    await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText("Stations");
+    await page.getByLabelText("station Section", { exact: true }).click();
+    await expect
+      .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+      .toHaveTextContent("Stations");
 
     // Click the first station item
-    const firstStation = page.getByLabel("stationList-item", { exact: true }).first();
-    await expect(firstStation).toBeVisible({ timeout: 5000 });
+    const firstStation = page.getByLabelText("stationList-item", { exact: true }).first();
+    await expect.element(firstStation).toBeVisible();
     await firstStation.click();
 
     // The right panel should open — we detect it by looking for the right-panel
@@ -424,8 +427,8 @@ test.describe("Isolated mission — Station Interactions", () => {
     await expect
       .poll(
         async () => {
-          const infoPanel = page.getByLabel("info_panel", { exact: true });
-          return infoPanel.isVisible().catch(() => false);
+          const infoPanel = page.getByLabelText("info_panel", { exact: true });
+          return isVisible(infoPanel);
         },
         { timeout: 5000 }
       )
@@ -435,33 +438,33 @@ test.describe("Isolated mission — Station Interactions", () => {
   test("selecting a station keeps the map visible", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("station Section", { exact: true }).click();
-    const firstStation = page.getByLabel("stationList-item", { exact: true }).first();
-    await expect(firstStation).toBeVisible({ timeout: 5000 });
+    await page.getByLabelText("station Section", { exact: true }).click();
+    const firstStation = page.getByLabelText("stationList-item", { exact: true }).first();
+    await expect.element(firstStation).toBeVisible();
     await firstStation.click();
 
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
   });
 
   test("selecting and deselecting a station does not crash", async ({ page, mission }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    recordBrowserErrors(errors);
 
     await openMissionMap(page, mission);
 
-    await page.getByLabel("station Section", { exact: true }).click();
-    const firstStation = page.getByLabel("stationList-item", { exact: true }).first();
-    await expect(firstStation).toBeVisible({ timeout: 5000 });
+    await page.getByLabelText("station Section", { exact: true }).click();
+    const firstStation = page.getByLabelText("stationList-item", { exact: true }).first();
+    await expect.element(firstStation).toBeVisible();
 
     // Select
     await firstStation.click();
-    await page.waitForTimeout(500);
+    await waitForMapIdle();
 
     // Deselect by switching section
-    await page.getByLabel("preset Section", { exact: true }).click();
-    await page.waitForTimeout(500);
+    await page.getByLabelText("preset Section", { exact: true }).click();
+    await waitForMapIdle();
 
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
 
     const fatal = errors.filter(
       (e) => !e.includes("ResizeObserver") && !e.includes("Script error")
@@ -478,20 +481,20 @@ test.describe("Isolated mission — EVA Interactions", () => {
   test("selecting an EVA keeps the map alive", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("evas Section", { exact: true }).click();
-    const firstEva = page.getByLabel("evaList-item", { exact: true }).first();
-    await expect(firstEva).toBeVisible({ timeout: 5000 });
+    await page.getByLabelText("evas Section", { exact: true }).click();
+    const firstEva = page.getByLabelText("evaList-item", { exact: true }).first();
+    await expect.element(firstEva).toBeVisible();
     await firstEva.click();
 
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
   });
 
   test("selecting an EVA shows the EVA sequence/timeline panel", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("evas Section", { exact: true }).click();
-    const firstEva = page.getByLabel("evaList-item", { exact: true }).first();
-    await expect(firstEva).toBeVisible({ timeout: 5000 });
+    await page.getByLabelText("evas Section", { exact: true }).click();
+    const firstEva = page.getByLabelText("evaList-item", { exact: true }).first();
+    await expect.element(firstEva).toBeVisible();
     await firstEva.click();
 
     // After selecting an EVA, the panel should show EVA-related content
@@ -499,7 +502,7 @@ test.describe("Isolated mission — EVA Interactions", () => {
     await expect
       .poll(
         async () => {
-          const panelText = await page.locator("body").textContent();
+          const panelText = await page.getBySelector("body").element().textContent;
           // EVA panel typically shows "Sequence" or station names or "traverse"
           return (
             panelText?.includes("Sequence") ||
@@ -516,18 +519,18 @@ test.describe("Isolated mission — EVA Interactions", () => {
 
   test("map has no JS errors when switching between EVAs", async ({ page, mission }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    recordBrowserErrors(errors);
 
     await openMissionMap(page, mission);
 
-    await page.getByLabel("evas Section", { exact: true }).click();
-    const evaItems = page.getByLabel("evaList-item", { exact: true });
-    const count = await evaItems.count();
+    await page.getByLabelText("evas Section", { exact: true }).click();
+    const evaItems = page.getByLabelText("evaList-item", { exact: true });
+    const count = await evaItems.length;
 
     // Click through each EVA (up to 3)
     for (let i = 0; i < Math.min(count, 3); i++) {
       await evaItems.nth(i).click();
-      await page.waitForTimeout(500);
+      await waitForMapIdle();
     }
 
     const fatal = errors.filter(
@@ -545,28 +548,28 @@ test.describe("Isolated mission — POI Interactions", () => {
   test("selecting a POI keeps the map alive", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("poi Section", { exact: true }).click();
-    const firstPoi = page.getByLabel("poiList-item", { exact: true }).first();
-    await expect(firstPoi).toBeVisible({ timeout: 5000 });
+    await page.getByLabelText("poi Section", { exact: true }).click();
+    const firstPoi = page.getByLabelText("poiList-item", { exact: true }).first();
+    await expect.element(firstPoi).toBeVisible();
     await firstPoi.click();
 
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
   });
 
   test("selecting a POI opens POI details panel", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("poi Section", { exact: true }).click();
-    const firstPoi = page.getByLabel("poiList-item", { exact: true }).first();
-    await expect(firstPoi).toBeVisible({ timeout: 5000 });
+    await page.getByLabelText("poi Section", { exact: true }).click();
+    const firstPoi = page.getByLabelText("poiList-item", { exact: true }).first();
+    await expect.element(firstPoi).toBeVisible();
     await firstPoi.click();
 
     // Right panel should open — detect via right-panel nav icon
     await expect
       .poll(
         async () => {
-          const infoPanel = page.getByLabel("info_panel", { exact: true });
-          return infoPanel.isVisible().catch(() => false);
+          const infoPanel = page.getByLabelText("info_panel", { exact: true });
+          return isVisible(infoPanel);
         },
         { timeout: 5000 }
       )
@@ -575,17 +578,17 @@ test.describe("Isolated mission — POI Interactions", () => {
 
   test("no JS errors when clicking through POIs", async ({ page, mission }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    recordBrowserErrors(errors);
 
     await openMissionMap(page, mission);
 
-    await page.getByLabel("poi Section", { exact: true }).click();
-    const poiItems = page.getByLabel("poiList-item", { exact: true });
-    const count = await poiItems.count();
+    await page.getByLabelText("poi Section", { exact: true }).click();
+    const poiItems = page.getByLabelText("poiList-item", { exact: true });
+    const count = await poiItems.length;
 
     for (let i = 0; i < Math.min(count, 3); i++) {
       await poiItems.nth(i).click();
-      await page.waitForTimeout(400);
+      await waitForMapIdle();
     }
 
     const fatal = errors.filter(
@@ -603,13 +606,13 @@ test.describe("Isolated mission — Preset Switching", () => {
   test("preset list shows at least one preset", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("preset Section", { exact: true }).click();
+    await page.getByLabelText("preset Section", { exact: true }).click();
 
     await expect
       .poll(
         async () => {
-          const list = page.getByLabel("presetList", { exact: true });
-          const isVis = await list.isVisible().catch(() => false);
+          const list = page.getByLabelText("presetList", { exact: true });
+          const isVis = await isVisible(list);
           return isVis;
         },
         { timeout: 5000 }
@@ -619,29 +622,29 @@ test.describe("Isolated mission — Preset Switching", () => {
 
   test("switching presets does not crash the map", async ({ page, mission }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    recordBrowserErrors(errors);
 
     await openMissionMap(page, mission);
 
-    await page.getByLabel("preset Section", { exact: true }).click();
+    await page.getByLabelText("preset Section", { exact: true }).click();
 
     // Look for clickable preset items (may be styled as cards or list items)
     const presetItems = page
-      .getByLabel("presetList", { exact: true })
-      .locator("li, [class*='item'], [class*='card']");
-    const count = await presetItems.count();
+      .getByLabelText("presetList", { exact: true })
+      .getBySelector("li, [class*='item'], [class*='card']");
+    const count = await presetItems.length;
 
     if (count >= 2) {
       // Click the second preset
       await presetItems.nth(1).click();
-      await page.waitForTimeout(1000);
+      await waitForMapIdle();
 
       // Click back to the first preset
       await presetItems.nth(0).click();
-      await page.waitForTimeout(1000);
+      await waitForMapIdle();
     }
 
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
 
     const fatal = errors.filter(
       (e) => !e.includes("ResizeObserver") && !e.includes("Script error")
@@ -652,20 +655,20 @@ test.describe("Isolated mission — Preset Switching", () => {
   test("map canvas still has painted pixels after preset switch", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    await page.getByLabel("preset Section", { exact: true }).click();
+    await page.getByLabelText("preset Section", { exact: true }).click();
 
     const presetItems = page
-      .getByLabel("presetList", { exact: true })
-      .locator("li, [class*='item'], [class*='card']");
-    const count = await presetItems.count();
+      .getByLabelText("presetList", { exact: true })
+      .getBySelector("li, [class*='item'], [class*='card']");
+    const count = await presetItems.length;
 
     if (count >= 2) {
       await presetItems.nth(1).click();
       // Wait for tiles to load after preset switch
-      await page.waitForTimeout(2000);
+      await waitForMapIdle();
     }
 
-    await waitForMapPainted(page);
+    await waitForMapPainted();
   });
 });
 
@@ -677,21 +680,18 @@ test.describe("Isolated mission — Map Display Integration", () => {
   test("double-click on map zooms in", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    const viewport = page.locator(".ol-viewport").first();
-    const box = await viewport.boundingBox();
+    const viewport = page.getBySelector(".ol-viewport").first();
+    const box = await viewport.element().getBoundingClientRect();
     expect(box).not.toBeNull();
 
     const scaleText = async (): Promise<string | null> =>
-      page
-        .getByLabel("scaleBar", { exact: true })
-        .textContent()
-        .catch((): null => null);
+      (await page.getByLabelText("scaleBar", { exact: true }).findElement()).textContent;
 
     const before = await scaleText();
 
     // Double-click on the map
-    await page.mouse.dblclick(box!.x + box!.width / 2, box!.y + box!.height / 2);
-    await page.waitForTimeout(800);
+    await commands.mapPointer("dblclick", box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await waitForMapIdle();
 
     const after = await scaleText();
 
@@ -704,57 +704,57 @@ test.describe("Isolated mission — Map Display Integration", () => {
     await openMissionMap(page, mission);
 
     // Resize viewport
-    await page.setViewportSize({ width: 1200, height: 800 });
-    await page.waitForTimeout(500);
+    await page.viewport(1200, 800);
+    await waitForMapIdle();
 
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
 
     // Resize back
-    await page.setViewportSize({ width: 1960, height: 1080 });
-    await page.waitForTimeout(500);
+    await page.viewport(1960, 1080);
+    await waitForMapIdle();
 
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
   });
 
   test("map viewport can be panned by mouse drag without crashing", async ({ page, mission }) => {
     await openMissionMap(page, mission);
 
-    const viewport = page.locator(".ol-viewport").first();
-    const box = await viewport.boundingBox();
+    const viewport = page.getBySelector(".ol-viewport").first();
+    const box = await viewport.element().getBoundingClientRect();
     expect(box).not.toBeNull();
 
     const cx = box!.x + box!.width / 2;
     const cy = box!.y + box!.height / 2;
 
     // Drag from center to 100px left
-    await page.mouse.move(cx, cy);
-    await page.mouse.down();
-    await page.mouse.move(cx - 100, cy, { steps: 10 });
-    await page.mouse.up();
+    await commands.mapPointer("move", cx, cy);
+    await commands.mapPointer("down");
+    await commands.mapPointer("move", cx - 100, cy, 10);
+    await commands.mapPointer("up");
 
     // Map should still be rendered after drag
-    await expect(page.locator(".ol-viewport canvas").first()).toBeVisible();
+    await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
   });
 
   test("map has no JS errors during normal use", async ({ page, mission }) => {
     const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
+    recordBrowserErrors(errors);
 
     await openMissionMap(page, mission);
 
     // Interact with the map — use force: true for zoom and wrap everything
     // in try/catch to tolerate page-level crashes during the interaction
     try {
-      const viewport = page.locator(".ol-viewport").first();
-      const box = await viewport.boundingBox();
+      const viewport = page.getBySelector(".ol-viewport").first();
+      const box = await viewport.element().getBoundingClientRect();
       if (box) {
-        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await commands.mapPointer("move", box.x + box.width / 2, box.y + box.height / 2);
         await page
-          .locator(".ol-zoom-in")
+          .getBySelector(".ol-zoom-in")
           .first()
           .click({ force: true })
           .catch(() => {});
-        await page.waitForTimeout(500);
+        await waitForMapIdle();
       }
     } catch {
       // If the page crashes during interaction, the errors array will capture why

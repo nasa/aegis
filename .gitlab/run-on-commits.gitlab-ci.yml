@@ -327,6 +327,8 @@ test-vitest:browser:
   script:
     # schema:create generates typescript-json-schema outputs some modules import.
     - npm run schema:create
+    # V8 coverage uses Chromium's CDP; run the other browser engines separately.
+    - npm run test:vitest:browser:parity
     # Emit a coverage blob (like the sharded test-vitest jobs) so
     # merge-vitest-coverage folds browser-mode coverage into the single
     # cobertura/lcov report. Explicit blob name avoids colliding with the
@@ -335,6 +337,7 @@ test-vitest:browser:
       run_browser_tests() {
         npx vitest run \
           --config src/tests/vitest-browser/vitest.config.mts \
+          --project=chromium --project=chromium-hidpi \
           --coverage \
           --reporter=default \
           --reporter=blob \

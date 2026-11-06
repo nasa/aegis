@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises";
-import { test, expect } from "../fixtures/behavioralTest";
+import { test, expect } from "./missionHarness";
 import {
   enablePlanningEditMode,
   selectPlanningEva,
@@ -29,22 +28,22 @@ test("multiple equipment and geographic assignments toggle independently and ren
     };
   });
   const initial = await mission.read();
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningStationActions(page, "Alpha station");
   const action = page.getByRole("listitem");
-  await action.locator('svg[data-icon="caret-right"]').click();
+  await action.getBySelector('svg[data-icon="caret-right"]').click();
   for (const label of ["Sample bag", "Drill", "Highland", "Crater"]) {
     const target = action.getByText(label, { exact: true });
-    const id = await target.evaluate((element) => element.closest("label")!.htmlFor);
-    await page.locator(`input[id="${id}"]`).check();
+    const id = await ((element) => element.closest("label")!.htmlFor)(target.element());
+    await page.getBySelector(`input[id="${id}"]`).click();
   }
   for (const label of ["Drill", "Crater"]) {
-    const id = await action
-      .getByText(label, { exact: true })
-      .evaluate((element) => element.closest("label")!.htmlFor);
-    await page.locator(`input[id="${id}"]`).uncheck();
-    await page.locator(`input[id="${id}"]`).check();
+    const id = await ((element) => element.closest("label")!.htmlFor)(
+      action.getByText(label, { exact: true }).element()
+    );
+    await page.getBySelector(`input[id="${id}"]`).click();
+    await page.getBySelector(`input[id="${id}"]`).click();
   }
   await expect
     .poll(async () => (await mission.read()).actions[mission.ids.actionA])
@@ -52,61 +51,67 @@ test("multiple equipment and geographic assignments toggle independently and ren
       equipmentItemsUsage: { [ids.bag]: { quantityUsed: 1 }, [ids.drill]: { quantityUsed: 1 } },
       geographicUnitsUsage: [ids.highland, ids.crater],
     });
-  await page.getByLabel("mission Section", { exact: true }).click();
-  await page.getByLabel("equipment_panel", { exact: true }).click();
+  await page.getByLabelText("mission Section", { exact: true }).click();
+  await page.getByLabelText("equipment_panel", { exact: true }).click();
   const bag = page
-    .getByLabel("equipmentList-item", { exact: true })
+    .getByLabelText("equipmentList-item", { exact: true })
     .filter({ hasText: "Sample bag" });
-  await bag.locator('div[aria-label="Equipment item name"]').click();
+  await bag.getBySelector('div[aria-label="Equipment item name"]').click();
   await page
-    .locator("dialog[open]")
-    .getByLabel("Equipment item name", { exact: true })
+    .getBySelector("dialog[open]")
+    .getByLabelText("Equipment item name", { exact: true })
     .fill("Renamed sample bag");
-  await page.locator("dialog[open]").getByText("Save", { exact: true }).click();
+  await page.getBySelector("dialog[open]").getByText("Save", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).equipmentItems[ids.bag].name)
     .toBe("Renamed sample bag");
-  await page.getByLabel("geographicUnit_panel", { exact: true }).click();
-  const unit = page.getByLabel("geoUnitList-item", { exact: true }).filter({ hasText: "Highland" });
-  await unit.locator('div[aria-label="Geographic unit name"]').click();
+  await page.getByLabelText("geographicUnit_panel", { exact: true }).click();
+  const unit = page
+    .getByLabelText("geoUnitList-item", { exact: true })
+    .filter({ hasText: "Highland" });
+  await unit.getBySelector('div[aria-label="Geographic unit name"]').click();
   await page
-    .locator("dialog[open]")
-    .getByLabel("Geographic unit name", { exact: true })
+    .getBySelector("dialog[open]")
+    .getByLabelText("Geographic unit name", { exact: true })
     .fill("Renamed highland");
-  await page.locator("dialog[open]").getByText("Save", { exact: true }).click();
+  await page.getBySelector("dialog[open]").getByText("Save", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).geographicUnits[ids.highland].name)
     .toBe("Renamed highland");
-  await mission.open(page);
+  await mission.open();
   await selectPlanningStationActions(page, "Alpha station");
-  await page.getByRole("listitem").locator('svg[data-icon="caret-right"]').click();
+  await page.getByRole("listitem").getBySelector('svg[data-icon="caret-right"]').click();
   for (const label of ["Renamed sample bag", "Drill", "Renamed highland", "Crater"])
-    await expect(page.getByRole("listitem").getByText(label, { exact: true })).toBeVisible();
+    await expect
+      .element(page.getByRole("listitem").getByText(label, { exact: true }))
+      .toBeVisible();
   for (const scope of ["station", "eva"]) {
     if (scope === "station") await selectPlanningStation(page, "Alpha station");
     else await selectPlanningEva(page, "Survey Alpha");
-    await page.getByLabel("info_panel", { exact: true }).click();
+    await page.getByLabelText("info_panel", { exact: true }).click();
     const totals = page
       .getByText("Consumable Equipment Totals", { exact: true })
-      .locator('xpath=ancestor::div[contains(@class,"panelSection")]')
+      .getBySelector('xpath=ancestor::div[contains(@class,"panelSection")]')
       .first();
-    await expect(
-      totals
-        .getByText("Renamed sample bag", { exact: true })
-        .locator("../..")
-        .getByText("1", { exact: true })
-    ).toBeVisible();
-    await expect(totals.getByText("Drill", { exact: true })).toHaveCount(0);
+    await expect
+      .element(
+        totals
+          .getByText("Renamed sample bag", { exact: true })
+          .getBySelector("../..")
+          .getByText("1", { exact: true })
+      )
+      .toBeVisible();
+    await expect.poll(() => totals.getByText("Drill", { exact: true }).length).toBe(0);
   }
-  await page.getByLabel("mission Section", { exact: true }).click();
-  await page.getByLabel("export_panel", { exact: true }).click();
-  await page.locator("#export-all-evas").uncheck();
-  await page.locator("#export-actions").check();
-  const pending = page.waitForEvent("download");
-  await page.getByLabel("Export JSON File", { exact: true }).click();
-  const download = await pending;
-  expect(await download.failure()).toBeNull();
-  const exported = JSON.parse(await readFile(await download.path(), "utf8"));
+  await page.getByLabelText("mission Section", { exact: true }).click();
+  await page.getByLabelText("export_panel", { exact: true }).click();
+  await page.getBySelector("#export-all-evas").click();
+  await page.getBySelector("#export-actions").click();
+  const download = await mission.captureDownload(() =>
+    page.getByLabelText("Export JSON File", { exact: true }).click()
+  );
+
+  const exported = JSON.parse(await download.text());
   expect(
     exported.actions.find((a: { uuid: string }) => a.uuid === mission.ids.actionA)
       .geographicalUnitsReadable
