@@ -140,7 +140,14 @@ test.describe("Equatorial mission — whole-Moon LGRS", () => {
         expect(Math.abs(Number(lat) - LANDER.lat)).toBeLessThan(0.25);
         expect(Math.abs(Number(lng) - LANDER.lng)).toBeLessThan(0.25);
 
-        await expect(mapPanel.getByText(LTM_READOUT)).toBeVisible();
+        const schemeTag = mapPanel.getByTestId("mouse-grid-scheme");
+        await expect(schemeTag).toHaveText("LGRS");
+        await expect
+          .poll(async () => {
+            const text = (await schemeTag.locator("..").textContent()) ?? "";
+            return text.endsWith("LGRS") ? text.slice(0, -"LGRS".length) : text;
+          })
+          .toMatch(LTM_READOUT);
       });
 
       await test.step("dynamic LGRS grid renders when enabled in a preset", async () => {
