@@ -2,8 +2,9 @@
  * MouseCoordinateDisplay — shows lat/lng + grid coordinates under the cursor.
  *
  * Listens to `pointermove` on the OL map, coalesced to one update per animation frame. The
- * mission's cached LGRS map adapter converts the projected coordinate to lat/lng (identical to
- * proj4), and state is only set when the displayed text changes.
+ * mission's cached map projector converts the projected coordinate to lat/lng (identical to
+ * proj4), and state is only set when the displayed text changes. A grid system or scheme change
+ * reformats the last position, so the readout and its scheme tag switch together.
  *
  * Editor only.
  */
@@ -15,11 +16,19 @@ import type { Coordinate } from "ol/coordinate";
 import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridCoordinatesFromPoint } from "utils/mapping/geoMath";
-import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
-import { getLgrsMapAdapter, getLgrsMapProjection } from "utils/lgrs/mapAdapter";
+import {
+  formatLgrsFromLatLon,
+  GRID_COORDINATE_DESCRIPTIONS,
+  GRID_LABEL_SCHEME_NAMES,
+  LGRS_DISPLAY_PRECISION_METERS,
+} from "utils/lgrs/display";
+import { getLgrsMapProjector } from "@bfeist/planetary-grid-reference/grid";
+import { getLgrsMapProjection } from "utils/lgrs/mapProjection";
 import { useMapContext } from "../MapProvider";
+import { useMissionCoordinateSystem } from "../hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { MODE_CONFIGS } from "../utils/modeConfig";
+import styles from "./mapOverlays.module.css";
 
 interface MouseCoordinateDisplayProps {
   className?: string;
@@ -43,25 +52,31 @@ export function MouseCoordinateDisplay({
   const projEpsg = useMissionDocSelector((doc) => doc.projEpsg, refEqual);
   const projProj4String = useMissionDocSelector((doc) => doc.projProj4String, refEqual);
   const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual);
-  const usingLGRS = useMissionDocSelector((doc) => doc.usingLGRSCoordinates, refEqual);
+  // One instance per `system.key`, so the memo below is keyed by the grid system.
+  const gridSystem = useMissionCoordinateSystem();
 
   const inputs = useMemo<MouseCoordinateInputs>(() => {
-    const adapter = getLgrsMapAdapter(
+    const projector = getLgrsMapProjector(
       getLgrsMapProjection({ id: missionId, projIsCustom, projEpsg, projProj4String })
     );
     let formatGrid: MouseCoordinateInputs["formatGrid"] = () => null;
-    if (usingLGRS) {
+    let schemeTag: string | null = null;
+    if (gridSystem) {
+      schemeTag =
+        gridSystem.id === "earth-wgs84" ? GRID_LABEL_SCHEME_NAMES[gridSystem.scheme] : "LGRS";
       const style: LgrsDisplayStyle = resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed";
-      formatGrid = (point) => formatLgrsFromLatLon(point, LGRS_DISPLAY_PRECISION_METERS, style);
+      formatGrid = (point) =>
+        formatLgrsFromLatLon(gridSystem, point, LGRS_DISPLAY_PRECISION_METERS, style);
     } else if (resolvedGrid.kind === "server-file") {
       const globalGrid = resolvedGrid.grid.coordinates;
-      formatGrid = (point) => getGridCoordinatesFromPoint(point, planetRadius, false, globalGrid);
+      formatGrid = (point) => getGridCoordinatesFromPoint(point, planetRadius, null, globalGrid);
     }
-    return { adapter, formatGrid };
-  }, [missionId, projIsCustom, projEpsg, projProj4String, planetRadius, usingLGRS, resolvedGrid]);
+    return { projector, formatGrid, schemeTag };
+  }, [missionId, projIsCustom, projEpsg, projProj4String, planetRadius, gridSystem, resolvedGrid]);
 
   const [readout, setReadout] = useState<MouseCoordinateReadout | null>(null);
   const readoutRef = useRef(readout);
+  const lastCoordinateRef = useRef<Coordinate | null>(null);
 
   useEffect(() => {
     if (!showMouseCoords) return;
@@ -77,23 +92,38 @@ export function MouseCoordinateDisplay({
       if (!coordinate) return;
 
       let next: MouseCoordinateReadout | null = null;
-      if (inputs.adapter.mapToLatLon(coordinate[0], coordinate[1], latLon)) {
+      if (inputs.projector.mapToLatLon(coordinate[0], coordinate[1], latLon)) {
         const point: AEGISPoint = { lat: latLon[0], lng: latLon[1] };
+        const grid = inputs.formatGrid(point);
         next = {
           latLng: `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`,
-          grid: inputs.formatGrid(point),
+          grid,
+          schemeTag: grid ? inputs.schemeTag : null,
         };
       }
       const previous = readoutRef.current;
-      if (previous?.latLng === next?.latLng && previous?.grid === next?.grid) return;
+      if (
+        previous?.latLng === next?.latLng &&
+        previous?.grid === next?.grid &&
+        previous?.schemeTag === next?.schemeTag
+      ) {
+        return;
+      }
       readoutRef.current = next;
       setReadout(next);
     };
 
     const handleMove = (evt: MapBrowserEvent<PointerEvent>) => {
+      lastCoordinateRef.current = evt.coordinate;
       pendingCoordinate = evt.coordinate;
       if (!frame) frame = requestAnimationFrame(update);
     };
+
+    // New inputs (e.g. a scheme switch from the map menu) reformat the last position.
+    if (lastCoordinateRef.current) {
+      pendingCoordinate = lastCoordinateRef.current;
+      frame = requestAnimationFrame(update);
+    }
 
     map.on("pointermove", handleMove);
     return () => {
@@ -107,7 +137,22 @@ export function MouseCoordinateDisplay({
   return (
     <div className={className}>
       {readout && <div style={{ ...READOUT_STYLE, width: "150px" }}>{readout.latLng}</div>}
-      {readout?.grid && <div style={{ ...READOUT_STYLE, minWidth: "150px" }}>{readout.grid}</div>}
+      {readout?.grid && (
+        <div style={{ ...READOUT_STYLE, minWidth: "150px" }}>
+          {readout.grid}
+          {readout.schemeTag && (
+            <span
+              className={styles.gridSchemeTag}
+              data-testid="mouse-grid-scheme"
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-content={GRID_COORDINATE_DESCRIPTIONS[readout.schemeTag]}
+              tabIndex={0}
+            >
+              {readout.schemeTag}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

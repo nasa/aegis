@@ -15,6 +15,7 @@ import {
   buildPresetLayerUIStates,
   getMissionDefaultPresetUuid,
 } from "store/thunk/thunkPreset";
+import { readGridLabelSchemeCookie } from "store/thunk/thunkInterface";
 
 // Populate the entire store state except User and Interface
 // All api calls used in this function must past in the load test options
@@ -62,6 +63,7 @@ export const populateStore = async (params: {
 
   // Generate folders interface states for the store (using cookies if available)
   generateFoldersInterfaceStates({ wholeStoreState, mission });
+  wholeStoreState.interface.gridLabelSchemeOverride = readGridLabelSchemeCookie();
 
   // Run audits on the data returned, modifying the data as needed. Each audit function will save needed changes
   // Require the automerge doc handle is ready since these audits need access to and update mission

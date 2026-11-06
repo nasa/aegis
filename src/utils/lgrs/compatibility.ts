@@ -1,5 +1,5 @@
-import { LGRS_MOON_RADIUS } from "./constants";
-import { getLgrsMapAdapter, getLgrsMapProjection } from "./mapAdapter";
+import { getLgrsMapProjector } from "@bfeist/planetary-grid-reference/grid";
+import { getLgrsMapProjection } from "./mapProjection";
 
 const PROBE_POINTS: [lat: number, lon: number][] = [
   [0, 0],
@@ -12,32 +12,35 @@ const PROBE_POINTS: [lat: number, lon: number][] = [
 const probe = new Float64Array(2);
 
 /**
- * Whether the dynamic LGRS grid can be drawn for a mission: LGRS is defined on the IAU 2015
- * lunar sphere, and the map projection must be one the LGRS map adapter can build with proj4.
+ * Whether the dynamic grid of `system` can be drawn for a mission: the map projection must be
+ * one proj4 can build, and the Moon also requires the lunar planet radius. On Earth a radius
+ * issue is only a warning, since WGS84 does not depend on the mission's sphere.
  */
 export function getLgrsCompatibility(
+  system: LgrsGridSystem,
   mission: Pick<Mission, "id" | "planetRadius" | "projIsCustom" | "projEpsg" | "projProj4String">
 ): LgrsCompatibility {
-  if (mission.planetRadius !== LGRS_MOON_RADIUS) {
-    return {
-      compatible: false,
-      reason: `LGRS requires the lunar planet radius (${LGRS_MOON_RADIUS} m).`,
-      projection: null,
-    };
+  const radiusIssue = system.checkPlanetRadius(mission.planetRadius);
+  const radiusBlocks = system.id !== "earth-wgs84";
+  if (radiusIssue !== null && radiusBlocks) {
+    return { compatible: false, reason: radiusIssue, projection: null, warning: null };
   }
+  const warning = radiusBlocks ? null : radiusIssue;
   const projection = getLgrsMapProjection(mission);
-  const adapter = getLgrsMapAdapter(projection);
-  const parseable = PROBE_POINTS.some(([lat, lon]) => adapter.latLonToMap(lat, lon, probe));
+  const projector = getLgrsMapProjector(projection);
+  const parseable = PROBE_POINTS.some(([lat, lon]) => projector.latLonToMap(lat, lon, probe));
   if (!parseable) {
     return {
       compatible: false,
       reason: "LGRS requires a map projection that proj4 can parse.",
       projection: null,
+      warning,
     };
   }
   return {
     compatible: true,
     reason: "Dynamic LGRS grid is available for this mission's projection.",
     projection,
+    warning,
   };
 }

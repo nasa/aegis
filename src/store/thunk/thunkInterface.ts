@@ -1,5 +1,10 @@
+import Cookies from "js-cookie";
 import appCreateAsyncThunk from "./thunkUtil";
-import { setBottomPanelIsOpen, setRightPanelIsOpen } from "store/interface";
+import {
+  setBottomPanelIsOpen,
+  setGridLabelSchemeOverride,
+  setRightPanelIsOpen,
+} from "store/interface";
 import { stmViewSetExpandedItems } from "store/stm";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 
@@ -44,5 +49,27 @@ export const thunkCollapseAllLevel3s = appCreateAsyncThunk<void>(
       }
     }
     dispatch(stmViewSetExpandedItems(newExpandedItems));
+  }
+);
+
+const GRID_LABEL_SCHEME_COOKIE = "AEGIS_Grid_Label_Scheme";
+const GRID_LABEL_SCHEMES: readonly GridLabelScheme[] = ["lunar-acc", "mgrs"];
+
+/** The user's saved Earth label scheme override, or null when there is none or it is invalid. */
+export const readGridLabelSchemeCookie = (): GridLabelScheme | null => {
+  const saved = Cookies.get(GRID_LABEL_SCHEME_COOKIE);
+  return GRID_LABEL_SCHEMES.find((scheme) => scheme === saved) ?? null;
+};
+
+/** Set (or clear, with null) the user's Earth label scheme override and save it in a cookie. */
+export const thunkSetGridLabelSchemeOverride = appCreateAsyncThunk<GridLabelScheme | null>(
+  "setGridLabelSchemeOverride",
+  async (scheme, { dispatch }) => {
+    if (scheme === null) {
+      Cookies.remove(GRID_LABEL_SCHEME_COOKIE, { path: "/" });
+    } else {
+      Cookies.set(GRID_LABEL_SCHEME_COOKIE, scheme, { path: "/", expires: 365 });
+    }
+    dispatch(setGridLabelSchemeOverride(scheme));
   }
 );

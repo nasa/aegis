@@ -39,6 +39,8 @@ export interface GridSpacingMeters {
   line: number;
   /** Distance between adjacent grid labels. */
   label: number;
+  /** `LgrsGridSystem.key` of a dynamic grid; a minimap on another system ignores the spacing. */
+  systemKey?: string;
 }
 
 export interface DashboardBoundsContextValue {
@@ -98,7 +100,11 @@ export function DashboardBoundsProvider({ children }: DashboardBoundsProviderPro
   const setGridSpacing = useCallback((next: GridSpacingMeters | null) => {
     setGridSpacingState((prev) => {
       if (!prev || !next) return prev === next ? prev : next;
-      return prev.line === next.line && prev.label === next.label ? prev : next;
+      return prev.line === next.line &&
+        prev.label === next.label &&
+        prev.systemKey === next.systemKey
+        ? prev
+        : next;
     });
   }, []);
 

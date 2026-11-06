@@ -36,6 +36,7 @@ import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
+import { useMissionCoordinateSystem } from "components/interface/map/hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
@@ -57,10 +58,10 @@ const Info_Panel: FunctionComponent<{
   const locationEditMode = (locationEditModeProp ?? editMode) && !isLanderXgress;
   const durationEditMode = durationEditModeProp ?? editMode;
   const resolvedGrid = useResolvedMissionGrid();
+  const gridSystem = useMissionCoordinateSystem();
   const partialMission = useMissionDocSelector(
     (mission) => ({
       walkbackRate: mission.walkbackRate,
-      usingLGRSCoordinates: mission.usingLGRSCoordinates,
       planetRadius: mission.planetRadius,
       equipmentItems: mission.equipmentItems,
       landerLocation: mission.landerLocation,
@@ -167,9 +168,10 @@ const Info_Panel: FunctionComponent<{
 
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const stationGridCoordinates = useMemo(() => {
-    if (selectedStation?.location && partialMission.usingLGRSCoordinates) {
+    if (selectedStation?.location && gridSystem) {
       return (
         formatLgrsFromLatLon(
+          gridSystem,
           selectedStation.location,
           LGRS_DISPLAY_PRECISION_METERS,
           resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
@@ -185,13 +187,7 @@ const Info_Panel: FunctionComponent<{
     } else {
       return "Not set";
     }
-  }, [
-    selectedStation,
-    partialMission.usingLGRSCoordinates,
-    partialMission.planetRadius,
-    gridCornerPoint,
-    resolvedGrid,
-  ]);
+  }, [selectedStation, gridSystem, partialMission.planetRadius, gridCornerPoint, resolvedGrid]);
 
   const [saveButtonState, setSaveButtonState] = useState<saveButtonState>("disabled");
 

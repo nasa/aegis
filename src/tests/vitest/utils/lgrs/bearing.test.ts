@@ -6,8 +6,9 @@ import {
   getLtmZone,
   LGRS_CRS_LPS_NORTH,
   LGRS_CRS_LPS_SOUTH,
-} from "utils/lgrs/crs";
-import { projectLatLon } from "utils/lgrs/projection";
+} from "@bfeist/planetary-grid-reference/moon";
+import { projectLatLon } from "@bfeist/planetary-grid-reference/moon";
+import { moonGridSystem } from "@bfeist/planetary-grid-reference/moon";
 import {
   SURF_NAV_LPS_FALSE_EAST,
   SURF_NAV_LPS_FALSE_NORTH,
@@ -97,7 +98,7 @@ function trueAzimuth(origin: AEGISPoint, destination: AEGISPoint): number {
 
 describe("getLgrsGridBearing() south LPS", () => {
   test.each(SOUTH_GOLDEN)("%j -> %j matches the pre-change bearing", (origin, destination, old) => {
-    expect(getLgrsGridBearing(origin, destination)).toBe(old);
+    expect(getLgrsGridBearing(moonGridSystem, origin, destination)).toBe(old);
   });
 
   test("is bit-identical to the old south path for random south-cap segments", () => {
@@ -112,7 +113,7 @@ describe("getLgrsGridBearing() south LPS", () => {
               lat: Math.max(-90, origin.lat + (random() - 0.5) * 0.2 * random()),
               lng: origin.lng + (random() - 0.5) * 2 * random(),
             };
-      const actual = getLgrsGridBearing(origin, destination);
+      const actual = getLgrsGridBearing(moonGridSystem, origin, destination);
       const expected = oldSouthBearing(origin, destination);
       if (!Object.is(actual, expected)) {
         expect.fail(`${JSON.stringify([origin, destination])}: ${actual} !== ${expected}`);
@@ -134,7 +135,7 @@ describe("getLgrsGridBearing() LTM", () => {
       const crs = classifyLatLon(origin.lat, origin.lng);
       const dLon = (origin.lng - getLtmCentralMeridian(getLtmZone(crs))) * DEG;
       const convergence = Math.atan(Math.tan(dLon) * Math.sin(origin.lat * DEG)) / DEG;
-      const actual = getLgrsGridBearing(origin, destination);
+      const actual = getLgrsGridBearing(moonGridSystem, origin, destination);
       expect(angleDifference(actual, trueAzimuth(origin, destination) - convergence)).toBeLessThan(
         1e-5
       );
@@ -144,10 +145,18 @@ describe("getLgrsGridBearing() LTM", () => {
 
   test("reads 0/90/180/270 along the central meridian and the equator", () => {
     const cm = getLtmCentralMeridian(23);
-    expect(getLgrsGridBearing({ lat: 10, lng: cm }, { lat: 10.5, lng: cm })).toBe(0);
-    expect(getLgrsGridBearing({ lat: 10, lng: cm }, { lat: 9.5, lng: cm })).toBe(180);
-    expect(getLgrsGridBearing({ lat: 0, lng: cm }, { lat: 0, lng: cm + 1 })).toBe(90);
-    expect(getLgrsGridBearing({ lat: 0, lng: cm }, { lat: 0, lng: cm - 1 })).toBe(270);
+    expect(getLgrsGridBearing(moonGridSystem, { lat: 10, lng: cm }, { lat: 10.5, lng: cm })).toBe(
+      0
+    );
+    expect(getLgrsGridBearing(moonGridSystem, { lat: 10, lng: cm }, { lat: 9.5, lng: cm })).toBe(
+      180
+    );
+    expect(getLgrsGridBearing(moonGridSystem, { lat: 0, lng: cm }, { lat: 0, lng: cm + 1 })).toBe(
+      90
+    );
+    expect(getLgrsGridBearing(moonGridSystem, { lat: 0, lng: cm }, { lat: 0, lng: cm - 1 })).toBe(
+      270
+    );
   });
 
   test("projects a destination across a zone meridian into the origin's zone", () => {
@@ -156,18 +165,34 @@ describe("getLgrsGridBearing() LTM", () => {
     const destination = { lat: 30.05, lng: 12.1 };
     expect(classifyLatLon(origin.lat, origin.lng)).toBe(getLtmCrsId(24, "N"));
     expect(classifyLatLon(destination.lat, destination.lng)).toBe(getLtmCrsId(25, "N"));
-    const actual = getLgrsGridBearing(origin, destination);
-    expect(actual).toBe(getGridBearingInCrs(origin, destination, getLtmCrsId(24, "N")));
-    expect(actual).not.toBe(getGridBearingInCrs(origin, destination, getLtmCrsId(25, "N")));
+    const actual = getLgrsGridBearing(moonGridSystem, origin, destination);
+    expect(actual).toBe(
+      getGridBearingInCrs(moonGridSystem, origin, destination, getLtmCrsId(24, "N"))
+    );
+    expect(actual).not.toBe(
+      getGridBearingInCrs(moonGridSystem, origin, destination, getLtmCrsId(25, "N"))
+    );
     expect(angleDifference(actual, oracleBearing(origin, destination))).toBeLessThan(1e-9);
   });
 
   test("is continuous across the equator", () => {
     const cm = getLtmCentralMeridian(5);
-    expect(getLgrsGridBearing({ lat: 0.01, lng: cm }, { lat: -0.01, lng: cm })).toBe(180);
-    expect(getLgrsGridBearing({ lat: -0.01, lng: cm }, { lat: 0.01, lng: cm })).toBe(0);
-    const north = getLgrsGridBearing({ lat: 0.01, lng: cm + 3 }, { lat: -0.01, lng: cm + 3.01 });
-    const south = getLgrsGridBearing({ lat: -0.01, lng: cm + 3.01 }, { lat: 0.01, lng: cm + 3 });
+    expect(
+      getLgrsGridBearing(moonGridSystem, { lat: 0.01, lng: cm }, { lat: -0.01, lng: cm })
+    ).toBe(180);
+    expect(
+      getLgrsGridBearing(moonGridSystem, { lat: -0.01, lng: cm }, { lat: 0.01, lng: cm })
+    ).toBe(0);
+    const north = getLgrsGridBearing(
+      moonGridSystem,
+      { lat: 0.01, lng: cm + 3 },
+      { lat: -0.01, lng: cm + 3.01 }
+    );
+    const south = getLgrsGridBearing(
+      moonGridSystem,
+      { lat: -0.01, lng: cm + 3.01 },
+      { lat: 0.01, lng: cm + 3 }
+    );
     expect(angleDifference(north, south)).toBeCloseTo(180, 4);
   });
 });
@@ -175,24 +200,32 @@ describe("getLgrsGridBearing() LTM", () => {
 describe("getLgrsGridBearing() across ±80° and LPS N", () => {
   test("uses LTM below 80° and LPS from 80°", () => {
     const cm = getLtmCentralMeridian(27);
-    expect(getLgrsGridBearing({ lat: 79.9, lng: cm }, { lat: 80.1, lng: cm })).toBe(0);
-    expect(getLgrsGridBearing({ lat: -79.9, lng: cm }, { lat: -80.1, lng: cm })).toBe(180);
+    expect(getLgrsGridBearing(moonGridSystem, { lat: 79.9, lng: cm }, { lat: 80.1, lng: cm })).toBe(
+      0
+    );
+    expect(
+      getLgrsGridBearing(moonGridSystem, { lat: -79.9, lng: cm }, { lat: -80.1, lng: cm })
+    ).toBe(180);
     for (const [origin, destination, crs] of [
       [{ lat: 79.9, lng: 33 }, { lat: 80.1, lng: 33.5 }, getLtmCrsId(27, "N")],
       [{ lat: -79.9, lng: 33 }, { lat: -80.1, lng: 33.5 }, getLtmCrsId(27, "S")],
       [{ lat: 80.1, lng: 33 }, { lat: 79.9, lng: 33.5 }, LGRS_CRS_LPS_NORTH],
       [{ lat: -80.1, lng: 33 }, { lat: -79.9, lng: 33.5 }, LGRS_CRS_LPS_SOUTH],
     ] as const) {
-      const actual = getLgrsGridBearing(origin, destination);
-      expect(actual).toBe(getGridBearingInCrs(origin, destination, crs));
+      const actual = getLgrsGridBearing(moonGridSystem, origin, destination);
+      expect(actual).toBe(getGridBearingInCrs(moonGridSystem, origin, destination, crs));
       expect(angleDifference(actual, oracleBearing(origin, destination))).toBeLessThan(1e-9);
     }
   });
 
   test("north LPS grid north points toward the pole along lon 0", () => {
-    expect(getLgrsGridBearing({ lat: 85, lng: 0 }, { lat: 86, lng: 0 })).toBe(0);
-    expect(getLgrsGridBearing({ lat: 85, lng: 90 }, { lat: 86, lng: 90 })).toBe(270);
-    expect(getLgrsGridBearing({ lat: 89.5, lng: 0 }, { lat: 89.5, lng: 180 })).toBe(0);
+    expect(getLgrsGridBearing(moonGridSystem, { lat: 85, lng: 0 }, { lat: 86, lng: 0 })).toBe(0);
+    expect(getLgrsGridBearing(moonGridSystem, { lat: 85, lng: 90 }, { lat: 86, lng: 90 })).toBe(
+      270
+    );
+    expect(getLgrsGridBearing(moonGridSystem, { lat: 89.5, lng: 0 }, { lat: 89.5, lng: 180 })).toBe(
+      0
+    );
   });
 
   test("matches the oracle formula for random LPS N segments", () => {
@@ -201,7 +234,10 @@ describe("getLgrsGridBearing() across ±80° and LPS N", () => {
       const origin = { lat: 80 + random() * 10, lng: random() * 360 - 180 };
       const destination = { lat: 80 + random() * 10, lng: random() * 360 - 180 };
       expect(
-        angleDifference(getLgrsGridBearing(origin, destination), oracleBearing(origin, destination))
+        angleDifference(
+          getLgrsGridBearing(moonGridSystem, origin, destination),
+          oracleBearing(origin, destination)
+        )
       ).toBeLessThan(1e-9);
     }
   });
@@ -218,14 +254,16 @@ describe("getLgrsGridBearing() edge cases", () => {
     { lat: 0, lng: 400 },
     { lat: 0, lng: Infinity },
   ])("returns NaN for invalid point %j", (invalid) => {
-    expect(getLgrsGridBearing(invalid, valid)).toBeNaN();
-    expect(getLgrsGridBearing(valid, invalid)).toBeNaN();
+    expect(getLgrsGridBearing(moonGridSystem, invalid, valid)).toBeNaN();
+    expect(getLgrsGridBearing(moonGridSystem, valid, invalid)).toBeNaN();
   });
 
   test("returns NaN when the destination cannot be projected into the origin's CRS", () => {
     // 90° from an LTM central meridian on the equator is a TM singularity.
     const cm = getLtmCentralMeridian(23);
-    expect(getLgrsGridBearing({ lat: 0, lng: cm }, { lat: 0, lng: cm + 90 })).toBeNaN();
+    expect(
+      getLgrsGridBearing(moonGridSystem, { lat: 0, lng: cm }, { lat: 0, lng: cm + 90 })
+    ).toBeNaN();
   });
 
   test.each([
@@ -235,13 +273,13 @@ describe("getLgrsGridBearing() edge cases", () => {
     { lat: -45, lng: -179.99 },
     { lat: 86, lng: 47 },
   ])("returns 0 for a zero-length segment at %j", (point) => {
-    expect(getLgrsGridBearing(point, { ...point })).toBe(0);
+    expect(getLgrsGridBearing(moonGridSystem, point, { ...point })).toBe(0);
   });
 
   test("uses south LPS for crs 0 regardless of latitude", () => {
     const origin = { lat: 35.5, lng: -111.727 };
     const destination = { lat: 35.5, lng: -111.717 };
-    expect(getGridBearingInCrs(origin, destination, LGRS_CRS_LPS_SOUTH)).toBe(
+    expect(getGridBearingInCrs(moonGridSystem, origin, destination, LGRS_CRS_LPS_SOUTH)).toBe(
       oldSouthBearing(origin, destination)
     );
   });

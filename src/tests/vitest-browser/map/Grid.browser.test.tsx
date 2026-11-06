@@ -19,6 +19,9 @@
  *  - Dashboard publishes the spacing it drew; minimap redraws at that spacing
  *  - Dynamic LGRS on south/north polar, Web Mercator (Apollo 14-like) and zone-seam views,
  *    heavier seam strokes, cached label styles, and the compatibility gate
+ *  - Earth grid: the Texas 14/15 zone seam in ACC and MGRS, the Iceland 64° N band boundary,
+ *    the 84° N UTM/UPS seam, a band-split box (readout band ≠ box label band), a live scheme
+ *    switch, and a minimap ignoring a spacing published under another system key
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -46,10 +49,14 @@ import {
 import { Grid } from "components/interface/map/behaviors/Grid";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice } from "store/preset";
-import { interfaceSlice } from "store/interface";
-import { getLtmCrsId, LGRS_CRS_LPS_NORTH } from "utils/lgrs/crs";
-import { createLgrsRenderPlan } from "utils/lgrs/grid/plan";
-import { getLgrsMapAdapter, getLgrsMapProjection } from "utils/lgrs/mapAdapter";
+import { interfaceSlice, setGridLabelSchemeOverride } from "store/interface";
+import { formatLgrsFromLatLon } from "utils/lgrs/display";
+import { getEarthGridSystem } from "@bfeist/planetary-grid-reference/analogs";
+import { createLgrsRenderPlan } from "@bfeist/planetary-grid-reference/grid";
+import { getLgrsGridBinding } from "@bfeist/planetary-grid-reference/grid";
+import { getLgrsMapProjection } from "utils/lgrs/mapProjection";
+import { getLtmCrsId, LGRS_CRS_LPS_NORTH } from "@bfeist/planetary-grid-reference/moon";
+import { resolveMissionGridSystem } from "utils/lgrs/system";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 // ---------------------------------------------------------------------------
@@ -67,6 +74,9 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
 const MOON = "+a=1737400 +b=1737400 +units=m +no_defs";
 const SOUTH_CAP = `+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`;
 const NORTH_CAP = `+proj=stere +lat_0=90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`;
+// EPSG:32661, the UPS North grid CRS.
+const UPS_NORTH =
+  "+proj=stere +lat_0=90 +lat_ts=90 +lon_0=0 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs";
 
 const mockMissionDoc: Partial<Mission> = {
   id: 1,
@@ -79,6 +89,7 @@ const mockMissionDoc: Partial<Mission> = {
 
 proj4.defs("TEST:SOUTH", SOUTH_CAP);
 proj4.defs("TEST:NORTH", NORTH_CAP);
+proj4.defs("TEST:UPS-NORTH", UPS_NORTH);
 register(proj4);
 
 /** Mission projections used by the dynamic LGRS cases. */
@@ -87,6 +98,7 @@ const PROJECTIONS = {
   north: { projIsCustom: true, projEpsg: "TEST:NORTH", projProj4String: NORTH_CAP },
   // The Apollo 14 seed: Web Mercator map with lunar lat/lon.
   mercator: { projIsCustom: false, projEpsg: "EPSG:3857", projProj4String: "" },
+  upsNorth: { projIsCustom: true, projEpsg: "TEST:UPS-NORTH", projProj4String: UPS_NORTH },
 } satisfies Record<string, Pick<Mission, "projIsCustom" | "projEpsg" | "projProj4String">>;
 
 vi.mock("utils/useDocSelector", () => ({
@@ -385,11 +397,19 @@ function setDynamicView(
   map.renderSync();
 }
 
+/** The mock mission's grid binding, in its default label scheme. */
+function missionBinding(): LgrsGridBinding {
+  return getLgrsGridBinding(
+    getLgrsMapProjection(mockMissionDoc as Mission),
+    resolveMissionGridSystem(mockMissionDoc as Mission)
+  );
+}
+
 /** The plan Grid should have drawn for the current view. */
 function planForView(overrides: Partial<LgrsRenderOptions> = {}): LgrsRenderPlan {
   const extent = map.getView().calculateExtent(map.getSize());
   return createLgrsRenderPlan({
-    adapter: getLgrsMapAdapter(getLgrsMapProjection(mockMissionDoc as Mission)),
+    binding: missionBinding(),
     extent: [extent[0], extent[1], extent[2], extent[3]],
     resolution: map.getView().getResolution()!,
     gridSpacingMode: "auto",
@@ -412,6 +432,8 @@ beforeEach(() => {
   mockGrid.current = null;
   mockMissionDoc.gridRenderMode = "server-file";
   mockMissionDoc.planetRadius = 1737400;
+  mockMissionDoc.gridSystem = undefined;
+  mockMissionDoc.earthGridLabelScheme = undefined;
   Object.assign(mockMissionDoc, PROJECTIONS.south);
   mockBaseSpacing.current = 0;
   bounds.ctx = null;
@@ -754,5 +776,270 @@ describe("Grid dynamic LGRS", () => {
     expect(inherited.lineSpacing).toBe(100);
     expect(lineFeatureCount()).toBe(inherited.lines.length);
     expect(inherited.lines.length).toBeLessThan(own.lines.length);
+  });
+});
+
+describe("Grid dynamic Earth grid", () => {
+  const MENU_COOKIE = "AEGIS_Map_Menu_Settings";
+  const latLon = new Float64Array(2);
+  const analog = getEarthGridSystem("lunar-acc");
+  const utm = (zone: number) => analog.classifyLatLon(30, zone * 6 - 183);
+  const upsNorth = analog.classifyLatLon(85, 0);
+
+  beforeEach(() => {
+    store = makeStore(visibleGridState());
+  });
+
+  afterEach(() => {
+    new Cookies().remove(MENU_COOKIE, { path: "/" });
+  });
+
+  /** Switches the mission to the Earth grid in `scheme` and centres the view on `[lat, lon]`. */
+  function setEarthView(
+    projection: keyof typeof PROJECTIONS,
+    lat: number,
+    lon: number,
+    resolution: number,
+    scheme: GridLabelScheme = "lunar-acc"
+  ): void {
+    mockMissionDoc.planetRadius = 6378137;
+    mockMissionDoc.gridSystem = "earth-wgs84";
+    mockMissionDoc.earthGridLabelScheme = scheme;
+    setDynamicView(projection, lat, lon, resolution);
+  }
+
+  /** Saves a fixed line and label spacing in the map menu cookie, read when the menu mounts. */
+  function saveFixedSpacing(spacing: number): void {
+    new Cookies().set(
+      MENU_COOKIE,
+      { gridSpacingMode: spacing, gridLabelInterval: spacing },
+      { path: "/" }
+    );
+  }
+
+  /** Latitudes of a drawn line's vertices. */
+  function lineLatitudes(line: LgrsRenderLine): number[] {
+    const binding = missionBinding();
+    const lats: number[] = [];
+    for (let i = 0; i < line.coordinates.length; i += 2) {
+      expect(binding.mapToLatLon(line.coordinates[i], line.coordinates[i + 1], latLon)).toBe(true);
+      lats.push(latLon[0]);
+    }
+    return lats;
+  }
+
+  /** Longitudes of a drawn line's two ends. */
+  function endLongitudes(line: LgrsRenderLine): [number, number] {
+    const binding = missionBinding();
+    const last = line.coordinates.length - 2;
+    binding.mapToLatLon(line.coordinates[0], line.coordinates[1], latLon);
+    const start = latLon[1];
+    binding.mapToLatLon(line.coordinates[last], line.coordinates[last + 1], latLon);
+    return [start, latLon[1]];
+  }
+
+  /** The drawn features match the plan line for line, with seams stroked heavier. */
+  function expectDrawnPlan(plan: LgrsRenderPlan): void {
+    expect(plan.tier).toBe("box");
+    const drawn = new globalThis.Map(
+      lineFeatures().map((feature) => [
+        feature.getGeometry()!.getFlatCoordinates().join(),
+        (feature.getStyle() as Style).getStroke()!.getWidth()!,
+      ])
+    );
+    expect(drawn.size).toBe(plan.lines.length);
+    for (const line of plan.lines) {
+      const width = drawn.get(line.coordinates.join());
+      expect(width).toBeDefined();
+      expect(width! > 1).toBe(line.kind === "seam");
+    }
+    expect(labelTexts().sort()).toEqual(plan.labels.map((label) => label.text).sort());
+    expect(plan.labels.length).toBeGreaterThan(0);
+  }
+
+  describe.each([
+    { scheme: "lunar-acc", text: /^[-A-Z]\d* [-A-Z]\d*$/, prefix: /^1[45]R[A-Z]{2}[A-D]{2}$/ },
+    { scheme: "mgrs", text: /^\d+ \d+$/, prefix: /^1[45]R[A-Z]{2}$/ },
+  ] as const)("Texas 14/15 zone seam at 96° W ($scheme)", ({ scheme, text, prefix }) => {
+    it("ends each zone's lines at the seam and labels each side in its own zone", () => {
+      setEarthView("mercator", 30, -96, 20, scheme);
+      renderGrid();
+
+      const plan = planForView();
+      expectDrawnPlan(plan);
+      expect([...plan.regions].sort()).toEqual([utm(14), utm(15)]);
+      expect(plan.lines.filter((line) => line.kind === "seam")).toEqual([
+        expect.objectContaining({ axis: "meridian", value: -96 }),
+      ]);
+
+      // Zone 14 lines stay west of 96° W and zone 15 lines east; both reach it.
+      const seamEnds = { [utm(14)]: 0, [utm(15)]: 0 };
+      for (const line of plan.lines.filter((line) => line.kind === "grid")) {
+        const west = line.crs === utm(14);
+        for (const lon of endLongitudes(line)) {
+          expect(west ? lon <= -96 + 1e-7 : lon >= -96 - 1e-7).toBe(true);
+          if (Math.abs(lon + 96) < 1e-6) seamEnds[line.crs]++;
+        }
+      }
+      expect(seamEnds[utm(14)]).toBeGreaterThan(0);
+      expect(seamEnds[utm(15)]).toBeGreaterThan(0);
+
+      // Labels switch zone at the seam; the drawn text is the scheme's condensed form.
+      for (const label of plan.labels) {
+        expect(label.label!.prefix).toMatch(prefix);
+        expect(label.label!.prefix.slice(0, 2)).toBe(label.crs === utm(14) ? "14" : "15");
+        expect(label.text).toMatch(text);
+      }
+      const zones = new Set(plan.labels.map((label) => label.crs));
+      expect([...zones].sort()).toEqual([utm(14), utm(15)]);
+    });
+  });
+
+  it("draws the same lines in both schemes and relabels on a live scheme switch", async () => {
+    setEarthView("mercator", 30, -96, 20, "lunar-acc");
+    saveFixedSpacing(1000);
+    renderGrid();
+    const accLines = lineFeatures().map((f) => f.getGeometry()!.getFlatCoordinates());
+    const accTexts = labelTexts();
+    expect(accTexts.length).toBeGreaterThan(0);
+    expect(accTexts.every((t) => /^[-A-Z] [-A-Z]$/.test(t))).toBe(true);
+
+    const { flushSync } = await import("react-dom");
+    flushSync(() => store.dispatch(setGridLabelSchemeOverride("mgrs")));
+
+    expect(lineFeatures().map((f) => f.getGeometry()!.getFlatCoordinates())).toEqual(accLines);
+    expect(labelTexts()).toHaveLength(accTexts.length);
+    expect(labelTexts().every((t) => /^\d{2} \d{2}$/.test(t))).toBe(true);
+  });
+
+  it("runs lines continuously across the Iceland 64° N band boundary", () => {
+    setEarthView("mercator", 64, -16.5, 5);
+    renderGrid();
+
+    const plan = planForView();
+    expectDrawnPlan(plan);
+    expect(plan.regions).toEqual([utm(28)]);
+    expect(plan.lines.filter((line) => line.kind === "seam")).toEqual([
+      expect.objectContaining({ axis: "parallel", value: 64 }),
+    ]);
+
+    // One unsplit line per easting, crossing the band parallel.
+    const eastings = plan.lines.filter((line) => line.axis === "easting");
+    expect(new Set(eastings.map((line) => line.value)).size).toBe(eastings.length);
+    for (const line of eastings) {
+      const lats = lineLatitudes(line);
+      expect(Math.min(...lats)).toBeLessThan(64);
+      expect(Math.max(...lats)).toBeGreaterThan(64);
+    }
+
+    // Only the band letter of the full prefix changes.
+    const bands = new Set(plan.labels.map((label) => label.label!.prefix[2]));
+    expect([...bands].sort()).toEqual(["V", "W"]);
+    const otherwise = new Set(
+      plan.labels.map(({ label }) => label!.prefix.slice(0, 2) + label!.prefix.slice(3))
+    );
+    expect(otherwise.size).toBe(1);
+  });
+
+  it("labels a band-split box by its centre while a readout in it uses its own latitude", () => {
+    setEarthView("mercator", 64, -16.5, 25);
+    saveFixedSpacing(1000);
+    renderGrid();
+
+    const plan = planForView({ gridSpacingMode: 1000, gridLabelInterval: 1000 });
+    expectDrawnPlan(plan);
+    const system = missionBinding().system;
+    const latAt = (e: number, n: number): number => {
+      expect(system.unprojectToLatLon(e, n, utm(28), latLon)).toBe(true);
+      return latLon[0];
+    };
+
+    // A drawn 1 km box split by 64° N, and a point in it on the other side from its centre.
+    let split: LgrsRenderLabel | undefined;
+    let point: AEGISPoint | undefined;
+    for (const label of plan.labels) {
+      const [e, n] = label.node!;
+      const southOfCentre = latAt(e + 500, n + 500) < 64;
+      const pointN = southOfCentre ? n + 990 : n + 10;
+      if (label.label!.precision !== 1000 || latAt(e + 500, pointN) < 64 === southOfCentre) {
+        continue;
+      }
+      split = label;
+      point = { lat: latAt(e + 500, pointN), lng: latLon[1] };
+      break;
+    }
+    expect(split).toBeDefined();
+    const readout = formatLgrsFromLatLon(system, point, 10, "full")!;
+    const labelBand = split!.label!.prefix[2];
+    expect(labelBand).toBe(point!.lat < 64 ? "W" : "V");
+    expect(readout.slice(0, 3)).toBe(point!.lat < 64 ? "28V" : "28W");
+    // Same 25 km area and same 1 km box; only the band letter differs.
+    expect(readout.slice(3).startsWith(split!.label!.prefix.slice(3))).toBe(true);
+    const [, easting, northing] = readout.split(" ");
+    expect(`${easting[0]} ${northing[0]}`).toBe(split!.text);
+  });
+
+  it("draws UPS and UTM grids that meet at the 84° N seam", () => {
+    setEarthView("upsNorth", 84, 1, 25);
+    renderGrid();
+
+    const plan = planForView();
+    expectDrawnPlan(plan);
+    expect([...plan.regions].sort((a, b) => a - b)).toEqual([upsNorth, utm(31)]);
+    expect(plan.lines.filter((line) => line.kind === "seam")).toEqual([
+      expect.objectContaining({ axis: "parallel", value: 84 }),
+    ]);
+
+    // UPS lines stay north of 84° N and UTM lines south of it.
+    for (const line of plan.lines.filter((line) => line.kind === "grid")) {
+      const lats = lineLatitudes(line);
+      if (line.crs === upsNorth) {
+        expect(Math.min(...lats)).toBeGreaterThan(84 - 1e-6);
+      } else {
+        expect(Math.max(...lats)).toBeLessThan(84 + 1e-6);
+      }
+    }
+    for (const label of plan.labels) {
+      expect(label.label!.prefix).toMatch(label.crs === upsNorth ? /^Z/ : /^31X/);
+    }
+    expect(new Set(plan.labels.map((label) => label.crs)).size).toBe(2);
+  });
+
+  it("dashboard publishes its spacing under the system key", async () => {
+    setEarthView("mercator", 29.5593, -95.09, 10, "mgrs");
+    renderGridInBounds("dashboard");
+    await flushPublish();
+
+    const plan = planForView();
+    expect(bounds.ctx!.gridSpacing).toEqual({
+      line: plan.lineSpacing,
+      label: plan.labelSpacing,
+      systemKey: "earth-wgs84/mgrs",
+    });
+  });
+
+  it("minimap ignores a spacing published under another system key", async () => {
+    setEarthView("mercator", 29.5593, -95.09, 10);
+    renderGridInBounds("minimap");
+    const own = planForView({ labelsVisible: false });
+    const inherited = planForView({
+      labelsVisible: false,
+      inheritedSpacing: { line: 1000, label: 1000 },
+    });
+    expect(inherited.lines.length).toBeLessThan(own.lines.length);
+    expect(lineFeatureCount()).toBe(own.lines.length);
+
+    const { flushSync } = await import("react-dom");
+    flushSync(() =>
+      bounds.ctx!.setGridSpacing({ line: 1000, label: 1000, systemKey: "earth-wgs84/mgrs" })
+    );
+    renderGridInBounds("minimap");
+    expect(lineFeatureCount()).toBe(own.lines.length);
+
+    flushSync(() =>
+      bounds.ctx!.setGridSpacing({ line: 1000, label: 1000, systemKey: "earth-wgs84/lunar-acc" })
+    );
+    renderGridInBounds("minimap");
+    expect(lineFeatureCount()).toBe(inherited.lines.length);
   });
 });

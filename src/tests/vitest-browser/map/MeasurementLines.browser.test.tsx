@@ -39,6 +39,7 @@ import { MeasurementLines } from "components/interface/map/behaviors/Measurement
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { measureSlice } from "store/measure";
 import { mapSlice } from "store/map";
+import { interfaceSlice } from "store/interface";
 import type * as UseDocSelectorModule from "utils/useDocSelector";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
@@ -97,6 +98,7 @@ function makeStore(preloadedState: PartialPreloadedState = {}) {
     reducer: {
       measure: measureSlice.reducer,
       map: mapSlice.reducer,
+      interface: interfaceSlice.reducer,
     },
     preloadedState,
   });
