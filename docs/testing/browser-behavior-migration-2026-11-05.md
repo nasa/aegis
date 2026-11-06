@@ -1,5 +1,9 @@
 # Browser workflow migration, November 5, 2026
 
+Historical migration record. See the [runner completion record](browser-runner-completion-2026-11-06.md) for the current inventory and retained boundaries.
+
+Historical migration record. See the [runner completion record](browser-runner-completion-2026-11-06.md) for the current inventory and retained boundaries.
+
 Shard counts and scheduling below describe this historical validation. See the
 [current CI layout](ci-layout.md) for the active configuration.
 
@@ -58,10 +62,10 @@ in each runner. Both runs passed without retries or skips; Playwright also ran
 its authentication setup. Process elapsed time includes startup, schema/app
 preparation and teardown.
 
-| Measurement                      | Playwright | Vitest Browser Mode |                    Improvement |
-| -------------------------------- | ---------: | ------------------: | -----------------------------: |
-| Process elapsed time             |   158.38 s |             48.07 s | 3.29� faster (69.6% less time) |
-| Sum of the 95 scenario durations |   427.91 s |             89.56 s |                   4.78� faster |
+| Measurement                      | Playwright | Vitest Browser Mode |                      Improvement |
+| -------------------------------- | ---------: | ------------------: | -------------------------------: |
+| Process elapsed time             |   158.38 s |             48.07 s | 3.29ï¿½ faster (69.6% less time) |
+| Sum of the 95 scenario durations |   427.91 s |             89.56 s |                   4.78ï¿½ faster |
 
 The baseline used the 21 original specifications and their three UI helpers
 from the baseline commit, materialized under the ignored
