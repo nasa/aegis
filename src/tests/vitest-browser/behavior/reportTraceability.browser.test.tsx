@@ -1,5 +1,7 @@
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
+import { vi } from "vitest";
+import { isVisible } from "./browserAssertions";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test, expect } from "./missionHarness";
 import {
   choosePlanningEvaAction,
   enablePlanningEditMode,
@@ -13,28 +15,32 @@ const sourceActionUuid = "30000000-0000-4000-8000-000000000091";
 const duplicateEvaName = "Survey Alpha (copy 1)";
 
 async function openPoiTraceability(page: Page): Promise<void> {
-  await page.getByLabel("reports Section", { exact: true }).click();
+  await page.getByLabelText("reports Section", { exact: true }).click();
   await page.getByText("POI Traceability", { exact: true }).click();
-  await expect(page.getByRole("region", { name: "Reference POI action trace" })).toBeVisible();
+  await expect
+    .element(page.getByRole("region", { name: "Reference POI action trace" }))
+    .toBeVisible();
 }
 
 async function linkPoiToStation(page: Page, stationName: string, poiUuid: string): Promise<void> {
   await selectPlanningStation(page, stationName);
-  await page.getByLabel("poi_panel", { exact: true }).click();
-  await expect(page.locator(`input[id="${poiUuid}"]`)).toBeVisible();
-  await page.locator(`input[id="${poiUuid}"]`).check();
+  await page.getByLabelText("poi_panel", { exact: true }).click();
+  await expect.element(page.getBySelector(`input[id="${poiUuid}"]`)).toBeVisible();
+  await page.getBySelector(`input[id="${poiUuid}"]`).click();
 }
 
 async function adoptSourceAction(page: Page, stationName: string): Promise<void> {
   await selectPlanningStation(page, stationName);
-  await page.getByLabel("actions_panel", { exact: true }).click();
-  await expect(page.getByText("Station Actions", { exact: true })).toBeVisible();
-  const poiActions = page.locator('[class*="stationPoiSection"]');
-  if (!(await poiActions.isVisible()))
+  await page.getByLabelText("actions_panel", { exact: true }).click();
+  await expect.element(page.getByText("Station Actions", { exact: true })).toBeVisible();
+  const poiActions = page.getBySelector('[class*="stationPoiSection"]');
+  if (!(await isVisible(poiActions)))
     await page.getByText("Associated POI Actions", { exact: true }).click();
-  await expect(poiActions.getByText("Reference POI", { exact: true })).toBeVisible();
-  const copyAction = poiActions.locator('[data-tooltip-content="Copy this action to station"]');
-  await expect(copyAction).toHaveCount(1);
+  await expect.element(poiActions.getByText("Reference POI", { exact: true })).toBeVisible();
+  const copyAction = poiActions.getBySelector(
+    '[data-tooltip-content="Copy this action to station"]'
+  );
+  await expect.poll(() => copyAction.length).toBe(1);
   await copyAction.click();
 }
 
@@ -60,18 +66,22 @@ test("POI lineage distinguishes links, station adoptions, and a duplicated execu
     doc.pois[mission.ids.poiA].actionOrderUuids = [sourceActionUuid];
   });
 
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await linkPoiToStation(page, "Alpha station", mission.ids.poiA);
 
   // A station/POI association is visible in the report but cannot manufacture an adoption.
   await openPoiTraceability(page);
   const actionRow = page.getByRole("button", { name: /Sample regolith.*Not adopted/ });
-  await expect(actionRow).toBeVisible();
-  await expect(page.getByText("No adoption in this scope", { exact: true })).toBeVisible();
-  await expect(
-    page.getByText("Linking a POI to a station alone does not adopt its actions.", { exact: true })
-  ).toBeVisible();
+  await expect.element(actionRow).toBeVisible();
+  await expect.element(page.getByText("No adoption in this scope", { exact: true })).toBeVisible();
+  await expect
+    .element(
+      page.getByText("Linking a POI to a station alone does not adopt its actions.", {
+        exact: true,
+      })
+    )
+    .toBeVisible();
   const linkedOnly = await mission.read();
   expect(linkedOnly.actions[sourceActionUuid]).toMatchObject({
     uuid: sourceActionUuid,
@@ -97,25 +107,32 @@ test("POI lineage distinguishes links, station adoptions, and a duplicated execu
   await openPoiTraceability(page);
   // The Bravo station is shared by Survey Alpha and Survey Bravo, so two distinct
   // station copies correctly produce three plan-location branches.
-  await expect(page.getByRole("button", { name: /Sample regolith.*3 adoptions/ })).toBeVisible();
-  await expect(
-    page.locator('[class*="location"]').filter({ hasText: "Alpha station" })
-  ).toHaveCount(1);
-  await expect(
-    page.locator('[class*="location"]').filter({ hasText: "Bravo station" })
-  ).toHaveCount(2);
+  await expect
+    .element(page.getByRole("button", { name: /Sample regolith.*3 adoptions/ }))
+    .toBeVisible();
+  await expect
+    .poll(
+      () => page.getBySelector('[class*="location"]').filter({ hasText: "Alpha station" }).length
+    )
+    .toBe(1);
+  await expect
+    .poll(
+      () => page.getBySelector('[class*="location"]').filter({ hasText: "Bravo station" }).length
+    )
+    .toBe(2);
 
   // Duplicate the complete planned graph so the copied stations/actions have new concrete UUIDs.
-  await page.getByLabel("evas Section", { exact: true }).click();
+  await page.getByLabelText("evas Section", { exact: true }).click();
   await selectPlanningEva(page, "Survey Alpha");
   let confirmationMessage = "";
-  page.once("dialog", async (dialog) => {
-    confirmationMessage = dialog.message();
-    await dialog.accept();
+  vi.spyOn(window, "confirm").mockImplementationOnce((message) => {
+    confirmationMessage = String(message);
+
+    return true;
   });
   await choosePlanningEvaAction(page, "Survey Alpha", "Duplicate w/ Stations");
   expect(confirmationMessage).toContain("duplicate the EVA and also make duplicates");
-  await expect(planningEvaRow(page, duplicateEvaName)).toHaveCount(1);
+  await expect.poll(() => planningEvaRow(page, duplicateEvaName).length).toBe(1);
   current = await mission.read();
   const duplicateEva = Object.values(current.evas).find((eva) => eva.name === duplicateEvaName);
   expect(duplicateEva).toBeDefined();
@@ -161,22 +178,22 @@ test("POI lineage distinguishes links, station adoptions, and a duplicated execu
   expect(executionActions).toHaveLength(2);
   const completedAction = executionActions[0];
   await openExecutionInfo(page, duplicateEvaName, duplicateRex!.evaUuid);
-  await page.getByLabel("Execute EVA", { exact: true }).click();
+  await page.getByLabelText("Execute EVA", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).rexes[duplicateRex!.uuid].isRunning)
     .toBe(true);
   const executionRow = await selectExecution(page, duplicateEvaName, duplicateRex!.evaUuid);
   const completedStation = current.stations[completedAction.stationUuid!].name;
   await executionRow
-    .locator('[class*="evaItem"]')
+    .getBySelector('[class*="evaItem"]')
     .filter({ hasText: completedStation })
-    .locator('[class*="iconCustom"]')
+    .getBySelector('[class*="iconCustom"]')
     .click();
-  await page.getByLabel("actions_panel", { exact: true }).click();
+  await page.getByLabelText("actions_panel", { exact: true }).click();
   const rexActionRow = page.getByRole("listitem").filter({ hasText: completedAction.name });
-  await expect(rexActionRow).toHaveCount(1);
-  await rexActionRow.locator('[class*="actionHeadingRexStatusWrapper"]').click();
-  await page.locator("dialog[open]").getByText("Complete", { exact: true }).click();
+  await expect.poll(() => rexActionRow.length).toBe(1);
+  await rexActionRow.getBySelector('[class*="actionHeadingRexStatusWrapper"]').click();
+  await page.getBySelector("dialog[open]").getByText("Complete", { exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -187,11 +204,16 @@ test("POI lineage distinguishes links, station adoptions, and a duplicated execu
 
   await openPoiTraceability(page);
   const trace = page.getByRole("region", { name: "Reference POI action trace" });
-  await expect(
-    trace.getByRole("list", { name: "EVA adoptions" }).getByText(duplicateEvaName, { exact: true })
-  ).toHaveCount(2);
-  await expect(trace.getByText("Completed", { exact: true })).toHaveCount(1);
-  await expect(trace.getByText(duplicateRex!.name, { exact: true })).toHaveCount(2);
+  await expect
+    .poll(
+      () =>
+        trace
+          .getByRole("list", { name: "EVA adoptions" })
+          .getByText(duplicateEvaName, { exact: true }).length
+    )
+    .toBe(2);
+  await expect.poll(() => trace.getByText("Completed", { exact: true }).length).toBe(1);
+  await expect.poll(() => trace.getByText(duplicateRex!.name, { exact: true }).length).toBe(2);
   const final = await mission.read();
   expect(final.actions[sourceActionUuid]).toMatchObject({
     parentActionUuid: null,
