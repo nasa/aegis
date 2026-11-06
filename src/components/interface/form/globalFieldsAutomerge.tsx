@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPencil } from "@fortawesome/free-solid-svg-icons";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import type { FunctionComponent, CSSProperties, ReactNode } from "react";
 import formStyles from "./globalFieldsAutomerge.module.css";
 import paneStyles from "../../panes/global-pane-styles.module.css";
@@ -697,25 +697,56 @@ export const ValidatedTextArea: FunctionComponent<{
   styleContainer?: CSSProperties;
   onSubmit: (value: string) => void;
   focusContents?: boolean;
-}> = ({ value, editMode, styleContainer, onSubmit, fieldProps, focusContents }) => {
+  /** Cap the displayed text and the editor's automatic height at this many wrapped lines. */
+  maxRows?: number;
+  resizable?: boolean;
+}> = ({
+  value,
+  editMode,
+  styleContainer,
+  onSubmit,
+  fieldProps,
+  focusContents,
+  maxRows,
+  resizable = false,
+}) => {
   const valueToShow = value || "";
 
   const dialogRef = useRef<HTMLDialogElement>(null); // Used to control the dialog box (open/close)
   const dialogChildrenRef = useRef<HTMLDivElement>(null); // Used to position the dialog box
   const containerRef = useRef<HTMLDivElement>(null); // Used to position the dialog box
   const inputRef = useRef<HTMLTextAreaElement>(null); // Used to focus the textarea when dialog opens
+  const automaticHeightRef = useRef<number | null>(null);
   const initialValueRef = useRef<string>(valueToShow); // Track last successfully submitted value
   const formApiRef = useRef<FormApi<Record<string, string>> | null>(null); // Access the form outside of the form
   const isOnline = useAppSelector(isConnected, refEqual);
 
-  const autoResizeTextarea = () => {
+  const autoResizeTextarea = useCallback(() => {
     if (!inputRef.current) return;
     const textarea = inputRef.current;
+    // A native resize changes dimensions without an input event. Preserve that choice while typing.
+    if (
+      resizable &&
+      (textarea.style.width.endsWith("px") ||
+        (automaticHeightRef.current !== null &&
+          Math.abs(textarea.getBoundingClientRect().height - automaticHeightRef.current) > 1))
+    )
+      return;
     textarea.style.height = "auto";
-    const newHeight = Math.min(textarea.scrollHeight, 300);
+    const styles = getComputedStyle(textarea);
+    const borders = parseFloat(styles.borderTopWidth) + parseFloat(styles.borderBottomWidth);
+    const maxHeight = maxRows
+      ? maxRows * parseFloat(styles.lineHeight) +
+        parseFloat(styles.paddingTop) +
+        parseFloat(styles.paddingBottom) +
+        borders
+      : parseFloat(styles.maxHeight);
+    const newHeight = Math.min(textarea.scrollHeight + borders, maxHeight);
     textarea.style.height = `${newHeight}px`;
-    textarea.style.overflowY = textarea.scrollHeight > 300 ? "auto" : "hidden";
-  };
+    textarea.style.overflowY =
+      resizable || textarea.scrollHeight > textarea.clientHeight ? "auto" : "hidden";
+    automaticHeightRef.current = textarea.getBoundingClientRect().height;
+  }, [maxRows, resizable]);
 
   const setDialogLocation = () => {
     if (!containerRef.current || !dialogChildrenRef.current) return;
@@ -744,7 +775,20 @@ export const ValidatedTextArea: FunctionComponent<{
 
   useEffect(() => {
     autoResizeTextarea();
-  }, [valueToShow]);
+  }, [valueToShow, autoResizeTextarea]);
+
+  useEffect(() => {
+    if (!resizable || !inputRef.current) return;
+    const textarea = inputRef.current;
+    const observer = new ResizeObserver(() => {
+      const dialog = dialogChildrenRef.current;
+      if (!dialog || !dialogRef.current?.open || !textarea.style.width.endsWith("px")) return;
+      // Keep the background and Save/Cancel controls aligned with the resized input.
+      dialog.style.width = `${textarea.offsetWidth + dialog.offsetWidth - dialog.clientWidth}px`;
+    });
+    observer.observe(textarea);
+    return () => observer.disconnect();
+  }, [resizable]);
 
   return (
     <div
@@ -758,6 +802,8 @@ export const ValidatedTextArea: FunctionComponent<{
         setDialogLocation();
         dialogRef.current?.showModal();
         initialValueRef.current = valueToShow; // Initialize valid value when dialog opens
+        automaticHeightRef.current = null;
+        if (resizable && inputRef.current) inputRef.current.style.width = "100%";
         requestAnimationFrame(() => autoResizeTextarea()); // Resize textarea after dialog is rendered
       }}
     >
@@ -808,8 +854,12 @@ export const ValidatedTextArea: FunctionComponent<{
                             style={{
                               width: "100%",
                               minHeight: "60px",
-                              resize: "none",
+                              resize: resizable ? "both" : "none",
                               boxSizing: "border-box",
+                              ...(maxRows && {
+                                lineHeight: 1.4,
+                                maxHeight: resizable ? "none" : `calc(${maxRows}lh + 10px)`,
+                              }),
                             }}
                             onChange={(event) => {
                               autoResizeTextarea();
@@ -873,6 +923,7 @@ export const ValidatedTextArea: FunctionComponent<{
       <div className={`${formStyles.labelContainer}`}>
         <div
           className={`${formStyles.textAreaValue}`}
+          style={maxRows ? { lineHeight: 1.4, maxHeight: `${maxRows}lh` } : undefined}
           data-tooltip-id="aegis-tooltip"
           data-tooltip-content={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}

@@ -2,6 +2,9 @@ import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankRex } from "store/storeUtils/rex";
 import {
+  ASSET_NAME_MAX_LENGTH,
+  ASSET_NOTES_MAX_LENGTH,
+  ASSET_RADIUS_MAX_METERS,
   getAssetEditValues,
   getAssetRadiusColor,
   getAssetHiddenReason,
@@ -291,4 +294,46 @@ describe("in-edit change tracking", () => {
       validateAssetEditValues({ ...base, location: null, locationSetAt: null, elevation: null })
     ).toBeNull();
   });
+
+  test.each([1, ASSET_NAME_MAX_LENGTH - 1, ASSET_NAME_MAX_LENGTH])(
+    "accepts a trimmed name of length %i",
+    (length) => {
+      expect(validateAssetEditValues({ ...base, name: `  ${"名".repeat(length)}  ` })).toBeNull();
+    }
+  );
+
+  test.each(["", " \t\n ", "x".repeat(ASSET_NAME_MAX_LENGTH + 1), "😀".repeat(41)])(
+    "rejects blank or oversized names (case %#)",
+    (name) => expect(validateAssetEditValues({ ...base, name })).toMatch(/Name/)
+  );
+
+  test.each([
+    null,
+    "",
+    " \n ",
+    "n".repeat(ASSET_NOTES_MAX_LENGTH - 1),
+    "名".repeat(ASSET_NOTES_MAX_LENGTH),
+    "😀".repeat(ASSET_NOTES_MAX_LENGTH / 2),
+  ])("accepts optional notes through the UTF-16 length limit (case %#)", (notes) =>
+    expect(validateAssetEditValues({ ...base, notes })).toBeNull()
+  );
+
+  test.each([
+    "n".repeat(ASSET_NOTES_MAX_LENGTH + 1),
+    "😀".repeat(ASSET_NOTES_MAX_LENGTH / 2) + "x",
+  ])("rejects notes one unit over the limit (case %#)", (notes) =>
+    expect(validateAssetEditValues({ ...base, notes })).toMatch(/Notes/)
+  );
+
+  test.each([0, 0.1, ASSET_RADIUS_MAX_METERS - 0.01, ASSET_RADIUS_MAX_METERS])(
+    "accepts radius %s",
+    (uncertaintyMeters) =>
+      expect(validateAssetEditValues({ ...base, uncertaintyMeters })).toBeNull()
+  );
+
+  test.each([-0.01, ASSET_RADIUS_MAX_METERS + 0.01, NaN, Infinity, -Infinity, Number.MAX_VALUE])(
+    "rejects radius %s",
+    (uncertaintyMeters) =>
+      expect(validateAssetEditValues({ ...base, uncertaintyMeters })).toMatch(/Radius/)
+  );
 });

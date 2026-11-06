@@ -8,6 +8,30 @@ export const DEFAULT_ASSET_ICON = "2754";
 /** Clear radius fill and label accent for an asset with no color. */
 export const DEFAULT_ASSET_RADIUS_COLOR = "transparent";
 
+// String limits use JavaScript/HTML UTF-16 length, matching the form controls.
+export const ASSET_NAME_MAX_LENGTH = 80;
+export const ASSET_NOTES_MAX_LENGTH = 10_000;
+export const ASSET_RADIUS_MAX_METERS = 1_000;
+
+export function validateAssetName(name: string): string | null {
+  if (!name?.trim()) return "Name is required";
+  return name.trim().length > ASSET_NAME_MAX_LENGTH
+    ? `Name must be at most ${ASSET_NAME_MAX_LENGTH} characters`
+    : null;
+}
+
+export function validateAssetNotes(notes: string | null): string | null {
+  return (notes?.length ?? 0) > ASSET_NOTES_MAX_LENGTH
+    ? `Notes must be at most ${ASSET_NOTES_MAX_LENGTH} characters`
+    : null;
+}
+
+export function validateAssetRadius(radius: number): string | null {
+  return !Number.isFinite(radius) || radius < 0 || radius > ASSET_RADIUS_MAX_METERS
+    ? `Radius must be between 0 and ${ASSET_RADIUS_MAX_METERS} meters`
+    : null;
+}
+
 /**
  * Color of an asset's radius circle. Uncolored assets have a clear fill so their radius can
  * still be outlined while selected. Null when the radius is zero, so no circle is drawn.
@@ -183,10 +207,11 @@ export function getChangedAssetFields(
 
 /** Validation message for in-edit values, or null when they can be saved. */
 export function validateAssetEditValues(values: AssetEditValues): string | null {
-  if (!values.name?.trim()) return "Name is required";
-  if (!Number.isFinite(values.uncertaintyMeters) || values.uncertaintyMeters < 0) {
-    return "Radius must be a number of meters, zero or more";
-  }
+  const fieldError =
+    validateAssetName(values.name) ||
+    validateAssetNotes(values.notes) ||
+    validateAssetRadius(values.uncertaintyMeters);
+  if (fieldError) return fieldError;
   if (values.petSeconds !== null && !Number.isSafeInteger(values.petSeconds)) {
     return "PET must be a whole number of seconds";
   }

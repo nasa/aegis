@@ -265,6 +265,8 @@
   overflow: auto;
   max-height: 300px;
   width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   white-space: pre-wrap; /* for line breaks */
 }
 

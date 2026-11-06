@@ -27,7 +27,12 @@ import { userSlice } from "store/user";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankRex } from "store/storeUtils/rex";
-import { getAssetEditValues } from "utils/assets";
+import {
+  ASSET_NAME_MAX_LENGTH,
+  ASSET_NOTES_MAX_LENGTH,
+  ASSET_RADIUS_MAX_METERS,
+  getAssetEditValues,
+} from "utils/assets";
 import { createReactHarness, type ReactHarness } from "../map/helpers/reactBrowserHarness";
 
 const mockMissionDoc: Partial<Mission> = {};
@@ -156,6 +161,248 @@ beforeEach(() => {
 afterEach(() => harness.unmount());
 
 describe("MapAssetsMenu", () => {
+  function openDraft(asset: Asset, isNew: boolean) {
+    flushSync(() =>
+      store.dispatch(
+        setAssetInEdit({
+          uuid: asset.uuid,
+          isNew,
+          values: getAssetEditValues(asset),
+          base: isNew ? null : getAssetEditValues(asset),
+          elevationPending: false,
+        })
+      )
+    );
+  }
+
+  function enterValue(input: HTMLInputElement | HTMLTextAreaElement, value: string) {
+    const prototype =
+      input instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype;
+    flushSync(() => {
+      Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+
+  it.each([320, 420, 600])(
+    "wraps long asset content and preserves table actions at %ipx",
+    async (width) => {
+      harness.container.style.width = `${width}px`;
+      harness.container.style.height = "360px";
+      const notes = `First line\n\n${"LongUnbrokenWord".repeat(500)}\n${"中文 😀 ".repeat(200)}\nLast line`;
+      const asset = generateBlankAsset({
+        name: "N".repeat(ASSET_NAME_MAX_LENGTH),
+        notes,
+        petRex: { uuid: "rex", name: "REX".repeat(150) },
+      });
+      const folder = generateBlankFolder({
+        type: "asset",
+        name: "Folder".repeat(100),
+        items: [asset.uuid],
+      });
+      mockMissionDoc.assets = { [asset.uuid]: asset };
+      mockMissionDoc.folders = { [folder.uuid]: folder };
+      store = makeStore(true);
+      render();
+      flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
+      await document.fonts.ready;
+      for (const editing of [false, true]) {
+        if (editing) openDraft(asset, false);
+        const editor = q("[data-testid='asset-editor']")!;
+        const notesDisplay = q("div[aria-label='Asset notes']")!;
+        const menu = q("[data-testid='asset-table']")!.parentElement!;
+        expect(notesDisplay.textContent).toBe(notes);
+        expect(notesDisplay.scrollWidth).toBeLessThanOrEqual(notesDisplay.clientWidth + 1);
+        expect(notesDisplay.scrollHeight).toBeGreaterThan(notesDisplay.clientHeight);
+        expect(getComputedStyle(notesDisplay).whiteSpace).toBe("pre-wrap");
+        expect(editor.scrollWidth).toBeLessThanOrEqual(editor.clientWidth + 1);
+        expect(menu.scrollWidth).toBeLessThanOrEqual(menu.clientWidth + 1);
+        notesDisplay.scrollTop = notesDisplay.scrollHeight;
+        expect(notesDisplay.scrollTop).toBeGreaterThan(0);
+        const row = q(`[data-testid='asset-row-${asset.uuid}']`)!;
+        expect(row.querySelectorAll("td")[2].textContent).toBe(asset.name);
+        expect(row.querySelectorAll("td")[2].getAttribute("title")).toBe(asset.name);
+        const actions = row.querySelector<HTMLElement>("[aria-label='Asset actions']")!;
+        expect(actions.getBoundingClientRect().right).toBeLessThanOrEqual(
+          menu.getBoundingClientRect().right + 1
+        );
+        if (editing) {
+          const nameDisplay = q("div[aria-label='Asset name']")!;
+          expect(nameDisplay.scrollWidth).toBeLessThanOrEqual(nameDisplay.clientWidth + 1);
+          expect(nameDisplay.getBoundingClientRect().height).toBeGreaterThan(20);
+        }
+      }
+    }
+  );
+
+  it("keeps a new asset form inside a narrow panel with maximum content", async () => {
+    harness.container.style.width = "320px";
+    harness.container.style.height = "360px";
+    const asset = generateBlankAsset({
+      name: "名".repeat(ASSET_NAME_MAX_LENGTH),
+      notes: "x".repeat(ASSET_NOTES_MAX_LENGTH),
+      uncertaintyMeters: ASSET_RADIUS_MAX_METERS,
+    });
+    store = makeStore(true);
+    render();
+    openDraft(asset, true);
+    const editor = q("[data-testid='asset-editor']")!;
+    const notes = q("textarea[aria-label='Asset notes']") as HTMLTextAreaElement;
+    expect(editor.scrollWidth).toBeLessThanOrEqual(editor.clientWidth);
+    expect(notes.maxLength).toBe(ASSET_NOTES_MAX_LENGTH);
+    expect((q("input[aria-label='Asset name']") as HTMLInputElement).maxLength).toBe(
+      ASSET_NAME_MAX_LENGTH
+    );
+    expect(notes.scrollWidth).toBeLessThanOrEqual(notes.clientWidth);
+    expect(notes.scrollHeight).toBeGreaterThan(notes.clientHeight);
+    expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true");
+    flushSync(() => q("[aria-label='Save']")!.click());
+    await vi.waitFor(() => expect(saveAsset).toHaveBeenCalledTimes(1));
+  });
+
+  it.each([1, 6, 7, 20])("scrolls asset notes after six lines (%i lines)", async (lines) => {
+    harness.container.style.width = "420px";
+    harness.container.style.height = "500px";
+    const notes = Array.from({ length: lines }, (_, i) => `Line ${i + 1}`).join("\n");
+    const asset = generateBlankAsset({ name: "Drill", notes });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    store = makeStore(true);
+    render();
+    flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
+    await document.fonts.ready;
+
+    const checkHeightAndScroll = (element: HTMLElement) => {
+      const styles = getComputedStyle(element);
+      const lineHeight = parseFloat(styles.lineHeight);
+      const padding = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+      expect(element.clientHeight - padding).toBeLessThanOrEqual(6 * lineHeight + 1);
+      if (lines > 6) {
+        expect(element.scrollHeight).toBeGreaterThan(element.clientHeight);
+        element.scrollTop = element.scrollHeight;
+        expect(element.scrollTop).toBeGreaterThan(0);
+      } else {
+        expect(element.scrollHeight).toBeLessThanOrEqual(element.clientHeight + 1);
+        expect(element.clientHeight - padding).toBeGreaterThanOrEqual(lines * lineHeight - 1);
+      }
+    };
+
+    checkHeightAndScroll(q("div[aria-label='Asset notes']")!);
+    openDraft(asset, false);
+    checkHeightAndScroll(q("div[aria-label='Asset notes']")!);
+    flushSync(() => q("div[aria-label='Asset notes']")!.click());
+    const textarea = q("textarea[aria-label='Asset notes']") as HTMLTextAreaElement;
+    await vi.waitFor(() => checkHeightAndScroll(textarea));
+    // Shrinking and growing while editing keeps the same six-line cap.
+    enterValue(textarea, "Short note");
+    expect(textarea.scrollHeight).toBeLessThanOrEqual(textarea.clientHeight + 1);
+    enterValue(textarea, notes);
+    await vi.waitFor(() => checkHeightAndScroll(textarea));
+    flushSync(() => dialogAction("Cancel").click());
+
+    openDraft(asset, true);
+    checkHeightAndScroll(q("textarea[aria-label='Asset notes']")!);
+  });
+
+  it.each([true, false])(
+    "preserves a manually resized notes editor while typing (creating: %s)",
+    async (creating) => {
+      harness.container.style.width = "420px";
+      harness.container.style.height = "600px";
+      const asset = generateBlankAsset({ name: "Drill", notes: "Line\n".repeat(20) });
+      if (!creating) mockMissionDoc.assets = { [asset.uuid]: asset };
+      store = makeStore(true);
+      render();
+      openDraft(asset, creating);
+      if (!creating) flushSync(() => q("div[aria-label='Asset notes']")!.click());
+      const textarea = q("textarea[aria-label='Asset notes']") as HTMLTextAreaElement;
+      await vi.waitFor(() => expect(textarea.clientHeight).toBeGreaterThan(60));
+      expect(getComputedStyle(textarea).resize).toBe("both");
+      // Native resize writes inline dimensions; reproduce them to exercise preservation on input.
+      textarea.style.height = "240px";
+      textarea.style.width = "500px";
+      expect(textarea.getBoundingClientRect().height).toBe(240);
+      expect(textarea.getBoundingClientRect().width).toBe(500);
+      enterValue(textarea, "Updated note");
+      expect(textarea.getBoundingClientRect().height).toBe(240);
+      expect(textarea.getBoundingClientRect().width).toBe(500);
+      if (!creating) {
+        await vi.waitFor(() =>
+          expect(textarea.closest("form")!.getBoundingClientRect().width).toBe(500)
+        );
+      }
+      textarea.style.height = "70px";
+      textarea.style.width = "220px";
+      enterValue(textarea, "More lines\n".repeat(20));
+      expect(textarea.getBoundingClientRect().height).toBe(70);
+      expect(textarea.getBoundingClientRect().width).toBe(220);
+      expect(textarea.scrollHeight).toBeGreaterThan(textarea.clientHeight);
+      expect(getComputedStyle(textarea).overflowY).toBe("auto");
+    }
+  );
+
+  it.each([true, false])(
+    "blocks over-limit names, notes and radii in the UI (creating: %s)",
+    async (creating) => {
+      harness.container.style.width = "420px";
+      harness.container.style.height = "360px";
+      const asset = generateBlankAsset({ name: "Drill" });
+      if (!creating) mockMissionDoc.assets = { [asset.uuid]: asset };
+      store = makeStore(true);
+      render();
+      openDraft(asset, creating);
+      for (const [label, invalidValue, validValue, message] of [
+        [
+          "Asset name",
+          "n".repeat(ASSET_NAME_MAX_LENGTH + 1),
+          "n".repeat(ASSET_NAME_MAX_LENGTH),
+          "Name",
+        ],
+        [
+          "Asset notes",
+          "x".repeat(ASSET_NOTES_MAX_LENGTH + 1),
+          "x".repeat(ASSET_NOTES_MAX_LENGTH),
+          "Notes",
+        ],
+        [
+          "Radius in meters",
+          String(ASSET_RADIUS_MAX_METERS + 0.01),
+          String(ASSET_RADIUS_MAX_METERS),
+          "Radius",
+        ],
+      ]) {
+        if (!creating) flushSync(() => q(`div[aria-label='${label}']`)!.click());
+        const input = q(`input[aria-label='${label}'], textarea[aria-label='${label}']`) as
+          HTMLInputElement | HTMLTextAreaElement;
+        // Programmatic input bypasses native maxLength to also exercise validation of existing/imported content.
+        enterValue(input, invalidValue);
+        if (creating) {
+          expect(input.getAttribute("aria-invalid")).toBe("true");
+          expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).toBe("true");
+          flushSync(() => q("[aria-label='Save']")!.click());
+          expect(saveAsset).not.toHaveBeenCalled();
+          if (label === "Radius in meters")
+            expect(store.getState().asset.inEdit?.values.uncertaintyMeters).toBe(0);
+        } else {
+          await vi.waitFor(() => expect(q("dialog[open]")?.textContent).toContain(message));
+          flushSync(() => dialogAction("Save").click());
+          expect(updateFields).not.toHaveBeenCalled();
+        }
+        enterValue(input, validValue);
+        if (creating) {
+          expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true");
+        } else {
+          await vi.waitFor(() => expect(q("dialog[open]")?.textContent).not.toContain(`must be`));
+          flushSync(() => dialogAction("Save").click());
+          await vi.waitFor(() => expect(updateFields).toHaveBeenCalledTimes(1));
+          updateFields.mockClear();
+        }
+      }
+      expect(saveAsset).not.toHaveBeenCalled();
+    }
+  );
+
   it.each([false, true])(
     "keeps expanded details compact at the floating widget width (editing: %s)",
     async (editing) => {
@@ -463,7 +710,9 @@ describe("MapAssetsMenu", () => {
 
     flushSync(() => q("div[aria-label='Radius in meters']")!.click());
     changeInput("Radius in meters", "-5");
-    await vi.waitFor(() => expect(q("dialog[open]")?.textContent).toContain("Must be a number"));
+    await vi.waitFor(() =>
+      expect(q("dialog[open]")?.textContent).toContain("Radius must be between")
+    );
     clickAction("Save");
     expect(updateFields).toHaveBeenCalledTimes(1);
     changeInput("Radius in meters", "");
