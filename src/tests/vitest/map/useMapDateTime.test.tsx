@@ -92,7 +92,7 @@ beforeEach(() => {
   for (const key of Object.keys(docState)) {
     delete (docState as Record<string, unknown>)[key];
   }
-  docState.planetRadius = 1737400;
+  docState.planet = "moon";
   docState.landerLocation = { lat: -84.2, lng: 33.5 };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -119,7 +119,7 @@ describe("useMapDateTime", () => {
     const datetime = Date.parse("2026-04-15T23:30:00Z");
     docState.evas = { "eva-1": { uuid: "eva-1", datetime } as Eva };
     docState.landerLocation = { lat: -89, lng: 45 };
-    docState.planetRadius = 1737400;
+    docState.planet = "moon";
     const store = makeStore({ eva: { ...evaInit, selectedEvaUuid: "eva-1" } });
     render(store);
     const startAzimuths = capturedAzimuths;

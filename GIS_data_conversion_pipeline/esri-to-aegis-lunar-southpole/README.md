@@ -59,8 +59,9 @@ Every tile layer also gets a `properties.json` (name/description/legend) that th
 admin auto-imports — see [`properties/`](properties/). The **register** step reads those
 sidecars (plus each `tilemapresource.xml`) to build sublayers directly via the REST API:
 external NAC → `Common_LSP` header, tile layers → `Raster` header, GeoJSON → `Vector` header.
-It also sets the mission GIS fields, including
-`actionSystemVersion = 2` and `usingLGRSCoordinates = true`. Steps run only when their inputs
+It sets the mission GIS fields, including
+`actionSystemVersion = 2` and `planet = "moon"`. LGRS coordinates are detected from the
+lander latitude (south of 80 degrees S). Steps run only when their inputs
 are present (default), or pick explicitly with `--steps`. Each run writes a
 `Data/conversion_report.md` capturing the full console log + per-step timings.
 
@@ -453,8 +454,9 @@ already-registered `(header, path)` pairs):
 - **Mission fields** — `POST /api/v1/missionAutomerge/fields` sets the fixed lunar south-pole
   projection (`projIsCustom=true`, `projEpsg="IAU2000:30166"`, `projOrigin = -931100`,
   `projResZoomLevel=0`, `projResUnitsPerPixel=12800`, `projBounds = ±931100`,
-  `planetRadius=1737400`), plus `name`, `landerLocation`, `demFilePath`, `demResolution`,
-  `actionSystemVersion=2`, and `usingLGRSCoordinates=true`.
+  `planet="moon"`), plus `name`, `landerLocation`, `demFilePath`, and `actionSystemVersion=2`.
+  AEGIS reads `demResolution` from the selected GeoTIFF, which must already exist in the
+  server mission Data folder. LGRS coordinates are automatic south of 80 degrees S on the Moon.
   (This endpoint exists specifically so external tooling can set mission GIS fields, which
   otherwise live only in the Automerge doc; it uses standard mission edit authorization,
   normally via the EMSS API token for this pipeline. A changed `landerLocation` is rejected

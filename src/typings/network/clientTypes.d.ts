@@ -33,11 +33,9 @@ type MissionFields = Pick<
   | "name"
   | "description"
   | "landerLocation"
-  | "landerElevationMeters"
-  | "planetRadius"
+  | "planet"
   | "initialZoom"
   | "demFilePath"
-  | "demResolution"
   | "projIsCustom"
   | "projEpsg"
   | "projProj4String"
@@ -50,10 +48,6 @@ type MissionFields = Pick<
   | "projResZoomLevel"
   | "projResUnitsPerPixel"
   | "actionSystemVersion"
-  | "usingLGRSCoordinates"
-  | "gridRenderMode"
-  | "gridSystem"
-  | "earthGridLabelScheme"
 >;
 type MissionFieldsUpdate = Partial<MissionFields>;
 

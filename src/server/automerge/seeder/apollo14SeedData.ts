@@ -1035,14 +1035,13 @@ export const buildApollo14Mission = (): Mission =>
         name: "Apollo 14",
         description:
           "Demo mission seeded for local development. Geometry is representative sample data, not the historical Apollo 14 traverse.",
-        usingLGRSCoordinates: false,
         actionSystemVersion: 2,
         landerLocation: {
           lat: -3.645421873728663,
           lng: -17.47186660766602,
         },
         landerElevationMeters: -1063.605,
-        planetRadius: 1737400,
+        planet: "moon",
         initialZoom: 14,
         traverseRate: 2,
         walkbackRate: 2,

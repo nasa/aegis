@@ -1,5 +1,6 @@
 import "utils/loadEnv";
 import { watchTerrainCache } from "server/terrain/terrainProfileCache";
+import { watchLanderElevation } from "server/terrain/landerElevation";
 import type { Server as NetServer } from "http";
 import { createServer } from "http";
 import { v4 as uuidv4 } from "uuid";
@@ -368,6 +369,10 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
   // Observe storage loads before catalog population and running missions load documents.
   const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
   await populateMissionCatalogOnce(missionRepo);
+  globalValues.automergeRepo.on("document", ({ handle }) => {
+    watchTerrainCache(handle as DocHandle<Mission>);
+    watchLanderElevation(handle as DocHandle<Mission>);
+  });
   await loadRunningMissionDocuments(missionRepo);
   server.listen(4001, () => {
     serverLogger.info({
@@ -377,10 +382,6 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
       loadedDocuments: Object.keys(missionRepo.handles).length,
       rssBytes: process.memoryUsage.rss(),
     });
-  });
-
-  globalValues.automergeRepo.on("document", ({ handle }) => {
-    watchTerrainCache(handle as DocHandle<Mission>);
   });
 
   // clg peers as they come and go

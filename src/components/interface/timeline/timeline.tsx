@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import paper from "paper";
 import type { FunctionComponent, MutableRefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -43,7 +44,7 @@ const NavTimeline: FunctionComponent = () => {
       demResolution: mission.demResolution,
       defaultEvaDuration: mission.defaultEvaDuration,
       landerLocation: mission.landerLocation,
-      planetRadius: mission.planetRadius,
+      planet: mission.planet,
       landerElevationMeters: mission.landerElevationMeters,
       actionSystemVersion: mission.actionSystemVersion,
     }),
@@ -223,7 +224,7 @@ const NavTimeline: FunctionComponent = () => {
       const distFromLander = getDistanceBetweenTwoCoordinates(
         partialMission.landerLocation,
         posEntry.location,
-        partialMission.planetRadius
+        getPlanetRadius(partialMission)
       );
       posForPaper.push({ ...posEntry, distanceFromLanderMeters: distFromLander });
     }

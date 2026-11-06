@@ -1,3 +1,4 @@
+import { usesLgrsCoordinates } from "utils/planets";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
@@ -214,6 +215,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const handle = await getAutomergeMissionHandle(missionId);
+    if (handle && usesLgrsCoordinates(handle.doc())) {
+      res.status(400).json({
+        status: "error",
+        message: "Lunar south-pole missions use dynamic LGRS grids; uploaded grids are not used",
+      });
+      return;
+    }
     const upsertResponse: MissionGrid = await upsertGrid(missionId, grid, upsertFullGrid);
 
     res.status(200).json({
@@ -316,7 +325,7 @@ export async function getGrid(
 ): Promise<MissionGrid | null> {
   const handle = await getAutomergeMissionHandle(missionId);
   const mission = handle?.doc();
-  if (mission?.gridRenderMode === "dynamic-lgrs") return null;
+  if (mission && usesLgrsCoordinates(mission)) return null;
   const definition = mission?.serverFileGrid;
   if (!definition) return null;
 
@@ -364,7 +373,7 @@ async function getClosestPoints(
 ): Promise<GridIndex[]> {
   const handle = await getAutomergeMissionHandle(missionId);
   const mission = handle?.doc();
-  if (mission?.gridRenderMode === "dynamic-lgrs") return [];
+  if (mission && usesLgrsCoordinates(mission)) return [];
   const definition = mission?.serverFileGrid;
   if (!definition) return [];
 
