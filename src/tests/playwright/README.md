@@ -12,7 +12,7 @@ Client-only workflows run in [Vitest Browser Mode](../vitest-browser/behavior/RE
 through the real mission page and an in-memory Automerge repo. Both suites form
 the scenario baseline. Keep server, synchronization, download, recovery and selected full-stack browser
 parity here. Client browser parity also runs in Vitest. The [migration expansion record](../../../docs/testing/browser-behavior-expansion-2026-11-06.md)
-lists the moved workflows and timing evidence.
+preserves the preceding pass. The [completion record](../../../docs/testing/browser-runner-completion-2026-11-06.md) maps every remaining scenario to native assertions or a concrete retained integration boundary.
 
 ## Run
 
@@ -27,12 +27,17 @@ npm run test:playwright:smoke
 
 The first command runs the behavioral contracts in Chromium. The second runs the
 small functional smoke set in Chromium, Firefox, and WebKit. Browser binaries must
-be installed (`npx playwright install`). For a focused capability:
+be installed (`npx playwright install`). Protocol checks require matching `EMSS_TOKEN` and
+`DUST_TOKEN` values in the API and test processes; temporary local tokens are
+sufficient. The Box provider fixture requires the API to start with
+`NODE_ENV=test` and the matching loopback `AEGIS_TEST_BOX_PROVIDER_URL`.
+The Playwright web-server configuration supplies these when it starts the API;
+a reused development API must have the same fixture environment. For a focused capability:
 
 ```sh
 npm run test:playwright -- behavior/execution.spec.ts --project=chromium
 npm run test:vitest:browser -- mapEditing.browser.test.tsx
-npm run test:playwright -- behavior/planning.spec.ts --project=chromium
+npm run test:playwright -- behavior/exports.spec.ts --project=chromium
 npm run test:playwright -- behavior/collaboration.spec.ts --project=chromium
 npm run test:vitest:browser -- actions.browser.test.tsx
 npm run test:playwright -- behavior/reports.spec.ts --project=chromium
@@ -42,7 +47,7 @@ npm run test:playwright -- behavior/executionPolicy.spec.ts --project=chromium
 npm run test:playwright -- behavior/exports.spec.ts --project=chromium
 npm run test:playwright -- behavior/navigation.spec.ts --project=chromium
 npm run test:vitest:browser -- poiLifecycle
-npm run test:playwright -- behavior/poiLinks.spec.ts --project=chromium
+npm run test:vitest:browser -- poiLinks.browser.test.tsx
 npm run test:playwright -- behavior/folders.spec.ts --project=chromium
 npm run test:playwright -- behavior/missionDefaults.spec.ts --project=chromium
 npm run test:playwright -- behavior/positions.spec.ts --project=chromium
@@ -55,12 +60,12 @@ npm run test:playwright -- behavior/dashboardFollowCoverage.spec.ts --project=ch
 npm run test:vitest:browser -- mapLifecycleHandoff.browser.test.tsx
 npm run test:playwright -- behavior/crewPositionSources.spec.ts --project=chromium
 npm run test:playwright -- behavior/missionCatalog.spec.ts --project=chromium
-npm run test:playwright -- behavior/missionPrioritiesReport.spec.ts --project=chromium
+npm run test:vitest:browser -- missionPrioritiesReport.browser.test.tsx
 npm run test:playwright -- behavior/missionRulesTransfer.spec.ts --project=chromium
 ```
 
 The existing `test:playwright` and CI sharding commands also discover these tests.
-Legacy mission/configuration and map smoke tests remain available. Playwright
+Client mission/configuration tours and map startup behavior run in Vitest Browser; the remaining smoke check retains authenticated fresh-load persistence. Playwright
 does not become a dependency of container image builds or production deployment.
 
 ## CI preparation and build caching
@@ -118,28 +123,28 @@ entry points, not an exhaustive functionality inventory. Use the
 sources independently and identify missing or partially verified behavior.
 Browser execution and functional completeness review are separate evidence.
 
-| Capability                         | Contract examples                                                                                                                                                          | Specification                                                                         |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Application entry and navigation   | Known mission identity, complete seeded domain relationships, no-execution dashboard, active dashboard and minimap                                                         | `behavior/smoke.spec.ts`                                                              |
-| Navigation and version recovery    | Direct editor/dashboard links, home/back/forward, deployment mismatch, refreshed mission and current-version redirect                                                      | `behavior/navigation.spec.ts`                                                         |
-| Mission preferences                | Save/Cancel, peer/header updates, reload, new EVA defaults, text limits, numeric filtering and optional signed/zero/cleared values                                         | `behavior/configuration.spec.ts`                                                      |
-| Mission defaults and lander        | Inherited rates, independent overrides, new versus existing EVA durations, DEM elevation, lander copies, boundary traverses, walkbacks, peer and reload                    | `behavior/missionDefaults.spec.ts`                                                    |
-| Numeric calculations               | Independent crew/work/dwell totals, incomplete crew warning, 500 m rate precedence, zero/unset fallback, sequence/EVA totals and exported movement minutes                 | `../vitest-browser/behavior/calculations.browser.test.tsx`                            |
-| Execution time ownership           | Selected stopped execution, another active execution, A/B/A switching, planned scope, frozen paused clock, ticking clock, zero and hour boundaries                         | `../vitest-browser/behavior/execution.browser.test.tsx`                               |
-| Execution controls                 | Start/pause/resume/stop, interlock against simultaneous execution, manual PET validation/cancel, reset confirmation and persistence, dashboard synchronization             | `../vitest-browser/behavior/execution.browser.test.tsx`, `behavior/execution.spec.ts` |
-| Execution edit policy and values   | First-start policy/baseline freeze, restart/reload, limited original-action protection, status lifecycle in sequence/station/EVA views, peer merges and Maestro sample IDs | `behavior/executionPolicy.spec.ts`                                                    |
-| Execution positions                | Captured ticking/paused PET, source/type drafts, map placement versus Save, both Cancel paths, deletion confirmation, exact history/markers/paths, peer and reload         | `behavior/positions.spec.ts`                                                          |
-| Planning and entity lifecycle      | Name and numeric validation, save/cancel, create/duplicate/delete, shared station protection, independent execution copies, deletion cascades, actual export content       | `../vitest-browser/behavior/planning.browser.test.tsx`, `behavior/planning.spec.ts`   |
-| POI creation and deletion          | UI-created defaults/identity, blank/duplicate/overlong names, boundary-length save, deletion Cancel, adopted-copy cleanup and unrelated-action preservation                | `../vitest-browser/behavior/poiLifecycle.browser.test.tsx`                            |
-| POI station links                  | Multiple station links, usage counters, navigation, unlink, peer updates, reload and source-action ownership                                                               | `behavior/poiLinks.spec.ts`                                                           |
-| Folder visibility                  | Shared hide/show, local selection exceptions, EVA scope, collapse/expand, reload and unchanged folder membership                                                           | `behavior/folders.spec.ts`                                                            |
-| Downloaded export contents         | Every category alone, all/empty selections, filenames, nested relationships, plan/REX lineage and sample values, position GeoJSON, Unicode and null/zero distinctions      | `behavior/exports.spec.ts`                                                            |
-| Action planning                    | View/edit protection, required fields and Cancel, duration/crew totals, deactivate/reactivate, independent duplicates, delete confirmation, parent ownership and reload    | `../vitest-browser/behavior/actions.browser.test.tsx` (all three browsers)            |
-| EVA comparison reports             | Exact plan counts and minutes, signed baseline differences, station breakdowns, live updates from another page, reload, read-only mission data                             | `behavior/reports.spec.ts`                                                            |
-| Map representation and preferences | Exact label values, label visibility and changed pixels, selected hidden POI exception, marker click selection, local preference persistence                               | `../vitest-browser/behavior/mapEditing.browser.test.tsx`                              |
-| Geometry edits                     | Interior vertex drag, finish/cancel distinction, endpoint pinning, straight-path reset, editing interaction removal on navigation, persisted paths                         | `../vitest-browser/behavior/mapEditing.browser.test.tsx`                              |
-| Dashboard/minimap consistency      | Shared scale-bar toggles and persistence, minimap limited to the active execution                                                                                          | `../vitest-browser/behavior/dashboardMap.browser.test.tsx`                            |
-| Collaboration                      | Two real browser contexts, live changes, independent local selection, concurrent unrelated edits, canceled edits, creation/deletion, late joining, disconnect/reconnect    | `behavior/collaboration.spec.ts`                                                      |
+| Capability                         | Contract examples                                                                                                                                                          | Specification                                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Application entry and navigation   | Known mission identity, complete seeded domain relationships, no-execution dashboard, active dashboard and minimap                                                         | `../vitest-browser/behavior/smoke.browser.test.tsx`, `behavior/smoke.spec.ts`                     |
+| Navigation and version recovery    | Direct editor/dashboard links, home/back/forward, deployment mismatch, refreshed mission and current-version redirect                                                      | `behavior/navigation.spec.ts`                                                                     |
+| Mission preferences                | Save/Cancel, peer/header updates, reload, new EVA defaults, text limits, numeric filtering and optional signed/zero/cleared values                                         | `../vitest-browser/behavior/configuration.browser.test.tsx`, `behavior/configuration.spec.ts`     |
+| Mission defaults and lander        | Inherited rates, independent overrides, new versus existing EVA durations, DEM elevation, lander copies, boundary traverses, walkbacks, peer and reload                    | `../vitest-browser/behavior/missionDefaults.browser.test.tsx`, `behavior/missionDefaults.spec.ts` |
+| Numeric calculations               | Independent crew/work/dwell totals, incomplete crew warning, 500 m rate precedence, zero/unset fallback, sequence/EVA totals and exported movement minutes                 | `../vitest-browser/behavior/calculations.browser.test.tsx`                                        |
+| Execution time ownership           | Selected stopped execution, another active execution, A/B/A switching, planned scope, frozen paused clock, ticking clock, zero and hour boundaries                         | `../vitest-browser/behavior/execution.browser.test.tsx`                                           |
+| Execution controls                 | Start/pause/resume/stop, interlock against simultaneous execution, manual PET validation/cancel, reset confirmation and persistence, dashboard synchronization             | `../vitest-browser/behavior/execution.browser.test.tsx`, `behavior/execution.spec.ts`             |
+| Execution edit policy and values   | First-start policy/baseline freeze, restart/reload, limited original-action protection, status lifecycle in sequence/station/EVA views, peer merges and Maestro sample IDs | `../vitest-browser/behavior/executionValues.browser.test.tsx`, `behavior/executionPolicy.spec.ts` |
+| Execution positions                | Captured ticking/paused PET, source/type drafts, map placement versus Save, both Cancel paths, deletion confirmation, exact history/markers/paths, peer and reload         | `../vitest-browser/behavior/positions.browser.test.tsx`, `behavior/positions.spec.ts`             |
+| Planning and entity lifecycle      | Name and numeric validation, save/cancel, create/duplicate/delete, shared station protection, independent execution copies, deletion cascades, actual export content       | `../vitest-browser/behavior/planning.browser.test.tsx`, `behavior/exports.spec.ts`                |
+| POI creation and deletion          | UI-created defaults/identity, blank/duplicate/overlong names, boundary-length save, deletion Cancel, adopted-copy cleanup and unrelated-action preservation                | `../vitest-browser/behavior/poiLifecycle.browser.test.tsx`                                        |
+| POI station links                  | Multiple station links, usage counters, navigation, unlink, peer updates, reload and source-action ownership                                                               | `../vitest-browser/behavior/poiLinks.browser.test.tsx`, `behavior/poiLinks.spec.ts`               |
+| Folder visibility                  | Shared hide/show, local selection exceptions, EVA scope, collapse/expand, reload and unchanged folder membership                                                           | `../vitest-browser/behavior/folderVisibility.browser.test.tsx`, `behavior/folders.spec.ts`        |
+| Downloaded export contents         | Every category alone, all/empty selections, filenames, nested relationships, plan/REX lineage and sample values, position GeoJSON, Unicode and null/zero distinctions      | `../vitest-browser/behavior/exports.browser.test.tsx`, `behavior/exports.spec.ts`                 |
+| Action planning                    | View/edit protection, required fields and Cancel, duration/crew totals, deactivate/reactivate, independent duplicates, delete confirmation, parent ownership and reload    | `../vitest-browser/behavior/actions.browser.test.tsx` (all three browsers)                        |
+| EVA comparison reports             | Exact plan counts and minutes, signed baseline differences, station breakdowns, live updates from another page, reload, read-only mission data                             | `../vitest-browser/behavior/reportColumns.browser.test.tsx`, `behavior/reports.spec.ts`           |
+| Map representation and preferences | Exact label values, label visibility and changed pixels, selected hidden POI exception, marker click selection, local preference persistence                               | `../vitest-browser/behavior/mapEditing.browser.test.tsx`                                          |
+| Geometry edits                     | Interior vertex drag, finish/cancel distinction, endpoint pinning, straight-path reset, editing interaction removal on navigation, persisted paths                         | `../vitest-browser/behavior/mapEditing.browser.test.tsx`                                          |
+| Dashboard/minimap consistency      | Shared scale-bar toggles and persistence, minimap limited to the active execution                                                                                          | `../vitest-browser/behavior/dashboardMap.browser.test.tsx`                                        |
+| Collaboration                      | Two real browser contexts, live changes, independent local selection, concurrent unrelated edits, canceled edits, creation/deletion, late joining, disconnect/reconnect    | `behavior/collaboration.spec.ts`                                                                  |
 
 The EVA celestial contracts now live in `celestialControls.spec.ts` and
 `../vitest-browser/behavior/celestialEvaCoverage.browser.test.tsx`: directions belong to EVAs and execution copies.

@@ -16,22 +16,31 @@ download boundaries.
 | `merge-vitest-coverage`      | After every Node and browser coverage shard        | Combined coverage and Node test results          | Node JUnit, combined Cobertura and LCOV   |
 | `test-playwright`            | Four shards after `test-playwright:start`          | All configured end-to-end projects               | Playwright diagnostics and reports        |
 
-The migration reduced Playwright discovery from 564 checks to 246. Four shards
-now distribute about 61 application checks each, compared with about 70 per
-shard before the migration's eight-shard layout. Each shard still needs its own
-database, restore and migrations; reducing the count avoids four copies of that
-setup. Authentication setup runs as needed in every shard.
+The completed migration leaves **137 Chromium, 13 Firefox and 13 WebKit
+application scenarios**, plus authentication setup, compared with 211/17/17
+plus setup at `9b02e21f`. Four shards select **41, 41, 41 and 40** application
+checks without omissions or duplicates. Authentication runs as a dependency in
+each shard. Every retained file has a specific integration requirement in the
+[completion index](browser-runner-completion-2026-11-06.md#remaining-playwright-index).
 
-Chromium browser coverage has 706 checks across 105 test-file/project pairs,
-while the other browser engines have 48 parity checks. Three coverage shards
-distribute those files without duplicating the parity run. High-DPI Chromium is
-included in the same shard selection so it cannot be omitted accidentally.
-Parity runs independently because V8 coverage requires Chromium's CDP.
+Chromium browser coverage now has **809 tests across 149 file/project pairs**;
+the Firefox/WebKit standard/high-DPI parity job has **60 tests across 18 pairs**.
+The three coverage shards execute **50/50/49 pairs and 301/271/237 tests**.
+Node shards execute **57/57/56 files and 665/757/903 tests**.
 
-These are starting allocations based on the new workload and local timings.
-Runner CPU, coverage overhead, artifact transfers and database setup affect the
-actual GitLab critical path. Check the slowest shard and runner queue after the
-first real pipeline before tuning further.
+The allocation was reassessed and remains three browser coverage shards and four
+Playwright shards. Local Chromium coverage shards took **137.35, 142.56 and 96.14
+seconds**, with three workers, fresh separate optimizer caches, and a concurrent
+Playwright run. They fit comfortably within the 20-minute job budget. The larger
+native workload makes three coverage shards useful; the remaining longer
+socket, permission, raster and restart checks still warrant four integration
+shards. Job database/restore overhead, CPU, queueing and artifact transfers need
+actual GitLab critical-path evidence before reducing these counts. The measured
+local representative workflow improvement is documented in the completion record;
+it is not a measured pipeline speedup.
+
+High-DPI Chromium remains in the same shard selection, preventing accidental
+omission. Parity stays independent because V8 coverage requires Chromium's CDP.
 
 ## Coverage and deployment integrity
 
@@ -70,17 +79,50 @@ pipeline result does not validate a new commit.
 
 ## Local validation of this layout
 
-- Standard checks: lint, types, build, 2,325 unit tests and 754 browser tests.
-- Real Chromium coverage runs: 35 files per shard; 263, 230 and 213 passing tests.
-  The union includes all 105 file/project pairs and 706 tests exactly once.
-- Separate Firefox/WebKit parity: 48 passing tests. Browser JUnit replay and
-  parity execution preserve all 754 unique browser testcase identities.
-- All six coverage blobs merge into Cobertura/LCOV with every input's covered
-  lines preserved. Node JUnit retains all 2,325 unique testcase identities.
-- Playwright discovery: 62, 61, 61 and 61 application checks, with no omitted or
-  duplicated checks. This validates selection, not full end-to-end execution.
-- Git Bash: merge/retry syntax checks pass; the artifact guard rejects each
-  missing or empty blob and accepts all six nonempty blobs.
+- Browser coverage: all 149 selected file/project pairs and 809 tests executed
+  exactly once. Firefox/WebKit parity: all 18 pairs and 60 tests passed.
+- Node coverage: all 170 selected files and 2,325 tests executed exactly once.
+- All six nonempty coverage blobs replay into JSON, Cobertura and LCOV. The
+  merged covered-line set equals the union of every input: **20,334 lines**.
+  LCOV and Cobertura preserve that same covered-line set.
+- JUnit retains all **3,194 distinct executed testcase identities**: 2,325 Node
+  plus 869 browser. Identity sets are compared with recursive executed blob
+  tasks, including a separate parity blob; this detects missing passing results
+  as well as duplicate browser identities.
+- Every missing/empty blob and a dropped passing JUnit testcase were rejected;
+  restored artifacts passed.
+- Playwright discovery selects 41/41/41/40 application checks exactly once.
+  Selection evidence is separate from full integration execution; see the
+  completion record for final execution and retry details.
 
-These checks validate the configuration locally. The four-shard Playwright run
-and end-to-end pipeline timing still require the actual GitLab pipeline.
+Reproduce selection without starting servers or browsers:
+
+```sh
+node .gitlab/scripts/verify-test-shards.mjs .local/migration/layout
+```
+
+Vitest `list --filesOnly` does not apply `--shard`; this checker uses Vitest's
+own `BaseSequencer` for selection and checks actual blob execution separately.
+Playwright dependency setup is excluded only from application partition checks.
+
+The artifact checker consumes a local evidence directory with six blobs under
+`blobs/`, each shard's JSON coverage under `coverage-node-<index>/` or
+`coverage-browser-<index>/`, merged JSON under `coverage-merged/`, and JUnit files
+`junit-node.xml`, `junit-browser-<index>.xml`, `junit-parity.xml`. Store parity's
+blob as `parity-blob.json` outside the six coverage inputs. Run the selection
+checker above into its `layout/` subdirectory first. Emit shard JSON with
+`--coverage.reporter=json --coverage.reportsDirectory=<unique-directory>`;
+retain the CI blob/JUnit reporter arguments shown in the job definitions.
+
+```sh
+npx vitest --merge-reports=.local/migration/blobs \
+  --config src/tests/vitest/vitest.config.mts --coverage \
+  --coverage.reportsDirectory=.local/migration/coverage-merged \
+  --coverage.reporter=json --coverage.reporter=lcov --coverage.reporter=cobertura \
+  --reporter=junit --outputFile.junit=.local/migration/junit-node.xml
+node .gitlab/scripts/verify-vitest-artifacts.mjs .local/migration
+```
+
+These checks validate the configuration and artifacts locally. Final GitLab
+pipeline performance and merge-readiness gates require the actual candidate
+pipeline; local checks do not replace the manual four-shard launch.
