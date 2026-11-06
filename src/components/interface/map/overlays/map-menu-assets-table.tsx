@@ -215,7 +215,7 @@ export const AssetTable: FunctionComponent<Props> = ({
       </table>
       {assets.length === 0 && (
         <div className={styles.emptyState} data-testid="asset-table-empty">
-          {canMutate ? "No assets added yet. Click Add Asset to add one." : "No assets added yet."}
+          {canMutate ? "No assets added yet. Click Asset to add one." : "No assets added yet."}
         </div>
       )}
       {/* Portaled so dockview's transformed ancestors don't offset the fixed-position overlay. */}

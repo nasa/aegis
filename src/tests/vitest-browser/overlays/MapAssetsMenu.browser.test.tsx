@@ -517,9 +517,9 @@ describe("MapAssetsMenu", () => {
     store = makeStore(true, editMode);
     render();
     expect(q("[data-testid='asset-table-empty']")?.textContent).toBe(
-      "No assets added yet. Click Add Asset to add one."
+      "No assets added yet. Click Asset to add one."
     );
-    byText("Add Asset")!.click();
+    byText("Asset")!.click();
     expect(addAsset).toHaveBeenCalledTimes(1);
   });
 
@@ -528,7 +528,7 @@ describe("MapAssetsMenu", () => {
     mockMissionDoc.assets = { [asset.uuid]: asset };
     store = makeStore(false);
     render();
-    expect(byText("Add Asset")).toBeUndefined();
+    expect(byText("Asset")).toBeUndefined();
     expect(q(`[aria-label='Asset actions']`)).toBeNull();
     expect(q(`[data-testid='asset-visibility-${asset.uuid}']`)).toBeNull();
   });
@@ -540,8 +540,8 @@ describe("MapAssetsMenu", () => {
     mockMissionDoc.folders = { [folder.uuid]: folder };
     store = makeStore(true, false);
     render();
-    expect(byText("Add Asset")).toBeDefined();
-    expect(byText("Add Folder")).toBeDefined();
+    expect(byText("Asset")).toBeDefined();
+    expect(byText("Folder")).toBeDefined();
     expect(q(`[aria-label='Folder actions']`)).not.toBeNull();
     expect(q(`[data-testid='asset-visibility-${asset.uuid}']`)).not.toBeNull();
     expect(q(`[data-testid='asset-folder-visibility-${folder.uuid}']`)).not.toBeNull();
