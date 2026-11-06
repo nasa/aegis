@@ -1,5 +1,8 @@
 # Browser workflow migration, November 5, 2026
 
+Shard counts and scheduling below describe this historical validation. See the
+[current CI layout](ci-layout.md) for the active configuration.
+
 Baseline commit: `d3645bea179d1db57c616f97ed5e056f068f5a19`.
 
 This records the first pass, committed as `fe2415eb`. The

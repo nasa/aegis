@@ -18,7 +18,8 @@ map-editing and celestial-control parity workflows. Responsive accessibility
 checks run at device pixel ratio 2 in each browser.
 `npm run test:vitest:browser:parity` runs the Firefox/WebKit projects separately.
 V8 coverage requires Chromium's CDP, so `test:coverage:browser` selects the two
-Chromium projects; CI runs parity first and then collects Chromium coverage.
+Chromium projects. CI runs three Chromium coverage shards and a separate parity
+job in parallel; see the [CI layout](../../../../docs/testing/ci-layout.md).
 
 ## Fixture
 
