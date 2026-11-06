@@ -3,10 +3,15 @@ name = "lgrs-reference"
 version = "0.1.0"
 description = "Generates the lgrs reference corpus used by the AEGIS TypeScript LGRS tests."
 requires-python = ">=3.13"
-dependencies = ["lgrs==0.4.0"]
+dependencies = [
+    "lgrs==0.4.0",
+    "mgrs==1.7.0",
+    "pyproj==3.8.0",
+]
 
 [project.scripts]
 generate = "lgrs_reference.generate:main"
+earth = "lgrs_reference.earth:main"
 
 [build-system]
 requires = ["hatchling"]
