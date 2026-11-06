@@ -1,15 +1,16 @@
 import proj4 from "proj4";
 
-import { LGRS_CRS_LPS_NORTH, LGRS_CRS_LPS_SOUTH, getLtmCrsId } from "utils/lgrs/crs";
-import { formatLatLonAsLgrs } from "utils/lgrs/format";
-import {
-  formatLgrsAtMapCoordinate,
-  getLgrsMapAdapter,
-  getLgrsMapProjection,
-} from "utils/lgrs/mapAdapter";
-import { projectLatLon, unprojectToLatLon } from "utils/lgrs/projection";
+import { getLgrsGridBinding } from "utils/lgrs/gridBinding";
+import { getLgrsMapProjection } from "utils/lgrs/mapProjection";
+import { LGRS_CRS_LPS_NORTH, LGRS_CRS_LPS_SOUTH, getLtmCrsId } from "utils/lgrs/moon/crs";
+import { formatLatLonAsLgrs, formatLgrsAtMapCoordinate } from "utils/lgrs/moon/format";
+import { projectLatLon, unprojectToLatLon } from "utils/lgrs/moon/projection";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 
 import { createSeededRandom } from "../../helpers/seededRandom";
+
+const moonBinding = (projection: LgrsMapProjection) =>
+  getLgrsGridBinding(projection, moonGridSystem);
 
 const MOON = "+a=1737400 +b=1737400 +units=m +no_defs";
 const SOUTH_CAP = `+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`;
@@ -30,7 +31,7 @@ function randomLatLons(seed: number, count: number, minLat: number, maxLat: numb
 
 /** Asserts the adapter matches proj4 bit-for-bit in both directions. */
 function expectProj4Identical(projCode: string, def: string | null, points: number[][]) {
-  const adapter = getLgrsMapAdapter({ projCode, proj4Def: def });
+  const adapter = moonBinding({ projCode, proj4Def: def });
   const converter = proj4(def ?? projCode, "EPSG:4326");
   let compared = 0;
   for (const [lat, lon] of points) {
@@ -64,30 +65,31 @@ describe("getLgrsMapProjection", () => {
   });
 });
 
-describe("getLgrsMapAdapter fast paths", () => {
+describe("moon grid binding fast paths", () => {
   test("reports cylindrical world widths in map units regardless of false origin", () => {
-    expect(getLgrsMapAdapter({ projCode: "EPSG:3857", proj4Def: null }).worldWidth).toBeCloseTo(
+    expect(moonBinding({ projCode: "EPSG:3857", proj4Def: null }).worldWidth).toBeCloseTo(
       2 * Math.PI * 6378137,
       6
     );
     const shiftedEqc = `+proj=eqc +lat_ts=30 +lat_0=0 +lon_0=180 +x_0=12345 +y_0=6789 +a=1737400 +b=1737400 +units=km +no_defs`;
-    expect(
-      getLgrsMapAdapter({ projCode: "EQC:SHIFTED", proj4Def: shiftedEqc }).worldWidth
-    ).toBeCloseTo((2 * Math.PI * 1737400 * Math.cos(Math.PI / 6)) / 1000, 6);
-    expect(getLgrsMapAdapter({ projCode: "S", proj4Def: SOUTH_CAP }).worldWidth).toBeNull();
+    expect(moonBinding({ projCode: "EQC:SHIFTED", proj4Def: shiftedEqc }).worldWidth).toBeCloseTo(
+      (2 * Math.PI * 1737400 * Math.cos(Math.PI / 6)) / 1000,
+      6
+    );
+    expect(moonBinding({ projCode: "S", proj4Def: SOUTH_CAP }).worldWidth).toBeNull();
   });
 
   test("selects the closed form for supported spherical projections", () => {
-    expect(getLgrsMapAdapter({ projCode: "S", proj4Def: SOUTH_CAP }).fastPath).toBe("stere-polar");
-    expect(getLgrsMapAdapter({ projCode: "N", proj4Def: NORTH_CAP }).fastPath).toBe("stere-polar");
-    expect(getLgrsMapAdapter({ projCode: "EPSG:3857", proj4Def: null }).fastPath).toBe("merc");
-    expect(getLgrsMapAdapter({ projCode: "TM", proj4Def: ZONE_23_TM }).fastPath).toBe("tmerc");
-    expect(getLgrsMapAdapter({ projCode: "EQC", proj4Def: MOON_EQC }).fastPath).toBeNull();
+    expect(moonBinding({ projCode: "S", proj4Def: SOUTH_CAP }).fastPath).toBe("stere-polar");
+    expect(moonBinding({ projCode: "N", proj4Def: NORTH_CAP }).fastPath).toBe("stere-polar");
+    expect(moonBinding({ projCode: "EPSG:3857", proj4Def: null }).fastPath).toBe("merc");
+    expect(moonBinding({ projCode: "TM", proj4Def: ZONE_23_TM }).fastPath).toBe("tmerc");
+    expect(moonBinding({ projCode: "EQC", proj4Def: MOON_EQC }).fastPath).toBeNull();
   });
 
   test("returns the cached adapter for the same projection", () => {
     const projection = { projCode: "S", proj4Def: SOUTH_CAP };
-    expect(getLgrsMapAdapter(projection)).toBe(getLgrsMapAdapter({ ...projection }));
+    expect(moonBinding(projection)).toBe(moonBinding({ ...projection }));
   });
 
   test("matches proj4 bit-for-bit on the south cap", () => {
@@ -114,17 +116,17 @@ describe("getLgrsMapAdapter fast paths", () => {
   });
 
   test("uses proj4 for other projections", () => {
-    const adapter = getLgrsMapAdapter({ projCode: "EQC", proj4Def: MOON_EQC });
+    const adapter = moonBinding({ projCode: "EQC", proj4Def: MOON_EQC });
     expectProj4Identical("EQC", MOON_EQC, randomLatLons(6, 200, -89, 89));
     expect(adapter.getAffine(getLtmCrsId(23, "N"))).toBeNull();
-    expect(adapter.mapToLgrs(1000, 2000, getLtmCrsId(23, "N"), out)).toBe(true);
+    expect(adapter.mapToGrid(1000, 2000, getLtmCrsId(23, "N"), out)).toBe(true);
     adapter.mapToLatLon(1000, 2000, other);
     projectLatLon(other[0], other[1], getLtmCrsId(23, "N"), other);
     expect([out[0], out[1]]).toEqual([other[0], other[1]]);
   });
 
   test("fails cleanly when proj4 cannot build the projection", () => {
-    const adapter = getLgrsMapAdapter({
+    const adapter = moonBinding({
       projCode: "BAD",
       proj4Def: `+proj=tmerc +lat_0=0 +lon_0=0 ${MOON}`,
     });
@@ -135,7 +137,7 @@ describe("getLgrsMapAdapter fast paths", () => {
   });
 
   test("rejects non-finite input", () => {
-    const adapter = getLgrsMapAdapter({ projCode: "EQC", proj4Def: MOON_EQC });
+    const adapter = moonBinding({ projCode: "EQC", proj4Def: MOON_EQC });
     expect(adapter.mapToLatLon(Number.NaN, 0, out)).toBe(false);
     expect(adapter.latLonToMap(0, Number.POSITIVE_INFINITY, out)).toBe(false);
   });
@@ -152,7 +154,7 @@ function lpsToMapCap([easting, northing]: [number, number]): [number, number] {
 
 describe("LGRS affine relations", () => {
   test("generalises mapCapToLps / lpsToMapCap for the canonical south cap", () => {
-    const adapter = getLgrsMapAdapter({ projCode: "S", proj4Def: SOUTH_CAP });
+    const adapter = moonBinding({ projCode: "S", proj4Def: SOUTH_CAP });
     expect(adapter.getAffine(LGRS_CRS_LPS_SOUTH)).toEqual({
       crs: LGRS_CRS_LPS_SOUTH,
       scale: 0.994,
@@ -164,31 +166,31 @@ describe("LGRS affine relations", () => {
     for (let index = 0; index < 1000; index++) {
       const x = (random() - 0.5) * 700000;
       const y = (random() - 0.5) * 700000;
-      adapter.mapToLgrs(x, y, LGRS_CRS_LPS_SOUTH, out);
+      adapter.mapToGrid(x, y, LGRS_CRS_LPS_SOUTH, out);
       expect([out[0], out[1]]).toEqual(mapCapToLps([x, y]));
-      adapter.lgrsToMap(out[0], out[1], LGRS_CRS_LPS_SOUTH, other);
+      adapter.gridToMap(out[0], out[1], LGRS_CRS_LPS_SOUTH, other);
       expect([other[0], other[1]]).toEqual(lpsToMapCap([out[0], out[1]]));
     }
   });
 
   test("maps the north cap to LPS North", () => {
-    const adapter = getLgrsMapAdapter({ projCode: "N", proj4Def: NORTH_CAP });
+    const adapter = moonBinding({ projCode: "N", proj4Def: NORTH_CAP });
     expect(adapter.getAffine(LGRS_CRS_LPS_NORTH)?.scale).toBe(0.994);
     expect(adapter.getAffine(LGRS_CRS_LPS_SOUTH)).toBeNull();
   });
 
   test("handles scaled and offset polar maps", () => {
     const def = `+proj=stere +lat_0=-90 +lon_0=0 +k=0.994 +x_0=500000 +y_0=500000 ${MOON}`;
-    const affine = getLgrsMapAdapter({ projCode: "LPS", proj4Def: def }).getAffine(0);
+    const affine = moonBinding({ projCode: "LPS", proj4Def: def }).getAffine(0);
     expect(affine).toEqual({ crs: 0, scale: 1, offsetE: 0, offsetN: 0 });
   });
 
   test("is affine to the matching LTM zone only", () => {
-    const adapter = getLgrsMapAdapter({ projCode: "TM", proj4Def: ZONE_23_TM });
+    const adapter = moonBinding({ projCode: "TM", proj4Def: ZONE_23_TM });
     expect(adapter.getAffine(getLtmCrsId(23, "N"))).toMatchObject({ scale: 0.999, offsetN: 0 });
     expect(adapter.getAffine(getLtmCrsId(23, "S"))).toMatchObject({ offsetN: 2500000 });
     expect(adapter.getAffine(getLtmCrsId(24, "N"))).toBeNull();
-    expect(getLgrsMapAdapter({ projCode: "EPSG:3857", proj4Def: null }).getAffine(2)).toBeNull();
+    expect(moonBinding({ projCode: "EPSG:3857", proj4Def: null }).getAffine(2)).toBeNull();
   });
 
   test("agrees with projecting the map lat/lon into the LGRS crs", () => {
@@ -200,13 +202,13 @@ describe("LGRS affine relations", () => {
     ];
     const random = createSeededRandom(8);
     for (const { def, crs, minLat, maxLat, lon: lonRange } of cases) {
-      const adapter = getLgrsMapAdapter({ projCode: def, proj4Def: def });
+      const adapter = moonBinding({ projCode: def, proj4Def: def });
       let worst = 0;
       for (let index = 0; index < 2000; index++) {
         const lat = minLat + random() * (maxLat - minLat);
         const lon = lonRange[0] + random() * (lonRange[1] - lonRange[0]);
         adapter.latLonToMap(lat, lon, out);
-        adapter.mapToLgrs(out[0], out[1], crs, other);
+        adapter.mapToGrid(out[0], out[1], crs, other);
         projectLatLon(lat, lon, crs, out);
         worst = Math.max(worst, Math.abs(out[0] - other[0]), Math.abs(out[1] - other[1]));
       }
@@ -216,7 +218,7 @@ describe("LGRS affine relations", () => {
 
   // proj4's asin-based stereographic inverse loses latitude precision as 1/(distance to pole).
   test("keeps proj4's lat/lon within 0.02 mm of the exact inverse from 1 m off the pole", () => {
-    const adapter = getLgrsMapAdapter({ projCode: "S", proj4Def: SOUTH_CAP });
+    const adapter = moonBinding({ projCode: "S", proj4Def: SOUTH_CAP });
     let worstMeters = 0;
     for (const radius of [1, 10, 100, 1000, 1e4, 1e5, 3e5]) {
       for (let index = 0; index < 64; index++) {
@@ -224,7 +226,7 @@ describe("LGRS affine relations", () => {
         const x = radius * Math.cos(angle);
         const y = radius * Math.sin(angle);
         adapter.mapToLatLon(x, y, out);
-        adapter.mapToLgrs(x, y, LGRS_CRS_LPS_SOUTH, other);
+        adapter.mapToGrid(x, y, LGRS_CRS_LPS_SOUTH, other);
         unprojectToLatLon(other[0], other[1], LGRS_CRS_LPS_SOUTH, other);
         const latErrorMeters = (Math.abs(out[0] - other[0]) * Math.PI * 1737400) / 180;
         worstMeters = Math.max(worstMeters, latErrorMeters);
@@ -236,7 +238,7 @@ describe("LGRS affine relations", () => {
 
 describe("formatLgrsAtMapCoordinate", () => {
   test("formats a map coordinate through its lat/lon", () => {
-    const adapter = getLgrsMapAdapter({ projCode: "EPSG:3857", proj4Def: null });
+    const adapter = moonBinding({ projCode: "EPSG:3857", proj4Def: null });
     adapter.latLonToMap(-3.645421873728663, -17.47186660766602, out);
     expect(formatLgrsAtMapCoordinate(adapter, out[0], out[1], 10, "acc")).toBe(
       formatLatLonAsLgrs(-3.645421873728663, -17.47186660766602, 10, "acc")

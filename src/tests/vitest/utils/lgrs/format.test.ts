@@ -1,7 +1,7 @@
-import { LPS_DOMAIN_RADIUS } from "utils/lgrs/constants";
-import { getLtmCrsId, LGRS_CRS_LPS_NORTH, LGRS_CRS_LPS_SOUTH } from "utils/lgrs/crs";
-import { formatLatLonAsLgrs, formatLgrs, formatLgrsLabel } from "utils/lgrs/format";
-import { projectLatLon } from "utils/lgrs/projection";
+import { LPS_DOMAIN_RADIUS } from "utils/lgrs/moon/constants";
+import { getLtmCrsId, LGRS_CRS_LPS_NORTH, LGRS_CRS_LPS_SOUTH } from "utils/lgrs/moon/crs";
+import { formatLatLonAsLgrs, formatLgrs, formatLgrsLabel } from "utils/lgrs/moon/format";
+import { projectLatLon } from "utils/lgrs/moon/projection";
 
 const out = new Float64Array(2);
 

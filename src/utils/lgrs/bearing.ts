@@ -1,24 +1,24 @@
 import { range_bearing_from_xy } from "utils/surf-nav/orienteering";
-import { classifyLatLon, LGRS_CRS_INVALID } from "./crs";
-import { projectLatLon } from "./projection";
+import { LGRS_CRS_INVALID } from "./common";
 
 const originScratch = new Float64Array(2);
 const destinationScratch = new Float64Array(2);
 
 /**
  * Planar grid bearing (degrees in [0, 360), clockwise from grid north) from `origin` to
- * `destination`, both projected into `crs`. Uses surf-nav's `range_bearing_from_xy`, so south
- * LPS results match the established surf-nav convention. Returns NaN if either point cannot be
- * projected, and 0 for a zero-length segment.
+ * `destination`, both projected into `crs` of `system`. Uses surf-nav's `range_bearing_from_xy`,
+ * so south LPS results match the established surf-nav convention. Returns NaN if either point
+ * cannot be projected, and 0 for a zero-length segment.
  */
 export function getGridBearingInCrs(
+  system: LgrsGridSystem,
   origin: AEGISPoint,
   destination: AEGISPoint,
   crs: LgrsCrsId
 ): number {
   if (
-    !projectLatLon(origin.lat, origin.lng, crs, originScratch) ||
-    !projectLatLon(destination.lat, destination.lng, crs, destinationScratch)
+    !system.projectLatLon(origin.lat, origin.lng, crs, originScratch) ||
+    !system.projectLatLon(destination.lat, destination.lng, crs, destinationScratch)
   ) {
     return NaN;
   }
@@ -34,17 +34,22 @@ export function getGridBearingInCrs(
 }
 
 /**
- * Grid bearing in the origin's LGRS CRS (LPS or LTM zone/hemisphere), the usual UTM practice for
- * segments that cross a zone seam. NaN if either point is invalid or unprojectable.
+ * Grid bearing in the origin's CRS of `system` (e.g. LPS or an LTM zone/hemisphere), the usual
+ * UTM practice for segments that cross a zone seam. NaN if either point is invalid or
+ * unprojectable.
  */
-export function getLgrsGridBearing(origin: AEGISPoint, destination: AEGISPoint): number {
+export function getLgrsGridBearing(
+  system: LgrsGridSystem,
+  origin: AEGISPoint,
+  destination: AEGISPoint
+): number {
   if (!origin || !destination) return NaN;
-  const crs = classifyLatLon(origin.lat, origin.lng);
+  const crs = system.classifyLatLon(origin.lat, origin.lng);
   if (
     crs === LGRS_CRS_INVALID ||
-    classifyLatLon(destination.lat, destination.lng) === LGRS_CRS_INVALID
+    system.classifyLatLon(destination.lat, destination.lng) === LGRS_CRS_INVALID
   ) {
     return NaN;
   }
-  return getGridBearingInCrs(origin, destination, crs);
+  return getGridBearingInCrs(system, origin, destination, crs);
 }

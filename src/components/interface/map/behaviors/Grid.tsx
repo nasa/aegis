@@ -27,7 +27,7 @@ import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { adjustGridIndex, findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 import { getLgrsCompatibility } from "utils/lgrs/compatibility";
 import { coarsenForMinimap, createLgrsRenderPlan } from "utils/lgrs/grid/plan";
-import { getLgrsMapAdapter } from "utils/lgrs/mapAdapter";
+import { getLgrsGridBinding } from "utils/lgrs/gridBinding";
 
 import { useMapContext } from "../MapProvider";
 import { useMapMenuContext } from "../MapMenuProvider";
@@ -37,6 +37,7 @@ import {
 } from "../DashboardBoundsProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useMissionGridSystem } from "../hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { createGridLabelStyleFn, createGridLineStyles } from "../utils/styles/grid";
 import { Z_INDEX } from "../utils/zIndex";
@@ -67,11 +68,15 @@ export function Grid(): null {
     deepEqual
   );
   const planetRadius = projectionConfig?.planetRadius;
-  const lgrsAdapter = useMemo(() => {
+  // One instance per `system.key`, so the binding memo is keyed by projection and system.
+  const gridSystem = useMissionGridSystem();
+  const gridBinding = useMemo(() => {
     if (!projectionConfig) return null;
-    const compatibility = getLgrsCompatibility(projectionConfig);
-    return compatibility.compatible ? getLgrsMapAdapter(compatibility.projection) : null;
-  }, [projectionConfig]);
+    const compatibility = getLgrsCompatibility(gridSystem, projectionConfig);
+    return compatibility.compatible
+      ? getLgrsGridBinding(compatibility.projection, gridSystem)
+      : null;
+  }, [projectionConfig, gridSystem]);
 
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
   const mapGridControl = useMissionDocSelector(
@@ -135,9 +140,9 @@ export function Grid(): null {
       const labelsEnabled = !!mapGridControl.labelsVisible && config.grid.labelsEnabled;
 
       if (resolvedGrid.kind === "dynamic-lgrs") {
-        if (!lgrsAdapter) return null;
+        if (!gridBinding) return null;
         const plan = createLgrsRenderPlan({
-          adapter: lgrsAdapter,
+          binding: gridBinding,
           extent: [extent[0], extent[1], extent[2], extent[3]],
           resolution,
           gridSpacingMode,
@@ -300,7 +305,7 @@ export function Grid(): null {
     map,
     mapGridControl,
     planetRadius,
-    lgrsAdapter,
+    gridBinding,
     resolvedGrid,
     toMapCoord,
     toAegisPoint,

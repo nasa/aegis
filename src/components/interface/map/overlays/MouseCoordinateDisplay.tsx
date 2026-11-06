@@ -2,7 +2,7 @@
  * MouseCoordinateDisplay — shows lat/lng + grid coordinates under the cursor.
  *
  * Listens to `pointermove` on the OL map, coalesced to one update per animation frame. The
- * mission's cached LGRS map adapter converts the projected coordinate to lat/lng (identical to
+ * mission's cached map projector converts the projected coordinate to lat/lng (identical to
  * proj4), and state is only set when the displayed text changes.
  *
  * Editor only.
@@ -16,8 +16,9 @@ import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridCoordinatesFromPoint } from "utils/mapping/geoMath";
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
-import { getLgrsMapAdapter, getLgrsMapProjection } from "utils/lgrs/mapAdapter";
+import { getLgrsMapProjection, getLgrsMapProjector } from "utils/lgrs/mapProjection";
 import { useMapContext } from "../MapProvider";
+import { useMissionCoordinateSystem } from "../hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 
@@ -43,22 +44,24 @@ export function MouseCoordinateDisplay({
   const projEpsg = useMissionDocSelector((doc) => doc.projEpsg, refEqual);
   const projProj4String = useMissionDocSelector((doc) => doc.projProj4String, refEqual);
   const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual);
-  const usingLGRS = useMissionDocSelector((doc) => doc.usingLGRSCoordinates, refEqual);
+  // One instance per `system.key`, so the memo below is keyed by the grid system.
+  const gridSystem = useMissionCoordinateSystem();
 
   const inputs = useMemo<MouseCoordinateInputs>(() => {
-    const adapter = getLgrsMapAdapter(
+    const projector = getLgrsMapProjector(
       getLgrsMapProjection({ id: missionId, projIsCustom, projEpsg, projProj4String })
     );
     let formatGrid: MouseCoordinateInputs["formatGrid"] = () => null;
-    if (usingLGRS) {
+    if (gridSystem) {
       const style: LgrsDisplayStyle = resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed";
-      formatGrid = (point) => formatLgrsFromLatLon(point, LGRS_DISPLAY_PRECISION_METERS, style);
+      formatGrid = (point) =>
+        formatLgrsFromLatLon(gridSystem, point, LGRS_DISPLAY_PRECISION_METERS, style);
     } else if (resolvedGrid.kind === "server-file") {
       const globalGrid = resolvedGrid.grid.coordinates;
-      formatGrid = (point) => getGridCoordinatesFromPoint(point, planetRadius, false, globalGrid);
+      formatGrid = (point) => getGridCoordinatesFromPoint(point, planetRadius, null, globalGrid);
     }
-    return { adapter, formatGrid };
-  }, [missionId, projIsCustom, projEpsg, projProj4String, planetRadius, usingLGRS, resolvedGrid]);
+    return { projector, formatGrid };
+  }, [missionId, projIsCustom, projEpsg, projProj4String, planetRadius, gridSystem, resolvedGrid]);
 
   const [readout, setReadout] = useState<MouseCoordinateReadout | null>(null);
   const readoutRef = useRef(readout);
@@ -77,7 +80,7 @@ export function MouseCoordinateDisplay({
       if (!coordinate) return;
 
       let next: MouseCoordinateReadout | null = null;
-      if (inputs.adapter.mapToLatLon(coordinate[0], coordinate[1], latLon)) {
+      if (inputs.projector.mapToLatLon(coordinate[0], coordinate[1], latLon)) {
         const point: AEGISPoint = { lat: latLon[0], lng: latLon[1] };
         next = {
           latLng: `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`,

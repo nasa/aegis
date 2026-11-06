@@ -317,3 +317,17 @@ export function formatLatLonAsLgrs(
   if (crs < 0 || !projectLatLon(lat, lon, crs, scratch)) return null;
   return formatLgrs(scratch[0], scratch[1], crs, precision, kind, lat);
 }
+
+const mapScratch = new Float64Array(2);
+
+/** LGRS/ACC string for a map coordinate, via its lat/lon (same result as for a stored point). */
+export function formatLgrsAtMapCoordinate(
+  projector: LgrsMapProjector,
+  x: number,
+  y: number,
+  precision: LgrsPrecision,
+  kind: LgrsStringKind
+): string | null {
+  if (!projector.mapToLatLon(x, y, mapScratch)) return null;
+  return formatLatLonAsLgrs(mapScratch[0], mapScratch[1], precision, kind);
+}

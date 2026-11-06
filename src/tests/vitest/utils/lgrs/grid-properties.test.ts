@@ -1,4 +1,11 @@
-import { LPS_DOMAIN_RADIUS, LPS_FALSE_EASTING, LPS_FALSE_NORTHING } from "utils/lgrs/constants";
+import { coarsenForMinimap, createLgrsRenderPlan, LGRS_RENDER_CAPS } from "utils/lgrs/grid/plan";
+import { getLgrsGridBinding } from "utils/lgrs/gridBinding";
+import { getLtmFalseNorthing } from "utils/lgrs/moon/clip";
+import {
+  LPS_DOMAIN_RADIUS,
+  LPS_FALSE_EASTING,
+  LPS_FALSE_NORTHING,
+} from "utils/lgrs/moon/constants";
 import {
   classifyLatLon,
   getLtmCentralMeridian,
@@ -8,12 +15,10 @@ import {
   isSouthCrs,
   LGRS_CRS_LPS_NORTH,
   LGRS_CRS_LPS_SOUTH,
-} from "utils/lgrs/crs";
-import { formatLgrsLabel } from "utils/lgrs/format";
-import { getLtmFalseNorthing } from "utils/lgrs/grid/clip";
-import { coarsenForMinimap, createLgrsRenderPlan, LGRS_RENDER_CAPS } from "utils/lgrs/grid/plan";
-import { getLgrsMapAdapter } from "utils/lgrs/mapAdapter";
-import { unprojectToLatLon } from "utils/lgrs/projection";
+} from "utils/lgrs/moon/crs";
+import { formatLgrsLabel } from "utils/lgrs/moon/format";
+import { unprojectToLatLon } from "utils/lgrs/moon/projection";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 
 const MOON = "+a=1737400 +b=1737400 +units=m +no_defs";
 const PROJECTIONS: Record<string, string | null> = {
@@ -25,10 +30,13 @@ const PROJECTIONS: Record<string, string | null> = {
   tm23: `+proj=tmerc +approx +lat_0=0 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`,
 };
 
-function adapterFor(projection: string): LgrsMapAdapter {
+function adapterFor(projection: string): LgrsGridBinding {
   return projection === "mercator"
-    ? getLgrsMapAdapter({ projCode: "EPSG:3857", proj4Def: null })
-    : getLgrsMapAdapter({ projCode: `TEST:${projection}`, proj4Def: PROJECTIONS[projection] });
+    ? getLgrsGridBinding({ projCode: "EPSG:3857", proj4Def: null }, moonGridSystem)
+    : getLgrsGridBinding(
+        { projCode: `TEST:${projection}`, proj4Def: PROJECTIONS[projection] },
+        moonGridSystem
+      );
 }
 
 type Viewport = {
@@ -192,7 +200,7 @@ function buildPlan(viewport: Viewport) {
     out[1] + (HEIGHT / 2) * r,
   ];
   const plan = createLgrsRenderPlan({
-    adapter,
+    binding: adapter,
     extent,
     resolution: r,
     gridSpacingMode: viewport.spacing ?? "auto",
@@ -203,13 +211,13 @@ function buildPlan(viewport: Viewport) {
 }
 
 /** Largest LGRS metres per map pixel of `crs` at map coordinate `[x, y]` (x or y direction). */
-function metersPerPixel(adapter: LgrsMapAdapter, crs: LgrsCrsId, x: number, y: number, r: number) {
-  adapter.mapToLgrs(x, y, crs, out);
+function metersPerPixel(adapter: LgrsGridBinding, crs: LgrsCrsId, x: number, y: number, r: number) {
+  adapter.mapToGrid(x, y, crs, out);
   const e = out[0];
   const n = out[1];
-  adapter.mapToLgrs(x + r, y, crs, other);
+  adapter.mapToGrid(x + r, y, crs, other);
   const dx = Math.hypot(other[0] - e, other[1] - n);
-  adapter.mapToLgrs(x, y + r, crs, other);
+  adapter.mapToGrid(x, y + r, crs, other);
   return Math.max(dx, Math.hypot(other[0] - e, other[1] - n));
 }
 
@@ -280,7 +288,7 @@ describe.each(VIEWPORTS)("createLgrsRenderPlan: $name", (viewport) => {
         const x = line.coordinates[i];
         const y = line.coordinates[i + 1];
         const tolerance = 0.5 * metersPerPixel(adapter, line.crs, x, y, viewport.resolution) + 1e-6;
-        expect(adapter.mapToLgrs(x, y, line.crs, out)).toBe(true);
+        expect(adapter.mapToGrid(x, y, line.crs, out)).toBe(true);
         expect(
           Math.abs(out[index] - line.value),
           `${line.crs} ${line.axis} ${line.value}`
@@ -304,7 +312,7 @@ describe.each(VIEWPORTS)("createLgrsRenderPlan: $name", (viewport) => {
         const x = line.coordinates[i];
         const y = line.coordinates[i + 1];
         if (onExtentEdge(x, y, extent)) continue;
-        adapter.mapToLgrs(x, y, line.crs, out);
+        adapter.mapToGrid(x, y, line.crs, out);
         const e = line.axis === "easting" ? line.value : out[0];
         const n = line.axis === "northing" ? line.value : out[1];
         expect(isOnRegionBoundary(line.crs, e, n), `${line.crs} ${line.axis} ${line.value}`).toBe(
@@ -331,7 +339,7 @@ describe.each(VIEWPORTS)("createLgrsRenderPlan: $name", (viewport) => {
       expect(label.label!.lowerLeft).toEqual([e, n]);
       expect(e % plan.labelSpacing).toBe(0);
       expect(n % plan.labelSpacing).toBe(0);
-      adapter.mapToLgrs(label.coordinate[0], label.coordinate[1], label.crs, out);
+      adapter.mapToGrid(label.coordinate[0], label.coordinate[1], label.crs, out);
       expect(Math.abs(out[0] - e) + Math.abs(out[1] - n)).toBeLessThan(1e-3);
       unprojectToLatLon(e, n, label.crs, latLon);
       expect(classifyLatLon(latLon[0], latLon[1])).toBe(label.crs);
@@ -373,7 +381,7 @@ describe("createLgrsRenderPlan caps and tiers", () => {
     viewport.resolution = 10;
     const { adapter, extent } = buildPlan(viewport);
     const options: LgrsRenderOptions = {
-      adapter,
+      binding: adapter,
       extent,
       resolution: viewport.resolution,
       gridSpacingMode: 100,
@@ -417,7 +425,7 @@ describe("createLgrsRenderPlan caps and tiers", () => {
   test("an off-screen or degenerate view yields an empty plan", () => {
     const adapter = adapterFor("eqc");
     const empty = createLgrsRenderPlan({
-      adapter,
+      binding: adapter,
       extent: [1e9, 1e9, 1e9 + 1000, 1e9 + 1000],
       resolution: 1,
       gridSpacingMode: "auto",
@@ -426,7 +434,7 @@ describe("createLgrsRenderPlan caps and tiers", () => {
     });
     expect(empty.tier).toBe("none");
     const degenerate = createLgrsRenderPlan({
-      adapter,
+      binding: adapter,
       extent: [0, 0, 0, 0],
       resolution: 1,
       gridSpacingMode: "auto",
@@ -444,7 +452,7 @@ describe("createLgrsRenderPlan caps and tiers", () => {
     const half = 150 * resolution;
     const extent: LgrsMapExtent = [out[0] - half, out[1] - half, out[0] + half, out[1] + half];
     const plan = createLgrsRenderPlan({
-      adapter,
+      binding: adapter,
       extent,
       resolution,
       gridSpacingMode: "auto",

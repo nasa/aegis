@@ -9,8 +9,8 @@ import {
   LTM_FALSE_NORTHING_SOUTH,
   LTM_K0,
 } from "./constants";
+import { conformLongitude } from "../common";
 import {
-  conformLongitude,
   getLtmCentralMeridian,
   getLtmZone,
   isSouthCrs,

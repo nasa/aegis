@@ -1,6 +1,7 @@
 import { decodeEmoji } from "./formatting";
 import { buildActionDefinitionName } from "store/storeUtils/mission";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
+import { getMissionCoordinateSystem } from "./lgrs/system";
 import {
   getCalcFieldsForEva,
   getCalcFieldsForPoi,
@@ -95,9 +96,9 @@ export const makeExportActions = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         action.location,
         mission.planetRadius,
-        mission.usingLGRSCoordinates,
+        getMissionCoordinateSystem(mission),
         missionGrid,
-        true
+        "full"
       ),
       rexUuid,
     };
@@ -137,9 +138,9 @@ export const makeExportPois = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         poi.location,
         mission.planetRadius,
-        mission.usingLGRSCoordinates,
+        getMissionCoordinateSystem(mission),
         missionGrid,
-        true
+        "full"
       ),
     };
     return exportPoi;
@@ -226,9 +227,9 @@ export const makeExportStations = (params: {
       gridCoordinates: getGridCoordinatesFromPoint(
         station.location,
         mission.planetRadius,
-        mission.usingLGRSCoordinates,
+        getMissionCoordinateSystem(mission),
         missionGrid,
-        true
+        "full"
       ),
       actionOrderRefUuids: station.actionOrderUuids?.map(
         (actionOrderUuid) => mission.actions[actionOrderUuid]?.refUuid
@@ -431,9 +432,9 @@ export const makeExportMission = (params: {
     gridCoordinates: getGridCoordinatesFromPoint(
       mission.landerLocation,
       mission.planetRadius,
-      mission.usingLGRSCoordinates,
+      getMissionCoordinateSystem(mission),
       missionGrid,
-      true
+      "full"
     ),
   };
 

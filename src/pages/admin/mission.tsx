@@ -16,7 +16,7 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
-import { getLgrsCompatibility } from "utils/lgrs/compatibility";
+import { getMissionGridSystem } from "utils/lgrs/system";
 import { getGridRenderMode } from "utils/mapping/grid";
 
 type RouteParams = {
@@ -86,7 +86,9 @@ const Mission: React.FunctionComponent = () => {
   const [maestroError, setMaestroError] = useState<string | null>(null);
   const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
-  const dynamicLgrsCompatibility = automergeMission ? getLgrsCompatibility(automergeMission) : null;
+  const dynamicLgrsCompatibility = automergeMission
+    ? getMissionGridSystem(automergeMission).compatibility
+    : null;
   const dynamicLgrsCompatible = dynamicLgrsCompatibility?.compatible ?? false;
 
   const handleCreateMaestroProject = useCallback(async () => {

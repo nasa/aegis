@@ -47,9 +47,11 @@ import { Grid } from "components/interface/map/behaviors/Grid";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice } from "store/preset";
 import { interfaceSlice } from "store/interface";
-import { getLtmCrsId, LGRS_CRS_LPS_NORTH } from "utils/lgrs/crs";
 import { createLgrsRenderPlan } from "utils/lgrs/grid/plan";
-import { getLgrsMapAdapter, getLgrsMapProjection } from "utils/lgrs/mapAdapter";
+import { getLgrsGridBinding } from "utils/lgrs/gridBinding";
+import { getLgrsMapProjection } from "utils/lgrs/mapProjection";
+import { getLtmCrsId, LGRS_CRS_LPS_NORTH } from "utils/lgrs/moon/crs";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 // ---------------------------------------------------------------------------
@@ -389,7 +391,7 @@ function setDynamicView(
 function planForView(overrides: Partial<LgrsRenderOptions> = {}): LgrsRenderPlan {
   const extent = map.getView().calculateExtent(map.getSize());
   return createLgrsRenderPlan({
-    adapter: getLgrsMapAdapter(getLgrsMapProjection(mockMissionDoc as Mission)),
+    binding: getLgrsGridBinding(getLgrsMapProjection(mockMissionDoc as Mission), moonGridSystem),
     extent: [extent[0], extent[1], extent[2], extent[3]],
     resolution: map.getView().getResolution()!,
     gridSpacingMode: "auto",

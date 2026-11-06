@@ -1,6 +1,7 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import { getSegmentBearing, getTotalDistance } from "utils/mapping/geoMath";
+import { getMissionCoordinateSystem } from "utils/lgrs/system";
 import { removeMeasurement, setSelectedMeasurementUuid, upsertMeasurement } from "store/measure";
 import { v4 as uuidv4 } from "uuid";
 import { updateMapDirective } from "store/map";
@@ -39,9 +40,10 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
   }
 
+  const gridSystem = getMissionCoordinateSystem(mission);
   const pathSegmentBearings: number[] = [];
   for (let i = 1; i < path.length; i++) {
-    pathSegmentBearings.push(getSegmentBearing(path[i - 1], path[i], mission.usingLGRSCoordinates));
+    pathSegmentBearings.push(getSegmentBearing(path[i - 1], path[i], gridSystem));
   }
 
   const pendingElevations = profileMatchesSegmentCount(
@@ -169,9 +171,10 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
         ? (profileResponse.payload as TerrainProfile)
         : null;
 
+    const gridSystem = getMissionCoordinateSystem(mission);
     const pathSegmentBearings: number[] = [];
     for (let i = 1; i < path.length; i++) {
-      const bearing = getSegmentBearing(path[i - 1], path[i], mission.usingLGRSCoordinates);
+      const bearing = getSegmentBearing(path[i - 1], path[i], gridSystem);
       pathSegmentBearings.push(bearing);
     }
 

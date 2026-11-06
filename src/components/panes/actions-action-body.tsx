@@ -45,6 +45,7 @@ import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/thunkRex";
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useMissionCoordinateSystem } from "components/interface/map/hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 import { UNRESTRICTED_ACTION_EDIT_CAPABILITIES } from "utils/rexExecuteEditMode";
 import { MissionPriorityDropdown } from "./mission/mission-right-missionPriorities";
@@ -73,9 +74,9 @@ const RightActionBody: FunctionComponent<{
   const editMode = editModeProp && rexEditCapabilities.generalFields;
   const dispatch = useAppDispatch();
   const resolvedGrid = useResolvedMissionGrid();
+  const gridSystem = useMissionCoordinateSystem();
   const partialMission = useMissionDocSelector(
     (mission) => ({
-      usingLGRSCoordinates: mission.usingLGRSCoordinates,
       planetRadius: mission.planetRadius,
       actionSystemVersion: mission.actionSystemVersion,
     }),
@@ -105,9 +106,10 @@ const RightActionBody: FunctionComponent<{
   }, deepEqual);
 
   const actionGridCoordinates = useAppSelector((state) => {
-    if (action.location && partialMission.usingLGRSCoordinates) {
+    if (action.location && gridSystem) {
       return (
         formatLgrsFromLatLon(
+          gridSystem,
           action.location,
           LGRS_DISPLAY_PRECISION_METERS,
           resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"

@@ -1,8 +1,10 @@
 import { bench, describe } from "vitest";
 
-import { formatLatLonAsLgrs } from "utils/lgrs/format";
+import { formatLgrsFromLatLon } from "utils/lgrs/display";
 import { createLgrsRenderPlan } from "utils/lgrs/grid/plan";
-import { formatLgrsAtMapCoordinate, getLgrsMapAdapter } from "utils/lgrs/mapAdapter";
+import { getLgrsGridBinding } from "utils/lgrs/gridBinding";
+import { formatLatLonAsLgrs, formatLgrsAtMapCoordinate } from "utils/lgrs/moon/format";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 
 import { createSeededRandom } from "../helpers/seededRandom";
 
@@ -13,7 +15,7 @@ const MOON = "+a=1737400 +b=1737400 +units=m +no_defs";
 const SAMPLE_COUNT = 1024;
 
 function createMapSamples(
-  adapter: LgrsMapAdapter,
+  adapter: LgrsGridBinding,
   minLat: number,
   maxLat: number,
   minLon: number,
@@ -41,15 +43,21 @@ for (let index = 0; index < SAMPLE_COUNT; index++) {
   latLons[index * 2 + 1] = -180 + random() * 360;
 }
 
-const mercator = getLgrsMapAdapter({ projCode: "EPSG:3857", proj4Def: null });
-const southCap = getLgrsMapAdapter({
-  projCode: "BENCH:SOUTH",
-  proj4Def: `+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`,
-});
-const moonEqc = getLgrsMapAdapter({
-  projCode: "BENCH:EQC",
-  proj4Def: `+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 ${MOON}`,
-});
+const mercator = getLgrsGridBinding({ projCode: "EPSG:3857", proj4Def: null }, moonGridSystem);
+const southCap = getLgrsGridBinding(
+  {
+    projCode: "BENCH:SOUTH",
+    proj4Def: `+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`,
+  },
+  moonGridSystem
+);
+const moonEqc = getLgrsGridBinding(
+  {
+    projCode: "BENCH:EQC",
+    proj4Def: `+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 ${MOON}`,
+  },
+  moonGridSystem
+);
 const mercatorSamples = createMapSamples(mercator, -10, 10, -25, -10);
 const southSamples = createMapSamples(southCap, -90, -84, -180, 180);
 const eqcSamples = createMapSamples(moonEqc, -10, 10, -25, -10);
@@ -98,16 +106,35 @@ describe("LGRS per-point display", () => {
       formatLgrsAtMapCoordinate(moonEqc, eqcSamples[index], eqcSamples[index + 1], 10, "acc")
     );
   });
+
+  const displayLatLon = new Float64Array(2);
+  bench("map coord → 10 m full display via system, Web Mercator (readout path)", () => {
+    const index = next() * 2;
+    if (!mercator.mapToLatLon(mercatorSamples[index], mercatorSamples[index + 1], displayLatLon)) {
+      return;
+    }
+    consume(
+      formatLgrsFromLatLon(
+        mercator.system,
+        { lat: displayLatLon[0], lng: displayLatLon[1] },
+        10,
+        "full"
+      )
+    );
+  });
 });
 
-const northCap = getLgrsMapAdapter({
-  projCode: "BENCH:NORTH",
-  proj4Def: `+proj=stere +lat_0=90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`,
-});
+const northCap = getLgrsGridBinding(
+  {
+    projCode: "BENCH:NORTH",
+    proj4Def: `+proj=stere +lat_0=90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`,
+  },
+  moonGridSystem
+);
 
 /** Options for a 1920×1080 view centred on `[lat, lon]` at `resolution` map units per pixel. */
 function screenView(
-  adapter: LgrsMapAdapter,
+  adapter: LgrsGridBinding,
   lat: number,
   lon: number,
   resolution: number,
@@ -116,7 +143,7 @@ function screenView(
   const centre = new Float64Array(2);
   adapter.latLonToMap(lat, lon, centre);
   return {
-    adapter,
+    binding: adapter,
     extent: [
       centre[0] - 960 * resolution,
       centre[1] - 540 * resolution,

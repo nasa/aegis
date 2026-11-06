@@ -148,7 +148,7 @@ type MapMode = "editor" | "dashboard" | "minimap";
 
 /** Per-mission inputs of `MouseCoordinateDisplay`, resolved once rather than per pointer event. */
 type MouseCoordinateInputs = {
-  adapter: LgrsMapAdapter;
+  projector: LgrsMapProjector;
   formatGrid: (point: AEGISPoint) => string | null;
 };
 

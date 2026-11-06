@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { LGRS_CRS_LPS_SOUTH } from "utils/lgrs/crs";
 import { createLgrsRenderPlan } from "utils/lgrs/grid/plan";
-import { getLgrsMapAdapter } from "utils/lgrs/mapAdapter";
+import { getLgrsGridBinding } from "utils/lgrs/gridBinding";
+import { LGRS_CRS_LPS_SOUTH } from "utils/lgrs/moon/crs";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 
 // Golden output of the original south-LPS dynamic grid (`createDynamicLgrsRenderPlan`), as
 // `Grid.tsx` drew it on the canonical south mission. The whole-Moon plan must reproduce its
@@ -31,7 +32,10 @@ const golden = JSON.parse(
   )
 ) as { proj4: string; viewports: GoldenViewport[] };
 
-const adapter = getLgrsMapAdapter({ projCode: "GOLDEN:SOUTH", proj4Def: golden.proj4 });
+const adapter = getLgrsGridBinding(
+  { projCode: "GOLDEN:SOUTH", proj4Def: golden.proj4 },
+  moonGridSystem
+);
 const round = (value: number) => Number(value.toFixed(6));
 
 describe("createLgrsRenderPlan south LPS golden data", () => {
@@ -41,7 +45,7 @@ describe("createLgrsRenderPlan south LPS golden data", () => {
 
   test.each(golden.viewports)("reproduces $name", (viewport) => {
     const plan = createLgrsRenderPlan({
-      adapter,
+      binding: adapter,
       extent: viewport.mapExtent,
       resolution: viewport.resolution,
       gridSpacingMode: viewport.gridSpacingMode,

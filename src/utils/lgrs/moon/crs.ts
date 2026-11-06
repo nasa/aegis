@@ -1,6 +1,7 @@
+// Moon (`moon-m2025`) CRS ids, meaningful only with `moonGridSystem`.
+import { conformLongitude, LGRS_CRS_INVALID } from "../common";
 import { LTM_MAX_ABS_LATITUDE, LTM_ZONE_COUNT, LTM_ZONE_WIDTH_DEGREES } from "./constants";
 
-export const LGRS_CRS_INVALID: LgrsCrsId = -1;
 export const LGRS_CRS_LPS_SOUTH: LgrsCrsId = 0;
 export const LGRS_CRS_LPS_NORTH: LgrsCrsId = 1;
 const LTM_CRS_FIRST = 2;
@@ -8,15 +9,6 @@ const LTM_CRS_LAST = LTM_CRS_FIRST + LTM_ZONE_COUNT * 2 - 1;
 
 const CRS_NAMES: string[] = ["LPS S", "LPS N"];
 for (let zone = 1; zone <= LTM_ZONE_COUNT; zone++) CRS_NAMES.push(`${zone}N`, `${zone}S`);
-
-/** Conform a longitude to [-180, 180) the way `lgrs` does (values already in range are kept). */
-export function conformLongitude(lon: number): number {
-  if (lon >= -180 && lon < 180) return lon;
-  let conformed = lon % 360;
-  if (conformed < 0) conformed += 360;
-  if (conformed >= 180) conformed -= 360;
-  return conformed;
-}
 
 /** LTM zone (1–45) of a longitude in [-180, 180). */
 export function getLtmZoneForLongitude(conformedLon: number): number {
@@ -46,7 +38,7 @@ export function getLpsCrsId(hemisphere: LgrsHemisphere): LgrsCrsId {
   return hemisphere === "S" ? LGRS_CRS_LPS_SOUTH : LGRS_CRS_LPS_NORTH;
 }
 
-export function isValidCrs(crs: LgrsCrsId): boolean {
+export function isValidMoonCrs(crs: LgrsCrsId): boolean {
   return Number.isInteger(crs) && crs >= 0 && crs <= LTM_CRS_LAST;
 }
 
@@ -99,5 +91,5 @@ export function getCrsLatitudeLimits(crs: LgrsCrsId): [min: number, max: number]
 
 /** `"23N"`, `"4S"`, `"LPS S"`, `"LPS N"`, or `""` for an invalid id. */
 export function formatCrsName(crs: LgrsCrsId): string {
-  return isValidCrs(crs) ? CRS_NAMES[crs] : "";
+  return isValidMoonCrs(crs) ? CRS_NAMES[crs] : "";
 }

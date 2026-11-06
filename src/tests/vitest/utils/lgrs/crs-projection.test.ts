@@ -1,6 +1,6 @@
+import { conformLongitude, LGRS_CRS_INVALID } from "utils/lgrs/common";
 import {
   classifyLatLon,
-  conformLongitude,
   formatCrsName,
   getCrsHemisphere,
   getCrsLatitudeLimits,
@@ -11,12 +11,11 @@ import {
   getLtmZoneLongitudeLimits,
   isLpsCrs,
   isLtmCrs,
-  isValidCrs,
-  LGRS_CRS_INVALID,
   LGRS_CRS_LPS_NORTH,
   LGRS_CRS_LPS_SOUTH,
-} from "utils/lgrs/crs";
-import { projectLatLon, unprojectToLatLon } from "utils/lgrs/projection";
+} from "utils/lgrs/moon/crs";
+import { projectLatLon, unprojectToLatLon } from "utils/lgrs/moon/projection";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 
 import { createSeededRandom } from "../../helpers/seededRandom";
 
@@ -42,7 +41,11 @@ describe("LGRS CRS ids", () => {
     expect(getCrsHemisphere(LGRS_CRS_LPS_NORTH)).toBe("N");
     expect(isLpsCrs(0) && isLpsCrs(1) && !isLpsCrs(2)).toBe(true);
     expect(isLtmCrs(2) && isLtmCrs(91) && !isLtmCrs(92) && !isLtmCrs(1)).toBe(true);
-    expect(isValidCrs(-1) || isValidCrs(92) || isValidCrs(1.5)).toBe(false);
+    expect(
+      moonGridSystem.isValidCrs(-1) ||
+        moonGridSystem.isValidCrs(92) ||
+        moonGridSystem.isValidCrs(1.5)
+    ).toBe(false);
   });
 
   test("formats CRS names", () => {

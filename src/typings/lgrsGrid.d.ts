@@ -12,7 +12,8 @@ type LgrsRenderCaps = {
 };
 
 type LgrsRenderOptions = {
-  adapter: LgrsMapAdapter;
+  /** The map projection bound to the grid system to draw. */
+  binding: LgrsGridBinding;
   extent: LgrsMapExtent;
   /** Map units per screen pixel. */
   resolution: number;
@@ -30,7 +31,7 @@ type LgrsRenderOptions = {
 /** `box`: constant-E/N lines per region. `zone`: only the zone/band framework. */
 type LgrsRenderTier = "none" | "box" | "zone";
 
-/** `seam` lines (zone meridians, ±80°, equator) are drawn with a heavier stroke. */
+/** `seam` lines (zone boundaries and region limits, e.g. ±80° and the equator) are drawn heavier. */
 type LgrsRenderLineKind = "grid" | "seam";
 
 /** Constant easting/northing (box tier) or constant longitude/latitude (framework). */
@@ -101,6 +102,10 @@ type LgrsViewEnvelope = {
 type LgrsRegionView = {
   crs: LgrsCrsId;
   affine: LgrsMapAffine | null;
+  /** The region's polar cap, or null for a zone region. */
+  cap: LgrsCap | null;
+  /** Central meridian of a zone region (keeps unprojected longitudes continuous); NaN for caps. */
+  centralMeridian: number;
   /** E/N bounding box of the view in this crs (unpadded). */
   view: Float64Array;
   /** Box used to generate lines: the padded view box ∩ the region bounds. */
@@ -111,7 +116,8 @@ type LgrsSpacingChoice = { line: number; label: number; hideLabels: boolean };
 
 type LgrsPlanContext = {
   options: LgrsRenderOptions;
-  adapter: LgrsMapAdapter;
+  binding: LgrsGridBinding;
+  system: LgrsGridSystem;
   extent: LgrsMapExtent;
   resolution: number;
   caps: LgrsRenderCaps;

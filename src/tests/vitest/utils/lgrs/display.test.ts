@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 
 type OracleLatLonCase = {
   category: string;
@@ -45,8 +46,8 @@ describe("formatLgrsFromLatLon", () => {
     [-80, 10, "B47 X59", "BCZ B47 X59"],
     [-89, -133, "B95 D44", "AZM B95 D44"],
   ])("formats %f, %f as %s / %s (plan example table)", (lat, lng, condensed, full) => {
-    expect(formatLgrsFromLatLon(point(lat, lng), 10, "condensed")).toBe(condensed);
-    expect(formatLgrsFromLatLon(point(lat, lng), 10, "full")).toBe(full);
+    expect(formatLgrsFromLatLon(moonGridSystem, point(lat, lng), 10, "condensed")).toBe(condensed);
+    expect(formatLgrsFromLatLon(moonGridSystem, point(lat, lng), 10, "full")).toBe(full);
   });
 
   test("displays at 10 m", () => {
@@ -55,25 +56,25 @@ describe("formatLgrsFromLatLon", () => {
 
   test("uses the point's own latitude for the LTM band (point semantics)", () => {
     // The 10 m boxes of these points straddle an 8° band parallel; the oracle labels the point.
-    expect(formatLgrsFromLatLon(point(7.999999997298345, 98.21537110092487), 10, "full")).toBe(
-      "35NHQ R47 S52"
-    );
-    expect(formatLgrsFromLatLon(point(8.000000076486206, -159.8278792515216), 10, "full")).toBe(
-      "3PFV E16 S34"
-    );
+    expect(
+      formatLgrsFromLatLon(moonGridSystem, point(7.999999997298345, 98.21537110092487), 10, "full")
+    ).toBe("35NHQ R47 S52");
+    expect(
+      formatLgrsFromLatLon(moonGridSystem, point(8.000000076486206, -159.8278792515216), 10, "full")
+    ).toBe("3PFV E16 S34");
   });
 
   test("returns null for a missing or invalid point", () => {
-    expect(formatLgrsFromLatLon(null, 10, "full")).toBeNull();
-    expect(formatLgrsFromLatLon(undefined, 10, "condensed")).toBeNull();
-    expect(formatLgrsFromLatLon(point(Number.NaN, 0), 10, "full")).toBeNull();
-    expect(formatLgrsFromLatLon(point(-91, 0), 10, "condensed")).toBeNull();
-    expect(formatLgrsFromLatLon(point(0, 400), 10, "condensed")).toBeNull();
+    expect(formatLgrsFromLatLon(moonGridSystem, null, 10, "full")).toBeNull();
+    expect(formatLgrsFromLatLon(moonGridSystem, undefined, 10, "condensed")).toBeNull();
+    expect(formatLgrsFromLatLon(moonGridSystem, point(Number.NaN, 0), 10, "full")).toBeNull();
+    expect(formatLgrsFromLatLon(moonGridSystem, point(-91, 0), 10, "condensed")).toBeNull();
+    expect(formatLgrsFromLatLon(moonGridSystem, point(0, 400), 10, "condensed")).toBeNull();
   });
 
   test("returns the prefix alone at 25 km", () => {
-    expect(formatLgrsFromLatLon(point(0, 0), 25000, "full")).toBe("23NFF");
-    expect(formatLgrsFromLatLon(point(0, 0), 25000, "condensed")).toBe("23NFF");
+    expect(formatLgrsFromLatLon(moonGridSystem, point(0, 0), 25000, "full")).toBe("23NFF");
+    expect(formatLgrsFromLatLon(moonGridSystem, point(0, 0), 25000, "condensed")).toBe("23NFF");
   });
 
   test("matches the 0.4.0 oracle 10 m point label of every projection case", () => {
@@ -83,6 +84,7 @@ describe("formatLgrsFromLatLon", () => {
       if (!testCase.expected || testCase.category === "rejected") continue;
       for (const style of ["condensed", "full"] as const) {
         const actual = formatLgrsFromLatLon(
+          moonGridSystem,
           point(testCase.latitude, testCase.longitude),
           10,
           style
@@ -108,6 +110,7 @@ describe("formatLgrsFromLatLon", () => {
         if (!acc) continue;
         for (const style of ["condensed", "full"] as const) {
           const actual = formatLgrsFromLatLon(
+            moonGridSystem,
             point(testCase.latitude, testCase.longitude),
             precision,
             style

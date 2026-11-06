@@ -1,23 +1,34 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faCaretRight, faCaretDown, faXmark } from "@fortawesome/free-solid-svg-icons";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./map-menu.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridBaseSpacingMeters } from "utils/mapping/grid";
-import { LGRS_GRID_BASE_SPACING_METERS } from "utils/lgrs/grid/plan";
+import { getFixedGridSpacings, LGRS_GRID_BASE_SPACING_METERS } from "utils/lgrs/grid/plan";
+import { useMissionGridSystem } from "../hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { setMapMenuIsOpen } from "store/interface";
 import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
 
-const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
-  { label: "Auto", value: "auto" },
-  { label: "10m", value: 10 },
-  { label: "100m", value: 100 },
-  { label: "1km", value: 1000 },
-];
+/** Fixed spacings offered for server-file grids, which no grid system draws. */
+const FILE_GRID_SPACINGS: readonly number[] = [10, 100, 1000];
+
+function formatSpacingLabel(meters: number): string {
+  return meters >= 1000 ? `${meters / 1000}km` : `${meters}m`;
+}
+
+/** "Auto" followed by each fixed spacing in metres. */
+function getGridSpacingOptions(
+  spacings: readonly number[]
+): { label: string; value: GridSpacingMode }[] {
+  return [
+    { label: "Auto", value: "auto" },
+    ...spacings.map((value) => ({ label: formatSpacingLabel(value), value })),
+  ];
+}
 
 export function getCompatibleGridLabelInterval(
   gridSpacingMode: GridSpacingMode,
@@ -136,6 +147,13 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   // Derived from the loaded grid geometry so it always matches what's drawn.
   const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
   const resolvedGrid = useResolvedMissionGrid();
+  const gridSystem = useMissionGridSystem();
+  const dynamicGrid = resolvedGrid.kind === "dynamic-lgrs";
+  const gridSpacingOptions = useMemo(
+    () =>
+      getGridSpacingOptions(dynamicGrid ? getFixedGridSpacings(gridSystem) : FILE_GRID_SPACINGS),
+    [dynamicGrid, gridSystem]
+  );
   let baseGridSpacing = 0;
   if (resolvedGrid.kind === "dynamic-lgrs") {
     baseGridSpacing = LGRS_GRID_BASE_SPACING_METERS;
@@ -668,14 +686,14 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
             </div>
             <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
               Grid
-              {GRID_SPACING_OPTIONS.map((opt, idx) => {
+              {gridSpacingOptions.map((opt, idx) => {
                 const disabled =
                   opt.value !== "auto" && baseGridSpacing > 0 && opt.value < baseGridSpacing;
                 const selected = gridSpacingMode === opt.value;
                 const positionClass =
                   idx === 0
                     ? styles.toggleLeft
-                    : idx === GRID_SPACING_OPTIONS.length - 1
+                    : idx === gridSpacingOptions.length - 1
                       ? styles.toggleRight
                       : styles.toggleMiddle;
                 return (
@@ -705,7 +723,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
             </div>
             <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
               Grid Labels
-              {GRID_SPACING_OPTIONS.map((opt, idx) => {
+              {gridSpacingOptions.map((opt, idx) => {
                 // The label interval only applies when the grid spacing is fixed,
                 // and can't be finer than the grid lines or the grid resolution.
                 const disabled =
@@ -717,7 +735,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                 const positionClass =
                   idx === 0
                     ? styles.toggleLeft
-                    : idx === GRID_SPACING_OPTIONS.length - 1
+                    : idx === gridSpacingOptions.length - 1
                       ? styles.toggleRight
                       : styles.toggleMiddle;
                 return (

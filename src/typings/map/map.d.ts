@@ -77,7 +77,7 @@ interface MapSubmenuStations extends MapSubmenuMarkers {
  * Grid line / label spacing mode. "auto" = adaptive density (varies with zoom);
  * a number = a fixed ground spacing in metres.
  */
-type GridSpacingMode = "auto" | 10 | 100 | 1000;
+type GridSpacingMode = "auto" | number;
 
 /**
  * Cookie for map menu settings

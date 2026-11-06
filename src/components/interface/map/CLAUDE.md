@@ -107,23 +107,30 @@ Bug-prone details:
   an error.
 - The projection **must be registered** before the converters run (MapProvider handles it).
 - The `projCode` derivation logic is **duplicated** in `MapProvider`, `useCoordConverters` and
-  `getLgrsMapProjection` (`utils/lgrs/mapAdapter.ts`) — keep all three in sync or the View, the
+  `getLgrsMapProjection` (`utils/lgrs/mapProjection.ts`) — keep all three in sync or the View, the
   converters and the LGRS grid/readout target different CRS.
 - Distances/bearings for traverses/measurements are computed **geodesically from lat/lng**
-  (haversine; with `usingLGRSCoordinates`, the grid-north bearing in the origin's LGRS CRS from
-  `utils/lgrs/bearing.ts`, NaN → `—` via `formatBearingDegrees`) in `utils/mapping/geoMath.ts`, **not** from
+  (haversine; with `usingLGRSCoordinates`, the grid-north bearing in the origin's CRS of the
+  mission's grid system from `utils/lgrs/bearing.ts`, NaN → `—` via `formatBearingDegrees`) in
+  `utils/mapping/geoMath.ts`, **not** from
   projected geometry — projected length over-reports on distorted projections (Web Mercator
   ≈ sec(lat)) and near the pole. `TimelineAstronaut` interpolates position with
   `LineString.getCoordinateAt()` in projected CRS (fine — it's a screen position, not a distance).
 
-**LGRS map adapter.** `getLgrsMapAdapter(getLgrsMapProjection(mission))` (`utils/lgrs/mapAdapter.ts`)
-is the cached map ↔ lat/lon ↔ LGRS (LPS S/N, LTM zone) converter used by the dynamic grid and the
-mouse readout. It builds proj4 converters once per projection and has closed-form fast paths
-(bit-identical to proj4) for polar stereographic, Web Mercator and `+approx` tmerc maps.
-`getAffine(crs)` reports when the map CRS is affine to an LGRS CRS, so grid lines can stay
-two-vertex segments. `getLgrsCompatibility(mission)` (`utils/lgrs/compatibility.ts`) gates dynamic
-LGRS: exact lunar radius plus a projection the adapter can build (any lunar projection, including
-the default EPSG:3857).
+**LGRS grid system and map binding.** Every CRS-dependent behaviour goes through an
+`LgrsGridSystem` (`src/typings/lgrs.d.ts`); the Moon is `moonGridSystem` (`utils/lgrs/moon/`).
+CRS ids mean something only together with their system. `getMissionGridSystem(mission)`
+(`utils/lgrs/system.ts`) resolves a mission's system and its dynamic-grid compatibility;
+components use `useMissionGridSystem()` / `useMissionCoordinateSystem()`
+(`hooks/useMissionGridSystem.ts`, the latter null without `usingLGRSCoordinates`).
+`getLgrsMapProjector(getLgrsMapProjection(mission))` (`utils/lgrs/mapProjection.ts`) is the
+cached, system-independent map ↔ lat/lon converter used by the mouse readout. It builds proj4
+converters once per projection and has closed-form fast paths (bit-identical to proj4) for polar
+stereographic, Web Mercator and `+approx` tmerc maps. `getLgrsGridBinding(projection, system)`
+(`utils/lgrs/gridBinding.ts`, cached by projection + `system.key`) adds map ↔ grid E/N for the
+dynamic grid; its `getAffine(crs)` reports when the map CRS is affine to a grid CRS, so grid lines
+can stay two-vertex segments. Lunar compatibility is the exact lunar radius plus a projection
+proj4 can build (any lunar projection, including the default EPSG:3857).
 
 Tile resolutions for legacy raster layers come from `buildLegacyResolutions()`
 (`utils/parsers/leafletShim.ts`). **Critical:** use the API `projResUnitsPerPixel`, NOT the XML
@@ -485,7 +492,7 @@ Overlay gotchas:
 - Dashboard menus are hover-gated (mouseenter/mouseleave on `map.getTargetElement()`); if the
   target element isn't ready when the effect runs, listeners silently don't attach.
 - `MouseCoordinateDisplay` needs BOTH `config.map.showMouseCoords` (editor) AND the eyeball toggle.
-  It converts through the memoised LGRS map adapter, coalesces `pointermove` with
+  It converts through the memoised map projector (formatter memoised per grid system), coalesces `pointermove` with
   `requestAnimationFrame`, and only sets state when the formatted text changes.
 - `ScaleBar` assumes resolution == meters/pixel — only exact for a metric projected CRS;
   approximate on EPSG:3857 away from the equator. Updates on `moveend` only.

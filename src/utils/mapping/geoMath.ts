@@ -31,27 +31,25 @@ export function getDistanceBetweenTwoCoordinates(
 
 /**
  * Find the grid coordinates of a point depending on which grid should be used.
- * LGRS values cover the whole Moon (LTM, LPS N, LPS S) at 10 m; `dynamicLgrs` selects the
- * `"full"` style with the zone/band prefix.
+ * With a grid system (the mission shows grid coordinates), the point's 10 m grid reference in
+ * that system in the given display style; otherwise the closest server-file grid point.
  * @param {AEGISPoint} point - the point to find coordinates for
  * @param {number} radius - The radius of the planet in question (usually meters)
+ * @param {LgrsGridSystem | null} gridSystem - the mission's coordinate system, or null
+ * @param {LgrsDisplayStyle} style - `"full"` adds the zone/band prefix
  * @reference http://www.movable-type.co.uk/scripts/latlong.html
  */
 export function getGridCoordinatesFromPoint(
   point: AEGISPoint,
   radius: number,
-  usingLGRSCoordinates: boolean,
+  gridSystem: LgrsGridSystem | null,
   globalGrid?: MissionGridPoint[][],
-  dynamicLgrs = false
+  style: LgrsDisplayStyle = "condensed"
 ): string {
   if (!point) return null;
 
-  if (usingLGRSCoordinates) {
-    return formatLgrsFromLatLon(
-      point,
-      LGRS_DISPLAY_PRECISION_METERS,
-      dynamicLgrs ? "full" : "condensed"
-    );
+  if (gridSystem) {
+    return formatLgrsFromLatLon(gridSystem, point, LGRS_DISPLAY_PRECISION_METERS, style);
   } else if (globalGrid) {
     return findGlobalGridCoordsFromPoint(globalGrid, point, radius);
   } else {
@@ -268,17 +266,17 @@ export function getTrueBearingFromLatLngPoints(
 /**
  * Segment bearing appropriate to the mission's coordinate frame.
  *
- * LGRS missions use the grid-north bearing in the origin's LGRS CRS (LPS or LTM zone), and
- * return NaN when either point cannot be projected. Other missions (e.g. Earth / Web Mercator)
- * use a true-north great-circle azimuth.
+ * With a grid system (the mission shows grid coordinates), the grid-north bearing in the
+ * origin's CRS of that system (e.g. LPS or an LTM zone), NaN when either point cannot be
+ * projected. Otherwise (e.g. Earth / Web Mercator) a true-north great-circle azimuth.
  */
 export function getSegmentBearing(
   origin: AEGISPoint,
   destination: AEGISPoint,
-  usingLGRSCoordinates: boolean
+  gridSystem: LgrsGridSystem | null
 ): number {
-  return usingLGRSCoordinates
-    ? getLgrsGridBearing(origin, destination)
+  return gridSystem
+    ? getLgrsGridBearing(gridSystem, origin, destination)
     : getTrueBearingFromLatLngPoints(origin, destination);
 }
 

@@ -1,31 +1,11 @@
 import proj4 from "proj4";
 
-import {
-  LGRS_MOON_RADIUS,
-  LPS_FALSE_EASTING,
-  LPS_FALSE_NORTHING,
-  LPS_K0,
-  LTM_FALSE_EASTING,
-  LTM_FALSE_NORTHING_NORTH,
-  LTM_FALSE_NORTHING_SOUTH,
-  LTM_K0,
-  LTM_ZONE_COUNT,
-} from "./constants";
-import {
-  getLtmCentralMeridian,
-  getLtmCrsId,
-  isValidCrs,
-  LGRS_CRS_LPS_NORTH,
-  LGRS_CRS_LPS_SOUTH,
-} from "./crs";
-import { formatLatLonAsLgrs } from "./format";
-import { projectLatLon, unprojectToLatLon } from "./projection";
-
 /**
- * Map CRS ↔ lat/lon ↔ LGRS adapters. proj4 converters are built once per projection and cached.
- * Spherical polar stereographic, Mercator and `+approx` Transverse Mercator maps use closed-form
- * ports of proj4's own formulas, checked bit-for-bit against proj4 when the adapter is built, so
- * lat/lon semantics are exactly those of `proj4(projCode, "EPSG:4326")`.
+ * Map CRS ↔ lat/lon projectors, independent of any grid system. proj4 converters are built once
+ * per projection and cached. Spherical polar stereographic, Mercator and `+approx` Transverse
+ * Mercator maps use closed-form ports of proj4's own formulas, checked bit-for-bit against proj4
+ * when the projector is built, so lat/lon semantics are exactly those of
+ * `proj4(projCode, "EPSG:4326")`.
  */
 
 // proj4 constants (lib/constants/values.js).
@@ -171,47 +151,6 @@ function verifyFastPath(
   return true;
 }
 
-function createAffines(
-  p: LgrsProj4Params | null,
-  fastPath: LgrsMapFastPath | null
-): LgrsMapAffine[] {
-  if (!p || p.a !== LGRS_MOON_RADIUS) return [];
-  if (fastPath === "stere-polar" && p.long0 === 0) {
-    const scale = LPS_K0 / p.k0;
-    return [
-      {
-        crs: p.lat0 > 0 ? LGRS_CRS_LPS_NORTH : LGRS_CRS_LPS_SOUTH,
-        scale,
-        offsetE: LPS_FALSE_EASTING - scale * p.x0,
-        offsetN: LPS_FALSE_NORTHING - scale * p.y0,
-      },
-    ];
-  }
-  if (fastPath === "tmerc" && p.lat0 === 0) {
-    const centralMeridian = p.long0 * R2D;
-    for (let zone = 1; zone <= LTM_ZONE_COUNT; zone++) {
-      if (Math.abs(getLtmCentralMeridian(zone) - centralMeridian) > 1e-9) continue;
-      const scale = LTM_K0 / p.k0;
-      const offsetE = LTM_FALSE_EASTING - scale * p.x0;
-      return [
-        {
-          crs: getLtmCrsId(zone, "N"),
-          scale,
-          offsetE,
-          offsetN: LTM_FALSE_NORTHING_NORTH - scale * p.y0,
-        },
-        {
-          crs: getLtmCrsId(zone, "S"),
-          scale,
-          offsetE,
-          offsetN: LTM_FALSE_NORTHING_SOUTH - scale * p.y0,
-        },
-      ];
-    }
-  }
-  return [];
-}
-
 function getWorldWidth(
   params: LgrsProj4Params | null,
   converter: proj4.Converter | null
@@ -224,16 +163,14 @@ function getWorldWidth(
   return Number.isFinite(width) && width > 0 ? width : null;
 }
 
-class MapAdapter implements LgrsMapAdapter {
+class MapProjector implements LgrsMapProjector {
   readonly projection: LgrsMapProjection;
+  readonly params: LgrsProj4Params | null;
   readonly worldWidth: number | null;
   readonly fastPath: LgrsMapFastPath | null;
   readonly isUsable: boolean;
   private readonly converter: proj4.Converter | null;
-  private readonly params: LgrsProj4Params | null;
   private readonly fast: LgrsFastPathFunctions | null;
-  private readonly affines: LgrsMapAffine[];
-  private readonly scratch = new Float64Array(2);
 
   constructor(projection: LgrsMapProjection) {
     this.projection = projection;
@@ -255,7 +192,6 @@ class MapAdapter implements LgrsMapAdapter {
     if (fastPath && !verifyFastPath(FAST_PATHS[fastPath], params, converter)) fastPath = null;
     this.fastPath = fastPath;
     this.fast = fastPath ? FAST_PATHS[fastPath] : null;
-    this.affines = createAffines(params, fastPath);
   }
 
   mapToLatLon(x: number, y: number, out: Float64Array): boolean {
@@ -295,38 +231,9 @@ class MapAdapter implements LgrsMapAdapter {
     out[1] = result[1];
     return Number.isFinite(out[0]) && Number.isFinite(out[1]);
   }
-
-  getAffine(crs: LgrsCrsId): LgrsMapAffine | null {
-    for (const affine of this.affines) if (affine.crs === crs) return affine;
-    return null;
-  }
-
-  mapToLgrs(x: number, y: number, crs: LgrsCrsId, out: Float64Array): boolean {
-    if (!isValidCrs(crs)) return false;
-    const affine = this.getAffine(crs);
-    if (affine) {
-      out[0] = x * affine.scale + affine.offsetE;
-      out[1] = y * affine.scale + affine.offsetN;
-      return Number.isFinite(out[0]) && Number.isFinite(out[1]);
-    }
-    if (!this.mapToLatLon(x, y, this.scratch)) return false;
-    return projectLatLon(this.scratch[0], this.scratch[1], crs, out);
-  }
-
-  lgrsToMap(e: number, n: number, crs: LgrsCrsId, out: Float64Array): boolean {
-    if (!isValidCrs(crs)) return false;
-    const affine = this.getAffine(crs);
-    if (affine) {
-      out[0] = (e - affine.offsetE) / affine.scale;
-      out[1] = (n - affine.offsetN) / affine.scale;
-      return Number.isFinite(out[0]) && Number.isFinite(out[1]);
-    }
-    if (!unprojectToLatLon(e, n, crs, this.scratch)) return false;
-    return this.latLonToMap(this.scratch[0], this.scratch[1], out);
-  }
 }
 
-const adapterCache = new Map<string, MapAdapter>();
+const projectorCache = new Map<string, MapProjector>();
 
 /** The map CRS the app uses for a mission (mirrors `MapProvider` / `useCoordConverters`). */
 export function getLgrsMapProjection(
@@ -342,29 +249,25 @@ export function getLgrsMapProjection(
   return { projCode: "EPSG:3857", proj4Def: null };
 }
 
-/**
- * Cached adapter for a map projection. A projection proj4 cannot build is not cached, and its
- * adapter returns false from every conversion.
- */
-export function getLgrsMapAdapter(projection: LgrsMapProjection): LgrsMapAdapter {
-  const key = `${projection.projCode}\n${projection.proj4Def ?? ""}`;
-  const cached = adapterCache.get(key);
-  if (cached) return cached;
-  const adapter = new MapAdapter(projection);
-  if (adapter.isUsable) adapterCache.set(key, adapter);
-  return adapter;
+/** Cache key of a map projection. */
+export function getMapProjectionKey(projection: LgrsMapProjection): string {
+  return `${projection.projCode}\n${projection.proj4Def ?? ""}`;
 }
 
-const displayScratch = new Float64Array(2);
+/** Whether proj4 could build the projector; an unusable one fails every conversion. */
+export function isUsableProjector(projector: LgrsMapProjector): boolean {
+  return projector instanceof MapProjector && projector.isUsable;
+}
 
-/** LGRS/ACC string for a map coordinate, via its lat/lon (same result as for a stored point). */
-export function formatLgrsAtMapCoordinate(
-  adapter: LgrsMapAdapter,
-  x: number,
-  y: number,
-  precision: LgrsPrecision,
-  kind: LgrsStringKind
-): string | null {
-  if (!adapter.mapToLatLon(x, y, displayScratch)) return null;
-  return formatLatLonAsLgrs(displayScratch[0], displayScratch[1], precision, kind);
+/**
+ * Cached projector for a map projection. A projection proj4 cannot build is not cached, and its
+ * projector returns false from every conversion.
+ */
+export function getLgrsMapProjector(projection: LgrsMapProjection): LgrsMapProjector {
+  const key = getMapProjectionKey(projection);
+  const cached = projectorCache.get(key);
+  if (cached) return cached;
+  const projector = new MapProjector(projection);
+  if (projector.isUsable) projectorCache.set(key, projector);
+  return projector;
 }

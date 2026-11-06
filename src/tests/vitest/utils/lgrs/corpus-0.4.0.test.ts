@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { getLgrsGridBearing } from "utils/lgrs/bearing";
-import { classifyLatLon } from "utils/lgrs/crs";
-import { formatLgrs, formatLgrsLabel } from "utils/lgrs/format";
-import { projectLatLon, unprojectToLatLon } from "utils/lgrs/projection";
+import { classifyLatLon } from "utils/lgrs/moon/crs";
+import { formatLgrs, formatLgrsLabel } from "utils/lgrs/moon/format";
+import { projectLatLon, unprojectToLatLon } from "utils/lgrs/moon/projection";
+import { moonGridSystem } from "utils/lgrs/moon/system";
 
 // Fixtures come from `npm run lgrs:reference-corpus` (scripts/lgrs-reference).
 
@@ -453,7 +454,7 @@ describe("lgrs 0.4.0 reference corpus", () => {
       expect(bearingCases.length).toBeGreaterThan(0);
       const mismatches = new Mismatches("bearings");
       for (const testCase of bearingCases) {
-        const actual = getLgrsGridBearing(testCase.origin, testCase.destination);
+        const actual = getLgrsGridBearing(moonGridSystem, testCase.origin, testCase.destination);
         const difference = angleDifference(actual, testCase.expectedBearing);
         if (!(actual >= 0 && actual < 360 && difference <= ANGLE_TOLERANCE_DEGREES)) {
           mismatches.add(
