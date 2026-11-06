@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
-import { faFolderPlus, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faFolderPlus, faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 
 import assetsMenuStyles from "./map-menu-assets.module.css";
 import { Button } from "components/interface/form/globalFields";
@@ -68,8 +68,8 @@ export const MapAssetsMenu: FunctionComponent = () => {
         <div className={assetsMenuStyles.toolbar}>
           <Button
             onClick={() => dispatch(thunkAddAsset())}
-            icon={faPlus}
-            label="Add Asset"
+            icon={faPlusCircle}
+            label="Asset"
             toolTip={
               inEdit
                 ? inEdit.isNew
@@ -83,7 +83,7 @@ export const MapAssetsMenu: FunctionComponent = () => {
           <Button
             onClick={() => dispatch(thunkCreateFolder({ type: "asset" }))}
             icon={faFolderPlus}
-            label="Add Folder"
+            label="Folder"
             className={assetsMenuStyles.toolbarButton}
             enabled={canEdit}
           />

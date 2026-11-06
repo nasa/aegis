@@ -35,9 +35,13 @@ test.describe("Mission 22 — Asset tracking", () => {
     const folderName = `PW Assets ${suffix}`;
     const assetRow = page.locator("tr[data-testid^='asset-row-']", { hasText: assetName });
     await openAssetsTab(page);
-    await expect(page.getByText("Add Asset", { exact: true })).toBeVisible();
-    await expect(page.getByText("Add Folder", { exact: true })).toBeVisible();
-    await page.getByText("Add Asset", { exact: true }).click();
+    await expect(
+      page.getByTestId("assets-map-menu").getByLabel("Asset", { exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("assets-map-menu").getByLabel("Folder", { exact: true })
+    ).toBeVisible();
+    await page.getByTestId("assets-map-menu").getByLabel("Asset", { exact: true }).click();
     const editor = page.getByTestId("asset-editor");
     await editor.getByTestId("asset-editor-name").fill(assetName);
     await editor.getByTestId("asset-editor-uncertainty").fill("15");
@@ -79,7 +83,7 @@ test.describe("Mission 22 — Asset tracking", () => {
     await expect(displayField(page, "Radius in meters")).toHaveText("20");
     await assetRow.getByLabel("Collapse asset", { exact: true }).click();
 
-    await page.getByText("Add Folder", { exact: true }).click();
+    await page.getByTestId("assets-map-menu").getByLabel("Folder", { exact: true }).click();
     await page.getByRole("textbox", { name: "Folder name", exact: true }).fill(folderName);
     await page.getByLabel("Save folder name", { exact: true }).click();
     const folder = page.locator("tbody[data-testid^='asset-folder-']", { hasText: folderName });
