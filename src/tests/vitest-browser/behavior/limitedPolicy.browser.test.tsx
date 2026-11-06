@@ -1,5 +1,6 @@
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
+import { vi } from "vitest";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test as base, expect } from "./missionHarness";
 import { openExecutionInfo, selectExecution } from "./executionHelpers";
 import {
   enablePlanningEditMode,
@@ -8,25 +9,25 @@ import {
   savePlanningField,
 } from "./planningHelpers";
 
-test.use({ scenario: "execution" });
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
 const SPARE_STATION = "30000000-0000-4000-8000-000000009020";
 const SPARE_STATION_REF = "30000000-0000-4000-8000-000000009021";
 
 function policyControl(page: Page) {
-  return page.getByText("Execute Edit Mode:", { exact: true }).locator("../..");
+  return page.getByText("Execute Edit Mode:", { exact: true }).getBySelector("../..");
 }
 
-async function startLimitedAlpha(page: Page, mission: BehavioralMission): Promise<void> {
+async function startLimitedAlpha(page: Page, mission: BrowserMission): Promise<void> {
   await mission.change((doc) => {
     doc.rexes[mission.ids.rexB].isRunning = false;
   });
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await openExecutionInfo(page, "Survey Alpha", mission.ids.rexEvaA);
-  await policyControl(page).locator("select").selectOption("limited");
-  await page.getByLabel("Execute EVA", { exact: true }).click();
-  await expect(page.getByLabel("Stop Execution", { exact: true })).toBeVisible();
+  await policyControl(page).getBySelector("select").selectOptions("limited");
+  await page.getByLabelText("Execute EVA", { exact: true }).click();
+  await expect.element(page.getByLabelText("Stop Execution", { exact: true })).toBeVisible();
   await expect
     .poll(async () => (await mission.read()).rexes[mission.ids.rexA].isRunning)
     .toBe(true);
@@ -41,7 +42,7 @@ test("limited mode edits original station and traverse duration/path/sequence wh
   const row = await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
 
   await row.getByText("Alpha station", { exact: true }).click();
-  await expect(page.getByText("Station Information", { exact: true })).toBeVisible();
+  await expect.element(page.getByText("Station Information", { exact: true })).toBeVisible();
   await savePlanningField(page, "Time in minutes", "24");
   await expect
     .poll(async () => (await mission.read()).stations[mission.ids.rexStationA].duration)
@@ -49,20 +50,20 @@ test("limited mode edits original station and traverse duration/path/sequence wh
 
   const stationName = planningField(page, "Station");
   await stationName.click();
-  await expect(page.locator("dialog[open]")).toHaveCount(0);
-  await expect(page.getByLabel("Edit on Map", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "LatitudeStation" })).toHaveCount(0);
-  await expect(page.getByRole("textbox", { name: "LongitudeStation" })).toHaveCount(0);
+  await expect.poll(() => page.getBySelector("dialog[open]").length).toBe(0);
+  await expect.poll(() => page.getByLabelText("Edit on Map", { exact: true }).length).toBe(0);
+  await expect.poll(() => page.getByRole("textbox", { name: "LatitudeStation" }).length).toBe(0);
+  await expect.poll(() => page.getByRole("textbox", { name: "LongitudeStation" }).length).toBe(0);
   expect((await mission.read()).stations[mission.ids.rexStationA].location).toEqual(
     initial.stations[mission.ids.rexStationA].location
   );
 
   await row.getByText("Alpha to Bravo", { exact: true }).click();
-  await expect(page.getByLabel("Edit Path on Map", { exact: true })).toBeVisible();
+  await expect.element(page.getByLabelText("Edit Path on Map", { exact: true })).toBeVisible();
   await savePlanningField(page, "Duration", "9");
   const pathBefore = (await mission.read()).traverses[mission.ids.rexTraverseA].path;
   await expect(pathBefore).toHaveLength(3);
-  await page.getByLabel("Reset Path", { exact: true }).click();
+  await page.getByLabelText("Reset Path", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).traverses[mission.ids.rexTraverseA].path)
     .not.toEqual(pathBefore);
@@ -71,9 +72,9 @@ test("limited mode edits original station and traverse duration/path/sequence wh
     .toBe(2);
   const stationItem = row
     .getByText("Alpha station", { exact: true })
-    .locator('xpath=ancestor::div[contains(@class,"evaItem_")][1]');
-  await expect(stationItem.locator('svg[data-icon="arrow-down"]')).toBeVisible();
-  await stationItem.locator('svg[data-icon="arrow-down"]').click();
+    .getBySelector('xpath=ancestor::div[contains(@class,"evaItem_")][1]');
+  await expect.element(stationItem.getBySelector('svg[data-icon="arrow-down"]')).toBeVisible();
+  await stationItem.getBySelector('svg[data-icon="arrow-down"]').click();
   await expect
     .poll(async () => (await mission.read()).evas[mission.ids.rexEvaA].sequence)
     .not.toEqual(initial.evas[mission.ids.rexEvaA].sequence);
@@ -91,7 +92,7 @@ test("limited mode edits original station and traverse duration/path/sequence wh
     initial.evas[mission.ids.evaA].sequence
   );
 
-  await mission.open(page);
+  await mission.open();
   await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
   expect((await mission.read()).traverses[mission.ids.rexTraverseA].path).not.toEqual(pathBefore);
   expect((await mission.read()).traverses[mission.ids.rexTraverseA].duration).toBe(9);
@@ -116,15 +117,15 @@ test("limited additions register editable station/traverse/actions and cleanly d
   const initialEditState = before.rexes[mission.ids.rexA].executeEditState!;
   const row = await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
 
-  await row.getByLabel("Add Station", { exact: true }).click();
+  await row.getByLabelText("Add Station", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).evas[mission.ids.rexEvaA].sequence.length)
     .toBe(before.evas[mission.ids.rexEvaA].sequence.length + 2);
   const emptyStationChoice = row.getByRole("combobox").filter({
-    has: page.locator(`option[value="${SPARE_STATION}"]`),
+    has: page.getBySelector(`option[value="${SPARE_STATION}"]`),
   });
-  await expect(emptyStationChoice).toHaveCount(1);
-  await emptyStationChoice.selectOption(SPARE_STATION);
+  await expect.poll(() => emptyStationChoice.length).toBe(1);
+  await emptyStationChoice.selectOptions(SPARE_STATION);
   await expect
     .poll(
       async () =>
@@ -154,17 +155,17 @@ test("limited additions register editable station/traverse/actions and cleanly d
   const addedStationName = afterPick.stations[addedStationUuid!].name;
   expect(addedStationName).toContain("Spare limited station");
   const addedStationChoice = row.getByRole("combobox").filter({
-    has: page.locator(`option[value="${addedStationUuid}"]`),
+    has: page.getBySelector(`option[value="${addedStationUuid}"]`),
   });
-  const addedSequenceRow = addedStationChoice.locator(
+  const addedSequenceRow = addedStationChoice.getBySelector(
     'xpath=ancestor::div[contains(@class,"evaItem_")][1]'
   );
-  await addedSequenceRow.locator('[class*="iconCustom"]').click();
+  await addedSequenceRow.getBySelector('[class*="iconCustom"]').click();
   await savePlanningField(page, "Station", "Added station editable");
   await savePlanningField(page, "Time in minutes", "31");
   const locationDialog = await openPlanningField(page, "LatitudeStation");
-  await locationDialog.getByLabel("LatitudeStation", { exact: true }).fill("0.002");
-  await locationDialog.getByLabel("LongitudeStation", { exact: true }).fill("0.004");
+  await locationDialog.getByLabelText("LatitudeStation", { exact: true }).fill("0.002");
+  await locationDialog.getByLabelText("LongitudeStation", { exact: true }).fill("0.004");
   await locationDialog.getByText("Save", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).stations[addedStationUuid!].location)
@@ -172,8 +173,11 @@ test("limited additions register editable station/traverse/actions and cleanly d
 
   const traverseName = (await mission.read()).traverses[addedTraverseUuid!].name;
   expect(traverseName).toContain("Added station editable");
-  await row.locator('[class*="evaTraverseNameText"]').filter({ hasText: "Lander Ingress" }).click();
-  await expect(page.getByLabel("Edit Path on Map", { exact: true })).toBeVisible();
+  await row
+    .getBySelector('[class*="evaTraverseNameText"]')
+    .filter({ hasText: "Lander Ingress" })
+    .click();
+  await expect.element(page.getByLabelText("Edit Path on Map", { exact: true })).toBeVisible();
   await mission.change((doc) => {
     const traverse = doc.traverses[addedTraverseUuid!];
     const [start, end] = traverse.path;
@@ -187,7 +191,7 @@ test("limited additions register editable station/traverse/actions and cleanly d
     .poll(async () => (await mission.read()).traverses[addedTraverseUuid!].path.length)
     .toBe(3);
   const newTraversePath = (await mission.read()).traverses[addedTraverseUuid!].path;
-  await page.getByLabel("Reset Path", { exact: true }).click();
+  await page.getByLabelText("Reset Path", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).traverses[addedTraverseUuid!].path)
     .not.toEqual(newTraversePath);
@@ -196,8 +200,8 @@ test("limited additions register editable station/traverse/actions and cleanly d
     .toBe(2);
   await savePlanningField(page, "Duration", "13");
 
-  await addedSequenceRow.locator('[class*="iconCustom"]').click();
-  await page.getByLabel("actions_panel", { exact: true }).click();
+  await addedSequenceRow.getBySelector('[class*="iconCustom"]').click();
+  await page.getByLabelText("actions_panel", { exact: true }).click();
   await page.getByText("Add Action", { exact: true }).click();
   const addedActionState = before.rexes[mission.ids.rexA].executeEditState!;
   await expect
@@ -219,8 +223,8 @@ test("limited additions register editable station/traverse/actions and cleanly d
   const createdCard = page.getByRole("listitem").filter({
     has: planningField(page, "Action Name").filter({ hasText: "Added limited action" }),
   });
-  await createdCard.locator('svg[data-icon="ellipsis-vertical"]').click();
-  await page.locator("dialog[open]").getByText("Duplicate Action", { exact: true }).click();
+  await createdCard.getBySelector('svg[data-icon="ellipsis-vertical"]').click();
+  await page.getBySelector("dialog[open]").getByText("Duplicate Action", { exact: true }).click();
   await expect
     .poll(
       async () =>
@@ -240,9 +244,9 @@ test("limited additions register editable station/traverse/actions and cleanly d
       hasText: withDuplicate.actions[duplicateUuid!].name,
     }),
   });
-  await duplicateCard.locator('svg[data-icon="ellipsis-vertical"]').click();
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.locator("dialog[open]").getByText("Delete Action", { exact: true }).click();
+  await duplicateCard.getBySelector('svg[data-icon="ellipsis-vertical"]').click();
+  vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+  await page.getBySelector("dialog[open]").getByText("Delete Action", { exact: true }).click();
   await expect.poll(async () => (await mission.read()).actions[duplicateUuid!]).toBeUndefined();
   await expect
     .poll(
@@ -250,7 +254,7 @@ test("limited additions register editable station/traverse/actions and cleanly d
     )
     .not.toContain(duplicateUuid);
 
-  await addedSequenceRow.locator('svg[data-icon="trash"]').click();
+  await addedSequenceRow.getBySelector('svg[data-icon="trash"]').click();
   await expect
     .poll(async () => (await mission.read()).evas[mission.ids.rexEvaA].sequence)
     .not.toContainEqual({ type: "station", uuid: addedStationUuid });
@@ -266,6 +270,6 @@ test("limited additions register editable station/traverse/actions and cleanly d
   expect(afterDelete.stations[SPARE_STATION]).toEqual(planningBefore.stations[SPARE_STATION]);
   expect(afterDelete.evas[mission.ids.evaA]).toEqual(planningBefore.evas[mission.ids.evaA]);
 
-  await mission.open(page);
+  await mission.open();
   await expect.poll(async () => (await mission.read()).stations[addedStationUuid!]).toBeUndefined();
 });

@@ -1,6 +1,7 @@
-import { randomUUID } from "node:crypto";
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
+import { vi } from "vitest";
+import { v4 as randomUUID } from "uuid";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test, expect } from "./missionHarness";
 import {
   enablePlanningEditMode,
   planningEvaRow,
@@ -110,15 +111,15 @@ test("each definition category blocks all action parents, templates and rules un
     };
   });
   const arranged = await mission.read();
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   const openDefinitions = async (client: Page) => {
-    await client.getByLabel("mission Section", { exact: true }).click();
-    await client.getByLabel("actionDefinitions_panel", { exact: true }).click();
+    await client.getByLabelText("mission Section", { exact: true }).click();
+    await client.getByLabelText("actionDefinitions_panel", { exact: true }).click();
   };
   await openDefinitions(page);
   for (const name of ["Collect", "Core", "Frozen"]) {
-    page.once("dialog", async (dialog) => {
+    vi.spyOn(window, "alert").mockImplementationOnce((message) => {
       for (const expected of [
         "Action in Station: Alpha station",
         "Action in POI: Reference POI",
@@ -126,13 +127,14 @@ test("each definition category blocks all action parents, templates and rules un
         "Rule in STM Item: 1a1",
         "Action Template: Referenced template",
       ])
-        expect(dialog.message()).toContain(expected);
-      await dialog.accept();
+        expect(String(message)).toContain(expected);
+
+      return true;
     });
     await page
-      .getByLabel("actionDefs-item", { exact: true })
+      .getByLabelText("actionDefs-item", { exact: true })
       .filter({ hasText: name })
-      .getByLabel("deleteButton", { exact: true })
+      .getByLabelText("deleteButton", { exact: true })
       .click();
   }
   expect((await mission.read()).actionDefinitions).toEqual(arranged.actionDefinitions);
@@ -140,59 +142,60 @@ test("each definition category blocks all action parents, templates and rules un
     if (parent === "station") await selectPlanningStationActions(page, "Alpha station");
     else if (parent === "poi") {
       await selectPlanningPoi(page, "Reference POI");
-      await page.getByLabel("actions_panel", { exact: true }).click();
+      await page.getByLabelText("actions_panel", { exact: true }).click();
     } else {
       await selectPlanningEva(page, "Survey Alpha");
       await planningEvaRow(page, "Survey Alpha")
         .getByText("Alpha to Bravo", { exact: true })
         .click();
-      await page.getByLabel("actions_panel", { exact: true }).click();
+      await page.getByLabelText("actions_panel", { exact: true }).click();
     }
-    await page.getByRole("listitem").locator('svg[data-icon="ellipsis-vertical"]').click();
-    page.once("dialog", (dialog) => dialog.accept());
-    await page.locator("dialog[open]").getByText("Delete Action", { exact: true }).click();
-    await expect(page.getByRole("listitem")).toHaveCount(0);
+    await page.getByRole("listitem").getBySelector('svg[data-icon="ellipsis-vertical"]').click();
+    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    await page.getBySelector("dialog[open]").getByText("Delete Action", { exact: true }).click();
+    await expect.poll(() => page.getByRole("listitem").length).toBe(0);
   }
   await openDefinitions(page);
   for (const name of ["Collect", "Core", "Frozen"]) {
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toContain("Rule in STM Item: 1a1");
-      expect(dialog.message()).toContain("Action Template: Referenced template");
-      expect(dialog.message()).not.toContain("Action in ");
-      await dialog.accept();
+    vi.spyOn(window, "alert").mockImplementationOnce((message) => {
+      expect(String(message)).toContain("Rule in STM Item: 1a1");
+      expect(String(message)).toContain("Action Template: Referenced template");
+      expect(String(message)).not.toContain("Action in ");
+
+      return true;
     });
     await page
-      .getByLabel("actionDefs-item", { exact: true })
+      .getByLabelText("actionDefs-item", { exact: true })
       .filter({ hasText: name })
-      .getByLabel("deleteButton", { exact: true })
+      .getByLabelText("deleteButton", { exact: true })
       .click();
   }
-  await page.getByLabel("actionTemplate_panel", { exact: true }).click();
+  await page.getByLabelText("actionTemplate_panel", { exact: true }).click();
   await page
-    .getByLabel("templateList-item", { exact: true })
-    .getByLabel("Template Menu", { exact: true })
+    .getByLabelText("templateList-item", { exact: true })
+    .getByLabelText("Template Menu", { exact: true })
     .click();
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.locator("dialog[open]").getByLabel("Delete", { exact: true }).click();
+  vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+  await page.getBySelector("dialog[open]").getByLabelText("Delete", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).actionTemplates[ids.template])
     .toBeUndefined();
-  await page.getByLabel("stmRules Section", { exact: true }).click();
+  await page.getByLabelText("stmRules Section", { exact: true }).click();
   await page.getByText("Rules", { exact: true }).click();
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.getByLabel("deleteRule", { exact: true }).click();
+  vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+  await page.getByLabelText("deleteRule", { exact: true }).click();
   await expect.poll(async () => (await mission.read()).stmRules[ids.rule]).toBeUndefined();
   await openDefinitions(page);
   for (const name of ["Collect", "Core", "Frozen"])
     await page
-      .getByLabel("actionDefs-item", { exact: true })
+      .getByLabelText("actionDefs-item", { exact: true })
       .filter({ hasText: name })
-      .getByLabel("deleteButton", { exact: true })
+      .getByLabelText("deleteButton", { exact: true })
       .click();
   await expect
     .poll(async () => (await mission.read()).actionDefinitions)
     .toEqual({ verbs: {}, nouns: {}, adjectives: {} });
-  await mission.open(page);
+  await mission.open();
   await openDefinitions(page);
-  await expect(page.getByLabel("actionDefs-item", { exact: true })).toHaveCount(0);
+  await expect.poll(() => page.getByLabelText("actionDefs-item", { exact: true }).length).toBe(0);
 });
