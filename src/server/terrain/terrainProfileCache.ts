@@ -140,6 +140,7 @@ export function watchTerrainCache(handle: DocHandle<Mission>): void {
   watched.add(handle);
   let previous: Set<string> | undefined;
   const checkForDeletedEntities = () => {
+    if (!handle.isReady()) return;
     const mission = handle.doc();
     if (!mission?.id) return;
     const current = new Set([

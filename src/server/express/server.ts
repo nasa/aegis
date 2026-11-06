@@ -177,9 +177,13 @@ initializeBase64Wasm(automergeWasmBase64);
   // Observe storage loads before catalog population and running missions load documents.
   const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
   await populateMissionCatalogOnce(missionRepo);
-  globalValues.automergeRepo.on("document", ({ handle }) => {
-    watchTerrainCache(handle as DocHandle<Mission>);
-    watchLanderElevation(handle as DocHandle<Mission>);
+  // Repo 2.5.6 reports document loads/saves through metrics; it no longer emits "document".
+  missionRepo.on("doc-metrics", ({ type, documentId }) => {
+    if (type !== "doc-loaded" && type !== "doc-saved" && type !== "doc-compacted") return;
+    const handle = missionRepo.handles[documentId] as DocHandle<Mission> | undefined;
+    if (!handle) return;
+    watchTerrainCache(handle);
+    watchLanderElevation(handle);
   });
   await loadRunningMissionDocuments(missionRepo);
   server.listen(4001, () => {

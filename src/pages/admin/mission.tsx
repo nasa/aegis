@@ -23,6 +23,9 @@ type RouteParams = {
   automergeUrl: string;
 };
 
+const formatDemResolution = (resolution: number | null): string =>
+  resolution == null ? "unknown" : Number(resolution.toPrecision(10)).toString();
+
 const Mission: React.FunctionComponent = () => {
   const maestroStatus = useAsyncStatus();
   const planetStatus = useAsyncStatus();
@@ -492,14 +495,15 @@ const Mission: React.FunctionComponent = () => {
                         )}
                       {dems.map((dem) => (
                         <option key={dem.filePath} value={dem.filePath} disabled={!!dem.error}>
-                          {dem.filePath.slice(5)} - {dem.error || `${dem.resolution} m/pixel`}
+                          {dem.filePath.slice(5)} -{" "}
+                          {dem.error || `${formatDemResolution(dem.resolution)} m/pixel`}
                         </option>
                       ))}
                     </select>
                     <p className={adminCommon.formHint}>
                       GeoTIFFs in this mission's Data folder. Resolution is detected from the file.
                       {automergeMission.demFilePath &&
-                        ` Current resolution: ${automergeMission.demResolution ?? "unknown"} m/pixel.`}
+                        ` Current resolution: ${formatDemResolution(automergeMission.demResolution)} m/pixel.`}
                     </p>
                     <button
                       type="button"

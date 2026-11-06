@@ -57,10 +57,20 @@ test("selects a planet and derives LGRS from the mission location", async () => 
 });
 
 test("lists nested DEMs with detected resolution, disables invalid files, and saves selection", async () => {
+  mission = { ...mission, demFilePath: "Data/NAC_DTM_APOLLO14.TIF", demResolution: 2.000000000006 };
+  vi.mocked(getMissionDems).mockResolvedValue([
+    { filePath: "Data/nested/elevation.tif", resolution: 0.5000000000000001, error: null },
+    { filePath: "Data/NAC_DTM_APOLLO14.TIF", resolution: 2.000000000006, error: null },
+    { filePath: "Data/broken.tiff", resolution: null, error: "Missing georeferencing" },
+  ]);
   render();
   await expect
     .element(page.getByRole("option", { name: "nested/elevation.tif - 0.5 m/pixel" }))
     .toBeInTheDocument();
+  await expect
+    .element(page.getByRole("option", { name: "NAC_DTM_APOLLO14.TIF - 2 m/pixel" }))
+    .toBeInTheDocument();
+  expect(harness.container.textContent).toContain("Current resolution: 2 m/pixel.");
   const invalid = harness.container.querySelector<HTMLOptionElement>(
     'option[value="Data/broken.tiff"]'
   );
