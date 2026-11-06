@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import {
   faAtlas,
   faBarcode,
@@ -77,7 +78,7 @@ const RightActionBody: FunctionComponent<{
   const gridSystem = useMissionCoordinateSystem();
   const partialMission = useMissionDocSelector(
     (mission) => ({
-      planetRadius: mission.planetRadius,
+      planetRadius: getPlanetRadius(mission),
       actionSystemVersion: mission.actionSystemVersion,
     }),
     deepEqual

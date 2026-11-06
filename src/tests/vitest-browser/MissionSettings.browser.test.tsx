@@ -44,7 +44,7 @@ beforeEach(() => {
 });
 afterEach(() => harness.unmount());
 
-test("selects a planet and derives LGRS from the mission location", async () => {
+test("selects a planet and derives its coordinate system", async () => {
   render();
   await expect.element(page.getByLabelText("Planet", { exact: true })).toBeVisible();
   await page.getByLabelText("Planet", { exact: true }).selectOptions("mars");
@@ -119,7 +119,7 @@ test.each([
   ).toBe(expected);
 });
 
-test("south-pole Moon missions have automatic LGRS and no uploaded-grid controls; Earth keeps them", () => {
+test("Moon missions have automatic LGRS and no uploaded-grid controls; Earth keeps them", () => {
   render();
   expect(harness.container.textContent).toContain("The LGRS grid is generated dynamically");
   expect(harness.container.textContent).not.toContain("Server File Grid");
@@ -127,4 +127,24 @@ test("south-pole Moon missions have automatic LGRS and no uploaded-grid controls
   mission = { ...mission, planet: "earth" };
   render();
   expect(harness.container.textContent).toContain("Server File Grid");
+});
+
+test.each([-85, 0, 85])("Moon latitude %s uses dynamic LGRS", (lat) => {
+  mission.landerLocation = { lat, lng: 0 };
+  render();
+  expect(harness.container.textContent).toContain("across the whole Moon");
+  expect(harness.container.textContent).not.toContain("Server File Grid");
+});
+
+test("Earth without an upload uses dynamic grids; an upload selects the custom grid", () => {
+  mission.planet = "earth";
+  render();
+  expect(harness.container.textContent).toContain("The Earth grid is generated dynamically");
+  mission = {
+    ...mission,
+    serverFileGrid: { name: "Custom", fileName: "grid.json", numRows: 2, numCols: 2 },
+  };
+  render();
+  expect(harness.container.textContent).toContain("Using the uploaded Earth grid");
+  expect(harness.container.textContent).toContain("Default Label Scheme");
 });

@@ -12,12 +12,6 @@ export const getPlanetRadius = (mission: Pick<Mission, "planet"> | null | undefi
 export const supportsUploadedGrid = (mission: Pick<Mission, "planet">): boolean =>
   mission.planet === "earth";
 
-/** The current LGRS implementation supports the lunar south polar cap. */
-export const usesLgrsCoordinates = (
-  mission: Pick<Mission, "planet" | "landerLocation">
-): boolean => {
-  const latitude = mission.landerLocation?.lat;
-  return (
-    mission.planet === "moon" && Number.isFinite(latitude) && latitude < -80 && latitude >= -90
-  );
-};
+/** Uploaded Earth grids use custom labels; dynamic Earth and Moon grids use the library. */
+export const usesGridCoordinates = (mission: Pick<Mission, "planet" | "serverFileGrid">): boolean =>
+  mission.planet === "moon" || (mission.planet === "earth" && !mission.serverFileGrid);

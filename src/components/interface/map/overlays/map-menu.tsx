@@ -162,7 +162,9 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   const dynamicGrid = resolvedGrid.kind === "dynamic-lgrs";
   const gridSpacingOptions = useMemo(
     () =>
-      getGridSpacingOptions(dynamicGrid ? getFixedGridSpacings(gridSystem) : FILE_GRID_SPACINGS),
+      getGridSpacingOptions(
+        dynamicGrid && gridSystem ? getFixedGridSpacings(gridSystem) : FILE_GRID_SPACINGS
+      ),
     [dynamicGrid, gridSystem]
   );
   let baseGridSpacing = 0;
