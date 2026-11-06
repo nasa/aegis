@@ -87,9 +87,15 @@ describe("formatEarthAcc (from E/N)", () => {
     );
   });
 
-  test("rejects a latitude outside the crs", () => {
-    expect(formatEarthAcc(utm(15), 300000, 3275000, -0.1, 10, "full")).toBeNull();
-    expect(formatEarthAcc(EARTH_CRS_UPS_NORTH, 2000000, 2000000, 80, 10, "full")).toBeNull();
+  test("labels a point outside the crs region in that crs", () => {
+    expect(formatEarthAcc(utm(15), 300000, 3275000, -0.1, 10, "full")).toBe("15MUNAD -00 -00");
+    expect(formatEarthAcc(EARTH_CRS_UPS_NORTH, 2000000, 2000000, 80, 10, "full")).toBe(
+      "ZAHAA -00 -00"
+    );
+  });
+
+  test("rejects an invalid latitude or E/N outside the lettered squares", () => {
+    expect(formatEarthAcc(utm(15), 300000, 3275000, 91, 10, "full")).toBeNull();
     expect(formatEarthAcc(utm(15), 50000, 3275000, 29.6, 10, "full")).toBeNull();
   });
 });

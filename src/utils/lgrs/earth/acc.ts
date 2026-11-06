@@ -63,8 +63,8 @@ function accAxis(within: number, precision: EarthAccPrecision, count: number): s
 /**
  * ACC string for the point `[e, n]` in `crs` with latitude `lat` (formatting from E/N, no
  * projection). `"condensed"` gives `X51 W77`, `"full"` gives `15RTNDC X51 W77`; at 25 km both are
- * the prefix alone. Null when `lat` is outside the crs's latitude range or E/N is outside the
- * lettered MGRS squares.
+ * the prefix alone. The band comes from `getEarthPointBandLetter`. Null for an invalid latitude or
+ * E/N outside the lettered MGRS squares.
  */
 export function formatEarthAcc(
   crs: LgrsCrsId,

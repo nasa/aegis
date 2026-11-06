@@ -175,32 +175,42 @@ describe("formatMgrs (from E/N)", () => {
     expect(formatMgrs(utm(28), 500000, 7100000, 64, 1000)).toBe("28W ES 00 00");
   });
 
-  test("rejects a latitude outside the crs", () => {
-    expect(formatMgrs(utm(15), 300000, 3200000, -1, 10)).toBeNull();
-    expect(formatMgrs(utm(15), 300000, 3200000, 84, 10)).toBeNull();
-    expect(formatMgrs(utm(15, "S"), 300000, 3200000, 0, 10)).toBeNull();
-    expect(formatMgrs(utm(15, "S"), 300000, 3200000, -80.1, 10)).toBeNull();
-    expect(formatMgrs(EARTH_CRS_UPS_NORTH, 2000000, 2000000, 83.9, 10)).toBeNull();
-    expect(formatMgrs(EARTH_CRS_UPS_SOUTH, 2000000, 2000000, -80, 10)).toBeNull();
+  test("labels a point outside the crs region in that crs, with the band clamped to C–X", () => {
+    expect(formatMgrs(utm(15), 300000, 3200000, -1, 10)).toBe("15M UN 0000 0000");
+    expect(formatMgrs(utm(15), 300000, 3200000, 84, 10)).toBe("15X UN 0000 0000");
+    expect(formatMgrs(utm(15, "S"), 300000, 3200000, 0, 10)).toBe("15N UN 0000 0000");
+    expect(formatMgrs(utm(15, "S"), 300000, 3200000, -80.1, 10)).toBe("15C UN 0000 0000");
+    expect(formatMgrs(EARTH_CRS_UPS_NORTH, 2000000, 2000000, 83.9, 10)).toBe("Z AH 0000 0000");
+    expect(formatMgrs(EARTH_CRS_UPS_SOUTH, 2000000, 2000000, -80, 10)).toBe("B AN 0000 0000");
+  });
+
+  test("rejects an invalid crs or latitude", () => {
     expect(formatMgrs(-1, 2000000, 2000000, 0, 10)).toBeNull();
+    expect(formatMgrs(utm(15), 300000, 3200000, 90.1, 10)).toBeNull();
+    expect(formatMgrs(utm(15), 300000, 3200000, NaN, 10)).toBeNull();
   });
 });
 
 describe("band letters for points and boxes", () => {
-  test("validates the point latitude against the crs", () => {
+  test("takes the point band from the latitude, clamped to C–X", () => {
     expect(getEarthPointBandLetter(utm(15), 29.5)).toBe("R");
     expect(getEarthPointBandLetter(utm(15), 0)).toBe("N");
     expect(getEarthPointBandLetter(utm(15, "S"), -80)).toBe("C");
     expect(getEarthPointBandLetter(EARTH_CRS_UPS_NORTH, 84)).toBe("");
     expect(getEarthPointBandLetter(EARTH_CRS_UPS_SOUTH, -90)).toBe("");
+    expect(getEarthPointBandLetter(utm(15), -1)).toBe("M");
+    expect(getEarthPointBandLetter(utm(15), 85)).toBe("X");
+    expect(getEarthPointBandLetter(utm(15, "S"), -85)).toBe("C");
+    expect(getEarthPointBandLetter(EARTH_CRS_UPS_NORTH, 0)).toBe("");
     expect(getEarthPointBandLetter(utm(15), NaN)).toBeNull();
+    expect(getEarthPointBandLetter(utm(15), -90.1)).toBeNull();
   });
 
-  test("clamps the box band to the crs", () => {
+  test("clamps the box band to C–X", () => {
     expect(getEarthBoxBandLetter(utm(15), 500000, 9350000)).toBe("X");
     expect(getEarthBoxBandLetter(utm(15, "S"), 500000, 1050000)).toBe("C");
-    expect(getEarthBoxBandLetter(utm(15, "S"), 500000, 10050000)).toBe("M");
-    expect(getEarthBoxBandLetter(utm(15), 500000, -50000)).toBe("N");
+    expect(getEarthBoxBandLetter(utm(15, "S"), 500000, 10050000)).toBe("N");
+    expect(getEarthBoxBandLetter(utm(15), 500000, -50000)).toBe("M");
     expect(getEarthBoxBandLetter(EARTH_CRS_UPS_SOUTH, 2000000, 2000000)).toBe("");
     expect(getEarthBoxBandLetter(-1, 2000000, 2000000)).toBeNull();
   });

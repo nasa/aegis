@@ -25,7 +25,6 @@ import {
   getEarthLatitudeBandLetter,
   getUpsBandLetter,
   getUtmZone,
-  isSouthEarthCrs,
 } from "./zones";
 
 /**
@@ -116,30 +115,32 @@ export function getMgrsSquareId(crs: LgrsCrsId, e: number, n: number): string | 
   return computeSquare(crs, Math.floor(e), Math.floor(n), parts) ? parts.square : null;
 }
 
+/** UTM band letter of `lat` clamped to [-80, 84), so latitudes past the UTM/UPS seams give C or X. */
+function getClampedUtmBandLetter(lat: number): string {
+  if (lat < UTM_MIN_LATITUDE) return "C";
+  if (lat >= UTM_MAX_LATITUDE) return "X";
+  return getEarthLatitudeBandLetter(lat);
+}
+
 /**
- * Band letter for a point readout at latitude `lat` in `crs`: the UTM band, or `""` for UPS (the
- * band comes from E). Null when `lat` is outside the crs's latitude range (UTM N `[0, 84)`,
- * UTM S `[-80, 0)`, UPS N `[84, 90]`, UPS S `[-90, -80)`).
+ * Band letter for a point at latitude `lat` in `crs`: the UTM band of `lat` clamped to C–X, or
+ * `""` for UPS (the band comes from E). Any latitude in [-90, 90] is accepted, so a point outside
+ * the crs's own region is still labelled in that crs. Null for an invalid crs or latitude.
  */
 export function getEarthPointBandLetter(crs: LgrsCrsId, lat: number): string | null {
-  if (crs === EARTH_CRS_UPS_SOUTH) return lat >= -90 && lat < UTM_MIN_LATITUDE ? "" : null;
-  if (crs === EARTH_CRS_UPS_NORTH) return lat >= UTM_MAX_LATITUDE && lat <= 90 ? "" : null;
-  if (getUtmZone(crs) === 0) return null;
-  if (isSouthEarthCrs(crs) ? !(lat >= UTM_MIN_LATITUDE && lat < 0) : !(lat >= 0)) return null;
-  return getEarthLatitudeBandLetter(lat) || null;
+  if (!(lat >= -90 && lat <= 90)) return null;
+  if (crs === EARTH_CRS_UPS_SOUTH || crs === EARTH_CRS_UPS_NORTH) return "";
+  return getUtmZone(crs) === 0 ? null : getClampedUtmBandLetter(lat);
 }
 
 /**
  * Band letter for a box label: the UTM band at the latitude of `[e, n]` (the box centre)
- * unprojected in `crs`, clamped to the crs's hemisphere and to C–X, or `""` for UPS.
+ * unprojected in `crs`, clamped to C–X, or `""` for UPS.
  */
 export function getEarthBoxBandLetter(crs: LgrsCrsId, e: number, n: number): string | null {
   if (crs === EARTH_CRS_UPS_SOUTH || crs === EARTH_CRS_UPS_NORTH) return "";
   if (getUtmZone(crs) === 0 || !unprojectEarthToLatLon(e, n, crs, scratch)) return null;
-  const lat = scratch[0];
-  if (isSouthEarthCrs(crs))
-    return lat < UTM_MIN_LATITUDE ? "C" : lat >= 0 ? "M" : getEarthLatitudeBandLetter(lat);
-  return lat < 0 ? "N" : lat >= UTM_MAX_LATITUDE ? "X" : getEarthLatitudeBandLetter(lat);
+  return getClampedUtmBandLetter(scratch[0]);
 }
 
 /** Digits per axis at an MGRS precision, or −1 for an unsupported precision. */
@@ -177,7 +178,8 @@ function buildMgrs(precision: EarthMgrsPrecision, count: number): string {
 /**
  * Canonical MGRS for the point `[e, n]` in `crs` with latitude `lat` (formatting from E/N, no
  * projection), e.g. `15R TN 9751 7177` at 10 m, `15R TN` at 100 km, `Z AH 0000 0000` in UPS.
- * Null when `lat` is outside the crs's latitude range or E/N is outside the lettered squares.
+ * The band comes from `getEarthPointBandLetter`. Null for an invalid latitude or E/N outside the
+ * lettered squares.
  */
 export function formatMgrs(
   crs: LgrsCrsId,
