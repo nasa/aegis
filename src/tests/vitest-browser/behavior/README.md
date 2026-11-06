@@ -89,11 +89,7 @@ Action and map-editing browser parity now lives here. The remaining Playwright
 parity covers smoke, actual keyboard downloads, raster/tile assets, presence,
 crew sources, celestial peer edits and rule-transfer delivery.
 
-The [migration record](../../../../docs/testing/browser-behavior-migration-2026-11-05.md)
-contains the moved specifications, discovery counts and measured runtimes.
-The [expansion record](../../../../docs/testing/browser-behavior-expansion-2026-11-06.md)
-records the larger second pass and retained integration boundaries.
-
-The [completion record](../../../../docs/testing/browser-runner-completion-2026-11-06.md)
-contains the final scenario ledgers, retained integration requirements, measured
-comparisons and coverage/JUnit integrity checks for the remaining suite.
+Use the tests as the current scenario inventory. Record migration mappings,
+measured runtimes and validation results in the MR description or CI artifacts.
+The [CI layout](../../../../docs/testing/ci-layout.md) explains shard selection
+and coverage/JUnit verification.
