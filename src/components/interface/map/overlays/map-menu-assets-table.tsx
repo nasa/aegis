@@ -554,7 +554,10 @@ const AssetRow: FunctionComponent<{
               className={styles.emojiBackground}
               style={{ backgroundColor: asset.color ? withAlpha(asset.color, 0.5) : "transparent" }}
             >
-              <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
+              <EmojiRenderer
+                iconValue={asset.icon || DEFAULT_ASSET_ICON}
+                textClassName={styles.emojiGlyph}
+              />
             </span>
             <span className={styles.assetName} title={asset.name}>
               {asset.name}

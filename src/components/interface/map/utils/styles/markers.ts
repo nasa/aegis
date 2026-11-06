@@ -17,7 +17,7 @@
 import { Style, Stroke, Icon, Circle as CircleStyle } from "ol/style";
 import type { FeatureLike } from "ol/Feature";
 import type { ModeConfig } from "../modeConfig";
-import { renderEmojiToCanvas } from "../emojiRenderer";
+import { createEmojiIcon } from "../emojiIcon";
 
 export function buildStationStyleFunction(
   config: ModeConfig,
@@ -41,22 +41,12 @@ export function buildStationStyleFunction(
       ? 9999
       : config.station.zIndexOffset + (feature.get("zIndex") || 0);
 
-    // Main marker icon (emoji rendered to canvas). Size is mode-driven so the
+    // Main marker icon. Size is mode-driven so the
     // dashboard can render stations larger to match the astronaut/pos icons.
     const iconSize = config.station.iconSize;
-    // renderEmojiToCanvas backs the canvas at devicePixelRatio; the Icon's
-    // width/height (logical px) scale it back down so it stays crisp on HiDPI.
-    const canvas = renderEmojiToCanvas(emoji || "2754", iconSize);
     styles.push(
       new Style({
-        image: new Icon({
-          img: canvas,
-          width: iconSize,
-          height: iconSize,
-          anchor: [0.5, 0.5],
-          anchorXUnits: "fraction",
-          anchorYUnits: "fraction",
-        }),
+        image: createEmojiIcon(emoji || "2754", iconSize),
         zIndex: baseZIndex,
       })
     );
@@ -99,17 +89,9 @@ export function buildPoiStyleFunction(
     const baseZIndex = isSelected ? 9999 : 0;
 
     // Marker icon
-    const canvas = renderEmojiToCanvas(emoji || "1f534", iconSize);
     styles.push(
       new Style({
-        image: new Icon({
-          img: canvas,
-          width: iconSize,
-          height: iconSize,
-          anchor: [0.5, 0.5],
-          anchorXUnits: "fraction",
-          anchorYUnits: "fraction",
-        }),
+        image: createEmojiIcon(emoji || "1f534", iconSize),
         zIndex: baseZIndex,
       })
     );
@@ -138,17 +120,9 @@ export function buildActionStyleFunction(
     const baseZIndex = isSelected ? 9999 : 0;
 
     // Marker icon
-    const canvas = renderEmojiToCanvas(emoji || "2754", iconSize);
     styles.push(
       new Style({
-        image: new Icon({
-          img: canvas,
-          width: iconSize,
-          height: iconSize,
-          anchor: [0.5, 0.5],
-          anchorXUnits: "fraction",
-          anchorYUnits: "fraction",
-        }),
+        image: createEmojiIcon(emoji || "2754", iconSize),
         zIndex: baseZIndex,
       })
     );
@@ -192,17 +166,9 @@ export function buildAssetStyleFunction(
         })
       );
     }
-    const canvas = renderEmojiToCanvas(emoji, iconSize);
     styles.push(
       new Style({
-        image: new Icon({
-          img: canvas,
-          width: iconSize,
-          height: iconSize,
-          anchor: [0.5, 0.5],
-          anchorXUnits: "fraction",
-          anchorYUnits: "fraction",
-        }),
+        image: createEmojiIcon(emoji, iconSize),
         zIndex: baseZIndex,
       })
     );
