@@ -221,6 +221,7 @@ export const AssetDetails: FunctionComponent<{
               ],
             }}
             onSubmit={(text) => {
+              if (text.trim() === formattedLocation.trim()) return;
               const result = text.trim()
                 ? parseCoordinateEntry(text, coordinateContext)
                 : { location: null, error: null };
