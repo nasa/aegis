@@ -14,7 +14,7 @@ npm run test:vitest:browser -- planning.browser.test.tsx
 The workflows also run in `npm run test:vitest:browser`, `npm run test:all` and
 browser coverage collection. Install browsers with `npx playwright install`.
 Chromium runs every workflow. Firefox and WebKit also run the action, accessibility,
-map-editing and celestial-control parity workflows. Responsive accessibility
+map-editing, celestial-control, smoke, crew-source and slope-legend parity workflows. Responsive accessibility
 checks run at device pixel ratio 2 in each browser.
 `npm run test:vitest:browser:parity` runs the Firefox/WebKit projects separately.
 V8 coverage requires Chromium's CDP, so `test:coverage:browser` selects the two
@@ -37,6 +37,20 @@ within the test, as a reload would. Between tests, cookies, local/session storag
 document handles, terrain subscriptions, map observation, Date overrides, dialog
 spies, loaded grids and HTTP stubs are cleaned up. `mission.openDashboard()` uses
 the same fixture to mount the real dashboard and minimap.
+
+`mission.addMission(name)` creates another seeded document in the same Repo and
+returns the same `read`, `change` and `open` controls. Declare the mission catalog
+HTTP response with `requestHandlers` and use the real menu to test mission
+switching. `mission.open({ path, waitForReady: false })` can arrange a route while
+hydration is pending or failing; `mission.navigate(path)` arranges a route
+transition without remounting. Assert readiness explicitly in those tests. These
+fixture controls arrange route boundaries; use native controls for the user
+interaction being asserted. Home, version-check, admin export and admin STM
+routes share the existing fixture providers.
+
+Concurrent runs must set distinct `VITEST_BROWSER_PORT` and
+`VITEST_BROWSER_CACHE_DIR` values. Browser tests use a separate optimizer cache
+from the development application even when these overrides are absent.
 
 The harness serves a mission schema generated from current source types using
 the production schema command's options. Validation and hydration audits remain
@@ -68,8 +82,8 @@ all document/relationship assertions when moving a test.
 Keep real authentication/authorization, REST contracts, database persistence,
 restart/recovery, socket protocols, downloads, and multiple simultaneous UI
 clients in Playwright. Remounting verifies UI rehydration from the in-memory
-document; it does not verify server persistence. `planning.spec.ts` retains the
-server-backed rename/reload and JSON download anchors. The retained execution
+document; it does not verify server persistence. `stationGraph.spec.ts` retains the server-backed rename/peer/reload anchor;
+`exports.spec.ts` retains combined JSON download delivery, including the saved planning graph. The retained execution
 specifications exercise dashboard synchronization and concurrent clients.
 Action and map-editing browser parity now lives here. The remaining Playwright
 parity covers smoke, actual keyboard downloads, raster/tile assets, presence,
@@ -79,3 +93,7 @@ The [migration record](../../../../docs/testing/browser-behavior-migration-2026-
 contains the moved specifications, discovery counts and measured runtimes.
 The [expansion record](../../../../docs/testing/browser-behavior-expansion-2026-11-06.md)
 records the larger second pass and retained integration boundaries.
+
+The [completion record](../../../../docs/testing/browser-runner-completion-2026-11-06.md)
+contains the final scenario ledgers, retained integration requirements, measured
+comparisons and coverage/JUnit integrity checks for the remaining suite.
