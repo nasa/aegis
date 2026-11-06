@@ -2,6 +2,7 @@ import type { FunctionComponent } from "react";
 
 import assetStyles from "./map-menu-assets.module.css";
 import posStyles from "./map-menu-pos.module.css";
+import { getPlanetRadius } from "utils/planets";
 import { deepEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
@@ -16,7 +17,7 @@ export const PositionWalkback: FunctionComponent<{
   const walkback = useMissionDocSelector(
     (m) => ({
       landerLocation: m.landerLocation,
-      planetRadius: m.planetRadius,
+      planetRadius: getPlanetRadius(m),
       traverseRate: m.evas?.[evaUuid]?.traverseRate || m.traverseRate,
     }),
     deepEqual

@@ -146,7 +146,7 @@ beforeEach(() => {
     delete (mockMissionDoc as Record<string, unknown>)[key];
   mockMissionDoc.assets = {};
   mockMissionDoc.folders = {};
-  mockMissionDoc.usingLGRSCoordinates = false;
+  mockMissionDoc.planet = "mars";
 });
 
 afterEach(() => harness.unmount());
@@ -859,13 +859,12 @@ describe("MapAssetsMenu", () => {
     }
   );
 
-  it.each([false, true])(
-    "does not submit an unchanged position (LGRS: %s)",
-    async (usingLGRSCoordinates) => {
+  it.each(["mars", "earth", "moon"] as const)(
+    "does not submit an unchanged position (planet: %s)",
+    async (planet) => {
       const point = { lat: -89.500012345, lng: 45.200012345 };
-      mockMissionDoc.usingLGRSCoordinates = usingLGRSCoordinates;
+      mockMissionDoc.planet = planet;
       mockMissionDoc.landerLocation = point;
-      mockMissionDoc.planetRadius = 1737400;
       const asset = generateBlankAsset({ name: "Drill", location: point });
       mockMissionDoc.assets = { [asset.uuid]: asset };
       store = makeStore(true);

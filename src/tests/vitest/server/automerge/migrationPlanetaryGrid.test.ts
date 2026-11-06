@@ -1,9 +1,8 @@
 import * as Automerge from "@automerge/automerge";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { AUTOMERGE_MIGRATIONS, getPendingAutomergeMigrations } from "server/automerge/migrations";
-import { Migration20261105000000 as selectPlanet } from "server/automerge/migrations/Migration20261105000000";
 import { Migration20261106000000 as selectGrid } from "server/automerge/migrations/Migration20261106000000";
-import { Migration20261107000000 as deriveGrid } from "server/automerge/migrations/Migration20261107000000";
+import { Migration20261107000000 as configureMission } from "server/automerge/migrations/Migration20261107000000";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { getMissionGridSystemId } from "utils/lgrs/system";
 import { currentMissionValidator } from "utils/validateSchemaServer";
@@ -15,7 +14,7 @@ test.each([
   ["moon", 1737400, "moon-m2025"],
   ["mars", 3389500, null],
 ] as const)(
-  "migrates historical %s documents across either branch's deployment order",
+  "migrates historical %s documents with or without a prior grid deployment",
   async (planet, planetRadius, expectedSystem) => {
     const serverFileGrid = { name: "Custom", fileName: "custom.json", numRows: 2, numCols: 2 };
     for (const gridAlreadyApplied of [false, true]) {
@@ -33,10 +32,14 @@ test.each([
           doc = Automerge.change(doc, update);
         },
       } as unknown as DocHandle<Mission>;
+      const completed = AUTOMERGE_MIGRATIONS.filter(
+        (migration) =>
+          migration !== configureMission && (gridAlreadyApplied || migration !== selectGrid)
+      );
       if (gridAlreadyApplied) await selectGrid.migrate(handle, null);
-      await selectPlanet.migrate(handle, null);
-      if (!gridAlreadyApplied) await selectGrid.migrate(handle, null);
-      await deriveGrid.migrate(handle, null);
+      for (const migration of getPendingAutomergeMigrations(AUTOMERGE_MIGRATIONS, completed)) {
+        await migration.migrate(handle, null);
+      }
       const mission = Automerge.toJS(doc) as unknown as Mission;
       expect(mission.planet).toBe(planet);
       expect(getMissionGridSystemId(mission)).toBe(expectedSystem);
@@ -47,18 +50,16 @@ test.each([
       expect(mission.serverFileGrid).toEqual(planet === "earth" ? serverFileGrid : null);
       expect(currentMissionValidator(mission)).toBe(true);
       const heads = Automerge.getHeads(doc);
-      await deriveGrid.migrate(handle, null);
+      await configureMission.migrate(handle, null);
       expect(Automerge.getHeads(doc)).toEqual(heads);
     }
   }
 );
 
-test("runs the planet migration even if the later grid migration is already recorded", () => {
+test("runs the combined mission migration when the inherited grid migration is already recorded", () => {
   const pending = getPendingAutomergeMigrations(
     AUTOMERGE_MIGRATIONS,
-    AUTOMERGE_MIGRATIONS.filter(
-      (migration) => migration !== selectPlanet && migration !== deriveGrid
-    )
+    AUTOMERGE_MIGRATIONS.filter((migration) => migration !== configureMission)
   );
-  expect(pending).toEqual([selectPlanet, deriveGrid]);
+  expect(pending).toEqual([configureMission]);
 });

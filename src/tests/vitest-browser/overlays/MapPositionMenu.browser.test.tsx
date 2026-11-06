@@ -325,8 +325,8 @@ describe("MapPositionMenu", () => {
   it("shows draft details as soon as a new position is placed and updates them before saving", () => {
     setRex();
     mockMissionDoc.landerLocation = { lat: 0, lng: 0 };
-    // One degree along the equator is 1 km; prefer the EVA's 2 km/h over the mission's 4.
-    mockMissionDoc.planetRadius = 180_000 / Math.PI;
+    // Use lunar distances; prefer the EVA's 2 km/h over the mission's 4.
+    mockMissionDoc.planet = "moon";
     mockMissionDoc.traverseRate = 4;
     mockMissionDoc.evas = {
       "eva-uuid-1": { traverseRate: 2 } as Eva,
@@ -374,25 +374,25 @@ describe("MapPositionMenu", () => {
       store.dispatch(
         rexSlice.actions.setPosEntryInEditLocation({
           uuid: "draft",
-          location: { lat: 0, lng: 1 },
+          location: { lat: 0, lng: 0.01 },
           elevationPending: true,
         })
       );
     });
-    expect(detail("lander-distance")).toBe("1000");
-    expect(detail("walkback")).toBe("30");
+    expect(detail("lander-distance")).toBe("303");
+    expect(detail("walkback")).toBe("10");
 
     flushSync(() =>
       store.dispatch(
         rexSlice.actions.setPosEntryInEditLocation({
           uuid: "draft",
-          location: { lat: 0, lng: 2 },
+          location: { lat: 0, lng: 0.02 },
           elevationPending: true,
         })
       )
     );
-    expect(detail("lander-distance")).toBe("2000");
-    expect(detail("walkback")).toBe("60");
+    expect(detail("lander-distance")).toBe("606");
+    expect(detail("walkback")).toBe("19");
     expect(mockMissionDoc.rexes![REX_UUID].posEntries).toEqual([]);
 
     // Missing lander information uses the same fallback as the saved-position view.

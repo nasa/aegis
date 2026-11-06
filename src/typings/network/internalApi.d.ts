@@ -9,6 +9,8 @@ type TerrainProfilePostData = {
   pathSegmentDistances: number[];
   entityUuid?: string;
   getElevationOnly?: boolean;
+  /** Reject sampling until the selected DEM has synced to the server. */
+  expectedDem?: Pick<Mission, "demFilePath" | "demResolution">;
   /** Drag previews skip the database cache. */
   preview?: boolean;
 };
