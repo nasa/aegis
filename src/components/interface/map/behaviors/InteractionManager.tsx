@@ -98,7 +98,7 @@ function saveItemPosition(
       dispatch(thunkDocUpdatePosEntryWithLocation({ location, posEntryUuid: uuid }));
       break;
     case "asset":
-      dispatch(thunkSetAssetEditLocation({ location, uuid, saveImmediately: true }));
+      dispatch(thunkSetAssetEditLocation({ location, uuid }));
       break;
   }
 }

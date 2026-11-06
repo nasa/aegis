@@ -56,6 +56,7 @@ import {
 } from "store/thunk/thunkAsset";
 import { DEFAULT_ASSET_ICON, getAssetFolderUuidByItem } from "utils/assets";
 import { formatCoordinateEntry } from "utils/coordinateEntry";
+import { AssetEditor } from "./map-menu-assets-editor";
 import { AssetDetails } from "./map-menu-asset-details";
 import { withAlpha } from "../utils/layers/layerFactory";
 
@@ -582,7 +583,7 @@ const AssetRow: FunctionComponent<{
                   items={[
                     {
                       icon: isEditing ? faBan : faEdit,
-                      label: isEditing ? "Turn Off Edit Mode" : "Edit Asset",
+                      label: isEditing ? "Cancel Edit" : "Edit Asset",
                       onClick: () =>
                         isEditing ? dispatch(thunkCancelAssetEdit()) : onEdit(asset.uuid),
                     },
@@ -609,13 +610,17 @@ const AssetRow: FunctionComponent<{
       {isExpanded && (
         <tr className={styles.assetDetailRow} data-testid={`asset-detail-row-${asset.uuid}`}>
           <td colSpan={columnCount} className={styles.assetDetailCell}>
-            <AssetDetails
-              asset={asset}
-              inEdit={isEditing ? inEdit : null}
-              canEdit={canEdit}
-              canMutate={canMutate}
-              coordinateContext={coordinateContext}
-            />
+            {isEditing ? (
+              <AssetEditor
+                key={inEdit.uuid}
+                inEdit={inEdit}
+                asset={asset}
+                canMutate={canMutate}
+                coordinateContext={coordinateContext}
+              />
+            ) : (
+              <AssetDetails asset={asset} coordinateContext={coordinateContext} />
+            )}
           </td>
         </tr>
       )}

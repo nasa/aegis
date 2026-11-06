@@ -41,14 +41,14 @@ export const assetSlice = createSlice({
       }
       state.inEdit.values = { ...state.inEdit.values, ...action.payload };
     },
-    /** Rebase fields saved independently while keeping the item's edit mode on. */
-    syncAssetInEditFields: (
+    /** Capture a PET value together with the REX that supplied it. */
+    setAssetInEditPet: (
       state,
-      action: { payload: { uuid: string; changes: Partial<AssetEditValues> } }
+      action: { payload: Pick<AssetEditValues, "petSeconds" | "petRex"> }
     ) => {
-      if (state.inEdit?.uuid !== action.payload.uuid || state.inEdit.isNew) return;
-      Object.assign(state.inEdit.values, action.payload.changes);
-      Object.assign(state.inEdit.base, action.payload.changes);
+      if (!state.inEdit) return;
+      state.inEdit.values.petSeconds = action.payload.petSeconds;
+      state.inEdit.values.petRex = action.payload.petRex;
     },
     /** Accept or clear an in-edit location and its timestamp. */
     setAssetInEditLocation: (
@@ -113,7 +113,7 @@ export const {
   setExpandedAssetUuid,
   setAssetInEdit,
   updateAssetInEditValues,
-  syncAssetInEditFields,
+  setAssetInEditPet,
   setAssetInEditLocation,
   setAssetInEditElevation,
   clearAssetInEdit,

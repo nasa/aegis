@@ -43,12 +43,12 @@ type AssetEditValues = Pick<
   | "petRex"
 >;
 
-/** Creation draft, or an existing asset's edit mode and pending position preview. */
+/** Unsaved Add or Edit session, including the map position preview. */
 interface AssetInEdit {
   uuid: string;
   isNew: boolean;
   values: AssetEditValues;
-  /** Baseline for unsaved changes; rebased after field saves. Null for a new asset. */
+  /** Baseline used to save only changed fields. Null for a new asset. */
   base: AssetEditValues | null;
   /** True while an elevation fetch for `values.location` is in flight. */
   elevationPending: boolean;

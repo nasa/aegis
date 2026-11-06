@@ -297,7 +297,6 @@ describe("InteractionManager", () => {
     expect(vi.mocked(thunkSetAssetEditLocation)).toHaveBeenCalledWith({
       uuid: "asset-1",
       location: { lat: 30, lng: 50 },
-      saveImmediately: true,
     });
     expect(vi.mocked(thunkDocUpdatePoiLocation)).not.toHaveBeenCalled();
     expect(store.getState().map.mapDirective).toBeNull();
