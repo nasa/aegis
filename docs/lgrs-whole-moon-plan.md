@@ -173,8 +173,8 @@ Oracle-verified examples (10 m ACC):
 | `grid/plan.ts`  | Whole-Moon dynamic render plan (§6.3). Replaces `createDynamicLgrsRenderPlan`.                                                       |
 | `grid/clip.ts`  | Region membership, boundary bisection, adaptive densification.                                                                       |
 
-`southLps.ts` and `dynamicGrid.ts` become thin compatibility re-exports during the migration and
-are deleted at the end. All shared types (`LgrsCrsId`, `LgrsPrecision`, `LgrsLabel`, `LgrsExtent`,
+`southLps.ts` and `dynamicGrid.ts` are deleted. Every caller is rewired to the new modules in the
+same change, so no compatibility re-exports are needed. All shared types (`LgrsCrsId`, `LgrsPrecision`, `LgrsLabel`, `LgrsExtent`,
 `LgrsRenderPlan`, …) move to a new ambient `src/typings/lgrs.d.ts`, as the repo's type
 conventions require.
 
@@ -327,36 +327,77 @@ assert properties against the oracle data:
 Upgrade procedure for future lgrs versions: bump the pin, regenerate into a new versioned fixture
 folder, review the diff, and switch the tests over.
 
-## 9. Phased delivery
+## 9. Delivery
 
-Each phase is a separately reviewable MR and keeps `npm run test:all` green.
-
-1. **Oracle and corpus.** Add `scripts/lgrs-reference/`, generate `fixtures/lgrs/0.4.0/`, and
-   remove the generator from the legacy pipeline.
-   _Done when_ the fixtures are committed and the metadata pins `v0.4.0` / `1f11a12a`.
-2. **Core math and formatting.** Add `constants`, `crs`, `projection`, `format`, and
-   `src/typings/lgrs.d.ts`. Run the existing south tests through the new modules via re-exports.
-   _Done when_ there are 0 corpus mismatches across all files, the south tests are unchanged, and
-   the bench budgets in §6.1 are met.
-3. **Display wiring.** Add `display.ts` and `mapAdapter.ts`, rewire `getGridCoordinatesFromPoint`,
-   the panes, `export.ts`, and `MouseCoordinateDisplay` (rAF + change-only `setState`). Fix the
-   `"full"` prefix split.
-   _Done when_ the browser test shows correct readouts for an LTM point and a north LPS point, and
-   the `export.test.ts` cases cover LTM.
-4. **Bearings.** Add `bearing.ts` and rewire `getSegmentBearing` and the surf-nav bridge.
-   _Done when_ south bearings are bit-identical and the LTM bearing corpus passes.
-5. **Whole-Moon dynamic grid.** Add `grid/plan.ts` and `grid/clip.ts`, update `Grid.tsx` and the
-   `map-menu` base spacing, and keep minimap mirroring working.
-   _Done when_ the property tests pass, `Grid.browser.test.tsx` covers a Mercator (Apollo 14-like)
-   mission, a north-pole mission and a zone-seam viewport, and the caps hold.
-6. **Gating, docs and E2E.** Replace `isCanonicalSouthLpsMission` with `getLgrsCompatibility(mission)`
-   (Moon sphere radius plus a proj4-parseable projection) and update the admin text. Update
-   `src/components/interface/map/CLAUDE.md` §3/§12. Add a Playwright scenario: an equatorial
-   mission with dynamic LGRS, checking the mouse readout and that the grid renders. Then delete
-   `southLps.ts` / `dynamicGrid.ts` and the 0.3.0 fixtures.
+The work ships as **one MR**. Inside it, each workstream below is its own commit, so reviewers
+can read the MR commit by commit. The full suite (`npm run test:all`) has to pass only on the
+final commit.
 
 No Automerge or database migration is needed: `usingLGRSCoordinates` and
 `gridRenderMode: "dynamic-lgrs"` already exist.
+
+### 9.1 Execution order
+
+The workstreams are grouped into waves by dependency. Workstreams in the same wave own disjoint
+files, so each one can run as a separate sub-agent in the shared working tree.
+
+**Wave 1 — foundations (parallel)**
+
+- **A. Oracle and corpus.** Add `scripts/lgrs-reference/` and the `lgrs:reference-corpus` npm
+  alias. Generate `fixtures/lgrs/0.4.0/` (§8). Remove `generate_lgrs_reference_corpus.py` and its
+  pixi task from the legacy pipeline.
+  _Owns:_ `scripts/lgrs-reference/**`, `fixtures/lgrs/0.4.0/**`, the legacy generator files.
+- **B. Core library.** Add `src/typings/lgrs.d.ts`, `constants.ts`, `crs.ts`, `projection.ts`,
+  `format.ts` and `mapAdapter.ts`, using the §5.2 signatures as the contract. Until A lands,
+  validate against the §4.3 example table. Add `lgrs.bench.ts`.
+  _Owns:_ those files and their unit tests.
+
+_Gate 1 (lead):_ run B against the full 0.4.0 corpus and against the 0.3.0 south fixtures. Both
+must show 0 mismatches before Wave 2 starts. This proves the south results are unchanged. Also
+check the §6.1 per-point bench budgets.
+
+**Wave 2 — consumers (parallel, all built on the B API)**
+
+- **C. Display wiring.** Add `display.ts` and fix the `"full"` prefix split. Rewire
+  `getGridCoordinatesFromPoint`, the station/POI/action/lander panes, `export.ts` and
+  `MouseCoordinateDisplay` (rAF plus change-only `setState`, §6.2). Extend `export.test.ts` with
+  LTM and north LPS cases.
+  _Owns:_ `geoMath.ts`, the panes, `export.ts`, `MouseCoordinateDisplay.tsx`.
+- **D. Bearings.** Add `bearing.ts` and rewire the surf-nav bridge. Add the bearings corpus tests.
+  D does **not** edit `geoMath.ts`. The lead switches `getSegmentBearing` to `getLgrsGridBearing`
+  at integration, along with the invalid-point UI fallback (§7).
+  _Owns:_ `bearing.ts`, `surfNavWrapper.ts`.
+- **E. Whole-Moon grid.** Add `grid/plan.ts` and `grid/clip.ts`. Update `Grid.tsx` and the
+  `map-menu` base spacing, and keep minimap mirroring working. Add the property tests (§8) and the
+  `Grid.browser.test.tsx` cases: a Mercator (Apollo 14-like) mission, a north-pole mission and a
+  zone-seam viewport. E is the critical path. It needs visual iteration in the running app, not
+  only tests.
+  _Owns:_ `grid/**`, `Grid.tsx`, `map-menu`.
+
+**Wave 3 — integration (lead, serial)**
+
+1. Rewire `getSegmentBearing` (from D) and resolve any merge conflicts between workstreams.
+2. Replace `isCanonicalSouthLpsMission` with `getLgrsCompatibility(mission)` (Moon sphere radius
+   plus a proj4-parseable projection) and update the admin text.
+3. Delete `southLps.ts`, `dynamicGrid.ts`, the 0.3.0 fixtures and the old `lgrs.test.ts` cases
+   they covered. Confirm nothing still imports them.
+4. Update `src/components/interface/map/CLAUDE.md` §3/§12.
+5. Add the Playwright scenario: an equatorial mission with dynamic LGRS, checking the mouse
+   readout and that the grid renders.
+6. Run `npm run test:all`, the Playwright suite and the benches. Do a manual check in the running
+   app with a south-pole, north-pole and equatorial mission.
+
+### 9.2 Done when
+
+- 0 corpus mismatches across every 0.4.0 fixture file, and 0 against the 0.3.0 south fixtures
+  (Gate 1) before those fixtures are deleted.
+- The metadata pins `v0.4.0` / `1f11a12a`.
+- South bearings are bit-identical, and the LTM bearing corpus passes.
+- Readouts, panes and exports show correct strings for LTM and north LPS points, including the
+  `"full"` format.
+- The grid property tests and browser tests pass, the caps hold, and the §6.1 budgets are met.
+- No imports of `southLps.ts` / `dynamicGrid.ts` remain, and no LGRS types are exported.
+- `npm run test:all` and the new Playwright scenario pass.
 
 ## 10. Risks and open questions
 
