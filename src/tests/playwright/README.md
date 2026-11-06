@@ -11,8 +11,9 @@ on imported missions 22 or 47 or an execution happening to be running.
 Client-only workflows run in [Vitest Browser Mode](../vitest-browser/behavior/README.md)
 through the real mission page and an in-memory Automerge repo. Both suites form
 the scenario baseline. Keep server, synchronization, download, recovery and selected full-stack browser
-parity here. Client browser parity also runs in Vitest. The [migration expansion record](../../../docs/testing/browser-behavior-expansion-2026-11-06.md)
-preserves the preceding pass. The [completion record](../../../docs/testing/browser-runner-completion-2026-11-06.md) maps every remaining scenario to native assertions or a concrete retained integration boundary.
+parity here. Client browser parity also runs in Vitest. Each Playwright scenario
+must assert a concrete integration boundary; use the tests as the current
+scenario inventory and record migration mappings in the MR description.
 
 ## Run
 

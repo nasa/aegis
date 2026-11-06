@@ -243,7 +243,10 @@ test("invalid numeric input exposes a readable error and prevents saving", async
   await expect
     .element(actionDialog.getByRole("button", { name: "Cancel", exact: true }))
     .toHaveFocus();
-  await userEvent.keyboard("{Enter}");
+  await userEvent.type(
+    actionDialog.getByRole("button", { name: "Cancel", exact: true }),
+    "{Enter}"
+  );
   await expect.poll(() => actionDialog.length).toBe(0);
   expect((await mission.read()).actions[mission.ids.actionA].name).toBe("Sample regolith");
 });

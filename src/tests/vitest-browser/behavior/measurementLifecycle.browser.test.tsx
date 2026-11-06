@@ -17,6 +17,37 @@ function view() {
   };
 }
 const tabs = (page: Page) => page.getBySelector('[class*="measureTabContainer"]');
+test("removing an inactive measurement never selects the deleted tab and leaves the remaining path usable", async ({
+  page,
+  mission,
+}) => {
+  await mission.change((doc) => {
+    doc.demFilePath = "measurement-tab-deletion.dem";
+  });
+  const before = await mission.read();
+  await mission.open();
+  await openMeasurements(page);
+  const add = page.getBySelector('[data-tooltip-content="Add Temporary Measurement"]');
+  await add.click();
+  await expect.poll(() => measurements()).toHaveLength(1);
+  const first = measurements()[0];
+  await add.click();
+  await expect.poll(() => tabs(page).length).toBe(2);
+  const secondUuid = store
+    .getState()
+    .measure.measurements.find(({ uuid }) => uuid !== first.id)!.uuid;
+  await expect.poll(() => measurements().map(({ id }) => id)).toEqual([secondUuid]);
+  const second = measurements()[0];
+
+  await tabs(page).first().getBySelector('[data-tooltip-content="Remove Measurement"]').click();
+  await expect.poll(() => tabs(page).length).toBe(1);
+  expect(store.getState().measure.selectedMeasurementUuid).not.toBe(first.id);
+  expect(store.getState().measure.measurements.map(({ uuid }) => uuid)).toEqual([second.id]);
+  await tabs(page).first().getBySelector('svg[data-icon="ruler"]').click();
+  await expect.poll(() => measurements()).toEqual([second]);
+  expect(await mission.read()).toEqual(before);
+});
+
 for (const zoom of [17, 19]) {
   test(`temporary measurement tabs preserve the map view and stay local through navigation at zoom ${zoom}`, async ({
     page,
