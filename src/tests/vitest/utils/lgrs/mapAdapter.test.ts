@@ -1,7 +1,6 @@
 import proj4 from "proj4";
 
 import { LGRS_CRS_LPS_NORTH, LGRS_CRS_LPS_SOUTH, getLtmCrsId } from "utils/lgrs/crs";
-import { mapCapToLps, lpsToMapCap } from "utils/lgrs/dynamicGrid";
 import { formatLatLonAsLgrs } from "utils/lgrs/format";
 import {
   formatLgrsAtMapCoordinate,
@@ -129,6 +128,15 @@ describe("getLgrsMapAdapter fast paths", () => {
     expect(adapter.latLonToMap(0, Number.POSITIVE_INFINITY, out)).toBe(false);
   });
 });
+
+/** Frozen copies of the pre-0.4.0 south-cap affine helpers. */
+function mapCapToLps([x, y]: [number, number]): [number, number] {
+  return [x * 0.994 + 500000, y * 0.994 + 500000];
+}
+
+function lpsToMapCap([easting, northing]: [number, number]): [number, number] {
+  return [(easting - 500000) / 0.994, (northing - 500000) / 0.994];
+}
 
 describe("LGRS affine relations", () => {
   test("generalises mapCapToLps / lpsToMapCap for the canonical south cap", () => {

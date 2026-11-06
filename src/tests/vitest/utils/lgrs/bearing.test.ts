@@ -8,9 +8,13 @@ import {
   LGRS_CRS_LPS_SOUTH,
 } from "utils/lgrs/crs";
 import { projectLatLon } from "utils/lgrs/projection";
-import { latLonToSouthLps } from "utils/lgrs/southLps";
+import {
+  SURF_NAV_LPS_FALSE_EAST,
+  SURF_NAV_LPS_FALSE_NORTH,
+  SURF_NAV_MOON_K0,
+  SURF_NAV_MOON_MEAN_RADIUS,
+} from "utils/consts";
 import { range_bearing_from_xy } from "utils/surf-nav/orienteering";
-import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 import { createSeededRandom } from "../../helpers/seededRandom";
 
@@ -18,13 +22,37 @@ const DEG = Math.PI / 180;
 const out = new Float64Array(2);
 const outB = new Float64Array(2);
 
-/**
- * The pre-LGRS-0.4.0 south bearing path (surfNavWrapper via `latLonToSouthLps`). Remove this and
- * the random comparison when `southLps.ts` is deleted; the golden values below remain.
- */
+/** Frozen copy of the pre-0.4.0 `latLonToSouthLps` projection, kept as the south reference. */
+function oldSouthLps({ lat, lng }: AEGISPoint): [number, number] {
+  const latitude = (lat * Math.PI) / 180;
+  const longitude = (lng * Math.PI) / 180;
+  const originLatitude = (-90 * Math.PI) / 180;
+  const scale =
+    (2 * SURF_NAV_MOON_K0) /
+    (1 +
+      Math.sin(originLatitude) * Math.sin(latitude) +
+      Math.cos(originLatitude) * Math.cos(latitude) * Math.cos(longitude));
+  const normalize = (value: number) =>
+    Math.abs(value - Math.round(value)) <= 1e-9 ? Math.round(value) : value;
+  return [
+    normalize(
+      SURF_NAV_MOON_MEAN_RADIUS * scale * Math.cos(latitude) * Math.sin(longitude) +
+        SURF_NAV_LPS_FALSE_EAST
+    ),
+    normalize(
+      SURF_NAV_MOON_MEAN_RADIUS *
+        scale *
+        (Math.cos(originLatitude) * Math.sin(latitude) -
+          Math.sin(originLatitude) * Math.cos(latitude) * Math.cos(longitude)) +
+        SURF_NAV_LPS_FALSE_NORTH
+    ),
+  ];
+}
+
+/** The pre-0.4.0 south bearing path: surf-nav planar bearing on the old south projection. */
 function oldSouthBearing(origin: AEGISPoint, destination: AEGISPoint): number {
-  const a = latLonToSouthLps(origin)!;
-  const b = latLonToSouthLps(destination)!;
+  const a = oldSouthLps(origin);
+  const b = oldSouthLps(destination);
   const { range, bearing } = range_bearing_from_xy(b[0], b[1], a[0], a[1]);
   if (range === 0) return 0;
   return bearing >= 360 ? bearing - 360 : bearing;
@@ -70,7 +98,6 @@ function trueAzimuth(origin: AEGISPoint, destination: AEGISPoint): number {
 describe("getLgrsGridBearing() south LPS", () => {
   test.each(SOUTH_GOLDEN)("%j -> %j matches the pre-change bearing", (origin, destination, old) => {
     expect(getLgrsGridBearing(origin, destination)).toBe(old);
-    expect(getBearingFromLatLngPoints(origin, destination)).toBe(old);
   });
 
   test("is bit-identical to the old south path for random south-cap segments", () => {
@@ -91,19 +118,6 @@ describe("getLgrsGridBearing() south LPS", () => {
         expect.fail(`${JSON.stringify([origin, destination])}: ${actual} !== ${expected}`);
       }
       expect(actual >= 0 && actual < 360).toBe(true);
-    }
-  });
-
-  test("getBearingFromLatLngPoints keeps south LPS everywhere, bit-identical to the old path", () => {
-    const random = createSeededRandom(7);
-    for (let i = 0; i < 2000; i++) {
-      const origin = { lat: -90 + random() * 170, lng: random() * 360 - 180 };
-      const destination = { lat: -90 + random() * 170, lng: random() * 360 - 180 };
-      const actual = getBearingFromLatLngPoints(origin, destination);
-      const expected = oldSouthBearing(origin, destination);
-      if (!Object.is(actual, expected)) {
-        expect.fail(`${JSON.stringify([origin, destination])}: ${actual} !== ${expected}`);
-      }
     }
   });
 });
@@ -206,15 +220,6 @@ describe("getLgrsGridBearing() edge cases", () => {
   ])("returns NaN for invalid point %j", (invalid) => {
     expect(getLgrsGridBearing(invalid, valid)).toBeNaN();
     expect(getLgrsGridBearing(valid, invalid)).toBeNaN();
-  });
-
-  test.each([
-    { lat: NaN, lng: 0 },
-    { lat: 0, lng: Infinity },
-    { lat: 91, lng: 0 },
-  ])("getBearingFromLatLngPoints returns 0 for unprojectable point %j", (invalid) => {
-    expect(getBearingFromLatLngPoints(invalid, valid)).toBe(0);
-    expect(getBearingFromLatLngPoints(valid, invalid)).toBe(0);
   });
 
   test("returns NaN when the destination cannot be projected into the origin's CRS", () => {

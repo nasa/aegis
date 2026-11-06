@@ -164,7 +164,6 @@ vi.mock("utils/mapping/geoMath", () => ({
   },
   // passthrough other exports used elsewhere
   getTotalDistance: (..._args: unknown[]) => 0,
-  getBearingFromLatLngPoints: (..._args: unknown[]) => 0,
   getGridCoordinatesFromPoint: (..._args: unknown[]): null => null,
 }));
 

@@ -8,8 +8,9 @@ import {
   getTotalDistance,
   getTrueBearingFromLatLngPoints,
   calcPathDurationMins,
+  formatBearingDegrees,
 } from "utils/mapping/geoMath";
-import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
+import { getLgrsGridBearing } from "utils/lgrs/bearing";
 
 describe("Geomath Functions", () => {
   const earthRadius = 6371000; //6378137;
@@ -251,25 +252,30 @@ describe("getSegmentBearing()", () => {
     });
   });
 
-  describe("LGRS / lunar missions (LPS grid bearing)", () => {
-    test("uses the lunar LPS frame, so an Earth horizontal line does NOT read ~90°", () => {
+  describe("LGRS / lunar missions (grid bearing in the origin's LGRS CRS)", () => {
+    test("an east-west line reads the LTM grid bearing, close to but not exactly 90°", () => {
+      // LTM zone 10N; grid north differs from true north by the meridian convergence.
       const bearing = getSegmentBearing(horizontalWest, horizontalEast, true);
-      // Same points through the LPS south-pole projection → ~338°, not 90°.
-      expect(bearing).toBeCloseTo(338.278, 2);
-      expect(bearing).not.toBeCloseTo(90, 0);
+      expect(bearing).toBeCloseTo(89.8385637380594, 9);
     });
 
-    test("delegates to getBearingFromLatLngPoints", () => {
+    test("delegates to getLgrsGridBearing", () => {
       expect(getSegmentBearing(horizontalWest, horizontalEast, true)).toBe(
-        getBearingFromLatLngPoints(horizontalWest, horizontalEast)
+        getLgrsGridBearing(horizontalWest, horizontalEast)
       );
     });
-  });
 
-  test("LGRS and Mercator disagree for the same Earth segment", () => {
-    const lgrs = getSegmentBearing(horizontalWest, horizontalEast, true);
-    const mercator = getSegmentBearing(horizontalWest, horizontalEast, false);
-    expect(Math.abs(lgrs - mercator)).toBeGreaterThan(1);
+    test("keeps the south LPS grid bearing", () => {
+      const origin: AEGISPoint = { lat: -89.5, lng: 10 };
+      const destination: AEGISPoint = { lat: -89.4, lng: 12 };
+      expect(getSegmentBearing(origin, destination, true)).toBe(
+        getLgrsGridBearing(origin, destination)
+      );
+    });
+
+    test("returns NaN when a point cannot be projected", () => {
+      expect(getSegmentBearing({ lat: 95, lng: 0 }, horizontalEast, true)).toBeNaN();
+    });
   });
 
   test("returns 0 when the segment has no direction", () => {
@@ -331,5 +337,16 @@ describe("calcPathDurationMins()", () => {
 
   test("returns 0 when segmentDistances and traverseRate are both 0", () => {
     expect(calcPathDurationMins([0, 0], 0)).toBe(0);
+  });
+});
+
+describe("formatBearingDegrees()", () => {
+  test("rounds to whole degrees", () => {
+    expect(formatBearingDegrees(89.8385637380594)).toBe("90°");
+    expect(formatBearingDegrees(0)).toBe("0°");
+  });
+
+  test("shows an em dash for a bearing that could not be computed", () => {
+    expect(formatBearingDegrees(NaN)).toBe("—");
   });
 });
