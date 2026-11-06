@@ -111,7 +111,7 @@ Bug-prone details:
   `getLgrsMapProjection` (`utils/lgrs/mapProjection.ts`) — keep all three in sync or the View, the
   converters and the LGRS grid/readout target different CRS.
 - Distances/bearings for traverses/measurements are computed **geodesically from lat/lng**
-  (haversine; with `usingLGRSCoordinates`, the grid-north bearing in the origin's CRS of the
+  (haversine; on Earth and Moon, the grid-north bearing in the origin's CRS of the
   mission's grid system from `utils/lgrs/bearing.ts`, NaN → `—` via `formatBearingDegrees`) in
   `utils/mapping/geoMath.ts`, **not** from
   projected geometry — projected length over-reports on distorted projections (Web Mercator
@@ -135,10 +135,12 @@ no zone tier, so its grid is hidden at continental zoom. CRS ids mean something 
 with their system. `getMissionGridSystem(mission)`
 (`utils/lgrs/system.ts`) resolves a mission's system and its dynamic-grid compatibility;
 components use `useMissionGridSystem()` / `useMissionCoordinateSystem()`
-(`hooks/useMissionGridSystem.ts`, the latter null without `usingLGRSCoordinates`).
-The system comes from `mission.gridSystem` (lunar when unset). The mission admin editor keeps
-this field aligned with the planet radius and enables computed coordinate readouts for dynamic
-grids; server-file mode uses the uploaded grid's readouts. Earth
+(`hooks/useMissionGridSystem.ts`, both null for unsupported bodies such as Mars).
+The reference system comes from `mission.planet`: Moon uses `moon-m2025` globally and
+Earth uses `earth-wgs84`. Earth draws an uploaded grid when `serverFileGrid` is present,
+otherwise its dynamic grid; Moon always uses its dynamic grid. Dynamic coordinate readouts and
+grid-north bearings use the planet's reference system. Uploaded Earth grids retain their
+custom coordinate readouts and true-north bearings. Earth
 missions (`earth-wgs84`) are labelled in the user's override
 (`interface.gridLabelSchemeOverride`, cookie `AEGIS_Grid_Label_Scheme`, set from the map
 menu's Grid Scheme row) or else `mission.earthGridLabelScheme`; the Moon ignores the override.

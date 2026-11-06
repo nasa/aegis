@@ -33,6 +33,10 @@ vi.mock("utils/useAppSelector", async (importOriginal) => ({
 vi.mock("components/admin/fileManager", () => ({ default: (): null => null }));
 vi.mock("components/admin/projection", () => ({ default: (): null => null }));
 vi.mock("components/admin/gridUpload", () => ({ default: (): null => null }));
+vi.mock("http-client/mission", () => ({
+  getMissionDems: async (): Promise<MissionDem[]> => [],
+  updateMissionFields: vi.fn(),
+}));
 vi.mock("packages/getCurrentUser", () => ({ getCurrentUser: vi.fn() }));
 
 let harness: ReactHarness;
@@ -48,7 +52,7 @@ function renderEditor() {
 }
 
 beforeEach(() => {
-  mission = generateBlankMission({ id: 42, planetRadius: 6378137 });
+  mission = generateBlankMission({ id: 42, planet: "earth" });
   changeMission.mockClear();
   harness = createReactHarness();
 });
@@ -56,69 +60,44 @@ beforeEach(() => {
 afterEach(() => harness.unmount());
 
 describe("mission admin grid settings", () => {
-  it("switches Earth labels without changing the grid source or restoring a setup button", async () => {
+  it("switches Earth labels and derives the reference system without persisting it", async () => {
     renderEditor();
-    await expect.element(page.getByRole("radio", { name: "Server File" })).toBeChecked();
-    await expect
-      .element(page.getByRole("radio", { name: "MGRS", exact: true }))
-      .not.toBeInTheDocument();
-    await page.getByRole("radio", { name: "Dynamic Grid" }).click();
     await page.getByRole("radio", { name: "MGRS", exact: true }).click();
     await expect.element(page.getByRole("radio", { name: "MGRS", exact: true })).toBeChecked();
+    expect(mission.earthGridLabelScheme).toBe("mgrs");
+    expect(mission).not.toHaveProperty("gridSystem");
+    expect(mission).not.toHaveProperty("usingLGRSCoordinates");
     await page.getByRole("radio", { name: "ACC (lunar-style letters)" }).click();
-    await expect.element(page.getByRole("radio", { name: "Dynamic Grid" })).toBeChecked();
-    expect(mission.gridSystem).toBe("earth-wgs84");
     expect(mission.earthGridLabelScheme).toBe("lunar-acc");
-    expect(mission.usingLGRSCoordinates).toBe(true);
-    expect(harness.container.querySelector('input[name="gridSystem"]')).toBeNull();
-    await expect.element(page.getByRole("button", { name: /Enable MGRS/ })).not.toBeInTheDocument();
-
-    await page.getByRole("radio", { name: "Server File" }).click();
-    expect(mission.usingLGRSCoordinates).toBe(false);
-    await expect
-      .element(page.getByRole("radio", { name: "MGRS", exact: true }))
-      .not.toBeInTheDocument();
-    await page.getByRole("radio", { name: "Dynamic Grid" }).click();
-    await expect
-      .element(page.getByRole("radio", { name: "ACC (lunar-style letters)" }))
-      .toBeChecked();
+    expect(harness.container.querySelector('input[name="gridRenderMode"]')).toBeNull();
   });
 
-  it("follows radius changes and preserves the Earth label preference across a lunar mission", async () => {
-    mission.gridRenderMode = "dynamic-lgrs";
-    mission.usingLGRSCoordinates = true;
+  it("preserves the Earth preference through lunar and Mars selections", async () => {
     mission.earthGridLabelScheme = "mgrs";
+    mission.planet = "moon";
     renderEditor();
-    await page.getByLabelText("Planet Radius", { exact: true }).fill("1737400");
-    await vi.waitFor(() => expect(mission.gridSystem).toBe("moon-m2025"));
+    expect(harness.container.textContent).toContain("across the whole Moon");
     await expect
       .element(page.getByRole("radio", { name: "MGRS", exact: true }))
       .not.toBeInTheDocument();
-    expect(harness.container.textContent).toContain("Labels use lunar ACC coordinates.");
-    await page.getByLabelText("Planet Radius", { exact: true }).fill("6371000");
-    await vi.waitFor(() => expect(mission.gridSystem).toBe("earth-wgs84"));
+    changeMission((doc) => {
+      doc.planet = "mars";
+    });
+    await vi.waitFor(() =>
+      expect(harness.container.textContent).toContain("No dynamic grid is available for Mars")
+    );
+    changeMission((doc) => {
+      doc.planet = "earth";
+    });
     await expect.element(page.getByRole("radio", { name: "MGRS", exact: true })).toBeChecked();
   });
 
-  it("aligns stale grid settings with the radius and server-file source once on load", async () => {
-    mission.gridSystem = "moon-m2025";
-    mission.usingLGRSCoordinates = true;
-    renderEditor();
-    await vi.waitFor(() => {
-      expect(mission.gridSystem).toBe("earth-wgs84");
-      expect(mission.usingLGRSCoordinates).toBe(false);
-    });
-    expect(changeMission).toHaveBeenCalledTimes(1);
-    expect(harness.container.querySelector('input[name="gridSystem"]')).toBeNull();
-  });
-
-  it("blocks dynamic rendering when the map projection is invalid", async () => {
+  it("explains invalid projections without writing mission fields on load", () => {
     mission.projIsCustom = true;
     mission.projEpsg = "INVALID";
     mission.projProj4String = "+proj=invalid";
     renderEditor();
-    await expect.element(page.getByRole("radio", { name: "Dynamic Grid" })).toBeDisabled();
-    await expect.element(page.getByRole("radio", { name: "Server File" })).toBeChecked();
+    expect(harness.container.textContent).toContain("proj4 can parse");
     expect(changeMission).not.toHaveBeenCalled();
   });
 });

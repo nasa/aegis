@@ -1,4 +1,4 @@
-import { PLANETS, getPlanetRadius, usesLgrsCoordinates } from "utils/planets";
+import { PLANETS, getPlanetRadius, usesGridCoordinates } from "utils/planets";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -12,18 +12,21 @@ test.each(["earth", "moon", "mars"] as const)("distances use the selected %s rad
 test.each([
   ["moon", -80.001, true],
   ["moon", -90, true],
-  ["moon", -80, false],
-  ["moon", 85, false],
-  ["earth", -89, false],
+  ["moon", -80, true],
+  ["moon", 85, true],
+  ["earth", -89, true],
   ["mars", -89, false],
-  ["moon", null, false],
-  ["moon", NaN, false],
-  ["moon", -91, false],
-] as const)("LGRS for %s at latitude %s is %s", (planet, lat, expected) => {
-  expect(
-    usesLgrsCoordinates(generateBlankMission({ planet, landerLocation: { lat, lng: 0 } }))
-  ).toBe(expected);
-});
+  ["moon", null, true],
+  ["moon", NaN, true],
+  ["moon", 0, true],
+] as const)(
+  "grid reference coordinates for %s at latitude %s are enabled: %s",
+  (planet, lat, expected) => {
+    expect(
+      usesGridCoordinates(generateBlankMission({ planet, landerLocation: { lat, lng: 0 } }))
+    ).toBe(expected);
+  }
+);
 
 test("changing planets recalculates saved paths and invalidates terrain profile inputs", () => {
   const points = [

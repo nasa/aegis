@@ -91,8 +91,11 @@ const DEFAULT_SETTINGS: MapMenuSettings = {
 };
 
 /** Whether `mode` is "auto" or one of the grid system's fixed spacings. */
-function isOfferedGridSpacing(mode: GridSpacingMode, system: LgrsGridSystem): boolean {
-  return mode === "auto" || (getFixedGridSpacings(system) as readonly number[]).includes(mode);
+function isOfferedGridSpacing(mode: GridSpacingMode, system: LgrsGridSystem | null): boolean {
+  return (
+    mode === "auto" ||
+    ((system ? getFixedGridSpacings(system) : []) as readonly number[]).includes(mode)
+  );
 }
 
 /**

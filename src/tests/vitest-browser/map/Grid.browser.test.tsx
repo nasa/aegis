@@ -78,13 +78,13 @@ const NORTH_CAP = `+proj=stere +lat_0=90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`;
 const UPS_NORTH =
   "+proj=stere +lat_0=90 +lat_ts=90 +lon_0=0 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs";
 
+let mockGridMode: GridRenderMode = "server-file";
 const mockMissionDoc: Partial<Mission> = {
   id: 1,
-  planetRadius: 1737400,
+  planet: "moon",
   projIsCustom: true,
   projEpsg: "TEST:SOUTH",
   projProj4String: SOUTH_CAP,
-  gridRenderMode: "server-file",
 };
 
 proj4.defs("TEST:SOUTH", SOUTH_CAP);
@@ -112,7 +112,7 @@ const mockGrid = vi.hoisted(() => ({ current: null as MissionGrid | null }));
 
 vi.mock("components/interface/map/hooks/useResolvedMissionGrid", () => ({
   useResolvedMissionGrid: (): ResolvedMissionGrid => {
-    if (mockMissionDoc.gridRenderMode === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
+    if (mockGridMode === "dynamic-lgrs") return { kind: "dynamic-lgrs" };
     return mockGrid.current ? { kind: "server-file", grid: mockGrid.current } : { kind: "none" };
   },
 }));
@@ -389,7 +389,7 @@ function setDynamicView(
   resolution: number
 ): void {
   Object.assign(mockMissionDoc, PROJECTIONS[projection]);
-  mockMissionDoc.gridRenderMode = "dynamic-lgrs";
+  mockGridMode = "dynamic-lgrs";
   const code = PROJECTIONS[projection].projEpsg;
   map.setView(
     new View({ projection: code, center: proj4("EPSG:4326", code, [lon, lat]), resolution })
@@ -430,9 +430,8 @@ function findLayerAtZIndex(zIndex: number): VectorLayer<VectorSource> | null {
 
 beforeEach(() => {
   mockGrid.current = null;
-  mockMissionDoc.gridRenderMode = "server-file";
-  mockMissionDoc.planetRadius = 1737400;
-  mockMissionDoc.gridSystem = undefined;
+  mockGridMode = "server-file";
+  mockMissionDoc.planet = "moon";
   mockMissionDoc.earthGridLabelScheme = undefined;
   Object.assign(mockMissionDoc, PROJECTIONS.south);
   mockBaseSpacing.current = 0;
@@ -545,7 +544,7 @@ describe("Grid", () => {
   });
 
   it("adds dynamic lines and labels without a server grid", () => {
-    mockMissionDoc.gridRenderMode = "dynamic-lgrs";
+    mockGridMode = "dynamic-lgrs";
     store = makeStore({
       preset: {
         ...presetSlice.getInitialState(),
@@ -660,7 +659,7 @@ describe("Grid", () => {
   });
 
   it("dashboard publishes a dynamic-lgrs spacing", async () => {
-    mockMissionDoc.gridRenderMode = "dynamic-lgrs";
+    mockGridMode = "dynamic-lgrs";
     store = makeStore(visibleGridState());
 
     renderGridInBounds("dashboard");
@@ -751,9 +750,9 @@ describe("Grid dynamic LGRS", () => {
     labelTexts().forEach((text, i) => expect(after[i]).toBe(before.get(text)));
   });
 
-  it("draws nothing for a mission off the lunar sphere radius", () => {
+  it("draws nothing for a planet without a dynamic grid", () => {
     setDynamicView("south", -89.99, 0, 1);
-    mockMissionDoc.planetRadius = 1737000;
+    mockMissionDoc.planet = "mars";
     renderGrid();
 
     expect(lineFeatures()).toHaveLength(0);
@@ -802,8 +801,7 @@ describe("Grid dynamic Earth grid", () => {
     resolution: number,
     scheme: GridLabelScheme = "lunar-acc"
   ): void {
-    mockMissionDoc.planetRadius = 6378137;
-    mockMissionDoc.gridSystem = "earth-wgs84";
+    mockMissionDoc.planet = "earth";
     mockMissionDoc.earthGridLabelScheme = scheme;
     setDynamicView(projection, lat, lon, resolution);
   }

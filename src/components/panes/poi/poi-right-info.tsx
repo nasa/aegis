@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 import paneStyles from "../global-pane-styles.module.css";
@@ -39,7 +40,7 @@ const Info_Panel: FunctionComponent<{
   const gridSystem = useMissionCoordinateSystem();
   const partialMission = useMissionDocSelector(
     (mission) => ({
-      planetRadius: mission.planetRadius,
+      planetRadius: getPlanetRadius(mission),
       projBoundsMinY: mission.projBoundsMinY,
       projBoundsMaxY: mission.projBoundsMaxY,
       projBoundsMinX: mission.projBoundsMinX,

@@ -9,6 +9,8 @@ interface Mission {
   description: string | null;
   maestroDocId: string | null;
   missionBanner: string | null;
+  /** Default labels for Earth grids; users may override them in the map menu. */
+  earthGridLabelScheme?: GridLabelScheme;
   actionSystemVersion: number;
   actionDefinitions: ActionDefinitions | null;
   landerLocation: AEGISPoint;

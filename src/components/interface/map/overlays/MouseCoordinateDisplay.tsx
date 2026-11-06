@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 /**
  * MouseCoordinateDisplay — shows lat/lng + grid coordinates under the cursor.
  *
@@ -51,7 +52,7 @@ export function MouseCoordinateDisplay({
   const projIsCustom = useMissionDocSelector((doc) => doc.projIsCustom, refEqual);
   const projEpsg = useMissionDocSelector((doc) => doc.projEpsg, refEqual);
   const projProj4String = useMissionDocSelector((doc) => doc.projProj4String, refEqual);
-  const planetRadius = useMissionDocSelector((doc) => doc.planetRadius, refEqual);
+  const planetRadius = useMissionDocSelector((doc) => getPlanetRadius(doc), refEqual);
   // One instance per `system.key`, so the memo below is keyed by the grid system.
   const gridSystem = useMissionCoordinateSystem();
 

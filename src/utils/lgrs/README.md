@@ -9,7 +9,7 @@ Python oracle, benchmarks, source methodology, and upstream issue notes.
 ## Application boundary
 
 - `system.ts` maps mission settings and user label-scheme overrides to the library's
-  grid systems. Missing mission fields retain lunar defaults.
+  grid systems from the explicit mission planet. Unsupported planets have no grid system.
 - `mapProjection.ts` maps mission projection settings to the library's map projection input.
 - `compatibility.ts` applies mission radius and projection policy and supplies admin messages.
 - `display.ts` adapts `AEGISPoint`, chooses application precision, and supplies UI text.
@@ -27,7 +27,9 @@ The dynamic Earth analog mode uses WGS84 UTM/UPS, with MGRS square IDs underlyin
 its custom 25 km ACC areas. Those areas are anchored on projected 25 km multiples.
 Published USGS terrestrial training grids can have site-specific origins, so their
 lines and condensed labels can differ. Missions that must match those maps use
-manually generated grids in `server-file` mode. Switching label schemes does not
+manually generated grids. Their presence selects `server-file` mode and keeps their
+custom coordinate labels and true-north bearings. Removing an uploaded grid restores
+the dynamic Earth grid. Switching label schemes does not
 change the dynamic grid origin.
 
 Earth missions support ACC and canonical MGRS labels. User overrides affect the

@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import type { FunctionComponent } from "react";
 import { useCallback, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
@@ -78,7 +79,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
       return findGlobalGridCoordsFromPoint(
         resolvedGrid.grid.coordinates,
         automergeMission.landerLocation,
-        automergeMission.planetRadius
+        getPlanetRadius(automergeMission)
       );
     } else {
       return "Not set";

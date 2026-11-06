@@ -1,3 +1,5 @@
+import { Migration20261106000000 } from "server/automerge/migrations/Migration20261106000000";
+import { Migration20261107000000 } from "server/automerge/migrations/Migration20261107000000";
 // @vitest-environment node
 import * as Automerge from "@automerge/automerge";
 import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
@@ -151,6 +153,8 @@ describe("clear Automerge document history", () => {
       Migration20261026000000,
       Migration20261028000000,
       Migration20261105000000,
+      Migration20261106000000,
+      Migration20261107000000,
     ]);
     globalValues.automergeRepo = repo;
 
@@ -160,7 +164,7 @@ describe("clear Automerge document history", () => {
       [
         ...schemaMigrations,
         {
-          version: 20261106000000,
+          version: 20261108000000,
           name: "edit-replacement",
           migrate: async (handle, { docListing }) => {
             expect(handle.url).toBe(docListing.automergeUrl);
@@ -181,7 +185,7 @@ describe("clear Automerge document history", () => {
       const reloaded = await reader.find<Mission>(listing.automergeUrl as AutomergeUrl);
       expect(reloaded.doc().description).toBe("Edited after replacement");
       expect(Automerge.getHistory(reloaded.doc())).toHaveLength(
-        listing.missionId === first.listing.missionId ? 3 : 2
+        listing.missionId === first.listing.missionId ? 5 : 4
       );
     }
     const mission = (await reader.find<Mission>(first.listing.automergeUrl as AutomergeUrl)).doc();

@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 /**
  * TraverseLines — behavior component for traverse polylines on the OL map.
  *
@@ -64,7 +65,7 @@ export function TraverseLines(): null {
     deepEqual
   );
 
-  const planetRadius = useMissionDocSelector((m) => m.planetRadius ?? 1737400, refEqual) as number;
+  const planetRadius = useMissionDocSelector((m) => getPlanetRadius(m), refEqual) as number;
   const gridSystem = useMissionCoordinateSystem();
 
   const selectedTraverseUuid = useMissionDocSelector((m) => {

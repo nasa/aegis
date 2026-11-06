@@ -1,4 +1,4 @@
-import { PLANETS, supportsUploadedGrid, usesLgrsCoordinates } from "utils/planets";
+import { PLANETS, supportsUploadedGrid } from "utils/planets";
 import { getMissionDems, updateMissionFields } from "http-client/mission";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
@@ -17,6 +17,8 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
+
+import { getMissionDefaultLabelScheme, getMissionGridSystem } from "utils/lgrs/system";
 
 type RouteParams = {
   id: string;
@@ -80,6 +82,8 @@ const Mission: React.FunctionComponent = () => {
   const [maestroError, setMaestroError] = useState<string | null>(null);
   const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
+  const grid = automergeMission ? getMissionGridSystem(automergeMission) : null;
+  const isEarthGrid = automergeMission?.planet === "earth";
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
     setMaestroError(null);
@@ -457,12 +461,57 @@ const Mission: React.FunctionComponent = () => {
                   <div className={adminCommon.details}>
                     <p>
                       Coordinates:{" "}
-                      {usesLgrsCoordinates(automergeMission) ? "LGRS" : "Latitude / Longitude"}.
-                      LGRS is selected automatically for Moon missions with a lander south of 80
-                      degrees S.
+                      {isEarthGrid && automergeMission.serverFileGrid
+                        ? `Uploaded grid (${automergeMission.serverFileGrid.name})`
+                        : grid?.system
+                          ? isEarthGrid
+                            ? "Earth (WGS84 UTM/UPS)"
+                            : "LGRS"
+                          : "Latitude / Longitude"}
+                      . The reference system is selected automatically from the mission planet.
                     </p>
-                    {usesLgrsCoordinates(automergeMission) && (
-                      <p>The LGRS grid is generated dynamically. No grid upload is needed.</p>
+                    {automergeMission.planet === "moon" && (
+                      <p>
+                        The LGRS grid is generated dynamically across the whole Moon. No grid upload
+                        is needed.
+                      </p>
+                    )}
+                    {isEarthGrid && (
+                      <>
+                        <p>
+                          {automergeMission.serverFileGrid
+                            ? "Using the uploaded Earth grid. Remove it to use the dynamic grid."
+                            : "The Earth grid is generated dynamically. Upload a custom grid below when needed."}
+                        </p>
+                        <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+                          <legend className={adminStyles.editLabel}>Default Label Scheme</legend>
+                          {(["lunar-acc", "mgrs"] as const).map((scheme) => (
+                            <label key={scheme} className={adminCommon.checkboxItem}>
+                              <input
+                                type="radio"
+                                name="earthGridLabelScheme"
+                                checked={getMissionDefaultLabelScheme(automergeMission) === scheme}
+                                onChange={() =>
+                                  changeAutomergeMission((m) => {
+                                    m.earthGridLabelScheme = scheme;
+                                  })
+                                }
+                              />
+                              {scheme === "mgrs" ? "MGRS" : "ACC (lunar-style letters)"}
+                            </label>
+                          ))}
+                          <p className={adminCommon.formHint}>
+                            Used for the dynamic grid. Users can override its labels from the map
+                            menu.
+                          </p>
+                        </fieldset>
+                      </>
+                    )}
+                    {grid && !grid.compatibility.compatible && grid.system && (
+                      <p>{grid.compatibility.reason}</p>
+                    )}
+                    {automergeMission.planet === "mars" && (
+                      <p>No dynamic grid is available for Mars.</p>
                     )}
                   </div>
                 </section>

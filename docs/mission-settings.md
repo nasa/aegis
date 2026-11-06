@@ -5,15 +5,22 @@ the supported bodies, radii in metres, and map zoom limits. Use `getPlanetRadius
 for geometry and the planet identity for body-specific behavior. Adding a body
 requires a code change; radius and LGRS are no longer editable mission settings.
 
-`usesLgrsCoordinates` enables the current lunar south-pole coordinate implementation
-when the lander latitude is strictly south of 80°S on the Moon. These missions always
-use dynamic LGRS, including through coordinate conversion for other map projections.
-Manual grid uploads are supported only for Earth missions that need a grid. Moon
-missions outside the supported LGRS region and Mars missions have no grid; they do
-not fall back to uploaded grids. Existing uploaded grids are ignored for all non-Earth
-missions, and switching an Earth mission to another body clears its uploaded grid
-metadata. Grid mode is derived, not stored or editable. Calculated Sun/Earth directions
-remain available only for Moon missions.
+`usesGridCoordinates` enables grid coordinates and grid-north bearings for Moon missions
+and Earth missions without an uploaded grid, independently of lander location. The grid library provides global
+lunar LGRS and Earth WGS84 UTM/UPS. Mars uses latitude/longitude and true-north bearings.
+
+Moon missions always use a dynamic grid. Earth missions use an uploaded custom grid
+when `serverFileGrid` is present and otherwise use a dynamic grid. Removing an uploaded
+grid restores the dynamic Earth grid. Uploads are supported only for Earth; switching
+bodies clears uploaded grid metadata. Grid mode and reference system are derived from
+the planet and uploaded metadata, rather than stored or edited independently.
+
+Earth missions store `earthGridLabelScheme` (`lunar-acc` by default, or `mgrs`). Users
+can override coordinate labels in the map menu; exports use the mission default and
+include canonical MGRS coordinates for located Earth items. Uploaded Earth grids keep
+their custom coordinate labels and true-north bearings. Moon labels always use ACC.
+Dynamic grids require a map projection that proj4 can parse. Calculated Sun/Earth
+directions remain available only for Moon missions.
 
 Earth grid uploads use a GeoJSON Point feature collection with `name`, `row_total`,
 and `column_total` at the top level and `id`, `row`, and `column` on each point.
@@ -41,7 +48,7 @@ and `demFilePath`. Setting the DEM path validates the file on the server and sav
 its detected `demResolution` in the same Automerge change; an empty path clears
 both values. The path includes `Data/` automatically in the picker. Clients must
 not send `planetRadius`, `usingLGRSCoordinates`, `gridRenderMode`, `landerElevationMeters`,
-or `demResolution`. The GIS pipeline
+`gridSystem`, or `demResolution`. The GIS pipeline
 uses this API, so the DEM must already exist on the AEGIS server before registration.
 
 Changing a planet recalculates stored traverse and station walkback distances,
@@ -54,3 +61,9 @@ mean-radius Earth), and Mars radii, removes the old fields, and recalculates sav
 distances. Unknown historical radii stop migration with an explicit error so an
 unsupported body cannot silently become the Moon. Existing DEM selections and
 their resolution remain intact until a DEM is selected again.
+
+Migration `20261107000000-derive-grid-system-from-planet` removes the stored grid-system
+selection after the planet and grid-library migrations, preserves Earth label preferences,
+and clears non-Earth uploaded-grid metadata. This supports databases with either branch's
+migrations already applied, including Earth documents whose old radius has been removed.
+Historical migration behavior is preserved.

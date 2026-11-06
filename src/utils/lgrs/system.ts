@@ -1,49 +1,49 @@
+import { usesGridCoordinates } from "utils/planets";
 import { getLgrsCompatibility } from "./compatibility";
 import { getGridSystem } from "@bfeist/planetary-grid-reference";
 
 export { getGridSystem } from "@bfeist/planetary-grid-reference";
 
-/** Label scheme of the Moon, and of an Earth mission without `earthGridLabelScheme`. */
 const DEFAULT_LABEL_SCHEME: GridLabelScheme = "lunar-acc";
 
-/** The grid system a mission uses; lunar when `gridSystem` is not set. */
-export function getMissionGridSystemId(mission: LgrsMissionGridSelection): MissionGridSystemId {
-  return mission.gridSystem ?? "moon-m2025";
+/** The planetary reference system, or null for bodies the library does not support. */
+export function getMissionGridSystemId(
+  mission: Pick<Mission, "planet">
+): MissionGridSystemId | null {
+  switch (mission.planet) {
+    case "earth":
+      return "earth-wgs84";
+    case "moon":
+      return "moon-m2025";
+    default:
+      return null;
+  }
 }
 
-/** A mission's default label scheme, ignoring any user override. */
 export function getMissionDefaultLabelScheme(mission: LgrsMissionGridSelection): GridLabelScheme {
-  return getMissionGridSystemId(mission) === "earth-wgs84"
+  return mission.planet === "earth"
     ? (mission.earthGridLabelScheme ?? DEFAULT_LABEL_SCHEME)
     : DEFAULT_LABEL_SCHEME;
 }
 
-/**
- * A mission's grid system, labelled in the user's scheme override or else the mission default.
- * The override applies only to Earth missions. Cheap: use it where compatibility is not needed
- * (readouts, bearings, exports).
- */
-export function resolveMissionGridSystem(
-  mission: LgrsMissionGridSelection,
-  userSchemeOverride?: GridLabelScheme | null
-): LgrsGridSystem {
-  return getGridSystem(
-    getMissionGridSystemId(mission),
-    getMissionLabelScheme(mission, userSchemeOverride)
-  );
-}
-
-/** The label scheme a mission is shown in: the user's override on Earth, else the default. */
+/** Earth uses the user's label override, then the mission default; Moon always uses ACC. */
 export function getMissionLabelScheme(
   mission: LgrsMissionGridSelection,
   userSchemeOverride?: GridLabelScheme | null
 ): GridLabelScheme {
-  return getMissionGridSystemId(mission) === "earth-wgs84"
+  return mission.planet === "earth"
     ? (userSchemeOverride ?? getMissionDefaultLabelScheme(mission))
     : DEFAULT_LABEL_SCHEME;
 }
 
-/** A mission's grid system and whether its dynamic grid can be drawn. */
+export function resolveMissionGridSystem(
+  mission: LgrsMissionGridSelection,
+  userSchemeOverride?: GridLabelScheme | null
+): LgrsGridSystem | null {
+  const id = getMissionGridSystemId(mission);
+  return id ? getGridSystem(id, getMissionLabelScheme(mission, userSchemeOverride)) : null;
+}
+
 export function getMissionGridSystem(
   mission: LgrsMissionGridFields,
   userSchemeOverride?: GridLabelScheme | null
@@ -52,15 +52,12 @@ export function getMissionGridSystem(
   return { system, compatibility: getLgrsCompatibility(system, mission) };
 }
 
-/**
- * The system for a mission's grid coordinates and grid-north bearings: its grid system when it
- * shows grid coordinates (`usingLGRSCoordinates`), otherwise null.
- */
+/** Uploaded Earth grids keep their site-specific coordinate labels and true-north bearings. */
 export function getMissionCoordinateSystem(
-  mission: LgrsMissionGridSelection & Pick<Mission, "usingLGRSCoordinates">,
+  mission: LgrsMissionGridSelection & Pick<Mission, "serverFileGrid">,
   userSchemeOverride?: GridLabelScheme | null
 ): LgrsGridSystem | null {
-  return mission.usingLGRSCoordinates
+  return usesGridCoordinates(mission)
     ? resolveMissionGridSystem(mission, userSchemeOverride)
     : null;
 }

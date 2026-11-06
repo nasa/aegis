@@ -1,5 +1,6 @@
+import { getPlanetRadius } from "utils/planets";
 /**
- * Grid — behavior component that draws the mission grid lines and labels.
+ * Grid â€” behavior component that draws the mission grid lines and labels.
  *
  * Draws either the server-file grid (a loaded coordinate lattice) or the dynamic grid of the
  * mission's grid system (`createLgrsRenderPlan`: lunar LGRS, or Earth UTM/UPS in ACC or MGRS
@@ -11,7 +12,7 @@
  * ground spacing, so the bounds box on the minimap contains as many grid lines
  * as the dashboard shows. The editor map is unaffected (no provider).
  *
- * Returns null — headless behavior component.
+ * Returns null â€” headless behavior component.
  */
 
 import { useEffect, useRef, useCallback, useMemo } from "react";
@@ -53,7 +54,7 @@ export function Grid(): null {
   const { gridSpacingMode, gridLabelInterval } = useMapMenuContext();
   const resolvedGrid = useResolvedMissionGrid();
 
-  // Dashboard↔minimap grid-density channel. Absent on the editor map.
+  // Dashboardâ†”minimap grid-density channel. Absent on the editor map.
   const dashboardBounds = useOptionalDashboardBoundsContext();
   const publishSpacing = mode === "dashboard" ? dashboardBounds?.setGridSpacing : undefined;
   const inheritedSpacing = mode === "minimap" ? (dashboardBounds?.gridSpacing ?? null) : null;
@@ -61,18 +62,18 @@ export function Grid(): null {
   const projectionConfig = useMissionDocSelector(
     (doc) => ({
       id: doc.id,
-      planetRadius: doc.planetRadius,
+      planet: doc.planet,
       projIsCustom: doc.projIsCustom,
       projEpsg: doc.projEpsg,
       projProj4String: doc.projProj4String,
     }),
     deepEqual
   );
-  const planetRadius = projectionConfig?.planetRadius;
+  const planetRadius = getPlanetRadius(projectionConfig);
   // One instance per `system.key`, so the binding memo is keyed by projection and system.
   const gridSystem = useMissionGridSystem();
   const gridBinding = useMemo(() => {
-    if (!projectionConfig) return null;
+    if (!projectionConfig || !gridSystem) return null;
     const compatibility = getLgrsCompatibility(gridSystem, projectionConfig);
     return compatibility.compatible
       ? getLgrsGridBinding(compatibility.projection, gridSystem)
@@ -189,7 +190,7 @@ export function Grid(): null {
       if (!startGridIdx || !endGridIdx) return null;
 
       // Base spacing (metres between adjacent grid lines), derived from the grid
-      // geometry — the single source of truth (see getGridBaseSpacingMeters).
+      // geometry â€” the single source of truth (see getGridBaseSpacingMeters).
       const baseSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
 
       const basePointsShown =

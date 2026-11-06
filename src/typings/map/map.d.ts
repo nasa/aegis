@@ -116,7 +116,7 @@ type MissionSelectProperties = Pick<
   | "id"
   | "landerLocation"
   | "initialZoom"
-  | "planetRadius"
+  | "planet"
   | "serverFileGrid"
   | "projBoundsMaxX"
   | "projBoundsMaxY"
@@ -130,9 +130,6 @@ type MissionSelectProperties = Pick<
   | "projOriginX"
   | "projOriginY"
   | "circleDefinitions"
-  | "usingLGRSCoordinates"
-  | "gridRenderMode"
-  | "gridSystem"
   | "earthGridLabelScheme"
   | "actionDefinitions"
 >;

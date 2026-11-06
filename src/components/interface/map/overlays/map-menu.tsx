@@ -161,7 +161,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   const missionLabelScheme = useMissionDocSelector(
     (m) =>
       getMissionDefaultLabelScheme({
-        gridSystem: m.gridSystem,
+        planet: m.planet,
         earthGridLabelScheme: m.earthGridLabelScheme,
       }),
     refEqual
@@ -170,7 +170,9 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   const dynamicGrid = resolvedGrid.kind === "dynamic-lgrs";
   const gridSpacingOptions = useMemo(
     () =>
-      getGridSpacingOptions(dynamicGrid ? getFixedGridSpacings(gridSystem) : FILE_GRID_SPACINGS),
+      getGridSpacingOptions(
+        dynamicGrid && gridSystem ? getFixedGridSpacings(gridSystem) : FILE_GRID_SPACINGS
+      ),
     [dynamicGrid, gridSystem]
   );
   let baseGridSpacing = 0;
@@ -703,7 +705,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                 Distances
               </div>
             </div>
-            {gridSystem.id === "earth-wgs84" && (
+            {gridSystem?.id === "earth-wgs84" && (
               <div
                 className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}
                 data-testid="map-menu-grid-scheme"

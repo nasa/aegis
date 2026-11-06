@@ -145,6 +145,8 @@ test.each(["moon", "mars"] as Planet[])(
 test.each([
   { landerElevationMeters: 123 },
   { gridRenderMode: "server-file" },
+  { gridSystem: "earth-wgs84" },
+  { earthGridLabelScheme: "invalid" },
   { planet: "jupiter" },
   { planetRadius: 1737400 },
   { usingLGRSCoordinates: true },
@@ -153,4 +155,13 @@ test.each([
   const response = await supertest(app).post("/mission/fields").send({ missionId: 42, fields });
   expect(response.status).toBe(400);
   expect(change).not.toHaveBeenCalled();
+});
+
+test("updates Earth label preferences through the supported API", async () => {
+  mission.planet = "earth";
+  const response = await supertest(app)
+    .post("/mission/fields")
+    .send({ missionId: 42, fields: { earthGridLabelScheme: "mgrs" } });
+  expect(response.status).toBe(200);
+  expect(mission.earthGridLabelScheme).toBe("mgrs");
 });

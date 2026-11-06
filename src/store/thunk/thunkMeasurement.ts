@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import appCreateAsyncThunk from "./thunkUtil";
 import { thunkFetchTerrainProfile } from "./thunkTerrainProfile";
 import { getSegmentBearing, getTotalDistance } from "utils/mapping/geoMath";
@@ -37,7 +38,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   //calculate new path distances
   const pathSegmentDistances: number[] = [];
   for (let i = 1; i < path.length; i++) {
-    pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], mission.planetRadius));
+    pathSegmentDistances.push(getTotalDistance([path[i - 1], path[i]], getPlanetRadius(mission)));
   }
 
   const gridSystem = getMissionCoordinateSystem(mission);
@@ -157,7 +158,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
       }
     }
 
-    const distance = getTotalDistance(path, mission.planetRadius);
+    const distance = getTotalDistance(path, getPlanetRadius(mission));
 
     const profileResponse = await dispatch(
       thunkFetchTerrainProfile({

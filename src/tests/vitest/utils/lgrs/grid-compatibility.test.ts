@@ -6,7 +6,7 @@ const SOUTH_CAP = `+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`;
 
 const base = {
   id: 3,
-  planetRadius: 1737400,
+  planet: "moon" as const,
   projIsCustom: true,
   projEpsg: "IAU:30135",
   projProj4String: SOUTH_CAP,
@@ -39,13 +39,10 @@ describe("getLgrsCompatibility", () => {
     ).toMatchObject({ compatible: true, projection: { projCode: "EPSG:3857", proj4Def: null } });
   });
 
-  test("requires exactly the lunar sphere radius", () => {
-    for (const planetRadius of [1737000, 1737400.5, null]) {
-      const result = getLgrsCompatibility(moonGridSystem, { ...base, planetRadius });
-      expect(result.compatible).toBe(false);
-      expect(result.projection).toBeNull();
-      expect(result.reason).toMatch(/radius/);
-    }
+  test("rejects a grid system for another planet", () => {
+    const result = getLgrsCompatibility(moonGridSystem, { ...base, planet: "earth" });
+    expect(result).toMatchObject({ compatible: false, projection: null });
+    expect(result.reason).toMatch(/radius/);
   });
 
   test("requires a projection proj4 can parse", () => {
@@ -59,9 +56,7 @@ describe("getLgrsCompatibility", () => {
 
   test("reports no warning for the Moon", () => {
     expect(getLgrsCompatibility(moonGridSystem, base).warning).toBeNull();
-    expect(
-      getLgrsCompatibility(moonGridSystem, { ...base, planetRadius: null }).warning
-    ).toBeNull();
+    expect(getLgrsCompatibility(moonGridSystem, { ...base }).warning).toBeNull();
   });
 
   describe("on earth-wgs84", () => {
@@ -74,7 +69,7 @@ describe("getLgrsCompatibility", () => {
     };
     const webMercator = {
       ...base,
-      planetRadius: 6378137,
+      planet: "earth" as const,
       projIsCustom: false,
       projEpsg: "EPSG:3857",
     };
@@ -88,8 +83,8 @@ describe("getLgrsCompatibility", () => {
     });
 
     test("warns about a radius that is not Earth-scale without blocking", () => {
-      for (const planetRadius of [1737400, null]) {
-        expect(getLgrsCompatibility(earthLike, { ...webMercator, planetRadius })).toMatchObject({
+      for (const planet of ["moon", "mars"] as const) {
+        expect(getLgrsCompatibility(earthLike, { ...webMercator, planet })).toMatchObject({
           compatible: true,
           warning: radiusWarning,
         });
@@ -99,7 +94,7 @@ describe("getLgrsCompatibility", () => {
     test("still requires a projection proj4 can parse", () => {
       const result = getLgrsCompatibility(earthLike, {
         ...base,
-        planetRadius: 1737400,
+        planet: "moon" as const,
         projProj4String: "+proj=notaprojection",
       });
       expect(result).toMatchObject({ compatible: false, projection: null, warning: radiusWarning });
