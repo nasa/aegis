@@ -2,6 +2,7 @@ import type { FunctionComponent } from "react";
 import { useEffect, useRef } from "react";
 import { Picker } from "emoji-mart";
 import emojiPickerData from "@emoji-mart/data";
+import { getCustomEmoji } from "utils/emojis";
 
 /**
  * Component to render both standard Unicode emojis and custom emoji images
@@ -14,22 +15,24 @@ export const EmojiRenderer: FunctionComponent<{
   customSizeEm?: number;
   /** Class applied to image-backed icons; replaces the inline em sizing. */
   imageClassName?: string;
-}> = ({ iconValue, customSizeEm = 1.1, imageClassName }) => {
+  /** Optional wrapper class for Unicode emoji text. */
+  textClassName?: string;
+}> = ({ iconValue, customSizeEm = 1.1, imageClassName, textClassName }) => {
   if (!iconValue) return null;
 
   const imageStyle = imageClassName
     ? undefined
     : { width: `${customSizeEm}em`, height: `${customSizeEm}em` };
 
-  // Handle custom emojis by ID
-  if (iconValue === "station") {
+  const customEmoji = getCustomEmoji(iconValue);
+  if (customEmoji) {
     return (
-      <img src="/images/station.svg" alt="Station" className={imageClassName} style={imageStyle} />
-    );
-  }
-  if (iconValue === "landerIcon") {
-    return (
-      <img src="/images/lander.svg" alt="Lander" className={imageClassName} style={imageStyle} />
+      <img
+        src={customEmoji.src}
+        alt={customEmoji.alt}
+        className={imageClassName}
+        style={imageStyle}
+      />
     );
   }
 
@@ -44,7 +47,7 @@ export const EmojiRenderer: FunctionComponent<{
     return null;
   }
 
-  return <>{emoji}</>;
+  return textClassName ? <span className={textClassName}>{emoji}</span> : <>{emoji}</>;
 };
 
 /**

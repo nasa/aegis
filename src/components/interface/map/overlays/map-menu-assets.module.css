@@ -546,6 +546,11 @@
   border-radius: 45%;
 }
 
+.emojiGlyph {
+  /* Emoji font ink sits below the center of its text box. */
+  transform: translateY(-0.05em);
+}
+
 .iconButton {
   display: flex;
   align-items: center;

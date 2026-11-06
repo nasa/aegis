@@ -22,6 +22,7 @@ dotenv.config({ path: path.resolve(workspaceRoot, ".env"), override: true, quiet
 export default defineConfig(
   mergeConfig(viteConfig, {
     root: workspaceRoot,
+    publicDir: path.resolve(workspaceRoot, "src/public"),
     resolve: {
       alias: aliases,
       // Prevent multiple React copies when third-party deps are pre-bundled —
