@@ -3,14 +3,14 @@
  *
  * Mocks:
  *  - `utils/useDocSelector` — provides the mission's grid system fields
- *  - `useResolvedMissionGrid` — no grid
- *  - `utils/lgrs/system` — stands in a lunar-formatted system for `earth-wgs84`
+ *  - `useResolvedMissionGrid` — no grid, or the dynamic grid
  *
  * Verifies:
  *  - The toggle is hidden on lunar missions
  *  - It shows the active scheme: the user override, else the mission default
  *  - Choosing a scheme stores the override in Redux and a cookie; choosing the mission
  *    default clears it
+ *  - The dynamic grid's fixed spacings follow the active scheme (10 km only in MGRS)
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -23,7 +23,6 @@ import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
 import { MapMenuPanel } from "components/interface/map/overlays/map-menu";
 import { interfaceSlice } from "store/interface";
 import { rexSlice } from "store/rex";
-import type * as SystemModule from "utils/lgrs/system";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 const mockMissionDoc: Partial<Mission> = {};
@@ -33,15 +32,11 @@ vi.mock("utils/useDocSelector", () => ({
     selector(mockMissionDoc as Mission),
 }));
 
-vi.mock("components/interface/map/hooks/useResolvedMissionGrid", () => ({
-  useResolvedMissionGrid: (): ResolvedMissionGrid => ({ kind: "none" }),
-}));
+let mockResolvedGrid: ResolvedMissionGrid = { kind: "none" };
 
-vi.mock("utils/lgrs/system", async (importOriginal) =>
-  (await import("./helpers/earthStandIn")).withEarthStandIn(
-    await importOriginal<typeof SystemModule>()
-  )
-);
+vi.mock("components/interface/map/hooks/useResolvedMissionGrid", () => ({
+  useResolvedMissionGrid: (): ResolvedMissionGrid => mockResolvedGrid,
+}));
 
 const COOKIE = "AEGIS_Grid_Label_Scheme";
 
@@ -76,6 +71,14 @@ function schemeButton(name: "ACC" | "MGRS"): HTMLElement | undefined {
   );
 }
 
+/** Option texts of the map menu's Grid spacing row. */
+function gridSpacingOptions(): string[] {
+  const row = Array.from(harness.container.querySelectorAll("div")).find(
+    (div) => div.firstChild?.nodeType === Node.TEXT_NODE && div.firstChild.textContent === "Grid"
+  );
+  return Array.from(row?.children ?? []).map((option) => option.textContent ?? "");
+}
+
 function activeScheme(): string | undefined {
   return ["ACC", "MGRS"].find(
     (name) => schemeButton(name as "ACC" | "MGRS")?.getAttribute("aria-pressed") === "true"
@@ -85,6 +88,7 @@ function activeScheme(): string | undefined {
 beforeEach(() => {
   for (const key of Object.keys(mockMissionDoc)) delete mockMissionDoc[key as keyof Mission];
   Cookies.remove(COOKIE, { path: "/" });
+  mockResolvedGrid = { kind: "none" };
   store = makeStore();
   harness = createReactHarness();
 });
@@ -132,5 +136,17 @@ describe("map menu grid scheme toggle", () => {
     await vi.waitFor(() => expect(activeScheme()).toBe("ACC"));
     expect(store.getState().interface.gridLabelSchemeOverride).toBeNull();
     expect(Cookies.get(COOKIE)).toBeUndefined();
+  });
+
+  it("offers the active scheme's fixed spacings for the dynamic grid", async () => {
+    mockMissionDoc.gridSystem = "earth-wgs84";
+    mockMissionDoc.earthGridLabelScheme = "lunar-acc";
+    mockResolvedGrid = { kind: "dynamic-lgrs" };
+    renderMenu();
+    expect(gridSpacingOptions()).toEqual(["Auto", "10m", "100m", "1km"]);
+
+    schemeButton("MGRS").click();
+    await vi.waitFor(() => expect(activeScheme()).toBe("MGRS"));
+    expect(gridSpacingOptions()).toEqual(["Auto", "10m", "100m", "1km", "10km"]);
   });
 });
