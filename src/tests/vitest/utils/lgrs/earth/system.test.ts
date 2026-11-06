@@ -73,9 +73,10 @@ describe("getEarthGridSystem", () => {
     expect(getFixedGridSpacings(mgrs)).toEqual([10, 100, 1000, 10000]);
   });
 
-  test("never blocks a mission on its planet radius", () => {
-    for (const radius of [6378137, 1737400, null, undefined, 0]) {
-      expect(acc.checkPlanetRadius(radius)).toBeNull();
+  test("flags a planet radius that is not Earth-scale", () => {
+    expect(acc.checkPlanetRadius(6378137)).toBeNull();
+    for (const radius of [1737400, null, undefined, 0]) {
+      expect(acc.checkPlanetRadius(radius)).toMatch(/Earth-scale/);
     }
   });
 

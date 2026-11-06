@@ -20,6 +20,9 @@ import {
   isValidEarthCrs,
 } from "./zones";
 
+/** Radii above this are Earth-scale (matches `isEarthScale`). */
+const EARTH_SCALE_MIN_RADIUS = 4_000_000;
+
 const ACC_BOX_SPACINGS: readonly LgrsPrecision[] = Object.freeze([10, 100, 1000, 25000]);
 const MGRS_BOX_SPACINGS: readonly LgrsPrecision[] = Object.freeze([10, 100, 1000, 10000, 100000]);
 
@@ -152,8 +155,10 @@ function createEarthGridSystem(scheme: GridLabelScheme): LgrsGridSystem {
     },
 
     // A radius that is not Earth-scale is an admin warning, never a block.
-    checkPlanetRadius(): string | null {
-      return null;
+    checkPlanetRadius(planetRadius: number | null | undefined): string | null {
+      return typeof planetRadius === "number" && planetRadius > EARTH_SCALE_MIN_RADIUS
+        ? null
+        : "The Earth grid expects an Earth-scale planet radius; check the mission's radius.";
     },
   });
 }
