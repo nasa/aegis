@@ -186,7 +186,7 @@ const EDITOR_CONFIG: ModeConfig = {
     labelFontWeight: "bold",
     labelTextColor: "rgba(255,236,170,0.95)",
     labelBgColor: "rgba(0,0,0,0.5)",
-    labelAccentBorder: true,
+    labelAccentBorder: false,
     labelAccentBorderWidth: 1,
   },
   circle: {
@@ -265,7 +265,7 @@ const DASHBOARD_CONFIG: ModeConfig = {
     labelFontWeight: "bold",
     labelTextColor: "rgba(255,236,170,0.95)",
     labelBgColor: "rgba(0,0,0,0.5)",
-    labelAccentBorder: true,
+    labelAccentBorder: false,
     labelAccentBorderWidth: 2,
   },
   circle: {
@@ -344,7 +344,7 @@ const MINIMAP_CONFIG: ModeConfig = {
     labelFontWeight: "normal",
     labelTextColor: "rgba(255,236,170,0.95)",
     labelBgColor: "rgba(0,0,0,0.5)",
-    labelAccentBorder: true,
+    labelAccentBorder: false,
     labelAccentBorderWidth: 2,
   },
   circle: {
