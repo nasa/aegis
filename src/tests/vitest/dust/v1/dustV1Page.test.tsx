@@ -50,6 +50,8 @@ const createFakeSocket = () => ({
   connect: vi.fn(),
   disconnect: vi.fn(),
   removeAllListeners: vi.fn(),
+  // Socket.IO manager, which emits reconnect_attempt / reconnect_failed
+  io: { on: vi.fn(), off: vi.fn() },
   _handlers: {} as Record<string, (...args: unknown[]) => void>,
 });
 
