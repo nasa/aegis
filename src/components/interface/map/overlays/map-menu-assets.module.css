@@ -566,6 +566,10 @@
   color: #000000;
 }
 
+.assetRowSelected .rowToggle > svg {
+  color: #000000;
+}
+
 .emptyState {
   padding: 10px 5px;
   color: var(--grey4);
