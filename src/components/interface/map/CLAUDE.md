@@ -124,7 +124,10 @@ coordinates, bearings, the dynamic grid) goes through an `LgrsGridSystem`
 `moonGridSystem` (`utils/lgrs/moon/`, LTM/LPS). Earth is `getEarthGridSystem(scheme)`
 (`utils/lgrs/earth/`): WGS84 UTM zones (Norway/Svalbard exceptions included) and UPS caps, one
 cached instance per scheme. Earth ACC labels (`15RTNDC X51 W77`) are AEGIS-defined: MGRS 100 km
-square + `ABCD` 25 km sub-area + the lunar ACC 1 km letters and digits. Canonical MGRS
+square + `ABCD` 25 km sub-area + the lunar ACC 1 km letters and digits. The 25 km areas sit
+on UTM 25 km multiples, so they don't line up with the site-centred USGS terrestrial training
+grids. Missions that need to match those maps use manually generated grids in `server-file`
+mode (`docs/lgrs-earth-plan.md` §9.1). Canonical MGRS
 (`15R TN 9751 7177`, condensed `TN 9751 7177`) truncates digits. Both schemes share zones, lines
 and grid north; only labels and box spacings differ (ACC 10 m–25 km, MGRS 10 m–100 km). Earth has
 no zone tier, so its grid is hidden at continental zoom. CRS ids mean something only together
