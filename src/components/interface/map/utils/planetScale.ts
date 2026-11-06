@@ -20,8 +20,8 @@ export function maxZoomForPlanet(planetRadius: number | null | undefined): numbe
 }
 
 /**
- * Grid system suggested for a planet radius. Used only to initialize or suggest
- * `mission.gridSystem`; the grid system is never inferred from the radius at runtime.
+ * Grid system for a planet radius. Mission creation and the admin editor persist
+ * this selection in `mission.gridSystem` for the map and coordinate readouts.
  */
 export function suggestGridSystemId(planetRadius: number | null | undefined): MissionGridSystemId {
   return isEarthScale(planetRadius) ? "earth-wgs84" : "moon-m2025";

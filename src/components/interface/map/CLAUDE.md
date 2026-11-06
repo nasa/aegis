@@ -123,8 +123,9 @@ coordinates, bearings, the dynamic grid) goes through an `LgrsGridSystem`
 (`src/typings/lgrs.d.ts`); the planner, clipping and map binding are body-neutral. The Moon is
 `moonGridSystem` (`utils/lgrs/moon/`, LTM/LPS). Earth is `getEarthGridSystem(scheme)`
 (`utils/lgrs/earth/`): WGS84 UTM zones (Norway/Svalbard exceptions included) and UPS caps, one
-cached instance per scheme. Earth ACC labels (`15RTNDC X51 W77`) are AEGIS-defined: MGRS 100 km
-square + `ABCD` 25 km sub-area + the lunar ACC 1 km letters and digits. The 25 km areas sit
+cached instance per scheme. The Earth grid uses the published ACC format for 1 km letters and
+digits, with an AEGIS-specific area prefix: MGRS 100 km square + `ABCD` 25 km sub-area
+(`15RTNDC X51 W77`). The 25 km areas sit
 on UTM 25 km multiples, so they don't line up with the site-centred USGS terrestrial training
 grids. Missions that need to match those maps use manually generated grids in `server-file`
 mode (`docs/lgrs-earth-plan.md` §9.1). Canonical MGRS
@@ -135,12 +136,15 @@ with their system. `getMissionGridSystem(mission)`
 (`utils/lgrs/system.ts`) resolves a mission's system and its dynamic-grid compatibility;
 components use `useMissionGridSystem()` / `useMissionCoordinateSystem()`
 (`hooks/useMissionGridSystem.ts`, the latter null without `usingLGRSCoordinates`).
-The system comes from `mission.gridSystem` (lunar when unset), never from the radius. Earth
+The system comes from `mission.gridSystem` (lunar when unset). The mission admin editor keeps
+this field aligned with the planet radius and enables computed coordinate readouts for dynamic
+grids; server-file mode uses the uploaded grid's readouts. Earth
 missions (`earth-wgs84`) are labelled in the user's override
 (`interface.gridLabelSchemeOverride`, cookie `AEGIS_Grid_Label_Scheme`, set from the map
 menu's Grid Scheme row) or else `mission.earthGridLabelScheme`; the Moon ignores the override.
-Exports always use the mission default. On Earth the mouse readout and the map menu show the
-active scheme (`ACC` / `MGRS`). `MapMenuProvider` keeps any saved fixed grid spacing but
+Exports always use the mission default. The mouse readout identifies `ACC` / `MGRS` on Earth
+and `LGRS` on the Moon, with explanatory tooltips shared with the map menu's scheme toggle.
+`MapMenuProvider` keeps any saved fixed grid spacing but
 exposes it only while the active system offers it (`getFixedGridSpacings`), otherwise `auto`.
 `getLgrsMapProjector(getLgrsMapProjection(mission))` (`utils/lgrs/mapProjection.ts`) is the
 cached, system-independent map ↔ lat/lon converter used by the mouse readout. It builds proj4

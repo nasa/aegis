@@ -18,6 +18,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridCoordinatesFromPoint } from "utils/mapping/geoMath";
 import {
   formatLgrsFromLatLon,
+  GRID_COORDINATE_DESCRIPTIONS,
   GRID_LABEL_SCHEME_NAMES,
   LGRS_DISPLAY_PRECISION_METERS,
 } from "utils/lgrs/display";
@@ -60,7 +61,8 @@ export function MouseCoordinateDisplay({
     let formatGrid: MouseCoordinateInputs["formatGrid"] = () => null;
     let schemeTag: string | null = null;
     if (gridSystem) {
-      if (gridSystem.id === "earth-wgs84") schemeTag = GRID_LABEL_SCHEME_NAMES[gridSystem.scheme];
+      schemeTag =
+        gridSystem.id === "earth-wgs84" ? GRID_LABEL_SCHEME_NAMES[gridSystem.scheme] : "LGRS";
       const style: LgrsDisplayStyle = resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed";
       formatGrid = (point) =>
         formatLgrsFromLatLon(gridSystem, point, LGRS_DISPLAY_PRECISION_METERS, style);
@@ -138,7 +140,13 @@ export function MouseCoordinateDisplay({
         <div style={{ ...READOUT_STYLE, minWidth: "150px" }}>
           {readout.grid}
           {readout.schemeTag && (
-            <span className={styles.gridSchemeTag} data-testid="mouse-grid-scheme">
+            <span
+              className={styles.gridSchemeTag}
+              data-testid="mouse-grid-scheme"
+              data-tooltip-id="aegis-tooltip"
+              data-tooltip-content={GRID_COORDINATE_DESCRIPTIONS[readout.schemeTag]}
+              tabIndex={0}
+            >
               {readout.schemeTag}
             </span>
           )}

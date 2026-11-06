@@ -8,7 +8,7 @@ import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { getFixedGridSpacings, LGRS_GRID_BASE_SPACING_METERS } from "utils/lgrs/grid/plan";
-import { GRID_LABEL_SCHEME_NAMES } from "utils/lgrs/display";
+import { GRID_COORDINATE_DESCRIPTIONS, GRID_LABEL_SCHEME_NAMES } from "utils/lgrs/display";
 import { getMissionDefaultLabelScheme } from "utils/lgrs/system";
 import { useMissionGridSystem } from "../hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
@@ -20,13 +20,6 @@ import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
 const FILE_GRID_SPACINGS: readonly number[] = [10, 100, 1000];
 
 const GRID_LABEL_SCHEMES: readonly GridLabelScheme[] = ["lunar-acc", "mgrs"];
-
-/** Grid Scheme toggle tooltips. */
-const GRID_LABEL_SCHEME_DESCRIPTIONS: Readonly<Record<GridLabelScheme, string>> = {
-  "lunar-acc":
-    "AEGIS-defined ACC: MGRS 100 km square, ABCD 25 km sub-area, then lunar ACC 1 km letters.",
-  mgrs: "Canonical MGRS (NGA), digits truncated.",
-};
 
 function formatSpacingLabel(meters: number): string {
   return meters >= 1000 ? `${meters / 1000}km` : `${meters}m`;
@@ -719,7 +712,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                     } ${gridSystem.scheme === scheme ? styles.toggleSelected : ""}`}
                     aria-pressed={gridSystem.scheme === scheme}
                     data-tooltip-id="aegis-tooltip"
-                    data-tooltip-content={`${GRID_LABEL_SCHEME_DESCRIPTIONS[scheme]} ${
+                    data-tooltip-content={`${GRID_COORDINATE_DESCRIPTIONS[GRID_LABEL_SCHEME_NAMES[scheme]]} ${
                       scheme === missionLabelScheme
                         ? "Mission default."
                         : "Overrides the mission default."

@@ -150,7 +150,7 @@ type MapMode = "editor" | "dashboard" | "minimap";
 type MouseCoordinateInputs = {
   projector: LgrsMapProjector;
   formatGrid: (point: AEGISPoint) => string | null;
-  /** Scheme tag shown beside grid readouts (`ACC` / `MGRS` on Earth), or null. */
+  /** Coordinate tag (`ACC` / `MGRS` on Earth, `LGRS` on the Moon), or null. */
   schemeTag: string | null;
 };
 

@@ -50,8 +50,8 @@ Park, Cinder Lake, JETT3, JETT5 and Meteor Crater (12N), HAATS (13N), JSC (15N) 
 Icelandic Highlands (28N). They use WGS84 UTM coordinates, put a 1 km grid inside the LGRS 25 km
 grid, and truncate to 10 m in ACC form. The 6-character coordinate is relative to the lower-left
 corner of the 25 km area, and the zone is left off unless it's needed. The release does **not**
-define a worldwide naming scheme for the 25 km areas. This plan defines one, which makes the ACC
-labels an **AEGIS-defined** terrestrial system rather than a published standard.
+define a worldwide naming scheme for the 25 km areas. This plan adds one: the area prefixes are
+AEGIS-specific, while ACC itself is a published coordinate format.
 
 The inspected JSC and JETT2 shapefiles each cover a single 25 km area centred on the site, not a
 tile of a UTM-anchored grid (§9.1).
@@ -224,15 +224,17 @@ interface LgrsGridSystem {
 
 ### 4.3 Explicit grid system on the mission
 
-Add `mission.gridSystem: "moon-m2025" | "earth-wgs84"`. Selection never infers WGS84 from the
-radius at runtime. `isEarthScale` (`planetRadius > 4,000,000`) is a view-fitting heuristic and is
-used only to **initialize or suggest** a value:
+Add `mission.gridSystem: "moon-m2025" | "earth-wgs84"`. The map and readouts use this stored
+selection. Mission creation and the admin editor select it from the planet radius using
+`isEarthScale` (`planetRadius > 4,000,000`):
 
 - The migration (§9, workstream D) sets `"earth-wgs84"` for Earth-scale missions and
   `"moon-m2025"` for all others. Every current mission is treated as lunar for LGRS readouts
   today, so this preserves existing behaviour.
-- New missions and the admin page pre-select from the radius. Changing the radius suggests a
-  value but never changes `gridSystem` by itself.
+- New missions initialize the system from the radius. The admin editor keeps `gridSystem`
+  aligned with the radius, including when an existing mission is opened or its radius changes.
+  It shows Server File or Dynamic Grid, with ACC/MGRS labels only for dynamic Earth grids and
+  lunar ACC labels for dynamic Moon grids.
 
 Compatibility:
 
@@ -241,8 +243,10 @@ Compatibility:
 - `earth-wgs84`: proj4-parseable projection. A radius that isn't Earth-scale shows an admin
   warning but doesn't block.
 
-`usingLGRSCoordinates` and `gridRenderMode: "dynamic-lgrs"` keep their meaning: "show grid
-coordinates" and "draw the dynamic grid". Only the admin labels change for Earth missions.
+The admin editor enables `usingLGRSCoordinates` with `gridRenderMode: "dynamic-lgrs"` so the
+readouts use the dynamic grid's coordinate system. Server File disables computed readouts so
+locations use the uploaded grid instead. The Earth label preference is preserved when changing
+rendering modes or switching to the Moon.
 
 ### 4.4 Region geometry
 
@@ -471,8 +475,8 @@ Where the implementation differs from the plan above:
   (e.g. 310 m lines with 10 m label precision). The fixed 1 km / 100 m / 10 m spacings give
   clean grids.
 - **Help (§12):** AEGIS has no help pages. The admin page's Default Label Scheme hint and the map
-  menu's Grid Scheme tooltips explain that Earth ACC naming is AEGIS-defined and that canonical
-  MGRS is one toggle away.
+  menu's Grid Scheme tooltips explain that the Earth grid uses MGRS with LGRS-like ACC labels
+  and that canonical MGRS is one toggle away.
 
 ## 10. Done when
 
@@ -497,7 +501,7 @@ Where the implementation differs from the plan above:
 
 ## 12. Risks
 
-- **AEGIS-defined labels.** The 25 km naming is ours, not a USGS or NGA standard. Document it in
+- **Custom area prefixes.** The 25 km naming is ours, not a USGS or NGA standard. Document it in
   the user-facing help and keep canonical MGRS one toggle away.
 - **USGS training products don't line up.** AEGIS 1 km lines and letters differ from the
   site-centred USGS grids (§9.1), so a crew holding a USGS map reads different coordinates for

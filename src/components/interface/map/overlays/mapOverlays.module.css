@@ -100,7 +100,7 @@
   background-color: var(--grey2);
 }
 
-/* Active Earth label scheme beside the grid readout, so a screenshot names its scheme. */
+/* Active coordinate system beside the grid readout. */
 .gridSchemeTag {
   margin-left: 6px;
   padding: 0 3px;
@@ -109,4 +109,5 @@
   font-size: 0.85em;
   font-weight: 600;
   color: var(--grey5);
+  cursor: help;
 }

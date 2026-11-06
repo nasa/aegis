@@ -13,8 +13,7 @@
  *  - Shows lat/lng identical to proj4 after a pointermove event
  *  - Shows whole-Moon LGRS strings (LTM, LPS N, LPS S; condensed and full)
  *  - Shows / skips the server-file grid coordinate
- *  - Shows Earth ACC and MGRS strings at JSC, with the active scheme beside the grid readout,
- *    and no scheme on the Moon
+ *  - Shows Earth ACC and MGRS strings at JSC and LGRS on the Moon, with explanatory indicators
  *  - Reformats the last position, string and tag together, when the scheme switches
  *  - Coalesces pointermoves into one update per animation frame
  *  - Does not re-render for pointermoves that leave the displayed text unchanged
@@ -202,6 +201,7 @@ describe("MouseCoordinateDisplay", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain(expected);
+      expect(document.querySelector("[data-testid='mouse-grid-scheme']")?.textContent).toBe("LGRS");
     });
   });
 
@@ -245,7 +245,7 @@ describe("MouseCoordinateDisplay", () => {
   });
 
   it.each([
-    { gridSystem: "moon-m2025", usingLGRSCoordinates: true, override: "mgrs" },
+    { gridSystem: "moon-m2025", usingLGRSCoordinates: false, override: "mgrs" },
     { gridSystem: "earth-wgs84", usingLGRSCoordinates: false, override: null },
   ] as const)(
     "shows no scheme for $gridSystem with grid coordinates $usingLGRSCoordinates",
