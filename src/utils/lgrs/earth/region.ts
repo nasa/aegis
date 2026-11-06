@@ -22,7 +22,7 @@ import {
 } from "./zones";
 
 /**
- * Earth region geometry for the dynamic grid (plan §4.4): UPS caps, UTM zone bounds, grid-line
+ * Earth region geometry for the dynamic grid: UPS caps, UTM zone bounds, grid-line
  * clipping and the zone/band framework. Every region test goes through the region slices of
  * `earth/zones`, whose union is exactly what `classifyEarthLatLon` assigns to a CRS, so the
  * renderer and the readouts agree, including at the Norway and Svalbard exceptions.
@@ -438,7 +438,7 @@ const SEAM_PARALLELS: readonly number[] = Object.freeze([
 ]);
 
 /**
- * Box-tier seams inside the envelope (plan §4.4): zone boundaries (exception edges as partial
+ * Box-tier seams inside the envelope: zone boundaries (exception edges as partial
  * meridians), band parallels, the equator and the 80° S / 84° N seams, all of kind `seam`.
  * There is no zone tier, so `zoneTier` adds nothing.
  */

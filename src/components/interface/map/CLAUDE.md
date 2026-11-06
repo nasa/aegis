@@ -128,7 +128,7 @@ digits, with an AEGIS-specific area prefix: MGRS 100 km square + `ABCD` 25 km su
 (`15RTNDC X51 W77`). The 25 km areas sit
 on UTM 25 km multiples, so they don't line up with the site-centred USGS terrestrial training
 grids. Missions that need to match those maps use manually generated grids in `server-file`
-mode (`docs/lgrs-earth-plan.md` §9.1). Canonical MGRS
+mode (see `src/utils/lgrs/README.md`, "Matching USGS training maps"). Canonical MGRS
 (`15R TN 9751 7177`, condensed `TN 9751 7177`) truncates digits. Both schemes share zones, lines
 and grid north; only labels and box spacings differ (ACC 10 m–25 km, MGRS 10 m–100 km). Earth has
 no zone tier, so its grid is hidden at continental zoom. CRS ids mean something only together

@@ -8,7 +8,7 @@ import {
 } from "./clip";
 
 /**
- * Dynamic grid render plan (plan §6.3) for any grid system. The view is sampled to find the
+ * Dynamic grid render plan for any grid system. The view is sampled to find the
  * visible regions (polar caps and zone cells). Zoomed in, each region gets constant-E/N lines
  * clipped to the region and labels at line intersections (box tier); zoomed far out only the
  * system's zone/band framework is drawn (zone tier), if the system draws one. Plans never exceed
@@ -673,7 +673,7 @@ function buildBox(
   return { status: "ok", lines, labels, labelScale, regions: [...used], vertexCount };
 }
 
-/** Builds the dynamic grid of `options.binding.system` for the map view (plan §6.3). */
+/** Builds the dynamic grid of `options.binding.system` for the map view. */
 export function createLgrsRenderPlan(options: LgrsRenderOptions): LgrsRenderPlan {
   const { binding, extent, resolution } = options;
   const { system } = binding;

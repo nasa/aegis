@@ -1,8 +1,9 @@
 # lgrs 0.4.0: issues found while building the AEGIS reference corpus
 
-While generating the TypeScript LGRS test corpus from `lgrs==0.4.0` (see
-`docs/lgrs-whole-moon-plan.md` §8), we found several cases where the library's output is wrong or
-it raises on valid input. Each section below is a self-contained draft for
+While generating the TypeScript LGRS test corpus from `lgrs==0.4.0`, we found several cases
+where the library's output is wrong or it raises on valid input. See
+[the implementation README](../src/utils/lgrs/README.md#validation-and-maintenance) for the
+validation workflow. Each section below is a self-contained draft for
 <https://github.com/rbeyer/lgrs/issues/>, ordered by impact. Every snippet was run and its output
 pasted verbatim (source excerpts are quoted from the installed package).
 

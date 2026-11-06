@@ -117,7 +117,7 @@ function createEarthGridSystem(scheme: GridLabelScheme): LgrsGridSystem {
 
     formatPoint: mgrs ? formatMgrsPoint : formatAccPoint,
     /**
-     * Box label (plan §8.2) of a box whose corner lies in the region; a box whose corner lies
+     * Box label of a box whose corner lies in the region; a box whose corner lies
      * in a neighbouring region is labelled there instead.
      */
     formatBox(

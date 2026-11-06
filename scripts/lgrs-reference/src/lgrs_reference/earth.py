@@ -2,7 +2,7 @@
 
 WGS84 UTM/UPS projection comes from pyproj, 100 km square IDs from the PyPI `mgrs`
 package (GeoTrans), and zone classification and ACC labels from an independent
-implementation of docs/lgrs-earth-plan.md §3.
+implementation of the methodology documented in src/utils/lgrs/README.md.
 
 Run from the repository root with ``npm run lgrs:reference-corpus-earth`` (an alias for
 ``uv run --project scripts/lgrs-reference earth``).
@@ -100,7 +100,7 @@ PLAN_EXAMPLES = (
 )
 
 # Approximate analog field sites, sampled within 30 km: the USGS training-grid sites
-# (plan §2.1) plus Svalbard and Bergen for the zone exceptions.
+# plus Svalbard and Bergen for the zone exceptions.
 ANALOG_SITES = (
     ("yucca-flat", 37.05, -116.05),
     ("buffalo-park", 35.2, -111.6),
@@ -170,7 +170,7 @@ def crs_fields(crs: Crs) -> dict:
     }
 
 
-# * CLASSIFICATION (§3.1, §8.1). ───────────────────────────────────────
+# * CLASSIFICATION. ──────────────────────────────────────────────────
 
 
 def conform_longitude(lon: float) -> float:
@@ -270,7 +270,7 @@ def in_region(crs: Crs, e: float, n: float) -> bool:
     return found is not None and found.crs == crs
 
 
-# * LABELS (§3.2, §3.3). ───────────────────────────────────────────────
+# * LABELS. ──────────────────────────────────────────────────────────
 
 
 def floor_int(value: float, precision: int) -> int:
