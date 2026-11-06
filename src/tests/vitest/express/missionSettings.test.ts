@@ -8,10 +8,13 @@ const mocks = vi.hoisted(() => ({
   find: vi.fn(),
   listDems: vi.fn(),
   readDem: vi.fn(),
+  flush: vi.fn(),
 }));
 vi.mock("utils/permissions", () => ({ hasPerms: mocks.allowed, emssTokenIsValid: vi.fn() }));
 vi.mock("server/express/routes/docListing", () => ({ getAutomergeDocListing: mocks.listings }));
-vi.mock("server/express/global", () => ({ globalValues: { automergeRepo: { find: mocks.find } } }));
+vi.mock("server/express/global", () => ({
+  globalValues: { automergeRepo: { find: mocks.find, flush: mocks.flush } },
+}));
 vi.mock("server/raster/missionDems", () => ({
   listMissionDems: mocks.listDems,
   readMissionDem: mocks.readDem,
@@ -78,11 +81,24 @@ test("a bad DEM leaves the mission untouched", async () => {
   expect(mission.planet).toBe("moon");
 });
 
-test("LGRS ignores leftover uploaded grids and rejects new grid uploads, while Earth retains its server grid", async () => {
+test.each([
+  { planet: "moon" as Planet, lat: -85 },
+  { planet: "moon" as Planet, lat: -80 },
+  { planet: "moon" as Planet, lat: 0 },
+  { planet: "moon" as Planet, lat: 85 },
+  { planet: "moon" as Planet, lat: null },
+  { planet: "mars" as Planet, lat: -85 },
+])("ignores uploaded grids and rejects uploads outside Earth: %s", async ({ planet, lat }) => {
   const definition = { name: "Old grid", fileName: "old.json", numRows: 2, numCols: 2 };
-  mission.landerLocation = { lat: -85, lng: 0 };
+  mission.planet = planet;
+  mission.landerLocation = { lat, lng: 0 };
   mission.serverFileGrid = definition;
-  expect(await getGrid(42, false)).toBeNull();
+  expect(await getGrid(42, true)).toBeNull();
+  const closest = await supertest(app).get(
+    '/grid/closestPoint?missionId=42&radius=100&points=[{"lat":0,"lng":0}]'
+  );
+  expect(closest.status).toBe(200);
+  expect(closest.body.data).toEqual([]);
   const response = await supertest(app)
     .post("/grid")
     .send({
@@ -91,10 +107,40 @@ test("LGRS ignores leftover uploaded grids and rejects new grid uploads, while E
       upsertFullGrid: true,
     });
   expect(response.status).toBe(400);
-  expect(response.body.message).toContain("dynamic LGRS");
+  expect(response.body.message).toContain("only for Earth missions");
+  expect(change).not.toHaveBeenCalled();
+  expect(mocks.flush).not.toHaveBeenCalled();
   mission.planet = "earth";
   expect(await getGrid(42, false)).toEqual({ gridDefinition: definition, coordinates: null });
 });
+
+test("Earth missions can save uploaded grid metadata", async () => {
+  mission.planet = "earth";
+  const grid: MissionGrid = {
+    gridDefinition: { name: "Earth grid", fileName: "earth.json", numRows: 2, numCols: 2 },
+    coordinates: null,
+  };
+  const response = await supertest(app)
+    .post("/grid")
+    .send({ missionId: 42, grid, upsertFullGrid: false });
+  expect(response.status).toBe(200);
+  expect(mission.serverFileGrid).toEqual(grid.gridDefinition);
+  expect(mocks.flush).toHaveBeenCalledOnce();
+});
+
+test.each(["moon", "mars"] as Planet[])(
+  "changing an Earth mission to %s clears its uploaded grid",
+  async (planet) => {
+    mission.planet = "earth";
+    mission.landerLocation = { lat: 0, lng: 0 };
+    mission.serverFileGrid = { name: "Earth grid", fileName: "earth.json", numRows: 2, numCols: 2 };
+    const response = await supertest(app)
+      .post("/mission/fields")
+      .send({ missionId: 42, fields: { planet } });
+    expect(response.status).toBe(200);
+    expect(mission.serverFileGrid).toBeNull();
+  }
+);
 
 test.each([
   { landerElevationMeters: 123 },

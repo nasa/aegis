@@ -2,14 +2,14 @@ import cloneDeep from "lodash/cloneDeep";
 
 import { getAccurateNow } from "utils/formatting";
 import { applyTraverseUpdatesStage } from "./apply-traverse";
-import { getPlanetRadius, usesLgrsCoordinates } from "utils/planets";
+import { getPlanetRadius, supportsUploadedGrid } from "utils/planets";
 import { getTotalDistance } from "utils/mapping/geoMath";
 
 /** Keep saved path lengths and terrain cache inputs consistent when a mission changes bodies. */
 export function applyMissionPlanet(mission: Mission, planet: Planet): void {
   if (mission.planet === planet) return;
   mission.planet = planet;
-  if (usesLgrsCoordinates(mission)) mission.serverFileGrid = null;
+  if (!supportsUploadedGrid(mission)) mission.serverFileGrid = null;
   recalculateMissionDistances(mission);
 }
 
@@ -111,7 +111,7 @@ export function applyLanderLocationUpdateStage(
 ): void {
   // 1. Update mission-level lander fields
   m.landerLocation = cloneDeep(stage.newLocation);
-  if (usesLgrsCoordinates(m)) m.serverFileGrid = null;
+  if (!supportsUploadedGrid(m)) m.serverFileGrid = null;
   m.landerElevationMeters = stage.newElevation;
   m.updatedAt = getAccurateNow().getTime();
 

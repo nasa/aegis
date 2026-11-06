@@ -58,9 +58,10 @@ describe("resolveMissionGrid", () => {
   ]);
   const serverFileGrid = serverGrid.gridDefinition;
 
-  test("defaults existing missions without a mode to server-file", () => {
-    expect(getGridRenderMode(generateBlankMission())).toBe("server-file");
-    expect(resolveMissionGrid(generateBlankMission({ serverFileGrid }), serverGrid)).toEqual({
+  test("uses an uploaded grid for Earth missions", () => {
+    const mission = generateBlankMission({ planet: "earth", serverFileGrid });
+    expect(getGridRenderMode(mission)).toBe("server-file");
+    expect(resolveMissionGrid(mission, serverGrid)).toEqual({
       kind: "server-file",
       grid: serverGrid,
     });
@@ -81,16 +82,21 @@ describe("resolveMissionGrid", () => {
   });
 
   test("resolves an absent server-file grid to none", () => {
-    expect(resolveMissionGrid(generateBlankMission({ serverFileGrid: null }), serverGrid)).toEqual({
-      kind: "none",
-    });
+    expect(
+      resolveMissionGrid(
+        generateBlankMission({ planet: "earth", serverFileGrid: null }),
+        serverGrid
+      )
+    ).toEqual({ kind: "none" });
   });
 
   test.each([
-    { planet: "earth" as Planet, lat: -85 },
     { planet: "mars" as Planet, lat: -85 },
     { planet: "moon" as Planet, lat: -80 },
-  ])("falls back to the uploaded grid outside the supported LGRS cap: %s", ({ planet, lat }) => {
+    { planet: "moon" as Planet, lat: 0 },
+    { planet: "moon" as Planet, lat: 85 },
+    { planet: "moon" as Planet, lat: null },
+  ])("ignores uploaded grids for unsupported bodies and locations: %s", ({ planet, lat }) => {
     const mission = generateBlankMission({
       planet,
       landerLocation: { lat, lng: 0 },
@@ -99,9 +105,7 @@ describe("resolveMissionGrid", () => {
       projProj4String:
         "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
     });
-    expect(resolveMissionGrid(mission, serverGrid)).toEqual({
-      kind: "server-file",
-      grid: serverGrid,
-    });
+    expect(getGridRenderMode(mission)).toBe("none");
+    expect(resolveMissionGrid(mission, serverGrid)).toEqual({ kind: "none" });
   });
 });

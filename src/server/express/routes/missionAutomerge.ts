@@ -16,7 +16,7 @@ import { createMissionSummary } from "server/automerge/missionCatalog";
 import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
 import { listMissionDems, readMissionDem } from "server/raster/missionDems";
 import { applyMissionPlanet } from "operations/apply/apply-mission";
-import { usesLgrsCoordinates } from "utils/planets";
+import { supportsUploadedGrid } from "utils/planets";
 
 /**
  * Endpoint for working with the mission document in automerge
@@ -313,7 +313,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
         (fields.demFilePath !== m.demFilePath || demResolution !== m.demResolution);
       if (fields.planet !== undefined) applyMissionPlanet(m, fields.planet);
       Object.assign(m, fields);
-      if (usesLgrsCoordinates(m)) m.serverFileGrid = null;
+      if (!supportsUploadedGrid(m)) m.serverFileGrid = null;
       if (demResolution !== undefined) m.demResolution = demResolution;
       if (demChanged || landerLocationChanged) m.landerElevationMeters = null;
       m.updatedAt = new Date().getTime();

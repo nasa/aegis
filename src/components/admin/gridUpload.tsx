@@ -24,9 +24,9 @@ interface GridPointGeometry {
   type: string;
 }
 interface GridPointProps {
-  LGRS_ACC: string;
-  L_coord: string;
-  R_coord: string;
+  name?: string;
+  L_coord?: string;
+  R_coord?: string;
   column: number;
   id: number;
   row: number;
@@ -62,7 +62,7 @@ const parseFullGrid = async (selectedFile: Blob): Promise<MissionGrid> => {
     gridCoords[parsedData.row_total - props.row - 1][props.column] = {
       id: props.id,
       coordinates: { lat: coords[1], lng: coords[0] },
-      name: props?.L_coord + " " + props?.R_coord,
+      name: props.name ?? [props.L_coord, props.R_coord].filter(Boolean).join(" "),
       index: { row: parsedData.row_total - props.row - 1, col: props.column },
     } as MissionGridPoint;
   });
@@ -90,11 +90,11 @@ const AdminMissionGrid: FunctionComponent<{
 
   const readAndUploadGrid = async (fileToUpload: File) => {
     const parsedGrid: MissionGrid = await parseFullGrid(fileToUpload);
-    // Sanity check that the coordinate file we just read matches what the
-    // server will report before writing.
-    await upsertGrid(parsedGrid, intMissionId, true);
+    const uploaded = await upsertGrid(parsedGrid, intMissionId, true);
+    if (uploaded.status !== "success") throw new Error(uploaded.message);
     // Confirm the server persisted the metadata to the mission doc.
-    await getGrid(intMissionId);
+    const saved = await getGrid(intMissionId);
+    if (saved.status !== "success") throw new Error(saved.message);
     setSelectedFile(null);
     setIsFilePicked(false);
     setIsSubmitValid(false);
@@ -131,7 +131,7 @@ const AdminMissionGrid: FunctionComponent<{
 
   return (
     <section className={adminCommon.section}>
-      <h2 className={adminCommon.sectionHeading}>Server File Grid</h2>
+      <h2 className={adminCommon.sectionHeading}>Earth Mission Grid</h2>
       <AsyncStatus {...action} />
       {missionId ? (
         <div>
@@ -174,7 +174,10 @@ const AdminMissionGrid: FunctionComponent<{
             <h3 style={{ margin: "0 0 12px", color: "#e2e8f0" }}>
               {grid ? "Replace Grid" : "Upload Grid"}
             </h3>
-            <p>Upload a grid (.json or .geojson). Uploading replaces the mission&apos;s grid.</p>
+            <p>
+              Earth missions can optionally use an uploaded grid (.json or .geojson). Uploading
+              replaces the mission&apos;s grid.
+            </p>
             <p>
               <a
                 href="https://eegitlab.fit.nasa.gov/emss/aegis/-/wikis/Formatting-for-geoJSON-grid-uploads"
