@@ -232,16 +232,9 @@ export const AssetEditor: FunctionComponent<{
                 closeEmojiPicker();
               }}
             />
-            <Button
-              label="No emoji"
-              onClick={() => {
-                dispatch(updateAssetInEditValues({ icon: null }));
-                closeEmojiPicker();
-              }}
-            />
           </PickerPopover>
         )}
-        <span className={styles.fieldLabel}>Radius</span>
+        <span className={styles.fieldLabel}>Radius (m)</span>
         <div className={styles.fieldControls}>
           <input
             className={`${styles.editorInput} ${styles.numberInput} ${
@@ -265,7 +258,6 @@ export const AssetEditor: FunctionComponent<{
               if (!uncertaintyText.trim()) setUncertaintyText("0");
             }}
           />
-          <span className={styles.fieldNote}>m</span>
           <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
           <div data-testid="asset-editor-color">
             <PathColorPickerMenu
@@ -434,7 +426,7 @@ export const AssetEditor: FunctionComponent<{
           aria-describedby={notesError ? "asset-notes-error" : undefined}
           data-testid="asset-editor-notes"
           disabled={!editable}
-          rows={6}
+          rows={3}
           onChange={(e) => dispatch(updateAssetInEditValues({ notes: e.target.value || null }))}
         />
         {notesError && (
