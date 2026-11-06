@@ -52,6 +52,8 @@ type MissionFields = Pick<
   | "actionSystemVersion"
   | "usingLGRSCoordinates"
   | "gridRenderMode"
+  | "gridSystem"
+  | "earthGridLabelScheme"
 >;
 type MissionFieldsUpdate = Partial<MissionFields>;
 

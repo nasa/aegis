@@ -26,6 +26,7 @@ import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useFeatureSourcesContext } from "../FeatureSourcesProvider";
 import { useMapMenuContext } from "../MapMenuProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useMissionCoordinateSystem } from "../hooks/useMissionGridSystem";
 import { reconcileFeatures, type FeatureDescriptor } from "../utils/featureReconciler";
 import { buildTraverseStyleFunction } from "../utils/styles/polylines";
 import { Z_INDEX } from "../utils/zIndex";
@@ -64,7 +65,7 @@ export function TraverseLines(): null {
   );
 
   const planetRadius = useMissionDocSelector((m) => m.planetRadius ?? 1737400, refEqual) as number;
-  const usingLGRSCoordinates = useMissionDocSelector((m) => m.usingLGRSCoordinates, refEqual);
+  const gridSystem = useMissionCoordinateSystem();
 
   const selectedTraverseUuid = useMissionDocSelector((m) => {
     if (!selectedEvaSequenceItemUuid) return null;
@@ -157,9 +158,7 @@ export function TraverseLines(): null {
       const segmentDistances: number[] = [];
       if (!isThisFeatureEditing) {
         for (let i = 0; i < validPath.length - 1; i++) {
-          segmentBearings.push(
-            getSegmentBearing(validPath[i], validPath[i + 1], usingLGRSCoordinates)
-          );
+          segmentBearings.push(getSegmentBearing(validPath[i], validPath[i + 1], gridSystem));
           segmentDistances.push(
             getDistanceBetweenTwoCoordinates(validPath[i], validPath[i + 1], planetRadius) ?? 0
           );
@@ -189,7 +188,7 @@ export function TraverseLines(): null {
     isEditingTraverse,
     mapDirective?.uuid,
     planetRadius,
-    usingLGRSCoordinates,
+    gridSystem,
   ]);
 
   // --- Style function ---

@@ -1,3 +1,4 @@
+import { moonGridSystem } from "@bfeist/planetary-grid-reference/moon";
 import {
   formatCoordinateEntry,
   getCoordinateEntryHint,
@@ -57,7 +58,9 @@ describe("parseCoordinateEntry", () => {
         landerLocation: point,
       };
       const text = formatCoordinateEntry(point, context);
-      expect(text).toBe(formatLgrsFromLatLon(point, 10, dynamicLgrs ? "full" : "condensed"));
+      expect(text).toBe(
+        formatLgrsFromLatLon(moonGridSystem, point, 10, dynamicLgrs ? "full" : "condensed")
+      );
       const parsed = parseCoordinateEntry(text, context).location;
       expect(formatCoordinateEntry(parsed, context)).toBe(text);
     }
@@ -113,7 +116,10 @@ describe("getLiveCoordinateEntryError", () => {
       expect(getLiveCoordinateEntryError(text, lgrs)).toBeNull();
     }
     expect(
-      getLiveCoordinateEntryError(formatLgrsFromLatLon(point, 10, "condensed"), lgrs)
+      getLiveCoordinateEntryError(
+        formatLgrsFromLatLon(moonGridSystem, point, 10, "condensed"),
+        lgrs
+      )
     ).toBeNull();
     expect(getLiveCoordinateEntryError("K12 34", lgrs)).toMatch(/LGRS/);
   });

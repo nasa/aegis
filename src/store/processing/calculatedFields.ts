@@ -3,6 +3,7 @@ import {
   calculateAscentAndDescent,
   getSegmentBearing,
 } from "utils/mapping/geoMath";
+import { moonGridSystem } from "@bfeist/planetary-grid-reference/moon";
 import { mergeEquipmentItems } from "store/storeUtils/store";
 import { isNotNumber } from "utils/formatting";
 
@@ -250,11 +251,11 @@ export const getCalcFieldsForTraverse = (params: {
   missionTraverseRate: number;
   evaTraverseRate: number;
   traverseActions: Action[];
-  // Coordinate frame for segment bearings. Defaults to LPS grid (lunar) so the
-  // internal EVA/timeline callers — which only read duration/distance, never
-  // bearings — keep their existing behaviour. Display callers (traverse info
-  // panel) pass the mission flag so Earth missions get true-north azimuths.
-  usingLGRSCoordinates?: boolean;
+  // Grid system for segment bearings (null: true-north azimuths). Defaults to the
+  // lunar grid so the internal EVA/timeline callers — which only read
+  // duration/distance, never bearings — keep their existing behaviour. Display
+  // callers (traverse info panel) pass the mission's coordinate system.
+  gridSystem?: LgrsGridSystem | null;
 }): TraverseCalculatedFields => {
   const {
     terrainProfiles,
@@ -262,7 +263,7 @@ export const getCalcFieldsForTraverse = (params: {
     missionTraverseRate,
     evaTraverseRate,
     traverseActions,
-    usingLGRSCoordinates = true,
+    gridSystem = moonGridSystem,
   } = params;
   if (!traverse) return;
 
@@ -300,7 +301,7 @@ export const getCalcFieldsForTraverse = (params: {
   // get traverse segment bearings
   const pathSegmentBearings: number[] = [];
   for (let i = 1; i < (path?.length ?? 0); i++) {
-    pathSegmentBearings.push(getSegmentBearing(path[i - 1], path[i], usingLGRSCoordinates));
+    pathSegmentBearings.push(getSegmentBearing(path[i - 1], path[i], gridSystem));
   }
 
   // check if calculated duration is greater than predicted durationLower

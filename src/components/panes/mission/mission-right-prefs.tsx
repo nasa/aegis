@@ -30,11 +30,13 @@ import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
+import { useMissionCoordinateSystem } from "components/interface/map/hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const resolvedGrid = useResolvedMissionGrid();
+  const gridSystem = useMissionCoordinateSystem();
   // Access the automerge mission document via the useDocument hook instead of the
   // useMissionDocSelector (to read) and updateMissionByField (to write). This is because for this
   // component, in particular, we access most/all of the properties of mission and it is simpler
@@ -59,9 +61,10 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   }, shallowEqual);
 
   const landerGridCoordinates = useAppSelector((state) => {
-    if (automergeMission.landerLocation && automergeMission.usingLGRSCoordinates) {
+    if (automergeMission.landerLocation && gridSystem) {
       return (
         formatLgrsFromLatLon(
+          gridSystem,
           automergeMission.landerLocation,
           LGRS_DISPLAY_PRECISION_METERS,
           resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"

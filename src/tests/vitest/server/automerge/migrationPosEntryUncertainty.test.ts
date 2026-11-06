@@ -24,10 +24,10 @@ function legacyMissionWithEntries(entries: Partial<PosEntry>[]): Partial<Mission
 }
 
 describe("add-pos-entry-uncertainty migration", () => {
-  it("is registered after the mission-requested-by migration", () => {
+  it("is registered after the mission grid system migration", () => {
     const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261109000000);
     expect(index).toBeGreaterThan(0);
-    expect(AUTOMERGE_MIGRATIONS[index - 1].version).toBe(20261104000000);
+    expect(AUTOMERGE_MIGRATIONS[index - 1].version).toBe(20261106000000);
   });
 
   it("adds a zero radius and null color, validates, and is idempotent", async () => {
