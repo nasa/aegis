@@ -204,10 +204,6 @@
   color: var(--error);
 }
 
-.mapDirectiveHint {
-  color: var(--warning);
-}
-
 /* Match toolbar and editor buttons, including Place on Map. */
 .toolbar .toolbarButton,
 .fieldControls .editorButton,

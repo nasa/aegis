@@ -272,7 +272,7 @@ export const AssetDetails: FunctionComponent<{
             className={`${styles.fieldNote} ${styles.fieldValueColumn}`}
             data-testid="asset-editor-map-directive-hint"
           >
-            Click the map to save the asset position.
+            Click the map to place the asset.
           </span>
         )}
         <span className={styles.fieldLabel}>EVA/REX</span>
