@@ -5,58 +5,60 @@ import DB from "../db";
 import { test, expect } from "../fixtures/behavioralTest";
 
 for (const session of ["signed out", "expired cookie"] as const) {
-  for (const entry of ["home", "mission", "dashboard", "admin"] as const) {
-    test(`${session} ${entry} entry recovers to login without protected controls`, async ({
-      browser,
-      context,
+  test(`${session} direct entries recover to login without protected controls`, async ({
+    browser,
+    context,
+    baseURL,
+    mission,
+  }) => {
+    const state = await context.storageState();
+    const isolated = await browser.newContext({
       baseURL,
-      mission,
-    }) => {
-      const state = await context.storageState();
-      const isolated = await browser.newContext({
-        baseURL,
-        storageState:
-          session === "signed out"
-            ? { cookies: [], origins: [] }
-            : {
-                cookies: state.cookies.map((cookie) => ({
-                  ...cookie,
-                  expires: Math.floor(Date.now() / 1000) - 60,
-                })),
-                origins: [],
-              },
-      });
-      try {
-        // A browser-expired session must not be sent to the local cookie-session backend.
-        expect(await isolated.cookies()).toEqual([]);
-        const page = await isolated.newPage();
-        await page.goto(
-          { home: "/", mission: mission.url, dashboard: mission.dashboardUrl, admin: "/admin" }[
-            entry
-          ]
-        );
-        await expect(page.getByLabel("Username", { exact: true })).toBeVisible();
-        await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
-        await expect(page.getByRole("button", { name: "Login", exact: true })).toBeVisible();
-        await expect(page.getByLabel("missionNameHeader", { exact: true })).toHaveCount(0);
-        await expect(page.getByLabel("globalEditToggle", { exact: true })).toHaveCount(0);
-        await expect(page.locator(".ol-viewport")).toHaveCount(0);
-        const protectedList = await isolated.request.get("/api/v1/missionHomepageItems");
-        expect(protectedList.status()).toBe(401);
-        expect(await protectedList.json()).toMatchObject({
-          status: "failure",
-          message: "Unauthorized",
-        });
-        const protectedWrite = await isolated.request.post("/api/v1/missionAutomerge/fields", {
-          data: { missionId: mission.id, fields: { name: "Forbidden signed-out edit" } },
-        });
-        expect(protectedWrite.status()).toBe(401);
-        expect((await mission.read()).name).toBe(mission.name);
-      } finally {
-        await isolated.close();
-      }
+      storageState:
+        session === "signed out"
+          ? { cookies: [], origins: [] }
+          : {
+              cookies: state.cookies.map((cookie) => ({
+                ...cookie,
+                expires: Math.floor(Date.now() / 1000) - 60,
+              })),
+              origins: [],
+            },
     });
-  }
+    try {
+      // A browser-expired session must not be sent to the local cookie-session backend.
+      expect(await isolated.cookies()).toEqual([]);
+      const page = await isolated.newPage();
+      for (const entry of ["home", "mission", "dashboard", "admin"] as const) {
+        await test.step(entry, async () => {
+          await page.goto(
+            { home: "/", mission: mission.url, dashboard: mission.dashboardUrl, admin: "/admin" }[
+              entry
+            ]
+          );
+          await expect(page.getByLabel("Username", { exact: true })).toBeVisible();
+          await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
+          await expect(page.getByRole("button", { name: "Login", exact: true })).toBeVisible();
+          await expect(page.getByLabel("missionNameHeader", { exact: true })).toHaveCount(0);
+          await expect(page.getByLabel("globalEditToggle", { exact: true })).toHaveCount(0);
+          await expect(page.locator(".ol-viewport")).toHaveCount(0);
+        });
+      }
+      const protectedList = await isolated.request.get("/api/v1/missionHomepageItems");
+      expect(protectedList.status()).toBe(401);
+      expect(await protectedList.json()).toMatchObject({
+        status: "failure",
+        message: "Unauthorized",
+      });
+      const protectedWrite = await isolated.request.post("/api/v1/missionAutomerge/fields", {
+        data: { missionId: mission.id, fields: { name: "Forbidden signed-out edit" } },
+      });
+      expect(protectedWrite.status()).toBe(401);
+      expect((await mission.read()).name).toBe(mission.name);
+    } finally {
+      await isolated.close();
+    }
+  });
 }
 
 async function loginScoped(context: BrowserContext, username: string) {

@@ -3,10 +3,14 @@ import { page, locators } from "vitest/browser";
 import { Repo } from "@automerge/automerge-repo";
 import { RepoContext } from "@automerge/automerge-repo-react-hooks";
 import { Provider } from "react-redux";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router";
 import { CookiesProvider } from "react-cookie";
 import MissionPage from "pages/mission";
 import DashboardPage from "pages/dashboard";
+import HomePage from "pages/index";
+import VersionCheck from "pages/versionCheck";
+import ExportPage from "pages/admin/export";
+import MissionSTMPage from "pages/admin/missionSTM";
 import store, { initialState, sliceReducers } from "store";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { stopMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
@@ -32,7 +36,7 @@ export { expect } from "vitest";
 export const test = base.extend<BrowserMissionFixtures>({
   page: async ({}, runFixture) => runFixture(page),
   scenario: "planning",
-  requestHandlers: {},
+  requestHandlers: async ({}, runFixture) => runFixture({}),
   mission: async ({ scenario, requestHandlers }, runFixture) => {
     const repo = new Repo({ network: [] });
     const seed = buildBehavioralMission(
@@ -42,8 +46,14 @@ export const test = base.extend<BrowserMissionFixtures>({
       generateBlankMission()
     );
     const handle = repo.create<Mission>(seed);
+    const handles = new Map([[1, handle]]);
     const stopObservingMaps = observeMissionMaps();
     let harness: ReturnType<typeof createReactHarness> | undefined;
+    let navigate: ReturnType<typeof useNavigate>;
+    function RouteObserver(): null {
+      navigate = useNavigate();
+      return null;
+    }
     const unexpectedRequests: string[] = [];
     const unexpectedDialogs: string[] = [];
     const version: AppVersion = {
@@ -69,9 +79,19 @@ export const test = base.extend<BrowserMissionFixtures>({
         case "/api/v1/auth/isLoggedIn":
           return success({ id: 1, username: "Browser editor", isSuperAdmin: true });
         case "/api/v1/all":
-          return success({ mission: handle.doc() });
+          return success({
+            mission: handles.get(Number(url.searchParams.get("missionId") ?? 1))?.doc(),
+          });
         case "/api/v1/docListing":
-          return success([{ missionId: 1, automergeUrl: handle.url }]);
+          return success(
+            [...handles]
+              .filter(
+                ([id]) =>
+                  !url.searchParams.has("missionId") ||
+                  id === Number(url.searchParams.get("missionId"))
+              )
+              .map(([missionId, doc]) => ({ missionId, automergeUrl: doc.url }))
+          );
         case "/api/v1/mission/schema":
           return success(missionSchema);
         case "/api/v1/terrain-profile":
@@ -112,7 +132,11 @@ export const test = base.extend<BrowserMissionFixtures>({
       store.replaceReducer(sliceReducers);
     };
 
-    const open = async (route: "mission" | "dashboard") => {
+    const open = async (
+      route: "mission" | "dashboard",
+      id = 1,
+      options?: { path?: string; waitForReady?: boolean }
+    ) => {
       unmount();
       resetStore();
       harness = createReactHarness();
@@ -121,8 +145,13 @@ export const test = base.extend<BrowserMissionFixtures>({
         <Provider store={store}>
           <RepoContext.Provider value={repo}>
             <CookiesProvider>
-              <MemoryRouter initialEntries={[`/${route}/1`]}>
+              <MemoryRouter initialEntries={[options?.path ?? `/${route}/${id}`]}>
+                <RouteObserver />
                 <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/versionCheck" element={<VersionCheck />} />
+                  <Route path="/admin/export/:id" element={<ExportPage />} />
+                  <Route path="/admin/mission_stm/:id" element={<MissionSTMPage />} />
                   <Route path="/mission/:id" element={<MissionPage />} />
                   <Route path="/dashboard/:id" element={<DashboardPage />} />
                 </Routes>
@@ -131,15 +160,17 @@ export const test = base.extend<BrowserMissionFixtures>({
           </RepoContext.Provider>
         </Provider>
       );
+      if (options?.waitForReady === false) return;
+      const openedHandle = handles.get(id)!;
       if (route === "mission") {
         await expect
           .element(page.getByLabelText("missionNameHeader", { exact: true }))
-          .toHaveTextContent(handle.doc().name);
+          .toHaveTextContent(openedHandle.doc().name);
         await expect.poll(() => page.getBySelector(".ol-viewport").length).toBe(1);
         await expect
           .element(page.getByLabelText("globalEditToggle", { exact: true }))
           .toBeEnabled();
-      } else if (Object.values(handle.doc().rexes).some((rex) => rex.isRunning)) {
+      } else if (Object.values(openedHandle.doc().rexes).some((rex) => rex.isRunning)) {
         await expect.element(page.getByTestId("dashboard-pet-clock")).toBeVisible();
         await expect.poll(() => page.getBySelector(".ol-viewport").length).toBe(2);
       } else {
@@ -197,16 +228,30 @@ export const test = base.extend<BrowserMissionFixtures>({
       await page.viewport(1960, 1080);
       localStorage.clear();
       sessionStorage.clear();
-      await runFixture({
-        id: 1,
-        name: seed.name,
+      const fixture = (id: number): BrowserMission => ({
+        id,
+        name: handles.get(id)!.doc().name,
         ids: MISSION_IDS,
-        read: async () => JSON.parse(JSON.stringify(handle.doc())) as Mission,
-        change: async (mutator) => handle.change(mutator),
-        open: () => open("mission"),
-        openDashboard: () => open("dashboard"),
+        read: async () => JSON.parse(JSON.stringify(handles.get(id)!.doc())) as Mission,
+        change: async (mutator) => handles.get(id)!.change(mutator),
+        open: (options) => open("mission", id, options),
+        openDashboard: () => open("dashboard", id),
+        navigate: async (path) => {
+          await navigate(path);
+        },
+        addMission: async (name) => {
+          const nextId = handles.size + 1;
+          handles.set(
+            nextId,
+            repo.create<Mission>(
+              buildBehavioralMission(nextId, name, scenario, generateBlankMission())
+            )
+          );
+          return fixture(nextId);
+        },
         captureDownload,
       });
+      await runFixture(fixture(1));
     } finally {
       unmount();
       stopObservingMaps();

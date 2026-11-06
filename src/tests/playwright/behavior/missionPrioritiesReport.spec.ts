@@ -20,7 +20,7 @@ function row(page: Page, trace = "SCI-1") {
 
 test.describe("Mission priority comparison and execution", () => {
   test.use({ scenario: "execution" });
-  test("counts, disabled and unscheduled usages, execution filters, drilldown, diff and peer changes preserve mission data", async ({
+  test("priority reassignment reaches an open peer report and survives reload", async ({
     page,
     context,
     mission,
@@ -58,41 +58,6 @@ test.describe("Mission priority comparison and execution", () => {
     });
     const before = await mission.read();
     await mission.open(page);
-    await openReport(page);
-    const science = row(page);
-    const plan = science.locator('[data-tooltip-html="Survey Alpha: 1 active action (planned)"]');
-    await expect(plan).toHaveText("1");
-    await expect(science.locator('[data-tooltip-html*="in progress"]').first()).toHaveText("1");
-    await expect(
-      row(page, "SCI-2").locator('[data-tooltip-html*="0 active actions (1 disabled"]').first()
-    ).toHaveText("0 (D)");
-    await expect(row(page, "SCI-3")).toContainText("POI only (1)");
-    await plan.click();
-    await expect(page.locator('[class*="drilldownTitle"]')).toHaveText("SCI-1 — Science");
-    await expect(page.locator('[class*="drilldownContent"]')).toContainText(
-      before.actions[mission.ids.actionA].name
-    );
-    await page.locator('[class*="drilldownClose"]').click();
-    const filter = page.locator(
-      '[data-tooltip-content="Which REX action statuses count toward priority completion"] select'
-    );
-    await filter.selectOption("completeOnly");
-    await expect(
-      science.locator('[data-tooltip-html*="REX: Survey Alpha: 0 active actions"]').first()
-    ).toHaveText("0");
-    await filter.selectOption("all");
-    await page
-      .locator('[data-tooltip-content="Show other columns as differences vs the baseline"]')
-      .click();
-    await expect(
-      science.locator('[data-tooltip-html*="same active priority actions as baseline"]').first()
-    ).toHaveText("=");
-    await page
-      .locator('[data-tooltip-content="Show other columns as differences vs the baseline"]')
-      .click();
-    await page.getByRole("button", { name: "Science 3", exact: true }).click();
-    await expect(page.getByRole("button", { name: "SCI-1 (Science)", exact: true })).toHaveCount(0);
-    await page.getByRole("button", { name: "Science 3", exact: true }).click();
     const peer = await context.newPage();
     await mission.open(peer);
     await openReport(peer);

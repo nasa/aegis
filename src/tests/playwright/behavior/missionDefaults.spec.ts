@@ -26,75 +26,31 @@ function displayedValue(page: Page, label: string) {
     .locator('[class*="displayFieldValue"]');
 }
 
-test("mission walkback defaults update inherited times while station overrides and existing EVA durations stay independent", async ({
+test("a saved mission walkback default updates a live inherited station and survives server reload", async ({
   page,
   context,
   mission,
 }) => {
   await mission.change((doc) => {
     doc.walkbackRate = 3;
-    doc.defaultEvaDuration = 240;
     doc.stations[mission.ids.stationA].walkbackTraverseRate = null;
-    doc.stations[mission.ids.stationB].walkbackTraverseRate = 6;
-    for (const uuid of [mission.ids.stationA, mission.ids.stationB]) {
-      doc.stations[uuid].walkbackPathSegmentDistances = [500];
-    }
+    doc.stations[mission.ids.stationA].walkbackPathSegmentDistances = [500];
   });
-  const before = await mission.read();
   await mission.open(page);
   await enablePlanningEditMode(page);
+  await openPreferences(page);
   const peer = await context.newPage();
   await mission.open(peer);
   await selectPlanningStation(peer, "Alpha station");
   await peer.getByLabel("info_panel", { exact: true }).click();
   await expect(displayedValue(peer, "Time (mins):")).toHaveText("10");
-
-  await openPreferences(page);
   await savePlanningField(page, "Default walkback rate", "2");
-  await savePlanningField(page, "Default EVA Duration", "300");
   await expect(displayedValue(peer, "Time (mins):")).toHaveText("15");
-  await selectPlanningStation(page, "Bravo station");
-  await page.getByLabel("info_panel", { exact: true }).click();
-  await expect(planningField(page, "Average Walkback Traverse Rate")).toHaveText("6");
-  await expect(displayedValue(page, "Time (mins):")).toHaveText("5");
-  const clear = await openPlanningField(page, "Average Walkback Traverse Rate");
-  await clear.getByLabel("Average Walkback Traverse Rate", { exact: true }).fill("");
-  await clear.getByText("Save", { exact: true }).click();
-  await expect(clear).toHaveCount(0);
-  await expect(displayedValue(page, "Time (mins):")).toHaveText("15");
-
-  await selectPlanningStation(page, "Alpha station");
-  await savePlanningField(page, "Average Walkback Traverse Rate", "1.5");
-  await expect(displayedValue(page, "Time (mins):")).toHaveText("20");
-  await expect(displayedValue(peer, "Time (mins):")).toHaveText("20");
-  await openPreferences(page);
-  await savePlanningField(page, "Default walkback rate", "6");
-  await expect(displayedValue(peer, "Time (mins):")).toHaveText("20");
-  await selectPlanningStation(page, "Bravo station");
-  await expect(displayedValue(page, "Time (mins):")).toHaveText("5");
-  await expect
-    .poll(async () => (await mission.read()).stations[mission.ids.stationB].walkbackTraverseRate)
-    .toBeNull();
-  const after = await mission.read();
-  expect(after.evas).toEqual(before.evas);
-  expect(after.actions).toEqual(before.actions);
-  expect(after.traverses).toEqual(before.traverses);
-
-  // The EVA duration default is copied at creation, unlike inherited walkback rates.
-  await openPlanningSection(page, "evas");
-  await page.getByLabel("addEva", { exact: true }).click();
-  await expect.poll(async () => Object.keys((await mission.read()).evas).length).toBe(3);
-  const created = Object.values((await mission.read()).evas).find((eva) => !before.evas[eva.uuid]);
-  expect(created.duration).toBe(300);
-  for (const uuid of [mission.ids.evaA, mission.ids.evaB]) {
-    expect((await mission.read()).evas[uuid]).toEqual(before.evas[uuid]);
-  }
-  await mission.open(page);
-  await selectPlanningStation(page, "Alpha station");
-  await page.getByLabel("info_panel", { exact: true }).click();
-  await expect(displayedValue(page, "Time (mins):")).toHaveText("20");
-  await selectPlanningStation(page, "Bravo station");
-  await expect(displayedValue(page, "Time (mins):")).toHaveText("5");
+  await peer.reload();
+  await selectPlanningStation(peer, "Alpha station");
+  await peer.getByLabel("info_panel", { exact: true }).click();
+  await expect(displayedValue(peer, "Time (mins):")).toHaveText("15");
+  expect((await mission.read()).walkbackRate).toBe(2);
 });
 
 test("lander relocation updates every EVA boundary and walkback with real DEM elevation on a peer and after reload", async ({

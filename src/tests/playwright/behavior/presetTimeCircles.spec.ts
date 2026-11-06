@@ -148,7 +148,7 @@ function addTimeLayer(
 test.describe("PRESET-006 time-aware map layers", () => {
   test.use({ scenario: "execution" });
 
-  test("time slices refresh at inclusive boundaries across EVA and REX scopes with zero and one-slice sources", async ({
+  test("a time-layer scope transition delivers the newly resolved HTTP tile and paints its pixels", async ({
     page,
     mission,
   }) => {
@@ -236,45 +236,5 @@ test.describe("PRESET-006 time-aware map layers", () => {
       .toEqual([sourcePath("slice-b")]);
     await expect.poll(() => mapPixel(page)).toBe("#00ff00");
     expect(requests.some((url) => url.includes("/multi/slice-b/"))).toBe(true);
-
-    await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-    await expect
-      .poll(() => activeTimePaths(page, sublayerIds.manySlices))
-      .toEqual([sourcePath("slice-c")]);
-    await expect.poll(() => mapPixel(page)).toBe("#0000ff");
-    expect(requests.some((url) => url.includes("/multi/slice-c/"))).toBe(true);
-
-    await mission.change((doc) => {
-      doc.evas[mission.ids.rexEvaB].datetime = Date.parse("2028-01-06T00:00:01Z");
-    });
-    await expect.poll(() => activeTimePaths(page, sublayerIds.manySlices)).toEqual([]);
-
-    await selectExecution(page, "Survey Alpha", mission.ids.evaA);
-    await mission.change((doc) => {
-      doc.presets[mission.ids.presetA].mapSublayerControls[sublayerIds.manySlices].visible = false;
-      doc.presets[mission.ids.presetA].mapSublayerControls[sublayerIds.oneSlice].visible = true;
-    });
-    await expect
-      .poll(() => activeTimePaths(page, sublayerIds.oneSlice))
-      .toEqual([`${fixtureBase}/single/only`]);
-    await expect.poll(() => mapPixel(page)).toBe("#ffff00");
-    expect(requests.some((url) => url.includes("/single/only/"))).toBe(true);
-
-    await mission.change((doc) => {
-      doc.presets[mission.ids.presetA].mapSublayerControls[sublayerIds.oneSlice].visible = false;
-      doc.presets[mission.ids.presetA].mapSublayerControls[sublayerIds.noSlice].visible = true;
-    });
-    await expect
-      .poll(() => activeTimePaths(page, sublayerIds.noSlice))
-      .toEqual([`${fixtureBase}/static`]);
-    await expect.poll(() => mapPixel(page)).toBe("#808080");
-    expect(requests.some((url) => url.includes("/static/0/"))).toBe(true);
-    expect(await mission.read()).toMatchObject({
-      presets: {
-        [mission.ids.presetA]: {
-          mapSublayerControls: { [sublayerIds.noSlice]: { visible: true } },
-        },
-      },
-    });
   });
 });

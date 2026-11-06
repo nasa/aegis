@@ -169,23 +169,14 @@ test("viewer access stays local while editor and admin preset edits converge acr
     expect((await mission.read()).presets).toEqual(baseline.presets);
 
     await selectPreset(editorPage, "Overview");
-    const editorToggle = editorPage.getByLabel("globalEditToggle", { exact: true });
-    await expect(editorToggle).toHaveAttribute("data-tooltip-content", "Turn On Edit Mode");
-    await expect(editorPage.getByText("Add", { exact: true })).toHaveCount(0);
-    await expect(editorPage.getByText("Duplicate", { exact: true })).toHaveCount(0);
-    await expect(editorPage.getByLabel("deleteButton", { exact: true })).toHaveCount(0);
-    await editorPage.locator('div[aria-label="Preset Title"]').click();
-    await expect(editorPage.locator("dialog[open]")).toHaveCount(0);
-    await openPresetTab(editorPage, "layers_panel");
-    const editorLayer = editorPage
-      .getByText("Permission overlay (vector)", { exact: true })
-      .locator("..");
-    await expect(editorLayer.locator('svg[data-icon="sliders"]')).toHaveCount(0);
-
     await enablePlanningEditMode(editorPage);
     await expect(editorPage.getByText("Add", { exact: true })).toBeVisible();
     await expect(editorPage.getByText("Duplicate", { exact: true })).toBeVisible();
     await expect(editorPage.getByLabel("deleteButton", { exact: true })).toBeVisible();
+    await openPresetTab(editorPage, "layers_panel");
+    const editorLayer = editorPage
+      .getByText("Permission overlay (vector)", { exact: true })
+      .locator("..");
     await editorLayer.locator('svg[data-icon="sliders"]').click();
     await editorPage.getByLabel("opacity", { exact: true }).fill("40");
     await expect
@@ -205,52 +196,13 @@ test("viewer access stays local while editor and admin preset edits converge acr
     expect(createdUuid).toBeTruthy();
 
     await selectPreset(editorPage, "Overview");
-    const beforeDuplicate = await mission.read();
-    await editorPage.getByText("Duplicate", { exact: true }).click();
-    await expect.poll(async () => Object.keys((await mission.read()).presets).length).toBe(4);
-    const duplicateUuid = Object.keys((await mission.read()).presets).find(
-      (uuid) => !Object.hasOwn(beforeDuplicate.presets, uuid)
-    );
-    expect(duplicateUuid).toBeTruthy();
-    expect((await mission.read()).presets[duplicateUuid!]).toMatchObject({
-      missionDefault: false,
-      name: expect.stringMatching(/^Overview \(copy/),
-      mapSublayerControls: {
-        [sublayerUuid]: { style: { opacity: 0.4 } },
-      },
-    });
-    const duplicateName = (await mission.read()).presets[duplicateUuid!].name;
-    await selectPreset(editorPage, duplicateName);
-    editorPage.once("dialog", async (dialog) => {
-      expect(dialog.type()).toBe("confirm");
-      await dialog.accept();
-    });
-    await editorPage.getByLabel("deleteButton", { exact: true }).click();
-    await expect.poll(async () => (await mission.read()).presets[duplicateUuid!]).toBeUndefined();
-
-    await enablePlanningEditMode(adminPage);
-    await selectPreset(adminPage, "Overview");
-    const beforeAdminCreate = await mission.read();
-    await adminPage.getByText("Add", { exact: true }).click();
-    await expect.poll(async () => Object.keys((await mission.read()).presets).length).toBe(4);
-    const adminCreatedUuid = Object.keys((await mission.read()).presets).find(
-      (uuid) => !Object.hasOwn(beforeAdminCreate.presets, uuid)
-    );
-    expect(adminCreatedUuid).toBeTruthy();
-    adminPage.once("dialog", async (dialog) => dialog.accept());
-    await adminPage.getByLabel("deleteButton", { exact: true }).click();
-    await expect
-      .poll(async () => (await mission.read()).presets[adminCreatedUuid!])
-      .toBeUndefined();
-
-    await selectPreset(editorPage, "Overview");
     await openPresetTab(editorPage, "info_panel");
+    await enablePlanningEditMode(adminPage);
     await selectPreset(adminPage, "Overview");
     await openPresetTab(adminPage, "info_panel");
     const sunDraft = await openPlanningField(editorPage, "Preset Title");
     await sunDraft.getByLabel("Preset Title", { exact: true }).fill("75");
-    await adminPage.locator('div[aria-label="Preset Description"]').click();
-    const descriptionDraft = adminPage.locator("dialog[open]");
+    const descriptionDraft = await openPlanningField(adminPage, "Preset Description");
     await descriptionDraft
       .getByLabel("Preset Description", { exact: true })
       .fill("Concurrent admin description");
@@ -275,6 +227,7 @@ test("viewer access stays local while editor and admin preset edits converge acr
     await editorPage.reload();
     await adminPage.reload();
     const finalMission = await mission.read();
+    expect(finalMission.presets[createdUuid!]).toBeDefined();
     expect(finalMission.presets[mission.ids.presetA]).toMatchObject({
       name: "75",
       description: "Concurrent admin description",

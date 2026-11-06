@@ -19,9 +19,3 @@ interface BehavioralFixtures {
   scenario: BehavioralScenario;
   mission: BehavioralMission;
 }
-
-interface BehavioralPlanningExport {
-  stations: ExportStation[];
-  pois: ExportPOI[];
-  evas: ExportEva[];
-}

@@ -147,48 +147,6 @@ test("admin export and Automerge diagnostics address their mission and reject mi
   }
 });
 
-test("export route hides prior mission controls while a changed mission ID is loading", async ({
-  page,
-  mission,
-}) => {
-  const missingMissionId = 2147483647;
-  await page.goto(`/admin/export/${mission.id}`);
-  await expect(page.getByRole("heading", { name: "Export Mission", exact: true })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Dump Mission to JSON File", exact: true })
-  ).toBeVisible();
-
-  let releaseLookup: (() => void) | undefined;
-  const lookupGate = new Promise<void>((resolve) => {
-    releaseLookup = resolve;
-  });
-  const missingListingRoute = `**/api/v1/docListing?missionId=${missingMissionId}`;
-  await page.route(missingListingRoute, async (route) => {
-    await lookupGate;
-    await route.continue();
-  });
-
-  try {
-    await page.evaluate((id) => {
-      window.history.pushState({}, "", `/admin/export/${id}`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    }, missingMissionId);
-    await expect(page).toHaveURL(new RegExp(`/admin/export/${missingMissionId}$`));
-    await expect(page.getByRole("status")).toHaveText("Loading mission for export...");
-    await expect(
-      page.getByRole("button", { name: "Dump Mission to JSON File", exact: true })
-    ).toHaveCount(0);
-
-    releaseLookup?.();
-    await expect(page.getByRole("alert")).toContainText(
-      `Mission ${missingMissionId} was not found or is unavailable.`
-    );
-  } finally {
-    releaseLookup?.();
-    await page.unroute(missingListingRoute);
-  }
-});
-
 test("super-admin connection monitors follow isolated visitors, refresh, leave, and role limits", async ({
   browser,
   baseURL,
