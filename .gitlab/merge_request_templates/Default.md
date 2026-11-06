@@ -6,6 +6,7 @@
 
 - [ ] Standard checks passed (`npm run test:all`).
 - [ ] All three Vitest browser coverage shards, the Firefox/WebKit parity job, and merged coverage passed.
+- [ ] Test runner changes map removed scenarios to replacement assertions, justify every retained integration boundary, and verify shard selection, coverage artifact merging and distinct browser JUnit identities.
 - [ ] Changed functionality and relevant state boundaries were reviewed against Vitest browser and Playwright assertions using the [functionality audit guide](docs/testing/README.md); affected tests and any remaining gaps are recorded below.
 - [ ] Did you run the full Playwright suite? I manually triggered `test-playwright:start` for the latest MR commit and all four CI shards passed.
 

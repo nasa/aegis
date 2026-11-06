@@ -98,6 +98,8 @@ For mixed features, put validation and input/value matrices in Vitest Browser Mo
 
 CI uses three Chromium browser coverage shards plus an independent Firefox/WebKit parity job. Coverage blobs from every browser and node shard merge into one report. Each browser shard and parity job publishes its own JUnit report; V8 coverage requires Chromium. The full Playwright suite runs in four shards behind the manual launch job. Keep shard counts, artifact names, deployment gates and the validation instructions synchronized when changing this layout.
 
+Current runner inventory, assertion mappings and local validation evidence are recorded in [the browser runner completion audit](docs/testing/browser-runner-completion-2026-11-06.md). For runner-layout changes, use `.gitlab/scripts/verify-test-shards.mjs` to check selection; validate actual coverage/JUnit artifacts with `.gitlab/scripts/verify-vitest-artifacts.mjs` as described in the [CI layout](docs/testing/ci-layout.md).
+
 ## Logging
 
 Log through `clientLogger` (`utils/logging/clientLogger`) in browser code and `serverLogger` (`utils/logging/serverLogger`) in server code; both wrap `ConsoleLogger`.

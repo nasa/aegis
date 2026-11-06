@@ -1,5 +1,9 @@
 # Browser workflow migration: second pass, November 6, 2026
 
+Historical migration record. See the [runner completion record](browser-runner-completion-2026-11-06.md) for the current inventory and retained boundaries.
+
+Historical migration record. See the [runner completion record](browser-runner-completion-2026-11-06.md) for the current inventory and retained boundaries.
+
 This records the migration and validation at that point. For current job counts,
 parallel scheduling and report handling, see the [CI layout](ci-layout.md).
 
@@ -75,10 +79,10 @@ its authentication setup. The baseline tests came unchanged from `fe2415eb`,
 with their four retained real-navigation cases excluded. Relative imports were
 redirected to the existing fixtures. Both runs used the same application source.
 
-| Measurement                      | Playwright | Vitest Browser Mode |  Improvement |
-| -------------------------------- | ---------: | ------------------: | -----------: |
-| Process elapsed                  |   122.23 s |             39.97 s | 3.06� faster |
-| Sum of the 93 scenario durations |   345.62 s |             70.59 s | 4.90� faster |
+| Measurement                      | Playwright | Vitest Browser Mode |    Improvement |
+| -------------------------------- | ---------: | ------------------: | -------------: |
+| Process elapsed                  |   122.23 s |             39.97 s | 3.06ï¿½ faster |
+| Sum of the 93 scenario durations |   345.62 s |             70.59 s | 4.90ï¿½ faster |
 
 The original development ports again belonged to another checkout, so the final
 Playwright checks used an isolated frontend/API on 14400/14401. The Vite module
