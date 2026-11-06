@@ -23,6 +23,7 @@ vi.mock("utils/validateSchemaServer", async () => {
 
   return {
     missionValidator: ajv.compile(missionSchema),
+    currentMissionValidator: ajv.compile(missionSchema),
     mdauSchemaValidator: ajv.compile(mdauSchema),
     missionFieldsValidator: ajv.compile(missionFieldsSchema),
   };

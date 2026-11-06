@@ -18,7 +18,7 @@ import { getAutomergeDocListing } from "server/express/routes/docListing";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator as missionValidator } from "utils/validateSchemaServer";
 
 /** A single schema violation, trimmed down from the raw AJV error. */
 type SchemaViolation = {

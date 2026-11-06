@@ -12,13 +12,16 @@ import { Migration20261022000000 } from "server/automerge/migrations/Migration20
 import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 import { Migration20261028000000 } from "server/automerge/migrations/Migration20261028000000";
-import { Migration20261106000000 } from "server/automerge/migrations/Migration20261106000000";
+import { Migration20261105000000 } from "server/automerge/migrations/Migration20261105000000";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankRex } from "store/storeUtils/rex";
+import { currentMissionValidator, missionValidator } from "utils/validateSchemaServer";
+
+vi.unmock("utils/validateSchemaServer");
 
 describe("clear Automerge document history", () => {
   let pool: pg.Pool;
@@ -120,6 +123,13 @@ describe("clear Automerge document history", () => {
     const first = await makeDocument(repo);
     const second = await makeDocument(repo, 43);
     first.handle.change((mission) => {
+      // Existing deployments reaching history compaction may still have the legacy planet shape.
+      delete (mission as Partial<Mission>).planet;
+      Object.assign(mission, {
+        planetRadius: 1737400,
+        usingLGRSCoordinates: true,
+        gridRenderMode: "dynamic-lgrs",
+      });
       mission.evas.eva = generateBlankEVA({ uuid: "eva" });
       for (const field of ["sunEarthFromDate", "sunAzimuth", "earthAzimuth"] as const) {
         delete (mission.evas.eva as Partial<Eva>)[field];
@@ -128,10 +138,8 @@ describe("clear Automerge document history", () => {
       for (const source of mission.rexes.rex.posSources) {
         delete (source as Partial<PosSource>).pathColor;
       }
-      // Fields added after this migration must not fail its schema validation.
-      delete mission.gridSystem;
-      delete mission.earthGridLabelScheme;
     });
+    expect(missionValidator(Automerge.toJS(first.handle.doc()))).toBe(false);
     const listings = [first.listing, second.listing];
     const oldUrls = listings.map(({ automergeUrl }) => automergeUrl);
     const schemaMigrations = AUTOMERGE_MIGRATIONS.filter(
@@ -142,7 +150,7 @@ describe("clear Automerge document history", () => {
       Migration20261022010000,
       Migration20261026000000,
       Migration20261028000000,
-      Migration20261106000000,
+      Migration20261105000000,
     ]);
     globalValues.automergeRepo = repo;
 
@@ -152,11 +160,12 @@ describe("clear Automerge document history", () => {
       [
         ...schemaMigrations,
         {
-          version: 20261107000000,
+          version: 20261106000000,
           name: "edit-replacement",
           migrate: async (handle, { docListing }) => {
             expect(handle.url).toBe(docListing.automergeUrl);
             expect(oldUrls).not.toContain(handle.url);
+            expect(currentMissionValidator(Automerge.toJS(handle.doc()))).toBe(true);
             handle.change((mission) => {
               mission.description = "Edited after replacement";
             });
@@ -168,16 +177,17 @@ describe("clear Automerge document history", () => {
 
     expect(Object.keys(repo.handles)).toEqual([]);
     const reader = makeRepo();
-    // The replacement, then the edit; the first mission also has its grid system backfill.
-    for (const [listing, changes] of [
-      [first.listing, 3],
-      [second.listing, 2],
-    ] as const) {
+    for (const listing of listings) {
       const reloaded = await reader.find<Mission>(listing.automergeUrl as AutomergeUrl);
       expect(reloaded.doc().description).toBe("Edited after replacement");
-      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(changes);
+      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(
+        listing.missionId === first.listing.missionId ? 3 : 2
+      );
     }
     const mission = (await reader.find<Mission>(first.listing.automergeUrl as AutomergeUrl)).doc();
+    expect(mission.planet).toBe("moon");
+    expect(mission).not.toHaveProperty("planetRadius");
+    expect(mission).not.toHaveProperty("usingLGRSCoordinates");
     expect(mission.evas.eva.sunEarthFromDate).toBe(true);
     expect(mission.evas.eva.sunAzimuth).toBe(0);
     expect(mission.evas.eva.earthAzimuth).toBe(0);
@@ -186,8 +196,6 @@ describe("clear Automerge document history", () => {
       "#009CE0",
       "#68BC00",
     ]);
-    expect(mission.gridSystem).toBe("moon-m2025");
-    expect(mission.earthGridLabelScheme).toBe("lunar-acc");
     await vi.waitFor(async () => {
       expect(await storage.loadRange([first.handle.documentId])).toEqual([]);
       expect(await storage.loadRange([second.handle.documentId])).toEqual([]);
@@ -218,46 +226,61 @@ describe("clear Automerge document history", () => {
     ).toEqual([{ mission_id: 42, automerge_url: oldUrl, version: 7 }]);
   });
 
-  it("preserves current content, reloads with one change, and deletes only the old ID's rows", async () => {
-    const repo = makeRepo();
-    const { handle, listing } = await makeDocument(repo);
-    const other = await makeDocument(repo, 43);
-    const oldUrl = handle.url;
-    const oldHistory = Automerge.topoHistoryTraversal(handle.doc());
-    const expected = Automerge.toJS(handle.doc());
-    expect(oldHistory).toHaveLength(3);
+  it.each([false, true])(
+    "preserves content and resets only history (legacy planet: %s)",
+    async (legacy) => {
+      const repo = makeRepo();
+      const { handle, listing } = await makeDocument(repo);
+      const other = await makeDocument(repo, 43);
+      if (legacy) {
+        handle.change((mission) => {
+          delete (mission as Partial<Mission>).planet;
+          Object.assign(mission, {
+            planetRadius: 1737400,
+            usingLGRSCoordinates: true,
+            gridRenderMode: "dynamic-lgrs",
+          });
+        });
+      }
+      const oldUrl = handle.url;
+      const oldHistory = Automerge.topoHistoryTraversal(handle.doc());
+      const expected = Automerge.toJS(handle.doc());
+      expect(oldHistory).toHaveLength(legacy ? 4 : 3);
+      expect(missionValidator(expected)).toBe(true);
+      expect(currentMissionValidator(expected)).toBe(!legacy);
 
-    const replacement = await migrate(repo, handle, listing);
-    expect(replacement.url).not.toBe(oldUrl);
-    expect(listing.automergeUrl).toBe(replacement.url);
-    expect(repo.handles[handle.documentId]).toBeUndefined();
-    expect(handle.isDeleted()).toBe(true);
-    await vi.waitFor(async () => {
+      const replacement = await migrate(repo, handle, listing);
+      expect(replacement.url).not.toBe(oldUrl);
+      expect(listing.automergeUrl).toBe(replacement.url);
+      expect(repo.handles[handle.documentId]).toBeUndefined();
+      expect(handle.isDeleted()).toBe(true);
+      await vi.waitFor(async () => {
+        expect(await storage.loadRange([handle.documentId])).toEqual([]);
+      });
+      expect((await storage.loadRange([other.handle.documentId])).length).toBeGreaterThan(0);
+      expect(
+        (await pool.query('select * from "doc_listing_db" where "mission_id" = 42')).rows
+      ).toEqual([{ mission_id: 42, automerge_url: replacement.url, version: 8 }]);
+
+      const reloadedRepo = makeRepo();
+      const reloaded = await reloadedRepo.find<Mission>(replacement.url);
+      expect(Automerge.toJS(reloaded.doc())).toEqual(expected);
+      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(1);
+      expect(
+        Automerge.topoHistoryTraversal(reloaded.doc()).some((head) => oldHistory.includes(head))
+      ).toBe(false);
+      reloaded.change((mission) => {
+        mission.description = "New edit";
+      });
+      await reloadedRepo.flush();
+      expect((await makeRepo().find<Mission>(replacement.url)).doc().description).toBe("New edit");
+
+      // Neither pending save timers nor shutdown may recreate the deleted document.
+      await repo.shutdown();
+      await new Promise((resolve) => setTimeout(resolve, 20));
       expect(await storage.loadRange([handle.documentId])).toEqual([]);
-    });
-    expect((await storage.loadRange([other.handle.documentId])).length).toBeGreaterThan(0);
-    expect(
-      (await pool.query('select * from "doc_listing_db" where "mission_id" = 42')).rows
-    ).toEqual([{ mission_id: 42, automerge_url: replacement.url, version: 8 }]);
-
-    const reloadedRepo = makeRepo();
-    const reloaded = await reloadedRepo.find<Mission>(replacement.url);
-    expect(Automerge.toJS(reloaded.doc())).toEqual(expected);
-    expect(Automerge.getHistory(reloaded.doc())).toHaveLength(1);
-    expect(
-      Automerge.topoHistoryTraversal(reloaded.doc()).some((head) => oldHistory.includes(head))
-    ).toBe(false);
-    reloaded.change((mission) => {
-      mission.description = "New edit";
-    });
-    await reloadedRepo.flush();
-    expect((await makeRepo().find<Mission>(replacement.url)).doc().description).toBe("New edit");
-
-    // Neither pending save timers nor shutdown may recreate the deleted document.
-    await repo.shutdown();
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(await storage.loadRange([handle.documentId])).toEqual([]);
-  });
+    }
+  );
 
   it("can repeat a committed document after an interrupted migration run", async () => {
     const repo = makeRepo();

@@ -14,7 +14,21 @@ const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });
 // Add schemas below that you want to compile and then validate on
 
 const missionSchema = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, "mission.json"), "utf8"));
-export const missionValidator = ajv.compile<Mission>(missionSchema);
+export const currentMissionValidator = ajv.compile<Mission>(missionSchema);
+
+// History compaction validates documents before the planet migration has run.
+const legacyMissionSchema = structuredClone(missionSchema);
+delete legacyMissionSchema.properties.planet;
+legacyMissionSchema.properties.planetRadius = { type: ["number", "null"] };
+legacyMissionSchema.properties.usingLGRSCoordinates = { type: "boolean" };
+legacyMissionSchema.properties.gridRenderMode = { enum: ["server-file", "dynamic-lgrs"] };
+legacyMissionSchema.required = legacyMissionSchema.required
+  .filter((field: string) => field !== "planet")
+  .concat(["planetRadius", "usingLGRSCoordinates", "gridRenderMode"]);
+export const missionValidator = ajv.compile({
+  definitions: missionSchema.definitions,
+  anyOf: [missionSchema, legacyMissionSchema],
+});
 
 // Maegistro V2 for sendMDAU
 const mdauSchema = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, "mdau.json"), "utf8"));

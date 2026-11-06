@@ -17,27 +17,3 @@ export const usesLgrsCoordinates = (
     mission.planet === "moon" && Number.isFinite(latitude) && latitude < -80 && latitude >= -90
   );
 };
-
-/** Only used to upgrade legacy mission documents; never infer identity from radius at runtime. */
-export const planetFromLegacyRadius = (radius: number | null | undefined): Planet => {
-  if (radius == null || radius === 0) return "moon";
-  const match = (Object.keys(PLANETS) as Planet[]).find(
-    (planet) => Math.abs(PLANETS[planet].radius - radius) < 10000
-  );
-  if (!match) throw new Error(`Unsupported legacy planet radius: ${radius}`);
-  return match;
-};
-
-export type LegacyPlanetFields = {
-  planet?: Planet;
-  planetRadius?: number | null;
-  usingLGRSCoordinates?: boolean;
-  gridRenderMode?: GridRenderMode;
-};
-
-export const migrateMissionPlanet = (mission: LegacyPlanetFields): void => {
-  mission.planet ??= planetFromLegacyRadius(mission.planetRadius);
-  delete mission.planetRadius;
-  delete mission.usingLGRSCoordinates;
-  delete mission.gridRenderMode;
-};

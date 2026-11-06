@@ -1,9 +1,4 @@
-import {
-  PLANETS,
-  getPlanetRadius,
-  usesLgrsCoordinates,
-  planetFromLegacyRadius,
-} from "utils/planets";
+import { PLANETS, getPlanetRadius, usesLgrsCoordinates } from "utils/planets";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -28,14 +23,6 @@ test.each([
   expect(
     usesLgrsCoordinates(generateBlankMission({ planet, landerLocation: { lat, lng: 0 } }))
   ).toBe(expected);
-});
-
-test("upgrades historical Earth radii and rejects unknown bodies", () => {
-  expect(planetFromLegacyRadius(6371000)).toBe("earth");
-  expect(planetFromLegacyRadius(6378137)).toBe("earth");
-  expect(planetFromLegacyRadius(1737400)).toBe("moon");
-  expect(planetFromLegacyRadius(3389500)).toBe("mars");
-  expect(() => planetFromLegacyRadius(123)).toThrow("Unsupported legacy planet radius");
 });
 
 test("changing planets recalculates saved paths and invalidates terrain profile inputs", () => {

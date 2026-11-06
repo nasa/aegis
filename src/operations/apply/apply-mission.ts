@@ -13,7 +13,7 @@ export function applyMissionPlanet(mission: Mission, planet: Planet): void {
   recalculateMissionDistances(mission);
 }
 
-export function recalculateMissionDistances(mission: Mission): void {
+function recalculateMissionDistances(mission: Mission): void {
   const radius = getPlanetRadius(mission);
   const distances = (points: AEGISPoint[]): number[] =>
     points.slice(1).map((point, index) => getTotalDistance([points[index], point], radius));

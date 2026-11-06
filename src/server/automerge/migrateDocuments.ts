@@ -5,7 +5,7 @@ import { isValidAutomergeUrl } from "@automerge/automerge-repo/slim";
 import type { Repo } from "@automerge/automerge-repo/slim";
 import type { MikroORM } from "@mikro-orm/postgresql";
 import type { AutomergeMigration } from "./migrations/types";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator as missionValidator } from "utils/validateSchemaServer";
 import { serverLogger } from "utils/logging/serverLogger";
 
 const logProgress = (message: string) => {
