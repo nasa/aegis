@@ -103,7 +103,11 @@ test("unknown lander elevation encourages adding a DEM, and elevation cannot be 
   expect(harness.container.querySelector('input[name="landerElevationMeters"]')).toBeNull();
 });
 
-test.each([0, -35, 123])("displays the detected lander elevation %s", (elevation) => {
+test.each([
+  [0, "0"],
+  [-1063.60498046875, "-1064"],
+  [123.456, "123"],
+])("displays the detected lander elevation %s", (elevation, expected) => {
   mission = {
     ...mission,
     demFilePath: "Data/nested/elevation.tif",
@@ -112,7 +116,7 @@ test.each([0, -35, 123])("displays the detected lander elevation %s", (elevation
   render();
   expect(
     harness.container.querySelector('output[aria-label="Lander Elevation"]')?.textContent
-  ).toBe(String(elevation));
+  ).toBe(expected);
 });
 
 test("south-pole Moon missions have automatic LGRS and no uploaded-grid controls; Earth keeps them", () => {
