@@ -149,7 +149,8 @@ tsc:
     - npm run tsc
 
 # Sharded vitest. Each shard emits a blob report (coverage data embedded);
-# merge-vitest-coverage consolidates them into the final cobertura/lcov/junit.
+# merge-vitest-coverage consolidates coverage and the Node JUnit results.
+# Browser jobs publish their own JUnit reports to preserve project identities.
 # Per-shard cobertura would only reflect 1/N of the codebase and confuse
 # GitLab's coverage UI.
 test-vitest:
@@ -171,16 +172,17 @@ test-vitest:
       --coverage
       --reporter=blob
       --reporter=default
+      --outputFile.blob=.vitest-reports/blob-node-${SHARD_INDEX}-${NUM_SHARDS}.json
       --shard=${SHARD_INDEX}/${NUM_SHARDS}
   artifacts:
     paths:
       - .vitest/blob/
     expire_in: 1 day
 
-# Merge sharded vitest blob reports into a single coverage + junit set.
-# `vitest --merge-reports` reads .vitest/blob/ from all shard artifacts,
-# replays the embedded coverage/test data, and emits whatever reporters we
-# pass. No DB needed — this step does not run tests.
+# Merge coverage from every shard and replay Node test results as JUnit.
+# `vitest --merge-reports` reads .vitest-reports/ from all shard artifacts,
+# merges all coverage and replays Node test results. Browser project results
+# are reported by their original jobs. No DB needed — this step does not run tests.
 merge-vitest-coverage:
   stage: stageless
   tags: ["openshift"]
@@ -191,6 +193,12 @@ merge-vitest-coverage:
   before_script:
     - tar -xf node_modules.tar
   script:
+    # Reject missing/overwritten shard artifacts before producing partial coverage.
+    - |
+      for shard in 1 2 3; do
+        test -s ".vitest-reports/blob-node-${shard}-3.json" || exit 1
+        test -s ".vitest-reports/blob-browser-${shard}-3.json" || exit 1
+      done
     - npx vitest --merge-reports
       --config src/tests/vitest/vitest.config.mts
       --reporter=junit
@@ -234,7 +242,7 @@ test-playwright:start:
   # The shards below still fail the pipeline if they run and fail.
   allow_failure: true
   script:
-    - echo "Starting all eight Playwright regression shards"
+    - echo "Starting all four Playwright regression shards"
 
 # Install Ubuntu dependencies once, in parallel with the deployment image builds.
 prepare-playwright:
@@ -269,12 +277,8 @@ test-playwright:
       - SHARD_INDEX: 2
       - SHARD_INDEX: 3
       - SHARD_INDEX: 4
-      - SHARD_INDEX: 5
-      - SHARD_INDEX: 6
-      - SHARD_INDEX: 7
-      - SHARD_INDEX: 8
   variables:
-    NUM_SHARDS: 8
+    NUM_SHARDS: 4
     GIT_COMMIT: ${CI_COMMIT_SHA}
     # Avoid @emss/logger's console fallback and remote sends in every shard,
     # including migrations. Aegis console warnings/errors remain enabled below.
@@ -311,7 +315,7 @@ test-playwright:
       - playwright-report/ # Store Playwright test reports
     expire_in: 1 day
 
-test-vitest:browser:
+.browser-test-template:
   stage: stageless
   # Keep this tag in sync with the @playwright/test version in package.json.
   image: mcr.microsoft.com/playwright:v1.64.1-jammy
@@ -324,24 +328,34 @@ test-vitest:browser:
     # node_modules artifact was built on Alpine (musl); this image is Ubuntu (glibc).
     # npm skips libc-mismatched optional deps, so install the glibc rollup binary explicitly.
     - npm install --no-save @rollup/rollup-linux-x64-gnu
-  script:
     # schema:create generates typescript-json-schema outputs some modules import.
     - npm run schema:create
-    # V8 coverage uses Chromium's CDP; run the other browser engines separately.
-    - npm run test:vitest:browser:parity
-    # Emit a coverage blob (like the sharded test-vitest jobs) so
-    # merge-vitest-coverage folds browser-mode coverage into the single
-    # cobertura/lcov report. Explicit blob name avoids colliding with the
-    # node shards' auto-named blobs when both artifacts extract into the merge.
+  timeout: 20 minutes
+
+test-vitest:browser:
+  extends: .browser-test-template
+  parallel:
+    matrix:
+      - SHARD_INDEX: 1
+      - SHARD_INDEX: 2
+      - SHARD_INDEX: 3
+  variables:
+    NUM_SHARDS: 3
+  script:
+    # Unique blob paths survive artifact downloads from every parallel job.
     - |
       run_browser_tests() {
         npx vitest run \
           --config src/tests/vitest-browser/vitest.config.mts \
           --project=chromium --project=chromium-hidpi \
+          --maxWorkers=3 \
+          --shard=${SHARD_INDEX}/${NUM_SHARDS} \
           --coverage \
           --reporter=default \
           --reporter=blob \
-          --outputFile.blob=.vitest/blob/blob-browser.json
+          --reporter=./.gitlab/scripts/browser-junit-reporter.mjs \
+          --outputFile.junit=test-results/vitest-browser-${SHARD_INDEX}-${NUM_SHARDS}.xml \
+          --outputFile.blob=.vitest-reports/blob-browser-${SHARD_INDEX}-${NUM_SHARDS}.json
       }
 
       set +e
@@ -351,15 +365,35 @@ test-vitest:browser:
 
       if grep -q "Vite unexpectedly reloaded a test" /tmp/vitest-browser.log; then
         echo "Vite changed optimized dependencies; retrying with the warmed cache."
-        rm -rf .vitest/blob
-        run_browser_tests
+        rm -f ".vitest-reports/blob-browser-${SHARD_INDEX}-${NUM_SHARDS}.json"
+        run_browser_tests || exit $?
       else
         exit "$test_status"
       fi
-  timeout: 20 minutes
   artifacts:
+    when: always
+    reports:
+      junit: test-results/vitest-browser-${SHARD_INDEX}-${NUM_SHARDS}.xml
     paths:
-      - .vitest/blob/
+      - .vitest-reports/
+      - test-results/vitest-browser-${SHARD_INDEX}-${NUM_SHARDS}.xml
+    expire_in: 1 day
+
+test-vitest:browser:parity:
+  extends: .browser-test-template
+  script:
+    # Firefox/WebKit have no V8/CDP coverage; keep their test results separate.
+    - npm run test:vitest:browser:parity --
+      --maxWorkers=3
+      --reporter=default
+      --reporter=./.gitlab/scripts/browser-junit-reporter.mjs
+      --outputFile.junit=test-results/vitest-browser-parity.xml
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/vitest-browser-parity.xml
+    paths:
+      - test-results/vitest-browser-parity.xml
     expire_in: 1 day
 
 # Test the automerge migrations against a prod database
@@ -498,6 +532,8 @@ docker:retag:
     - job: merge-vitest-coverage
       artifacts: false
     - job: test-vitest:browser
+      artifacts: false
+    - job: test-vitest:browser:parity
       artifacts: false
     - job: docker:build:nginx
       artifacts: false

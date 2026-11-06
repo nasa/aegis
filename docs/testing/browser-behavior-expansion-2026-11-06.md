@@ -1,5 +1,8 @@
 # Browser workflow migration: second pass, November 6, 2026
 
+This records the migration and validation at that point. For current job counts,
+parallel scheduling and report handling, see the [CI layout](ci-layout.md).
+
 This expands `fe2415eb` using separate agents for map interactions, client
 workflows and dashboard/execution tests, followed by integration and assertion
 review. Production application code is unchanged.

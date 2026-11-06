@@ -67,7 +67,7 @@ does not become a dependency of container image builds or production deployment.
 
 `docker:build:apiv1` exports the API, migration tools, and schemas from the actual
 deployment image. After the manual launch, `prepare-playwright` installs the
-locked dependencies once in the same Ubuntu image used by the eight shards,
+locked dependencies once in the same Ubuntu image used by the four shards,
 alongside the deployment image builds. Each shard downloads those dependencies
 and the API build, restores its own database, and runs the prepared migrations;
 it does not compile the API or generate schemas.
@@ -90,7 +90,7 @@ published application image as the current pipeline's result.
 
 Run affected tests locally while developing. When you think the MR is ready to
 merge, push the final changes and manually click Play once on
-`test-playwright:start` in that commit's GitLab pipeline. This releases all eight
+`test-playwright:start` in that commit's GitLab pipeline. This releases all four
 shards automatically. Together they run the full configured suite: authentication
 setup, Chromium regression tests, and Firefox/WebKit smoke and selected parity
 workflows. Full Playwright execution is not required on every development push.
