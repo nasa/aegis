@@ -1,13 +1,10 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "../fixtures/behavioralTest";
-import { seedPosEntry } from "../fixtures/entitySeeds";
-import { readMapFeatures } from "../fixtures/mapAssertions";
 import { selectExecution } from "./executionHelpers";
 import { enablePlanningEditMode } from "./planningHelpers";
 
 test.use({ scenario: "execution" });
 const extraType = "30000000-0000-4000-8000-000000009006";
-const extraSource = "30000000-0000-4000-8000-000000009007";
 const project = (point: AEGISPoint) => [
   (point.lng * Math.PI * 6378137) / 180,
   Math.log(Math.tan(Math.PI / 4 + (point.lat * Math.PI) / 360)) * 6378137,
@@ -50,103 +47,6 @@ async function expectCenter(page: Page, point: AEGISPoint) {
     .poll(async () => (await dashboardView(page)).center)
     .toEqual(project(point).map((value) => expect.closeTo(value, 3)));
 }
-
-test("dashboard follows newest source-filtered positions and independently selected active stations and traverses", async ({
-  page,
-  mission,
-}) => {
-  const old = { lat: 0.1, lng: 0.1 };
-  const crew = { lat: 0.002, lng: 0.004 };
-  const task = { lat: 0.003, lng: 0.006 };
-  await mission.change((doc) => {
-    const rex = doc.rexes[mission.ids.rexB];
-    rex.posSources.push({ uuid: extraSource, name: "Task", abbr: "T", pathColor: "#0088ff" });
-    rex.posEntries = [
-      seedPosEntry({
-        uuid: mission.ids.posB,
-        location: old,
-        createdAt: 100,
-        petSeconds: 100,
-        posTypeUuids: [mission.ids.posType],
-        posSourceUuid: mission.ids.posSource,
-      }),
-      seedPosEntry({
-        uuid: "30000000-0000-4000-8000-000000009008",
-        location: task,
-        createdAt: 300,
-        petSeconds: 300,
-        posTypeUuids: [mission.ids.posType],
-        posSourceUuid: extraSource,
-      }),
-      seedPosEntry({
-        uuid: "30000000-0000-4000-8000-000000009009",
-        location: crew,
-        createdAt: 200,
-        petSeconds: 200,
-        posTypeUuids: [mission.ids.posType],
-        posSourceUuid: mission.ids.posSource,
-      }),
-    ];
-  });
-  const before = await mission.read();
-  await page.goto(mission.dashboardUrl);
-  await expect(page.getByTestId("dashboard-pet-clock")).toHaveText("+00:05:00");
-  await followChoice(page, "Stations", false);
-  await followChoice(page, "Traverses", false);
-  await expectCenter(page, task);
-  await expect.poll(async () => (await dashboardView(page, "minimap")).animating).toBe(false);
-  const mini = (await dashboardView(page, "minimap")).extent;
-  for (const point of [old, before.stations[mission.ids.rexStationB].location]) {
-    const [x, y] = project(point);
-    expect(x).toBeGreaterThanOrEqual(mini[0]);
-    expect(x).toBeLessThanOrEqual(mini[2]);
-    expect(y).toBeGreaterThanOrEqual(mini[1]);
-    expect(y).toBeLessThanOrEqual(mini[3]);
-  }
-  await expect
-    .poll(async () =>
-      (await readMapFeatures(page, "minimap"))
-        .filter((feature) => feature.layerZIndex === 14 && feature.visible)
-        .map((feature) => feature.id)
-    )
-    .toEqual([mission.ids.rexStationB]);
-  const map = page.locator('[data-map-mode="dashboard"]');
-  await map.hover();
-  await map.locator('svg[data-icon="eye"]').first().click();
-  const sources = map.locator('[class*="toggleMenuItemRow_"]').filter({ hasText: "Sources" });
-  await sources.locator('[data-tooltip-content="Task"]').click();
-  await expectCenter(page, crew);
-  await sources.getByText("All", { exact: true }).click();
-  await expectCenter(page, task);
-  await map.locator('svg[data-icon="eye"]').first().click();
-  await followChoice(page, "EV1", false);
-  await followChoice(page, "Stations", true);
-  await expectCenter(page, before.stations[mission.ids.rexStationB].location);
-  await followChoice(page, "Stations", false);
-  await mission.change((doc) => {
-    doc.rexes[mission.ids.rexB].traverseEntries[mission.ids.rexTraverseB] = {
-      rexStatus: "in-progress",
-    };
-  });
-  await followChoice(page, "Traverses", true);
-  const path = before.traverses[mission.ids.rexTraverseB].path.map(project);
-  const expected = [
-    (Math.min(...path.map((p) => p[0])) + Math.max(...path.map((p) => p[0]))) / 2,
-    (Math.min(...path.map((p) => p[1])) + Math.max(...path.map((p) => p[1]))) / 2,
-  ];
-  await expect
-    .poll(async () => (await dashboardView(page)).center)
-    .toEqual(expected.map((value) => expect.closeTo(value, 3)));
-  await map.getByText("Auto Pan/Zoom Map", { exact: true }).click();
-  const fixed = await dashboardView(page);
-  await followChoice(page, "EV1", true);
-  expect((await dashboardView(page)).center).toEqual(fixed.center);
-  const after = await mission.read();
-  expect(after.rexes[mission.ids.rexB].posEntries).toEqual(
-    before.rexes[mission.ids.rexB].posEntries
-  );
-  expect(after.evas).toEqual(before.evas);
-});
 
 test("peer marker-type edits preserve disabled follow choices and deleting the last position leaves no stale recentering", async ({
   page,

@@ -1,12 +1,13 @@
-import type { Locator, Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
+import { exactText } from "./browserAssertions";
+import type { Locator, BrowserPage as Page } from "vitest/browser";
+import { test as base, expect } from "./missionHarness";
 import type VectorLayer from "ol/layer/Vector";
-import { BEHAVIORAL_NOW } from "../fixtures/missionSeed";
-import { seedPosEntry } from "../fixtures/entitySeeds";
-import { readMapFeatures } from "../fixtures/mapAssertions";
+import { BEHAVIORAL_NOW } from "tests/playwright/fixtures/missionSeed";
+import { seedPosEntry } from "tests/playwright/fixtures/entitySeeds";
+import { readMapFeatures } from "./mapObserver";
 import { selectExecution } from "./executionHelpers";
 
-test.use({ scenario: "execution" });
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
 const SECOND_TYPE = "30000000-0000-4000-8000-000000009101";
 const SECOND_SOURCE = "30000000-0000-4000-8000-000000009102";
@@ -17,24 +18,24 @@ const HISTORY_NEWER = "30000000-0000-4000-8000-000000009106";
 const POS_A = "10000000-0000-4000-8000-000000000040";
 const POS_B = "10000000-0000-4000-8000-000000000041";
 
-async function openPositions(page: Page, mission: BehavioralMission): Promise<Locator> {
-  await mission.open(page);
+async function openPositions(page: Page, mission: BrowserMission): Promise<Locator> {
+  await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
-  await expect(menu).toContainText("Survey Bravo - Active Bravo");
+  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
-  await expect(menu.locator("table")).toHaveCount(2);
+  await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   for (const section of ["Sources", "Markers", "Labels", "Paths"]) {
     await visibility
-      .locator('[class*="toggleMenuItemRow"]')
+      .getBySelector('[class*="toggleMenuItemRow"]')
       .filter({ hasText: section })
       .filter({ has: page.getByText("All", { exact: true }) })
       .getByText("All", { exact: true })
       .click();
   }
-  await visibility.locator('svg[data-icon="xmark"]').click();
+  await visibility.getBySelector('svg[data-icon="xmark"]').click();
   return menu;
 }
 
@@ -42,54 +43,51 @@ async function setMapChoice(page: Page, section: string, choice: string): Promis
   await page.getByTestId("map-menu-launcher").click();
   const row = page
     .getByTestId("map-menu-floating-panel")
-    .locator('[class*="toggleMenuItemRow"]')
+    .getBySelector('[class*="toggleMenuItemRow"]')
     .filter({ hasText: section })
     .filter({ has: page.getByText("All", { exact: true }) });
   await row.getByText(choice, { exact: true }).click();
-  await page.getByTestId("map-menu-floating-panel").locator('svg[data-icon="xmark"]').click();
+  await page.getByTestId("map-menu-floating-panel").getBySelector('svg[data-icon="xmark"]').click();
 }
 
 async function setSource(page: Page, source: "All" | "Crew" | "Rover"): Promise<void> {
   await page.getByTestId("map-menu-launcher").click();
   const row = page
     .getByTestId("map-menu-floating-panel")
-    .locator('[class*="toggleMenuItemRow"]')
+    .getBySelector('[class*="toggleMenuItemRow"]')
     .filter({ hasText: "Sources" });
   await row.getByText("All", { exact: true }).click();
-  if (source !== "All") await row.locator(`[data-tooltip-content="${source}"]`).click();
-  await page.getByTestId("map-menu-floating-panel").locator('svg[data-icon="xmark"]').click();
+  if (source !== "All") await row.getBySelector(`[data-tooltip-content="${source}"]`).click();
+  await page.getByTestId("map-menu-floating-panel").getBySelector('svg[data-icon="xmark"]').click();
 }
 
-async function positionFeatures(page: Page) {
-  return page.evaluate(
-    (trackedIds) => {
-      const map = window.__aegisMaps?.find(
-        (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
-      )?.map;
-      if (!map) throw new Error("The editor map is not observed");
-      return map
-        .getLayers()
-        .getArray()
-        .flatMap((layer) => {
-          const source = (layer as VectorLayer).getSource?.();
-          if (!source || !("getFeatures" in source)) return [];
-          return source.getFeatures().map((feature) => {
-            const geometry = feature.getGeometry();
-            return {
-              id: String(feature.getId() ?? ""),
-              geometryType: geometry?.getType() ?? null,
-              coordinates: geometry?.getCoordinates?.() ?? null,
-              markers: feature.get("posMarkers") as
-                { emoji: string; isEV: boolean; color: string }[] | undefined,
-              color: feature.get("color") as string | undefined,
-              opacity: feature.get("opacity") as number | undefined,
-            };
-          });
-        })
-        .filter((feature) => trackedIds.includes(feature.id) || feature.id.startsWith("posPath-"));
-    },
-    [POS_A, POS_B, ACTIVE_OLDER, ACTIVE_NEWER, HISTORY_OLDER, HISTORY_NEWER]
-  );
+async function positionFeatures() {
+  return ((trackedIds) => {
+    const map = window.__aegisMaps?.find(
+      (entry) => entry.mode === "editor" && entry.map.getTargetElement()?.isConnected
+    )?.map;
+    if (!map) throw new Error("The editor map is not observed");
+    return map
+      .getLayers()
+      .getArray()
+      .flatMap((layer) => {
+        const source = (layer as VectorLayer).getSource?.();
+        if (!source || !("getFeatures" in source)) return [];
+        return source.getFeatures().map((feature) => {
+          const geometry = feature.getGeometry();
+          return {
+            id: String(feature.getId() ?? ""),
+            geometryType: geometry?.getType() ?? null,
+            coordinates: geometry?.getCoordinates?.() ?? null,
+            markers: feature.get("posMarkers") as
+              { emoji: string; isEV: boolean; color: string }[] | undefined,
+            color: feature.get("color") as string | undefined,
+            opacity: feature.get("opacity") as number | undefined,
+          };
+        });
+      })
+      .filter((feature) => trackedIds.includes(feature.id) || feature.id.startsWith("posPath-"));
+  })([POS_A, POS_B, ACTIVE_OLDER, ACTIVE_NEWER, HISTORY_OLDER, HISTORY_NEWER]);
 }
 
 function projected(point: AEGISPoint): number[] {
@@ -162,13 +160,13 @@ test("marker types, source paths and PET ages remain scoped to active, historica
 
   await expect
     .poll(async () =>
-      (await positionFeatures(page))
+      (await positionFeatures())
         .filter((feature) => feature.geometryType === "Point")
         .map((feature) => feature.id)
         .sort()
     )
     .toEqual([mission.ids.posB, ACTIVE_OLDER, ACTIVE_NEWER].sort());
-  const activeSnapshots = await positionFeatures(page);
+  const activeSnapshots = await positionFeatures();
   expect(activeSnapshots.find((feature) => feature.id === ACTIVE_NEWER)?.markers).toEqual([
     { emoji: "1f469-200d-1f680", isEV: true, color: "#0055ff" },
   ]);
@@ -193,7 +191,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   ]);
   await expect
     .poll(async () =>
-      (await readMapFeatures(page))
+      (await readMapFeatures())
         .filter((feature) => feature.labelType === "pos" && feature.visible)
         .map((feature) => feature.name)
         .sort()
@@ -203,7 +201,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await setMapChoice(page, "Markers", "Latest");
   await expect
     .poll(async () =>
-      (await positionFeatures(page))
+      (await positionFeatures())
         .filter((feature) => feature.geometryType === "Point")
         .map((feature) => feature.id)
         .sort()
@@ -213,7 +211,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await setSource(page, "Crew");
   await expect
     .poll(async () =>
-      (await positionFeatures(page))
+      (await positionFeatures())
         .filter((feature) => feature.geometryType === "Point")
         .map((feature) => feature.id)
         .sort()
@@ -222,13 +220,13 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await expect
     .poll(
       async () =>
-        (await positionFeatures(page)).filter((feature) => feature.id.startsWith("posPath-")).length
+        (await positionFeatures()).filter((feature) => feature.id.startsWith("posPath-")).length
     )
     .toBe(0);
   await setSource(page, "Rover");
   await expect
     .poll(async () =>
-      (await positionFeatures(page))
+      (await positionFeatures())
         .filter((feature) => feature.geometryType === "Point")
         .map((feature) => feature.id)
         .sort()
@@ -238,17 +236,17 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await expect
     .poll(
       async () =>
-        (await positionFeatures(page)).filter((feature) => feature.id.startsWith("posPath-")).length
+        (await positionFeatures()).filter((feature) => feature.id.startsWith("posPath-")).length
     )
     .toBe(0);
   await setMapChoice(page, "Paths", "All");
   await setSource(page, "All");
 
   await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
-  await expect(menu).toContainText("Survey Alpha - Stopped Alpha");
+  await expect.element(menu).toHaveTextContent("Survey Alpha - Stopped Alpha");
   await expect
     .poll(async () =>
-      (await positionFeatures(page))
+      (await positionFeatures())
         .filter((feature) => feature.geometryType === "Point")
         .map((feature) => feature.id)
     )
@@ -256,7 +254,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await setSource(page, "All");
   await expect
     .poll(async () =>
-      (await positionFeatures(page))
+      (await positionFeatures())
         .filter((feature) => feature.geometryType === "Point")
         .map((feature) => feature.id)
         .sort()
@@ -264,13 +262,13 @@ test("marker types, source paths and PET ages remain scoped to active, historica
     .toEqual([mission.ids.posA, HISTORY_OLDER, HISTORY_NEWER].sort());
   await expect
     .poll(async () =>
-      (await readMapFeatures(page))
+      (await readMapFeatures())
         .filter((feature) => feature.labelType === "pos" && feature.visible)
         .map((feature) => feature.name)
         .sort()
     )
     .toEqual(["+00:01:45 / 2 (R)", "+00:15:00 / 1 (C)", "+00:30:05 / 2 (R)"].sort());
-  const historicalPath = (await positionFeatures(page)).find(
+  const historicalPath = (await positionFeatures()).find(
     (feature) => feature.id === `posPath-${SECOND_TYPE}`
   );
   expect(historicalPath).toMatchObject({
@@ -283,7 +281,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await setSource(page, "Crew");
   await expect
     .poll(async () =>
-      (await positionFeatures(page))
+      (await positionFeatures())
         .filter((feature) => feature.geometryType === "Point")
         .map((feature) => feature.id)
         .sort()
@@ -292,13 +290,13 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await expect
     .poll(
       async () =>
-        (await positionFeatures(page)).filter((feature) => feature.id.startsWith("posPath-")).length
+        (await positionFeatures()).filter((feature) => feature.id.startsWith("posPath-")).length
     )
     .toBe(0);
   await setSource(page, "Rover");
   await expect
     .poll(async () =>
-      (await positionFeatures(page))
+      (await positionFeatures())
         .filter((feature) => feature.geometryType === "Point")
         .map((feature) => feature.id)
         .sort()
@@ -308,15 +306,17 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await expect
     .poll(
       async () =>
-        (await positionFeatures(page)).filter((feature) => feature.id.startsWith("posPath-")).length
+        (await positionFeatures()).filter((feature) => feature.id.startsWith("posPath-")).length
     )
     .toBe(0);
 
   await selectExecution(page, "Survey Alpha", mission.ids.evaA);
-  await expect(page.locator('div[aria-label="EVA Title"]')).toHaveText("Survey Alpha");
+  await expect
+    .element(page.getBySelector('div[aria-label="EVA Title"]'))
+    .toHaveTextContent(exactText("Survey Alpha"));
   await expect
     .poll(async () =>
-      (await positionFeatures(page)).filter(
+      (await positionFeatures()).filter(
         (feature) => feature.geometryType === "Point" || feature.id.startsWith("posPath-")
       )
     )

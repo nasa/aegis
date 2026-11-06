@@ -1,8 +1,9 @@
-import { randomUUID } from "node:crypto";
-import { test, expect } from "../fixtures/behavioralTest";
-import { BEHAVIORAL_NOW } from "../fixtures/missionSeed";
+import { exactText } from "./browserAssertions";
+import { v4 as randomUUID } from "uuid";
+import { test as base, expect } from "./missionHarness";
+import { BEHAVIORAL_NOW } from "tests/playwright/fixtures/missionSeed";
 
-test.use({ scenario: "execution" });
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
 test("dashboard timeline scales known allotted and calculated work with PET and crew progress", async ({
   page,
@@ -61,18 +62,23 @@ test("dashboard timeline scales known allotted and calculated work with PET and 
     };
   });
 
-  await page.goto(mission.dashboardUrl);
-  await expect(page.getByTestId("dashboard-pet-clock")).toHaveText("+00:12:00");
+  await mission.openDashboard();
+  await expect
+    .element(page.getByTestId("dashboard-pet-clock"))
+    .toHaveTextContent(exactText("+00:12:00"));
   const container = page
-    .locator('div[class*="activityIndicators"]')
-    .locator('xpath=ancestor::div[contains(@class,"container")][1]');
-  const chartHeight = (await container.evaluate((element) => element.clientHeight)) - 40;
+    .getBySelector('div[class*="activityIndicators"]')
+    .getBySelector('xpath=ancestor::div[contains(@class,"container")][1]');
+  const chartHeight = (await ((element) => element.clientHeight)(container.element())) - 40;
   const pixelsPerSecond = chartHeight / (30 * 60);
-  const activityRows = page.locator(
+  const activityRows = page.getBySelector(
     'div[class*="activityIndicators"] > div[class*="activityIndicator"]'
   );
-  await expect(activityRows).toHaveCount(5);
-  const actualRows = await activityRows.evaluateAll((elements) =>
+  await expect.poll(() => activityRows.length).toBe(5);
+  await expect
+    .poll(() => Number.parseFloat((activityRows.nth(1).element() as HTMLElement).style.top))
+    .toBeGreaterThan(0);
+  const actualRows = await ((elements) =>
     elements.map((element) => {
       const activity = element as HTMLElement;
       return {
@@ -89,8 +95,7 @@ test("dashboard timeline scales known allotted and calculated work with PET and 
           (strip) => (strip as HTMLElement).style.backgroundColor
         ),
       };
-    })
-  );
+    }))(activityRows.elements());
   const expectedMinutes = [
     { start: 0, duration: 4 },
     { start: 4, duration: 6 },
@@ -121,11 +126,11 @@ test("dashboard timeline scales known allotted and calculated work with PET and 
   expect(actualRows[2].colorStrips).toEqual(["rgb(19, 160, 111)", "rgb(19, 160, 111)"]);
   expect(actualRows[1].colorStrips).toEqual(["rgb(35, 69, 171)", "rgb(35, 69, 171)"]);
 
-  const markers = page.locator('div[class*="markerContainer"] > div[class*="marker"]');
-  await expect(markers).toHaveCount(2);
+  const markers = page.getBySelector('div[class*="markerContainer"] > div[class*="marker"]');
+  await expect.poll(() => markers.length).toBe(2);
   const expectedAllottedLine = chartHeight;
   const expectedPetLine = 12 * 60 * pixelsPerSecond;
-  const markerData = await markers.evaluateAll((elements) =>
+  const markerData = await ((elements) =>
     elements.map((element) => {
       const marker = element as HTMLElement;
       const line = marker.querySelector('[class*="markerLine"]') as HTMLElement;
@@ -134,20 +139,23 @@ test("dashboard timeline scales known allotted and calculated work with PET and 
         border: line.style.borderTop,
         filter: line.style.filter,
       };
-    })
-  );
+    }))(markers.elements());
   expect(markerData[0].top).toBeCloseTo(expectedAllottedLine, 2);
   expect(markerData[0].border).toBe("5px solid var(--grey3)");
   expect(markerData[1].top).toBeCloseTo(expectedPetLine, 2);
   expect(markerData[1].border).toBe("5px solid red");
   expect(markerData[1].filter).toBe("opacity(1)");
 
-  const timeLabels = page.locator('div[class*="timeLabels"] > div');
-  await expect(timeLabels).toHaveCount(2);
-  await expect(timeLabels.nth(0)).toContainText("0:00-");
-  await expect(timeLabels.nth(1)).toContainText("0:30-");
-  await expect(timeLabels.nth(0)).toHaveCSS("filter", "opacity(0.4)");
-  await expect(timeLabels.nth(1)).toHaveCSS("filter", "opacity(1)");
+  const timeLabels = page.getBySelector('div[class*="timeLabels"] > div');
+  await expect.poll(() => timeLabels.length).toBe(2);
+  await expect.element(timeLabels.nth(0)).toHaveTextContent("0:00-");
+  await expect.element(timeLabels.nth(1)).toHaveTextContent("0:30-");
+  await expect
+    .poll(() => getComputedStyle(timeLabels.nth(0).element()).getPropertyValue("filter"))
+    .toBe("opacity(0.4)");
+  await expect
+    .poll(() => getComputedStyle(timeLabels.nth(1).element()).getPropertyValue("filter"))
+    .toBe("opacity(1)");
   const persisted = await mission.read();
   expect(persisted.rexes[mission.ids.rexB].actionEntries?.[actionUuid].rexStatus).toBe("complete");
   expect(persisted.rexes[mission.ids.rexB].stationEntries?.[mission.ids.rexStationB]).toEqual({

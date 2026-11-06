@@ -13,6 +13,8 @@ in-memory missions. Prefer that harness for client behavior. Use Playwright for
 real authentication, REST/database persistence, sockets, multiple UI clients,
 downloads, reload/recovery and selected browser parity. A harness remount proves
 UI rehydration from the document; a Playwright reload proves the server boundary.
+The [migration expansion record](browser-behavior-expansion-2026-11-06.md) lists
+the current split, browser parity, measured runtime and retained integration checks.
 
 ## AI-assisted functionality audit
 

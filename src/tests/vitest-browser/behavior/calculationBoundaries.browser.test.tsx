@@ -1,7 +1,8 @@
-import { readFile } from "node:fs/promises";
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
-import { seedAction } from "../fixtures/entitySeeds";
+import { setChecked } from "./dashboardBrowserActions";
+import { exactText } from "./browserAssertions";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test, expect } from "./missionHarness";
+import { seedAction } from "tests/playwright/fixtures/entitySeeds";
 import {
   enablePlanningEditMode,
   openPlanningField,
@@ -19,40 +20,40 @@ const disabledAction = "82000000-0000-4000-8000-000000000003";
 function total(page: Page, label: string) {
   return page
     .getByText(label, { exact: true })
-    .locator("../..")
-    .locator('[class*="displayFieldValue"]');
+    .getBySelector("../..")
+    .getBySelector('[class*="displayFieldValue"]');
 }
 
-async function exportEvas(page: Page): Promise<ExportEva[]> {
+async function exportEvas(page: Page, mission: BrowserMission): Promise<ExportEva[]> {
   await openPlanningSection(page, "mission");
-  await page.getByLabel("export_panel", { exact: true }).click();
-  await page.locator("#export-all-evas").check();
-  const pending = page.waitForEvent("download");
-  await page.getByLabel("Export JSON File", { exact: true }).click();
-  const download = await pending;
-  return JSON.parse(await readFile(await download.path(), "utf8")).evas;
+  await page.getByLabelText("export_panel", { exact: true }).click();
+  await setChecked(page.getBySelector("#export-all-evas"), true);
+  const download = await mission.captureDownload(async () => {
+    await page.getByLabelText("Export JSON File", { exact: true }).click();
+  });
+  return JSON.parse(await download.blob.text()).evas;
 }
 
 async function openEvaInfo(page: Page) {
   await selectPlanningEva(page, "Survey Alpha");
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
 }
 
 async function openTraverse(page: Page) {
   await selectPlanningEva(page, "Survey Alpha");
   await planningEvaRow(page, "Survey Alpha").getByText("Alpha to Bravo", { exact: true }).click();
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
 }
 
 function actionRow(page: Page, name: string) {
   return page
     .getByRole("listitem")
-    .filter({ has: page.locator('div[aria-label="Action Name"]').filter({ hasText: name }) });
+    .filter({ has: page.getBySelector('div[aria-label="Action Name"]').filter({ hasText: name }) });
 }
 
 async function toggleAction(page: Page, name: string, command: string) {
-  await actionRow(page, name).locator('svg[data-icon="ellipsis-vertical"]').click();
-  await page.locator("dialog[open]").getByText(command, { exact: true }).click();
+  await actionRow(page, name).getBySelector('svg[data-icon="ellipsis-vertical"]').click();
+  await page.getBySelector("dialog[open]").getByText(command, { exact: true }).click();
 }
 
 test("enabled station and traverse work controls EVA resources, timeline and report totals through deactivation and reactivation", async ({
@@ -111,13 +112,17 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
     doc.stations[mission.ids.stationA].actionOrderUuids = [mission.ids.actionA, disabledAction];
     doc.traverses[mission.ids.traverseA].actionOrderUuids = [otherAction];
   });
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   const check = async (enabled: boolean) => {
     await selectPlanningStationActions(page, "Alpha station");
-    await expect(total(page, "Total Action Time (mins):")).toHaveText(enabled ? "6" : "0");
-    await expect(total(page, "Total Planned Mass (g):")).toHaveText(enabled ? "1500" : "0");
-    await expect(actionRow(page, "Excluded work")).toBeVisible();
+    await expect
+      .element(total(page, "Total Action Time (mins):"))
+      .toHaveTextContent(exactText(enabled ? "6" : "0"));
+    await expect
+      .element(total(page, "Total Planned Mass (g):"))
+      .toHaveTextContent(exactText(enabled ? "1500" : "0"));
+    await expect.element(actionRow(page, "Excluded work")).toBeVisible();
     await openEvaInfo(page);
     for (const [label, value] of Object.entries({
       "Number of Actions:": enabled ? "2" : "1",
@@ -129,14 +134,16 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
       "Traverse Time (mins):": "15",
       "EVA Duration (mins):": enabled ? "21" : "15",
     }))
-      await expect(total(page, label)).toHaveText(value);
-    const consumable = page.getByText("Sample bags", { exact: true }).locator("../..");
-    await expect(consumable).toContainText(enabled ? "5" : "3");
-    await page.getByLabel("actions_panel", { exact: true }).click();
-    await expect(actionRow(page, "Station work")).toBeVisible();
-    await expect(actionRow(page, "Traverse work")).toBeVisible();
-    await expect(actionRow(page, "Excluded work")).toBeVisible();
-    const exported = (await exportEvas(page)).find((eva) => eva.uuid === mission.ids.evaA)!;
+      await expect.element(total(page, label)).toHaveTextContent(exactText(value));
+    const consumable = page.getByText("Sample bags", { exact: true }).getBySelector("../..");
+    await expect.element(consumable).toHaveTextContent(enabled ? "5" : "3");
+    await page.getByLabelText("actions_panel", { exact: true }).click();
+    await expect.element(actionRow(page, "Station work")).toBeVisible();
+    await expect.element(actionRow(page, "Traverse work")).toBeVisible();
+    await expect.element(actionRow(page, "Excluded work")).toBeVisible();
+    const exported = (await exportEvas(page, mission)).find(
+      (eva) => eva.uuid === mission.ids.evaA
+    )!;
     expect(exported.calculatedFields).toMatchObject({
       actionCount: enabled ? 2 : 1,
       totalMass: enabled ? 1750 : 250,
@@ -147,17 +154,23 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
       (item) => item.uuid === mission.ids.stationA
     )!;
     expect(station.endSeconds - station.startSeconds).toBe(enabled ? 360 : 0);
-    await page.getByLabel("reports Section", { exact: true }).click();
+    await page.getByLabelText("reports Section", { exact: true }).click();
     await page.getByText("EVA Comparison", { exact: true }).click();
     const reportCell = (label: string) =>
       page
-        .locator(`div[data-tooltip-html="${label}"]`)
-        .locator("..")
-        .locator('[class*="tableRowCells"] > [data-tooltip-id="aegis-tooltip"]')
+        .getBySelector(`div[data-tooltip-html="${label}"]`)
+        .getBySelector("..")
+        .getBySelector('[class*="tableRowCells"] > [data-tooltip-id="aegis-tooltip"]')
         .first();
-    await expect(reportCell("Action count")).toHaveText(enabled ? "2" : "1");
-    await expect(reportCell("Planned sample mass")).toHaveText(enabled ? "1.8" : "0.3");
-    await expect(reportCell("Single-use consumables")).toHaveText(enabled ? "5" : "3");
+    await expect
+      .element(reportCell("Action count"))
+      .toHaveTextContent(exactText(enabled ? "2" : "1"));
+    await expect
+      .element(reportCell("Planned sample mass"))
+      .toHaveTextContent(exactText(enabled ? "1.8" : "0.3"));
+    await expect
+      .element(reportCell("Single-use consumables"))
+      .toHaveTextContent(exactText(enabled ? "5" : "3"));
   };
   await check(true);
   await selectPlanningStationActions(page, "Alpha station");
@@ -166,7 +179,7 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
     .poll(async () => (await mission.read()).actions[mission.ids.actionA].enabled)
     .toBe(false);
   await check(false);
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await check(false);
   await selectPlanningStationActions(page, "Alpha station");
@@ -207,11 +220,11 @@ test("fractional sequence estimates retain raw seconds while displayed totals ce
     doc.stations[mission.ids.stationB].actionOrderUuids = [otherAction];
     doc.stations[mission.ids.stationB].duration = null;
   });
-  await mission.open(page);
+  await mission.open();
   await openEvaInfo(page);
-  await expect(total(page, "Station Time (mins):")).toHaveText("4");
-  await expect(total(page, "Action Time (mins):")).toHaveText("3");
-  let exported = (await exportEvas(page)).find((eva) => eva.uuid === mission.ids.evaA)!;
+  await expect.element(total(page, "Station Time (mins):")).toHaveTextContent(exactText("4"));
+  await expect.element(total(page, "Action Time (mins):")).toHaveTextContent(exactText("3"));
+  let exported = (await exportEvas(page, mission)).find((eva) => eva.uuid === mission.ids.evaA)!;
   expect(
     exported.calculatedFields.sequenceItemsCalculatedData
       .filter((item) =>
@@ -233,8 +246,10 @@ test("fractional sequence estimates retain raw seconds while displayed totals ce
       doc.stations[mission.ids.stationA].duration = value;
     });
     await openEvaInfo(page);
-    await expect(total(page, "Station Time (mins):")).toHaveText(totalMinutes);
-    exported = (await exportEvas(page)).find((eva) => eva.uuid === mission.ids.evaA)!;
+    await expect
+      .element(total(page, "Station Time (mins):"))
+      .toHaveTextContent(exactText(totalMinutes));
+    exported = (await exportEvas(page, mission)).find((eva) => eva.uuid === mission.ids.evaA)!;
     expect(
       exported.calculatedFields.sequenceItemsCalculatedData.find(
         (item) => item.uuid === mission.ids.stationA
@@ -248,19 +263,21 @@ test("fractional sequence estimates retain raw seconds while displayed totals ce
     });
   }
   await selectPlanningStation(page, "Alpha station");
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
   await enablePlanningEditMode(page);
   for (const invalid of ["0", "-1"]) {
     const dialog = await openPlanningField(page, "Time in minutes");
-    await dialog.getByLabel("Time in minutes", { exact: true }).fill(invalid);
-    await expect(dialog.getByText("Save", { exact: true })).toBeDisabled();
-    await expect(dialog.getByLabel("Time in minutes", { exact: true })).toBeVisible();
+    await dialog.getByLabelText("Time in minutes", { exact: true }).fill(invalid);
+    await expect.element(dialog.getByText("Save", { exact: true })).toBeDisabled();
+    await expect.element(dialog.getByLabelText("Time in minutes", { exact: true })).toBeVisible();
     await dialog.getByText("Cancel", { exact: true }).click();
     expect((await mission.read()).stations[mission.ids.stationA].duration).toBe(7);
   }
   const decimal = await openPlanningField(page, "Time in minutes");
-  await decimal.getByLabel("Time in minutes", { exact: true }).fill("1.2");
-  await expect(decimal.getByLabel("Time in minutes", { exact: true })).toHaveValue("12");
+  await decimal.getByLabelText("Time in minutes", { exact: true }).fill("1.2");
+  await expect
+    .element(decimal.getByLabelText("Time in minutes", { exact: true }))
+    .toHaveValue("12");
   await decimal.getByText("Cancel", { exact: true }).click();
   expect((await mission.read()).stations[mission.ids.stationA].duration).toBe(7);
 });
@@ -294,20 +311,22 @@ test("ten minutes movement plus five minutes traverse work exposes combined dura
     });
     doc.traverses[mission.ids.traverseA].actionOrderUuids = [otherAction];
   });
-  await mission.open(page);
+  await mission.open();
   await openTraverse(page);
-  await expect(total(page, "Movement Time (mins):")).toHaveText("10");
-  await expect(total(page, "Dwell Time (mins):")).toHaveText("5");
-  await expect(page.getByText("Using Calculated Total: 15", { exact: true })).toBeVisible();
-  await expect(
-    planningEvaRow(page, "Survey Alpha")
-      .locator('[data-tooltip-content="Est traverse time"]')
-      .nth(1)
-  ).toHaveText("0:15");
+  await expect.element(total(page, "Movement Time (mins):")).toHaveTextContent(exactText("10"));
+  await expect.element(total(page, "Dwell Time (mins):")).toHaveTextContent(exactText("5"));
+  await expect.element(page.getByText("Using Calculated Total: 15", { exact: true })).toBeVisible();
+  await expect
+    .element(
+      planningEvaRow(page, "Survey Alpha")
+        .getBySelector('[data-tooltip-content="Est traverse time"]')
+        .nth(1)
+    )
+    .toHaveTextContent(exactText("0:15"));
   await openEvaInfo(page);
-  await expect(total(page, "Traverse Time (mins):")).toHaveText("15");
-  await expect(total(page, "EVA Duration (mins):")).toHaveText("15");
-  const exported = (await exportEvas(page)).find((eva) => eva.uuid === mission.ids.evaA)!;
+  await expect.element(total(page, "Traverse Time (mins):")).toHaveTextContent(exactText("15"));
+  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("15"));
+  const exported = (await exportEvas(page, mission)).find((eva) => eva.uuid === mission.ids.evaA)!;
   expect(
     exported.calculatedFields.sequenceItemsCalculatedData.find(
       (item) => item.uuid === mission.ids.traverseA
@@ -334,7 +353,7 @@ test("station override warnings use strict ratio boundaries and retain exact sev
     doc.actions[mission.ids.actionA].duration = 100;
     doc.stations[mission.ids.stationA].duration = 100;
   });
-  await mission.open(page);
+  await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningStation(page, "Alpha station");
   for (const fixture of [
@@ -347,24 +366,24 @@ test("station override warnings use strict ratio boundaries and retain exact sev
     { value: 125, text: "is greater", severity: "error" },
     { value: 126, text: "is significantly greater", severity: "warning" },
   ]) {
-    await page.getByLabel("info_panel", { exact: true }).click();
+    await page.getByLabelText("info_panel", { exact: true }).click();
     const dialog = await openPlanningField(page, "Time in minutes");
-    await dialog.getByLabel("Time in minutes", { exact: true }).fill(String(fixture.value));
+    await dialog.getByLabelText("Time in minutes", { exact: true }).fill(String(fixture.value));
     await dialog.getByText("Save", { exact: true }).click();
     await expect
       .poll(async () => (await mission.read()).stations[mission.ids.stationA].duration)
       .toBe(fixture.value);
-    await page.getByLabel("report_panel", { exact: true }).click();
+    await page.getByLabelText("report_panel", { exact: true }).click();
     const messages = page
-      .locator('[class*="reportItem"]')
+      .getBySelector('[class*="reportItem"]')
       .filter({ hasText: "Estimated station dwell time" });
     if (fixture.text) {
       const message = page.getByText(new RegExp(`Estimated station dwell time ${fixture.text}`));
-      await expect(message).toBeVisible();
-      await expect(message.locator("..").locator('[class*="reportItemIcon"]')).toHaveClass(
-        new RegExp(fixture.severity!)
-      );
-    } else await expect(messages).toHaveCount(0);
+      await expect.element(message).toBeVisible();
+      await expect
+        .element(message.getBySelector("..").getBySelector('[class*="reportItemIcon"]'))
+        .toHaveClass(new RegExp(fixture.severity!));
+    } else await expect.poll(() => messages.length).toBe(0);
   }
 });
 
@@ -388,7 +407,7 @@ test("empty graphs and large valid durations display finite totals and independe
     }
     doc.evas[mission.ids.evaB].sequence = [];
   });
-  await mission.open(page);
+  await mission.open();
   const before = await mission.read();
   await selectPlanningStationActions(page, "Alpha station");
   for (const label of [
@@ -399,7 +418,7 @@ test("empty graphs and large valid durations display finite totals and independe
     "EV2 Action Time (mins):",
     "Dwell Time (mins):",
   ])
-    await expect(total(page, label)).toHaveText("0");
+    await expect.element(total(page, label)).toHaveTextContent(exactText("0"));
   await openEvaInfo(page);
   for (const label of [
     "EVA Duration (mins):",
@@ -408,13 +427,15 @@ test("empty graphs and large valid durations display finite totals and independe
     "Traverse Distance (m):",
     "Total Mass (g):",
   ])
-    await expect(total(page, label)).toHaveText("0");
+    await expect.element(total(page, label)).toHaveTextContent(exactText("0"));
   await selectPlanningEva(page, "Survey Bravo");
-  await page.getByLabel("info_panel", { exact: true }).click();
-  await expect(total(page, "EVA Duration (mins):")).toHaveText("0");
-  await page.getByLabel("report_panel", { exact: true }).click();
-  await expect(page.getByText("EVA has no stations or traverses", { exact: true })).toBeVisible();
-  const exported = await exportEvas(page);
+  await page.getByLabelText("info_panel", { exact: true }).click();
+  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("0"));
+  await page.getByLabelText("report_panel", { exact: true }).click();
+  await expect
+    .element(page.getByText("EVA has no stations or traverses", { exact: true }))
+    .toBeVisible();
+  const exported = await exportEvas(page, mission);
   expect(exported.every((eva) => eva.calculatedFields.totalResolvedEvaTime === 0)).toBe(true);
   expect(await mission.read()).toEqual(before);
   await mission.change((doc) => {
@@ -423,11 +444,13 @@ test("empty graphs and large valid durations display finite totals and independe
     doc.traverses[mission.ids.traverseA].pathSegmentDistances = [1000000000];
   });
   await openEvaInfo(page);
-  await expect(total(page, "EVA Duration (mins):")).toHaveText("19998");
-  await expect(total(page, "Traverse Distance (m):")).toHaveText("1,000,000,000");
-  await mission.open(page);
+  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("19998"));
+  await expect
+    .element(total(page, "Traverse Distance (m):"))
+    .toHaveTextContent(exactText("1,000,000,000"));
+  await mission.open();
   await openEvaInfo(page);
-  await expect(total(page, "EVA Duration (mins):")).toHaveText("19998");
+  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("19998"));
 });
 
 test("a traverse with geometry and zero cached distances keeps the EVA responsive and preserves its original points", async ({
@@ -438,13 +461,15 @@ test("a traverse with geometry and zero cached distances keeps the EVA responsiv
     for (const traverse of Object.values(doc.traverses)) traverse.pathSegmentDistances = [0];
   });
   const before = await mission.read();
-  await mission.open(page);
+  await mission.open();
   await openEvaInfo(page);
-  await expect(total(page, "Traverse Distance (m):")).toHaveText("0");
-  await expect(total(page, "EVA Duration (mins):")).toHaveText("65");
-  await page.getByLabel("actions_panel", { exact: true }).click();
-  await expect(actionRow(page, "Sample regolith")).toBeVisible();
+  await expect.element(total(page, "Traverse Distance (m):")).toHaveTextContent(exactText("0"));
+  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("65"));
+  await page.getByLabelText("actions_panel", { exact: true }).click();
+  await expect.element(actionRow(page, "Sample regolith")).toBeVisible();
   await selectPlanningStation(page, "Alpha station");
-  await expect(page.locator('div[aria-label="Station"]')).toHaveText("Alpha station");
+  await expect
+    .element(page.getBySelector('div[aria-label="Station"]'))
+    .toHaveTextContent(exactText("Alpha station"));
   expect((await mission.read()).traverses).toEqual(before.traverses);
 });

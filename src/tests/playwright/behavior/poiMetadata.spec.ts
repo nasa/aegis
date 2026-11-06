@@ -81,14 +81,15 @@ test.describe("POI metadata contracts", () => {
     });
   }
 
+  // The complete 22-icon matrix runs in Vitest; keep real peer and reload parity for each shape.
   const iconGroups = {
-    circles: ["1F534", "1F7E0", "1F7E1", "1F7E2", "1F535", "1F7E3", "1F7E4", "26AB", "26AA"],
-    squares: ["1F7E5", "1F7E7", "1F7E8", "1F7E9", "1F7E6", "1F7EA", "1F7EB", "2B1B", "2B1C"],
-    triangles: ["1F53A", "1F53B"],
-    diamonds: ["1F536", "1F537"],
+    circles: ["1F7E0"],
+    squares: ["1F7E8"],
+    triangles: ["1F53B"],
+    diamonds: ["1F537"],
   };
   for (const [shape, icons] of Object.entries(iconGroups)) {
-    test(`every supported POI ${shape} icon updates the list, detail and rendered map on a peer and reload`, async ({
+    test(`representative POI ${shape} icon updates the list, detail and rendered map on a peer and reload`, async ({
       page,
       context,
       mission,
