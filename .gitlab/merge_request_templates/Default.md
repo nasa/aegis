@@ -5,7 +5,7 @@
 ## Verification
 
 - [ ] Standard checks passed (`npm run test:all`).
-- [ ] Changed functionality and relevant state boundaries were reviewed against Playwright assertions using the [functionality audit guide](docs/testing/README.md); affected tests and any remaining gaps are recorded below.
+- [ ] Changed functionality and relevant state boundaries were reviewed against Vitest browser and Playwright assertions using the [functionality audit guide](docs/testing/README.md); affected tests and any remaining gaps are recorded below.
 - [ ] Did you run the full Playwright suite? I manually triggered `test-playwright:start` for the latest MR commit and all eight CI shards passed.
 
 Tested commit:

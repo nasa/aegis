@@ -1,12 +1,18 @@
 # AEGIS functionality audits
 
-Playwright tests are the executable scenario baseline. Use AI to compare the
-application's supported functionality with the test fixtures and assertions,
+Vitest Browser Mode and Playwright tests together form the executable scenario
+baseline. Use AI to compare the application's supported functionality with the test fixtures and assertions,
 then add or strengthen tests for missing behavior. Record the review scope and
 remaining gaps in the MR description.
 
 The [browser behavior guide](../../src/tests/playwright/README.md) explains
 fixtures, independent expectations, local execution and the full CI procedure.
+The [mission browser harness](../../src/tests/vitest-browser/behavior/README.md)
+covers client workflows with real React, Redux, Automerge and OpenLayers, using
+in-memory missions. Prefer that harness for client behavior. Use Playwright for
+real authentication, REST/database persistence, sockets, multiple UI clients,
+downloads, reload/recovery and selected browser parity. A harness remount proves
+UI rehydration from the document; a Playwright reload proves the server boundary.
 
 ## AI-assisted functionality audit
 
@@ -27,9 +33,10 @@ base/head commits and changed capabilities, including their shared consumers.
 A focused review must not be reported as a whole-application audit.
 
 ```text
-Audit AEGIS's functional scenario completeness and its Playwright verification.
+Audit AEGIS's functional scenario completeness and its browser verification.
 
-Read the repository instructions and src/tests/playwright/README.md. Record the
+Read the repository instructions, src/tests/playwright/README.md and
+src/tests/vitest-browser/behavior/README.md. Record the
 reviewed commit and whether this is a full application audit or a scoped change.
 
 1. Before using tests or a previous audit as a checklist, inspect the application
@@ -47,7 +54,7 @@ reviewed commit and whether this is a full application audit or a scoped change.
    ambiguous expectations for product review instead of treating current bugs
    as the specification.
 
-3. Discover Playwright tests and read their actual fixtures, actions and
+3. Discover Vitest browser and Playwright tests and read their actual fixtures, actions and
    assertions, including helpers and runtime branches. Compare them against the
    independently derived inventory. A matching title, visible canvas or passing
    test is insufficient if the required outcome is not asserted. Identify

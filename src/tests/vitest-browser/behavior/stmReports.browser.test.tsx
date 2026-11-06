@@ -1,7 +1,8 @@
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
+import { exactText } from "./browserAssertions";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test as base, expect } from "./missionHarness";
 
-test.use({ scenario: "execution" });
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
 const ids = {
   verbObserve: "83000000-0000-4000-8000-000000000001",
@@ -235,30 +236,32 @@ test.beforeEach(async ({ mission }) => {
 });
 
 async function openCoverageReport(page: Page): Promise<void> {
-  await page.getByLabel("reports Section", { exact: true }).click();
+  await page.getByLabelText("reports Section", { exact: true }).click();
   await page.getByText("EVA STM Coverage", { exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Survey Alpha: Expand into stations", exact: true })
-  ).toBeVisible();
+  await expect
+    .element(page.getByRole("button", { name: "Survey Alpha: Expand into stations", exact: true }))
+    .toBeVisible();
   // The saved report begins in differences mode; switch to absolute values for the known totals.
-  await page.getByLabel("Diff", { exact: true }).click();
+  await page.getByLabelText("Diff", { exact: true }).click();
 }
 
 function objectiveRow(page: Page) {
   return page
-    .locator('[class*="gridCellLevel3Name"]')
+    .getBySelector('[class*="gridCellLevel3Name"]')
     .filter({ hasText: "Known core objective" })
-    .locator("xpath=ancestor::div[contains(@class, 'gridCellLevel3Container')][1]");
+    .getBySelector("xpath=ancestor::div[contains(@class, 'gridCellLevel3Container')][1]");
 }
 
 function summaryCell(page: Page, columnIndex: number) {
   return objectiveRow(page)
-    .locator('[class*="tableRowCells"] > div[class*="cell_"]:not([class*="cellStation"])')
+    .getBySelector('[class*="tableRowCells"] > div[class*="cell_"]:not([class*="cellStation"])')
     .nth(columnIndex);
 }
 
 function summaryExpectation(page: Page, columnIndex: number, message: RegExp) {
-  return expect(summaryCell(page, columnIndex)).toHaveAttribute("data-tooltip-html", message);
+  return expect
+    .poll(() => summaryCell(page, columnIndex).element().getAttribute("data-tooltip-html"))
+    .toMatch(message);
 }
 
 test("STM coverage totals and satisfaction follow independent plan, REX, and campaign fixtures", async ({
@@ -266,13 +269,12 @@ test("STM coverage totals and satisfaction follow independent plan, REX, and cam
   mission,
 }) => {
   const before = await mission.read();
-  await mission.open(page);
+  await mission.open();
   await openCoverageReport(page);
 
-  await expect(summaryCell(page, 0)).toHaveAttribute(
-    "data-tooltip-html",
-    /3 matching actions, 2\/2 rules satisfied \(all rules satisfied\)/
-  );
+  await expect
+    .poll(() => summaryCell(page, 0).element().getAttribute("data-tooltip-html"))
+    .toMatch(/3 matching actions, 2\/2 rules satisfied \(all rules satisfied\)/);
   await summaryExpectation(
     page,
     1,
@@ -299,11 +301,11 @@ test("STM coverage totals and satisfaction follow independent plan, REX, and cam
     /5 matching actions, 2\/2 rules satisfied \(all rules satisfied\)/
   );
 
-  const statusFilter = page.locator(
+  const statusFilter = page.getBySelector(
     '[data-tooltip-content="Which REX action statuses count toward rule satisfaction"] select'
   );
-  await expect(statusFilter).toHaveValue("all");
-  await statusFilter.selectOption("completeOnly");
+  await expect.element(statusFilter).toHaveValue("all");
+  await statusFilter.selectOptions("completeOnly");
   await summaryExpectation(
     page,
     0,
@@ -329,14 +331,14 @@ test("STM coverage totals and satisfaction follow independent plan, REX, and cam
     5,
     /3 matching actions, 1\/2 rules satisfied \(partially satisfied\)/
   );
-  await expect(statusFilter).toHaveValue("completeOnly");
-  await statusFilter.selectOption("notSkipped");
+  await expect.element(statusFilter).toHaveValue("completeOnly");
+  await statusFilter.selectOptions("notSkipped");
   await summaryExpectation(
     page,
     1,
     /2 matching actions, 1\/2 rules satisfied \(partially satisfied\)/
   );
-  await expect(statusFilter).toHaveValue("notSkipped");
+  await expect.element(statusFilter).toHaveValue("notSkipped");
   expect(await mission.read()).toEqual(before);
 });
 
@@ -345,68 +347,117 @@ test("STM drilldown expands sequence counts and scopes matched and unmatched rul
   mission,
 }) => {
   const before = await mission.read();
-  await mission.open(page);
+  await mission.open();
   await openCoverageReport(page);
 
   await page
     .getByRole("button", { name: "Survey Alpha: Expand into stations", exact: true })
     .click();
-  await expect(
-    objectiveRow(page).locator('[data-tooltip-html="Alpha station: 2 matching actions"]')
-  ).toHaveText("2");
-  await expect(
-    objectiveRow(page).locator('[data-tooltip-html="Bravo station: 1 matching actions"]')
-  ).toHaveText("1");
+  await expect
+    .element(
+      objectiveRow(page).getBySelector('[data-tooltip-html="Alpha station: 2 matching actions"]')
+    )
+    .toHaveTextContent(exactText("2"));
+  await expect
+    .element(
+      objectiveRow(page).getBySelector('[data-tooltip-html="Bravo station: 1 matching actions"]')
+    )
+    .toHaveTextContent(exactText("1"));
 
   await summaryCell(page, 1).click();
-  const panel = page.locator('[class*="drilldownContent"]');
-  await expect(page.locator('[class*="drilldownTitle"]')).toHaveText("Known core objective");
-  await expect(page.locator('[class*="drilldownSubtitle"]')).toHaveText("REX: Survey Alpha");
-  await expect(
-    panel.locator('[class*="drilldownRuleCounts"]').filter({ hasText: "2 of 2 required" })
-  ).toHaveCount(1);
-  await expect(
-    panel.locator('[class*="drilldownRuleCounts"]').filter({ hasText: "1 of 1 required" })
-  ).toHaveCount(1);
-  await expect(panel.locator('[class*="drilldownActionRow"]')).toHaveCount(3);
-  await expect(
-    panel.locator('[class*="drilldownActionRow"]').filter({ hasText: "Observe" })
-  ).toHaveCount(2);
-  await expect(
-    panel.locator('[class*="drilldownActionRow"]').filter({ hasText: "Collect" })
-  ).toHaveCount(1);
+  const panel = page.getBySelector('[class*="drilldownContent"]');
+  await expect
+    .element(page.getBySelector('[class*="drilldownTitle"]'))
+    .toHaveTextContent(exactText("Known core objective"));
+  await expect
+    .element(page.getBySelector('[class*="drilldownSubtitle"]'))
+    .toHaveTextContent(exactText("REX: Survey Alpha"));
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownRuleCounts"]').filter({ hasText: "2 of 2 required" })
+          .length
+    )
+    .toBe(1);
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownRuleCounts"]').filter({ hasText: "1 of 1 required" })
+          .length
+    )
+    .toBe(1);
+  await expect.poll(() => panel.getBySelector('[class*="drilldownActionRow"]').length).toBe(3);
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownActionRow"]').filter({ hasText: "Observe" }).length
+    )
+    .toBe(2);
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownActionRow"]').filter({ hasText: "Collect" }).length
+    )
+    .toBe(1);
 
-  const statusFilter = page.locator(
+  const statusFilter = page.getBySelector(
     '[data-tooltip-content="Which REX action statuses count toward rule satisfaction"] select'
   );
-  await statusFilter.selectOption("completeOnly");
-  await expect(page.locator('[class*="drilldownSubtitle"]')).toHaveText("REX: Survey Alpha");
-  await expect(
-    panel.locator('[class*="drilldownRuleCounts"]').filter({ hasText: "1 of 2 required" })
-  ).toHaveCount(1);
-  await expect(panel.locator('[class*="drilldownActionRow"]')).toHaveCount(2);
-  await expect(
-    panel.locator('[class*="drilldownActionRow"]').filter({ hasText: "Observe" })
-  ).toHaveCount(1);
+  await statusFilter.selectOptions("completeOnly");
+  await expect
+    .element(page.getBySelector('[class*="drilldownSubtitle"]'))
+    .toHaveTextContent(exactText("REX: Survey Alpha"));
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownRuleCounts"]').filter({ hasText: "1 of 2 required" })
+          .length
+    )
+    .toBe(1);
+  await expect.poll(() => panel.getBySelector('[class*="drilldownActionRow"]').length).toBe(2);
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownActionRow"]').filter({ hasText: "Observe" }).length
+    )
+    .toBe(1);
 
   await summaryCell(page, 2).click();
-  await expect(page.locator('[class*="drilldownSubtitle"]')).toHaveText("Survey Bravo");
-  await expect(
-    panel.locator('[class*="drilldownRuleCounts"]').filter({ hasText: "0 of 2 required" })
-  ).toHaveCount(1);
-  await expect(
-    panel.locator('[class*="drilldownRuleCounts"]').filter({ hasText: "1 of 1 required" })
-  ).toHaveCount(1);
-  await expect(panel.locator('[class*="drilldownActionRow"]')).toHaveCount(1);
-  await expect(
-    panel.locator('[class*="drilldownActionRow"]').filter({ hasText: "Collect" })
-  ).toHaveCount(1);
-  await expect(
-    panel.locator('[class*="drilldownActionRow"]').filter({ hasText: "Observe" })
-  ).toHaveCount(0);
+  await expect
+    .element(page.getBySelector('[class*="drilldownSubtitle"]'))
+    .toHaveTextContent(exactText("Survey Bravo"));
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownRuleCounts"]').filter({ hasText: "0 of 2 required" })
+          .length
+    )
+    .toBe(1);
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownRuleCounts"]').filter({ hasText: "1 of 1 required" })
+          .length
+    )
+    .toBe(1);
+  await expect.poll(() => panel.getBySelector('[class*="drilldownActionRow"]').length).toBe(1);
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownActionRow"]').filter({ hasText: "Collect" }).length
+    )
+    .toBe(1);
+  await expect
+    .poll(
+      () =>
+        panel.getBySelector('[class*="drilldownActionRow"]').filter({ hasText: "Observe" }).length
+    )
+    .toBe(0);
 
   await summaryCell(page, 5).click();
-  await expect(page.locator('[class*="drilldownSubtitle"]')).toHaveText("Executed set");
-  await expect(panel.locator('[class*="drilldownActionRow"]')).toHaveCount(3);
+  await expect
+    .element(page.getBySelector('[class*="drilldownSubtitle"]'))
+    .toHaveTextContent(exactText("Executed set"));
+  await expect.poll(() => panel.getBySelector('[class*="drilldownActionRow"]').length).toBe(3);
   expect(await mission.read()).toEqual(before);
 });

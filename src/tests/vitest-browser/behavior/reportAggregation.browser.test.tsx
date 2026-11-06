@@ -1,6 +1,6 @@
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
-import { seedAction } from "../fixtures/entitySeeds";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test as base, expect } from "./missionHarness";
+import { seedAction } from "tests/playwright/fixtures/entitySeeds";
 
 const campaignUuid = "87000000-0000-4000-8000-000000000001";
 const secondAlphaRexUuid = "87000000-0000-4000-8000-000000000002";
@@ -11,18 +11,18 @@ const alphaExecUuid = "87000000-0000-4000-8000-000000000006";
 const bravoExecUuid = "87000000-0000-4000-8000-000000000007";
 const uuidAt = (index: number) => `87000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
 
-test.use({ scenario: "execution" });
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
 async function openReport(page: Page, name: string): Promise<void> {
-  await page.getByLabel("reports Section", { exact: true }).click();
+  await page.getByLabelText("reports Section", { exact: true }).click();
   await page.getByText(name, { exact: true }).click();
 }
 
 function metricCells(page: Page, metric: string) {
   return page
-    .locator(`div[data-tooltip-html="${metric}"]`)
-    .locator("..")
-    .locator('[class*="tableRowCells"] > [data-tooltip-id="aegis-tooltip"]');
+    .getBySelector(`div[data-tooltip-html="${metric}"]`)
+    .getBySelector("..")
+    .getBySelector('[class*="tableRowCells"] > [data-tooltip-id="aegis-tooltip"]');
 }
 
 test("campaign aggregates count shared action lineage once per member and one chosen REX per EVA", async ({
@@ -117,17 +117,29 @@ test("campaign aggregates count shared action lineage once per member and one ch
   });
 
   const before = await mission.read();
-  await mission.open(page);
+  await mission.open();
   await openReport(page, "EVA Comparison");
   await page.getByText("Diff", { exact: true }).click();
   const actionCounts = metricCells(page, "Action count");
   const plannedMasses = metricCells(page, "Planned sample mass");
   const actualMasses = metricCells(page, "Actual sample mass");
-  await expect(actionCounts).toHaveText(["3", "2", "2", "2", "1", "5", "3"]);
-  await expect(plannedMasses).toHaveText(["2", "1.5", "1.5", "1.5", "0.5", "3.5", "2"]);
+  await expect
+    .poll(() =>
+      actionCounts.elements().map((element) => element.textContent.trim().replace(/\s+/g, " "))
+    )
+    .toEqual(["3", "2", "2", "2", "1", "5", "3"]);
+  await expect
+    .poll(() =>
+      plannedMasses.elements().map((element) => element.textContent.trim().replace(/\s+/g, " "))
+    )
+    .toEqual(["2", "1.5", "1.5", "1.5", "0.5", "3.5", "2"]);
   // Explicit campaign selection contributes 0.75 kg from Alpha's selected REX and
   // 10 kg from Bravo's selected REX; Alpha's newer 2.1 kg copy is excluded.
-  await expect(actualMasses).toHaveText(["", "2.1", "0.8", "", "10", "", "10.8"]);
+  await expect
+    .poll(() =>
+      actualMasses.elements().map((element) => element.textContent.trim().replace(/\s+/g, " "))
+    )
+    .toEqual(["", "2.1", "0.8", "", "10", "", "10.8"]);
   const persisted = await mission.read();
   expect(persisted.reportCampaigns[campaignUuid].executionRexUuidByEvaUuid).toEqual({
     [mission.ids.evaA]: mission.ids.rexA,
@@ -243,49 +255,63 @@ test("POI trace shows each execution status and preserves zero, missing mass, an
   });
 
   const before = await mission.read();
-  await mission.open(page);
+  await mission.open();
   await openReport(page, "POI Traceability");
   const trace = page.getByRole("region", { name: "Reference POI action trace" });
-  await expect(page.getByRole("button", { name: /Traceable sample/ })).toBeVisible();
+  await expect.element(page.getByRole("button", { name: /Traceable sample/ })).toBeVisible();
   const branches = trace.getByRole("list", { name: "EVA adoptions" });
-  await expect(branches.getByText("Survey Alpha", { exact: true })).toHaveCount(2);
-  await expect(branches.getByText("Survey Bravo", { exact: true })).toHaveCount(1);
-  await expect(branches.getByText("Completed", { exact: true })).toHaveCount(1);
-  await expect(branches.getByText("In progress", { exact: true })).toHaveCount(1);
-  await expect(branches.getByText("Skipped", { exact: true })).toHaveCount(1);
+  await expect.poll(() => branches.getByText("Survey Alpha", { exact: true }).length).toBe(2);
+  await expect.poll(() => branches.getByText("Survey Bravo", { exact: true }).length).toBe(1);
+  await expect.poll(() => branches.getByText("Completed", { exact: true }).length).toBe(1);
+  await expect.poll(() => branches.getByText("In progress", { exact: true }).length).toBe(1);
+  await expect.poll(() => branches.getByText("Skipped", { exact: true }).length).toBe(1);
 
   const executionRows = branches.getByRole("list", { name: "Execution outcomes" });
-  const zeroMassRow = executionRows.locator("li").filter({ hasText: "Completed" });
+  const zeroMassRow = executionRows.getBySelector("li").filter({ hasText: "Completed" });
   await zeroMassRow.getByRole("button", { name: "Preview executed action" }).click();
   let dialog = page.getByRole("dialog", { name: "Action preview" });
-  await expect(dialog).toContainText("REX: Stopped Alpha / Completed");
-  await expect(dialog.locator('input[aria-label="Executed Sample Mass"]')).toHaveValue("0");
-  await expect(dialog.locator('input[aria-label="Sample Marker ID"]')).toHaveValue("MARK-ZERO");
-  await expect(dialog.locator('input[aria-label="Container ID"]')).toHaveValue("BAG-ZERO");
-  await expect(dialog.locator('input[aria-label="Secondary Container ID"]')).toHaveValue(
-    "BAG-SECONDARY"
-  );
+  await expect.element(dialog).toHaveTextContent("REX: Stopped Alpha / Completed");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Executed Sample Mass"]'))
+    .toHaveValue("0");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Sample Marker ID"]'))
+    .toHaveValue("MARK-ZERO");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Container ID"]'))
+    .toHaveValue("BAG-ZERO");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Secondary Container ID"]'))
+    .toHaveValue("BAG-SECONDARY");
   await dialog.getByRole("button", { name: "Close preview" }).click();
 
-  const missingMassRow = executionRows.locator("li").filter({ hasText: "In progress" });
+  const missingMassRow = executionRows.getBySelector("li").filter({ hasText: "In progress" });
   await missingMassRow.getByRole("button", { name: "Preview executed action" }).click();
   dialog = page.getByRole("dialog", { name: "Action preview" });
-  await expect(dialog).toContainText("REX: Alpha in-progress execution / In progress");
-  await expect(dialog.locator('input[aria-label="Executed Sample Mass"]')).toHaveValue("");
-  await expect(dialog.locator('input[aria-label="Sample Marker ID"]')).toHaveValue(
-    "MARK-IN-PROGRESS"
-  );
-  await expect(dialog.locator('input[aria-label="Secondary Container ID"]')).toHaveValue(
-    "TUBE-IN-PROGRESS"
-  );
+  await expect.element(dialog).toHaveTextContent("REX: Alpha in-progress execution / In progress");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Executed Sample Mass"]'))
+    .toHaveValue("");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Sample Marker ID"]'))
+    .toHaveValue("MARK-IN-PROGRESS");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Secondary Container ID"]'))
+    .toHaveValue("TUBE-IN-PROGRESS");
   await dialog.getByRole("button", { name: "Close preview" }).click();
 
-  const skippedRow = executionRows.locator("li").filter({ hasText: "Skipped" });
+  const skippedRow = executionRows.getBySelector("li").filter({ hasText: "Skipped" });
   await skippedRow.getByRole("button", { name: "Preview executed action" }).click();
   dialog = page.getByRole("dialog", { name: "Action preview" });
-  await expect(dialog).toContainText("REX: Active Bravo / Skipped");
-  await expect(dialog.locator('input[aria-label="Executed Sample Mass"]')).toHaveValue("");
-  await expect(dialog.locator('input[aria-label="Sample Marker ID"]')).toHaveValue("MARK-MISSING");
-  await expect(dialog.locator('input[aria-label="Container ID"]')).toHaveValue("BAG-MISSING");
+  await expect.element(dialog).toHaveTextContent("REX: Active Bravo / Skipped");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Executed Sample Mass"]'))
+    .toHaveValue("");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Sample Marker ID"]'))
+    .toHaveValue("MARK-MISSING");
+  await expect
+    .element(dialog.getBySelector('input[aria-label="Container ID"]'))
+    .toHaveValue("BAG-MISSING");
   expect(await mission.read()).toEqual(before);
 });

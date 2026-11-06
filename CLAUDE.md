@@ -31,8 +31,11 @@ npm run lint:fix
 # Unit tests (Vitest)
 npm run test:vitest
 
-# Component/DOM tests (Vitest browser mode)
+# Component/DOM and client workflow tests (Vitest browser mode)
 npm run test:vitest:browser
+
+# Client workflows with in-memory missions
+npm run test:vitest:browser:behavior
 
 # Standard checks (lint + tsc + build + Vitest suites)
 npm run test:all
@@ -95,7 +98,7 @@ Log through `clientLogger` (`utils/logging/clientLogger`) in browser code and `s
 Run affected Playwright tests locally during development. When you think an MR is ready to merge, manually trigger the full suite in GitLab. Keep the MR in Draft until all eight CI shards and the other required checks pass for the latest MR commit:
 
 1. Run the standard checks above.
-2. Review changed functionality and relevant state boundaries against the actual Playwright fixtures and assertions using the [AI-assisted functionality audit](docs/testing/README.md). Update affected tests and record the reviewed scope, source evidence, unresolved expectations and remaining gaps in the MR description. Playwright tests are the executable scenario baseline; a passing test count does not establish functional completeness.
+2. Review changed functionality and relevant state boundaries against the actual Vitest browser and Playwright fixtures and assertions using the [AI-assisted functionality audit](docs/testing/README.md). Update affected tests and record the reviewed scope, source evidence, unresolved expectations and remaining gaps in the MR description. Both browser suites form the executable scenario baseline; a passing test count does not establish functional completeness. Prefer the [mission browser harness](src/tests/vitest-browser/behavior/README.md) for client workflows. Keep real authentication, sockets, persistence, multiple UI clients, downloads, recovery and selected cross-browser parity in Playwright.
 3. Push the final changes, then click Play once on `test-playwright:start` in that commit's GitLab pipeline. It automatically releases all eight `test-playwright` shards, covering the full configured suite: authentication setup, Chromium regression tests, and Firefox/WebKit smoke and selected parity workflows. Wait for every shard and the rest of the required pipeline to pass before marking the MR Ready.
 4. Record the tested commit, successful CI pipeline link, and any retries or skipped tests in the MR description. Check the full Playwright suite checkbox only after all eight shards pass. Investigate failures and retries; do not present a partial or filtered run as full regression validation.
 

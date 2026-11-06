@@ -1,8 +1,9 @@
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
+import { exactText, isVisible } from "./browserAssertions";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test as base, expect } from "./missionHarness";
 import { planningEvaRow, selectPlanningPoi, selectPlanningStation } from "./planningHelpers";
 
-test.use({ scenario: "execution" });
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
 const commonMissionTabs = [
   ["prefs_panel", "Mission Preferences"],
@@ -13,14 +14,14 @@ const commonMissionTabs = [
 ] as const;
 const contexts = ["mission", "preset", "poi", "station", "eva", "traverse", "rex"] as const;
 
-async function selectEva(page: Page, mission: BehavioralMission, rex: boolean) {
-  await page.getByLabel("evas Section", { exact: true }).click();
-  const all = page.getByLabel("Show All EVAs", { exact: true });
-  if (await all.isVisible()) await all.click();
+async function selectEva(page: Page, mission: BrowserMission, rex: boolean) {
+  await page.getByLabelText("evas Section", { exact: true }).click();
+  const all = page.getByLabelText("Show All EVAs", { exact: true });
+  if (await isVisible(all)) await all.click();
   await planningEvaRow(page, "Survey Alpha")
-    .locator("select")
+    .getBySelector("select")
     .first()
-    .selectOption(rex ? mission.ids.rexEvaA : mission.ids.evaA);
+    .selectOptions(rex ? mission.ids.rexEvaA : mission.ids.evaA);
 }
 
 for (const version of [1, 2]) {
@@ -37,18 +38,18 @@ for (const version of [1, 2]) {
         mission,
       }) => {
         const before = await mission.read();
-        await mission.open(page);
-        await expect(page.getByLabel("stmViewer Section", { exact: true })).toHaveCount(
-          version === 1 ? 1 : 0
-        );
+        await mission.open();
+        await expect
+          .poll(() => page.getByLabelText("stmViewer Section", { exact: true }).length)
+          .toBe(version === 1 ? 1 : 0);
         for (const pane of ["stmRules", "reports"]) {
-          await expect(page.getByLabel(`${pane} Section`, { exact: true })).toHaveCount(
-            version === 2 ? 1 : 0
-          );
+          await expect
+            .poll(() => page.getByLabelText(`${pane} Section`, { exact: true }).length)
+            .toBe(version === 2 ? 1 : 0);
         }
         let tabs: ReadonlyArray<readonly [string, string]>;
         if (surface === "mission") {
-          await page.getByLabel("mission Section", { exact: true }).click();
+          await page.getByLabelText("mission Section", { exact: true }).click();
           tabs = [
             ...commonMissionTabs,
             ...(version === 1
@@ -58,16 +59,16 @@ for (const version of [1, 2]) {
                   ["missionPriorities_panel", "Mission Priority Identifiers"],
                 ] as const)),
           ];
-          await expect(page.getByLabel("geographicUnit_panel", { exact: true })).toHaveCount(
-            version === 1 ? 1 : 0
-          );
-          await expect(page.getByLabel("actionDefinitions_panel", { exact: true })).toHaveCount(
-            version === 2 ? 1 : 0
-          );
+          await expect
+            .poll(() => page.getByLabelText("geographicUnit_panel", { exact: true }).length)
+            .toBe(version === 1 ? 1 : 0);
+          await expect
+            .poll(() => page.getByLabelText("actionDefinitions_panel", { exact: true }).length)
+            .toBe(version === 2 ? 1 : 0);
         } else if (surface === "preset") {
-          await page.getByLabel("preset Section", { exact: true }).click();
+          await page.getByLabelText("preset Section", { exact: true }).click();
           await page
-            .getByLabel("mapPreset", { exact: true })
+            .getByLabelText("mapPreset", { exact: true })
             .getByText("Overview", { exact: true })
             .click();
           tabs = [
@@ -118,20 +119,24 @@ for (const version of [1, 2]) {
                 : []),
             ];
             for (const tab of ["rex_info_panel", "rex_positions_panel"]) {
-              await expect(page.getByLabel(tab, { exact: true })).toHaveCount(
-                surface === "rex" ? 1 : 0
-              );
+              await expect
+                .poll(() => page.getByLabelText(tab, { exact: true }).length)
+                .toBe(surface === "rex" ? 1 : 0);
             }
           }
         }
         for (const [tab, title] of tabs) {
-          await page.getByLabel(tab, { exact: true }).click();
-          await expect(
-            page
-              .getByRole("region", { name: "right", exact: true })
-              .locator('div[class*="rightBodyTitle_"]')
-          ).toHaveText(title);
-          await expect(page.getByLabel(tab, { exact: true })).toHaveClass(/SelectedTab/);
+          await page.getByLabelText(tab, { exact: true }).click();
+          await expect
+            .element(
+              page
+                .getByRole("region", { name: "right", exact: true })
+                .getBySelector('div[class*="rightBodyTitle_"]')
+            )
+            .toHaveTextContent(exactText(title));
+          await expect
+            .element(page.getByLabelText(tab, { exact: true }))
+            .toHaveClass(/SelectedTab/);
         }
         expect(await mission.read()).toEqual(before);
       });
@@ -142,30 +147,36 @@ for (const version of [1, 2]) {
         mission,
       }) => {
         const before = await mission.read();
-        await mission.open(page);
-        await page.getByLabel("stmViewer Section", { exact: true }).click();
-        await expect(
-          page.locator('[data-tooltip-content="Expand/Collapse First two STM tiers"]')
-        ).toBeVisible();
-        await expect(page.getByText("Rule Matches", { exact: true })).toHaveCount(0);
-        await expect(page.getByText("EVA Comparison", { exact: true })).toHaveCount(0);
+        await mission.open();
+        await page.getByLabelText("stmViewer Section", { exact: true }).click();
+        await expect
+          .element(
+            page.getBySelector('[data-tooltip-content="Expand/Collapse First two STM tiers"]')
+          )
+          .toBeVisible();
+        await expect.poll(() => page.getByText("Rule Matches", { exact: true }).length).toBe(0);
+        await expect.poll(() => page.getByText("EVA Comparison", { exact: true }).length).toBe(0);
         expect(await mission.read()).toEqual(before);
       });
     } else {
       for (const pane of ["stmRules", "reports"] as const) {
         test(`v2 ${pane} fullscreen tabs select their own content`, async ({ page, mission }) => {
           const before = await mission.read();
-          await mission.open(page);
-          await page.getByLabel(`${pane} Section`, { exact: true }).click();
+          await mission.open();
+          await page.getByLabelText(`${pane} Section`, { exact: true }).click();
           if (pane === "stmRules") {
             await page.getByText("Rules", { exact: true }).click();
-            await expect(page.getByText("Satisfaction Rules", { exact: true })).toBeVisible();
+            await expect
+              .element(page.getByText("Satisfaction Rules", { exact: true }))
+              .toBeVisible();
             await page.getByText("Rule Matches", { exact: true }).click();
-            await expect(page.getByText("Rule Matches", { exact: true })).toHaveClass(/tabActive/);
+            await expect
+              .element(page.getByText("Rule Matches", { exact: true }))
+              .toHaveClass(/tabActive/);
           } else {
             for (const tab of ["EVA STM Coverage", "EVA Comparison", "POI Traceability"]) {
               await page.getByText(tab, { exact: true }).click();
-              await expect(page.getByText(tab, { exact: true })).toHaveClass(/tabActive/);
+              await expect.element(page.getByText(tab, { exact: true })).toHaveClass(/tabActive/);
             }
           }
           expect(await mission.read()).toEqual(before);

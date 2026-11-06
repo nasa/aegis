@@ -1,43 +1,47 @@
-import type { Locator, Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
-import { seedFolder } from "../fixtures/entitySeeds";
+import { vi } from "vitest";
+import { exactText } from "./browserAssertions";
+import type { Locator, BrowserPage as Page } from "vitest/browser";
+import { test, expect } from "./missionHarness";
+import { seedFolder } from "tests/playwright/fixtures/entitySeeds";
 import { enablePlanningEditMode, openPlanningField } from "./planningHelpers";
 
 const presetFolderUuid = "30000000-0000-4000-8000-000000000001";
 
 function presetRow(page: Page, name: string): Locator {
-  return page
-    .getByLabel("mapPreset", { exact: true })
-    .filter({ has: page.getByLabel("leftPresetName", { exact: true }).filter({ hasText: name }) });
+  return page.getByLabelText("mapPreset", { exact: true }).filter({
+    has: page.getByLabelText("leftPresetName", { exact: true }).filter({ hasText: name }),
+  });
 }
 
 async function openPresets(page: Page): Promise<void> {
-  await page.getByLabel("preset Section", { exact: true }).click();
-  await expect(page.getByLabel("leftPanelTitle", { exact: true })).toHaveText(
-    "Map Display Presets"
-  );
+  await page.getByLabelText("preset Section", { exact: true }).click();
+  await expect
+    .element(page.getByLabelText("leftPanelTitle", { exact: true }))
+    .toHaveTextContent(exactText("Map Display Presets"));
 }
 
 async function selectPreset(page: Page, name: string): Promise<void> {
   await openPresets(page);
   await presetRow(page, name).getByText(name, { exact: true }).click();
-  await expect(page.locator('div[aria-label="Preset Title"]')).toHaveText(name);
+  await expect
+    .element(page.getBySelector('div[aria-label="Preset Title"]'))
+    .toHaveTextContent(exactText(name));
 }
 
 async function openPresetInfo(page: Page): Promise<void> {
-  await page.getByLabel("info_panel", { exact: true }).click();
-  await expect(page.getByText("Preset Information", { exact: true })).toBeVisible();
+  await page.getByLabelText("info_panel", { exact: true }).click();
+  await expect.element(page.getByText("Preset Information", { exact: true })).toBeVisible();
 }
 
 async function setPresetDescription(page: Page, description: string): Promise<void> {
-  await page.getByLabel("info_panel", { exact: true }).click();
+  await page.getByLabelText("info_panel", { exact: true }).click();
   const dialog = await openPlanningField(page, "Preset Description");
-  await dialog.getByLabel("Preset Description", { exact: true }).fill(description);
+  await dialog.getByLabelText("Preset Description", { exact: true }).fill(description);
   await dialog.getByText("Save", { exact: true }).click();
-  await expect(dialog).toHaveCount(0);
+  await expect.poll(() => dialog.length).toBe(0);
 }
 
-async function setMissionDefault(page: Page, mission: BehavioralMission, presetUuid: string) {
+async function setMissionDefault(page: Page, mission: BrowserMission, presetUuid: string) {
   const preset = (await mission.read()).presets[presetUuid];
   await selectPreset(page, preset.name);
   await openPresetInfo(page);
@@ -65,11 +69,11 @@ test.describe("Preset lifecycle and defaults", () => {
       });
     });
     const initial = await mission.read();
-    await mission.open(page);
+    await mission.open();
     await enablePlanningEditMode(page);
     await openPresets(page);
 
-    await page.getByLabel("Add", { exact: true }).click();
+    await page.getByLabelText("Add", { exact: true }).click();
     await expect.poll(async () => Object.keys((await mission.read()).presets).length).toBe(3);
     const created = Object.values((await mission.read()).presets).find(
       (preset) => !Object.hasOwn(initial.presets, preset.uuid)
@@ -77,9 +81,9 @@ test.describe("Preset lifecycle and defaults", () => {
     expect(created).toBeDefined();
     await openPresetInfo(page);
     const titleDialog = await openPlanningField(page, "Preset Title");
-    await titleDialog.getByLabel("Preset Title", { exact: true }).fill("Lifecycle source");
+    await titleDialog.getByLabelText("Preset Title", { exact: true }).fill("Lifecycle source");
     await titleDialog.getByText("Save", { exact: true }).click();
-    await expect(titleDialog).toHaveCount(0);
+    await expect.poll(() => titleDialog.length).toBe(0);
     await expect
       .poll(async () => (await mission.read()).presets[created.uuid].name)
       .toBe("Lifecycle source");
@@ -91,7 +95,7 @@ test.describe("Preset lifecycle and defaults", () => {
     const sourceWithStyle = (await mission.read()).presets[created.uuid];
     await setMissionDefault(page, mission, created.uuid);
 
-    await page.getByLabel("Duplicate", { exact: true }).click();
+    await page.getByLabelText("Duplicate", { exact: true }).click();
     await expect.poll(async () => Object.keys((await mission.read()).presets).length).toBe(4);
     const withCopy = await mission.read();
     const copy = Object.values(withCopy.presets).find(
@@ -126,33 +130,36 @@ test.describe("Preset lifecycle and defaults", () => {
 
     await setMissionDefault(page, mission, mission.ids.presetB);
     await selectPreset(page, copy.name);
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toBe("Are you sure you want to delete this Preset?");
-      await dialog.dismiss();
+    vi.spyOn(window, "confirm").mockImplementationOnce((message) => {
+      expect(String(message)).toBe("Are you sure you want to delete this Preset?");
+
+      return false;
     });
-    await page.getByLabel("deleteButton", { exact: true }).click();
+    await page.getByLabelText("deleteButton", { exact: true }).click();
     expect((await mission.read()).presets[copy.uuid]).toBeDefined();
     expect((await mission.read()).folders[presetFolderUuid].items).toEqual([mission.ids.presetB]);
 
-    page.once("dialog", (dialog) => dialog.accept());
-    await page.getByLabel("deleteButton", { exact: true }).click();
+    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    await page.getByLabelText("deleteButton", { exact: true }).click();
     await expect.poll(async () => (await mission.read()).presets[copy.uuid]).toBeUndefined();
-    await expect(presetRow(page, "Detail").getByLabel("selectedPreset")).toBeVisible();
+    await expect.element(presetRow(page, "Detail").getByLabelText("selectedPreset")).toBeVisible();
     expect((await mission.read()).presets[mission.ids.presetB].missionDefault).toBe(true);
 
     await setMissionDefault(page, mission, mission.ids.presetA);
     await selectPreset(page, "Detail");
-    page.once("dialog", (dialog) => dialog.dismiss());
-    await page.getByLabel("deleteButton", { exact: true }).click();
+    vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+    await page.getByLabelText("deleteButton", { exact: true }).click();
     expect((await mission.read()).presets[mission.ids.presetB]).toBeDefined();
     expect((await mission.read()).folders[presetFolderUuid].items).toEqual([mission.ids.presetB]);
 
-    page.once("dialog", (dialog) => dialog.accept());
-    await page.getByLabel("deleteButton", { exact: true }).click();
+    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    await page.getByLabelText("deleteButton", { exact: true }).click();
     await expect
       .poll(async () => (await mission.read()).presets[mission.ids.presetB])
       .toBeUndefined();
-    await expect(presetRow(page, "Overview").getByLabel("selectedPreset")).toBeVisible();
+    await expect
+      .element(presetRow(page, "Overview").getByLabelText("selectedPreset"))
+      .toBeVisible();
     const after = await mission.read();
     expect(after.presets[mission.ids.presetA].missionDefault).toBe(true);
     expect(after.folders[presetFolderUuid].items).toEqual([]);
@@ -161,15 +168,17 @@ test.describe("Preset lifecycle and defaults", () => {
     expect(after.evas).toEqual(initial.evas);
     expect(after.stations).toEqual(initial.stations);
 
-    await mission.open(page);
+    await mission.open();
     await openPresets(page);
-    await expect(presetRow(page, "Overview").getByLabel("selectedPreset")).toBeVisible();
-    const reloaded = await mission.read();
-    expect(reloaded.presets[created.uuid].description).toBe("45");
-    expect(reloaded.presets[created.uuid].name).toBe("Lifecycle source");
-    expect(reloaded.folders[presetFolderUuid].items).toEqual([]);
+    await expect
+      .element(presetRow(page, "Overview").getByLabelText("selectedPreset"))
+      .toBeVisible();
+    const remounted = await mission.read();
+    expect(remounted.presets[created.uuid].description).toBe("45");
+    expect(remounted.presets[created.uuid].name).toBe("Lifecycle source");
+    expect(remounted.folders[presetFolderUuid].items).toEqual([]);
     expect(
-      Object.values(reloaded.presets)
+      Object.values(remounted.presets)
         .filter((preset) => preset.missionDefault)
         .map((preset) => preset.uuid)
     ).toEqual([mission.ids.presetA]);

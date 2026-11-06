@@ -1,8 +1,9 @@
-import type { Locator, Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
-import { readMapFeatures } from "../fixtures/mapAssertions";
-import { seedPosEntry } from "../fixtures/entitySeeds";
-import { BEHAVIORAL_NOW } from "../fixtures/missionSeed";
+import { exactText } from "./browserAssertions";
+import type { Locator, BrowserPage as Page } from "vitest/browser";
+import { test as base, expect } from "./missionHarness";
+import { readMapFeatures } from "./mapObserver";
+import { seedPosEntry } from "tests/playwright/fixtures/entitySeeds";
+import { BEHAVIORAL_NOW } from "tests/playwright/fixtures/missionSeed";
 import { selectExecution } from "./executionHelpers";
 
 const SECOND_TYPE = "30000000-0000-4000-8000-000000000031";
@@ -11,51 +12,53 @@ const OLDER_A = "30000000-0000-4000-8000-000000000033";
 const NEWER_A = "30000000-0000-4000-8000-000000000034";
 const ROVER_B = "30000000-0000-4000-8000-000000000035";
 
-test.use({ scenario: "execution" });
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
-async function openPositions(page: Page, mission: BehavioralMission): Promise<Locator> {
-  await mission.open(page);
+async function openPositions(page: Page, mission: BrowserMission): Promise<Locator> {
+  await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
-  await expect(menu).toContainText("Survey Bravo - Active Bravo");
+  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
-  await expect(menu.locator("table")).toHaveCount(2);
+  await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   await visibility
-    .locator('[class*="toggleMenuItemRow"]')
+    .getBySelector('[class*="toggleMenuItemRow"]')
     .filter({ hasText: "Sources" })
     .getByText("All", { exact: true })
     .click();
   await visibility
-    .locator('[class*="toggleMenuItemRow"]')
+    .getBySelector('[class*="toggleMenuItemRow"]')
     .filter({ hasText: "Labels" })
     .getByText("All", { exact: true })
     .click();
   await visibility
-    .locator('[class*="toggleMenuItemRow"]')
+    .getBySelector('[class*="toggleMenuItemRow"]')
     .filter({ hasText: "Paths" })
     .getByText("All", { exact: true })
     .click();
-  await visibility.locator('svg[data-icon="xmark"]').click();
+  await visibility.getBySelector('svg[data-icon="xmark"]').click();
   return menu;
 }
 
 async function setSourceFilter(page: Page, sourceName: string | "All"): Promise<void> {
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
-  const row = visibility.locator('[class*="toggleMenuItemRow"]').filter({ hasText: "Sources" });
+  const row = visibility
+    .getBySelector('[class*="toggleMenuItemRow"]')
+    .filter({ hasText: "Sources" });
   await row.getByText("All", { exact: true }).click();
   if (sourceName !== "All") {
-    const source = row.locator(`[data-tooltip-content="${sourceName}"]`);
+    const source = row.getBySelector(`[data-tooltip-content="${sourceName}"]`);
     await source.click();
-    await expect(source).toHaveClass(/toggleSelected/);
+    await expect.element(source).toHaveClass(/toggleSelected/);
   }
-  await visibility.locator('svg[data-icon="xmark"]').click();
+  await visibility.getBySelector('svg[data-icon="xmark"]').click();
 }
 
 async function visiblePositionIds(page: Page, uuids: string[]): Promise<string[]> {
-  return (await readMapFeatures(page))
+  return (await readMapFeatures())
     .filter(
       (feature) => uuids.includes(feature.id) && feature.geometryType === "Point" && feature.visible
     )
@@ -64,7 +67,7 @@ async function visiblePositionIds(page: Page, uuids: string[]): Promise<string[]
 }
 
 async function labelFor(page: Page, uuid: string): Promise<string | undefined> {
-  return (await readMapFeatures(page)).find(
+  return (await readMapFeatures()).find(
     (feature) => feature.id === `pos-${uuid}` && feature.labelType === "pos" && feature.visible
   )?.name;
 }
@@ -132,7 +135,7 @@ test("historical source filters use that REX's own PET and do not leak into acti
 
   await setSourceFilter(page, "All");
   await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
-  await expect(menu).toContainText("Survey Alpha - Stopped Alpha");
+  await expect.element(menu).toHaveTextContent("Survey Alpha - Stopped Alpha");
   await expect
     .poll(() => visiblePositionIds(page, [mission.ids.posA, OLDER_A, NEWER_A]))
     .toEqual([mission.ids.posA]);
@@ -144,7 +147,7 @@ test("historical source filters use that REX's own PET and do not leak into acti
   await expect.poll(() => labelFor(page, OLDER_A)).toBe("+00:16:40 / 2 (R)");
   await expect.poll(() => labelFor(page, NEWER_A)).toBe("+00:00:00 / 2 (R)");
   const historicalPath = async () =>
-    (await readMapFeatures(page))
+    (await readMapFeatures())
       .filter((feature) => feature.id === `posPath-${SECOND_TYPE}` && feature.visible)
       .map((feature) => feature.coordinates);
   await expect
@@ -177,7 +180,7 @@ test("historical source filters use that REX's own PET and do not leak into acti
     ]);
 
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-  await expect(menu).toContainText("Survey Bravo - Active Bravo");
+  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
   await expect
     .poll(() => visiblePositionIds(page, [mission.ids.posB, ROVER_B]))
     .toEqual([mission.ids.posB]);
@@ -186,10 +189,12 @@ test("historical source filters use that REX's own PET and do not leak into acti
     .poll(() => visiblePositionIds(page, [mission.ids.posA, OLDER_A, NEWER_A, ROVER_B]))
     .toEqual([ROVER_B]);
   await selectExecution(page, "Survey Alpha", mission.ids.evaA);
-  await expect(page.locator('div[aria-label="EVA Title"]')).toHaveText("Survey Alpha");
+  await expect
+    .element(page.getBySelector('div[aria-label="EVA Title"]'))
+    .toHaveTextContent(exactText("Survey Alpha"));
   await expect
     .poll(async () =>
-      (await readMapFeatures(page)).filter(
+      (await readMapFeatures()).filter(
         (feature) =>
           [mission.ids.posA, mission.ids.posB, OLDER_A, NEWER_A, ROVER_B].includes(feature.id) ||
           feature.id.startsWith("posPath-")

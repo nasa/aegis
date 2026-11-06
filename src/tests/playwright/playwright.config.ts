@@ -103,6 +103,8 @@ export default defineConfig({
     { name: "auth", testMatch: /.*\.auth\.ts/ },
     {
       name: "chromium",
+      // Vitest Browser Mode covers these client contracts in Chromium; retain full-stack parity below.
+      testIgnore: ["**/automergeCRDT.spec.ts", "**/behavior/actions.spec.ts"],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1960, height: 1080 },
