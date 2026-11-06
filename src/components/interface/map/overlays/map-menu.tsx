@@ -21,6 +21,13 @@ const FILE_GRID_SPACINGS: readonly number[] = [10, 100, 1000];
 
 const GRID_LABEL_SCHEMES: readonly GridLabelScheme[] = ["lunar-acc", "mgrs"];
 
+/** Grid Scheme toggle tooltips. */
+const GRID_LABEL_SCHEME_DESCRIPTIONS: Readonly<Record<GridLabelScheme, string>> = {
+  "lunar-acc":
+    "AEGIS-defined ACC: MGRS 100 km square, ABCD 25 km sub-area, then lunar ACC 1 km letters.",
+  mgrs: "Canonical MGRS (NGA), digits truncated.",
+};
+
 function formatSpacingLabel(meters: number): string {
   return meters >= 1000 ? `${meters / 1000}km` : `${meters}m`;
 }
@@ -712,11 +719,11 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                     } ${gridSystem.scheme === scheme ? styles.toggleSelected : ""}`}
                     aria-pressed={gridSystem.scheme === scheme}
                     data-tooltip-id="aegis-tooltip"
-                    data-tooltip-content={
+                    data-tooltip-content={`${GRID_LABEL_SCHEME_DESCRIPTIONS[scheme]} ${
                       scheme === missionLabelScheme
-                        ? "Mission default"
-                        : "Override the mission default"
-                    }
+                        ? "Mission default."
+                        : "Overrides the mission default."
+                    }`}
                     onClick={() => {
                       // Choosing the mission default clears the override, so it follows the mission.
                       dispatch(

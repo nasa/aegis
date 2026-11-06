@@ -575,7 +575,9 @@ const Mission: React.FunctionComponent = () => {
                           </label>
                         ))}
                         <span className={adminCommon.formHint}>
-                          Users can override the scheme from the map menu.
+                          ACC names are AEGIS-defined, not a USGS or NGA standard: the MGRS 100 km
+                          square, an ABCD 25 km sub-area, then lunar ACC 1 km letters (15RTNDC X51
+                          W77). Users can switch to canonical MGRS, or back, from the map menu.
                         </span>
                       </fieldset>
                     ) : null}
