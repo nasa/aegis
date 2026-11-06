@@ -64,13 +64,14 @@ export const thunkCancelAssetMapDirective = appCreateAsyncThunk<void>(
   }
 );
 
-/** Open a new-asset edit session, prefilling radius and color from the most recently created asset. */
+/** Replace an existing asset edit with a new draft, prefilling the latest saved radius and color. */
 export const thunkAddAsset = appCreateAsyncThunk<void>(
   "asset/add",
   async (__, { dispatch, getState }) => {
-    if (getState().asset.inEdit) return;
+    if (getState().asset.inEdit?.isNew) return;
     const mission = getMissionDocHandle()?.doc();
     if (!mission) return;
+    if (getState().asset.inEdit) await dispatch(thunkCancelAssetEdit());
     const latest = getMostRecentAsset(Object.values(mission.assets ?? {}));
     const uuid = uuidv4();
     dispatch(setSelectedAssetUuid(uuid));

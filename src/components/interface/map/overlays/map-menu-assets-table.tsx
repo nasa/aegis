@@ -55,8 +55,7 @@ import {
   thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
 import { DEFAULT_ASSET_ICON, getAssetFolderUuidByItem } from "utils/assets";
-import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
-import { formatUtcTime } from "./map-menu-assets-editor";
+import { formatCoordinateEntry } from "utils/coordinateEntry";
 import { AssetDetails } from "./map-menu-asset-details";
 import { withAlpha } from "../utils/layers/layerFactory";
 
@@ -459,16 +458,6 @@ const AssetRow: FunctionComponent<{
   const placed = !!asset.location;
   const hasNotes = !!asset.notes?.trim();
   const inheritedHidden = asset.visible && folder && !folder.visible;
-  const locationDetails = placed
-    ? [
-        formatCoordinateEntry(asset.location, coordinateContext),
-        coordinateContext.usingLGRSCoordinates && formatLatLng(asset.location),
-        `Elevation ${asset.elevation === null ? "unavailable" : `${asset.elevation.toFixed(1)} m`}`,
-        `Last modified ${formatUtcTime(asset.updatedAt)}`,
-      ]
-        .filter(Boolean)
-        .join("\n")
-    : null;
 
   const rowClass = [
     styles.assetRow,
@@ -540,17 +529,19 @@ const AssetRow: FunctionComponent<{
                 textClassName={styles.emojiGlyph}
               />
             </span>
-            <span className={styles.assetName} title={asset.name}>
-              {asset.name}
-            </span>
+            <span className={styles.assetName}>{asset.name}</span>
           </div>
         </td>
-        <td title={locationDetails ?? undefined}>
+        <td>
           {placed
             ? formatCoordinateEntry(asset.location, { ...coordinateContext, dynamicLgrs: false })
             : "Not placed"}
         </td>
-        <td className={styles.notesCell} title={hasNotes ? asset.notes : "No notes"}>
+        <td
+          className={styles.notesCell}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content={hasNotes ? asset.notes : "No notes"}
+        >
           <span
             className={`${styles.notesIndicator} ${hasNotes ? styles.notesPresent : ""}`}
             role="img"

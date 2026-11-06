@@ -70,15 +70,9 @@ export const MapAssetsMenu: FunctionComponent = () => {
             onClick={() => dispatch(thunkAddAsset())}
             icon={faPlusCircle}
             label="Asset"
-            toolTip={
-              inEdit
-                ? inEdit.isNew
-                  ? "Save or cancel the open asset first"
-                  : "Turn off asset edit mode first"
-                : undefined
-            }
+            toolTip={inEdit?.isNew ? "Save or cancel the open asset first" : undefined}
             className={assetsMenuStyles.toolbarButton}
-            enabled={canEdit && !inEdit}
+            enabled={canEdit && !inEdit?.isNew}
           />
           <Button
             onClick={() => dispatch(thunkCreateFolder({ type: "asset" }))}
