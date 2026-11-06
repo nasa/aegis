@@ -3,11 +3,7 @@ import * as bcrypt from "bcryptjs";
 import type { Page } from "@playwright/test";
 import DB from "../db";
 import { test, expect } from "../fixtures/behavioralTest";
-import {
-  enablePlanningEditMode,
-  planningField,
-  selectPlanningStationActions,
-} from "./planningHelpers";
+import { enablePlanningEditMode, planningField } from "./planningHelpers";
 import { openExecutionInfo, selectExecution } from "./executionHelpers";
 
 test.use({ scenario: "execution" });
@@ -27,7 +23,7 @@ async function actionForExecution(page: Page, mission: BehavioralMission) {
     .filter({ has: planningField(page, "Action Name").filter({ hasText: "Sample regolith" }) });
 }
 
-test("execution action status requires editor and running ownership, permits Edit off, and rejects disabled and Maestro controlled writes", async ({
+test("a real view-only account observes the editor status but cannot change execution action status", async ({
   page,
   browser,
   baseURL,
@@ -47,7 +43,7 @@ test("execution action status requires editor and running ownership, permits Edi
     await expect
       .poll(async () => (await mission.read()).rexes[mission.ids.rexA].isRunning)
       .toBe(true);
-    let action = await actionForExecution(page, mission);
+    const action = await actionForExecution(page, mission);
     const initial = await mission.read();
     await expect(page.getByLabel("globalEditToggle", { exact: true })).toHaveAttribute(
       "data-tooltip-content",
@@ -93,63 +89,11 @@ test("execution action status requires editor and running ownership, permits Edi
       (await mission.read()).rexes[mission.ids.rexA].actionEntries[mission.ids.rexActionA].rexStatus
     ).toBe("complete");
 
-    await enablePlanningEditMode(page);
-    await action.locator('svg[data-icon="ellipsis-vertical"]').click();
-    await page.locator("dialog[open]").getByText("Deactivate Action", { exact: true }).click();
-    await expect
-      .poll(async () => (await mission.read()).actions[mission.ids.rexActionA].enabled)
-      .toBe(false);
-    await expect(action.locator('[class*="actionHeadingRexStatusWrapper"] svg')).toHaveCount(0);
-    await expect(action.locator('[class*="actionHeadingRexStatusWrapper"]')).not.toBeVisible();
-    await expect(page.locator("dialog[open]")).toHaveCount(0);
-    await action.locator('svg[data-icon="ellipsis-vertical"]').click();
-    await page.locator("dialog[open]").getByText("Activate Action", { exact: true }).click();
-    await expect
-      .poll(async () => (await mission.read()).actions[mission.ids.rexActionA].enabled)
-      .toBe(true);
-
-    await openExecutionInfo(page, "Survey Alpha", mission.ids.rexEvaA);
-    await page.locator("#maestroCheckbox").check();
-    action = await actionForExecution(page, mission);
-    await action.locator('[class*="actionHeadingRexStatusWrapper"]').click();
-    await expect(
-      page
-        .locator("dialog[open]")
-        .getByText("Item status is controlled by Maestro", { exact: false })
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
-    expect(
-      (await mission.read()).rexes[mission.ids.rexA].actionEntries[mission.ids.rexActionA].rexStatus
-    ).toBe("complete");
-    await enablePlanningEditMode(page);
-    await openExecutionInfo(page, "Survey Alpha", mission.ids.rexEvaA);
-    await page.locator("#maestroCheckbox").uncheck();
-    await page.getByLabel("Stop Execution", { exact: true }).click();
-    await expect
-      .poll(async () => (await mission.read()).rexes[mission.ids.rexA].isRunning)
-      .toBe(false);
-    await mission.open(page);
-    action = await actionForExecution(page, mission);
-    await action.locator('[class*="actionHeadingRexStatusWrapper"]').click();
-    await expect(page.locator("dialog[open]")).toHaveCount(0);
-    await selectPlanningStationActions(page, "Alpha station");
-    await expect(
-      page.getByRole("listitem").locator('[class*="actionHeadingRexStatusWrapper"]')
-    ).toHaveCount(0);
     const after = await mission.read();
     expect(after.rexes[mission.ids.rexA].actionEntries[mission.ids.rexActionA].rexStatus).toBe(
       "complete"
     );
-    expect(after.actions).toEqual({
-      ...initial.actions,
-      [mission.ids.rexActionA]: {
-        ...initial.actions[mission.ids.rexActionA],
-        updatedAt: after.actions[mission.ids.rexActionA].updatedAt,
-      },
-    });
-    expect(after.actions[mission.ids.rexActionA].updatedAt).toBeGreaterThanOrEqual(
-      initial.actions[mission.ids.rexActionA].updatedAt
-    );
+    expect(after.actions).toEqual(initial.actions);
     expect(after.rexes[mission.ids.rexB]).toEqual(initial.rexes[mission.ids.rexB]);
   } finally {
     await viewer.close();

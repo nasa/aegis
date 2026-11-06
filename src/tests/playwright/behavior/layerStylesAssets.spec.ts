@@ -1,3 +1,9 @@
+import {
+  ids,
+  baseStyle,
+  mixedGeoJson,
+  addSublayer,
+} from "tests/playwright/fixtures/layerStyleSeed";
 import { createRequire } from "node:module";
 import type { Page } from "@playwright/test";
 import type Feature from "ol/Feature";
@@ -9,39 +15,6 @@ import type Style from "ol/style/Style";
 import { test, expect } from "../fixtures/behavioralTest";
 import { enablePlanningEditMode } from "./planningHelpers";
 
-const ids = {
-  layer: "30000000-0000-4000-8000-000000009901",
-  vector: "30000000-0000-4000-8000-000000009902",
-  healthyLayer: "30000000-0000-4000-8000-000000009903",
-  healthy: "30000000-0000-4000-8000-000000009904",
-  missingLayer: "30000000-0000-4000-8000-000000009905",
-  missing: "30000000-0000-4000-8000-000000009906",
-  corruptLayer: "30000000-0000-4000-8000-000000009907",
-  corrupt: "30000000-0000-4000-8000-000000009908",
-  slowLayer: "30000000-0000-4000-8000-000000009909",
-  slow: "30000000-0000-4000-8000-000000009910",
-  presetHealthyLayer: "30000000-0000-4000-8000-000000009911",
-  presetHealthy: "30000000-0000-4000-8000-000000009912",
-};
-
-const baseStyle: MapSublayerStyle = {
-  opacity: 1,
-  contrast: 1,
-  brightness: 1,
-  saturation: 1,
-  blendMode: "normal",
-  color: "#6633cc",
-  weight: 2,
-  fillColor: "#22aa44",
-  fillOpacity: 0.25,
-  isDashed: false,
-  dashLen: 10,
-  altColor: "#ffffff",
-  altOpacity: 1,
-  showLabels: true,
-  labelMinZoom: 4,
-};
-
 const fixtureBase = "http://localhost:4000/layer-styles-assets-fixture";
 const require = createRequire(import.meta.url);
 const { PNG } = require("pngjs") as {
@@ -52,45 +25,6 @@ const { PNG } = require("pngjs") as {
     };
   };
 };
-const mixedGeoJson = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { label: "Contour 120 m", elev: 120 },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [-0.001, 0],
-          [0, 0],
-          [0.001, 0],
-        ],
-      },
-    },
-    {
-      type: "Feature",
-      properties: { label: "Basalt unit" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [-0.0008, -0.0004],
-            [-0.0003, -0.0004],
-            [-0.0003, 0.0001],
-            [-0.0008, 0.0001],
-            [-0.0008, -0.0004],
-          ],
-        ],
-      },
-    },
-    {
-      type: "Feature",
-      properties: { label: "Drill point" },
-      geometry: { type: "Point", coordinates: [0.0005, 0.00035] },
-    },
-  ],
-};
-
 interface VectorStyleSnapshot {
   geometry: string | undefined;
   label: string | null;
@@ -188,58 +122,6 @@ function layerRow(page: Page, name: string) {
     .filter({ hasText: name });
 }
 
-function addSublayer(
-  doc: Mission,
-  presetUuid: string,
-  args: {
-    layerUuid: string;
-    uuid: string;
-    name: string;
-    type: SublayerType;
-    path: string;
-    visible: boolean;
-    style?: MapSublayerStyle;
-    legend?: Legend | null;
-    tilePattern?: string | null;
-  }
-) {
-  doc.layers[args.layerUuid] = {
-    uuid: args.layerUuid,
-    name: args.name,
-    createdAt: 1,
-    updatedAt: 1,
-  };
-  doc.sublayers[args.uuid] = {
-    uuid: args.uuid,
-    layerUuid: args.layerUuid,
-    type: args.type,
-    name: args.name,
-    description: "Small deterministic UI fixture",
-    legend: args.legend ?? null,
-    path: args.path,
-    tilePattern: args.tilePattern ?? null,
-    boundingBox: null,
-    tileFormat: args.type === "tile" ? "xyz" : null,
-    minNativeZoom: args.type === "tile" ? 0 : null,
-    maxNativeZoom: args.type === "tile" ? 1 : null,
-    maxZoom: args.type === "tile" ? 22 : null,
-    isTimeBased: false,
-    timeLayerManifest: [],
-    createdAt: 1,
-    updatedAt: 1,
-  };
-  doc.presets[presetUuid].layerOrder.push({
-    layerUuid: args.layerUuid,
-    sublayerUuids: [args.uuid],
-  });
-  doc.presets[presetUuid].mapSublayerControls[args.uuid] = {
-    name: args.name,
-    sublayerUuid: args.uuid,
-    visible: args.visible,
-    style: { ...baseStyle, ...args.style },
-  };
-}
-
 async function selectPreset(page: Page, name: string) {
   await page.getByLabel("preset Section", { exact: true }).click();
   await page
@@ -251,7 +133,7 @@ async function selectPreset(page: Page, name: string) {
 }
 
 test.describe("PRESET-005 vector and contour style variants", () => {
-  test("line, fill, point and contour labels use saved styles, legends and zoom thresholds", async ({
+  test("saved vector style is reconstructed with the served GeoJSON after a fresh load", async ({
     page,
     mission,
   }) => {
@@ -316,22 +198,6 @@ test.describe("PRESET-005 vector and contour style variants", () => {
     const row = layerRow(page, "Contour and mapped units");
     await expect(row).toContainText("Contour and mapped units (vector)");
     await expect.poll(() => vectorStyles(page, ids.vector, 2)).toHaveLength(3);
-    const lowZoom = await vectorStyles(page, ids.vector, 2);
-    expect(lowZoom.map(({ geometry }) => geometry).sort()).toEqual([
-      "LineString",
-      "Point",
-      "Polygon",
-    ]);
-    expect(
-      lowZoom.every(({ label }) => label === null),
-      JSON.stringify(lowZoom)
-    ).toBe(true);
-
-    await row.locator('svg[data-icon="circle-info"]').click();
-    await expect(row).toContainText("Legend (m)");
-    for (const item of ["Contour line", "Mapped fill", "Point feature"]) {
-      await expect(row).toContainText(item);
-    }
     await row.locator('svg[data-icon="sliders"]').click();
     await row.getByLabel("weight", { exact: true }).fill("5");
     await row.getByLabel("fillOpacity", { exact: true }).fill("60");
@@ -343,29 +209,6 @@ test.describe("PRESET-005 vector and contour style variants", () => {
       )
       .toMatchObject({ weight: 5, fillOpacity: 0.6, labelMinZoom: 3 });
 
-    const highZoom = await vectorStyles(page, ids.vector, 6);
-    expect(highZoom).toHaveLength(3);
-    expect(
-      highZoom.every(({ stroke, strokeWidth }) => stroke === "#6633cc" && strokeWidth === 5)
-    ).toBe(true);
-    const contour = highZoom.find(({ geometry }) => geometry === "LineString");
-    const polygon = highZoom.find(({ geometry }) => geometry === "Polygon");
-    const point = highZoom.find(({ geometry }) => geometry === "Point");
-    expect(contour).toMatchObject({ label: "Contour 120 m", stroke: "#6633cc", strokeWidth: 5 });
-    expect(polygon?.fill).toBe("rgba(34,170,68,0.6)");
-    expect(point?.pointRadius).toBeGreaterThan(0);
-    expect(point?.pointFill).toBe("rgba(34,170,68,0.6)");
-
-    await selectPreset(page, "Detail");
-    const detail = await vectorStyles(page, ids.vector, 6);
-    expect(
-      detail.every(({ stroke, strokeWidth }) => stroke === "#cc2244" && strokeWidth === 1)
-    ).toBe(true);
-    await selectPreset(page, "Overview");
-    const restored = await vectorStyles(page, ids.vector, 6);
-    expect(
-      restored.every(({ stroke, strokeWidth }) => stroke === "#6633cc" && strokeWidth === 5)
-    ).toBe(true);
     await page.reload();
     await selectPreset(page, "Overview");
     expect(

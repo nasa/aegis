@@ -226,14 +226,6 @@ test("super-admin grant changes deny HTTP access and capture existing Automerge 
   let targetId: number | undefined;
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  let markDocListingRequested: () => void = () => {};
-  let releaseDocListing: () => void = () => {};
-  const docListingRequested = new Promise<void>((resolve) => {
-    markDocListingRequested = resolve;
-  });
-  const docListingGate = new Promise<void>((resolve) => {
-    releaseDocListing = resolve;
-  });
 
   try {
     const docListingResponse = await request.get("/api/v1/docListing");
@@ -245,17 +237,6 @@ test("super-admin grant changes deny HTTP access and capture existing Automerge 
     const missionListing = docListingBody.data?.find((entry) => entry.missionId === mission.id);
     expect(missionListing).toMatchObject({ missionId: mission.id, automergeUrl: mission.docUrl });
 
-    await page.route("**/api/v1/docListing", async (route) => {
-      if (route.request().method() !== "GET") return route.continue();
-      markDocListingRequested();
-      await docListingGate;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ ...docListingBody, data: [missionListing] }),
-      });
-    });
-
     await expect
       .poll(async () => {
         const catalog = await request.get("/api/v1/missionCatalog");
@@ -265,10 +246,7 @@ test("super-admin grant changes deny HTTP access and capture existing Automerge 
       .toBe(mission.name);
     await page.goto("/admin/user");
     await expect(page.getByRole("heading", { name: "User Management", exact: true })).toBeVisible();
-    await docListingRequested;
     const addUserButton = page.getByRole("button", { name: "+ Add User", exact: true });
-    await expect(addUserButton).toBeDisabled();
-    releaseDocListing();
     await expect(addUserButton).toBeEnabled();
     await addUserButton.click();
     const createModal = page
@@ -502,7 +480,6 @@ test("super-admin grant changes deny HTTP access and capture existing Automerge 
     await revokedPage.goto(`/admin/user`);
     await expect(revokedPage).toHaveURL(new URL("/", baseURL).toString());
   } finally {
-    releaseDocListing();
     await Promise.all([revoked?.close(), editorAdmin?.close(), viewer?.close()]);
     if (targetId !== undefined) {
       const deleted = await request.delete("/api/v1/appUsers", { data: { userIds: [targetId] } });

@@ -2,15 +2,8 @@ import type { Page } from "@playwright/test";
 import type VectorLayer from "ol/layer/Vector";
 import type Icon from "ol/style/Icon";
 import { test, expect } from "../fixtures/behavioralTest";
-import { seedAction, seedPoi } from "../fixtures/entitySeeds";
 import { installMapObserver } from "../fixtures/mapAssertions";
-import {
-  cancelPlanningField,
-  enablePlanningEditMode,
-  planningField,
-  savePlanningField,
-  selectPlanningPoi,
-} from "./planningHelpers";
+import { enablePlanningEditMode, planningField, savePlanningField } from "./planningHelpers";
 
 async function selectStation(page: Page, name: string): Promise<void> {
   await page.getByLabel("station Section", { exact: true }).click();
@@ -48,42 +41,12 @@ async function stationMarker(page: Page, uuid: string) {
 test.describe("Shared station metadata and usage", () => {
   test.use({ scenario: "execution" });
 
-  test("station description and icon agree in list, map, linked POIs and shared EVA usage", async ({
+  test("station description and rendered icon synchronize with a peer and persist after reload", async ({
     page,
     context,
     mission,
   }) => {
-    const poiUuid = "70000000-0000-4000-8000-000000000001";
-    const poiActionUuid = "70000000-0000-4000-8000-000000000003";
-    await mission.change((doc) => {
-      doc.pois[poiUuid] = seedPoi({
-        uuid: poiUuid,
-        name: "Bravo linked outcrop",
-        description: "Shared station association",
-        location: { lat: 0.0012, lng: 0.0032 },
-        elevation: 0,
-        actionOrderUuids: [poiActionUuid],
-      });
-      doc.stations[mission.ids.stationB].poiUuids = [poiUuid];
-      doc.actions[poiActionUuid] = seedAction({
-        uuid: poiActionUuid,
-        refUuid: poiActionUuid,
-        name: "Mapped POI sample",
-        poiUuid,
-        type: "sample",
-        duration: 8,
-        mass: 12,
-        enabled: true,
-      });
-    });
     const arranged = await mission.read();
-    expect(
-      Object.values(arranged.evas)
-        .filter((eva) => eva.sequence.some((item) => item.uuid === mission.ids.stationB))
-        .map((eva) => eva.uuid)
-        .sort()
-    ).toEqual([mission.ids.evaA, mission.ids.evaB].sort());
-
     await mission.open(page);
     await enablePlanningEditMode(page);
     await selectStation(page, "Bravo station");
@@ -93,8 +56,6 @@ test.describe("Shared station metadata and usage", () => {
     await selectStation(peer, "Bravo station");
     await peer.getByLabel("info_panel", { exact: true }).click();
 
-    await cancelPlanningField(page, "Station Description", "Discard this station note");
-    expect(await mission.read()).toEqual(arranged);
     const description = 'Survey boundary α & <crater>\nSecond line: "shared"';
     await savePlanningField(page, "Station Description", description);
     await expect(planningField(peer, "Station Description")).toHaveText(description);
@@ -121,30 +82,6 @@ test.describe("Shared station metadata and usage", () => {
     const pageMarker = await stationMarker(page, mission.ids.stationB);
     expect(pageMarker?.image).toMatch(/^data:image\/png;base64,/);
 
-    await selectPlanningPoi(page, "Bravo linked outcrop");
-    await page.getByLabel("info_panel", { exact: true }).click();
-    const poiTotal = (client: Page, label: string) =>
-      client
-        .getByText(label, { exact: true })
-        .locator("../..")
-        .locator('[class*="displayFieldValue"]');
-    await expect(poiTotal(page, "Number of Actions:")).toHaveText("1");
-    await expect(poiTotal(page, "Total Action Time (mins):")).toHaveText("8");
-    await expect(poiTotal(page, "Total Mass (g):")).toHaveText("12");
-    await expect(poiTotal(page, "Stations using this POI:")).toHaveText("1");
-    await selectStation(page, "Bravo station");
-    const usage = (client: Page) =>
-      client
-        .getByText("EVAs Using this Station:", { exact: true })
-        .locator("../..")
-        .locator('[class*="displayFieldValue"]');
-    await page.getByLabel("info_panel", { exact: true }).click();
-    await expect(usage(page)).toHaveText("2");
-    await expect(usage(peer)).toHaveText("2");
-    await expect
-      .poll(async () => (await mission.read()).stations[mission.ids.stationB].description)
-      .toBe(description);
-
     const after = await mission.read();
     expect(after.stations[mission.ids.stationB]).toEqual({
       ...arranged.stations[mission.ids.stationB],
@@ -170,18 +107,7 @@ test.describe("Shared station metadata and usage", () => {
       await selectStation(client, "Bravo station");
       await client.getByLabel("info_panel", { exact: true }).click();
       await expect(planningField(client, "Station Description")).toHaveText(description);
-      await expect(usage(client)).toHaveText("2");
-      await expect
-        .poll(() => stationMarker(client, mission.ids.stationB))
-        .toMatchObject({
-          emoji: "1f536",
-        });
-      await selectPlanningPoi(client, "Bravo linked outcrop");
-      await client.getByLabel("info_panel", { exact: true }).click();
-      await expect(poiTotal(client, "Number of Actions:")).toHaveText("1");
-      await expect(poiTotal(client, "Total Action Time (mins):")).toHaveText("8");
-      await expect(poiTotal(client, "Total Mass (g):")).toHaveText("12");
-      await expect(poiTotal(client, "Stations using this POI:")).toHaveText("1");
+      await expect.poll(() => stationMarker(client, mission.ids.stationB)).toEqual(pageMarker);
     }
     await expect.poll(() => stationMarker(peer, mission.ids.stationB)).toEqual(pageMarker);
   });

@@ -8,11 +8,12 @@ import Layers from "components/admin/layers";
 import User from "pages/admin/user";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { isLoggedIn } from "http-client/login";
-import { getAppUsers } from "http-client/appUser";
+import { getAppUsers, upsertAppUsers } from "http-client/appUser";
 import { listFiles, deleteFile } from "http-client/file";
 import { getLayers, upsertLayers } from "http-client/layer";
 import { getSublayers } from "http-client/sublayer";
 import { getAutomergeDocListing } from "http-client/docListing";
+import { getMissionSummaries } from "http-client/mission";
 import { useAdminMission } from "components/admin/useAdminMission";
 import { generateAutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
@@ -234,6 +235,99 @@ describe("admin layer loading", () => {
 });
 
 describe("admin user dialogs", () => {
+  it("keeps user creation disabled until mission permissions load and then renders the named mission grant", async () => {
+    const records = deferred<WrappedResponse<AutomergeDocListing[]>>();
+    vi.mocked(isLoggedIn).mockResolvedValueOnce({
+      status: "success",
+      data: generateBlankAppUser({ isSuperAdmin: true }),
+      message: "",
+    });
+    vi.mocked(getAppUsers).mockResolvedValue({ status: "success", data: [], message: "" });
+    vi.mocked(getAutomergeDocListing).mockReturnValueOnce(records.promise);
+    vi.mocked(getMissionSummaries).mockResolvedValueOnce({
+      status: "success",
+      data: [{ id: 1, name: "Pending permission mission" } as MissionSummary],
+      message: "",
+    });
+    harness.render(
+      <MemoryRouter>
+        <User />
+      </MemoryRouter>
+    );
+    const add = page.getByRole("button", { name: "+ Add User", exact: true });
+    await expect.element(add).toBeDisabled();
+    await expect
+      .element(page.getByRole("status"))
+      .toHaveTextContent("Loading users and mission permissions...");
+    records.resolve({
+      status: "success",
+      data: [{ missionId: 1, automergeUrl: generateAutomergeUrl() } as AutomergeDocListing],
+      message: "",
+    });
+    await expect.element(add).toBeEnabled();
+    await add.click();
+    await expect
+      .element(page.getByRole("heading", { name: "Create User", exact: true }))
+      .toBeVisible();
+    await expect
+      .element(page.getByText("Pending permission mission", { exact: true }))
+      .toBeVisible();
+    expect(upsertAppUsers).not.toHaveBeenCalled();
+  });
+
+  it.each([401, 403, 500])(
+    "preserves a failed %i creation draft and retries exactly once",
+    async (status) => {
+      const username = `Request recovery ${status}`;
+      const password = `recovery-password-${status}`;
+      const user = generateBlankAppUser({ id: 3, username, password });
+      vi.mocked(isLoggedIn).mockResolvedValueOnce({
+        status: "success",
+        data: generateBlankAppUser({ isSuperAdmin: true }),
+        message: "",
+      });
+      vi.mocked(getAppUsers).mockResolvedValue({ status: "success", data: [], message: "" });
+      vi.mocked(getAutomergeDocListing).mockResolvedValueOnce({
+        status: "success",
+        data: [],
+        message: "",
+      });
+      const message = status === 401 ? "Unauthorized" : `Injected ${status} failure`;
+      vi.mocked(upsertAppUsers)
+        .mockResolvedValueOnce({ status: "error", message })
+        .mockResolvedValueOnce({ status: "success", data: [user], message: "" });
+      harness.render(
+        <MemoryRouter>
+          <User />
+        </MemoryRouter>
+      );
+      await page.getByRole("button", { name: "+ Add User", exact: true }).click();
+      await page.getByLabelText("Username", { exact: true }).fill(username);
+      await page.getByLabelText("Password", { exact: true }).fill(password);
+      await page.getByRole("button", { name: "Create", exact: true }).click();
+      await expect.element(page.getByRole("alert").last()).toHaveTextContent(message);
+      await expect
+        .element(page.getByRole("heading", { name: "Create User", exact: true }))
+        .toBeVisible();
+      await expect.element(page.getByLabelText("Username", { exact: true })).toHaveValue(username);
+      await expect.element(page.getByLabelText("Password", { exact: true })).toHaveValue(password);
+      expect(upsertAppUsers).toHaveBeenCalledTimes(1);
+      await page.getByRole("button", { name: "Create", exact: true }).click();
+      await expect
+        .element(page.getByRole("heading", { name: "Edit User", exact: true }))
+        .toBeVisible();
+      await expect
+        .element(page.getByText("User created successfully", { exact: true }))
+        .toBeVisible();
+      await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
+      expect(upsertAppUsers).toHaveBeenCalledTimes(2);
+      for (const [submitted] of vi.mocked(upsertAppUsers).mock.calls)
+        expect(submitted).toEqual([
+          expect.objectContaining({ username, password, permissionList: [] }),
+        ]);
+    }
+  );
+
   it("clears validation errors when cancelling creation and editing an existing user", async () => {
     const user = generateBlankAppUser({ id: 3, username: "Existing User", password: "password" });
     vi.mocked(isLoggedIn).mockResolvedValueOnce({

@@ -3,7 +3,12 @@ import type { Page } from "@playwright/test";
 import type { FeatureCollection, Point } from "geojson";
 import { test, expect } from "../fixtures/behavioralTest";
 import { seedPosEntry } from "../fixtures/entitySeeds";
-import { openPlanningSection } from "./planningHelpers";
+import {
+  enablePlanningEditMode,
+  openPlanningSection,
+  savePlanningField,
+  selectPlanningStation,
+} from "./planningHelpers";
 import { selectExecution } from "./executionHelpers";
 
 type MissionExport = {
@@ -50,12 +55,18 @@ async function selectCategories(page: Page, selected: string[]): Promise<void> {
 test.use({ scenario: "execution" });
 
 test.describe("Downloaded export contracts", () => {
-  test("combined and empty export selections match their filenames and preserve mission state", async ({
+  test("combined export delivers saved planning values and nested relationships to its named filesystem JSON", async ({
     page,
     mission,
   }) => {
-    const before = await mission.read();
     await mission.open(page);
+    await enablePlanningEditMode(page);
+    await selectPlanningStation(page, "Alpha station");
+    await savePlanningField(page, "Station", "Exported sampling site");
+    await expect
+      .poll(async () => (await mission.read()).stations[mission.ids.stationA].name)
+      .toBe("Exported sampling site");
+    const before = await mission.read();
     await openExport(page);
     await selectCategories(
       page,
@@ -70,10 +81,20 @@ test.describe("Downloaded export contracts", () => {
     expect(all.data.actions.map((a) => a.uuid).sort()).toEqual(
       [mission.ids.actionA, mission.ids.rexActionA].sort()
     );
-    await selectCategories(page, []);
-    const empty = await downloadJson<MissionExport>(page, "Export JSON File");
-    expect(empty.name).toBe(`${mission.name}_export.json`);
-    expect(empty.data).toEqual({});
+    const station = all.data.stations.find((entry) => entry.uuid === mission.ids.stationA);
+    expect(station.name).toBe("Exported sampling site");
+    expect(station.actionsReadable.map((action) => action.uuid)).toContain(mission.ids.actionA);
+    expect(station.poisAssociatedReadable).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "Reference POI" })])
+    );
+    expect(all.data.pois.map((poi) => poi.uuid)).toContain(mission.ids.poiA);
+    const eva = all.data.evas.find((entry) => entry.uuid === mission.ids.evaA);
+    expect(eva.sequenceReadable.map((entry) => entry.uuid)).toEqual(
+      before.evas[mission.ids.evaA].sequence.map((entry) => entry.uuid)
+    );
+    expect(eva.sequenceReadable.find((entry) => entry.uuid === mission.ids.stationA).name).toBe(
+      "Exported sampling site"
+    );
     expect(await mission.read()).toEqual(before);
   });
 

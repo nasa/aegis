@@ -109,26 +109,3 @@ test("health, version, time, and permitted diagnostics follow their service poli
   expect(clientLog.status()).toBe(200);
   expect(await clientLog.json()).toEqual({ done: true });
 });
-
-test("server version dependency failure shows a safe startup diagnostic", async ({ page }) => {
-  const restrictedConfiguration = "RESTRICTED_CONFIG_SENTINEL";
-  await page.route("**/api/v1/version**", async (route) => {
-    await route.fulfill({
-      status: 503,
-      contentType: "application/json",
-      body: JSON.stringify({
-        error: "version dependency unavailable",
-        diagnostic: restrictedConfiguration,
-      }),
-    });
-  });
-
-  await page.goto("/");
-  const startupFailure = page.getByText(
-    "Unable to reach the AEGIS server. Please refresh to try again.",
-    { exact: true }
-  );
-  await expect(startupFailure).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(restrictedConfiguration);
-  await expect(page.locator("body")).not.toContainText("version dependency unavailable");
-});

@@ -3,7 +3,6 @@ import { test, expect } from "../fixtures/behavioralTest";
 import { seedAction } from "../fixtures/entitySeeds";
 import {
   enablePlanningEditMode,
-  planningField,
   selectPlanningPoi,
   selectPlanningStation,
 } from "./planningHelpers";
@@ -55,26 +54,12 @@ test("linking a POI across stations updates peers and counters without adopting 
   await expectUsage(peer, 2);
   await expectUsage(page, 2);
 
-  // In view mode, a linked POI is a navigation target rather than a checkbox.
-  await page.getByLabel("globalEditToggle", { exact: true }).click();
-  for (const name of ["Alpha station", "Bravo station"]) {
-    await openStationLinks(page, name);
-    await page.getByText("Reference POI", { exact: true }).click();
-    await expect(planningField(page, "POI")).toHaveText("Reference POI");
-    await expectUsage(page, 2);
-  }
-
-  await enablePlanningEditMode(page);
-  for (const [name, uuid, count] of [
-    ["Alpha station", mission.ids.stationA, 1],
-    ["Bravo station", mission.ids.stationB, 0],
-  ] as const) {
-    await openStationLinks(page, name);
-    await expect(page.locator(`input[id="${mission.ids.poiA}"]`)).toBeChecked();
-    await page.locator(`input[id="${mission.ids.poiA}"]`).uncheck();
-    await expect.poll(async () => (await mission.read()).stations[uuid].poiUuids).toEqual([]);
-    await expectUsage(peer, count);
-  }
+  await openStationLinks(page, "Bravo station");
+  await page.locator(`input[id="${mission.ids.poiA}"]`).uncheck();
+  await expect
+    .poll(async () => (await mission.read()).stations[mission.ids.stationB].poiUuids)
+    .toEqual([]);
+  await expectUsage(peer, 1);
   const after = await mission.read();
   expect(after.actions).toEqual(before.actions);
   expect(after.pois).toEqual(before.pois);
@@ -83,9 +68,7 @@ test("linking a POI across stations updates peers and counters without adopting 
     expect(after.stations[uuid].actionOrderUuids).toEqual(before.stations[uuid].actionOrderUuids);
   }
   await mission.open(page);
-  await expectUsage(page, 0);
-  for (const name of ["Alpha station", "Bravo station"]) {
-    await openStationLinks(page, name);
-    await expect(page.getByText("Reference POI", { exact: true })).toHaveCount(0);
-  }
+  await expectUsage(page, 1);
+  await openStationLinks(page, "Bravo station");
+  await expect(page.getByText("Reference POI", { exact: true })).toHaveCount(0);
 });

@@ -1,66 +1,58 @@
-import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures/behavioralTest";
+import { vi } from "vitest";
+import { exactText, isVisible } from "./browserAssertions";
+import type { BrowserPage as Page } from "vitest/browser";
+import { test as base, expect } from "./missionHarness";
 import { enablePlanningEditMode, planningEvaRow, planningField } from "./planningHelpers";
 
+const test = base.extend({ scenario: "execution" as BehavioralScenario });
+
 async function selectPlannedAlpha(page: Page): Promise<void> {
-  await page.getByLabel("evas Section", { exact: true }).click();
-  const showAll = page.getByLabel("Show All EVAs", { exact: true });
-  if (await showAll.isVisible()) await showAll.click();
+  await page.getByLabelText("evas Section", { exact: true }).click();
+  const showAll = page.getByLabelText("Show All EVAs", { exact: true });
+  if (isVisible(showAll)) await showAll.click();
   await planningEvaRow(page, "Survey Alpha")
     .getByText("Survey Alpha", { exact: true })
     .first()
     .click();
-  await expect(planningField(page, "EVA Title")).toHaveText("Survey Alpha");
+  await expect
+    .element(planningField(page, "EVA Title"))
+    .toHaveTextContent(exactText("Survey Alpha"));
 }
 
 test.describe("EVA confirmation and ownership graph", () => {
-  test.use({ scenario: "execution" });
-
   test("canceling duplicate and delete preserves the graph; confirmation deletes only one plan and its REX family", async ({
     page,
-    context,
     mission,
   }) => {
     const before = await mission.read();
-    await mission.open(page);
+    await mission.open();
     await enablePlanningEditMode(page);
     await selectPlannedAlpha(page);
-    const peer = await context.newPage();
-    await mission.open(peer);
-    await selectPlannedAlpha(peer);
 
     await planningEvaRow(page, "Survey Alpha")
-      .locator('svg[data-icon="ellipsis-vertical"]')
+      .getBySelector('svg[data-icon="ellipsis-vertical"]')
       .click();
-    const duplicateQuestion = page.waitForEvent("dialog");
-    const menuClick = page
-      .locator("dialog[open]")
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+    await page
+      .getBySelector("dialog[open]")
       .getByText("Duplicate w/ Stations", { exact: true })
       .click();
-    const duplicateDialog = await duplicateQuestion;
-    expect(duplicateDialog.type()).toBe("confirm");
-    expect(duplicateDialog.message()).toContain("duplicate the EVA and also make duplicates");
-    await duplicateDialog.dismiss();
-    await menuClick;
-    expect(await mission.read()).toEqual(before);
-
-    const cancelQuestion = page.waitForEvent("dialog");
-    const cancelClick = page.getByLabel("deleteEva", { exact: true }).click();
-    const cancelDialog = await cancelQuestion;
-    expect(cancelDialog.message()).toBe(
-      "Are you sure you want to delete this EVA?\n" +
-        "WARNING: This EVA has REXes. Deleting this EVA will delete ALL REXes in this EVA."
+    expect(confirm).toHaveBeenLastCalledWith(
+      expect.stringContaining("duplicate the EVA and also make duplicates")
     );
-    await cancelDialog.dismiss();
-    await cancelClick;
     expect(await mission.read()).toEqual(before);
 
-    const confirmQuestion = page.waitForEvent("dialog");
-    const confirmClick = page.getByLabel("deleteEva", { exact: true }).click();
-    const confirmDialog = await confirmQuestion;
-    expect(confirmDialog.message()).toBe(cancelDialog.message());
-    await confirmDialog.accept();
-    await confirmClick;
+    confirm.mockReturnValueOnce(false);
+    await page.getByLabelText("deleteEva", { exact: true }).click();
+    const message =
+      "Are you sure you want to delete this EVA?\n" +
+      "WARNING: This EVA has REXes. Deleting this EVA will delete ALL REXes in this EVA.";
+    expect(confirm).toHaveBeenLastCalledWith(message);
+    expect(await mission.read()).toEqual(before);
+
+    confirm.mockReturnValueOnce(true);
+    await page.getByLabelText("deleteEva", { exact: true }).click();
+    expect(confirm).toHaveBeenLastCalledWith(message);
 
     const after = await mission.read();
     const deletedEvas = [mission.ids.evaA, mission.ids.rexEvaA];
@@ -104,11 +96,11 @@ test.describe("EVA confirmation and ownership graph", () => {
     expect(after.actions).toEqual({ [mission.ids.actionA]: before.actions[mission.ids.actionA] });
     expect(after.folders).toEqual(before.folders);
 
-    await mission.open(peer);
-    const showAll = peer.getByLabel("Show All EVAs", { exact: true });
-    if (await showAll.isVisible()) await showAll.click();
-    await expect(planningEvaRow(peer, "Survey Bravo")).toBeVisible();
-    await expect(planningEvaRow(peer, "Survey Alpha")).toHaveCount(0);
+    await mission.open();
+    const showAll = page.getByLabelText("Show All EVAs", { exact: true });
+    if (isVisible(showAll)) await showAll.click();
+    await expect.element(planningEvaRow(page, "Survey Bravo")).toBeVisible();
+    await expect.poll(() => planningEvaRow(page, "Survey Alpha").length).toBe(0);
     expect(await mission.read()).toEqual(after);
   });
 });

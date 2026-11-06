@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures/behavioralTest";
 import { enablePlanningEditMode, openPlanningField, selectPlanningEva } from "./planningHelpers";
 import { expectAngles, showDirections } from "./celestialHelpers";
 
-test("manual EVA directions validate drafts, cancel locally, synchronize saves and remain independent of presets and other EVAs", async ({
+test("saved EVA direction synchronizes to a live peer and survives a fresh server load independently of presets", async ({
   page,
   context,
   mission,
@@ -25,29 +25,11 @@ test("manual EVA directions validate drafts, cancel locally, synchronize saves a
   }
   await expect(page.getByRole("radiogroup", { name: "Sun/Earth direction mode" })).toHaveCount(0);
   await enablePlanningEditMode(page);
-  for (const value of ["", "-1", "361", "invalid"]) {
-    const dialog = await openPlanningField(page, "Sun azimuth");
-    await dialog.getByLabel("Sun azimuth", { exact: true }).fill(value);
-    await expect(dialog.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
-    await dialog.getByText("Cancel", { exact: true }).click();
-    expect((await mission.read()).evas[mission.ids.evaA].sunAzimuth).toBe(17);
-  }
-  const cancel = await openPlanningField(page, "Sun azimuth");
-  await cancel.getByLabel("Sun azimuth", { exact: true }).fill("75");
-  await expectAngles(peer, 17, 263);
-  await cancel.getByText("Cancel", { exact: true }).click();
-  for (const degrees of [0, 90, 359, 360]) {
-    for (const label of ["Sun azimuth", "Earth azimuth"]) {
-      const dialog = await openPlanningField(page, label);
-      await dialog.getByLabel(label, { exact: true }).fill(String(degrees));
-      await dialog.getByText("Save", { exact: true }).click();
-      await expect(dialog).toHaveCount(0);
-    }
-    await expectAngles(peer, degrees % 360, degrees % 360);
-    await expect
-      .poll(async () => (await mission.read()).evas[mission.ids.evaA])
-      .toMatchObject({ sunAzimuth: degrees % 360, earthAzimuth: degrees % 360 });
-  }
+  const dialog = await openPlanningField(page, "Sun azimuth");
+  await dialog.getByLabel("Sun azimuth", { exact: true }).fill("90");
+  await dialog.getByText("Save", { exact: true }).click();
+  await expectAngles(peer, 90, 263);
+  await expect.poll(async () => (await mission.read()).evas[mission.ids.evaA].sunAzimuth).toBe(90);
   await page.getByLabel("preset Section", { exact: true }).click();
   await page.mouse.move(0, 0);
   await expect(page.locator("#aegis-tooltip")).toBeHidden();
@@ -56,14 +38,14 @@ test("manual EVA directions validate drafts, cancel locally, synchronize saves a
     .filter({ hasText: "Detail" })
     .getByText("Detail", { exact: true })
     .click();
-  await expectAngles(page, 0, 0);
+  await expectAngles(page, 90, 263);
   await selectPlanningEva(page, "Survey Bravo");
   await expectAngles(page, 211, 0);
   await selectPlanningEva(page, "Survey Alpha");
-  await expectAngles(page, 0, 0);
+  await expectAngles(page, 90, 263);
   await page.reload();
   await selectPlanningEva(page, "Survey Alpha");
-  await expectAngles(page, 0, 0);
+  await expectAngles(page, 90, 263);
   const saved = await mission.read();
   expect(saved.presets).toEqual(original.presets);
   expect(saved.evas[mission.ids.evaB]).toEqual(original.evas[mission.ids.evaB]);

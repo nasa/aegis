@@ -11,8 +11,10 @@ declare global {
     id: number;
     name: string;
     ids: BehavioralMissionIds;
-    open(): Promise<void>;
+    open(options?: { path?: string; waitForReady?: boolean }): Promise<void>;
     openDashboard(): Promise<void>;
+    navigate(path: string): Promise<void>;
+    addMission(name: string): Promise<BrowserMission>;
     captureDownload(action: () => Promise<void>): Promise<BrowserDownload>;
     read(): Promise<Mission>;
     change(mutator: (mission: Mission) => void): Promise<void>;

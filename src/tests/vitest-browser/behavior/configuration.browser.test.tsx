@@ -2,6 +2,7 @@ import { exactText } from "./browserAssertions";
 import type { BrowserPage as Page } from "vitest/browser";
 import { test, expect } from "./missionHarness";
 import {
+  cancelPlanningField,
   enablePlanningEditMode,
   openPlanningField,
   openPlanningSection,
@@ -97,4 +98,53 @@ test.describe("Mission preference contracts", () => {
       .element(planningField(page, "Default walkback rate"))
       .toHaveTextContent(exactText("1.25"));
   });
+});
+
+test("saved mission preferences update headers and new EVA defaults while canceled drafts preserve the document", async ({
+  page,
+  mission,
+}) => {
+  await mission.open();
+  await enablePlanningEditMode(page);
+  await openPreferences(page);
+  const values = {
+    name: "Polar survey",
+    missionBanner: "Surface operations \u2014 \u03b1",
+    defaultEvaDuration: 315,
+    traverseRate: 3.5,
+    walkbackRate: 1.25,
+  };
+  const fields = [
+    ["Mission Name", values.name],
+    ["Mission Banner", values.missionBanner],
+    ["Default EVA Duration", "315"],
+    ["Average traverse rate", "3.5"],
+    ["Default walkback rate", "1.25"],
+  ];
+  for (const [label, value] of fields) {
+    await savePlanningField(page, label, value);
+    const saved = await mission.read();
+    await cancelPlanningField(page, label, label.includes("rate") ? "9" : "Discarded");
+    expect(await mission.read()).toEqual(saved);
+  }
+  await expect
+    .element(page.getByLabelText("missionNameHeader", { exact: true }))
+    .toHaveTextContent(values.name);
+  await expect.element(page.getByText(values.missionBanner, { exact: true }).first()).toBeVisible();
+  expect(await mission.read()).toMatchObject(values);
+  await mission.open();
+  await openPreferences(page);
+  for (const [label, value] of fields)
+    await expect.element(planningField(page, label)).toHaveTextContent(exactText(value));
+  await enablePlanningEditMode(page);
+  await openPlanningSection(page, "evas");
+  await page.getByLabelText("addEva", { exact: true }).click();
+  await expect.poll(async () => Object.keys((await mission.read()).evas).length).toBe(3);
+  const created = Object.values((await mission.read()).evas).find(
+    (eva) => ![mission.ids.evaA, mission.ids.evaB].includes(eva.uuid)
+  );
+  expect(created).toMatchObject({ duration: 315, traverseRate: 3.5 });
+  await page.getByLabelText("info_panel", { exact: true }).click();
+  await expect.element(planningField(page, "Duration")).toHaveTextContent("315");
+  await expect.element(planningField(page, "Average Traverse Rate")).toHaveTextContent("3.5");
 });

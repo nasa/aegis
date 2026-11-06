@@ -5,11 +5,7 @@ import path from "node:path";
 import { writeArrayBuffer } from "geotiff";
 import { test, expect } from "../fixtures/behavioralTest";
 import { mapFeaturePixel, readMapFeatures } from "../fixtures/mapAssertions";
-import {
-  enablePlanningEditMode,
-  savePlanningField,
-  selectPlanningStation,
-} from "./planningHelpers";
+import { enablePlanningEditMode, selectPlanningStation } from "./planningHelpers";
 
 const DEM_FILE = "station-geometry-synthetic.tif";
 const GRID_FILE = "station-geometry-grid.json";
@@ -193,7 +189,7 @@ test.afterEach(async ({ mission }) => {
 });
 
 test.describe("Station geometry and walkback lifecycles", () => {
-  test("station location creation, cancellation, lander shortcut, and missing terrain preserve valid geometry", async ({
+  test("station creation and map relocation resample the served DEM and persist geometry", async ({
     page,
     mission,
     request,
@@ -206,7 +202,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
       station.walkbackPath = null;
       station.walkbackPathSegmentDistances = null;
     });
-    const original = (await mission.read()).stations[mission.ids.stationA];
     const landerProfile = await terrainProfile(request, mission.id, [LANDER, LANDER], [0]);
     expect(landerProfile).toEqual([[LANDER_ELEVATION, LANDER_ELEVATION]]);
     const stationProfile = await terrainProfile(request, mission.id, [STATION, STATION], [0]);
@@ -215,11 +210,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
     await enablePlanningEditMode(page);
     await selectPlanningStation(page, "Alpha station");
     await page.getByLabel("info_panel", { exact: true }).click();
-
-    await page.getByLabel("Create Location", { exact: true }).click();
-    await page.getByLabel("Cancel", { exact: true }).click();
-    expect((await mission.read()).stations[mission.ids.stationA]).toEqual(original);
-    await expectStationFeature(page, mission.ids.stationA, null);
 
     await page.getByLabel("Create Location", { exact: true }).click();
     await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
@@ -260,12 +250,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
     await expect
       .poll(async () => (await walkbackFeature(page, mission.ids.stationA))?.coordinates)
       .toHaveLength(2);
-
-    await page.getByLabel("Edit on Map", { exact: true }).click();
-    await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
-    await page.getByLabel("Cancel", { exact: true }).click();
-    expect((await mission.read()).stations[mission.ids.stationA]).toEqual(created);
-    await expectStationFeature(page, mission.ids.stationA, created.location);
 
     await page.getByLabel("Edit on Map", { exact: true }).click();
     await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
@@ -332,37 +316,9 @@ test.describe("Station geometry and walkback lifecycles", () => {
     await selectPlanningStation(page, "Alpha station");
     await page.getByLabel("info_panel", { exact: true }).click();
     expect((await mission.read()).stations[mission.ids.stationA]).toEqual(landed);
-
-    // Missing DEM and mission lander leave a saved point intact, without stale elevation/path data.
-    await mission.change((doc) => {
-      doc.demFilePath = "";
-      doc.landerLocation = { lat: null, lng: null };
-      const station = doc.stations[mission.ids.stationA];
-      station.location = null;
-      station.elevation = null;
-      station.walkbackPath = null;
-      station.walkbackPathSegmentDistances = null;
-    });
-    await page.reload();
-    await enablePlanningEditMode(page);
-    await selectPlanningStation(page, "Alpha station");
-    await page.getByLabel("info_panel", { exact: true }).click();
-    await expect(page.getByText("Mission lander location not set", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Set to Lander", { exact: true })).toHaveCount(0);
-    await page.getByLabel("Create Location", { exact: true }).click();
-    await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
-    await clickMapOffset(page, -145, 105);
-    await expect
-      .poll(async () => (await mission.read()).stations[mission.ids.stationA].location)
-      .toMatchObject({ lat: expect.any(Number), lng: expect.any(Number) });
-    const noTerrain = (await mission.read()).stations[mission.ids.stationA];
-    expect(noTerrain.elevation).toBeNull();
-    expect(noTerrain.walkbackPath).toBeNull();
-    expect(noTerrain.walkbackPathSegmentDistances).toBeNull();
-    await expectStationFeature(page, mission.ids.stationA, noTerrain.location);
   });
 
-  test("walkback edit cancel, finish, rate metrics, reset, and reload preserve pinned endpoints", async ({
+  test("walkback edits and reset fetch the served DEM profile and persist pinned geometry", async ({
     page,
     mission,
     request,
@@ -402,29 +358,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
 
     await page.getByLabel("Edit Path on Map", { exact: true }).click();
     await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
-    const cancelledPoint = await dragWalkbackVertex(page, mission.ids.stationA, 1);
-    await expect
-      .poll(async () => (await walkbackFeature(page, mission.ids.stationA))?.coordinates)
-      .not.toEqual(
-        before.walkbackPath!.map((point) =>
-          mercator(point).map((value) => expect.closeTo(value, 5))
-        )
-      );
-    await page.getByLabel("Cancel", { exact: true }).click();
-    await expect
-      .poll(async () => (await mission.read()).stations[mission.ids.stationA])
-      .toEqual(before);
-    await expect
-      .poll(async () => (await walkbackFeature(page, mission.ids.stationA))?.coordinates)
-      .toEqual(
-        before.walkbackPath!.map((point) =>
-          mercator(point).map((value) => expect.closeTo(value, 5))
-        )
-      );
-    expect(cancelledPoint).not.toEqual(INTERIOR);
-
-    await page.getByLabel("Edit Path on Map", { exact: true }).click();
-    await expect(page.getByLabel("Cancel", { exact: true })).toBeVisible();
     const movedPoint = await dragWalkbackVertex(page, mission.ids.stationA, 1);
     await page.getByLabel("Finished", { exact: true }).click();
     await expect
@@ -434,7 +367,7 @@ test.describe("Station geometry and walkback lifecycles", () => {
         { lat: expect.closeTo(movedPoint.lat, 8), lng: expect.closeTo(movedPoint.lng, 8) },
         LANDER,
       ]);
-    let edited = (await mission.read()).stations[mission.ids.stationA];
+    const edited = (await mission.read()).stations[mission.ids.stationA];
     expect(edited.walkbackPath?.[0]).toEqual(STATION);
     expect(edited.walkbackPath?.at(-1)).toEqual(LANDER);
     expect(edited.walkbackPathSegmentDistances).toHaveLength(2);
@@ -456,32 +389,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
           mercator(point).map((value) => expect.closeTo(value, 5))
         )
       );
-
-    await savePlanningField(page, "Average Walkback Traverse Rate", "3");
-    await expect
-      .poll(async () => (await mission.read()).stations[mission.ids.stationA].walkbackTraverseRate)
-      .toBe(3);
-    edited = (await mission.read()).stations[mission.ids.stationA];
-    expect(edited.walkbackTraverseRate).toBe(3);
-    const distance = edited.walkbackPathSegmentDistances!.reduce((sum, value) => sum + value, 0);
-    await expect
-      .poll(async () =>
-        page
-          .getByText("Distance (m):", { exact: true })
-          .locator("../..")
-          .locator('[class*="displayFieldValue"]')
-          .innerText()
-      )
-      .toBe(Math.round(distance).toLocaleString("en-US"));
-    await expect
-      .poll(async () =>
-        page
-          .getByText("Time (mins):", { exact: true })
-          .locator("../..")
-          .locator('[class*="displayFieldValue"]')
-          .innerText()
-      )
-      .toBe(String(Math.ceil((distance / 1000 / 3) * 60)));
 
     await page.getByLabel("Reset Path", { exact: true }).click();
     await expect
@@ -508,14 +415,5 @@ test.describe("Station geometry and walkback lifecycles", () => {
       .toEqual(
         reset.walkbackPath!.map((point) => mercator(point).map((value) => expect.closeTo(value, 5)))
       );
-    await expect
-      .poll(async () =>
-        page
-          .getByText("Distance (m):", { exact: true })
-          .locator("../..")
-          .locator('[class*="displayFieldValue"]')
-          .innerText()
-      )
-      .toBe(Math.round(reset.walkbackPathSegmentDistances![0]).toLocaleString("en-US"));
   });
 });

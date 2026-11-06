@@ -8,19 +8,19 @@ const savedUsers = async (request: APIRequestContext) => {
   return ((await response.json()) as WrappedResponse<AppUser[]>).data;
 };
 
-test("401, 403, and 500 user-save failures preserve the open form and recover without duplicate creation", async ({
+test("an expired session rejects user creation and the restored session persists exactly one user", async ({
   page,
   context,
   request,
 }) => {
-  const usernames = [401, 403, 500].map((status) => `Request recovery ${status} ${randomUUID()}`);
+  const usernames = [401].map((status) => `Request recovery ${status} ${randomUUID()}`);
   let currentUsernameIndex = 0;
 
   try {
     await page.goto("/admin/user");
     await expect(page.getByRole("heading", { name: "User Management", exact: true })).toBeVisible();
 
-    for (const status of [401, 403, 500] as const) {
+    for (const status of [401] as const) {
       const username = usernames[currentUsernameIndex++];
       const password = `recovery-password-${status}`;
       await page.getByRole("button", { name: "+ Add User", exact: true }).click();
@@ -35,19 +35,9 @@ test("401, 403, and 500 user-save failures preserve the open form and recover wi
           return;
         }
         postRequests++;
-        if (postRequests === 1 && status !== 401) {
-          await route.fulfill({
-            status,
-            contentType: "application/json",
-            body: JSON.stringify({ status: "failure", message: `Injected ${status} failure` }),
-          });
-          return;
-        }
         await route.continue();
       });
 
-      // Exercise a genuinely expired browser session on 401; the server rejects the request.
-      // 403/500 are injected at the same protected save boundary.
       await context.clearCookies();
       let alertMessage = "";
       page.once("dialog", async (dialog) => {

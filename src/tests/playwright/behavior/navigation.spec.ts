@@ -30,7 +30,7 @@ test.describe("Navigation contracts", () => {
     expect(await mission.read()).toEqual(before);
   });
 
-  test("version check explains a deployment mismatch and refreshes the requested mission with the current version", async ({
+  test("version recovery performs full document navigation to the authenticated mission with cache revalidation", async ({
     page,
     mission,
   }) => {
@@ -40,17 +40,16 @@ test.describe("Navigation contracts", () => {
       await route.fulfill({ response, json: { ...version, version: "deployment-changed" } });
     });
     await page.goto(`/versionCheck?returnUrl=${encodeURIComponent(mission.url)}`);
-    await expect(page.getByRole("heading", { name: "Refresh Required" })).toBeVisible();
-    await expect(page.getByText(/Required Version: deployment-changed/)).toBeVisible();
-    await expect(page.getByLabel("globalEditToggle", { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel("Get Latest Version", { exact: true })).toBeVisible();
     await page.unroute("**/api/v1/version?_=*");
     await page.getByLabel("Get Latest Version", { exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${mission.url}\\?_revalidate=\\d+$`));
     await expect(page.getByLabel("missionNameHeader", { exact: true })).toHaveText(mission.name);
     await expect(page.getByLabel("globalEditToggle", { exact: true })).toBeEnabled();
     await page.goto(`/versionCheck?returnUrl=${encodeURIComponent(mission.url)}`);
-    await expect(page.getByRole("heading", { name: "✓ Version Updated" })).toBeVisible();
+    await expect(page.getByLabel("Redirect Now", { exact: true })).toBeVisible();
     await page.getByLabel("Redirect Now", { exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`${mission.url}\\?_revalidate=\\d+$`));
     await expect(page.getByLabel("missionNameHeader", { exact: true })).toHaveText(mission.name);
     await expect(page.locator(".ol-viewport")).toHaveCount(1);
   });

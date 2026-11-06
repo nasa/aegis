@@ -418,3 +418,49 @@ test.describe("Isolated mission — Dashboard Integration", () => {
     expect(fatal).toHaveLength(0);
   });
 });
+
+test("unknown mission hash still mounts the map", async ({ page, mission }) => {
+  await mission.open({ path: `/mission/${mission.id}#nonexistent` });
+  await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
+});
+
+test("remounting the mission reconstructs the map without browser errors", async ({
+  page,
+  mission,
+}) => {
+  const errors: string[] = [];
+  recordBrowserErrors(errors);
+  await mission.open();
+  await mission.open();
+  await expect.element(page.getBySelector(".ol-viewport canvas").first()).toBeVisible();
+  expect(
+    errors.filter((error) => !error.includes("ResizeObserver") && !error.includes("Script error"))
+  ).toEqual([]);
+});
+
+test("direct mission entry and return from the mission listing restore the map", async ({
+  page,
+  mission,
+  requestHandlers,
+}) => {
+  requestHandlers["/api/v1/missionHomepageItems"] = () =>
+    Response.json({
+      status: "success",
+      data: [{ id: mission.id, name: mission.name, runningRex: null }],
+    });
+  requestHandlers["/api/v1/version"] = () =>
+    Response.json({
+      version: __APP_VERSION__,
+      gitCommit: __GIT_COMMIT__,
+      serverEpochUuid: "browser-test-epoch",
+    });
+  await mission.open();
+  await expect.element(page.getBySelector(".ol-viewport").first()).toBeVisible();
+  await page.getBySelector('svg[data-icon="bars"]').click();
+  await page
+    .getBySelector("tr")
+    .filter({ has: page.getByText(mission.name, { exact: true }) })
+    .getByRole("button", { name: "Select", exact: true })
+    .click();
+  await expect.element(page.getBySelector(".ol-viewport").first()).toBeVisible();
+});

@@ -49,7 +49,7 @@ async function openAlphaActions(page: Page, mission: BehavioralMission): Promise
 }
 
 test.describe("Execution policy contracts", () => {
-  test("executed mass and sample IDs merge with peer status changes and respect Maestro ownership", async ({
+  test("executed mass and sample IDs merge with live peer status changes and persist", async ({
     page,
     context,
     mission,
@@ -61,18 +61,7 @@ test.describe("Execution policy contracts", () => {
     const before = await mission.read();
     let action = await openAlphaActions(page, mission);
     await action.locator('svg[data-icon="caret-right"]').click();
-    const total = (label: string) =>
-      page
-        .getByText(label, { exact: true })
-        .locator("../..")
-        .locator('[class*="displayFieldValue"]');
-    await expect(total("Total Planned Mass (g):")).toHaveText("500");
-    await expect(total("Total Executed Mass (g):")).toBeEmpty();
-    await savePlanningField(page, "Executed Sample Mass", "0");
-    await expect(total("Total Executed Mass (g):")).toHaveText("0");
-    await expect(total("Executed Delta Mass (g):")).toHaveText("-500");
     await savePlanningField(page, "Executed Sample Mass", "750");
-    await expect(total("Executed Delta Mass (g):")).toHaveText("+250");
     await savePlanningField(page, "Sample Marker ID", "CORE-α");
     await savePlanningField(page, "Container ID", "BAG-1");
     await savePlanningField(page, "Secondary Container ID", "BOX-2");
@@ -108,38 +97,13 @@ test.describe("Execution policy contracts", () => {
         secondaryContainerId: "BOX-2",
         rexStatus: "complete",
       });
-    await openExecutionInfo(page, "Survey Alpha", mission.ids.rexEvaA);
-    await page.locator("#maestroCheckbox").check();
-    action = await openAlphaActions(page, mission);
-    // Expansion is local and remains open while navigating between EVA tabs.
-    await expect(planningField(page, "Sample Marker ID")).toBeVisible();
-    await planningField(page, "Sample Marker ID").click();
-    await expect(page.locator("dialog[open]")).toHaveCount(0);
-    await action.locator('[class*="actionHeadingRexStatusWrapper"]').click();
-    await expect(
-      page
-        .locator("dialog[open]")
-        .getByText("Item status is controlled by Maestro", { exact: false })
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
-    // Executed mass remains manually writable while collection IDs are Maestro-owned.
-    await savePlanningField(page, "Executed Sample Mass", "900");
-    await expect(total("Executed Delta Mass (g):")).toHaveText("+400");
     const after = await mission.read();
-    expect(after.rexes[mission.ids.rexA].actionEntries[mission.ids.rexActionA]).toEqual({
-      mass: 900,
-      markerId: "CORE-α",
-      containerId: "BAG-1",
-      secondaryContainerId: "BOX-2",
-      rexStatus: "complete",
-    });
     expect(after.actions).toEqual(before.actions);
     expect(after.rexes[mission.ids.rexB]).toEqual(before.rexes[mission.ids.rexB]);
     await mission.open(page);
     action = await openAlphaActions(page, mission);
     await action.locator('svg[data-icon="caret-right"]').click();
-    await expect(planningField(page, "Executed Sample Mass")).toHaveText("900");
+    await expect(planningField(page, "Executed Sample Mass")).toHaveText("800");
     await expect(planningField(page, "Sample Marker ID")).toHaveText("CORE-α");
-    await expect(total("Executed Delta Mass (g):")).toHaveText("+400");
   });
 });

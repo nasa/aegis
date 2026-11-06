@@ -166,37 +166,6 @@ test.describe("Collaboration contracts", () => {
     });
   });
 
-  test("a canceled dialog draft never replaces the value shown by another client", async ({
-    page,
-    browser,
-    context,
-    baseURL,
-    mission,
-  }) => {
-    await mission.open(page);
-    await enablePlanningEditMode(page);
-    await selectPlanningStation(page, "Alpha station");
-
-    await withPlanningPeer(browser, context, mission, baseURL, async (peer) => {
-      await selectPlanningStation(peer, "Alpha station");
-      const dialog = await openPlanningField(page, "Station");
-      await dialog.getByLabel("Station", { exact: true }).fill("Uncommitted private draft");
-      await expect(planningField(peer, "Station")).toHaveText("Alpha station");
-      expect((await mission.read()).stations[mission.ids.stationA].name).toBe("Alpha station");
-      await dialog.getByText("Cancel", { exact: true }).click();
-      await expect(planningField(page, "Station")).toHaveText("Alpha station");
-
-      await savePlanningField(page, "Station", "Committed shared value");
-      await expect(planningField(peer, "Station")).toHaveText("Committed shared value");
-      await mission.open(peer);
-      await selectPlanningStation(peer, "Committed shared value");
-      expect((await mission.read()).stations[mission.ids.stationA].name).toBe(
-        "Committed shared value"
-      );
-      await expect(peer.getByText("Uncommitted private draft", { exact: true })).toHaveCount(0);
-    });
-  });
-
   test("a station created by one client can be edited by another and deleted without stale list entries", async ({
     page,
     browser,

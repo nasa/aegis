@@ -589,5 +589,32 @@ test.describe("Reference data contracts", () => {
     expect((await mission.read()).actionTemplates[unrelatedUuid].description).toBe(
       "Unrelated notes"
     );
+    await enablePlanningEditMode(page);
+    await page.getByLabelText("Expand All Button", { exact: true }).click();
+    await expect
+      .poll(() => page.getBySelector('div[aria-label="Duration in minutes"]').length)
+      .toBe(2);
+    await page.getByLabelText("Collapse All Button", { exact: true }).click();
+    await expect
+      .poll(() => page.getBySelector('div[aria-label="Duration in minutes"]').length)
+      .toBe(0);
+    const namedSource = page
+      .getByLabelText("templateList-item", { exact: true })
+      .filter({ hasText: source.templateName! });
+    await editDialogField(page, "Template Name", "Renamed source template", namedSource);
+    await expect
+      .poll(async () => (await mission.read()).actionTemplates[sourceUuid].templateName)
+      .toBe("Renamed source template");
+    const beforeNameCancel = await mission.read();
+    const namedSibling = page
+      .getByLabelText("templateList-item", { exact: true })
+      .filter({ hasText: templates.actionTemplates[unrelatedUuid].templateName! });
+    await namedSibling.getBySelector('div[aria-label="Template Name"]').click();
+    const nameDialog = page.getBySelector("dialog[open]");
+    await nameDialog
+      .getByLabelText("Template Name", { exact: true })
+      .fill("Discarded template name");
+    await nameDialog.getByText("Cancel", { exact: true }).click();
+    expect(await mission.read()).toEqual(beforeNameCancel);
   });
 });

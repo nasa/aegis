@@ -37,7 +37,7 @@ async function chooseExecution(page: Page, rexUuid: string) {
 
 test.use({ scenario: "execution" });
 for (const removal of ["designated REX", "planned EVA"] as const) {
-  test(`campaign explicit/latest resolution falls back safely after deleting its ${removal}`, async ({
+  test(`peer deletion of a designated campaign execution updates the open report and survives reload (${removal})`, async ({
     page,
     context,
     mission,
@@ -121,9 +121,6 @@ for (const removal of ["designated REX", "planned EVA"] as const) {
         async () => (await mission.read()).reportCampaigns[campaignUuid].executionRexUuidByEvaUuid
       )
       .toEqual({ [mission.ids.evaA]: mission.ids.rexA });
-    await chooseExecution(page, "");
-    await expect(executedMass(page)).toHaveText("0.9");
-    await chooseExecution(page, mission.ids.rexA);
     await page.reload();
     await comparison(page);
     await expect(executedMass(page)).toHaveText("0.3");
@@ -146,11 +143,8 @@ for (const removal of ["designated REX", "planned EVA"] as const) {
     expect(after.evas[mission.ids.rexEvaA]).toBeUndefined();
     expect(after.rexes[newRex.uuid]).toBeUndefined();
     expect(after.evas[newRex.evaUuid]).toBeUndefined();
-    if (removal === "planned EVA") {
-      expect(after.evas[mission.ids.evaA]).toBeUndefined();
-    } else {
-      expect(after.evas[mission.ids.evaA]).toEqual(before.evas[mission.ids.evaA]);
-    }
+    if (removal === "planned EVA") expect(after.evas[mission.ids.evaA]).toBeUndefined();
+    else expect(after.evas[mission.ids.evaA]).toEqual(before.evas[mission.ids.evaA]);
     expect(after.rexes[mission.ids.rexB]).toEqual(before.rexes[mission.ids.rexB]);
     expect(after.evas[mission.ids.evaB]).toEqual(before.evas[mission.ids.evaB]);
     expect(after.evas[mission.ids.rexEvaB]).toEqual(before.evas[mission.ids.rexEvaB]);
