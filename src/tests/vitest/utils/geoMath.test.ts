@@ -14,23 +14,43 @@ import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 describe("Geomath Functions", () => {
   const earthRadius = 6371000; //6378137;
 
-  test("uses the LGRS display port for LGRS grid coordinates", () => {
-    expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true)).toBe("B95 D44");
-  });
+  describe("getGridCoordinatesFromPoint", () => {
+    test("uses the LGRS display port for LGRS grid coordinates", () => {
+      expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true)).toBe("B95 D44");
+    });
 
-  test("uses the full ACC identifier for dynamic LGRS grids", () => {
-    expect(
-      getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true, undefined, true)
-    ).toBe("AZM B95 D44");
+    test("uses the full ACC identifier for dynamic LGRS grids", () => {
+      expect(
+        getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true, undefined, true)
+      ).toBe("AZM B95 D44");
+    });
+
+    // Oracle (lgrs 0.4.0) 10 m ACC labels; these points are outside the south LPS cap.
+    test.each([
+      [{ lat: 0, lng: 0 }, "-00 -00", "23NFF -00 -00"],
+      [{ lat: -0.0001, lng: 0.0001 }, "-00 Z99", "23MFE -00 Z99"],
+      [{ lat: 45, lng: 90 }, "S84 N71", "34TGQ S84 N71"],
+      [{ lat: -45, lng: -90 }, "G15 L28", "12GDR G15 L28"],
+      [{ lat: 0, lng: -180 }, "C72 -00", "1NAA C72 -00"],
+      [{ lat: 79.9, lng: 10 }, "K62 V59", "24XFG K62 V59"],
+      [{ lat: 80, lng: 10 }, "B47 B40", "ZCA B47 B40"],
+    ])("formats %o for LTM and north LPS", (point, condensed, full) => {
+      expect(getGridCoordinatesFromPoint(point, 1737400, true)).toBe(condensed);
+      expect(getGridCoordinatesFromPoint(point, 1737400, true, undefined, true)).toBe(full);
+    });
+
+    test("returns null if point not given", () => {
+      expect(getGridCoordinatesFromPoint(null, 1737400, true, undefined, true)).toBe(null);
+    });
+
+    test("returns null without LGRS or a global grid", () => {
+      expect(getGridCoordinatesFromPoint({ lat: 0, lng: 0 }, 1737400, false)).toBe(null);
+    });
   });
 
   test("Returns 0 distance between two identical coordinates", () => {
     const point: AEGISPoint = { lat: 0, lng: 0 };
     expect(getDistanceBetweenTwoCoordinates(point, point, 0)).toBe(0);
-  });
-
-  test("returns null if point not given", () => {
-    expect(getGridCoordinatesFromPoint(null, 1737400, true, undefined, true)).toBe(null);
   });
 
   describe("getDistanceBetweenTwoCoordinates", () => {

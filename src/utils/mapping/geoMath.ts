@@ -1,6 +1,6 @@
 import meanBy from "lodash/meanBy";
 import isEqual from "lodash/isEqual";
-import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
+import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
 import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
 
 /**
@@ -31,8 +31,8 @@ export function getDistanceBetweenTwoCoordinates(
 
 /**
  * Find the grid coordinates of a point depending on which grid should be used.
- * LGRS display values come from the pinned LGRS port; surf-nav is only used
- * below for LPS grid-north bearings.
+ * LGRS values cover the whole Moon (LTM, LPS N, LPS S) at 10 m; `dynamicLgrs` selects the
+ * `"full"` style with the zone/band prefix.
  * @param {AEGISPoint} point - the point to find coordinates for
  * @param {number} radius - The radius of the planet in question (usually meters)
  * @reference http://www.movable-type.co.uk/scripts/latlong.html
@@ -47,7 +47,11 @@ export function getGridCoordinatesFromPoint(
   if (!point) return null;
 
   if (usingLGRSCoordinates) {
-    return getSouthLpsDisplayCoordinate(point, dynamicLgrs ? "full" : "condensed");
+    return formatLgrsFromLatLon(
+      point,
+      LGRS_DISPLAY_PRECISION_METERS,
+      dynamicLgrs ? "full" : "condensed"
+    );
   } else if (globalGrid) {
     return findGlobalGridCoordsFromPoint(globalGrid, point, radius);
   } else {

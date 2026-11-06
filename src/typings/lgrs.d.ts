@@ -95,3 +95,6 @@ type LgrsProj4Params = {
   sinlat0?: number;
   coslat0?: number;
 };
+
+/** `"condensed"`: `B95 D44`; `"full"`: prefix + condensed, e.g. `AZM B95 D44`, `23NFF -00 -00`. */
+type LgrsDisplayStyle = "condensed" | "full";
