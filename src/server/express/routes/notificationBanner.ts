@@ -29,6 +29,8 @@ const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const MAX_TIMER_DELAY_MS = 24 * 60 * 60 * 1000;
 // Fire slightly after the boundary so `now` is past it when clients re-fetch
 const TIMER_MARGIN_MS = 250;
+// Incremented by each rescheduleBannerTimer call so overlapping calls create only one timer
+let latestBannerTimerScheduleCallNumber = 0;
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
@@ -263,15 +265,31 @@ function rejectIfNotSuperAdmin(
   const emssToken = req.headers["emss-token"] as string;
   if (req.session?.appUser?.isSuperAdmin || emssTokenIsValid(emssToken)) return true;
 
-  serverLogger.apiRoute({
-    logId: "api-route:notificationBanner:unauthorizedRequestNotSuperAdmin",
+  const unauthorizedLogFields = {
     logLevel: "warning",
     httpMethod,
     responseStatus: 401,
     routeName: "notificationBanner",
     appUsername: req.session?.appUser?.username,
     message: "Unauthorized",
-  });
+  } as const;
+  // One logId per method, since logIds must be string literals
+  if (httpMethod === "GET") {
+    serverLogger.apiRoute({
+      logId: "api-route:notificationBanner:GET:unauthorizedRequestNotSuperAdmin",
+      ...unauthorizedLogFields,
+    });
+  } else if (httpMethod === "POST") {
+    serverLogger.apiRoute({
+      logId: "api-route:notificationBanner:POST:unauthorizedRequestNotSuperAdmin",
+      ...unauthorizedLogFields,
+    });
+  } else {
+    serverLogger.apiRoute({
+      logId: "api-route:notificationBanner:DELETE:unauthorizedRequestNotSuperAdmin",
+      ...unauthorizedLogFields,
+    });
+  }
   res.status(401).json({ status: "failure", message: "Unauthorized" });
   return false;
 }
@@ -300,15 +318,19 @@ function onBannersChanged(): void {
  * re-fetch, so banners appear and disappear on schedule without a page refresh.
  */
 export async function rescheduleBannerTimer(): Promise<void> {
-  if (globalValues.notificationBannerTimer) {
-    clearTimeout(globalValues.notificationBannerTimer);
-    globalValues.notificationBannerTimer = null;
-  }
+  const scheduleCallNumber = ++latestBannerTimerScheduleCallNumber;
 
   try {
     // Forked because this also runs outside a request context (boot and timer callbacks)
     const em = globalValues.orm.em.fork();
     const rows = await em.find(Notification_Banner_db, { enabled: true });
+    // A newer call started during the query and will set the timer, so only one timer exists
+    if (scheduleCallNumber !== latestBannerTimerScheduleCallNumber) return;
+
+    if (globalValues.notificationBannerTimer) {
+      clearTimeout(globalValues.notificationBannerTimer);
+      globalValues.notificationBannerTimer = null;
+    }
     const nextTransition = getNextBannerTransition(rows, new Date());
     if (!nextTransition) return;
 
@@ -326,7 +348,10 @@ export async function rescheduleBannerTimer(): Promise<void> {
     globalValues.notificationBannerTimer.unref();
   } catch (e) {
     serverLogger.error(
-      { logId: "notificationBanner", logValue: "Failed to schedule notification banner timer" },
+      {
+        logId: "notification-banner:rescheduleBannerTimer:failedToScheduleBannerTimer",
+        logValue: "Failed to schedule notification banner timer",
+      },
       asError(e)
     );
   }

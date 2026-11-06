@@ -72,20 +72,26 @@ export const joinInspectorRoom = (
   const handleDisconnect = () => {
     onConnectionStatusChange("disconnected");
   };
-  const handleConnectError = () => {
+  // Matches the app-wide listeners: "failed" only once the manager stops retrying
+  const handleReconnectAttempt = () => {
+    onConnectionStatusChange("reconnecting");
+  };
+  const handleReconnectFailed = () => {
     onConnectionStatusChange("failed");
   };
 
   socket.on("connect", handleConnect);
   socket.on("disconnect", handleDisconnect);
-  socket.on("connect_error", handleConnectError);
+  socket.io.on("reconnect_attempt", handleReconnectAttempt);
+  socket.io.on("reconnect_failed", handleReconnectFailed);
   socket.on("inspectorUpdate", onInspectorUpdate);
   if (socket.connected) handleConnect();
 
   return () => {
     socket.off("connect", handleConnect);
     socket.off("disconnect", handleDisconnect);
-    socket.off("connect_error", handleConnectError);
+    socket.io.off("reconnect_attempt", handleReconnectAttempt);
+    socket.io.off("reconnect_failed", handleReconnectFailed);
     socket.off("inspectorUpdate", onInspectorUpdate);
     if (socket.connected) socket.emit("inspectorLeave");
   };

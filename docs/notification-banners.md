@@ -66,11 +66,12 @@ Updates use `POST /:id` (not PUT) because `serverLogger.apiRoute` only accepts G
 - It listens on the tab's shared default-namespace socket (`getClientSocket`, see
   `docs/app-socket.md`). It adds and removes only its own handlers and never disconnects the socket.
 - Refetches on mission id change, `bannersChanged`, and manager `reconnect`. Responses for older
-  requests are dropped.
+  requests are dropped. It does not fetch on the dashboard, and fetches again when the route leaves
+  the dashboard.
 - Dismissal: component state holds `id:updatedAt` keys. It lasts across in-app navigation and is
   cleared by a page refresh. Editing a banner changes `updatedAt`, so it shows again.
-- `endsAt`, when set, is shown as "Until <time>" in the viewer's local time zone
-  (`formatBannerTime`).
+- Each banner shows only its message and a dismiss button. `startsAt` / `endsAt` control when a
+  banner is active but are not displayed to viewers; the admin page shows them.
 
 ## Admin page
 

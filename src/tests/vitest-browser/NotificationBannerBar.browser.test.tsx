@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useNavigate } from "react-router";
 import { page } from "vitest/browser";
 import NotificationBannerBar, {
   getMissionIdFromPath,
@@ -103,14 +103,42 @@ describe("NotificationBannerBar", () => {
     await vi.waitFor(() => expect(getActiveNotificationBanners).toHaveBeenCalledWith(7));
   });
 
-  it("renders nothing on the dashboard page even when banners are active", async () => {
+  it("does not fetch or render banners on the dashboard page", async () => {
     mockBanners([makeBanner()]);
     renderAt("/dashboard/7");
-    await vi.waitFor(() => expect(getActiveNotificationBanners).toHaveBeenCalledWith(null));
+    // Wait until the socket handlers are attached so the mount effects have run
+    await vi.waitFor(() => expect(socketHandlers.has("bannersChanged")).toBe(true));
+    socketHandlers.get("bannersChanged")();
+    managerHandlers.get("reconnect")();
+
+    expect(getActiveNotificationBanners).not.toHaveBeenCalled();
     await expect.element(page.getByTestId("notification-banner")).not.toBeInTheDocument();
   });
 
-  it("renders each banner with its colors and end time", async () => {
+  it("fetches banners after navigating from the dashboard to the home page", async () => {
+    mockBanners([makeBanner({ message: "Shown after leaving the dashboard" })]);
+    let navigateTo: (path: string) => void;
+    const NavigationCapture = (): null => {
+      navigateTo = useNavigate();
+      return null;
+    };
+    harness.render(
+      <MemoryRouter initialEntries={["/dashboard/7"]}>
+        <NavigationCapture />
+        <NotificationBannerBar />
+      </MemoryRouter>
+    );
+    await vi.waitFor(() => expect(socketHandlers.has("bannersChanged")).toBe(true));
+    expect(getActiveNotificationBanners).not.toHaveBeenCalled();
+
+    navigateTo("/");
+    await expect
+      .element(page.getByTestId("notification-banner"))
+      .toHaveTextContent("Shown after leaving the dashboard");
+    expect(getActiveNotificationBanners).toHaveBeenCalledWith(null);
+  });
+
+  it("renders each banner's message with its colors and without its end time", async () => {
     mockBanners([
       makeBanner({ id: 2, message: "Second", endsAt: "2026-11-04T00:00:00.000Z" }),
       makeBanner({ id: 1, message: "First", backgroundColor: "#FACC15", textColor: "#000000" }),
@@ -118,8 +146,9 @@ describe("NotificationBannerBar", () => {
     renderAt("/mission/1");
 
     const banners = page.getByTestId("notification-banner");
-    await expect.element(banners.first()).toHaveTextContent("Second");
-    await expect.element(banners.nth(1)).toHaveTextContent("First");
+    // The banner with an endsAt shows only its message
+    await expect.element(banners.first()).toHaveTextContent(/^Second$/);
+    await expect.element(banners.nth(1)).toHaveTextContent(/^First$/);
     await expect.element(banners.nth(1)).toHaveStyle({
       backgroundColor: "rgb(250, 204, 21)",
       color: "rgb(0, 0, 0)",

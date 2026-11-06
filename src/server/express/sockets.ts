@@ -56,7 +56,7 @@ export const setupSocketIO = (): void => {
           serverLogger.error(
             {
               logId: "socket:visitorJoin:unhandledErrorWhileProcessingVisitorJoin",
-              logValue: "SocketIO - visitorJoin",
+              logValue: `SocketIO - visitorJoin: payload ${JSON.stringify(visitorJoinData)}`,
               launchpadUser: visitorJoinData?.launchpadUser?.auid,
               appUser: visitorJoinData?.appUser?.username,
             },
@@ -68,13 +68,6 @@ export const setupSocketIO = (): void => {
       // Records which page the visitor is on and moves the socket into that page's mission room
       socket.on("visitorPageChange", (visitorPageData: VisitorPageData) => {
         try {
-          if (!isValidVisitorPageData(visitorPageData)) {
-            serverLogger.warning({
-              logId: "socket:visitorPageChange:rejectedPayloadWithInvalidShape",
-              logValue: `SocketIO - visitorPageChange: invalid payload ${JSON.stringify(visitorPageData)}`,
-            });
-            return;
-          }
           const visitorData = find(visitorsData, { socketId: socket.id });
           if (!visitorData) {
             serverLogger.warning({
@@ -90,14 +83,15 @@ export const setupSocketIO = (): void => {
           visitorData.permission = visitorPageData.permission;
 
           // a socket is in at most one mission room
-          if (previousMissionId !== null && previousMissionId !== visitorData.missionId) {
+          // Loose null checks so a missing missionId in a malformed payload counts as no mission
+          if (previousMissionId != null && previousMissionId !== visitorData.missionId) {
             socket.leave(previousMissionId.toString());
             io.to(previousMissionId.toString()).emit(
               "statusFromServer",
               getStatusFromServer(previousMissionId)
             );
           }
-          if (visitorData.missionId !== null) {
+          if (visitorData.missionId != null) {
             socket.join(visitorData.missionId.toString());
             // emit new status to all clients in this room including this client
             io.to(visitorData.missionId.toString()).emit(
@@ -112,7 +106,7 @@ export const setupSocketIO = (): void => {
           serverLogger.error(
             {
               logId: "socket:visitorPageChange:unhandledErrorWhileProcessingPageChange",
-              logValue: "SocketIO - visitorPageChange",
+              logValue: `SocketIO - visitorPageChange: payload ${JSON.stringify(visitorPageData)}`,
             },
             error instanceof Error ? error : new Error(String(error))
           );
@@ -142,7 +136,7 @@ export const setupSocketIO = (): void => {
             });
 
             // emit updated visitor count to all clients in this room
-            if (visitorBeingRemoved.missionId !== null) {
+            if (visitorBeingRemoved.missionId != null) {
               const statusFromServer = getStatusFromServer(visitorBeingRemoved.missionId);
               socket
                 .to(visitorBeingRemoved.missionId.toString())
@@ -166,35 +160,29 @@ export const setupSocketIO = (): void => {
       // send server status to all clients in every room every 10 seconds
       if (!globalValues.socketInterval) {
         globalValues.socketInterval = setInterval(() => {
-          // get unique missionIds to find all the rooms
-          const missionIds = uniq(
-            visitorsData.map((item) => item.missionId).filter((missionId) => missionId !== null)
-          );
-          for (const missionId of missionIds) {
-            const statusFromServer = getStatusFromServer(missionId);
-            io.to(missionId.toString()).emit("statusFromServer", statusFromServer);
+          // Visitor data comes from clients unvalidated, so an error here is logged rather than
+          // thrown, since an exception in a timer callback would crash the server
+          try {
+            // get unique missionIds to find all the rooms
+            const missionIds = uniq(
+              visitorsData.map((item) => item.missionId).filter((missionId) => missionId != null)
+            );
+            for (const missionId of missionIds) {
+              const statusFromServer = getStatusFromServer(missionId);
+              io.to(missionId.toString()).emit("statusFromServer", statusFromServer);
+            }
+          } catch (error) {
+            serverLogger.error(
+              {
+                logId: "socket:statusFromServerInterval:unhandledErrorWhileSendingVisitorCounts",
+                logValue: "SocketIO - statusFromServer interval",
+              },
+              error instanceof Error ? error : new Error(String(error))
+            );
           }
         }, 10000);
       }
     }
-  );
-};
-
-const visitorPages: AppPages[] = ["home", "mission", "dashboard", "admin", "versionCheck", "other"];
-
-/**
- * The client reports its own page, mission and permission, so reject anything malformed.
- * A mission id and permission are only allowed together, and only on mission and dashboard pages.
- */
-export const isValidVisitorPageData = (data: unknown): data is VisitorPageData => {
-  if (typeof data !== "object" || data === null) return false;
-  const { page, missionId, permission } = data as Record<string, unknown>;
-  if (!visitorPages.includes(page as AppPages)) return false;
-  if (missionId === null) return permission === null;
-  if (!Number.isInteger(missionId)) return false;
-  return (
-    (page === "mission" || page === "dashboard") &&
-    (permission === "editor" || permission === "viewer")
   );
 };
 

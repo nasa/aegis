@@ -47,7 +47,7 @@ interface VisitorData {
 
 // sent by the client in visitorJoin
 type VisitorJoinData = {
-  appUser: AppUser;
+  appUser: AppUser | null; // null until the page has checked the login
   launchpadUser: LaunchpadUser;
   clientAppVersion: AppVersion;
   connectedAt: number;

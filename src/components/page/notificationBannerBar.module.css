@@ -43,11 +43,6 @@
   font-weight: 600;
 }
 
-.bannerEndTime {
-  font-size: 0.85rem;
-  opacity: 0.85;
-}
-
 .dismissButton {
   flex: 0 0 auto;
   background: transparent;

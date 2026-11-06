@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { globalValues } from "server/express/global";
-import { isValidVisitorPageData, setupSocketIO } from "server/express/sockets";
+import { setupSocketIO } from "server/express/sockets";
+import { serverLogger } from "utils/logging/serverLogger";
 
 vi.mock("utils/logging/serverLogger", () => ({
   serverLogger: { warning: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
@@ -64,6 +65,7 @@ const statusEmitsTo = (room: string) =>
     .map((emit) => (emit.payload as StatusFromServer).visitorCounts);
 
 beforeEach(() => {
+  vi.clearAllMocks();
   roomEmits = [];
   globalValues.serverSocketStatus.visitorsData.length = 0;
   globalValues.appVersion = appVersion;
@@ -170,16 +172,51 @@ describe("default namespace visitors", () => {
     expect([...socket.rooms]).toEqual(["4"]);
   });
 
-  test("a page change before visitorJoin or with an invalid payload is ignored", () => {
+  test("a page change before visitorJoin is ignored", () => {
     const socket = connectFakeSocket("socket-a");
     socket.fire("visitorPageChange", missionPage(4));
     expect(globalValues.serverSocketStatus.visitorsData).toHaveLength(0);
     expect(socket.rooms.size).toBe(0);
+  });
+
+  test("malformed payloads are logged as errors without throwing", () => {
+    const socket = connectFakeSocket("socket-a");
+    expect(() => socket.fire("visitorJoin", null)).not.toThrow();
+    expect(() => socket.fire("visitorJoin", undefined)).not.toThrow();
+    expect(serverLogger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        logId: "socket:visitorJoin:unhandledErrorWhileProcessingVisitorJoin",
+      }),
+      expect.any(Error)
+    );
 
     socket.fire("visitorJoin", joinData("alice"));
-    socket.fire("visitorPageChange", { ...homePage, missionId: 4, permission: "editor" });
-    expect(globalValues.serverSocketStatus.visitorsData[0].missionId).toBeNull();
-    expect(socket.rooms.size).toBe(0);
+    expect(() => socket.fire("visitorPageChange", null)).not.toThrow();
+    expect(serverLogger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        logId: "socket:visitorPageChange:unhandledErrorWhileProcessingPageChange",
+      }),
+      expect.any(Error)
+    );
+  });
+
+  test("a page change without a missionId counts as no mission and does not break the heartbeat or disconnect", () => {
+    vi.useFakeTimers();
+    try {
+      // The heartbeat interval is created on the first connection, so connect under fake timers
+      const socket = connectFakeSocket("socket-a");
+      socket.fire("visitorJoin", joinData("alice"));
+      socket.fire("visitorPageChange", missionPage(4));
+      expect(() => socket.fire("visitorPageChange", { page: "mission" })).not.toThrow();
+
+      expect(socket.rooms.size).toBe(0);
+      expect(statusEmitsTo("4").at(-1)).toEqual({ editors: 0, viewers: 0 });
+      expect(() => vi.advanceTimersByTime(10000)).not.toThrow();
+      expect(() => socket.fire("disconnect")).not.toThrow();
+      expect(serverLogger.error).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test("disconnect removes the visitor and updates its mission room", () => {
@@ -205,23 +242,5 @@ describe("default namespace visitors", () => {
 
     socket.fire("inspectorLeave");
     expect(socket.rooms.has("inspector")).toBe(false);
-  });
-});
-
-describe("isValidVisitorPageData", () => {
-  test("accepts mission ids only with a permission on mission and dashboard pages", () => {
-    expect(isValidVisitorPageData(homePage)).toBe(true);
-    expect(isValidVisitorPageData(missionPage(4))).toBe(true);
-    expect(isValidVisitorPageData({ ...missionPage(4), page: "dashboard" })).toBe(true);
-    expect(isValidVisitorPageData({ ...missionPage(4), missionId: null, permission: null })).toBe(
-      true
-    );
-
-    expect(isValidVisitorPageData({ ...missionPage(4), page: "admin" })).toBe(false);
-    expect(isValidVisitorPageData({ ...missionPage(4), permission: null })).toBe(false);
-    expect(isValidVisitorPageData({ ...homePage, permission: "editor" })).toBe(false);
-    expect(isValidVisitorPageData({ ...missionPage(4), missionId: "4" })).toBe(false);
-    expect(isValidVisitorPageData({ ...homePage, page: "unknown" })).toBe(false);
-    expect(isValidVisitorPageData(null)).toBe(false);
   });
 });

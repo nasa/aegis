@@ -13,6 +13,7 @@ import app from "server/express/restApi";
 import {
   getNextBannerTransition,
   isBannerActive,
+  rescheduleBannerTimer,
   selectBannersForPage,
   validateBannerInput,
 } from "server/express/routes/notificationBanner";
@@ -333,6 +334,31 @@ describe("Notification Banner API Endpoint", () => {
     expect(ids).not.toContain(scheduledBanner.id);
     // The scheduled banner's start time is the next transition, so a timer is pending
     expect(globalValues.notificationBannerTimer).not.toBeNull();
+  });
+
+  test("overlapping timer reschedules leave exactly one banner timer", async () => {
+    await createBanner({ ...validInput, startsAt: new Date(Date.now() + HOUR_MS).toISOString() });
+    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
+    try {
+      await Promise.all([
+        rescheduleBannerTimer(),
+        rescheduleBannerTimer(),
+        rescheduleBannerTimer(),
+      ]);
+
+      // Banner timer callbacks are the only ones that call rescheduleBannerTimer
+      const bannerTimers = setTimeoutSpy.mock.calls
+        .map(([callback], index) => ({ callback, timer: setTimeoutSpy.mock.results[index].value }))
+        .filter(({ callback }) => String(callback).includes("rescheduleBannerTimer"))
+        .map(({ timer }) => timer);
+      const clearedTimers = new Set(clearTimeoutSpy.mock.calls.map(([timer]) => timer));
+      const liveBannerTimers = bannerTimers.filter((timer) => !clearedTimers.has(timer));
+      expect(liveBannerTimers).toEqual([globalValues.notificationBannerTimer]);
+    } finally {
+      setTimeoutSpy.mockRestore();
+      clearTimeoutSpy.mockRestore();
+    }
   });
 
   test("update changes the banner, updates updatedAt, and notifies clients", async () => {

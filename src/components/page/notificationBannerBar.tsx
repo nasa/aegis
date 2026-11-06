@@ -26,22 +26,27 @@ const getDismissKey = (banner: NotificationBanner): string => `${banner.id}:${ba
 /**
  * Shows admin-managed notification banners at the top of every page except the dashboard. Mounted once in the app
  * shell so dismissals last until the page is refreshed. Refetches when the route's mission
- * changes, when the server sends `bannersChanged`, and when the socket reconnects.
+ * changes, when the server sends `bannersChanged`, and when the socket reconnects. Does not fetch
+ * on the dashboard.
  */
 const NotificationBannerBar: FunctionComponent = () => {
   const { pathname } = useLocation();
   const missionId = getMissionIdFromPath(pathname);
+  const isBannerHidden = isBannerHiddenOnPath(pathname);
 
   const [banners, setBanners] = useState<NotificationBanner[]>([]);
   const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(() => new Set());
 
   // Read by the socket handlers so they always fetch for the current page without reconnecting
   const missionIdRef = useRef(missionId);
+  const isBannerHiddenRef = useRef(isBannerHidden);
   // Responses for older requests are dropped so fast navigation cannot show another page's banners
   const latestRequestIdRef = useRef(0);
 
   const refreshBanners = useCallback(async () => {
     const requestId = ++latestRequestIdRef.current;
+    // Pages that never show banners skip the request
+    if (isBannerHiddenRef.current) return;
     try {
       const res = await getActiveNotificationBanners(missionIdRef.current);
       if (requestId !== latestRequestIdRef.current) return;
@@ -49,13 +54,14 @@ const NotificationBannerBar: FunctionComponent = () => {
         setBanners(res.data ?? []);
       } else {
         clientLogger.warning({
-          logId: "notificationBanner:UnsuccessfulResponse",
+          logId:
+            "notification-banner-bar:refreshBanners:activeBannersRequestReturnedUnsuccessfulStatus",
           logValue: `Failed to load notification banners: ${res.message}`,
         });
       }
     } catch (error) {
       clientLogger.warning({
-        logId: "notificationBanner:Error",
+        logId: "notification-banner-bar:refreshBanners:activeBannersRequestThrewError",
         logValue: `Failed to load notification banners: ${error}`,
       });
     }
@@ -63,8 +69,9 @@ const NotificationBannerBar: FunctionComponent = () => {
 
   useEffect(() => {
     missionIdRef.current = missionId;
+    isBannerHiddenRef.current = isBannerHidden;
     refreshBanners();
-  }, [missionId, refreshBanners]);
+  }, [missionId, isBannerHidden, refreshBanners]);
 
   useEffect(() => {
     const socket = getClientSocket();
@@ -81,7 +88,7 @@ const NotificationBannerBar: FunctionComponent = () => {
   }, [refreshBanners]);
 
   const visibleBanners = banners.filter((banner) => !dismissedKeys.has(getDismissKey(banner)));
-  if (isBannerHiddenOnPath(pathname) || visibleBanners.length === 0) return null;
+  if (isBannerHidden || visibleBanners.length === 0) return null;
 
   const dismissBanner = (banner: NotificationBanner) => {
     setDismissedKeys((previous) => new Set(previous).add(getDismissKey(banner)));

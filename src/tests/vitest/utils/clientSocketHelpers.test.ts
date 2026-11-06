@@ -117,6 +117,8 @@ const createFakeSocket = (connected: boolean) => {
     io: { on: vi.fn(addHandler(managerHandlers)), off: vi.fn(removeHandler(managerHandlers)) },
     fire: (event: string, ...args: unknown[]) =>
       handlers.get(event)?.forEach((handler) => handler(...args)),
+    fireManager: (event: string, ...args: unknown[]) =>
+      managerHandlers.get(event)?.forEach((handler) => handler(...args)),
     handlerCount: () =>
       [...handlers.values(), ...managerHandlers.values()].reduce(
         (total, set) => total + set.size,
@@ -222,5 +224,18 @@ describe("joinInspectorRoom", () => {
     expect(socket.emit).toHaveBeenLastCalledWith("inspectorLeave");
     expect(socket.handlerCount()).toBe(0);
     expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  test("reports reconnecting while retrying and failed only when retries are exhausted", () => {
+    const socket = createFakeSocket(false);
+    const onConnectionStatusChange = vi.fn();
+    joinInspectorRoom(socket as never, onConnectionStatusChange, vi.fn());
+
+    socket.fire("connect_error", new Error("server unreachable"));
+    socket.fireManager("reconnect_attempt");
+    expect(onConnectionStatusChange.mock.calls).toEqual([["reconnecting"]]);
+
+    socket.fireManager("reconnect_failed");
+    expect(onConnectionStatusChange).toHaveBeenLastCalledWith("failed");
   });
 });
