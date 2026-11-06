@@ -351,10 +351,10 @@ export const AssetEditor: FunctionComponent<{
         )}
         {mapDirectiveActive && (
           <div
-            className={`${styles.mapDirectiveHint} ${styles.fieldValueColumn}`}
+            className={`${styles.fieldNote} ${styles.fieldValueColumn}`}
             data-testid="asset-editor-map-directive-hint"
           >
-            Click the map to place the asset, or enter coordinates. Save to keep changes.
+            Click the map to place the asset.
           </div>
         )}
 
