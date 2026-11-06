@@ -5,7 +5,6 @@
  *  - `utils/useDocSelector` — provides projection, planetRadius, usingLGRSCoordinates and the
  *    grid system fields
  *  - `utils/useAppSelector` — provides the user's label scheme override
- *  - `utils/lgrs/system` — stands in a lunar-formatted system for `earth-wgs84`
  *  - `utils/mapping/geoMath` — stubs getGridCoordinatesFromPoint (server-file grid path)
  *  - `useResolvedMissionGrid` — provides the resolved grid kind
  *
@@ -14,7 +13,9 @@
  *  - Shows lat/lng identical to proj4 after a pointermove event
  *  - Shows whole-Moon LGRS strings (LTM, LPS N, LPS S; condensed and full)
  *  - Shows / skips the server-file grid coordinate
- *  - Shows the active Earth label scheme beside the grid readout, and none on the Moon
+ *  - Shows Earth ACC and MGRS strings at JSC, with the active scheme beside the grid readout,
+ *    and no scheme on the Moon
+ *  - Reformats the last position, string and tag together, when the scheme switches
  *  - Coalesces pointermoves into one update per animation frame
  *  - Does not re-render for pointermoves that leave the displayed text unchanged
  *  - Removes the pointermove listener and cancels the pending frame on unmount
@@ -28,7 +29,6 @@ import OLEvent from "ol/events/Event";
 import proj4 from "proj4";
 
 import { MapContext } from "components/interface/map/MapProvider";
-import type * as SystemModule from "utils/lgrs/system";
 import { MouseCoordinateDisplay } from "components/interface/map/overlays/MouseCoordinateDisplay";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
@@ -58,13 +58,6 @@ vi.mock("utils/useAppSelector", async (importOriginal) => ({
   useAppSelector: <TSel,>(selector: (state: unknown) => TSel): TSel =>
     selector({ interface: { gridLabelSchemeOverride: mockSchemeOverride } }),
 }));
-
-// The indicator only reads the system's id and scheme, so lunar formatting stands in for Earth.
-vi.mock("utils/lgrs/system", async (importOriginal) =>
-  (await import("./helpers/earthStandIn")).withEarthStandIn(
-    await importOriginal<typeof SystemModule>()
-  )
-);
 
 vi.mock("utils/useDocSelector", () => ({
   useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
@@ -104,13 +97,26 @@ function renderMouseCoordinateDisplay(mode: "editor" | "dashboard" | "minimap" =
 }
 
 function setMockProjection(projEpsg: string, projProj4String: string) {
+  mockMissionDoc.projIsCustom = true;
   mockMissionDoc.projEpsg = projEpsg;
   mockMissionDoc.projProj4String = projProj4String;
 }
 
+/** An Earth mission on the default Web Mercator map. */
+function setEarthMission(scheme: GridLabelScheme | undefined) {
+  mockMissionDoc.projIsCustom = false;
+  mockMissionDoc.projEpsg = "EPSG:3857";
+  mockMissionDoc.projProj4String = "";
+  mockMissionDoc.planetRadius = 6378137;
+  mockMissionDoc.gridSystem = "earth-wgs84";
+  mockMissionDoc.earthGridLabelScheme = scheme;
+  mockMissionDoc.usingLGRSCoordinates = true;
+}
+
 /** Map coordinate of a lat/lng in the mocked mission projection. */
 function toMap(lat: number, lng: number): number[] {
-  return proj4(mockMissionDoc.projProj4String, "EPSG:4326").inverse([lng, lat]);
+  const projection = mockMissionDoc.projIsCustom ? mockMissionDoc.projProj4String : "EPSG:3857";
+  return proj4(projection, "EPSG:4326").inverse([lng, lat]);
 }
 
 function pointerMove(coordinate: number[]) {
@@ -128,6 +134,7 @@ beforeEach(() => {
   mockMissionDoc.gridSystem = undefined;
   mockMissionDoc.earthGridLabelScheme = undefined;
   mockSchemeOverride = null;
+  mockMissionDoc.planetRadius = 1737400;
   setMockProjection("TEST:MOON-EQC", MOON_EQC);
   renderCount = 0;
   harness = createReactHarness();
@@ -198,29 +205,44 @@ describe("MouseCoordinateDisplay", () => {
     });
   });
 
+  // JSC (29.5593, −95.0900), plan §3.4.
   it.each([
-    { scheme: undefined, override: null, expected: "ACC" },
-    { scheme: "mgrs", override: null, expected: "MGRS" },
-    { scheme: "mgrs", override: "lunar-acc", expected: "ACC" },
-    { scheme: "lunar-acc", override: "mgrs", expected: "MGRS" },
+    { scheme: undefined, override: null, tag: "ACC", text: "15RTNDC X51 W77", dynamic: true },
+    { scheme: "mgrs", override: null, tag: "MGRS", text: "15R TN 9751 7177", dynamic: true },
+    { scheme: "mgrs", override: "lunar-acc", tag: "ACC", text: "X51 W77", dynamic: false },
+    { scheme: "lunar-acc", override: "mgrs", tag: "MGRS", text: "TN 9751 7177", dynamic: false },
   ] as const)(
-    "shows $expected for an Earth mission with default $scheme and override $override",
-    async ({ scheme, override, expected }) => {
-      mockMissionDoc.gridSystem = "earth-wgs84";
-      mockMissionDoc.earthGridLabelScheme = scheme;
-      mockMissionDoc.usingLGRSCoordinates = true;
+    "shows $text [$tag] at JSC with default $scheme and override $override",
+    async ({ scheme, override, tag, text, dynamic }) => {
+      setEarthMission(scheme);
       mockSchemeOverride = override;
+      mockResolvedGrid = dynamic ? { kind: "dynamic-lgrs" } : { kind: "none" };
       renderMouseCoordinateDisplay("editor");
 
-      pointerMove(toMap(45, 90));
+      pointerMove(toMap(29.5593, -95.09));
 
       await vi.waitFor(() => {
-        expect(document.querySelector("[data-testid='mouse-grid-scheme']")?.textContent).toBe(
-          expected
-        );
+        const tagElement = document.querySelector("[data-testid='mouse-grid-scheme']");
+        expect(tagElement?.textContent).toBe(tag);
+        expect(tagElement?.parentElement?.textContent).toBe(`${text}${tag}`);
       });
     }
   );
+
+  it("relabels the last position when the scheme switches, before the pointer moves", async () => {
+    setEarthMission("lunar-acc");
+    mockResolvedGrid = { kind: "dynamic-lgrs" };
+    renderMouseCoordinateDisplay("editor");
+    pointerMove(toMap(29.5593, -95.09));
+    const readout = () =>
+      document.querySelector("[data-testid='mouse-grid-scheme']")?.parentElement?.textContent;
+    await vi.waitFor(() => expect(readout()).toBe("15RTNDC X51 W77ACC"));
+
+    mockSchemeOverride = "mgrs";
+    renderMouseCoordinateDisplay("editor");
+
+    await vi.waitFor(() => expect(readout()).toBe("15R TN 9751 7177MGRS"));
+  });
 
   it.each([
     { gridSystem: "moon-m2025", usingLGRSCoordinates: true, override: "mgrs" },

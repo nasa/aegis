@@ -3,7 +3,8 @@
  *
  * Listens to `pointermove` on the OL map, coalesced to one update per animation frame. The
  * mission's cached map projector converts the projected coordinate to lat/lng (identical to
- * proj4), and state is only set when the displayed text changes.
+ * proj4), and state is only set when the displayed text changes. A grid system or scheme change
+ * reformats the last position, so the readout and its scheme tag switch together.
  *
  * Editor only.
  */
@@ -57,7 +58,9 @@ export function MouseCoordinateDisplay({
       getLgrsMapProjection({ id: missionId, projIsCustom, projEpsg, projProj4String })
     );
     let formatGrid: MouseCoordinateInputs["formatGrid"] = () => null;
+    let schemeTag: string | null = null;
     if (gridSystem) {
+      if (gridSystem.id === "earth-wgs84") schemeTag = GRID_LABEL_SCHEME_NAMES[gridSystem.scheme];
       const style: LgrsDisplayStyle = resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed";
       formatGrid = (point) =>
         formatLgrsFromLatLon(gridSystem, point, LGRS_DISPLAY_PRECISION_METERS, style);
@@ -65,11 +68,12 @@ export function MouseCoordinateDisplay({
       const globalGrid = resolvedGrid.grid.coordinates;
       formatGrid = (point) => getGridCoordinatesFromPoint(point, planetRadius, null, globalGrid);
     }
-    return { projector, formatGrid };
+    return { projector, formatGrid, schemeTag };
   }, [missionId, projIsCustom, projEpsg, projProj4String, planetRadius, gridSystem, resolvedGrid]);
 
   const [readout, setReadout] = useState<MouseCoordinateReadout | null>(null);
   const readoutRef = useRef(readout);
+  const lastCoordinateRef = useRef<Coordinate | null>(null);
 
   useEffect(() => {
     if (!showMouseCoords) return;
@@ -87,21 +91,36 @@ export function MouseCoordinateDisplay({
       let next: MouseCoordinateReadout | null = null;
       if (inputs.projector.mapToLatLon(coordinate[0], coordinate[1], latLon)) {
         const point: AEGISPoint = { lat: latLon[0], lng: latLon[1] };
+        const grid = inputs.formatGrid(point);
         next = {
           latLng: `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`,
-          grid: inputs.formatGrid(point),
+          grid,
+          schemeTag: grid ? inputs.schemeTag : null,
         };
       }
       const previous = readoutRef.current;
-      if (previous?.latLng === next?.latLng && previous?.grid === next?.grid) return;
+      if (
+        previous?.latLng === next?.latLng &&
+        previous?.grid === next?.grid &&
+        previous?.schemeTag === next?.schemeTag
+      ) {
+        return;
+      }
       readoutRef.current = next;
       setReadout(next);
     };
 
     const handleMove = (evt: MapBrowserEvent<PointerEvent>) => {
+      lastCoordinateRef.current = evt.coordinate;
       pendingCoordinate = evt.coordinate;
       if (!frame) frame = requestAnimationFrame(update);
     };
+
+    // New inputs (e.g. a scheme switch from the map menu) reformat the last position.
+    if (lastCoordinateRef.current) {
+      pendingCoordinate = lastCoordinateRef.current;
+      frame = requestAnimationFrame(update);
+    }
 
     map.on("pointermove", handleMove);
     return () => {
@@ -118,9 +137,9 @@ export function MouseCoordinateDisplay({
       {readout?.grid && (
         <div style={{ ...READOUT_STYLE, minWidth: "150px" }}>
           {readout.grid}
-          {gridSystem?.id === "earth-wgs84" && (
+          {readout.schemeTag && (
             <span className={styles.gridSchemeTag} data-testid="mouse-grid-scheme">
-              {GRID_LABEL_SCHEME_NAMES[gridSystem.scheme]}
+              {readout.schemeTag}
             </span>
           )}
         </div>
