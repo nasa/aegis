@@ -1,6 +1,7 @@
 # Earth Grid with Lunar ACC Labels — Implementation Plan
 
-Status: proposed (revision 4) · Builds on: whole-Moon LGRS (`docs/lgrs-whole-moon-plan.md`,
+Status: implemented on `feat-mgrs` (revision 4; deviations in §9.2), with §9.1 Gate 0 still
+unresolved because the USGS zips are behind a captcha · Builds on: whole-Moon LGRS (`docs/lgrs-whole-moon-plan.md`,
 branch `feat-lgrs2`) · Basis: WGS84 UTM/UPS and MGRS (NGA), USGS terrestrial LGRS training grids
 ([doi:10.5066/P14KSANW](https://doi.org/10.5066/P14KSANW))
 
@@ -496,6 +497,34 @@ item page in a browser (the captcha), then:
    subsection's status with a verdict.
 
 Workstream B is Moon-only and doesn't depend on these answers.
+
+### 9.2 Implementation notes
+
+Where the implementation differs from the plan above:
+
+- **`formatPoint`** returns a display string, not an `LgrsLabel`, and takes a display style
+  (`"condensed"` / `"full"`).
+- **`getAffine`** takes the map projector's verified closed-form `fastPath` as well as the proj4
+  parameters, because a relation must be exact for the conversions the projector performs.
+- **`getSeams`** became `getFrameworkLines(envelope, zoneTier)`. The interface also gained `id`,
+  `getCandidateRegions`, `getCap`, `clipGridLine`, `getCentralMeridian`, `isSeamGridLine`,
+  `getZoneLabels` and `checkPlanetRadius`.
+- **`clipGridLine`** returns up to 3 parts. Earth zone 31N, with the Norway and Svalbard
+  exceptions, can split one line into three.
+- **`gridSystem` and `earthGridLabelScheme`** are optional on `Mission`, because
+  `Migration20261028000000` validates against the current schema before
+  `Migration20261106000000` sets them. Unset means lunar and `"lunar-acc"`.
+- **MGRS condensed** is `TN 9751 7177`: the full form without the zone and band.
+- **Exactly 84° N** is UPS (§8.1, `lat ≥ 84`). GeoTrans keeps it in UTM 60X, so the oracle
+  differs there by design.
+- **Exports** record `gridSystem` and `earthGridLabelScheme` on the exported mission object. The
+  export format has no file header.
+- **Auto spacing** still uses the lunar heuristic, which picks arbitrary 10 m multiples
+  (e.g. 310 m lines with 10 m label precision). The fixed 1 km / 100 m / 10 m spacings give
+  clean grids.
+- **Help (§12):** AEGIS has no help pages. The admin page's Default Label Scheme hint and the map
+  menu's Grid Scheme tooltips explain that Earth ACC naming is AEGIS-defined and that canonical
+  MGRS is one toggle away.
 
 ## 10. Done when
 
