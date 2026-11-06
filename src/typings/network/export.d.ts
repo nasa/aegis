@@ -5,7 +5,7 @@ type ExportCoordinates = {
   mgrsCoordinates?: string | null;
 };
 
-type ExportMission = Mission & ExportCoordinates;
+type ExportMission = Mission & ExportCoordinates & { gridSystem: MissionGridSystemId | null };
 
 interface ExportAction extends Action, ExportCoordinates {
   _itemType: string;

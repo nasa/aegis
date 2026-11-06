@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
@@ -62,7 +63,7 @@ const Info_Panel: FunctionComponent<{
   const partialMission = useMissionDocSelector(
     (mission) => ({
       walkbackRate: mission.walkbackRate,
-      planetRadius: mission.planetRadius,
+      planetRadius: getPlanetRadius(mission),
       equipmentItems: mission.equipmentItems,
       landerLocation: mission.landerLocation,
       projBoundsMinY: mission.projBoundsMinY,

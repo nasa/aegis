@@ -19,6 +19,7 @@ export const currentMissionValidator = ajv.compile<Mission>(missionSchema);
 // History compaction validates documents before the planet migration has run.
 const legacyMissionSchema = structuredClone(missionSchema);
 delete legacyMissionSchema.properties.planet;
+legacyMissionSchema.properties.gridSystem = { enum: ["moon-m2025", "earth-wgs84"] };
 legacyMissionSchema.properties.planetRadius = { type: ["number", "null"] };
 legacyMissionSchema.properties.usingLGRSCoordinates = { type: "boolean" };
 legacyMissionSchema.properties.gridRenderMode = { enum: ["server-file", "dynamic-lgrs"] };

@@ -81,13 +81,13 @@ describe("resolveMissionGrid", () => {
     ).toEqual({ kind: "dynamic-lgrs" });
   });
 
-  test("resolves an absent server-file grid to none", () => {
+  test("uses a dynamic Earth grid without an uploaded grid", () => {
     expect(
       resolveMissionGrid(
         generateBlankMission({ planet: "earth", serverFileGrid: null }),
         serverGrid
       )
-    ).toEqual({ kind: "none" });
+    ).toEqual({ kind: "dynamic-lgrs" });
   });
 
   test.each([
@@ -105,7 +105,9 @@ describe("resolveMissionGrid", () => {
       projProj4String:
         "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
     });
-    expect(getGridRenderMode(mission)).toBe("none");
-    expect(resolveMissionGrid(mission, serverGrid)).toEqual({ kind: "none" });
+    expect(getGridRenderMode(mission)).toBe(planet === "mars" ? "none" : "dynamic-lgrs");
+    expect(resolveMissionGrid(mission, serverGrid)).toEqual({
+      kind: planet === "mars" ? "none" : "dynamic-lgrs",
+    });
   });
 });

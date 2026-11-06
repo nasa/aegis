@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import { getLgrsMapProjector } from "@bfeist/planetary-grid-reference/grid";
 import { getLgrsMapProjection } from "./mapProjection";
 
@@ -17,10 +18,18 @@ const probe = new Float64Array(2);
  * issue is only a warning, since WGS84 does not depend on the mission's sphere.
  */
 export function getLgrsCompatibility(
-  system: LgrsGridSystem,
-  mission: Pick<Mission, "id" | "planetRadius" | "projIsCustom" | "projEpsg" | "projProj4String">
+  system: LgrsGridSystem | null,
+  mission: Pick<Mission, "id" | "planet" | "projIsCustom" | "projEpsg" | "projProj4String">
 ): LgrsCompatibility {
-  const radiusIssue = system.checkPlanetRadius(mission.planetRadius);
+  if (!system) {
+    return {
+      compatible: false,
+      reason: "No dynamic grid is available for this planet.",
+      projection: null,
+      warning: null,
+    };
+  }
+  const radiusIssue = system.checkPlanetRadius(getPlanetRadius(mission));
   const radiusBlocks = system.id !== "earth-wgs84";
   if (radiusIssue !== null && radiusBlocks) {
     return { compatible: false, reason: radiusIssue, projection: null, warning: null };

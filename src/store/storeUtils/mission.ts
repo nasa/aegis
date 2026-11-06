@@ -28,6 +28,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     missionPriorities: {},
     serverFileGrid: null,
     planet: "moon",
+    earthGridLabelScheme: "lunar-acc",
     initialZoom: 14,
     demFilePath: "",
     demResolution: null,

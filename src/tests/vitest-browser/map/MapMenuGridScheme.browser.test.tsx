@@ -99,8 +99,8 @@ afterEach(() => {
 });
 
 describe("map menu grid scheme toggle", () => {
-  it.each([undefined, "moon-m2025"] as const)("is hidden for grid system %s", (gridSystem) => {
-    mockMissionDoc.gridSystem = gridSystem;
+  it.each(["moon", "mars"] as const)("is hidden for grid system %s", (planet) => {
+    mockMissionDoc.planet = planet;
     mockMissionDoc.earthGridLabelScheme = "mgrs";
     store = makeStore("mgrs");
     renderMenu();
@@ -114,7 +114,7 @@ describe("map menu grid scheme toggle", () => {
   ] as const)(
     "shows $expected with default $scheme and override $override",
     ({ scheme, override, expected }) => {
-      mockMissionDoc.gridSystem = "earth-wgs84";
+      mockMissionDoc.planet = "earth";
       mockMissionDoc.earthGridLabelScheme = scheme;
       store = makeStore(override);
       renderMenu();
@@ -123,7 +123,7 @@ describe("map menu grid scheme toggle", () => {
   );
 
   it("stores an override and clears it when the mission default is chosen", async () => {
-    mockMissionDoc.gridSystem = "earth-wgs84";
+    mockMissionDoc.planet = "earth";
     mockMissionDoc.earthGridLabelScheme = "lunar-acc";
     renderMenu();
 
@@ -139,7 +139,7 @@ describe("map menu grid scheme toggle", () => {
   });
 
   it("offers the active scheme's fixed spacings for the dynamic grid", async () => {
-    mockMissionDoc.gridSystem = "earth-wgs84";
+    mockMissionDoc.planet = "earth";
     mockMissionDoc.earthGridLabelScheme = "lunar-acc";
     mockResolvedGrid = { kind: "dynamic-lgrs" };
     renderMenu();

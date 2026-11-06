@@ -34,6 +34,7 @@ type MissionFields = Pick<
   | "description"
   | "landerLocation"
   | "planet"
+  | "earthGridLabelScheme"
   | "initialZoom"
   | "demFilePath"
   | "projIsCustom"
