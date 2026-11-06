@@ -6,9 +6,9 @@ Python toolset** (its own pixi/uv environment), separate from the TypeScript app
 ## What this is
 
 Scripts that convert GIS data drops into AEGIS-ready map artifacts: cap-grid tile pyramids,
-COGs, GeoJSON, mission grids, time-aware layers, and the `properties.json` / `manifest.json`
+COGs, GeoJSON, time-aware layers, and the `properties.json` / `manifest.json`
 sidecars. Beyond producing files, the main pipeline also **registers a mission on a running
-AEGIS server over HTTP** (mission GIS fields, header layers, sublayers, active grid) and can
+AEGIS server over HTTP** (mission GIS fields, header layers, sublayers) and can
 **zip + upload the results to Box** — so a generated mission needs no admin "import from file"
 clicking. It is the active implementation of the AEGIS GIS conversion workflow.
 
@@ -37,9 +37,9 @@ pixi run python <script>.py ...
 - [`esri-to-aegis-lunar-southpole/`](esri-to-aegis-lunar-southpole/) — main pipeline (lunar
   **south-pole cap grid**). `main.py` is a thin CLI; `pipeline/` holds the runner internals
   (`reporting` output-capture, `steps`, `summary`); `config.py` holds the cap-grid projection
-  profile + path resolution + header/external-NAC/grid constants; `aegis_api.py` /
+  profile + path resolution + header/external-NAC constants; `aegis_api.py` /
   `register.py` / `box_publish.py` do the HTTP registration + Box upload; `common/` shared
-  raster tools; one folder per concern (`dem slope products vector vectortile grid
+  raster tools; one folder per concern (`dem slope products vector vectortile
 timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivered ArcGIS
   vector-tile cache (Compact Cache V2) into a single `.pmtiles` (pure-Python `pmtiles`, no GDAL),
   emitted inside its own `Layers/<name>/` folder; `vectortile/dem_to_contours_pmtiles.py` instead
@@ -56,7 +56,7 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
 ## Conventions for new/edited scripts
 
 - **Run-by-path geo sub-scripts; package-imported orchestration.** The per-concern geo
-  scripts (`common/`, `dem/`, `slope/`, `products/`, `vector/`, `grid/`, `timeaware/`)
+  scripts (`common/`, `dem/`, `slope/`, `products/`, `vector/`, `timeaware/`)
   are invoked as `pixi run python <path>.py` and orchestrated via `subprocess` (see
   `pipeline/steps.py`). The orchestration layer is the exception: `main.py` imports its
   same-dir modules (`config`, `aegis_api`, `register`, `box_publish`) and the `pipeline/`
@@ -79,11 +79,6 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   here.
 - **`manifest.json`** (time-aware): `{ time_layers: [{ datetime, dirName }] }`. AEGIS allows
   **one** time-based sublayer per mission.
-- **Mission grid GeoJSON**: top-level `row_total`/`column_total`/`name`/`crs` + Point features with
-  `id, LGRS_ACC, L_coord, R_coord, row, column` (see `grid/convert_lgrs.py`). One grid per mission;
-  metadata is stored on the mission Automerge doc (`mission.serverFileGrid`), coordinates as `Data/<name>.json`
-  — no `Grid_db` / `activeGridUuid`. Line spacing is derived from the coordinate geometry at runtime,
-  not stored.
 - **DEM** is registered as the mission `demFilePath`/`demResolution`, not a sublayer. The COG
   keeps its source filename with a compression + `_cog` suffix (e.g.
   `Data/mp2-sfs-dem_MoonSP_COG_deflate_cog.tif`). All generated COGs use **deflate**, never
@@ -92,14 +87,13 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
 - **HTTP registration** (the `register` step, `register.py` + `aegis_api.py`) replaces admin
   clicking: `POST /api/v1/missionAutomerge/fields` (projection/DEM/lander/`actionSystemVersion=2`/
   `usingLGRSCoordinates=true`), `POST /api/v1/layer` (Common_LSP/Raster/Vector header layers),
-  `POST /api/v1/sublayer`, and `POST /api/v1/grid` (writes the mission grid → `Data/<name>.json`
-  - `mission.serverFileGrid` on the doc). The
-    server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
-    app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
-    token. Changed lander coordinates are rejected when affected mission assets already exist,
-    because the browser-only lander-location workflow must update station walkbacks and
-    lander-connected EVA traverses. Each run also writes a `Data/conversion_report.md` (full
-    console log + per-step timings).
+  `POST /api/v1/sublayer`. The
+  server-side endpoint `POST /api/v1/missionAutomerge/fields` exists specifically for this (the
+  app otherwise mutates the mission only via the Automerge websocket) and requires the EMSS API
+  token. Changed lander coordinates are rejected when affected mission assets already exist,
+  because the browser-only lander-location workflow must update station walkbacks and
+  lander-connected EVA traverses. Each run also writes a `Data/conversion_report.md` (full
+  console log + per-step timings).
 
 ## Gotchas
 
@@ -111,9 +105,9 @@ timeaware properties`). `vectortile/arcgis_cache_to_pmtiles.py` packs a delivere
   resolution-dependent** — the `products` step auto-selects `default_color_ramps/ARCHIVE/
 TRIColors_{1m,5m,10m}_DEM.txt` to match `--dem-resolution`.
 - `tile_to_cap_grid.py` pads its virtual cap canvas to **`2**max_zoom`tiles**, not to the next
-whole tile at max zoom.`gdal raster tile`anchors at the top-left and re-derives the row
-count per zoom as`ceil(rows / 2)`, so anything other than a power-of-two tile count walks
-the bottom row off `CAP_MIN` on the way up and shifts the coarser levels north (the layer
+  whole tile at max zoom.`gdal raster tile`anchors at the top-left and re-derives the row
+  count per zoom as`ceil(rows / 2)`, so anything other than a power-of-two tile count walks
+  the bottom row off `CAP_MIN` on the way up and shifts the coarser levels north (the layer
   visibly jumps as you zoom out past its native level). Keep the padding power-of-two.
 - `tile_to_cap_grid.py` honours a real alpha band when input is RGBA; for ≤3-band input it
   infers transparency from band 0 == nodata/0. Colorized products should be RGBA so colours

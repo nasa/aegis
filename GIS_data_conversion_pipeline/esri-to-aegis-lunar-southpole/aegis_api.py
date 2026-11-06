@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tiny HTTP client for the AEGIS REST API (mission / layer / sublayer / grid).
+"""Tiny HTTP client for the AEGIS REST API (mission / layer / sublayer).
 
 Stdlib-only (``urllib``) so it runs under a bare ``.venv`` as well as ``pixi`` — the
 ``register`` step in ``main.py`` needs no geospatial imports.
@@ -13,8 +13,6 @@ Endpoints used:
   * ``POST   /api/v1/layer``               — upsert header layers
   * ``GET    /api/v1/sublayer?missionId=`` — list sublayers
   * ``POST   /api/v1/sublayer``            — upsert sublayers
-  * ``GET    /api/v1/grid?missionId=``     — list grid metadata
-  * ``POST   /api/v1/grid``                — upsert grids (writes the active grid's coords to Data/)
 
 All AEGIS responses are ``WrappedResponse`` ``{status, message, data?}`` with ``status`` of
 ``"success"`` | ``"failure"`` | ``"error"``; :meth:`AegisApiClient._unwrap` also accepts
@@ -122,26 +120,3 @@ class AegisApiClient:
             {"missionId": mission_id, "sublayers": sublayers},
         )
         return self._unwrap(resp, "upsert sublayers") or []  # type: ignore[return-value]
-
-    # -- grid ---------------------------------------------------------------
-    def get_grid(self, mission_id: int) -> dict | None:
-        """Get the mission's single grid metadata (coordinates omitted), or None."""
-        resp = self._request("GET", f"/api/v1/grid?missionId={mission_id}")
-        return self._unwrap(resp, "get grid")  # type: ignore[return-value]
-
-    def upsert_grid(
-        self, mission_id: int, grid: dict, upsert_full_grid: bool = True
-    ) -> dict | None:
-        """Upsert the mission's grid. With upsert_full_grid the server writes the grid's
-        coordinate JSON into the mission Data/ folder and stores the grid metadata on the
-        mission Automerge doc (mission.serverFileGrid)."""
-        resp = self._request(
-            "POST",
-            "/api/v1/grid",
-            {
-                "missionId": mission_id,
-                "grid": grid,
-                "upsertFullGrid": upsert_full_grid,
-            },
-        )
-        return self._unwrap(resp, "upsert grid")  # type: ignore[return-value]
