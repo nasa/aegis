@@ -326,7 +326,7 @@ const Mission: React.FunctionComponent = () => {
                     <div id="landerEleDiv" className={adminStyles.editDiv}>
                       <span className={adminStyles.editLabel}>Lander Elevation (m)</span>
                       <output aria-label="Lander Elevation">
-                        {automergeMission.landerElevationMeters ?? "Unknown"}
+                        {automergeMission.landerElevationMeters?.toFixed(0) ?? "Unknown"}
                       </output>
                       <p className={adminCommon.formHint}>
                         {!automergeMission.demFilePath
