@@ -260,7 +260,9 @@ export const AssetDetails: FunctionComponent<{
         </div>
         {(asset.location || inEdit?.elevationPending) && (
           <div className={`${styles.fieldNote} ${styles.fieldValueColumn}`}>
-            {asset.location && <span>{formatLatLng(asset.location)}</span>}
+            {coordinateContext.usingLGRSCoordinates && asset.location && (
+              <span>{formatLatLng(asset.location)}</span>
+            )}
             <span data-testid="asset-editor-elevation">
               Elev.{" "}
               {inEdit?.elevationPending
