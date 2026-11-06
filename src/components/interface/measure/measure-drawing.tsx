@@ -5,6 +5,7 @@ import type { Dispatch } from "@reduxjs/toolkit";
 import { clearMapItemHover, setMeasurementHover } from "store/hover";
 import { getGraphSlopeAtX, getHoverValue } from "utils/paper";
 import { drawSlopeBand, drawSlopeSeparator } from "utils/paperSlope";
+import { formatBearingDegrees } from "utils/mapping/geoMath";
 
 export function drawGraphAxes(
   measurePaperDataRef: MutableRefObject<MeasurePaperData>,
@@ -331,7 +332,7 @@ export function drawMeasureSegmentDistances(
         fontFamily: measurePaperDataRef.current.styles.gNavigatorFontFamilyActivity,
         fontSize: 12,
         fillColor: paperStyles.grey5,
-        content: `${segmentBearing.toFixed(0)}°`,
+        content: formatBearingDegrees(segmentBearing),
       });
       lineSegmentMarksGroup.addChild(bearingLabel);
     }

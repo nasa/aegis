@@ -22,6 +22,7 @@ import traverseStyles from "./traverse.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkDocResetTraverse } from "store/thunk/thunkTraverse";
 import { formatNumberWithCommas, isNotNumber, toDecimal } from "utils/formatting";
+import { formatBearingDegrees } from "utils/mapping/geoMath";
 import { validators } from "components/interface/form/formValidators";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { setOriginalPoints, updateMapDirective } from "store/map";
@@ -510,7 +511,7 @@ const Info_Panel: FunctionComponent<{
                           <span
                             key={index}
                             style={{ marginRight: "6px" }}
-                          >{`${Math.round(bearing)}° `}</span>
+                          >{`${formatBearingDegrees(bearing)} `}</span>
                         ))}
                       </div>
                     </div>

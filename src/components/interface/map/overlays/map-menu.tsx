@@ -7,6 +7,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridBaseSpacingMeters } from "utils/mapping/grid";
+import { LGRS_GRID_BASE_SPACING_METERS } from "utils/lgrs/grid/plan";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { setMapMenuIsOpen } from "store/interface";
 import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
@@ -137,7 +138,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   const resolvedGrid = useResolvedMissionGrid();
   let baseGridSpacing = 0;
   if (resolvedGrid.kind === "dynamic-lgrs") {
-    baseGridSpacing = 10;
+    baseGridSpacing = LGRS_GRID_BASE_SPACING_METERS;
   } else if (resolvedGrid.kind === "server-file") {
     baseGridSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
   }

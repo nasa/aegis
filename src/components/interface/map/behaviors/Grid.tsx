@@ -1,9 +1,9 @@
 /**
  * Grid — behavior component that draws the mission grid lines and labels.
  *
- * Reads grid data from the global grid module variable and renders lines as
- * OL LineString features on a dedicated VectorLayer. Grid density adapts
- * based on the visible portion (zoom level) to avoid rendering thousands of lines.
+ * Draws either the server-file grid (a loaded coordinate lattice) or the dynamic LGRS grid
+ * (`createLgrsRenderPlan`, any lunar map projection) as OL features on dedicated VectorLayers.
+ * Grid density adapts to the visible portion (zoom level) to avoid rendering thousands of lines.
  *
  * Density is decided by the dashboard: the dashboard map publishes the spacing it
  * drew to `DashboardBoundsProvider` and the minimap redraws at that same
@@ -13,28 +13,21 @@
  * Returns null — headless behavior component.
  */
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import Feature from "ol/Feature";
 import { LineString, Point } from "ol/geom";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
-import { Stroke, Style, Fill, Text } from "ol/style";
 import type { EventsKey } from "ol/events";
 import { unByKey } from "ol/Observable";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { defaultGridStyle } from "store/storeUtils/sublayer";
 import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { adjustGridIndex, findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
-import {
-  createDynamicLgrsRenderPlan,
-  isCanonicalSouthLpsMission,
-  lpsMetersPerPixel,
-  lpsToMapCap,
-  mapCapToLps,
-  type LpsExtent,
-} from "utils/lgrs/dynamicGrid";
+import { getLgrsCompatibility } from "utils/lgrs/compatibility";
+import { coarsenForMinimap, createLgrsRenderPlan } from "utils/lgrs/grid/plan";
+import { getLgrsMapAdapter } from "utils/lgrs/mapAdapter";
 
 import { useMapContext } from "../MapProvider";
 import { useMapMenuContext } from "../MapMenuProvider";
@@ -42,25 +35,14 @@ import {
   useOptionalDashboardBoundsContext,
   type GridSpacingMeters,
 } from "../DashboardBoundsProvider";
-import { withAlpha } from "../utils/layers/layerFactory";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
+import { createGridLabelStyleFn, createGridLineStyles } from "../utils/styles/grid";
 import { Z_INDEX } from "../utils/zIndex";
 
 // Hide labels once adjacent labels would be closer than this many screen pixels.
 const LABEL_MIN_PX = 60;
-
-// Floor on inherited minimap density. The minimap is far more zoomed out than the
-// dashboard, so a deep dashboard zoom-in would otherwise wash it out with tens of
-// thousands of lines. Doubling keeps the drawn lines a subset of the dashboard's.
-const MINIMAP_MIN_LINE_PX = 3;
-
-function coarsenForMinimap(spacing: number, unitsPerPixel: number): number {
-  if (!(spacing > 0) || !(unitsPerPixel > 0) || !Number.isFinite(unitsPerPixel)) return spacing;
-  const factor = (MINIMAP_MIN_LINE_PX * unitsPerPixel) / spacing;
-  return factor <= 1 ? spacing : spacing * 2 ** Math.ceil(Math.log2(factor));
-}
 
 export function Grid(): null {
   const { map, mode } = useMapContext();
@@ -76,19 +58,31 @@ export function Grid(): null {
 
   const projectionConfig = useMissionDocSelector(
     (doc) => ({
+      id: doc.id,
       planetRadius: doc.planetRadius,
       projIsCustom: doc.projIsCustom,
+      projEpsg: doc.projEpsg,
       projProj4String: doc.projProj4String,
     }),
     deepEqual
   );
   const planetRadius = projectionConfig?.planetRadius;
+  const lgrsAdapter = useMemo(() => {
+    if (!projectionConfig) return null;
+    const compatibility = getLgrsCompatibility(projectionConfig);
+    return compatibility.compatible ? getLgrsMapAdapter(compatibility.projection) : null;
+  }, [projectionConfig]);
 
   const selectedPresetUuid = useAppSelector((s) => s.preset.selectedPresetUuid, refEqual);
   const mapGridControl = useMissionDocSelector(
     (m) => m.presets?.[selectedPresetUuid]?.mapGridControl,
     deepEqual
   ) as MapGridControl | undefined;
+
+  const labelStyle = useMemo(
+    () => createGridLabelStyleFn(mapGridControl?.style, config.grid.labelFontSize),
+    [mapGridControl?.style, config.grid.labelFontSize]
+  );
 
   // Refs
   const lineLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
@@ -129,90 +123,42 @@ export function Grid(): null {
 
     /** Draws the grid; returns the spacing it used, or null when nothing was drawn. */
     const drawGrid = (): GridSpacingMeters | null => {
-      if (!mapGridControl?.visible || resolvedGrid.kind === "none") {
-        lineLayer.getSource()!.clear();
-        labelLayer.getSource()!.clear();
-        return null;
-      }
-
       const lineSource = lineLayer.getSource()!;
       const labelSource = labelLayer.getSource()!;
       lineSource.clear();
       labelSource.clear();
+      if (!mapGridControl?.visible || resolvedGrid.kind === "none") return null;
 
-      const gridStyle = { ...defaultGridStyle, ...(mapGridControl.style ?? {}) };
-      const lineStyle = new Style({
-        stroke: new Stroke({
-          color: gridStyle.color.startsWith("rgba(")
-            ? gridStyle.color
-            : withAlpha(gridStyle.color, gridStyle.opacity),
-          width: gridStyle.weight,
-        }),
-      });
-      const buildLabelStyle = (text: string) => {
-        const haloWidth = gridStyle.labelHaloWidth ?? defaultGridStyle.labelHaloWidth;
-        return new Style({
-          text: new Text({
-            text,
-            font: `${config.grid.labelFontSize}px sans-serif`,
-            fill: new Fill({
-              color: gridStyle.labelColor ?? defaultGridStyle.labelColor,
-            }),
-            stroke:
-              haloWidth > 0
-                ? new Stroke({
-                    color: withAlpha(
-                      gridStyle.labelHaloColor ?? defaultGridStyle.labelHaloColor,
-                      gridStyle.labelHaloOpacity ?? defaultGridStyle.labelHaloOpacity
-                    ),
-                    width: haloWidth,
-                  })
-                : undefined,
-            offsetX: 5,
-            offsetY: -8,
-            textAlign: "left",
-          }),
-        });
-      };
-
+      const lineStyles = createGridLineStyles(mapGridControl.style);
       const extent = map.getView().calculateExtent(map.getSize());
       const resolution = map.getView().getResolution() ?? 0;
+      const labelsEnabled = !!mapGridControl.labelsVisible && config.grid.labelsEnabled;
 
       if (resolvedGrid.kind === "dynamic-lgrs") {
-        if (!projectionConfig || !isCanonicalSouthLpsMission(projectionConfig)) return null;
-        const min = mapCapToLps([extent[0], extent[1]]);
-        const max = mapCapToLps([extent[2], extent[3]]);
-        const lpsExtent: LpsExtent = [min[0], min[1], max[0], max[1]];
-        // On the minimap the dashboard's spacing replaces the auto/fixed setting.
-        const inheritedLine =
-          inheritedSpacing && inheritedSpacing.line > 0
-            ? coarsenForMinimap(inheritedSpacing.line, lpsMetersPerPixel(resolution))
-            : null;
-        const inheritedLabel =
-          inheritedSpacing && inheritedLine !== null
-            ? Math.max(inheritedLine, inheritedSpacing.label)
-            : null;
-        const plan = createDynamicLgrsRenderPlan({
-          extent: lpsExtent,
-          gridSpacingMode: inheritedLine ?? gridSpacingMode,
-          gridLabelInterval: inheritedLabel ?? gridLabelInterval,
-          mapResolution: resolution,
-          labelsVisible: !!mapGridControl.labelsVisible && config.grid.labelsEnabled,
+        if (!lgrsAdapter) return null;
+        const plan = createLgrsRenderPlan({
+          adapter: lgrsAdapter,
+          extent: [extent[0], extent[1], extent[2], extent[3]],
+          resolution,
+          gridSpacingMode,
+          gridLabelInterval,
+          labelsVisible: labelsEnabled,
+          inheritedSpacing,
         });
 
-        for (const line of plan.lines) {
-          const feature = new Feature(
-            new LineString([lpsToMapCap(line.start), lpsToMapCap(line.end)])
-          );
-          feature.setStyle(lineStyle);
-          lineSource.addFeature(feature);
-        }
-        for (const { coordinate, label } of plan.labels) {
-          const feature = new Feature(new Point(lpsToMapCap(coordinate)));
-          feature.setStyle(buildLabelStyle(label.text));
-          labelSource.addFeature(feature);
-        }
-        return { line: plan.lineSpacing, label: plan.labelSpacing };
+        const lineFeatures = plan.lines.map((line) => {
+          const feature = new Feature(new LineString(line.coordinates, "XY"));
+          feature.setStyle(line.kind === "seam" ? lineStyles.seam : lineStyles.grid);
+          return feature;
+        });
+        const labelFeatures = plan.labels.map(({ coordinate, text, centered }) => {
+          const feature = new Feature(new Point(coordinate));
+          feature.setStyle(labelStyle(text, centered));
+          return feature;
+        });
+        lineSource.addFeatures(lineFeatures);
+        labelSource.addFeatures(labelFeatures);
+        return plan.tier === "box" ? { line: plan.lineSpacing, label: plan.labelSpacing } : null;
       }
 
       if (!planetRadius) return null;
@@ -306,7 +252,7 @@ export function Grid(): null {
 
         const coords = [toMapCoord(p1), toMapCoord(p2)];
         const feature = new Feature(new LineString(coords));
-        feature.setStyle(lineStyle);
+        feature.setStyle(lineStyles.grid);
         lineSource.addFeature(feature);
       }
 
@@ -321,12 +267,12 @@ export function Grid(): null {
 
         const coords = [toMapCoord(p1), toMapCoord(p2)];
         const feature = new Feature(new LineString(coords));
-        feature.setStyle(lineStyle);
+        feature.setStyle(lineStyles.grid);
         lineSource.addFeature(feature);
       }
 
       // --- Labels ---
-      if (!mapGridControl.labelsVisible || !config.grid.labelsEnabled || hideLabels) return spacing;
+      if (!labelsEnabled || hideLabels) return spacing;
 
       for (let i = labelEndIndex.row; i >= labelStartIndex.row; i -= labelZoomLevel) {
         for (let j = labelStartIndex.col; j <= labelEndIndex.col; j += labelZoomLevel) {
@@ -337,7 +283,7 @@ export function Grid(): null {
 
           const coord = toMapCoord(point.coordinates);
           const labelFeature = new Feature(new Point(coord));
-          labelFeature.setStyle(buildLabelStyle(point.name));
+          labelFeature.setStyle(labelStyle(point.name, false));
           labelSource.addFeature(labelFeature);
         }
       }
@@ -354,12 +300,12 @@ export function Grid(): null {
     map,
     mapGridControl,
     planetRadius,
-    projectionConfig,
+    lgrsAdapter,
     resolvedGrid,
     toMapCoord,
     toAegisPoint,
     config.grid.labelsEnabled,
-    config.grid.labelFontSize,
+    labelStyle,
     gridSpacingMode,
     gridLabelInterval,
     inheritedSpacing,

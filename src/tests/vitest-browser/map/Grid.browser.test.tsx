@@ -17,6 +17,8 @@
  *  - Label features added when labelsVisible=true and gridLabelsEnabled (editor mode)
  *  - Layers removed on unmount
  *  - Dashboard publishes the spacing it drew; minimap redraws at that spacing
+ *  - Dynamic LGRS on south/north polar, Web Mercator (Apollo 14-like) and zone-seam views,
+ *    heavier seam strokes, cached label styles, and the compatibility gate
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -26,8 +28,13 @@ import { CookiesProvider, Cookies } from "react-cookie";
 import { configureStore } from "@reduxjs/toolkit";
 import Map from "ol/Map";
 import View from "ol/View";
+import type Feature from "ol/Feature";
+import type { LineString } from "ol/geom";
 import type VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
+import type { Style } from "ol/style";
+import { register } from "ol/proj/proj4";
+import proj4 from "proj4";
 
 import { MapContext } from "components/interface/map/MapProvider";
 import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
@@ -40,6 +47,9 @@ import { Grid } from "components/interface/map/behaviors/Grid";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice } from "store/preset";
 import { interfaceSlice } from "store/interface";
+import { getLtmCrsId, LGRS_CRS_LPS_NORTH } from "utils/lgrs/crs";
+import { createLgrsRenderPlan } from "utils/lgrs/grid/plan";
+import { getLgrsMapAdapter, getLgrsMapProjection } from "utils/lgrs/mapAdapter";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 // ---------------------------------------------------------------------------
@@ -54,13 +64,30 @@ vi.mock("components/interface/map/hooks/useCoordConverters", () => ({
   }),
 }));
 
+const MOON = "+a=1737400 +b=1737400 +units=m +no_defs";
+const SOUTH_CAP = `+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`;
+const NORTH_CAP = `+proj=stere +lat_0=90 +lon_0=0 +k=1 +x_0=0 +y_0=0 ${MOON}`;
+
 const mockMissionDoc: Partial<Mission> = {
+  id: 1,
   planetRadius: 1737400,
   projIsCustom: true,
-  projProj4String:
-    "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
+  projEpsg: "TEST:SOUTH",
+  projProj4String: SOUTH_CAP,
   gridRenderMode: "server-file",
 };
+
+proj4.defs("TEST:SOUTH", SOUTH_CAP);
+proj4.defs("TEST:NORTH", NORTH_CAP);
+register(proj4);
+
+/** Mission projections used by the dynamic LGRS cases. */
+const PROJECTIONS = {
+  south: { projIsCustom: true, projEpsg: "TEST:SOUTH", projProj4String: SOUTH_CAP },
+  north: { projIsCustom: true, projEpsg: "TEST:NORTH", projProj4String: NORTH_CAP },
+  // The Apollo 14 seed: Web Mercator map with lunar lat/lon.
+  mercator: { projIsCustom: false, projEpsg: "EPSG:3857", projProj4String: "" },
+} satisfies Record<string, Pick<Mission, "projIsCustom" | "projEpsg" | "projProj4String">>;
 
 vi.mock("utils/useDocSelector", () => ({
   useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
@@ -137,7 +164,6 @@ vi.mock("utils/mapping/geoMath", () => ({
   },
   // passthrough other exports used elsewhere
   getTotalDistance: (..._args: unknown[]) => 0,
-  getBearingFromLatLngPoints: (..._args: unknown[]) => 0,
   getGridCoordinatesFromPoint: (..._args: unknown[]): null => null,
 }));
 
@@ -328,6 +354,51 @@ function lineFeatureCount(): number {
   return findLayerAtZIndex(Z_INDEX.GRID_LINES)!.getSource()!.getFeatures().length;
 }
 
+function lineFeatures(): Feature<LineString>[] {
+  return findLayerAtZIndex(Z_INDEX.GRID_LINES)!.getSource()!.getFeatures() as Feature<LineString>[];
+}
+
+function labelStyles(): Style[] {
+  return findLayerAtZIndex(Z_INDEX.GRID_LABELS)!
+    .getSource()!
+    .getFeatures()
+    .map((feature) => feature.getStyle() as Style);
+}
+
+function labelTexts(): string[] {
+  return labelStyles().map((style) => style.getText()!.getText() as string);
+}
+
+/** Switches the mission to dynamic LGRS and centres the view on `[lat, lon]`. */
+function setDynamicView(
+  projection: keyof typeof PROJECTIONS,
+  lat: number,
+  lon: number,
+  resolution: number
+): void {
+  Object.assign(mockMissionDoc, PROJECTIONS[projection]);
+  mockMissionDoc.gridRenderMode = "dynamic-lgrs";
+  const code = PROJECTIONS[projection].projEpsg;
+  map.setView(
+    new View({ projection: code, center: proj4("EPSG:4326", code, [lon, lat]), resolution })
+  );
+  map.renderSync();
+}
+
+/** The plan Grid should have drawn for the current view. */
+function planForView(overrides: Partial<LgrsRenderOptions> = {}): LgrsRenderPlan {
+  const extent = map.getView().calculateExtent(map.getSize());
+  return createLgrsRenderPlan({
+    adapter: getLgrsMapAdapter(getLgrsMapProjection(mockMissionDoc as Mission)),
+    extent: [extent[0], extent[1], extent[2], extent[3]],
+    resolution: map.getView().getResolution()!,
+    gridSpacingMode: "auto",
+    gridLabelInterval: "auto",
+    labelsVisible: true,
+    ...overrides,
+  });
+}
+
 function findLayerAtZIndex(zIndex: number): VectorLayer<VectorSource> | null {
   return (
     (map
@@ -340,6 +411,8 @@ function findLayerAtZIndex(zIndex: number): VectorLayer<VectorSource> | null {
 beforeEach(() => {
   mockGrid.current = null;
   mockMissionDoc.gridRenderMode = "server-file";
+  mockMissionDoc.planetRadius = 1737400;
+  Object.assign(mockMissionDoc, PROJECTIONS.south);
   mockBaseSpacing.current = 0;
   bounds.ctx = null;
   geoMathCalls.count = 0;
@@ -585,5 +658,101 @@ describe("Grid", () => {
 
     expect(findLayerAtZIndex(Z_INDEX.GRID_LINES)).toBeNull();
     expect(findLayerAtZIndex(Z_INDEX.GRID_LABELS)).toBeNull();
+  });
+});
+
+describe("Grid dynamic LGRS", () => {
+  beforeEach(() => {
+    store = makeStore(visibleGridState());
+  });
+
+  it("draws two-vertex lines on the canonical south LPS mission", () => {
+    setDynamicView("south", -89.99, 0, 1);
+    renderGrid();
+
+    const plan = planForView();
+    expect(plan.tier).toBe("box");
+    expect(lineFeatures()).toHaveLength(plan.lines.length);
+    expect(lineFeatures().every((f) => f.getGeometry()!.getCoordinates().length === 2)).toBe(true);
+    expect(labelTexts().sort()).toEqual(plan.labels.map((label) => label.text).sort());
+    expect(labelTexts().length).toBeGreaterThan(0);
+  });
+
+  it("draws the grid on a north-pole mission", () => {
+    setDynamicView("north", 89.99, 0, 1);
+    renderGrid();
+
+    const plan = planForView();
+    expect(plan.regions).toEqual([LGRS_CRS_LPS_NORTH]);
+    expect(lineFeatures().length).toBeGreaterThan(0);
+    expect(lineFeatures()).toHaveLength(plan.lines.length);
+    expect(labelTexts().sort()).toEqual(plan.labels.map((label) => label.text).sort());
+    expect(plan.labels.every((label) => /^[YZ]/.test(label.label!.prefix))).toBe(true);
+  });
+
+  it("draws an Apollo 14-like Web Mercator mission in LTM zone 21S", () => {
+    setDynamicView("mercator", -3.6, -17.5, 40);
+    renderGrid();
+
+    const plan = planForView();
+    expect(plan.regions).toEqual([getLtmCrsId(21, "S")]);
+    expect(lineFeatures().length).toBeGreaterThan(0);
+    expect(lineFeatures()).toHaveLength(plan.lines.length);
+    expect(labelTexts().sort()).toEqual(plan.labels.map((label) => label.text).sort());
+    expect(plan.labels.every((label) => label.label!.prefix.startsWith("21M"))).toBe(true);
+  });
+
+  it("stops lines at a zone seam and strokes the seam heavier", () => {
+    setDynamicView("mercator", -3.6, -20, 300);
+    renderGrid();
+
+    const plan = planForView();
+    expect(plan.regions).toEqual(
+      expect.arrayContaining([getLtmCrsId(20, "S"), getLtmCrsId(21, "S")])
+    );
+    const widths = lineFeatures().map((f) => (f.getStyle() as Style).getStroke()!.getWidth()!);
+    const seams = plan.lines.filter((line) => line.kind === "seam");
+    expect(seams.length).toBeGreaterThan(0);
+    expect(widths.filter((width) => width > 1)).toHaveLength(seams.length);
+    expect(widths.filter((width) => width === 1)).toHaveLength(plan.lines.length - seams.length);
+  });
+
+  it("reuses one label style per text across rebuilds", () => {
+    setDynamicView("south", -89.99, 0, 1);
+    renderGrid();
+    const before = new globalThis.Map(labelTexts().map((text, i) => [text, labelStyles()[i]]));
+
+    map.dispatchEvent("moveend");
+
+    const after = labelStyles();
+    expect(after.length).toBe(before.size);
+    labelTexts().forEach((text, i) => expect(after[i]).toBe(before.get(text)));
+  });
+
+  it("draws nothing for a mission off the lunar sphere radius", () => {
+    setDynamicView("south", -89.99, 0, 1);
+    mockMissionDoc.planetRadius = 1737000;
+    renderGrid();
+
+    expect(lineFeatures()).toHaveLength(0);
+  });
+
+  it("minimap draws the dashboard's dynamic spacing", async () => {
+    setDynamicView("south", -89.99, 0, 1);
+    renderGridInBounds("minimap");
+    const own = planForView({ labelsVisible: false });
+    expect(lineFeatureCount()).toBe(own.lines.length);
+
+    const { flushSync } = await import("react-dom");
+    flushSync(() => bounds.ctx!.setGridSpacing({ line: 100, label: 100 }));
+    renderGridInBounds("minimap");
+
+    const inherited = planForView({
+      labelsVisible: false,
+      inheritedSpacing: { line: 100, label: 100 },
+    });
+    expect(inherited.lineSpacing).toBe(100);
+    expect(lineFeatureCount()).toBe(inherited.lines.length);
+    expect(inherited.lines.length).toBeLessThan(own.lines.length);
   });
 });

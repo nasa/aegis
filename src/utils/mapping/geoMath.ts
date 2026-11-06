@@ -1,7 +1,7 @@
 import meanBy from "lodash/meanBy";
 import isEqual from "lodash/isEqual";
-import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
-import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
+import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
+import { getLgrsGridBearing } from "utils/lgrs/bearing";
 
 /**
  * This uses the 'haversine' formula to calculate the great-circle distance between two points
@@ -31,8 +31,8 @@ export function getDistanceBetweenTwoCoordinates(
 
 /**
  * Find the grid coordinates of a point depending on which grid should be used.
- * LGRS display values come from the pinned LGRS port; surf-nav is only used
- * below for LPS grid-north bearings.
+ * LGRS values cover the whole Moon (LTM, LPS N, LPS S) at 10 m; `dynamicLgrs` selects the
+ * `"full"` style with the zone/band prefix.
  * @param {AEGISPoint} point - the point to find coordinates for
  * @param {number} radius - The radius of the planet in question (usually meters)
  * @reference http://www.movable-type.co.uk/scripts/latlong.html
@@ -47,7 +47,11 @@ export function getGridCoordinatesFromPoint(
   if (!point) return null;
 
   if (usingLGRSCoordinates) {
-    return getSouthLpsDisplayCoordinate(point, dynamicLgrs ? "full" : "condensed");
+    return formatLgrsFromLatLon(
+      point,
+      LGRS_DISPLAY_PRECISION_METERS,
+      dynamicLgrs ? "full" : "condensed"
+    );
   } else if (globalGrid) {
     return findGlobalGridCoordsFromPoint(globalGrid, point, radius);
   } else {
@@ -264,12 +268,9 @@ export function getTrueBearingFromLatLngPoints(
 /**
  * Segment bearing appropriate to the mission's coordinate frame.
  *
- * LGRS/lunar missions use the LPS grid-north bearing: near the projection's
- * south-pole origin true north is degenerate, so bearings are given relative to
- * the lunar polar grid. Every other mission (e.g. Earth / Web Mercator) uses a
- * true-north great-circle azimuth — running those through the lunar LPS
- * projection rotates the frame by roughly the point's longitude, which is why an
- * east-west line otherwise reports a bogus bearing.
+ * LGRS missions use the grid-north bearing in the origin's LGRS CRS (LPS or LTM zone), and
+ * return NaN when either point cannot be projected. Other missions (e.g. Earth / Web Mercator)
+ * use a true-north great-circle azimuth.
  */
 export function getSegmentBearing(
   origin: AEGISPoint,
@@ -277,8 +278,13 @@ export function getSegmentBearing(
   usingLGRSCoordinates: boolean
 ): number {
   return usingLGRSCoordinates
-    ? getBearingFromLatLngPoints(origin, destination)
+    ? getLgrsGridBearing(origin, destination)
     : getTrueBearingFromLatLngPoints(origin, destination);
+}
+
+/** Whole-degree bearing label, or an em dash when the bearing could not be computed. */
+export function formatBearingDegrees(bearing: number): string {
+  return Number.isFinite(bearing) ? `${Math.round(bearing)}°` : "—";
 }
 
 /**
