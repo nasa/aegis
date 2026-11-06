@@ -1,6 +1,5 @@
 import "utils/loadEnv";
 import { watchTerrainCache } from "server/terrain/terrainProfileCache";
-import { watchLanderElevation } from "server/terrain/landerElevation";
 import type { Server as NetServer } from "http";
 import { createServer } from "http";
 import { v4 as uuidv4 } from "uuid";
@@ -375,7 +374,6 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
     const handle = missionRepo.handles[documentId] as DocHandle<Mission> | undefined;
     if (!handle) return;
     watchTerrainCache(handle);
-    watchLanderElevation(handle);
   });
   await loadRunningMissionDocuments(missionRepo);
   server.listen(4001, () => {

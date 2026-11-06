@@ -35,7 +35,6 @@ vi.mock("components/admin/projection", () => ({ default: (): null => null }));
 vi.mock("components/admin/gridUpload", () => ({ default: (): null => null }));
 vi.mock("http-client/mission", () => ({
   getMissionDems: async (): Promise<MissionDem[]> => [],
-  updateMissionFields: vi.fn(),
 }));
 vi.mock("packages/getCurrentUser", () => ({ getCurrentUser: vi.fn() }));
 

@@ -20,6 +20,7 @@ import { LastEditedNumeric } from "components/interface/_global-elements";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { getPlanetRadius } from "utils/planets";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { setExpandedPosEntryUuid, setSelectedPosEntryUuid } from "store/rex";
 import { setHoverUuidsForPosEntry } from "store/hover";
@@ -214,8 +215,8 @@ const PositionRow: FunctionComponent<{
   const isHovered = useAppSelector((s) => s.hover.posEntryItemUuid === entry.uuid, refEqual);
   const rowRef = useRef<HTMLTableRowElement | null>(null);
   const distanceToLander = useMissionDocSelector((m) =>
-    entry.location && m.landerLocation && m.planetRadius
-      ? getDistanceBetweenTwoCoordinates(entry.location, m.landerLocation, m.planetRadius)
+    entry.location && m.landerLocation
+      ? getDistanceBetweenTwoCoordinates(entry.location, m.landerLocation, getPlanetRadius(m))
       : NaN
   );
 

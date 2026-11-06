@@ -379,4 +379,25 @@ describe("Terrain profile client", () => {
       })
     );
   });
+
+  test("retries point sampling until the selected DEM has synced", async () => {
+    const expectedDem = { demFilePath: "Data/selected.tif", demResolution: 0.5 };
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 409, json: async () => ({ message: "DEM has not synced" }) })
+      .mockResolvedValueOnce({
+        status: 200,
+        json: async () => ({ status: "success", data: { elevationsMeters: [[0, 0]] } }),
+      });
+    const response = await getElevationSinglePoint({
+      missionId: 42,
+      point: { lat: -85, lng: 0 },
+      expectedDem,
+    });
+    expect(response.data).toBe(0);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    for (const [, options] of vi.mocked(global.fetch).mock.calls) {
+      expect(JSON.parse(options.body as string).expectedDem).toEqual(expectedDem);
+    }
+  });
 });
