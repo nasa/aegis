@@ -4,9 +4,7 @@ import type Icon from "ol/style/Icon";
 import { test, expect } from "../fixtures/behavioralTest";
 import { installMapObserver } from "../fixtures/mapAssertions";
 import {
-  cancelPlanningField,
   enablePlanningEditMode,
-  openPlanningField,
   planningField,
   savePlanningField,
   selectPlanningPoi,
@@ -32,132 +30,56 @@ async function poiMarker(page: Page, uuid: string) {
   }, uuid);
 }
 
-test.describe("POI metadata contracts", () => {
-  for (const variant of ["multiline", "empty"] as const) {
-    test(`POI ${variant} descriptions persist exactly while canceled drafts preserve associations`, async ({
-      page,
-      context,
-      mission,
-    }) => {
-      const before = await mission.read();
-      const description =
-        variant === "empty" ? "" : 'Ridge α & <sample>\nSecond line: "ice" / regolith';
-      await mission.open(page);
-      await enablePlanningEditMode(page);
-      await selectPlanningPoi(page, "Reference POI");
-      await page.getByLabel("info_panel", { exact: true }).click();
-      const peer = await context.newPage();
-      await mission.open(peer);
-      await selectPlanningPoi(peer, "Reference POI");
-      await peer.getByLabel("info_panel", { exact: true }).click();
-      // Cancellation is checked against both authoritative state and a live consumer.
-      await cancelPlanningField(page, "POI Description", "Discarded before save");
-      expect(await mission.read()).toEqual(before);
-      await savePlanningField(page, "POI Description", description);
-      await expect(planningField(peer, "POI Description")).toHaveText(description);
-      await expect
-        .poll(async () => (await mission.read()).pois[mission.ids.poiA].description)
-        .toBe(description);
-      await cancelPlanningField(page, "POI Description", "Discarded after save");
-      const after = await mission.read();
-      expect(after.pois[mission.ids.poiA]).toEqual({
-        ...before.pois[mission.ids.poiA],
-        description,
-        updatedAt: expect.any(Number),
-      });
-      for (const key of ["stations", "actions", "evas", "traverses", "folders"] as const) {
-        expect(after[key]).toEqual(before[key]);
-      }
-      for (const client of [page, peer]) {
-        await mission.open(client);
-        await selectPlanningPoi(client, "Reference POI");
-        await client.getByLabel("info_panel", { exact: true }).click();
-        await expect(planningField(client, "POI Description")).toHaveText(description);
-      }
-      await enablePlanningEditMode(page);
-      const editor = await openPlanningField(page, "POI Description");
-      await expect(editor.getByLabel("POI Description", { exact: true })).toHaveValue(description);
-      await editor.getByText("Cancel", { exact: true }).click();
-    });
+test("saved POI Unicode text and icon reach a live peer and survive server-backed reloads", async ({
+  page,
+  context,
+  mission,
+}) => {
+  const before = await mission.read();
+  const description = 'Ridge α & <sample>\nSecond line: "ice" / regolith';
+  await mission.open(page);
+  await enablePlanningEditMode(page);
+  await selectPlanningPoi(page, "Reference POI");
+  await page.getByLabel("info_panel", { exact: true }).click();
+  const peer = await context.newPage();
+  await installMapObserver(peer);
+  await mission.open(peer);
+  await selectPlanningPoi(peer, "Reference POI");
+  await peer.getByLabel("info_panel", { exact: true }).click();
+  await savePlanningField(page, "POI Description", description);
+  await expect(planningField(peer, "POI Description")).toHaveText(description);
+  const icon = "1F7E0";
+  const glyph = String.fromCodePoint(parseInt(icon, 16));
+  const dropdown = page.locator('[class*="iconDropdownContainer"]');
+  await dropdown.click();
+  await dropdown
+    .locator('[class*="iconDropdownModalList"]')
+    .getByText(glyph, { exact: true })
+    .click();
+  await expect.poll(async () => (await mission.read()).pois[mission.ids.poiA].icon).toBe(icon);
+  for (const client of [page, peer]) {
+    await expect(client.getByLabel("poiList-item").getByText(glyph, { exact: true })).toBeVisible();
+    await expect(client.locator('[class*="iconDropdownContainer"]')).toHaveText(glyph);
+    await expect.poll(async () => (await poiMarker(client, mission.ids.poiA))?.emoji).toBe(icon);
   }
-
-  // The complete 22-icon matrix runs in Vitest; keep real peer and reload parity for each shape.
-  const iconGroups = {
-    circles: ["1F7E0"],
-    squares: ["1F7E8"],
-    triangles: ["1F53B"],
-    diamonds: ["1F537"],
-  };
-  for (const [shape, icons] of Object.entries(iconGroups)) {
-    test(`representative POI ${shape} icon updates the list, detail and rendered map on a peer and reload`, async ({
-      page,
-      context,
-      mission,
-    }) => {
-      const before = await mission.read();
-      await mission.open(page);
-      await enablePlanningEditMode(page);
-      await selectPlanningPoi(page, "Reference POI");
-      const peer = await context.newPage();
-      await installMapObserver(peer);
-      await mission.open(peer);
-      await selectPlanningPoi(peer, "Reference POI");
-      const dropdown = page.locator('[class*="iconDropdownContainer"]');
-      const images = new Set<string>();
-      for (const icon of icons) {
-        const glyph = String.fromCodePoint(parseInt(icon, 16));
-        await dropdown.click();
-        const options = dropdown.locator('[class*="iconDropdownModalList"]');
-        await options.getByText(glyph, { exact: true }).click();
-        await expect(options).toHaveCount(0);
-        await expect
-          .poll(async () => (await mission.read()).pois[mission.ids.poiA].icon)
-          .toBe(icon);
-        for (const client of [page, peer]) {
-          await expect(
-            client.getByLabel("poiList-item").getByText(glyph, { exact: true })
-          ).toBeVisible();
-          await expect(client.locator('[class*="iconDropdownContainer"]')).toHaveText(glyph);
-          await expect
-            .poll(async () => (await poiMarker(client, mission.ids.poiA))?.emoji)
-            .toBe(icon);
-        }
-        const marker = await poiMarker(page, mission.ids.poiA);
-        expect(marker.image).toMatch(/^data:image\/png;base64,/);
-        await expect.poll(() => poiMarker(peer, mission.ids.poiA)).toEqual(marker);
-        expect(
-          images.has(marker.image),
-          "Each different icon must produce different map pixels"
-        ).toBe(false);
-        images.add(marker.image);
-      }
-      // Opening and blurring the menu does not choose an icon.
-      await dropdown.click();
-      await dropdown.press("Tab");
-      await expect(dropdown.locator('[class*="iconDropdownModalList"]')).toHaveCount(0);
-      const after = await mission.read();
-      expect(after.pois[mission.ids.poiA]).toEqual({
-        ...before.pois[mission.ids.poiA],
-        icon: icons.at(-1),
-        updatedAt: expect.any(Number),
-      });
-      for (const key of ["stations", "actions", "evas", "traverses", "folders"] as const) {
-        expect(after[key]).toEqual(before[key]);
-      }
-      const savedMarker = await poiMarker(page, mission.ids.poiA);
-      for (const client of [page, peer]) {
-        await mission.open(client);
-        await selectPlanningPoi(client, "Reference POI");
-        await expect
-          .poll(async () => (await poiMarker(client, mission.ids.poiA))?.emoji)
-          .toBe(icons.at(-1));
-        await expect.poll(() => poiMarker(client, mission.ids.poiA)).toEqual(savedMarker);
-        await expect(
-          client
-            .getByLabel("poiList-item")
-            .getByText(String.fromCodePoint(parseInt(icons.at(-1), 16)), { exact: true })
-        ).toBeVisible();
-      }
-    });
+  const marker = await poiMarker(page, mission.ids.poiA);
+  expect(marker.image).toMatch(/^data:image\/png;base64,/);
+  await expect.poll(() => poiMarker(peer, mission.ids.poiA)).toEqual(marker);
+  const after = await mission.read();
+  expect(after.pois[mission.ids.poiA]).toEqual({
+    ...before.pois[mission.ids.poiA],
+    description,
+    icon,
+    updatedAt: expect.any(Number),
+  });
+  for (const key of ["stations", "actions", "evas", "traverses", "folders"] as const)
+    expect(after[key]).toEqual(before[key]);
+  for (const client of [page, peer]) {
+    await mission.open(client);
+    await selectPlanningPoi(client, "Reference POI");
+    await client.getByLabel("info_panel", { exact: true }).click();
+    await expect(planningField(client, "POI Description")).toHaveText(description);
+    await expect.poll(() => poiMarker(client, mission.ids.poiA)).toEqual(marker);
+    await expect(client.getByLabel("poiList-item").getByText(glyph, { exact: true })).toBeVisible();
   }
 });

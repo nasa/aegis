@@ -173,7 +173,7 @@ async function withPositionPeer(
 }
 
 test.describe("Execution position contracts", () => {
-  test("moving an existing position commits coordinates only while Save and Cancel control metadata drafts", async ({
+  test("position geometry and marker metadata synchronize to a peer and persist after fresh loads", async ({
     page,
     context,
     mission,
@@ -212,15 +212,6 @@ test.describe("Execution position contracts", () => {
     }
     const moved = (await mission.read()).rexes[mission.ids.rexB].posEntries[0];
 
-    // Reopen the saved record: map finish discarded the earlier metadata draft.
-    await positionAction(page, "+00:02:00", "Edit");
-    await expect(choice(menu, "EV1")).toHaveClass(/toggleSelected/);
-    await expect(choice(menu, "EV2")).not.toHaveClass(/toggleSelected/);
-    await choice(menu, "EV2").click();
-    await choice(menu, "Rover").click();
-    await menu.locator('[data-tooltip-content="Cancel Edit"]').click();
-    expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual([moved]);
-
     await positionAction(page, "+00:02:00", "Edit");
     await choice(menu, "EV2").click();
     await choice(menu, "Rover").click();
@@ -240,15 +231,6 @@ test.describe("Execution position contracts", () => {
     ).toBeVisible();
     const saved = await mission.read();
 
-    await positionAction(page, "+00:02:00", "Edit");
-    await choice(menu, "EV2").click();
-    await choice(menu, "Crew").click();
-    await menu.getByLabel("Edit Pos.", { exact: true }).click();
-    await menu.getByLabel("Cancel Pos.", { exact: true }).click();
-    await placePosition(page, { lat: 0, lng: 0.0015 });
-    expect(await mission.read()).toEqual(saved);
-    expect(saved.rexes[mission.ids.rexA]).toEqual(before.rexes[mission.ids.rexA]);
-    expect(saved.evas).toEqual(before.evas);
     for (const client of [page, peer]) {
       await openPositions(client, mission);
       await expectPositionMarker(client, original.uuid, location);

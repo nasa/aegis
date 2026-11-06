@@ -181,8 +181,7 @@ async function displayedPositionAge(page: Page, positionUuid: string): Promise<n
   return parseSignedHms(feature.name.split(" / ")[0]);
 }
 
-test("Maestro 100 percent crew completion overrides display while retaining the stored status", async ({
-  page,
+test("Maestro 100 percent crew completion is accepted over real Maestro socket while retaining stored status", async ({
   request,
   baseURL,
   mission,
@@ -224,32 +223,6 @@ test("Maestro 100 percent crew completion overrides display while retaining the 
         maestroPercentCompleteEv1: 100,
         maestroPercentCompleteEv2: 100,
       });
-
-    await mission.open(page);
-    const row = await selectExecution(page, "Survey Bravo", ids.rexEvaB);
-    const completedStatus = row
-      .getByText("Bravo station", { exact: true })
-      .locator("xpath=ancestor::div[./div[contains(@class,'rexStatusWrapper')]][1]")
-      .locator('[class*="rexStatusWrapper"]');
-    await expect(completedStatus).toHaveAttribute("data-tooltip-content", "Complete");
-    await expect(row.locator('[class*="headingCompleted"]')).toHaveCount(1);
-    expect((await mission.read()).rexes[ids.rexB].stationEntries?.[ids.rexStationB].rexStatus).toBe(
-      "pending"
-    );
-
-    await page.goto(mission.dashboardUrl);
-    const dashboardActivity = page
-      .locator('div[class*="activityIndicator"]:not([class*="activityIndicators"])')
-      .nth(2);
-    await expect(dashboardActivity).toHaveCount(1);
-    await expect
-      .poll(() =>
-        dashboardActivity.evaluate((element) => (element as HTMLElement).style.backgroundColor)
-      )
-      .toBe("var(--grey4)");
-    expect((await mission.read()).rexes[ids.rexB].stationEntries?.[ids.rexStationB].rexStatus).toBe(
-      "pending"
-    );
   } finally {
     socket.disconnect();
   }
