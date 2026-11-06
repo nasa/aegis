@@ -45,8 +45,8 @@ Refuses instead of guessing:
 Uses fiona (which bundles its own GDAL/OGR) plus pyproj for the coordinate
 transform and CRS introspection -- both provided as conda-forge binaries by the
 pixi env, so run it under ``pixi run`` (fiona is not importable under a bare
-``.venv``/``uv``). Shapely (used only for ``--repair-invalid``) is a pure-Python
-wheel already pulled in transitively via geopandas.
+``.venv``/``uv``). Shapely (used only for ``--repair-invalid``) is also provided by
+the pixi env.
 
 Usage:
     cd GIS_data_conversion_pipeline

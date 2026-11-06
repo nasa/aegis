@@ -67,7 +67,6 @@ DEFAULT_DESCRIPTIONS = {
     "slope": "Thematic map indicating degrees of slope per pixel unit area. Derived from DEM.",
     "tri": "Thematic map showing Terrain Ruggedness Index (TRI) which measures the absolute elevation difference between a central pixel and its neighboring pixels. Units are in meters of elevation change per spatial resolution of the digital elevation model.",
     "viewshed": "Thematic map layer visualizing the field of view from a specific location, based on the landscape data in the raster digital elevation model (DEM).",
-    "grid": "Grid structure derived from the Lunar Grid Reference System (LGRS) with grid sizes of 100 meter and 1 kilometer.",
     "nac": "Lunar Reconnaissance Orbiter Camera (LROC) Narrow Angle Camera (NAC) high resolution panchromatic imagery of the lunar surface.",
     "wac": "Lunar Reconnaissance Orbiter Camera (LROC) Wide Angle Camera (WAC) imagery at ~100 meters/pixel in seven colour bands.",
     "geounits": "Thematic map displaying colorized symbology for surface geologic units classified by changes in rock type and geologic structures.",

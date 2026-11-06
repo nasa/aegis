@@ -20,8 +20,7 @@ pixi install
 
 The main pipeline: turns a GIS data drop (DEM, NAC mosaic, slope, vectors) into AEGIS-ready
 cap-grid tile layers + data products for a lunar south-pole mission, **and registers them on
-a running AEGIS server over HTTP** (mission fields, header layers, sublayers, active LGRS
-grid) — optionally zipping + uploading the results to Box. You give it an existing
+a running AEGIS server over HTTP** (mission fields, header layers, sublayers) — optionally zipping + uploading the results to Box. You give it an existing
 **`--mission-id`** (created in the AEGIS admin); output lands in
 `<static>/missionFiles/<id>/` (`STATIC_DIR` from the repo `.env`).
 
@@ -36,26 +35,27 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 #### Selecting which steps run
 
 ```text
-0 stage · 1 dem · 2 nac · 3 slope · 4 products · 5 vector · 6 rasters · 7 vectors ·
-8 grid · 9 register · 10 box
+0 stage · 1 dem · 2 slope · 3 products · 4 vector · 5 rasters · 6 vectors ·
+7 horizons · 8 vectortiles · 9 contours · 10 cogs · 11 time-cogs · 12 categorical-cogs ·
+13 viewshed-cogs · 14 keepout-cogs · 15 lyrx-cogs · 16 register · 17 box
 ```
 
-By default the pipeline runs only the steps whose inputs are present (e.g. `grid` when a
-lander location is given), plus `register`/`box` when `--register`/`--box` are passed.
+By default the pipeline runs only the steps whose inputs are present (e.g. `dem` when a
+DEM is present), plus `register`/`box` when `--register`/`--box` are passed.
 
 | You want…                         | Flag                                                          |
 | --------------------------------- | ------------------------------------------------------------- |
 | Default (input-driven) steps      | _(omit `--steps`/`--from`)_                                   |
 | Specific steps, by name           | `--steps dem vector`                                          |
-| Specific steps, by index          | `--steps 1 5`                                                 |
-| Everything from a step onward     | `--from slope` (or `--from 3`)                                |
+| Specific steps, by index          | `--steps 1 4`                                                 |
+| Everything from a step onward     | `--from slope` (or `--from 2`)                                |
 | Rebuild layers that already exist | add `--overwrite` (tile steps skip existing layers otherwise) |
 
 #### Specifying source & destination paths
 
 Output goes to `<static>/missionFiles/<mission-id>/` by default (override with `--out-dir`); each
 step reads a specific input under `--in-root` that you can override individually. Outputs land in
-`<out>/Data/` (DEM, vectors, grid coords, conversion report) and `<out>/Layers/` (tile layers).
+`<out>/Data/` (DEM, vectors, conversion report) and `<out>/Layers/` (tile layers).
 
 | Step       | Source flag (overrides the `--in-root` default)             | Destination (under `--out-dir`)                     |
 | ---------- | ----------------------------------------------------------- | --------------------------------------------------- |
@@ -65,8 +65,7 @@ step reads a specific input under `--in-root` that you can override individually
 | `vector`   | `--in-ellipse <ellipse.shp>`                                | `Data/ellipse.geojson`                              |
 | `rasters`  | `--in-raster <path>` (repeatable; `--raster-name` optional) | `Layers/<name>/` each                               |
 | `vectors`  | `--in-vector <path>` (repeatable, shp/geojson)              | `Data/<stem>.geojson` each                          |
-| `grid`     | `--lander-lat/--lander-lng` (`--grid-extent 10km`)          | `grid_source.geojson`                               |
-| `register` | `--mission-id` (+ `--aegis-url`/`--token`)                  | mission fields + layers/sublayers + active grid     |
+| `register` | `--mission-id` (+ `--aegis-url`/`--token`)                  | mission fields + layers/sublayers                   |
 | `box`      | `--mission-name`                                            | zips → Box `<mission name>/{Data,Layers}/`          |
 
 Omit a source flag and the step uses its default path under `--in-root` (the A03MP026 layout).
@@ -77,7 +76,7 @@ Use **`--layer-prefix <PREFIX>`** to namespace every generated layer folder **an
 AEGIS layer name (e.g. `--layer-prefix LOLA` → `Layers/LOLA_hillshade`, layer name
 `"LOLA_hillshade"`). This lets you run multiple DEMs into the **same** mission without one
 run clobbering another's layer folders. It affects only `Layers/` outputs; `Data/` products
-(DEM COG, grid, vectors) are mission-level and stay unprefixed. Pair it with
+(DEM COG, vectors) are mission-level and stay unprefixed. Pair it with
 **`--dem-products-only`** when the extra DEM is _products-only_: that skips the `dem` step (no
 `Data/` COG) and leaves the mission's `demFilePath`/`demResolution` untouched on register, so
 the supplementary DEM contributes layers only — not a new mission DEM.
@@ -106,11 +105,6 @@ pixi run python esri-to-aegis-lunar-southpole/main.py --mission-id 123 --summary
 
 These take positional `input` / `output` paths directly (no `--in-root`/`--out-dir`):
 
-- [`grid/generate_lgrs.py`](esri-to-aegis-lunar-southpole/grid/) — generate the raw LGRS grid
-  for a landing site (USGS `lgrs` package; replaces the manual ESRI export).
-  `generate_lgrs.py --lat <deg> --lng <deg> [--extent 10km] [--precision 100] -o <raw.geojson>`.
-- [`grid/convert_lgrs.py`](esri-to-aegis-lunar-southpole/grid/) — raw LGRS GeoJSON → AEGIS
-  mission-grid GeoJSON. `convert_lgrs.py <raw.geojson> [-o <outdir>]` (default: alongside input).
 - [`timeaware/singleband_timeaware.py`](esri-to-aegis-lunar-southpole/timeaware/) —
   single-band time series → tiles + `manifest.json`.
   `singleband_timeaware.py <indir> --datatype <mazarico|quickmap> [-o <outdir>]`.

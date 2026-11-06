@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Register a built mission into AEGIS over HTTP (mission fields + layers + sublayers + grid).
+"""Register a built mission into AEGIS over HTTP (mission fields + layers + sublayers).
 
 Given a built output root (``<static>/missionFiles/<id>`` with ``Data/`` and ``Layers/``)
 and an existing mission id, this:
@@ -13,8 +13,6 @@ and an existing mission id, this:
      ``properties.json``), a COG (``.tif``/``.tiff``), or a PMTiles archive (``.pmtiles``); plus one
      per ``Data/*.geojson`` and the shared external NAC tile layer.
   4. Skips any sublayer whose (header, path) already exists, then POSTs the rest.
-  5. If a grid GeoJSON is present, POSTs it as the **active** mission grid via
-     ``POST /api/v1/grid`` (the server writes its coordinates to ``Data/<name>.json``).
 
 Stdlib-only (no geospatial imports) so it runs under ``.venv`` or ``pixi``.
 
@@ -464,7 +462,7 @@ def classify_layer_dir(layer_dir: Path) -> tuple[str, Path] | None:
 
 
 def find_vector_files(data_dir: Path) -> list[Path]:
-    """Vector GeoJSON files under Data/, excluding the pipeline's mission-grid source."""
+    """Vector GeoJSON files under Data/, excluding legacy mission-grid artifacts."""
     if not data_dir.exists():
         return []
     return sorted(
@@ -472,7 +470,7 @@ def find_vector_files(data_dir: Path) -> list[Path]:
         for f in data_dir.iterdir()
         if f.is_file()
         and f.suffix.lower() == ".geojson"
-        and f.name != config.OUT_GRID_SOURCE_NAME
+        and f.name != "grid_source.geojson"
     )
 
 
@@ -496,60 +494,6 @@ def find_dem_file(data_dir: Path) -> Path | None:
 
 
 # ---------------------------------------------------------------------------
-# Mission grid (LGRS)
-# ---------------------------------------------------------------------------
-
-
-def build_mission_grid(
-    geojson_path: Path, mission_id: int, existing_grid: dict | None
-) -> dict:
-    """Build a MissionGrid (gridDefinition + 2D coordinates) from an AEGIS grid GeoJSON.
-
-    Mirrors the admin's gridUpload.tsx transform: a FeatureCollection of Point features with
-    row/column/id/L_coord/R_coord is turned into a ``coordinates[row][col]`` array with the
-    row index inverted (``row_total - row - 1``) and ``[lon,lat]`` → ``{lat,lng}``. Reuses the
-    existing grid's fileName when present so re-runs update in place. There is one grid per
-    mission; its metadata is stored on the mission Automerge doc (``mission.serverFileGrid``).
-    """
-    fc = json.loads(geojson_path.read_text(encoding="utf-8"))
-    # The raw GeoJSON's internal name is just the scratch filename ("raw_grid"); use a clean,
-    # stable grid name so the Data/ coordinate file and admin label are meaningful.
-    name = config.GRID_DEFAULT_NAME
-    row_total = int(fc["row_total"])
-    col_total = int(fc["column_total"])
-
-    coordinates: list[list[dict]] = [[None] * col_total for _ in range(row_total)]  # type: ignore[list-item]
-    for feat in fc["features"]:
-        props = feat["properties"]
-        lon, lat = (
-            feat["geometry"]["coordinates"][0],
-            feat["geometry"]["coordinates"][1],
-        )
-        row, col = int(props["row"]), int(props["column"])
-        inv_row = row_total - row - 1
-        label = f"{props.get('L_coord', '')} {props.get('R_coord', '')}".strip()
-        coordinates[inv_row][col] = {
-            "id": props.get("id"),
-            "index": {"row": inv_row, "col": col},
-            "coordinates": {"lat": lat, "lng": lon},
-            "name": label,
-        }
-
-    prior = (existing_grid or {}).get("gridDefinition") or {}
-    file_name = prior.get("fileName") or f"{name}.json"
-
-    return {
-        "gridDefinition": {
-            "numRows": row_total,
-            "numCols": col_total,
-            "name": name,
-            "fileName": file_name,
-        },
-        "coordinates": coordinates,
-    }
-
-
-# ---------------------------------------------------------------------------
 # Top-level
 # ---------------------------------------------------------------------------
 
@@ -561,10 +505,9 @@ def register_mission(
     out_dir: Path,
     mission_fields: dict | None,
     include_external_nac: bool = True,
-    grid_geojson: Path | None = None,
     dry_run: bool = False,
 ) -> None:
-    """Update mission fields, ensure header layers, upsert sublayers, and register the grid."""
+    """Update mission fields, ensure header layers, upsert sublayers."""
     out_dir = out_dir.resolve()
     layers_dir = out_dir / config.OUT_LAYERS_DIRNAME
     data_dir = out_dir / config.OUT_DATA_DIRNAME
@@ -691,22 +634,6 @@ def register_mission(
     else:
         print("  no new sublayers.")
 
-    # ── 5. mission grid (active) ───────────────────────────────────────────
-    if grid_geojson and grid_geojson.exists():
-        if dry_run:
-            print(f"  [dry-run] would register active grid from {grid_geojson.name}")
-        else:
-            existing = client.get_grid(mission_id)
-            grid = build_mission_grid(grid_geojson, mission_id, existing)
-            client.upsert_grid(mission_id, grid, upsert_full_grid=True)
-            grid_definition = grid["gridDefinition"]
-            print(
-                f"  registered active grid '{grid_definition['name']}' "
-                f"({grid_definition['numRows']}x{grid_definition['numCols']}) "
-                f"-> Data/{grid_definition['fileName']}"
-            )
-    elif grid_geojson:
-        print(f"  [warn] grid source not found: {grid_geojson}", file=sys.stderr)
 
 
 def main() -> None:
@@ -744,9 +671,6 @@ def main() -> None:
         "--no-mission-fields", action="store_true", help="Do not update mission fields."
     )
     parser.add_argument(
-        "--grid", action="store_true", help="Register the mission grid."
-    )
-    parser.add_argument(
         "--dry-run", action="store_true", help="Print actions without calling the API."
     )
     args = parser.parse_args()
@@ -772,8 +696,6 @@ def main() -> None:
             dem_resolution=args.dem_resolution,
         )
 
-    grid_geojson = None if not args.grid else (args.out / config.OUT_GRID_SOURCE_PATH)
-
     client = AegisApiClient(args.aegis_url, token)
     register_mission(
         client,
@@ -781,7 +703,6 @@ def main() -> None:
         out_dir=args.out,
         mission_fields=mission_fields,
         include_external_nac=not args.no_external_nac,
-        grid_geojson=grid_geojson,
         dry_run=args.dry_run,
     )
 
