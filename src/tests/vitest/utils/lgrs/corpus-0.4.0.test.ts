@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { getLgrsGridBearing } from "utils/lgrs/bearing";
 import { classifyLatLon } from "utils/lgrs/crs";
 import { formatLgrs, formatLgrsLabel } from "utils/lgrs/format";
 import { projectLatLon, unprojectToLatLon } from "utils/lgrs/projection";
@@ -90,12 +91,6 @@ const boundaries = loadFixture<{
   projectedCases: LabelCase[];
 }>("boundaries.json");
 const bearingCases = loadFixture<{ cases: BearingCase[] }>("bearings.json").cases;
-
-// Lazy glob so the other suites still run while `utils/lgrs/bearing` does not exist yet.
-const BEARING_MODULE = "../../../../utils/lgrs/bearing.ts";
-const bearingModules = import.meta.glob<{
-  getLgrsGridBearing: (origin: AEGISPoint, destination: AEGISPoint) => number;
-}>("../../../../utils/lgrs/bearing.ts");
 
 class Mismatches {
   private readonly messages: string[] = [];
@@ -454,10 +449,8 @@ describe("lgrs 0.4.0 reference corpus", () => {
       mismatches.assertNone();
     });
 
-    it("matches the oracle grid bearing in the origin CRS", async () => {
-      const loadBearingModule = bearingModules[BEARING_MODULE];
-      expect(loadBearingModule, "utils/lgrs/bearing.ts is missing").toBeDefined();
-      const { getLgrsGridBearing } = await loadBearingModule!();
+    it("matches the oracle grid bearing in the origin CRS", () => {
+      expect(bearingCases.length).toBeGreaterThan(0);
       const mismatches = new Mismatches("bearings");
       for (const testCase of bearingCases) {
         const actual = getLgrsGridBearing(testCase.origin, testCase.destination);

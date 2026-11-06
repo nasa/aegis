@@ -1,21 +1,14 @@
 /**
- * Surf-nav bearing bridge. LGRS owns the LPS projection; surf-nav supplies
- * only the planar grid-north bearing calculation.
+ * Legacy south-LPS bearing bridge. Projects both points into south LPS (whatever their latitude)
+ * with the LGRS projection and applies surf-nav's planar grid-north bearing. For the
+ * whole-Moon origin-CRS bearing use `getLgrsGridBearing` from `utils/lgrs/bearing`.
  */
-import { latlong_to_lps } from "utils/lgrs/southLps";
-import { range_bearing_from_xy } from "./orienteering";
+import { getGridBearingInCrs } from "utils/lgrs/bearing";
+import { LGRS_CRS_LPS_SOUTH } from "utils/lgrs/crs";
 
+/** South LPS grid bearing in [0, 360); 0 for a zero-length segment or an unprojectable point. */
 export function getBearingFromLatLngPoints(origin: AEGISPoint, destination: AEGISPoint): number {
-  const oLpsPair = latlong_to_lps(origin.lat, origin.lng);
-  const dLpsPair = latlong_to_lps(destination.lat, destination.lng);
-  if (!oLpsPair || !dLpsPair) return 0;
-
-  const rangeBearing: SN_RangeBearingPair = range_bearing_from_xy(
-    dLpsPair.e_lps,
-    dLpsPair.n_lps,
-    oLpsPair.e_lps,
-    oLpsPair.n_lps
-  );
-
-  return rangeBearing.range === 0 ? 0 : rangeBearing.bearing;
+  if (!origin || !destination) return 0;
+  const bearing = getGridBearingInCrs(origin, destination, LGRS_CRS_LPS_SOUTH);
+  return Number.isNaN(bearing) ? 0 : bearing;
 }
