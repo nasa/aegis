@@ -23,7 +23,6 @@ import {
   faFolder,
   faFolderOpen,
   faNoteSticky,
-  faPen,
   faTrashAlt,
   faBan,
 } from "@fortawesome/free-solid-svg-icons";
@@ -511,7 +510,6 @@ const AssetRow: FunctionComponent<{
     folder ? styles.folderItem : "",
     isSelected ? styles.assetRowSelected : isHovered ? styles.assetRowHover : "",
     isExpanded ? styles.assetRowExpanded : "",
-    isEditing ? styles.assetRowEditing : "",
     isDragging ? styles.assetRowDragging : "",
     !asset.visible || inheritedHidden ? styles.assetRowHidden : "",
   ].join(" ");
@@ -576,10 +574,7 @@ const AssetRow: FunctionComponent<{
             <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
           </span>
         </td>
-        <td className={styles.nameCell} title={asset.name}>
-          {isEditing && <FontAwesomeIcon icon={faPen} size="xs" className={styles.editingIcon} />}
-          {asset.name}
-        </td>
+        <td title={asset.name}>{asset.name}</td>
         <td title={locationDetails ?? undefined}>
           {placed
             ? formatCoordinateEntry(asset.location, { ...coordinateContext, dynamicLgrs: false })
