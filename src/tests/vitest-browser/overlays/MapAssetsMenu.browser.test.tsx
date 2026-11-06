@@ -222,8 +222,11 @@ describe("MapAssetsMenu", () => {
         notesDisplay.scrollTop = notesDisplay.scrollHeight;
         expect(notesDisplay.scrollTop).toBeGreaterThan(0);
         const row = q(`[data-testid='asset-row-${asset.uuid}']`)!;
-        expect(row.querySelectorAll("td")[2].textContent).toBe(asset.name);
-        expect(row.querySelectorAll("td")[2].getAttribute("title")).toBe(asset.name);
+        const name = row.querySelector<HTMLElement>("td > div > span[title]")!;
+        expect(name.textContent).toBe(asset.name);
+        expect(name.getAttribute("title")).toBe(asset.name);
+        expect(name.scrollWidth).toBeGreaterThan(name.clientWidth);
+        expect(getComputedStyle(name).textOverflow).toBe("ellipsis");
         const actions = row.querySelector<HTMLElement>("[aria-label='Asset actions']")!;
         expect(actions.getBoundingClientRect().right).toBeLessThanOrEqual(
           menu.getBoundingClientRect().right + 1
@@ -544,6 +547,18 @@ describe("MapAssetsMenu", () => {
       .left;
     expect(inFolderEyeLeft).toBe(rootEyeLeft);
     expect(inFolderEyeLeft).toBe(folderEyeLeft);
+    // Nest the caret, emoji, and name together, preserving their spacing.
+    const childName = q(`[data-testid='asset-row-${inFolder.uuid}'] td > div`)!;
+    const rootName = q(`[data-testid='asset-row-${alpha.uuid}'] td > div`)!;
+    [...childName.children].forEach((element, index) => {
+      expect(
+        element.getBoundingClientRect().left - rootName.children[index].getBoundingClientRect().left
+      ).toBe(10);
+    });
+    expect(
+      rootName.children[1].getBoundingClientRect().left -
+        rootName.children[0].getBoundingClientRect().right
+    ).toBe(3);
     expect(harness.container.querySelectorAll("[aria-label='Asset actions']")).toHaveLength(3);
     expect(q(`[data-testid='asset-row-${zed.uuid}']`)?.textContent).toContain("Not placed");
   });
@@ -554,13 +569,12 @@ describe("MapAssetsMenu", () => {
     mockMissionDoc.assets = { [colored.uuid]: colored, [uncolored.uuid]: uncolored };
     store = makeStore(true);
     render();
-    const emojiCell = (uuid: string) =>
-      q(`[data-testid='asset-row-${uuid}']`)!.querySelectorAll("td")[1] as HTMLElement;
-    const coloredBackground = emojiCell(colored.uuid).firstElementChild as HTMLElement;
-    const uncoloredBackground = emojiCell(uncolored.uuid).firstElementChild as HTMLElement;
+    const nameCell = (uuid: string) => q(`[data-testid='asset-row-${uuid}'] td`)!;
+    const coloredBackground = nameCell(colored.uuid).querySelector("div > span") as HTMLElement;
+    const uncoloredBackground = nameCell(uncolored.uuid).querySelector("div > span") as HTMLElement;
     expect(coloredBackground.style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
     expect(uncoloredBackground.style.backgroundColor).toBe("transparent");
-    expect(getComputedStyle(emojiCell(colored.uuid)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(nameCell(colored.uuid)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(coloredBackground).borderRadius).toBe("45%");
   });
 

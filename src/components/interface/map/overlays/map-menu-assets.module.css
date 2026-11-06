@@ -273,14 +273,6 @@
   text-align: left;
 }
 
-.colToggle {
-  width: calc(18px + var(--folder-indent));
-}
-
-.colEmoji {
-  width: 22px;
-}
-
 .colName {
   width: auto;
 }
@@ -450,10 +442,24 @@
   color: var(--grey4);
 }
 
-.rowToggle {
-  display: inline-flex;
+.assetNameCell {
+  display: flex;
   align-items: center;
   gap: 3px;
+  min-width: 0;
+}
+
+.assetName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowToggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -467,7 +473,7 @@
 }
 
 /* Folder children indent under their folder header; root assets stay at the left edge. */
-.folderItem .rowToggle {
+.folderItem .assetNameCell {
   margin-left: var(--folder-indent);
 }
 
@@ -520,20 +526,13 @@
   --detail-indent: calc(24px + var(--folder-indent));
 }
 
-/* Keep the row background visible around the rounded asset color swatch. */
-.assetTable .emojiCell {
-  padding: 0;
-  text-align: center;
-  text-overflow: clip;
-}
-
 .emojiBackground {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 20px;
   height: 20px;
-  margin: auto;
   border-radius: 45%;
 }
 

@@ -61,7 +61,7 @@ import { AssetDetails } from "./map-menu-asset-details";
 import { withAlpha } from "../utils/layers/layerFactory";
 
 const ROOT_DROP_ID = "asset-root";
-const COLUMN_COUNT = 7;
+const COLUMN_COUNT = 5;
 
 /** Case-insensitive name order with a uuid tie-breaker, for folders and assets alike. */
 export function compareByName(
@@ -114,13 +114,11 @@ export const AssetTable: FunctionComponent<Props> = ({
   const activeAsset = activeDragUuid ? assets.find((a) => a.uuid === activeDragUuid) : null;
 
   const handleDragStart = (event: DragStartEvent) => {
-    // Line the chip up with the dragged row's emoji cell.
-    const emojiCell = event.active.data.current?.emojiCellRef?.current as HTMLElement | null;
-    const row = emojiCell?.closest("tr");
+    // Line the chip up with the dragged row's emoji.
+    const emoji = event.active.data.current?.emojiRef?.current as HTMLElement | null;
+    const row = emoji?.closest("tr");
     setDragChipOffset(
-      emojiCell && row
-        ? emojiCell.getBoundingClientRect().left - row.getBoundingClientRect().left
-        : 0
+      emoji && row ? emoji.getBoundingClientRect().left - row.getBoundingClientRect().left : 0
     );
     setActiveDragUuid(event.active.id as string);
   };
@@ -167,8 +165,6 @@ export const AssetTable: FunctionComponent<Props> = ({
     >
       <table className={styles.assetTable} data-testid="asset-table">
         <colgroup>
-          <col className={styles.colToggle} />
-          <col className={styles.colEmoji} />
           <col className={styles.colName} />
           <col className={styles.colCoords} />
           <col className={styles.colNotes} />
@@ -181,8 +177,6 @@ export const AssetTable: FunctionComponent<Props> = ({
         </colgroup>
         <thead>
           <tr className={styles.headerRow}>
-            <th aria-label="Expand or collapse" />
-            <th aria-label="Emoji" />
             <th>Name</th>
             <th>Coords</th>
             <th aria-label="Notes" />
@@ -467,11 +461,11 @@ const AssetRow: FunctionComponent<{
     (s) => s.hover.mapItemType === "asset" && s.hover.mapItemUuid === asset.uuid,
     refEqual
   );
-  const emojiCellRef = useRef<HTMLTableCellElement | null>(null);
+  const emojiRef = useRef<HTMLSpanElement | null>(null);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: asset.uuid,
     disabled: !canMutate,
-    data: { emojiCellRef },
+    data: { emojiRef },
   });
   const rowRef = useRef<HTMLTableRowElement | null>(null);
 
@@ -533,35 +527,38 @@ const AssetRow: FunctionComponent<{
         }}
       >
         <td>
-          <button
-            type="button"
-            className={styles.rowToggle}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isExpanded) {
-                if (isEditing) dispatch(thunkCancelAssetEdit());
-                dispatch(setExpandedAssetUuid(null));
-                return;
-              }
-              if (hasOtherEdit) dispatch(thunkCancelAssetEdit());
-              dispatch(setExpandedAssetUuid(asset.uuid));
-            }}
-            aria-label={isExpanded ? "Collapse asset" : "Expand asset"}
-            aria-expanded={isExpanded}
-            data-testid={`asset-expand-${asset.uuid}`}
-          >
-            <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="lg" />
-          </button>
+          <div className={styles.assetNameCell}>
+            <button
+              type="button"
+              className={styles.rowToggle}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isExpanded) {
+                  if (isEditing) dispatch(thunkCancelAssetEdit());
+                  dispatch(setExpandedAssetUuid(null));
+                  return;
+                }
+                if (hasOtherEdit) dispatch(thunkCancelAssetEdit());
+                dispatch(setExpandedAssetUuid(asset.uuid));
+              }}
+              aria-label={isExpanded ? "Collapse asset" : "Expand asset"}
+              aria-expanded={isExpanded}
+              data-testid={`asset-expand-${asset.uuid}`}
+            >
+              <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="lg" />
+            </button>
+            <span
+              ref={emojiRef}
+              className={styles.emojiBackground}
+              style={{ backgroundColor: asset.color ? withAlpha(asset.color, 0.5) : "transparent" }}
+            >
+              <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
+            </span>
+            <span className={styles.assetName} title={asset.name}>
+              {asset.name}
+            </span>
+          </div>
         </td>
-        <td ref={emojiCellRef} className={styles.emojiCell}>
-          <span
-            className={styles.emojiBackground}
-            style={{ backgroundColor: asset.color ? withAlpha(asset.color, 0.5) : "transparent" }}
-          >
-            <EmojiRenderer iconValue={asset.icon || DEFAULT_ASSET_ICON} />
-          </span>
-        </td>
-        <td title={asset.name}>{asset.name}</td>
         <td title={locationDetails ?? undefined}>
           {placed
             ? formatCoordinateEntry(asset.location, { ...coordinateContext, dynamicLgrs: false })
