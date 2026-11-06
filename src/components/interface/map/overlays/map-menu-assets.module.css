@@ -102,10 +102,24 @@
   min-width: 0;
 }
 
-.atomicControls {
+.petControls {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.petControls > input {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: 10ch;
+}
+
+.petControls .editorButton {
+  flex-shrink: 0;
+}
+
+.petPopoverControls {
   padding: 8px;
 }
 
@@ -196,7 +210,8 @@
 
 /* Match toolbar and editor buttons, including Place on Map. */
 .toolbar .toolbarButton,
-.fieldControls .editorButton {
+.fieldControls .editorButton,
+.petControls .editorButton {
   height: 20px;
   font-size: 0.75rem;
   white-space: nowrap;

@@ -5,6 +5,7 @@ import { faBan, faCrosshairs, faFloppyDisk, faXmark } from "@fortawesome/free-so
 
 import styles from "./map-menu-assets.module.css";
 import { Button, PathColorPickerMenu } from "components/interface/form/globalFields";
+import { filterHHMMSS, validators } from "components/interface/form/formValidators";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { useMapMenuSetters } from "../MapMenuProvider";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -90,24 +91,17 @@ export const AssetEditor: FunctionComponent<{
   const uncertaintyValid = !uncertaintyError;
 
   const formattedPet = values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds);
-  const [petUpdate, setPetUpdate] = useState<"manual" | "current" | "clear">("manual");
-  useEffect(() => setPetUpdate("manual"), [assetUuid]);
-  const currentPetAvailable = useMissionDocSelector(
-    (m) => getCurrentAssetPet(m, getAccurateNow().getTime()).petSeconds !== null,
-    refEqual
-  );
+  const rexes = useMissionDocSelector((m) => m.rexes, refEqual);
+  const hasRunningRex = Object.values(rexes ?? {}).some((rex) => rex.isRunning);
+  const currentPetAvailable =
+    getCurrentAssetPet({ rexes }, getAccurateNow().getTime()).petSeconds !== null;
   const [petText, setPetText] = useState(formattedPet);
   useEffect(() => {
     setPetText((current) =>
       parseAssetPetSeconds(current) === values.petSeconds ? current : formattedPet
     );
   }, [values.petSeconds, formattedPet]);
-  const petError =
-    petUpdate === "current" && !currentPetAvailable
-      ? "No running REX with a valid PET"
-      : petUpdate === "manual" && petText.trim() && parseAssetPetSeconds(petText) === null
-        ? "Enter PET as +HH:MM:SS or -HH:MM:SS"
-        : null;
+  const petError = validators.mustBeHHMMSS(petText);
 
   const [saving, setSaving] = useState(false);
   const saveEnabled =
@@ -152,7 +146,7 @@ export const AssetEditor: FunctionComponent<{
           if (!submitCoordinates()) return;
           setSaving(true);
           try {
-            await dispatch(thunkSaveAssetEdit(petUpdate === "manual" ? undefined : { petUpdate }));
+            await dispatch(thunkSaveAssetEdit());
           } finally {
             setSaving(false);
           }
@@ -365,49 +359,46 @@ export const AssetEditor: FunctionComponent<{
         )}
 
         <span className={styles.fieldLabel}>PET</span>
-        <div className={styles.fieldControls}>
-          {petUpdate === "manual" ? (
-            <input
-              className={`${styles.editorInput} ${styles.petInput} ${petError ? styles.editorInputError : ""}`}
-              value={petText}
-              placeholder="+HH:MM:SS"
-              aria-label="Asset PET"
-              aria-invalid={!!petError}
-              data-testid="asset-editor-pet"
-              disabled={!editable}
-              onChange={(e) => {
-                const text = e.target.value;
-                setPetText(text);
-                const seconds = parseAssetPetSeconds(text);
-                if (!text.trim() || seconds !== null) {
-                  dispatch(updateAssetInEditValues({ petSeconds: seconds }));
-                }
-              }}
-              onBlur={() => {
-                if (!petError) setPetText(formattedPet);
+        <div className={styles.petControls}>
+          <input
+            className={`${styles.editorInput} ${styles.petInput} ${petError ? styles.editorInputError : ""}`}
+            value={petText}
+            placeholder="+HH:MM:SS"
+            aria-label="Asset PET"
+            aria-invalid={!!petError}
+            aria-describedby={petError ? "asset-pet-error" : undefined}
+            data-testid="asset-editor-pet"
+            disabled={!editable}
+            onChange={(e) => {
+              const text = filterHHMMSS(e.target.value);
+              setPetText(text);
+              const seconds = parseAssetPetSeconds(text);
+              if (!text.trim() || seconds !== null) {
+                dispatch(updateAssetInEditValues({ petSeconds: seconds }));
+              }
+            }}
+            onBlur={() => {
+              if (!petError) setPetText(formattedPet);
+            }}
+          />
+          {hasRunningRex && (
+            <Button
+              label="Set to current PET"
+              className={styles.editorButton}
+              enabled={editable && currentPetAvailable}
+              toolTip={currentPetAvailable ? undefined : "No running REX with a valid PET"}
+              onClick={() => {
+                const { petSeconds } = getCurrentAssetPet({ rexes }, getAccurateNow().getTime());
+                if (petSeconds === null) return;
+                setPetText(hhmmssFromSeconds(petSeconds));
+                dispatch(updateAssetInEditValues({ petSeconds }));
               }}
             />
-          ) : (
-            <span className={styles.fieldNote}>
-              {petUpdate === "clear" ? "No PET" : "Captured when saved"}
-            </span>
           )}
-          <select
-            className={styles.editorInput}
-            aria-label="PET update"
-            value={petUpdate}
-            disabled={!editable}
-            onChange={(e) => setPetUpdate(e.target.value as typeof petUpdate)}
-          >
-            <option value="manual">Keep / edit PET</option>
-            <option value="current" disabled={!currentPetAvailable}>
-              Use current PET on save
-            </option>
-            <option value="clear">Clear PET on save</option>
-          </select>
         </div>
         {petError && (
           <div
+            id="asset-pet-error"
             className={`${styles.fieldError} ${styles.fieldValueColumn}`}
             data-testid="asset-editor-pet-error"
           >

@@ -128,6 +128,11 @@ describe("parseAssetPetSeconds", () => {
     ["+01:00:60", null],
     ["1:00", null],
     ["nonsense", null],
+    ["current", null],
+    ["clear", null],
+    ["+01:00:00.5", null],
+    ["1e2:00:00", null],
+    ["+99999999999999999999:00:00", null],
   ])("parses %s as %s", (text, expected) => {
     expect(parseAssetPetSeconds(text)).toBe(expected);
   });

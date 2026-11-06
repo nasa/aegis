@@ -1045,18 +1045,26 @@ describe("MapAssetsMenu", () => {
       input.dispatchEvent(new Event("input", { bubbles: true }));
     };
     expect(input.disabled).toBe(false);
-    type("12:34:56");
+    type("abc12:34:56def");
     await vi.waitFor(() => expect(input.value).toBe("12:34:56"));
     expect(store.getState().asset.inEdit?.values.petSeconds).toBe(600);
     type("-00:00:30");
     await vi.waitFor(() => expect(input.value).toBe("-00:00:30"));
-    type("+00:60:00");
-    await vi.waitFor(() => expect(q("dialog[open]")?.textContent).toContain("Enter PET"));
-    flushSync(() => dialogAction("Save").click());
-    expect(updateFields).not.toHaveBeenCalled();
+    for (const invalid of [
+      "+00:60:00",
+      "+00:00:60",
+      "12:34",
+      "++12:00:00",
+      "99999999999999999:00:00",
+    ]) {
+      type(invalid);
+      await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("true"));
+      flushSync(() => dialogAction("Save").click());
+      expect(updateFields).not.toHaveBeenCalled();
+    }
 
     type("");
-    await vi.waitFor(() => expect(q("dialog[open]")?.textContent).not.toContain("Enter PET"));
+    await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("false"));
     expect(mockMissionDoc.assets[asset.uuid].petSeconds).toBe(600);
     flushSync(() => dialogAction("Save").click());
     await vi.waitFor(() =>
@@ -1071,39 +1079,75 @@ describe("MapAssetsMenu", () => {
     expect(q(`[data-testid='asset-detail-row-${asset.uuid}']`)).not.toBeNull();
   });
 
-  it.each(["current", "clear"] as const)("offers a %s PET update when saving", (petUpdate) => {
+  it.each([true, false])(
+    "fills current PET immediately and leaves it editable (creating: %s)",
+    async (creating) => {
+      const asset = generateBlankAsset({ name: "Drill", petSeconds: 600 });
+      const rex = generateBlankRex({
+        evaUuid: "eva",
+        isRunning: true,
+        petValueAtStartStop: "-00:02:30",
+      });
+      if (!creating) mockMissionDoc.assets = { [asset.uuid]: asset };
+      mockMissionDoc.rexes = { [rex.uuid]: rex };
+      store = makeStore(true);
+      render();
+      flushSync(() =>
+        store.dispatch(
+          setAssetInEdit({
+            uuid: asset.uuid,
+            isNew: creating,
+            values: getAssetEditValues(asset),
+            base: creating ? null : getAssetEditValues(asset),
+            elevationPending: false,
+          })
+        )
+      );
+      if (!creating) flushSync(() => q("div[aria-label='Asset PET']")!.click());
+      const input = q("input[aria-label='Asset PET']") as HTMLInputElement;
+      expect(q("select[aria-label='PET update']")).toBeNull();
+      flushSync(() => q("[aria-label='Set to current PET']")!.click());
+      await vi.waitFor(() => expect(input.value).toBe("-00:02:30"));
+      expect(input.disabled).toBe(false);
+      expect(updateFields).not.toHaveBeenCalled();
+      expect(saveAsset).not.toHaveBeenCalled();
+      enterValue(input, "+00:60:00");
+      await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("true"));
+      flushSync(() => {
+        if (creating) q("[aria-label='Save']")!.click();
+        else dialogAction("Save").click();
+      });
+      expect(updateFields).not.toHaveBeenCalled();
+      expect(saveAsset).not.toHaveBeenCalled();
+      // Changing the clock after filling must not change the value that will be saved.
+      mockMissionDoc.rexes[rex.uuid] = { ...rex, petValueAtStartStop: "+01:00:00" };
+      enterValue(input, "abc+00:03:00def");
+      await vi.waitFor(() => expect(input.value).toBe("+00:03:00"));
+      if (creating) {
+        expect(store.getState().asset.inEdit?.values.petSeconds).toBe(180);
+        flushSync(() => q("[aria-label='Save']")!.click());
+        expect(saveAsset).toHaveBeenCalledWith(undefined);
+      } else {
+        flushSync(() => dialogAction("Save").click());
+        expect(updateFields).toHaveBeenCalledWith({
+          assetUuid: asset.uuid,
+          changes: { petSeconds: 180 },
+        });
+      }
+    }
+  );
+
+  it.each([true, false])("hides current PET without a running REX (creating: %s)", (creating) => {
     const asset = generateBlankAsset({ name: "Drill", petSeconds: 600 });
-    const rex = generateBlankRex({ evaUuid: "eva", isRunning: petUpdate === "current" });
-    mockMissionDoc.assets = { [asset.uuid]: asset };
+    const rex = generateBlankRex({ evaUuid: "eva", isRunning: false });
     mockMissionDoc.rexes = { [rex.uuid]: rex };
+    if (!creating) mockMissionDoc.assets = { [asset.uuid]: asset };
     store = makeStore(true);
     render();
-    flushSync(() =>
-      store.dispatch(
-        setAssetInEdit({
-          uuid: asset.uuid,
-          isNew: false,
-          values: getAssetEditValues(asset),
-          base: getAssetEditValues(asset),
-          elevationPending: false,
-        })
-      )
-    );
-    flushSync(() => q("div[aria-label='Asset PET']")!.click());
-    const select = q("[aria-label='PET update']") as HTMLSelectElement;
-    expect(select.querySelector<HTMLOptionElement>("option[value='current']")!.disabled).toBe(
-      petUpdate !== "current"
-    );
-    expect(select.querySelector<HTMLOptionElement>("option[value='clear']")!.disabled).toBe(false);
-    flushSync(() => {
-      select.value = petUpdate;
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    expect(q("[data-testid='asset-editor-pet-input']")).toBeNull();
-    expect(byText(petUpdate === "current" ? "Captured when saved" : "No PET")).toBeDefined();
-    expect(store.getState().asset.inEdit?.values.petSeconds).toBe(600);
-    flushSync(() => dialogAction("Save").click());
-    expect(updateFields).toHaveBeenCalledWith({ assetUuid: asset.uuid, petUpdate });
+    openDraft(asset, creating);
+    if (!creating) flushSync(() => q("div[aria-label='Asset PET']")!.click());
+    expect(q("[aria-label='Set to current PET']")).toBeNull();
+    expect((q("input[aria-label='Asset PET']") as HTMLInputElement).value).toBe("+00:10:00");
   });
 
   it("disables Edit Pos. for an asset hidden by its folder, naming the folder", () => {

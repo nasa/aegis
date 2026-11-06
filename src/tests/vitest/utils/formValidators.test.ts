@@ -3,7 +3,28 @@ import {
   filterIntegersOnly,
   filterISOString,
   filterNumbersOnly,
+  validators,
 } from "components/interface/form/formValidators";
+
+describe("HH:MM:SS validation", () => {
+  it.each(["", "  ", "00:00:00", "+12:34:56", "-00:00:30", "+100:00:00", " -01:02:03 "])(
+    "accepts %j",
+    (value) => expect(validators.mustBeHHMMSS(value)).toBeUndefined()
+  );
+
+  it.each([
+    "00:60:00",
+    "+00:00:60",
+    "12:34",
+    "1:00:00",
+    "++12:00:00",
+    "current",
+    "clear",
+    "1e2:00:00",
+    "+01:00:00.5",
+    "99999999999999999:00:00",
+  ])("rejects %j", (value) => expect(validators.mustBeHHMMSS(value)).toBeDefined());
+});
 
 describe("Filter functions", () => {
   it("should strip non-numbers", () => {
