@@ -1,6 +1,6 @@
 import * as Automerge from "@automerge/automerge";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
-import { Migration20261105000000 } from "server/automerge/migrations/Migration20261105000000";
+import { Migration20261107000000 } from "server/automerge/migrations/Migration20261107000000";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankStation } from "store/storeUtils/station";
@@ -11,21 +11,23 @@ test.each([1737400, 6371000, 6378137, 3389500, 0, null])(
   async (planetRadius) => {
     const legacy = { ...generateBlankMission(), planetRadius, usingLGRSCoordinates: true };
     delete (legacy as Partial<Mission>).planet;
+    delete legacy.earthGridLabelScheme;
     let doc: Automerge.Doc<Mission> = Automerge.from(legacy);
     const handle = {
       change: (update: (mission: Mission) => void) => {
         doc = Automerge.change(doc, update);
       },
     } as DocHandle<Mission>;
-    await Migration20261105000000.migrate(handle, null);
+    await Migration20261107000000.migrate(handle, null);
     expect(doc).not.toHaveProperty("planetRadius");
     expect(doc).not.toHaveProperty("usingLGRSCoordinates");
+    expect(doc.earthGridLabelScheme).toBe("lunar-acc");
     expect(doc.planet).toBe(
       planetRadius > 6e6 ? "earth" : planetRadius === 3389500 ? "mars" : "moon"
     );
     expect(missionValidator(Automerge.toJS(doc))).toBe(true);
     const heads = Automerge.getHeads(doc);
-    await Migration20261105000000.migrate(handle, null);
+    await Migration20261107000000.migrate(handle, null);
     expect(Automerge.getHeads(doc)).toEqual(heads);
   }
 );
@@ -40,7 +42,7 @@ test("rejects unknown legacy radii without changing the document", async () => {
       doc = Automerge.change(doc, update);
     },
   } as DocHandle<Mission>;
-  await expect(Migration20261105000000.migrate(handle, null)).rejects.toThrow(
+  await expect(Migration20261107000000.migrate(handle, null)).rejects.toThrow(
     "Unsupported legacy planet radius: 123"
   );
   expect(Automerge.getHeads(doc)).toEqual(heads);
@@ -67,12 +69,12 @@ test("recalculates historical Earth path distances and is safe to repeat", async
       doc = Automerge.change(doc, update);
     },
   } as DocHandle<Mission>;
-  await Migration20261105000000.migrate(handle, null);
+  await Migration20261107000000.migrate(handle, null);
   const expected = (6378137 * Math.PI) / 180;
   expect(doc.traverses[traverse.uuid].pathSegmentDistances[0]).toBeCloseTo(expected, 6);
   expect(doc.stations[station.uuid].walkbackPathSegmentDistances[0]).toBeCloseTo(expected, 6);
   const heads = Automerge.getHeads(doc);
-  await Migration20261105000000.migrate(handle, null);
+  await Migration20261107000000.migrate(handle, null);
   expect(Automerge.getHeads(doc)).toEqual(heads);
 });
 
@@ -94,7 +96,7 @@ test.each(["earth", "moon"] as const)(
         doc = Automerge.change(doc, update);
       },
     } as DocHandle<Mission>;
-    await Migration20261105000000.migrate(handle, null);
+    await Migration20261107000000.migrate(handle, null);
     expect(doc.landerElevationMeters).toBeNull();
     expect(doc).not.toHaveProperty("gridRenderMode");
     expect(doc.serverFileGrid).toEqual(planet === "moon" ? null : serverFileGrid);

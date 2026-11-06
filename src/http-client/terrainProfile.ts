@@ -82,6 +82,7 @@ export async function getTerrainProfile({
   entityUuid,
   getElevationOnly = false,
   preview = false,
+  expectedDem,
 }: {
   missionId: number;
   path: AEGISPoint[];
@@ -89,6 +90,7 @@ export async function getTerrainProfile({
   entityUuid?: string;
   getElevationOnly?: boolean;
   preview?: boolean;
+  expectedDem?: TerrainProfilePostData["expectedDem"];
 }): Promise<TerrainProfileResponse> {
   const postData: TerrainProfilePostData = {
     path,
@@ -96,6 +98,7 @@ export async function getTerrainProfile({
     entityUuid,
     getElevationOnly,
     preview,
+    ...(expectedDem ? { expectedDem } : {}),
   };
   const res = await clientFetchWithTimeout(`/api/v1/terrain-profile?missionId=${missionId}`, {
     method: "POST",
@@ -120,20 +123,28 @@ export async function getTerrainProfile({
 export async function getElevationSinglePoint({
   missionId,
   point,
+  expectedDem,
 }: {
   missionId: number;
   point: AEGISPoint;
+  expectedDem?: TerrainProfilePostData["expectedDem"];
 }): Promise<WrappedResponse<number>> {
   if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng)) {
     return { status: "error", message: "Invalid point" };
   }
 
-  const response = await getTerrainProfile({
-    missionId,
-    path: [point, point],
-    pathSegmentDistances: [0],
-    getElevationOnly: true,
-  });
+  let response: TerrainProfileResponse;
+  for (let attempt = 0; ; attempt++) {
+    response = await getTerrainProfile({
+      missionId,
+      path: [point, point],
+      pathSegmentDistances: [0],
+      getElevationOnly: true,
+      expectedDem,
+    });
+    if (!expectedDem || response.httpStatus !== 409 || attempt === 10) break;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
   const elevation = response.data?.elevationsMeters[0]?.[0];
   if (response.status === "success" && !isKnownElevation(elevation)) {
     return { status: "error", message: "The DEM has no elevation at this location", data: null };

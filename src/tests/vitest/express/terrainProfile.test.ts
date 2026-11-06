@@ -138,6 +138,23 @@ describe("terrain profile route", () => {
     );
   });
 
+  it("waits for the selected DEM instead of sampling the old server DEM", async () => {
+    const body = {
+      ...validBody,
+      getElevationOnly: true,
+      expectedDem: { demFilePath: "Data/selected.tif", demResolution: 0.5 },
+    };
+    const pending = await supertest(app).post("/api/v1/terrain-profile?missionId=42").send(body);
+    expect(pending.status).toBe(409);
+    expect(mocks.readTerrainProfileInWorker).not.toHaveBeenCalled();
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      doc: () => body.expectedDem,
+    });
+    const synced = await supertest(app).post("/api/v1/terrain-profile?missionId=42").send(body);
+    expect(synced.status).toBe(200);
+    expect(mocks.readTerrainProfileInWorker).toHaveBeenCalledOnce();
+  });
+
   it("serves 40 profiles in one HTTP call with bounded sampling and one debug summary", async () => {
     const profiles = Array.from({ length: 40 }, (_, i) => ({
       ...validBody,

@@ -15,12 +15,12 @@ import orderBy from "lodash/orderBy";
 
 import { deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { PLANETS } from "utils/planets";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { useDashboardBoundsContext } from "../DashboardBoundsProvider";
 import { useFollowModeContext } from "../FollowModeProvider";
 import { useMapMenuContext } from "../MapMenuProvider";
-import { maxZoomForPlanet } from "../utils/planetScale";
 
 export function FollowMode(): null {
   const { map, mode } = useMapContext();
@@ -161,7 +161,7 @@ export function FollowMode(): null {
     if (points.length === 0) return;
 
     const extent = boundingExtent(points);
-    const maxZoom = maxZoomForPlanet(planet);
+    const maxZoom = PLANETS[planet ?? "moon"].maxZoom;
     map.getView().fit(extent, { padding: [100, 100, 100, 100], maxZoom, duration: 500 });
   }, [
     mode,

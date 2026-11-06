@@ -14,7 +14,6 @@ import { Migration20261022000000 } from "server/automerge/migrations/Migration20
 import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 import { Migration20261028000000 } from "server/automerge/migrations/Migration20261028000000";
-import { Migration20261105000000 } from "server/automerge/migrations/Migration20261105000000";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -152,7 +151,6 @@ describe("clear Automerge document history", () => {
       Migration20261022010000,
       Migration20261026000000,
       Migration20261028000000,
-      Migration20261105000000,
       Migration20261106000000,
       Migration20261107000000,
     ]);
@@ -184,9 +182,7 @@ describe("clear Automerge document history", () => {
     for (const listing of listings) {
       const reloaded = await reader.find<Mission>(listing.automergeUrl as AutomergeUrl);
       expect(reloaded.doc().description).toBe("Edited after replacement");
-      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(
-        listing.missionId === first.listing.missionId ? 5 : 4
-      );
+      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(4);
     }
     const mission = (await reader.find<Mission>(first.listing.automergeUrl as AutomergeUrl)).doc();
     expect(mission.planet).toBe("moon");

@@ -19,10 +19,10 @@ import type { Coordinate } from "ol/coordinate";
 
 import { deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { PLANETS } from "utils/planets";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { useDashboardBoundsContext } from "../DashboardBoundsProvider";
-import { maxZoomForPlanet } from "../utils/planetScale";
 
 export function AutoFitBounds(): null {
   const { map, mode } = useMapContext();
@@ -94,7 +94,7 @@ export function AutoFitBounds(): null {
     return points;
   }, [stationsToShow, traversesToShow, latestPosEntriesByType, toMapCoord]);
 
-  const maxZoom = maxZoomForPlanet(planet);
+  const maxZoom = PLANETS[planet ?? "moon"].maxZoom;
 
   // Track the last extent each effect explicitly fit to so we don't re-fit
   // redundantly. `missionPoints` gets a fresh array reference on *any* mission

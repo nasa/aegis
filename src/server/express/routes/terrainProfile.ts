@@ -370,6 +370,18 @@ router.post(["/", "/batch"], async (req: Request, res: Response): Promise<void> 
       return;
     }
     const request = validateTerrainProfileRequest(req.body, mission.demResolution ?? 10);
+    const expectedDem = (req.body as TerrainProfilePostData).expectedDem;
+    if (
+      expectedDem &&
+      (expectedDem.demFilePath !== mission.demFilePath ||
+        expectedDem.demResolution !== mission.demResolution)
+    ) {
+      res.status(409).json({
+        status: "error",
+        message: "The selected DEM has not synced to the server. Try again once connected.",
+      });
+      return;
+    }
     const profile = await sampleMissionTerrainProfile(missionId, missionHandle, request, mission);
     res.status(200).json({
       status: "success",
