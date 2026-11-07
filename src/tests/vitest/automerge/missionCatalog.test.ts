@@ -197,10 +197,11 @@ test("an edit saved during summary creation queues another update", async () => 
       m.name = "First edit";
     });
     await originalFlush();
-    await vi.waitFor(
-      async () => expect((await getMissionSummaries(ids))[0].name).toBe("Second edit"),
-      { timeout: 8_000 }
-    );
+    // Drain each queued update explicitly; debounce timing is covered by the runtime tests.
+    await runtime.refresh();
+    expect((await getMissionSummaries(ids))[0].name).toBe("First edit");
+    await runtime.refresh();
+    expect((await getMissionSummaries(ids))[0].name).toBe("Second edit");
   } finally {
     await runtime.stop();
   }
