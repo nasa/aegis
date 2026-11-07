@@ -76,7 +76,7 @@
     "@automerge/automerge-repo": "2.5.6",
     "@automerge/automerge-repo-network-websocket": "2.5.6",
     "@automerge/automerge-repo-react-hooks": "2.5.6",
-    "@bfeist/planetary-grid-reference": "0.1.0",
+    "@bfeist/planetary-grid-reference": "0.2.0",
     "@mikro-orm/cli": "7.2.1",
     "@mikro-orm/core": "7.2.1",
     "@mikro-orm/decorators": "7.2.1",
