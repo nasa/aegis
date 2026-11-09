@@ -319,8 +319,8 @@ spacings:
 
 ## 6. Performance
 
-Same budgets as the lunar plan (§6.1 there), measured in `src/tests/vitest/bench/lgrs.bench.ts`
-with Earth cases added:
+Same timing targets as the lunar plan (§6.1 there), assessed through manual profiling when
+needed for Earth cases:
 
 | Path                                                  | Budget                       |
 | ----------------------------------------------------- | ---------------------------- |
@@ -329,7 +329,7 @@ with Earth cases added:
 | `createLgrsRenderPlan`, 1920×1080 view, either scheme | ≤ 4 ms p95, ≤ 2,000 vertices |
 
 Projection uses cached proj4 converters first (§3.1). proj4 allocates a result array per call, so
-the grid-plan bench is the one to watch. Lines in EPSG:3857 maps are curved, so they go through
+grid-plan timing is the one to watch. Lines in EPSG:3857 maps are curved, so they go through
 the existing adaptive densification.
 
 ## 7. Bearings
