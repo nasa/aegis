@@ -156,6 +156,12 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
   Client and server share `profileInputSignature`; `input_signature` stores geometry, sampling
   settings, and the DEM filepath. DEM releases use distinct filepaths; cache lookups do not poll
   file size or timestamps.
+- **Newton** (third-party A\* traverse planner, no auth) is called only from the server, through
+  `src/server/newton/v1/http-newton.ts`. Calls return a `NewtonResult` (`ok` / `rejected` /
+  `transient`) and never throw. Build POST bodies with `buildTraverseProblem`
+  (`src/server/newton/v1/convert.ts`), which only copies allowed fields. Configured by
+  `NEWTON_BASE_URL` (empty disables it) and `NEWTON_TIMEOUT_MS`. Wire types are the ambient
+  `Newton` namespace in `src/server/newton/v1/types/newton.d.ts`.
 - **MikroORM 6** with PostgreSQL. Entity models live in `src/server/database/models/`. Legacy ORM definitions for entities that moved into the mission doc live in `_legacyModels.ts` and are used only by Automerge migrations; the folder, layer, sublayer, preset, and STM tables are read with raw SQL by `Migration20261009000000` and then dropped. Every request runs inside a `RequestContext` middleware for ORM isolation.
 - **Socket.io** runs on a single Socket.IO server instance mounted at path `/api/socket`, hosting multiple namespaces:
   - **Default namespace** (`/`) — handles AEGIS web-client connections: visitor presence, and heartbeats (`statusFromServer` every 10s). Handlers are in `src/server/express/sockets.ts`. It also carries the payload-free `bannersChanged` broadcast for notification banners (see below). Each browser tab holds **one** shared default-namespace socket (`getClientSocket()` in `src/utils/clientSocketHelpers.ts`), opened on every page and never disconnected by consumers; `SocketClient` is mounted once in `App.tsx`. `visitorJoin` records who the visitor is and does not join a room; `visitorPageChange` reports the page (`home`, `mission`, `dashboard`, `admin`, `versionCheck`, `other`) and joins the mission room only on mission and dashboard pages once that mission's permissions are loaded. The admin socket status page lists every visitor with its page. Admin inspector pages use `joinInspectorRoom` / `inspectorLeave` on the shared socket. `visitorJoin` and `visitorPageChange` payloads are not validated; the handlers, `disconnect`, and the heartbeat interval catch and log errors through `serverLogger` so a malformed payload cannot crash the server. Full details: `docs/app-socket.md`.
