@@ -1,8 +1,58 @@
-import { missionHasLanderDependentEntities } from "server/express/routes/missionAutomerge";
+import { Repo } from "@automerge/automerge-repo/slim";
+import { globalValues } from "server/express/global";
+import { getAutomergeDocListing } from "server/express/routes/docListing";
+import {
+  getAutomergeMissions,
+  missionHasLanderDependentEntities,
+} from "server/express/routes/missionAutomerge";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
+
+vi.mock("server/express/routes/docListing", () => ({ getAutomergeDocListing: vi.fn() }));
+
+describe("mission document enumeration", () => {
+  const originalRepo = globalValues.automergeRepo;
+  let repo: Repo;
+
+  beforeEach(() => {
+    repo = new Repo({ network: [] });
+    globalValues.automergeRepo = repo;
+    vi.mocked(getAutomergeDocListing).mockReset();
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    globalValues.automergeRepo = originalRepo;
+    await repo.shutdown();
+  });
+
+  test("omits a concurrently deleted mission and still returns the remaining documents", async () => {
+    const deleted = repo.create<Mission>(generateBlankMission({ id: 41 }));
+    const live = repo.create<Mission>(generateBlankMission({ id: 42, name: "Live mission" }));
+    vi.mocked(getAutomergeDocListing)
+      .mockResolvedValueOnce([
+        { missionId: 41, automergeUrl: deleted.url },
+        { missionId: 42, automergeUrl: live.url },
+      ])
+      .mockResolvedValueOnce([]);
+    vi.spyOn(repo, "find").mockRejectedValueOnce(new Error("Document is unavailable"));
+
+    expect(await getAutomergeMissions()).toEqual([live.doc()]);
+    expect(getAutomergeDocListing).toHaveBeenNthCalledWith(2, [41]);
+  });
+
+  test("propagates document failures when the mission still has a listing", async () => {
+    const handle = repo.create<Mission>(generateBlankMission({ id: 41 }));
+    const listing = { missionId: 41, automergeUrl: handle.url };
+    const error = new Error("Stored document is unavailable");
+    vi.mocked(getAutomergeDocListing).mockResolvedValue([listing]);
+    vi.spyOn(repo, "find").mockRejectedValueOnce(error);
+
+    await expect(getAutomergeMissions([41])).rejects.toBe(error);
+  });
+});
 
 describe("missionHasLanderDependentEntities", () => {
   test("returns false for a blank mission", () => {

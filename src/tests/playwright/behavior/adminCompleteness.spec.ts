@@ -129,6 +129,8 @@ test("Box SDK provider bytes survive permission and interrupted-stream failures 
     await configure("permission");
     await page.goto(`/admin/mission/${mission.id}/${mission.docUrl}`);
     const box = page.getByRole("heading", { name: "Download from Box", exact: true }).locator("..");
+    await expect(box.getByText(id, { exact: true })).toBeVisible();
+    await expect(box.getByRole("status")).toHaveCount(0);
     await box.getByText(id, { exact: true }).click();
     const row = box.locator("li").filter({ hasText: filename });
     await row.getByText("Download", { exact: true }).click();

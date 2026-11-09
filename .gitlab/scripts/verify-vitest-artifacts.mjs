@@ -5,6 +5,8 @@ import coverageLibrary from "istanbul-lib-coverage";
 import { parse } from "flatted";
 
 const directory = path.resolve(process.argv[2] ?? ".local/migration");
+const layout = JSON.parse(readFileSync(path.join(directory, "layout/summary.json"), "utf8"));
+const shardCounts = { node: layout.nodeShards.length, browser: layout.browserShards.length };
 const coveredLines = (filename) => {
   const coverage = coverageLibrary.createCoverageMap(JSON.parse(readFileSync(filename, "utf8")));
   return new Set(
@@ -40,8 +42,8 @@ const collect = (files, runner, report) => {
 };
 let union = new Set();
 for (const runner of ["node", "browser"]) {
-  for (const shard of [1, 2, 3]) {
-    const blob = path.join(directory, `blobs/blob-${runner}-${shard}-3.json`);
+  for (let shard = 1; shard <= shardCounts[runner]; shard++) {
+    const blob = path.join(directory, `blobs/blob-${runner}-${shard}-${shardCounts[runner]}.json`);
     assert.ok(statSync(blob).size > 0, `Missing or empty blob: ${blob}`);
     const [version, files, errors, coverage] = parse(readFileSync(blob, "utf8"));
     assert.ok(version && coverage, `${blob}: missing version or embedded coverage`);
@@ -93,7 +95,11 @@ const decodeXml = (value) =>
         )
       : { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" }[named]
   );
-for (const name of ["node", "browser-1", "browser-2", "browser-3", "parity"]) {
+for (const name of [
+  "node",
+  ...Array.from({ length: shardCounts.browser }, (_, index) => `browser-${index + 1}`),
+  "parity",
+]) {
   const xml = readFileSync(path.join(directory, `junit-${name}.xml`), "utf8");
   const cases = [...xml.matchAll(/<testcase\s+([^>]+)>/g)];
   assert.ok(cases.length > 0, `${name}: empty JUnit report`);

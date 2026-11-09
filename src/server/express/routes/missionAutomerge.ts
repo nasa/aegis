@@ -450,11 +450,16 @@ export async function getAutomergeMissions(missionIds?: number[]): Promise<Missi
   const automergeListings = await getAutomergeDocListing(missionIds);
   const missionsToReturn: Mission[] = [];
   for (const listing of automergeListings) {
-    const handle = await globalValues.automergeRepo.find<Mission>(
-      listing.automergeUrl as AutomergeUrl
-    );
-    await handle.whenReady();
-    missionsToReturn.push(handle.doc());
+    try {
+      const handle = await globalValues.automergeRepo.find<Mission>(
+        listing.automergeUrl as AutomergeUrl
+      );
+      await handle.whenReady();
+      missionsToReturn.push(handle.doc());
+    } catch (error) {
+      // A concurrent deletion removes the listing before deleting its document.
+      if ((await getAutomergeDocListing([listing.missionId])).length > 0) throw error;
+    }
   }
 
   return missionsToReturn;

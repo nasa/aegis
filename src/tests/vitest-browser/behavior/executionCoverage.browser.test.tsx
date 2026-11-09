@@ -24,7 +24,9 @@ async function selectExecution(page: Page, plannedName: string, evaUuid: string)
 async function openRexInfo(page: Page, plannedName: string, evaUuid: string): Promise<void> {
   await selectExecution(page, plannedName, evaUuid);
   await page.getByLabelText("rex_info_panel", { exact: true }).click();
-  await expect.element(page.getByText("REX Information", { exact: true })).toBeVisible();
+  await expect
+    .element(page.getByTestId("mission-panel-right").getByText("REX Information", { exact: true }))
+    .toBeVisible();
 }
 
 async function enableEditing(page: Page): Promise<void> {

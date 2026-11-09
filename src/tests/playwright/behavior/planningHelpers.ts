@@ -37,8 +37,10 @@ export function planningField(page: Page, label: string): Locator {
 }
 
 export async function openPlanningField(page: Page, label: string): Promise<Locator> {
-  // The surrounding label also contains the pencil and stays clickable for empty values.
-  await planningField(page, label).locator("..").click();
+  const trigger = planningField(page, label).locator(
+    "xpath=ancestor::div[contains(@class, 'dialogContainerEditable')][1]"
+  );
+  await trigger.click();
   const dialog = page.locator("dialog[open]");
   await expect(dialog.getByLabel(label, { exact: true })).toBeVisible();
   return dialog;
