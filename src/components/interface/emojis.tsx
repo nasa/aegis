@@ -35,6 +35,16 @@ export const EmojiRenderer: FunctionComponent<{
       />
     );
   }
+  if (iconValue === "astronaut") {
+    return (
+      <img
+        src="/images/astronaut_outline.svg"
+        alt="Astronaut"
+        className={imageClassName}
+        style={imageStyle}
+      />
+    );
+  }
 
   // Handle standard Unicode emojis
   let emoji;
@@ -79,6 +89,12 @@ export const EmojiPicker: FunctionComponent<{
           name: "Station",
           keywords: ["station", "location", "marker", "artemis"],
           skins: [{ src: "/images/station.svg" }],
+        },
+        {
+          id: "astronaut",
+          name: "Astronaut",
+          keywords: ["astro", "astronaut"],
+          skins: [{ src: "/images/astronaut_outline.svg" }],
         },
       ],
     },
