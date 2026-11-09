@@ -27,6 +27,7 @@ import { thunkDocCreateInitialPosEntries } from "store/thunk/thunkRex";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { createQuickMapRexPositionLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
+import { displayToast } from "components/toastNotifications";
 
 const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
@@ -345,8 +346,12 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                                 <FontAwesomeIcon
                                   icon={faBackwardFast}
                                   size="sm"
-                                  onClick={() => {
-                                    if (confirm("Are you sure you want to reset the PET timer?")) {
+                                  onClick={async () => {
+                                    const confirmed = await displayToast({
+                                      message: "Are you sure you want to reset the PET timer?",
+                                      toastType: "confirm",
+                                    });
+                                    if (confirmed) {
                                       withMissionChange((m) =>
                                         applyUpdateRexByField(m, {
                                           rexUuid: selectedRex.uuid,

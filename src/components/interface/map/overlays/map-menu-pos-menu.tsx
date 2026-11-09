@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkEditPosEntry, thunkDeletePosEntry } from "store/thunk/thunkRexPosEntry";
 import styles from "./map-menu-pos.module.css";
+import { displayToast } from "components/toastNotifications";
 
 export const PosKabobMenu: FunctionComponent<{
   posEntry: PosEntry;
@@ -55,8 +56,12 @@ export const PosKabobMenu: FunctionComponent<{
           )}
           <div
             className={styles.kabobMenuItem}
-            onClick={(e) => {
-              if (window.confirm("Are you sure you want to delete this Crew Position?")) {
+            onClick={async (e) => {
+              const confirmed = await displayToast({
+                message: "Are you sure you want to delete this Crew Position?",
+                toastType: "confirm",
+              });
+              if (confirmed) {
                 dispatch(
                   thunkDeletePosEntry({
                     posEntryUuid: posEntry.uuid,

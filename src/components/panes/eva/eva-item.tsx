@@ -27,6 +27,7 @@ import { thunkDocCreateRex } from "store/thunk/thunkRex";
 import { setSelectedRexUuid } from "store/rex";
 import { EvaSequence } from "./eva-item-sequence";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { displayToast } from "components/toastNotifications";
 
 const EvaItemMenu: FunctionComponent<{
   selectedEvaUuid: string;
@@ -75,11 +76,12 @@ const EvaItemMenu: FunctionComponent<{
   // enabled: !!selectedEvaUuid
   const handleDuplicateEVAWithStations = async () => {
     if (selectedEvaUuid) {
-      if (
-        confirm(
-          "This will duplicate the EVA and also make duplicates of all stations in this EVA and will name them 'station name (copy X)'. Are you sure?"
-        )
-      ) {
+      const confirmed = await displayToast({
+        message:
+          "This will duplicate the EVA and also make duplicates of all stations in this EVA and will name them 'station name (copy X)'. Are you sure?",
+        toastType: "confirm",
+      });
+      if (confirmed) {
         setShowOverlay({
           showOverlay: true,
           message: "Duplicating EVA with Stations...",

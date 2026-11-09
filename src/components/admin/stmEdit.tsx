@@ -17,6 +17,7 @@ import { applyReplaceStmTree, applyUpsertStmLevel } from "operations/apply/apply
 import { deepEqual } from "utils/useAppSelector";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { displayToast } from "components/toastNotifications";
 
 type ChangeMission = (updateFn: (m: Mission) => void) => void;
 
@@ -315,12 +316,13 @@ const ImportSTM: FunctionComponent<{
         style={{ width: "500px" }}
       />
       <button
-        onClick={() => {
-          if (
-            confirm(
-              "Are you sure you want to import? This will destroy all existing STM records for this mission"
-            )
-          ) {
+        onClick={async () => {
+          const confirmed = await displayToast({
+            message:
+              "Are you sure you want to import? This will destroy all existing STM records for this mission",
+            toastType: "confirm",
+          });
+          if (confirmed) {
             destructiveImportSTM(stmJson, missionId, changeMission);
           }
         }}

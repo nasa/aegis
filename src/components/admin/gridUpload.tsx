@@ -115,10 +115,11 @@ const AdminMissionGrid: FunctionComponent<{
   };
 
   const handleDelete = async () => {
-    if (
-      !confirm(`Are you sure you want to delete the grid "${grid?.name ?? ""}" for this mission?`)
-    )
-      return;
+    const confirmed = await displayToast({
+      message: `Are you sure you want to delete the grid "${grid?.name ?? ""}" for this mission?`,
+      toastType: "confirm",
+    });
+    if (!confirmed) return;
     await deleteGrid(intMissionId);
   };
 

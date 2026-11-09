@@ -19,6 +19,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
 
 import styles from "./report-campaigns-dialog.module.css";
+import { displayToast } from "components/toastNotifications";
 
 const ReportCampaignsDialog: FunctionComponent = () => {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -162,8 +163,12 @@ const ReportCampaignsDialog: FunctionComponent = () => {
                       className={styles.deleteButton}
                       aria-label="Delete Campaign"
                       title="Delete campaign"
-                      onClick={() => {
-                        if (!window.confirm(`Delete campaign “${selectedCampaign.name}”?`)) return;
+                      onClick={async () => {
+                        const confirmed = await displayToast({
+                          message: `Delete campaign “${selectedCampaign.name}”?`,
+                          toastType: "confirm",
+                        });
+                        if (!confirmed) return;
                         withMissionChange((m) =>
                           applyDeleteReportCampaign(m, {
                             reportCampaignUuid: selectedCampaign.uuid,

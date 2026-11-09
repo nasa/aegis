@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
 import React from "react";
 import adminCommon from "./adminCommon.module.css";
+import { displayToast } from "components/toastNotifications";
 
 const Emss: React.FunctionComponent = () => {
   const loading = useAsyncStatus("Loading EMSS API status...");
@@ -35,8 +36,11 @@ const Emss: React.FunctionComponent = () => {
 
   const toggleEmssApi = async () => {
     if (isEmssApiEnabled) {
-      const response = confirm("Are you sure you want to turn off the EMSS API?");
-      if (!response) return;
+      const confirmed = await displayToast({
+        message: "Are you sure you want to turn off the EMSS API?",
+        toastType: "confirm",
+      });
+      if (!confirmed) return;
     }
     const updateRes = await fetch(`/api/v1/emss/enableEmssApi`, {
       method: "POST",

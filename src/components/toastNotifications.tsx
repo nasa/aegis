@@ -2,26 +2,21 @@ import type { FunctionComponent } from "react";
 import { type ToastContentProps, type ToastOptions, toast } from "react-toastify";
 import styles from "./toast-notifications.module.css";
 
-type DisplayToastOptions = {
+type ToastType = "alert" | "confirm";
+
+export type DisplayToastOptions = {
   message: string;
   title?: string;
-  showCancel?: boolean;
+  toastType?: ToastType;
   onOk?: () => void;
   onCancel?: () => void;
 } & ToastOptions;
 
-const WithActions: FunctionComponent<ToastContentProps<DisplayToastOptions>> = ({
+const ToastContent: FunctionComponent<ToastContentProps<DisplayToastOptions>> = ({
   data,
   closeToast,
 }) => {
-  const handleOk = () => {
-    data.onOk?.();
-    closeToast();
-  };
-  const handleCancel = () => {
-    data.onCancel?.();
-    closeToast();
-  };
+  const isConfirm = data.toastType === "confirm";
 
   return (
     <div className={styles.toastContainer}>
@@ -29,12 +24,24 @@ const WithActions: FunctionComponent<ToastContentProps<DisplayToastOptions>> = (
       <div className={styles.toastContent}>
         <p className={styles.toastMessage}>{data.message}</p>
         <div className={`${styles.toastActions}`}>
-          {data.showCancel && (
-            <button onClick={handleCancel} className={styles.cancelButton}>
+          {isConfirm && (
+            <button
+              onClick={() => {
+                data.onCancel?.();
+                closeToast();
+              }}
+              className={styles.cancelButton}
+            >
               Cancel
             </button>
           )}
-          <button onClick={handleOk} className={styles.confirmBtn}>
+          <button
+            onClick={() => {
+              data.onOk?.();
+              closeToast();
+            }}
+            className={styles.confirmBtn}
+          >
             OK
           </button>
         </div>
@@ -43,22 +50,34 @@ const WithActions: FunctionComponent<ToastContentProps<DisplayToastOptions>> = (
   );
 };
 
+/**
+ * Displays a toast with customizable confirmation/alert controls.
+ * Returns a Promise resolving to `true` (OK) or `false` (Cancel).
+ */
 export const displayToast = ({
   title,
   message,
-  showCancel,
+  toastType = "alert",
+  onOk = () => {},
+  onCancel = () => {},
   ...toastProps
 }: DisplayToastOptions): Promise<boolean> => {
   return new Promise((resolve) => {
-    toast(WithActions, {
-      ...toastProps,
+    toast(ToastContent, {
       closeButton: false,
+      ...toastProps,
       data: {
         title,
         message,
-        showCancel,
-        onOk: () => resolve(true),
-        onCancel: () => resolve(false),
+        toastType,
+        onOk: () => {
+          onOk();
+          resolve(true);
+        },
+        onCancel: () => {
+          onCancel();
+          resolve(false);
+        },
       },
     });
   });

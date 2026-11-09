@@ -9,6 +9,7 @@ import { deepEqual } from "utils/useAppSelector";
 import { useDocSelector } from "utils/useDocSelector";
 import { applyReplaceAllMissionPriorities } from "operations/apply/apply-mission-priority";
 import { getMissionPriorityUsages } from "operations/helpers/missionPriorityUsages";
+import { displayToast } from "components/toastNotifications";
 
 /**
  * One category and every trace it contains, as used by the admin bulk import/export tool.
@@ -198,7 +199,7 @@ const ImportMissionPriorities: FunctionComponent<{
   const [importJson, setImportJson] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  const runImport = () => {
+  const runImport = async () => {
     setError("");
 
     const result = parseImportJson(importJson);
@@ -222,12 +223,14 @@ const ImportMissionPriorities: FunctionComponent<{
         ? `\n\n${usages.length} action(s)/template(s) currently reference an existing identifier and will have it cleared.`
         : "";
 
-    if (
-      !confirm(
+    const confirmed = await displayToast({
+      message:
         "Are you sure you want to import? This will delete all existing mission priority identifiers for this mission." +
-          usageWarning
-      )
-    ) {
+        usageWarning,
+      toastType: "confirm",
+    });
+
+    if (!confirmed) {
       return;
     }
 

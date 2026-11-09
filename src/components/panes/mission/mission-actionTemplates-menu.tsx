@@ -8,6 +8,7 @@ import {
   applyDuplicateActionTemplate,
 } from "operations/apply/apply-mission-actionTemplate";
 import { withMissionChange } from "client/automergeDocHandles";
+import { displayToast } from "components/toastNotifications";
 
 export const ActionTemplateMenu: FunctionComponent<{
   uuid: string;
@@ -49,8 +50,12 @@ export const ActionTemplateMenu: FunctionComponent<{
           </div>
           <div
             className={actionStyles.menuItem}
-            onClick={(e) => {
-              if (window.confirm("Are you sure you want to delete this Action Template?")) {
+            onClick={async (e) => {
+              const confirmed = await displayToast({
+                message: "Are you sure you want to delete this Action Template?",
+                toastType: "confirm",
+              });
+              if (confirmed) {
                 withMissionChange((m) =>
                   applyDeleteActionTemplate(m, { actionTemplateUuid: uuid })
                 );

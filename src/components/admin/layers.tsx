@@ -21,6 +21,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
+import { displayToast } from "components/toastNotifications";
 
 const Layers: FunctionComponent<{ missionId: number }> = ({ missionId }) => {
   const loading = useAsyncStatus("Loading layers and sublayers...");
@@ -301,7 +302,11 @@ const LayerList = (props: {
   const [collapsedLayers, setCollapsedLayers] = useState<string[]>([]);
 
   async function delSubLayer(sublayer: Sublayer) {
-    if (confirm("Are you sure you want to delete sublayer " + sublayer.name)) {
+    const confirmed = await displayToast({
+      message: "Are you sure you want to delete sublayer " + sublayer.name,
+      toastType: "confirm",
+    });
+    if (confirmed) {
       const res: WrappedResponse<null> = await deleteSublayers(props.missionId, [sublayer.uuid]);
       await props.refreshLayerList(); //reload layer listing in parent component.
       if (res.status !== "success") {
@@ -311,7 +316,11 @@ const LayerList = (props: {
   }
 
   async function delLayer(layer: Layer) {
-    if (confirm("Are you sure you want to delete layer " + layer.name)) {
+    const confirmed = await displayToast({
+      message: "Are you sure you want to delete layer " + layer.name,
+      toastType: "confirm",
+    });
+    if (confirmed) {
       if (props.sublayers.some((sublayer) => sublayer.layerUuid === layer.uuid)) {
         throw new Error(
           `Cannot delete layer ${layer.name}. This layer has sublayers. Delete sublayers first.`
