@@ -61,7 +61,7 @@ const MissionSTM: FunctionComponent<{
   //delete a level 1, 2, or 3
   async function delSTM(uuid: string, stmType: "Level1" | "Level2" | "Level3") {
     const confirmed = await displayToast({
-      message: "Are you sure you want to delete " + stmType,
+      message: `Are you sure you want to delete ${stmType}?`,
       toastType: "confirm",
     });
     if (!confirmed) return;

@@ -17,6 +17,7 @@ import { useAdminMission } from "components/admin/useAdminMission";
 import { generateAutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
+import { displayToast } from "components/toastNotifications";
 
 vi.mock("http-client/login", () => ({
   isLoggedIn: vi.fn(async () => ({ status: "success", data: { isAdmin: true } })),
@@ -45,6 +46,9 @@ vi.mock("@automerge/automerge-repo-react-hooks", () => {
   const repo = { find: vi.fn() };
   return { useDocument: vi.fn(() => [undefined]), useRepo: vi.fn(() => repo) };
 });
+vi.mock("components/toastNotifications", () => ({
+  displayToast: vi.fn(async (): Promise<boolean> => true),
+}));
 
 function deferred<T>() {
   let resolve: (value: T) => void;
@@ -148,7 +152,7 @@ describe("admin directory loading", () => {
     vi.mocked(listFiles).mockResolvedValueOnce([
       { name: "terrain.tif", isDir: false, fileCount: 1, size: 100 } as GISfile,
     ]);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(displayToast).mockResolvedValue(true);
     const deletion = deferred<Response>();
     vi.mocked(deleteFile).mockReturnValueOnce(deletion.promise);
     renderFiles();

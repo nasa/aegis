@@ -18,9 +18,6 @@ import {
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { initialState as evaInitialState } from "store/eva";
 
-const confirmSpy = vi.spyOn(window, "confirm").mockImplementation(() => true);
-const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => true);
-
 // Terrain profile fetching always pretends to fail so traverse path generation
 // short-circuits in tests (we don't have a real elevation service).
 const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
@@ -58,8 +55,6 @@ beforeEach(() => {
 
 afterAll(() => {
   vi.restoreAllMocks();
-  confirmSpy.mockRestore();
-  alertSpy.mockRestore();
 });
 
 /**

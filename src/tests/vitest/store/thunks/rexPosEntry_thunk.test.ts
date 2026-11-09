@@ -13,8 +13,6 @@ import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
-const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => true);
-
 const getMission = (): Mission => getMissionDocHandle().doc();
 
 beforeAll(() => {
@@ -32,7 +30,6 @@ beforeEach(() => {
 
 afterAll(() => {
   vi.restoreAllMocks();
-  alertSpy.mockRestore();
 });
 
 describe("Thunk Position Entry Tests", () => {
