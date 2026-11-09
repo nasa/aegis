@@ -4,7 +4,7 @@ import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
 import { Migration20261102000000 } from "server/automerge/migrations/Migration20261102000000";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
-import { generateBlankRex } from "store/storeUtils/rex";
+import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 
 describe("REX description migration", () => {
   it("is registered immediately after history replacement", () => {
@@ -18,12 +18,33 @@ describe("REX description migration", () => {
     try {
       const planned = generateBlankEVA({ uuid: "planned", description: "Keep EVA notes" });
       const copied = generateBlankEVA({ uuid: "copied", refUuid: planned.refUuid });
-      const stopped = generateBlankRex({ uuid: "stopped", evaUuid: copied.uuid });
+      const stopped = generateBlankRex({
+        uuid: "stopped",
+        evaUuid: copied.uuid,
+        posEntries: [
+          generateBlankPosEntry({
+            uuid: "position",
+            location: { lat: 0, lng: 0 },
+            elevation: 0,
+            petSeconds: 0,
+          }),
+        ],
+        stationEntries: { station: { rexStatus: "complete" } },
+        actionEntries: { sample: { rexStatus: "complete", mass: 0 } },
+      });
       const running = generateBlankRex({
         uuid: "running",
         evaUuid: copied.uuid,
         isRunning: true,
         petValueAtStartStop: "+01:23:45",
+        petRunning: true,
+        executeEditMode: "limited",
+        executeEditState: {
+          addedStationUuids: ["station"],
+          addedTraverseUuids: [],
+          addedActionUuids: ["sample"],
+          actionLetterOrderByParent: { station: ["sample"] },
+        },
       });
       const current = generateBlankRex({ uuid: "current", evaUuid: copied.uuid });
       const stoppedWithNotes: RexWithLegacyFields = {
