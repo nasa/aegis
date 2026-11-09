@@ -149,7 +149,7 @@ describe("clear Automerge document history", () => {
       [
         ...schemaMigrations,
         {
-          version: 20261029000000,
+          version: 20261103000000,
           name: "edit-replacement",
           migrate: async (handle, { docListing }) => {
             expect(handle.url).toBe(docListing.automergeUrl);

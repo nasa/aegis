@@ -178,7 +178,6 @@ export function seedRex(overrides: Partial<Rex>): Rex {
     uuid: "",
     ownerId: 0,
     name: "",
-    description: "",
     petStartStopTimestamp: null,
     petValueAtStartStop: "+00:00:00",
     petRunning: false,
