@@ -37,11 +37,14 @@ Only blob JSON goes in `.vitest-reports/`. Browser shards publish distinct JUnit
 files at `test-results/vitest-browser-<index>-6.xml`; parity uses
 `test-results/vitest-browser-parity.xml`.
 
-The merge uses the Node configuration and publishes its Node JUnit results.
-Vitest drops browser test results from JUnit when those projects are absent
-from the merge configuration, even though their coverage is combined. Publishing
-JUnit in each browser job preserves every result without starting browser
-projects in the merge job.
+The jobs set both blob output paths and `--merge-reports=.vitest-reports`
+explicitly; Vitest 5's default blob directory is `.vitest/blob/`.
+
+The merge uses the Node configuration and a Node-only JUnit reporter. Vitest 5
+replays browser modules during merging even when those projects are absent from
+the configuration. The reporter excludes those modules from JUnit to avoid
+duplicating the results published by the browser jobs; their coverage still
+contributes to the combined report.
 
 The browser JUnit reporter prefixes testcase classes with the browser project.
 Vitest's default omits it, giving Firefox and WebKit identical identities that
@@ -97,7 +100,8 @@ npx vitest --merge-reports=.local/test-evidence/blobs \
   --config src/tests/vitest/vitest.config.mts --coverage \
   --coverage.reportsDirectory=.local/test-evidence/coverage-merged \
   --coverage.reporter=json --coverage.reporter=lcov --coverage.reporter=cobertura \
-  --reporter=junit --outputFile.junit=.local/test-evidence/junit-node.xml
+  --reporter=./.gitlab/scripts/node-junit-reporter.mjs \
+  --outputFile.junit=.local/test-evidence/junit-node.xml
 node .gitlab/scripts/verify-vitest-artifacts.mjs .local/test-evidence
 ```
 

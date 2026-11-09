@@ -39,7 +39,7 @@ executionTest(
     await mission.openDashboard();
     await expect
       .element(page.getByTestId("dashboard-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
     for (const mode of ["dashboard", "minimap"])
       await expect
         .element(page.getBySelector(`[data-map-mode="${mode}"] .ol-viewport`))

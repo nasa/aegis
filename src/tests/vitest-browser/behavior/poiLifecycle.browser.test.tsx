@@ -38,7 +38,7 @@ test.describe("POI lifecycle contracts", () => {
       radius: 5,
       priorityOverride: 0,
     });
-    await expect.element(planningField(page, "POI")).toHaveTextContent(exactText(created.name));
+    await expect.element(planningField(page, "POI")).toMatchTextContent(exactText(created.name));
     for (const [name, error] of [
       ["", "Required"],
       ["reference poi", "Name must be unique"],
@@ -104,7 +104,7 @@ test.describe("POI lifecycle contracts", () => {
       return false;
     });
     await page.getByLabelText("deletePoi", { exact: true }).click();
-    await expect.element(planningField(page, "POI")).toHaveTextContent(exactText("Reference POI"));
+    await expect.element(planningField(page, "POI")).toMatchTextContent(exactText("Reference POI"));
     expect(await mission.read()).toEqual(before);
     vi.spyOn(window, "confirm").mockReturnValueOnce(true);
     await page.getByLabelText("deletePoi", { exact: true }).click();
@@ -126,7 +126,7 @@ test.describe("POI lifecycle contracts", () => {
     await selectPlanningStationActions(page, "Alpha station");
     await expect
       .element(planningField(page, "Action Name").filter({ hasText: "Source outcrop sample" }))
-      .toHaveTextContent(exactText("Source outcrop sample"));
+      .toMatchTextContent(exactText("Source outcrop sample"));
     expect((await mission.read()).actions[adopted.uuid]).toEqual(adopted);
   });
 });

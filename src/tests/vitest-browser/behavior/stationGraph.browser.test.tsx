@@ -153,7 +153,7 @@ test.describe("Station graph boundaries", () => {
         .click();
       await expect
         .element(planningField(page, "Station"))
-        .toHaveTextContent(exactText(endpoint === "egress" ? "Lander Egress" : "Lander Ingress"));
+        .toMatchTextContent(exactText(endpoint === "egress" ? "Lander Egress" : "Lander Ingress"));
       const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(true);
       const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
       await page.getByLabelText("deleteStation", { exact: true }).click();
@@ -215,7 +215,7 @@ test.describe("Station graph boundaries", () => {
           .getBySelector('[class*="evaItem_"]')
           .filter({ has: page.getByText("Alpha station", { exact: true }) })
           .getBySelector('[data-tooltip-content="Total dwell time (h:mm)"]');
-        await expect.element(sequenceDwell).toHaveTextContent(exactText(value));
+        await expect.element(sequenceDwell).toMatchTextContent(exactText(value));
         await selectPlanningStation(page, "Alpha station");
         await enablePlanningEditMode(page);
         await page.getByLabelText("info_panel", { exact: true }).click();
@@ -226,8 +226,8 @@ test.describe("Station graph boundaries", () => {
           .getByText(label, { exact: true })
           .getBySelector("../..")
           .getBySelector('[class*="displayFieldValue"]');
-      await expect.element(total("Action Time (mins):")).toHaveTextContent(exactText("20"));
-      await expect.element(total("Dwell Time (mins):")).toHaveTextContent(exactText("10"));
+      await expect.element(total("Action Time (mins):")).toMatchTextContent(exactText("20"));
+      await expect.element(total("Dwell Time (mins):")).toMatchTextContent(exactText("10"));
       if (unassigned) {
         await expect
           .element(total("Dwell Time (mins):"))
@@ -255,7 +255,7 @@ test.describe("Station graph boundaries", () => {
       await expect
         .poll(() => page.getByText("Using Calculated Total Dwell Time: 10", { exact: true }).length)
         .toBe(0);
-      await expect.element(total("Dwell Time (mins):")).toHaveTextContent(exactText("10"));
+      await expect.element(total("Dwell Time (mins):")).toMatchTextContent(exactText("10"));
       await page.getByLabelText("report_panel", { exact: true }).click();
       const warning = page.getByText(
         "Station has actions with no crew assigned. Dwell time calculation is incorrect",
@@ -274,7 +274,7 @@ test.describe("Station graph boundaries", () => {
       await page.getByLabelText("info_panel", { exact: true }).click();
       await expect
         .element(planningField(page, "Time in minutes"))
-        .toHaveTextContent(exactText("21"));
+        .toMatchTextContent(exactText("21"));
       await mission.open();
       await selectPlanningEva(page, "Survey Alpha");
       await expectSequenceDwell("0:21");

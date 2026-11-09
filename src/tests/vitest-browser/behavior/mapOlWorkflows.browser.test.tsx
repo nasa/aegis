@@ -52,7 +52,7 @@ test.describe("Isolated mission — Cross-Section Workflows", () => {
     await page.getByLabelText("station Section", { exact: true }).click();
     await expect
       .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-      .toHaveTextContent("Stations");
+      .toMatchTextContent("Stations");
 
     // Station list should still show items
     await expect

@@ -176,7 +176,7 @@ test-vitest:
       --shard=${SHARD_INDEX}/${NUM_SHARDS}
   artifacts:
     paths:
-      - .vitest/blob/
+      - .vitest-reports/
     expire_in: 1 day
 
 # Merge coverage from every shard and replay Node test results as JUnit.
@@ -201,9 +201,9 @@ merge-vitest-coverage:
       for shard in 1 2 3 4 5 6; do
         test -s ".vitest-reports/blob-browser-${shard}-6.json" || exit 1
       done
-    - npx vitest --merge-reports
+    - npx vitest --merge-reports=.vitest-reports
       --config src/tests/vitest/vitest.config.mts
-      --reporter=junit
+      --reporter=./.gitlab/scripts/node-junit-reporter.mjs
       --coverage
       --coverage.reporter=text
       --coverage.reporter=text-summary
@@ -250,7 +250,7 @@ test-playwright:start:
 prepare-playwright:
   stage: stageless
   tags: ["openshift"]
-  image: mcr.microsoft.com/playwright:v1.63.0-jammy
+  image: mcr.microsoft.com/playwright:v1.64.1-jammy
   needs:
     - job: test-playwright:start
       artifacts: false

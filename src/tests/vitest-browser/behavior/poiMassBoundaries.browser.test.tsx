@@ -87,9 +87,9 @@ test("POI totals and science coverage distinguish missing values, disabled work 
   await enablePlanningEditMode(page);
   await selectPlanningPoi(page, "Reference POI");
   await page.getByLabelText("info_panel", { exact: true }).click();
-  await expect.element(total(page, "Number of Actions:")).toHaveTextContent(exactText("1"));
-  await expect.element(total(page, "Total Mass (g):")).toHaveTextContent(exactText("1250"));
-  await expect.element(total(page, "Total Action Time (mins):")).toHaveTextContent(exactText("3"));
+  await expect.element(total(page, "Number of Actions:")).toMatchTextContent(exactText("1"));
+  await expect.element(total(page, "Total Mass (g):")).toMatchTextContent(exactText("1250"));
+  await expect.element(total(page, "Total Action Time (mins):")).toMatchTextContent(exactText("3"));
   await page.getByLabelText("report_panel", { exact: true }).click();
   await expect.element(page.getByText("No report items", { exact: true })).toBeVisible();
   await page.getByLabelText("actions_panel", { exact: true }).click();
@@ -102,7 +102,7 @@ test("POI totals and science coverage distinguish missing values, disabled work 
     .getBySelector('svg[data-icon="ellipsis-vertical"]')
     .click();
   await page.getBySelector("dialog[open]").getByText("Deactivate Action", { exact: true }).click();
-  await expect.element(total(page, "Total Planned Mass (g):")).toHaveTextContent(exactText("0"));
+  await expect.element(total(page, "Total Planned Mass (g):")).toMatchTextContent(exactText("0"));
   await expect.element(strip).not.toHaveClass(/highlight/);
   await page.getByLabelText("report_panel", { exact: true }).click();
   const warning = page.getByText("POI has no actions", { exact: true });
@@ -116,15 +116,15 @@ test("POI totals and science coverage distinguish missing values, disabled work 
   const nameDialog = page.getBySelector("dialog[open]");
   await nameDialog.getByLabelText("Action Name", { exact: true }).fill("Missing mass and science");
   await nameDialog.getByText("Save", { exact: true }).click();
-  await expect.element(total(page, "Number of Actions:")).toHaveTextContent(exactText("1"));
-  await expect.element(total(page, "Total Planned Mass (g):")).toHaveTextContent(exactText("0"));
+  await expect.element(total(page, "Number of Actions:")).toMatchTextContent(exactText("1"));
+  await expect.element(total(page, "Total Planned Mass (g):")).toMatchTextContent(exactText("0"));
   await expect.element(strip).not.toHaveClass(/highlight/);
   await page.getByLabelText("report_panel", { exact: true }).click();
   await expect.element(page.getByText("No report items", { exact: true })).toBeVisible();
   await mission.open();
   await selectPlanningPoi(page, "Reference POI");
   await page.getByLabelText("info_panel", { exact: true }).click();
-  await expect.element(total(page, "Total Mass (g):")).toHaveTextContent(exactText("0"));
+  await expect.element(total(page, "Total Mass (g):")).toMatchTextContent(exactText("0"));
   const saved = await mission.read();
   expect(saved.actions[extra].enabled).toBe(false);
   expect(saved.actions[disabled].enabled).toBe(false);
@@ -173,15 +173,17 @@ test.describe("Executed mass boundaries", () => {
           .getBySelector(`div[data-tooltip-html="${label}"]`)
           .getBySelector("..")
           .getBySelector('[class*="tableRowCells"] > [data-tooltip-id="aegis-tooltip"]');
-      await expect.element(cells("Planned sample mass").nth(1)).toHaveTextContent(exactText("1.5"));
+      await expect
+        .element(cells("Planned sample mass").nth(1))
+        .toMatchTextContent(exactText("1.5"));
       await expect
         .element(cells("Actual sample mass").nth(1))
-        .toHaveTextContent(exactText(expected));
+        .toMatchTextContent(exactText(expected));
     };
     await openActions();
     await expect
       .element(total(page, "Total Planned Mass (g):"))
-      .toHaveTextContent(exactText("1500"));
+      .toMatchTextContent(exactText("1500"));
     await expect.element(total(page, "Total Executed Mass (g):")).toBeEmptyDOMElement();
     await expect.element(total(page, "Executed Delta Mass (g):")).toBeEmptyDOMElement();
     await comparisonMass("");
@@ -193,10 +195,10 @@ test.describe("Executed mass boundaries", () => {
       await savePlanningField(page, "Executed Sample Mass", fixture.value);
       await expect
         .element(total(page, "Total Executed Mass (g):"))
-        .toHaveTextContent(exactText(fixture.value));
+        .toMatchTextContent(exactText(fixture.value));
       await expect
         .element(total(page, "Executed Delta Mass (g):"))
-        .toHaveTextContent(exactText(fixture.delta));
+        .toMatchTextContent(exactText(fixture.delta));
       await expect
         .poll(
           async () =>

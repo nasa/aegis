@@ -249,7 +249,7 @@ test.describe("Station geometry and walkback lifecycles", () => {
           .getBySelector("../..")
           .getBySelector('[class*="displayFieldValue"]')
       )
-      .toHaveTextContent(exactText("StationCell-20-20"));
+      .toMatchTextContent(exactText("StationCell-20-20"));
     await expectStationFeature(page, mission.ids.stationA, LANDER);
     await mission.open();
     await selectPlanningStation(page, "Alpha station");

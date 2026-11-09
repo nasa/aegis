@@ -16,7 +16,7 @@ async function selectPlannedAlpha(page: Page): Promise<void> {
     .click();
   await expect
     .element(planningField(page, "EVA Title"))
-    .toHaveTextContent(exactText("Survey Alpha"));
+    .toMatchTextContent(exactText("Survey Alpha"));
 }
 
 test.describe("EVA confirmation and ownership graph", () => {

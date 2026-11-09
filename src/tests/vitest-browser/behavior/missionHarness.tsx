@@ -165,7 +165,7 @@ export const test = base.extend<BrowserMissionFixtures>({
       if (route === "mission") {
         await expect
           .element(page.getByLabelText("missionNameHeader", { exact: true }))
-          .toHaveTextContent(openedHandle.doc().name);
+          .toMatchTextContent(openedHandle.doc().name);
         await expect.poll(() => page.getBySelector(".ol-viewport").length).toBe(1);
         await expect
           .element(page.getByLabelText("globalEditToggle", { exact: true }))

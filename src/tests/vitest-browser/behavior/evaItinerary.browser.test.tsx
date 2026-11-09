@@ -218,7 +218,7 @@ async function expectRenderedSequence(
     if (item.type === "station") {
       await expect
         .element(rendered.getBySelector('[class*="evaItemNameText"]'))
-        .toHaveTextContent(exactText(doc.stations[item.uuid]?.name ?? "< Station not selected >"));
+        .toMatchTextContent(exactText(doc.stations[item.uuid]?.name ?? "< Station not selected >"));
     } else {
       const traverse = doc.traverses[item.uuid];
       const text = rendered.getBySelector('[class*="evaTraverseNameText"]').element().textContent;

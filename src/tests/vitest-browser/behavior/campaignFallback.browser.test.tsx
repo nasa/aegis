@@ -114,20 +114,20 @@ for (const removal of ["designated REX", "planned EVA"] as const) {
     });
     const before = await mission.read();
     await comparison(page);
-    await expect.element(executedMass(page)).toHaveTextContent(exactText("0.9"));
+    await expect.element(executedMass(page)).toMatchTextContent(exactText("0.9"));
     await chooseExecution(page, mission.ids.rexA);
-    await expect.element(executedMass(page)).toHaveTextContent(exactText("0.3"));
+    await expect.element(executedMass(page)).toMatchTextContent(exactText("0.3"));
     await expect
       .poll(
         async () => (await mission.read()).reportCampaigns[campaignUuid].executionRexUuidByEvaUuid
       )
       .toEqual({ [mission.ids.evaA]: mission.ids.rexA });
     await chooseExecution(page, "");
-    await expect.element(executedMass(page)).toHaveTextContent(exactText("0.9"));
+    await expect.element(executedMass(page)).toMatchTextContent(exactText("0.9"));
     await chooseExecution(page, mission.ids.rexA);
     await mission.open();
     await comparison(page);
-    await expect.element(executedMass(page)).toHaveTextContent(exactText("0.3"));
+    await expect.element(executedMass(page)).toMatchTextContent(exactText("0.3"));
     const deleteFromEditor = async (evaUuid: string) => {
       await enablePlanningEditMode(page);
       await execution(page, evaUuid);
@@ -140,11 +140,11 @@ for (const removal of ["designated REX", "planned EVA"] as const) {
     await expect.poll(async () => (await mission.read()).rexes[mission.ids.rexA]).toBeUndefined();
     await expect
       .element(executedMass(page))
-      .toHaveTextContent(exactText(removal === "designated REX" ? "0.9" : ""));
+      .toMatchTextContent(exactText(removal === "designated REX" ? "0.9" : ""));
     if (removal === "designated REX") {
       await deleteFromEditor(newRex.evaUuid);
       await expect.poll(async () => (await mission.read()).rexes[newRex.uuid]).toBeUndefined();
-      await expect.element(executedMass(page)).toHaveTextContent(exactText(""));
+      await expect.element(executedMass(page)).toMatchTextContent(exactText(""));
     }
     const after = await mission.read();
     expect(after.evas[mission.ids.rexEvaA]).toBeUndefined();
@@ -160,7 +160,7 @@ for (const removal of ["designated REX", "planned EVA"] as const) {
     expect(after.evas[mission.ids.rexEvaB]).toEqual(before.evas[mission.ids.rexEvaB]);
     await mission.open();
     await comparison(page);
-    await expect.element(executedMass(page)).toHaveTextContent(exactText(""));
+    await expect.element(executedMass(page)).toMatchTextContent(exactText(""));
     expect(await mission.read()).toEqual(after);
   });
 }

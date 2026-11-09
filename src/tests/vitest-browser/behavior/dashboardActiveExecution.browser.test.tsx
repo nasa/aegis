@@ -15,7 +15,7 @@ test("active execution selection renders the big map and minimap with their own 
   const expectActiveMaps = async () => {
     await expect
       .element(page.getByTestId("dashboard-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
     await expect
       .poll(() => page.getByText("No EVA is currently running.", { exact: true }).length)
       .toBe(0);

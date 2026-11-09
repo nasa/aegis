@@ -133,7 +133,7 @@ for (const version of [1, 2]) {
                 .getByRole("region", { name: "right", exact: true })
                 .getBySelector('div[class*="rightBodyTitle_"]')
             )
-            .toHaveTextContent(exactText(title));
+            .toMatchTextContent(exactText(title));
           await expect
             .element(page.getByLabelText(tab, { exact: true }))
             .toHaveClass(/SelectedTab/);

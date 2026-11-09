@@ -19,7 +19,7 @@ async function openMissionConfig(page: Page, tab: string, title: string): Promis
   await page.getByLabelText(tab, { exact: true }).click();
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText(title));
+    .toMatchTextContent(exactText(title));
 }
 
 async function rejectDraft(
@@ -335,14 +335,14 @@ test("mission reference navigation falls back when an action version removes the
   await page.getByLabelText("actionDefinitions_panel", { exact: true }).click();
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText("STM Action Definitions"));
+    .toMatchTextContent(exactText("STM Action Definitions"));
 
   await mission.change((draft) => {
     draft.actionSystemVersion = 1;
   });
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText("Mission Preferences"));
+    .toMatchTextContent(exactText("Mission Preferences"));
   await expect
     .element(page.getByLabelText("prefs_panel", { exact: true }))
     .toHaveClass(/rightIconContainerSelectedTab/);

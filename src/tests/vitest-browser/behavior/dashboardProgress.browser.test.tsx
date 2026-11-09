@@ -65,7 +65,7 @@ test("dashboard timeline scales known allotted and calculated work with PET and 
   await mission.openDashboard();
   await expect
     .element(page.getByTestId("dashboard-pet-clock"))
-    .toHaveTextContent(exactText("+00:12:00"));
+    .toMatchTextContent(exactText("+00:12:00"));
   const container = page
     .getBySelector('div[class*="activityIndicators"]')
     .getBySelector('xpath=ancestor::div[contains(@class,"container")][1]');
@@ -148,8 +148,8 @@ test("dashboard timeline scales known allotted and calculated work with PET and 
 
   const timeLabels = page.getBySelector('div[class*="timeLabels"] > div');
   await expect.poll(() => timeLabels.length).toBe(2);
-  await expect.element(timeLabels.nth(0)).toHaveTextContent("0:00-");
-  await expect.element(timeLabels.nth(1)).toHaveTextContent("0:30-");
+  await expect.element(timeLabels.nth(0)).toMatchTextContent("0:00-");
+  await expect.element(timeLabels.nth(1)).toMatchTextContent("0:30-");
   await expect
     .poll(() => getComputedStyle(timeLabels.nth(0).element()).getPropertyValue("filter"))
     .toBe("opacity(0.4)");

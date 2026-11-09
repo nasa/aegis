@@ -38,7 +38,7 @@ async function openPriorityConfig(page: Page): Promise<void> {
   await page.getByLabelText("missionPriorities_panel", { exact: true }).click();
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText("Mission Priority Identifiers"));
+    .toMatchTextContent(exactText("Mission Priority Identifiers"));
 }
 
 async function setPriorityDropdown(
@@ -98,8 +98,8 @@ test("mission priority traces sort, rename through actions/templates, block in-u
   priorityRows = page.getByLabelText("missionPriorities-item", { exact: true });
   await editField(page, "Trace", "SIMD-2", priorityRows.filter({ hasText: "(Trace)" }));
   // SIMD short forms pad on the right: 10 denotes 1000, and 2 denotes 2000.
-  await expect.element(priorityRows.nth(0)).toHaveTextContent("SIMD-10");
-  await expect.element(priorityRows.nth(1)).toHaveTextContent("SIMD-2");
+  await expect.element(priorityRows.nth(0)).toMatchTextContent("SIMD-10");
+  await expect.element(priorityRows.nth(1)).toMatchTextContent("SIMD-2");
 
   // A second UI-created category proves the dropdown groups sort by category,
   // independently of the numeric trace ordering within Science.
@@ -213,7 +213,7 @@ test("mission priority traces sort, rename through actions/templates, block in-u
     .toHaveAttribute("label", "Instrumentation");
   await expect
     .element(templateDropdown.getBySelector('option[value="' + priorityUuid + '"]'))
-    .toHaveTextContent(exactText("SIMD-0002"));
+    .toMatchTextContent(exactText("SIMD-0002"));
   await mission.open();
   await enablePlanningEditMode(page);
   await openPriorityConfig(page);
@@ -229,7 +229,7 @@ test("mission priority traces sort, rename through actions/templates, block in-u
   await expect.element(reloadedTemplateDropdown).toHaveValue(priorityUuid);
   await expect
     .element(reloadedTemplateDropdown.getBySelector('option[value="' + priorityUuid + '"]'))
-    .toHaveTextContent(exactText("SIMD-0002"));
+    .toMatchTextContent(exactText("SIMD-0002"));
   await expect
     .element(reloadedTemplateDropdown.getBySelector("optgroup").nth(0))
     .toHaveAttribute("label", "Astronomy");

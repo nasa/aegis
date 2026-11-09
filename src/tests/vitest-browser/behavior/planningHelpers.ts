@@ -20,7 +20,7 @@ export async function openPlanningSection(
   }[section];
   await expect
     .element(page.getByLabelText("leftPanelTitle", { exact: true }).filter({ hasText: title }))
-    .toHaveTextContent(exactText(title));
+    .toMatchTextContent(exactText(title));
 }
 
 export async function enablePlanningEditMode(page: Page): Promise<void> {
@@ -53,7 +53,7 @@ export async function savePlanningField(page: Page, label: string, value: string
   await dialog.getByLabelText(label, { exact: true }).fill(value);
   await dialog.getByText("Save", { exact: true }).click();
   await expect.poll(() => dialog.length).toBe(0);
-  await expect.element(planningField(page, label)).toHaveTextContent(exactText(value));
+  await expect.element(planningField(page, label)).toMatchTextContent(exactText(value));
 }
 
 export async function cancelPlanningField(page: Page, label: string, value: string): Promise<void> {
@@ -62,7 +62,7 @@ export async function cancelPlanningField(page: Page, label: string, value: stri
   await dialog.getByLabelText(label, { exact: true }).fill(value);
   await dialog.getByText("Cancel", { exact: true }).click();
   await expect.poll(() => dialog.length).toBe(0);
-  await expect.element(planningField(page, label)).toHaveTextContent(exactText(previous));
+  await expect.element(planningField(page, label)).toMatchTextContent(exactText(previous));
 }
 
 export async function selectPlanningStation(page: Page, name: string): Promise<void> {
@@ -75,7 +75,7 @@ export async function selectPlanningStation(page: Page, name: string): Promise<v
       .getByText(name, { exact: true })
       .click();
   }
-  await expect.element(planningField(page, "Station")).toHaveTextContent(exactText(name));
+  await expect.element(planningField(page, "Station")).toMatchTextContent(exactText(name));
 }
 
 export async function selectPlanningPoi(page: Page, name: string): Promise<void> {
@@ -88,7 +88,7 @@ export async function selectPlanningPoi(page: Page, name: string): Promise<void>
       .getByText(name, { exact: true })
       .click();
   }
-  await expect.element(planningField(page, "POI")).toHaveTextContent(exactText(name));
+  await expect.element(planningField(page, "POI")).toMatchTextContent(exactText(name));
 }
 
 export async function selectPlanningStationActions(page: Page, name: string): Promise<void> {
@@ -110,7 +110,7 @@ export async function selectPlanningEva(page: Page, name: string): Promise<void>
   if (!(await isVisible(title)) || (await title.element().textContent) !== name) {
     await planningEvaRow(page, name).getByText(name, { exact: true }).click();
   }
-  await expect.element(planningField(page, "EVA Title")).toHaveTextContent(exactText(name));
+  await expect.element(planningField(page, "EVA Title")).toMatchTextContent(exactText(name));
 }
 
 export async function choosePlanningEvaAction(

@@ -203,7 +203,7 @@ test("measurement editing inserts, drags and removes vertices, and cancel restor
     .nth(0)
     .getBySelector('[class*="timelineHoverValue"]')
     .last();
-  await expect.element(totalDistanceValue).toHaveTextContent(exactText(known.distance.toFixed(0)));
+  await expect.element(totalDistanceValue).toMatchTextContent(exactText(known.distance.toFixed(0)));
 
   const beforeCanceledEdit = (await measurements())[0];
   await editMeasurement(page);
@@ -273,12 +273,12 @@ test("known segmented terrain profile drives distance and slope display without 
   await hoverSample(0.25);
   await expect
     .element(displayedValue(0))
-    .toHaveTextContent(exactText((distances[0] + distances[1]).toFixed(0)));
+    .toMatchTextContent(exactText((distances[0] + distances[1]).toFixed(0)));
   await expect
     .element(displayedValue(1))
-    .toHaveTextContent(exactText((distances[0] * 0.25).toFixed(0)));
-  await expect.element(displayedValue(2)).toHaveTextContent(exactText("20"));
-  await expect.element(displayedValue(4)).toHaveTextContent(exactText("8.0"));
+    .toMatchTextContent(exactText((distances[0] * 0.25).toFixed(0)));
+  await expect.element(displayedValue(2)).toMatchTextContent(exactText("20"));
+  await expect.element(displayedValue(4)).toMatchTextContent(exactText("8.0"));
   const sampleSpacing = distances[0] / 8;
   // The 10 m grade window includes adjacent samples on the straight ascent.
   expect(sampleSpacing).toBeGreaterThan(2.5);
@@ -289,10 +289,10 @@ test("known segmented terrain profile drives distance and slope display without 
     .toBeCloseTo(expectedGrade, 1);
 
   await hoverSample(0.5);
-  await expect.element(displayedValue(2)).toHaveTextContent(exactText("40"));
-  await expect.element(displayedValue(4)).toHaveTextContent(exactText("—"));
+  await expect.element(displayedValue(2)).toMatchTextContent(exactText("40"));
+  await expect.element(displayedValue(4)).toMatchTextContent(exactText("—"));
   await hoverSample(0.75);
-  await expect.element(displayedValue(2)).toHaveTextContent(exactText("20"));
+  await expect.element(displayedValue(2)).toMatchTextContent(exactText("20"));
   await expect.poll(() => Number(displayedValue(4).element().textContent)).toBeCloseTo(8, 0);
   await expect
     .poll(() => Number(displayedValue(3).element().textContent))
@@ -360,10 +360,10 @@ test("signed path grades stay distinct from terrain slope at inclusive color bou
   const displayedValue = (index: number) =>
     hoverValues.nth(index).getBySelector('[class*="timelineHoverValue"]').last();
   await hoverGraphAtDistance(page, midClassFraction, total * midClassFraction);
-  await expect.element(displayedValue(4)).toHaveTextContent(exactText("8.0"));
+  await expect.element(displayedValue(4)).toMatchTextContent(exactText("8.0"));
   await expect.poll(() => Number(displayedValue(3).element().textContent)).toBeGreaterThan(20);
   await hoverGraphAtDistance(page, downClassFraction, total * downClassFraction);
-  await expect.element(displayedValue(4)).toHaveTextContent(exactText("8.0"));
+  await expect.element(displayedValue(4)).toMatchTextContent(exactText("8.0"));
   await expect.poll(() => Number(displayedValue(3).element().textContent)).toBeLessThan(-20);
 });
 
@@ -510,7 +510,7 @@ test("older terrain responses cannot replace a newer edited profile or cross a m
     .click();
   await expect
     .element(page.getByLabelText("missionNameHeader", { exact: true }))
-    .toHaveTextContent(exactText(name));
+    .toMatchTextContent(exactText(name));
   await openMeasurements(page);
   await expect.poll(() => page.getBySelector('[class*="measureTabContainer"]').length).toBe(0);
   expect(releaseMissionSwitch).toBeDefined();

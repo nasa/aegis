@@ -40,7 +40,7 @@ async function openMissionCircles(page: Page): Promise<void> {
   await page.getByLabelText("circle_panel", { exact: true }).click();
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText("Proximity Circle Definitions"));
+    .toMatchTextContent(exactText("Proximity Circle Definitions"));
 }
 
 async function editCircleField(
@@ -113,12 +113,12 @@ test("circle definitions create hidden controls, sort by radius, render saved ge
     .filter({ hasText: "50 m radius" });
   await editCircleField(page, namedInnerRow, "Circle Definition Range", "50");
   const orderedCircleRows = page.getByLabelText("circle-definition-item", { exact: true });
-  await expect.element(orderedCircleRows.nth(0)).toHaveTextContent("50 m radius");
-  await expect.element(orderedCircleRows.nth(1)).toHaveTextContent("350 m radius");
+  await expect.element(orderedCircleRows.nth(0)).toMatchTextContent("50 m radius");
+  await expect.element(orderedCircleRows.nth(1)).toMatchTextContent("350 m radius");
 
   await editCircleField(page, outerRow, "Circle Definition Range", "25");
-  await expect.element(orderedCircleRows.nth(0)).toHaveTextContent("350 m radius");
-  await expect.element(orderedCircleRows.nth(1)).toHaveTextContent("50 m radius");
+  await expect.element(orderedCircleRows.nth(0)).toMatchTextContent("350 m radius");
+  await expect.element(orderedCircleRows.nth(1)).toMatchTextContent("50 m radius");
   await editCircleField(page, outerRow, "Circle Definition Range", "350");
   const beforeNameCancel = await mission.read();
   await outerRow.getBySelector('div[aria-label="Circle Definition Name"]').first().click();

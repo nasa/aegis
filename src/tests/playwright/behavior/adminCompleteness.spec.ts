@@ -376,6 +376,7 @@ test("admin imports configured archives, persists every sublayer kind and reconc
         await page.getByLabel("Sublayer Name", { exact: true }).fill(`Admin ${kind}`);
       }
       const name = kind === "tile" ? properties.name : `Admin ${kind}`;
+      await expect(page.getByText("Loading data files...", { exact: true })).toBeHidden();
       await page.getByRole("button", { name: "Save", exact: true }).last().click();
       await expect
         .poll(
@@ -421,6 +422,7 @@ test("admin imports configured archives, persists every sublayer kind and reconc
       await page
         .getByLabel("Sublayer Description", { exact: true })
         .fill(`Edited ${sublayer.type}`);
+      await expect(page.getByText("Loading data files...", { exact: true })).toBeHidden();
       await page.getByRole("button", { name: "Save", exact: true }).last().click();
       await expect
         .poll(async () => (await mission.read()).sublayers[sublayer.uuid].description)

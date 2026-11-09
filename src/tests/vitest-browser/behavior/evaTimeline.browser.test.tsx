@@ -105,7 +105,7 @@ async function openPresetSection(page: Page): Promise<void> {
   await page.getByLabelText("preset Section", { exact: true }).click();
   await expect
     .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-    .toHaveTextContent("Presets");
+    .toMatchTextContent("Presets");
 }
 
 async function enableSunEarthOverlay(page: Page): Promise<void> {

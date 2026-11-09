@@ -20,13 +20,13 @@ for (const mismatch of ["version", "gitCommit", "serverEpochUuid"] as const) {
     await expect.element(page.getByRole("heading", { name: "Refresh Required" })).toBeVisible();
     await expect
       .element(page.getByText(/Your version of AEGIS is out of date/))
-      .toHaveTextContent("AEGIS server has been restarted");
+      .toMatchTextContent("AEGIS server has been restarted");
     await expect
       .element(page.getByText(/^Your Version:/))
-      .toHaveTextContent(`${__APP_VERSION__}/${__GIT_COMMIT__}`);
+      .toMatchTextContent(`${__APP_VERSION__}/${__GIT_COMMIT__}`);
     await expect
       .element(page.getByText(/^Required Version:/))
-      .toHaveTextContent(`${serverVersion.version}/${serverVersion.gitCommit}`);
+      .toMatchTextContent(`${serverVersion.version}/${serverVersion.gitCommit}`);
     await expect.element(page.getByLabelText("Get Latest Version", { exact: true })).toBeEnabled();
     await expect.poll(() => page.getByLabelText("Redirect Now", { exact: true }).length).toBe(0);
     await expect
@@ -74,10 +74,10 @@ test("matching build and server epoch replace loading feedback with the successf
     await expect.element(page.getByRole("heading", { name: /Version Updated$/ })).toBeVisible();
     await expect
       .element(page.getByText(/An updated version of AEGIS has been loaded/))
-      .toHaveTextContent(/Redirecting you back in \d+ seconds/);
+      .toMatchTextContent(/Redirecting you back in \d+ seconds/);
     await expect
       .element(page.getByText(/^Current Version:/))
-      .toHaveTextContent(`${__APP_VERSION__} (${__GIT_COMMIT__}) | browser-test-epoch`);
+      .toMatchTextContent(`${__APP_VERSION__} (${__GIT_COMMIT__}) | browser-test-epoch`);
     await expect.element(page.getByLabelText("Redirect Now", { exact: true })).toBeEnabled();
     await expect
       .poll(() => page.getByLabelText("Get Latest Version", { exact: true }).length)

@@ -178,10 +178,10 @@ test.describe("Map display contracts", () => {
     await commands.mapPointer("click", pixel.x, pixel.y);
     await expect
       .element(page.getBySelector('div[aria-label="Station"]'))
-      .toHaveTextContent(exactText("Bravo station"));
+      .toMatchTextContent(exactText("Bravo station"));
     await expect
       .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-      .toHaveTextContent(exactText("Stations"));
+      .toMatchTextContent(exactText("Stations"));
   });
 
   test("scale bar visibility survives remount without changing mission data", async ({

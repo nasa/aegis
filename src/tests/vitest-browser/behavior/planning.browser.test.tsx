@@ -79,7 +79,7 @@ test.describe("Planning contracts", () => {
     await page.getByLabelText("duplicateStation", { exact: true }).click();
     await expect
       .element(planningField(page, "Station"))
-      .toHaveTextContent(exactText("Alpha station (copy 1)"));
+      .toMatchTextContent(exactText("Alpha station (copy 1)"));
     await expect
       .poll(async () => Object.keys((await mission.read()).stations).length)
       .toBe(Object.keys(before.stations).length + 1);
@@ -253,7 +253,7 @@ test.describe("Planning contracts", () => {
     await page.getByLabelText("duplicatePoi", { exact: true }).click();
     await expect
       .element(planningField(page, "POI"))
-      .toHaveTextContent(exactText("Ice exposure (copy 1)"));
+      .toMatchTextContent(exactText("Ice exposure (copy 1)"));
     await expect
       .poll(async () => Object.keys((await mission.read()).pois).length)
       .toBe(Object.keys(before.pois).length + 1);
@@ -366,7 +366,9 @@ test.describe("Planning contracts", () => {
     await dialog.getByText("Cancel", { exact: true }).click();
     await mission.open();
     await selectPlanningStation(page, "Alpha station");
-    await expect.element(planningField(page, "Time in minutes")).toHaveTextContent(exactText("37"));
+    await expect
+      .element(planningField(page, "Time in minutes"))
+      .toMatchTextContent(exactText("37"));
     expect((await mission.read()).stations[mission.ids.stationA].duration).toBe(37);
   });
 

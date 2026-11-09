@@ -89,25 +89,25 @@ test.describe("Mission priority comparison and execution", () => {
     const plan = science.getBySelector(
       '[data-tooltip-html="Survey Alpha: 1 active action (planned)"]'
     );
-    await expect.element(plan).toHaveTextContent(exactText("1"));
+    await expect.element(plan).toMatchTextContent(exactText("1"));
     await expect
       .element(science.getBySelector('[data-tooltip-html*="in progress"]').first())
-      .toHaveTextContent(exactText("1"));
+      .toMatchTextContent(exactText("1"));
     await expect
       .element(
         row(page, "SCI-2")
           .getBySelector('[data-tooltip-html*="0 active actions (1 disabled"]')
           .first()
       )
-      .toHaveTextContent(exactText("0 (D)"));
-    await expect.element(row(page, "SCI-3")).toHaveTextContent("POI only (1)");
+      .toMatchTextContent(exactText("0 (D)"));
+    await expect.element(row(page, "SCI-3")).toMatchTextContent("POI only (1)");
     await plan.click();
     await expect
       .element(page.getBySelector('[class*="drilldownTitle"]'))
-      .toHaveTextContent(exactText("SCI-1 — Science"));
+      .toMatchTextContent(exactText("SCI-1 — Science"));
     await expect
       .element(page.getBySelector('[class*="drilldownContent"]'))
-      .toHaveTextContent(before.actions[mission.ids.actionA].name);
+      .toMatchTextContent(before.actions[mission.ids.actionA].name);
     await page.getBySelector('[class*="drilldownClose"]').click();
     const filter = page.getBySelector(
       '[data-tooltip-content="Which REX action statuses count toward priority completion"] select'
@@ -117,7 +117,7 @@ test.describe("Mission priority comparison and execution", () => {
       .element(
         science.getBySelector('[data-tooltip-html*="REX: Survey Alpha: 0 active actions"]').first()
       )
-      .toHaveTextContent(exactText("0"));
+      .toMatchTextContent(exactText("0"));
     await filter.selectOptions("all");
     await page
       .getBySelector('[data-tooltip-content="Show other columns as differences vs the baseline"]')
@@ -128,7 +128,7 @@ test.describe("Mission priority comparison and execution", () => {
           .getBySelector('[data-tooltip-html*="same active priority actions as baseline"]')
           .first()
       )
-      .toHaveTextContent(exactText("="));
+      .toMatchTextContent(exactText("="));
     await page
       .getBySelector('[data-tooltip-content="Show other columns as differences vs the baseline"]')
       .click();
@@ -146,14 +146,14 @@ test.describe("Mission priority comparison and execution", () => {
           '[data-tooltip-html="Survey Alpha: 0 active actions (no active actions)"]'
         )
       )
-      .toHaveTextContent(exactText("0"));
+      .toMatchTextContent(exactText("0"));
     await expect
       .element(
         row(page, "SCI-3").getBySelector(
           '[data-tooltip-html="Survey Alpha: 1 active action (planned)"]'
         )
       )
-      .toHaveTextContent(exactText("1"));
+      .toMatchTextContent(exactText("1"));
     await mission.open();
     await openReport(page);
     await expect
@@ -162,7 +162,7 @@ test.describe("Mission priority comparison and execution", () => {
           '[data-tooltip-html="Survey Alpha: 1 active action (planned)"]'
         )
       )
-      .toHaveTextContent(exactText("1"));
+      .toMatchTextContent(exactText("1"));
     const after = await mission.read();
     expect(after).toEqual({
       ...before,

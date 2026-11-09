@@ -27,7 +27,7 @@ async function openFolderSection(page: Page, section: (typeof folderCases)[numbe
   await page.getByLabelText("preset Section", { exact: true }).click();
   await expect
     .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-    .toHaveTextContent(exactText("Map Display Presets"));
+    .toMatchTextContent(exactText("Map Display Presets"));
 }
 
 function folderByName(page: Page, name: string) {

@@ -62,13 +62,13 @@ test.describe("Execution policy contracts", () => {
         .getByText(label, { exact: true })
         .getBySelector("../..")
         .getBySelector('[class*="displayFieldValue"]');
-    await expect.element(total("Total Planned Mass (g):")).toHaveTextContent(exactText("500"));
+    await expect.element(total("Total Planned Mass (g):")).toMatchTextContent(exactText("500"));
     await expect.element(total("Total Executed Mass (g):")).toBeEmptyDOMElement();
     await savePlanningField(page, "Executed Sample Mass", "0");
-    await expect.element(total("Total Executed Mass (g):")).toHaveTextContent(exactText("0"));
-    await expect.element(total("Executed Delta Mass (g):")).toHaveTextContent(exactText("-500"));
+    await expect.element(total("Total Executed Mass (g):")).toMatchTextContent(exactText("0"));
+    await expect.element(total("Executed Delta Mass (g):")).toMatchTextContent(exactText("-500"));
     await savePlanningField(page, "Executed Sample Mass", "750");
-    await expect.element(total("Executed Delta Mass (g):")).toHaveTextContent(exactText("+250"));
+    await expect.element(total("Executed Delta Mass (g):")).toMatchTextContent(exactText("+250"));
     await savePlanningField(page, "Sample Marker ID", "CORE-α");
     await savePlanningField(page, "Container ID", "BAG-1");
     await savePlanningField(page, "Secondary Container ID", "BOX-2");
@@ -116,7 +116,7 @@ test.describe("Execution policy contracts", () => {
     await userEvent.keyboard("{Escape}");
     // Executed mass remains manually writable while collection IDs are Maestro-owned.
     await savePlanningField(page, "Executed Sample Mass", "900");
-    await expect.element(total("Executed Delta Mass (g):")).toHaveTextContent(exactText("+400"));
+    await expect.element(total("Executed Delta Mass (g):")).toMatchTextContent(exactText("+400"));
     const after = await mission.read();
     expect(after.rexes[mission.ids.rexA].actionEntries[mission.ids.rexActionA]).toEqual({
       mass: 900,
@@ -132,10 +132,10 @@ test.describe("Execution policy contracts", () => {
     await action.getBySelector('svg[data-icon="caret-right"]').click();
     await expect
       .element(planningField(page, "Executed Sample Mass"))
-      .toHaveTextContent(exactText("900"));
+      .toMatchTextContent(exactText("900"));
     await expect
       .element(planningField(page, "Sample Marker ID"))
-      .toHaveTextContent(exactText("CORE-α"));
-    await expect.element(total("Executed Delta Mass (g):")).toHaveTextContent(exactText("+400"));
+      .toMatchTextContent(exactText("CORE-α"));
+    await expect.element(total("Executed Delta Mass (g):")).toMatchTextContent(exactText("+400"));
   });
 });

@@ -89,16 +89,16 @@ test.describe("Calculation contracts", () => {
       await selectPlanningStationActions(page, "Alpha station");
       await expect
         .element(total(page, "Total Action Time (mins):"))
-        .toHaveTextContent(exactText(String(fixture.work)));
+        .toMatchTextContent(exactText(String(fixture.work)));
       await expect
         .element(total(page, "EV1 Action Time (mins):"))
-        .toHaveTextContent(exactText(String(fixture.ev1)));
+        .toMatchTextContent(exactText(String(fixture.ev1)));
       await expect
         .element(total(page, "EV2 Action Time (mins):"))
-        .toHaveTextContent(exactText(String(fixture.ev2)));
+        .toMatchTextContent(exactText(String(fixture.ev2)));
       await expect
         .element(total(page, "Dwell Time (mins):"))
-        .toHaveTextContent(exactText(String(fixture.dwell)));
+        .toMatchTextContent(exactText(String(fixture.dwell)));
       if (fixture.warning)
         await expect
           .element(total(page, "Dwell Time (mins):"))
@@ -111,19 +111,19 @@ test.describe("Calculation contracts", () => {
       await page.getByLabelText("info_panel", { exact: true }).click();
       await expect
         .element(total(page, "Action Time (mins):"))
-        .toHaveTextContent(exactText(String(fixture.work)));
+        .toMatchTextContent(exactText(String(fixture.work)));
       await expect
         .element(total(page, "EV1 Action Time (mins):"))
-        .toHaveTextContent(exactText(String(fixture.ev1)));
+        .toMatchTextContent(exactText(String(fixture.ev1)));
       await expect
         .element(total(page, "EV2 Action Time (mins):"))
-        .toHaveTextContent(exactText(String(fixture.ev2)));
+        .toMatchTextContent(exactText(String(fixture.ev2)));
       await expect
         .element(total(page, "Station Time (mins):"))
-        .toHaveTextContent(exactText(String(fixture.dwell)));
+        .toMatchTextContent(exactText(String(fixture.dwell)));
       await expect
         .element(total(page, "EVA Duration (mins):"))
-        .toHaveTextContent(exactText(String(fixture.dwell)));
+        .toMatchTextContent(exactText(String(fixture.dwell)));
       expect(await mission.read()).toEqual(before);
     });
   }
@@ -148,7 +148,7 @@ test.describe("Calculation contracts", () => {
       await openTraverse(page);
       await expect
         .element(total(page, "Movement Time (mins):"))
-        .toHaveTextContent(exactText(String(minutes)));
+        .toMatchTextContent(exactText(String(minutes)));
       const sequence = page
         .getByLabelText("evaList-item", { exact: true })
         .filter({ hasText: "Survey Alpha" });
@@ -157,15 +157,15 @@ test.describe("Calculation contracts", () => {
         .getBySelector("xpath=ancestor::div[./div[contains(@class,'evaTraverseIndicator')]][1]");
       await expect
         .element(row.getBySelector('[data-tooltip-content="Est traverse time"]'))
-        .toHaveTextContent(exactText(`0:${String(minutes).padStart(2, "0")}`));
+        .toMatchTextContent(exactText(`0:${String(minutes).padStart(2, "0")}`));
       await selectPlanningEva(page, "Survey Alpha");
       await page.getByLabelText("info_panel", { exact: true }).click();
       await expect
         .element(total(page, "Traverse Time (mins):"))
-        .toHaveTextContent(exactText(String(minutes)));
+        .toMatchTextContent(exactText(String(minutes)));
       await expect
         .element(total(page, "EVA Duration (mins):"))
-        .toHaveTextContent(exactText(String(minutes)));
+        .toMatchTextContent(exactText(String(minutes)));
     };
     await check(10);
     await setNumber(page, "Average Traverse Rate", "6");

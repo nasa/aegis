@@ -138,7 +138,7 @@ test("dashboard minimap bounds, arrows, scale, grid spacing and execution stay b
   await mission.openDashboard();
   await expect
     .element(page.getByTestId("dashboard-pet-clock"))
-    .toHaveTextContent(exactText("+00:05:00"));
+    .toMatchTextContent(exactText("+00:05:00"));
   await expect
     .element(page.getBySelector('[data-map-mode="dashboard"] .ol-viewport'))
     .toBeVisible();
@@ -278,7 +278,7 @@ test("dashboard minimap bounds, arrows, scale, grid spacing and execution stay b
   });
   await expect
     .element(page.getByTestId("dashboard-pet-clock"))
-    .toHaveTextContent(exactText("+02:10:05"));
+    .toMatchTextContent(exactText("+02:10:05"));
   await expect
     .poll(async () =>
       (await readMapFeatures("minimap"))

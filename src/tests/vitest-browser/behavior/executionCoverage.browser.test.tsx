@@ -183,10 +183,10 @@ test.describe("PET manual edit boundaries", () => {
       const dialog = await editPet(page, valueCase.typed);
       await dialog.getByText("Save", { exact: true }).click();
       await expect.poll(() => dialog.length).toBe(0);
-      await expect.element(page.getByTestId("rex-pet-clock")).toHaveTextContent(valueCase.saved);
+      await expect.element(page.getByTestId("rex-pet-clock")).toMatchTextContent(valueCase.saved);
       await expect
         .element(page.getByTestId("header-pet-clock"))
-        .toHaveTextContent(exactText(valueCase.saved));
+        .toMatchTextContent(exactText(valueCase.saved));
       await expectPositionAge(mission.ids.posB, petAge(Math.max(0, valueCase.seconds - 120)));
       await expect
         .poll(async () => (await mission.read()).rexes[mission.ids.rexB].petValueAtStartStop)
@@ -198,7 +198,7 @@ test.describe("PET manual edit boundaries", () => {
 
       await mission.open();
       await openRexInfo(page, "Survey Bravo", mission.ids.rexEvaB);
-      await expect.element(page.getByTestId("rex-pet-clock")).toHaveTextContent(valueCase.saved);
+      await expect.element(page.getByTestId("rex-pet-clock")).toMatchTextContent(valueCase.saved);
       await expectPositionAge(mission.ids.posB, petAge(Math.max(0, valueCase.seconds - 120)));
       expect((await mission.read()).rexes[mission.ids.rexA]).toEqual(untouchedRex);
     });
@@ -241,13 +241,13 @@ test.describe("PET manual edit boundaries", () => {
       await dialog.getByText("Cancel", { exact: true }).click();
       await expect
         .element(page.getByTestId("rex-pet-clock"))
-        .toHaveTextContent(before.rexes[mission.ids.rexB].petValueAtStartStop);
+        .toMatchTextContent(before.rexes[mission.ids.rexB].petValueAtStartStop);
       await expectPositionAge(mission.ids.posB, "+00:03:00");
       await mission.open();
       await openRexInfo(page, "Survey Bravo", mission.ids.rexEvaB);
       await expect
         .element(page.getByTestId("rex-pet-clock"))
-        .toHaveTextContent(before.rexes[mission.ids.rexB].petValueAtStartStop);
+        .toMatchTextContent(before.rexes[mission.ids.rexB].petValueAtStartStop);
     });
   }
 });

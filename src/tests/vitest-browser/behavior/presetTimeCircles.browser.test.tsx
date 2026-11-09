@@ -56,7 +56,7 @@ async function selectPreset(page: Page, name: string): Promise<void> {
     .click();
   await expect
     .element(page.getBySelector('div[aria-label="Preset Title"]'))
-    .toHaveTextContent(exactText(name));
+    .toMatchTextContent(exactText(name));
 }
 
 test.describe("PRESET-008 lander circles", () => {
@@ -87,7 +87,7 @@ test.describe("PRESET-008 lander circles", () => {
     const circleRow = page
       .getBySelector('[class*="sublayerItemContainer"]')
       .filter({ hasText: "Known 750 metre ring" });
-    await expect.element(circleRow).toHaveTextContent("750m");
+    await expect.element(circleRow).toMatchTextContent("750m");
     await expect.poll(() => circleRings(page, "editor")).toHaveLength(0);
     await circleRow.getBySelector('svg[data-icon="eye-slash"]').click();
 

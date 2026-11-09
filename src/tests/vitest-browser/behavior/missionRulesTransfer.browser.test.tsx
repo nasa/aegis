@@ -89,7 +89,7 @@ test("mission rules export exact JSON, validate atomically, cancel replacement a
   ]) {
     await input.fill(invalid);
     await submit.click();
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Importing mission rules");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Importing mission rules");
     expect((await mission.read()).stmRules).toEqual(before.stmRules);
   }
   const replacement = { ...exported, stmRules: [{ ...rule, count: 2 }] };
@@ -107,7 +107,7 @@ test("mission rules export exact JSON, validate atomically, cancel replacement a
   await expect.element(input).toHaveValue(JSON.stringify(replacement));
   vi.spyOn(window, "confirm").mockReturnValueOnce(true);
   await submit.click();
-  await expect.element(page.getByRole("status")).toHaveTextContent("Imported 1 mission rules.");
+  await expect.element(page.getByRole("status")).toMatchTextContent("Imported 1 mission rules.");
   await expect.poll(async () => (await mission.read()).stmRules[ruleId].count).toBe(2);
   await mission.navigate(`/mission/${mission.id}`);
   await page.getByLabelText("reports Section", { exact: true }).click();

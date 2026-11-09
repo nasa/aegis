@@ -17,7 +17,7 @@ async function openPresets(page: Page): Promise<void> {
   await page.getByLabelText("preset Section", { exact: true }).click();
   await expect
     .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-    .toHaveTextContent(exactText("Map Display Presets"));
+    .toMatchTextContent(exactText("Map Display Presets"));
 }
 
 async function selectPreset(page: Page, name: string): Promise<void> {
@@ -25,7 +25,7 @@ async function selectPreset(page: Page, name: string): Promise<void> {
   await presetRow(page, name).getByText(name, { exact: true }).click();
   await expect
     .element(page.getBySelector('div[aria-label="Preset Title"]'))
-    .toHaveTextContent(exactText(name));
+    .toMatchTextContent(exactText(name));
 }
 
 async function openPresetInfo(page: Page): Promise<void> {

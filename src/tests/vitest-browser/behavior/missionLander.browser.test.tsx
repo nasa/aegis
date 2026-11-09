@@ -21,7 +21,7 @@ async function openMissionPreferences(page: Page) {
   await page.getByLabelText("prefs_panel", { exact: true }).click();
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText("Mission Preferences"));
+    .toMatchTextContent(exactText("Mission Preferences"));
 }
 
 const test = base.extend({ scenario: "execution" as BehavioralScenario });
@@ -65,8 +65,8 @@ test("location-dependent controls and comparison values recover after the lander
   await expect.poll(() => page.getByText("NaN", { exact: true }).length).toBe(0);
 
   await openMissionPreferences(page);
-  await expect.element(planningField(page, "LatitudePref")).toHaveTextContent(exactText("0"));
-  await expect.element(planningField(page, "LongitudePref")).toHaveTextContent(exactText("0"));
+  await expect.element(planningField(page, "LatitudePref")).toMatchTextContent(exactText("0"));
+  await expect.element(planningField(page, "LongitudePref")).toMatchTextContent(exactText("0"));
 
   await page.getByLabelText("reports Section", { exact: true }).click();
   await page.getByText("EVA Comparison", { exact: true }).click();
@@ -89,7 +89,7 @@ test("location-dependent controls and comparison values recover after the lander
   await expect.poll(mission.read).toMatchObject({ landerLocation: restoredLander });
   await expect
     .element(planningField(page, "LatitudePref"))
-    .toHaveTextContent(exactText(String(restoredLander.lat)));
+    .toMatchTextContent(exactText(String(restoredLander.lat)));
 
   await selectPlanningStation(page, "Alpha station");
   await page.getByLabelText("info_panel", { exact: true }).click();

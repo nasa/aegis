@@ -164,7 +164,7 @@ for (const { name, radius } of [
           .getBySelector('[class*="timelineHoverValue"]')
           .last()
       )
-      .toHaveTextContent(exactText(expected.distance.toFixed(0)));
+      .toMatchTextContent(exactText(expected.distance.toFixed(0)));
     await selectPlanningEva(page, "Survey Alpha");
     await page
       .getByLabelText("evaList-item", { exact: true })
@@ -174,8 +174,10 @@ for (const { name, radius } of [
     await page.getByLabelText("info_panel", { exact: true }).click();
     const { ascent, descent } = independentAscentDescent(disconnectedElevations);
     expect({ ascent, descent }).toEqual({ ascent: 15, descent: 10 });
-    await expect.element(total(page, "Ascent (m):")).toHaveTextContent(exactText(String(ascent)));
-    await expect.element(total(page, "Descent (m):")).toHaveTextContent(exactText(String(descent)));
+    await expect.element(total(page, "Ascent (m):")).toMatchTextContent(exactText(String(ascent)));
+    await expect
+      .element(total(page, "Descent (m):"))
+      .toMatchTextContent(exactText(String(descent)));
     expect(await mission.read()).toEqual(missionDocument);
   });
 }
@@ -220,7 +222,7 @@ test("terrain profile errors retain a usable measurement and recover after the w
   const profileUnavailable = page.getBySelector('[class*="terrainProfileUnavailable"]');
   await expect
     .element(profileUnavailable)
-    .toHaveTextContent(exactText("Terrain profile unavailable. Check the DEM or try again."));
+    .toMatchTextContent(exactText("Terrain profile unavailable. Check the DEM or try again."));
   const initialGeometry = (await measurements())[0];
   expect(initialGeometry.segmentDistances).toHaveLength(1);
   expect(initialGeometry.segmentDistances[0]).toBeGreaterThan(0);

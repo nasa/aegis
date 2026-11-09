@@ -114,7 +114,7 @@ test("layout, section selection, and collapsed folders follow their local persis
     await mission.open();
     await expect
       .element(page.getByLabelText("missionNameHeader", { exact: true }))
-      .toHaveTextContent(exactText(mission.name));
+      .toMatchTextContent(exactText(mission.name));
     await expect.poll(() => panelWidth("mission-panel-left")).toBeGreaterThan(200);
     await expect.poll(() => panelWidth("mission-panel-right")).toBeGreaterThan(200);
     await expect
@@ -135,7 +135,7 @@ test("layout, section selection, and collapsed folders follow their local persis
     await secondMissionRow.getByRole("button", { name: "Select", exact: true }).click();
     await expect
       .element(page.getByLabelText("missionNameHeader", { exact: true }))
-      .toHaveTextContent(exactText(secondMissionName));
+      .toMatchTextContent(exactText(secondMissionName));
     await expect
       .element(page.getByLabelText("preset Section", { exact: true }))
       .toHaveClass(/iconContainerSelected/);
@@ -148,7 +148,7 @@ test("layout, section selection, and collapsed folders follow their local persis
       .click();
     await expect
       .element(page.getByLabelText("missionNameHeader", { exact: true }))
-      .toHaveTextContent(exactText(mission.name));
+      .toMatchTextContent(exactText(mission.name));
     await expect
       .element(page.getByLabelText("preset Section", { exact: true }))
       .toHaveClass(/iconContainerSelected/);

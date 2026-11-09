@@ -68,7 +68,7 @@ test.describe("POI metadata contracts", () => {
       await page.getByLabelText("info_panel", { exact: true }).click();
       await expect
         .element(planningField(page, "POI Description"))
-        .toHaveTextContent(exactText(description));
+        .toMatchTextContent(exactText(description));
 
       await enablePlanningEditMode(page);
       const editor = await openPlanningField(page, "POI Description");
@@ -111,7 +111,7 @@ test.describe("POI metadata contracts", () => {
           .toBeVisible();
         await expect
           .element(page.getBySelector('[class*="iconDropdownContainer"]'))
-          .toHaveTextContent(exactText(glyph));
+          .toMatchTextContent(exactText(glyph));
         await expect.poll(async () => (await poiMarker(mission.ids.poiA))?.emoji).toBe(icon);
 
         const marker = await poiMarker(mission.ids.poiA);
