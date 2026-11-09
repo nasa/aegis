@@ -112,6 +112,8 @@ test.describe("Downloaded export contracts", () => {
     mission,
   }) => {
     await mission.change((doc) => {
+      doc.evas[mission.ids.evaA].description = "Planned EVA notes";
+      doc.evas[mission.ids.rexEvaA].description = "Execution EVA notes";
       doc.rexes[mission.ids.rexA].actionEntries = {
         [mission.ids.rexActionA]: {
           rexStatus: "complete",
@@ -148,7 +150,10 @@ test.describe("Downloaded export contracts", () => {
       ]);
     }
     expect(plan.rexUuid).toBeNull();
+    expect(plan.description).toBe("Planned EVA notes");
     expect(executed.rexUuid).toBe(mission.ids.rexA);
+    expect(executed.description).toBe("Execution EVA notes");
+    for (const rex of data.rexes) expect(rex).not.toHaveProperty("description");
     expect((plan.sequenceReadable[2] as ExportStation).actionsReadable[0]).toMatchObject({
       uuid: mission.ids.actionA,
       mass: null,

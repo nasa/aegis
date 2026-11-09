@@ -185,6 +185,33 @@ describe("clear Automerge document history", () => {
     });
   });
 
+  it("persists REX description removal after history replacement has already been applied", async () => {
+    const repo = makeRepo();
+    const { handle, listing } = await makeDocument(repo);
+    const replacement = await migrate(repo, handle, listing);
+    const replacementUrl = listing.automergeUrl;
+    replacement.change((mission) => {
+      mission.evas.eva = generateBlankEVA({ uuid: "eva", description: "Keep EVA notes" });
+      mission.rexes.rex = {
+        ...generateBlankRex({ uuid: "rex", evaUuid: "eva", petValueAtStartStop: "+02:10:05" }),
+        description: "Legacy execution notes",
+      } as RexWithLegacyFields;
+    });
+    const expected = Automerge.toJS(replacement.doc());
+    delete (expected.rexes.rex as RexWithLegacyFields).description;
+    await repo.flush();
+    globalValues.automergeRepo = repo;
+
+    await migrateDocuments(repo, [listing], [Migration20261102000000], orm);
+
+    expect(listing.automergeUrl).toBe(replacementUrl);
+    expect(Object.keys(repo.handles)).toEqual([]);
+    const reader = makeRepo();
+    const reloaded = await reader.find<Mission>(listing.automergeUrl as AutomergeUrl);
+    expect(Automerge.toJS(reloaded.doc())).toEqual(expected);
+    expect(reloaded.doc().rexes.rex).not.toHaveProperty("description");
+  });
+
   it("ordinary migrations preserve the document ID", async () => {
     const repo = makeRepo();
     const { handle, listing } = await makeDocument(repo);

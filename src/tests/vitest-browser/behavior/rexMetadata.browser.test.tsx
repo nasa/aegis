@@ -24,6 +24,9 @@ test("REX names are family-scoped and Maestro control survives remount without r
   page,
   mission,
 }) => {
+  await mission.change((doc) => {
+    doc.evas[mission.ids.evaA].description = "Keep planned EVA notes";
+  });
   const before = await mission.read();
   await mission.open();
   await enablePlanningEditMode(page);
@@ -35,6 +38,8 @@ test("REX names are family-scoped and Maestro control survives remount without r
   expect(created).toBeDefined();
   expect(created).not.toHaveProperty("description");
   expect(arranged.evas[created.evaUuid].refUuid).toBe(before.evas[mission.ids.evaA].refUuid);
+  expect(arranged.evas[created.evaUuid].description).toBe("Keep planned EVA notes");
+  expect(arranged.evas[mission.ids.evaA]).toEqual(before.evas[mission.ids.evaA]);
   await savePlanningField(page, "REX Title", "Second Alpha run");
   await cancelPlanningField(page, "REX Title", "Discarded run name");
   for (const [value, error] of [
@@ -74,6 +79,7 @@ test("REX names are family-scoped and Maestro control survives remount without r
   await expect.element(maestroValue).toHaveTextContent("Yes");
   const after = await mission.read();
   expect(after.evas).toEqual(arranged.evas);
+  expect(after.rexes[created.uuid]).not.toHaveProperty("description");
   expect(after.stations).toEqual(arranged.stations);
   expect(after.actions).toEqual(arranged.actions);
   expect(after.traverses).toEqual(arranged.traverses);

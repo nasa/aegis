@@ -7,6 +7,7 @@ import { test, expect } from "./missionHarness";
 import { isVisible, setChecked } from "./browserAssertions";
 import { enablePlanningEditMode } from "./planningHelpers";
 import { waitForMapIdle } from "./mapInteractions";
+import { readMapFeatures } from "./mapObserver";
 
 const MOON_RADIUS = 1737400;
 const southLps = `+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=${MOON_RADIUS} +b=${MOON_RADIUS} +units=m +no_defs`;
@@ -136,6 +137,84 @@ for (const projection of ["earth", "lunar", "mercator"] as const) {
     await expect.element(page.getByText(expectedGrid, { exact: true })).toBeVisible();
   });
 }
+
+test("equatorial lunar coordinates and dynamic LTM grid survive preset toggles and remount", async ({
+  page,
+  mission,
+}) => {
+  await mission.change((doc) => {
+    doc.projIsCustom = false;
+    doc.projEpsg = "EPSG:3857";
+    doc.planetRadius = MOON_RADIUS;
+    doc.landerLocation = { lat: -0.0001, lng: 0.0001 };
+    doc.initialZoom = 14;
+    doc.usingLGRSCoordinates = true;
+    doc.gridRenderMode = "dynamic-lgrs";
+    doc.presets[mission.ids.presetA].mapGridControl.visible = false;
+    doc.presets[mission.ids.presetA].mapGridControl.labelsVisible = false;
+  });
+  await mission.open();
+  await enableMouseCoordinates(page);
+  await expect
+    .poll(async () => {
+      await moveToMapCenter(page);
+      return isVisible(page.getByText("-0.000100, 0.000100", { exact: true }));
+    })
+    .toBe(true);
+  // Independent 10 m example from the LGRS reference table, across the equator in band M.
+  await expect.element(page.getByText("23MFE -00 Z99", { exact: true })).toBeVisible();
+
+  await enablePlanningEditMode(page);
+  await page.getByLabelText("preset Section", { exact: true }).click();
+  await page
+    .getByLabelText("mapPreset", { exact: true })
+    .filter({ hasText: "Overview" })
+    .getByText("Overview", { exact: true })
+    .click();
+  await page.getByLabelText("grid_panel", { exact: true }).click();
+  await expect.element(page.getByText("LGRS dynamically generated", { exact: true })).toBeVisible();
+  const toggles = page.getBySelector('[class*="gridToggles"] input[type="checkbox"]');
+  const gridFeatures = () => readMapFeatures().filter((feature) => feature.layerZIndex === 7);
+  const labelFeatures = () => readMapFeatures().filter((feature) => feature.layerZIndex === 8);
+  const paintedPixels = () =>
+    Array.from(
+      document.querySelectorAll<HTMLCanvasElement>('[data-map-mode="editor"] .ol-viewport canvas')
+    ).reduce((total, canvas) => {
+      const data = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+      return total + (data?.filter((alpha, index) => index % 4 === 3 && alpha > 0).length ?? 0);
+    }, 0);
+  await expect.poll(() => gridFeatures().length).toBe(0);
+  await waitForMapIdle();
+  const withoutGrid = paintedPixels();
+  await setChecked(toggles.nth(0), true);
+  await expect.poll(() => gridFeatures().length).toBeGreaterThan(0);
+  expect(gridFeatures().every((feature) => feature.geometryType === "LineString")).toBe(true);
+  await expect.poll(paintedPixels).toBeGreaterThan(withoutGrid + 1000);
+  await expect.poll(() => labelFeatures().length).toBe(0);
+  await setChecked(toggles.nth(1), true);
+  await expect.poll(() => labelFeatures().length).toBeGreaterThan(0);
+  await setChecked(toggles.nth(0), false);
+  await expect.poll(() => gridFeatures().length + labelFeatures().length).toBe(0);
+  expect((await mission.read()).presets[mission.ids.presetA].mapGridControl.labelsVisible).toBe(
+    false
+  );
+  await expect.poll(paintedPixels).toBeLessThan(withoutGrid + 1000);
+  await setChecked(toggles.nth(0), true);
+  await expect.poll(() => labelFeatures().length).toBe(0);
+  await setChecked(toggles.nth(1), true);
+
+  const before = await mission.read();
+  await mission.open();
+  await page.getByLabelText("preset Section", { exact: true }).click();
+  await page
+    .getByLabelText("mapPreset", { exact: true })
+    .filter({ hasText: "Overview" })
+    .getByText("Overview", { exact: true })
+    .click();
+  await expect.poll(() => gridFeatures().length).toBeGreaterThan(0);
+  await expect.poll(() => labelFeatures().length).toBeGreaterThan(0);
+  expect(await mission.read()).toEqual(before);
+});
 
 test("fixed-grid visibility, labels, style and preset scope match known CRS intersections", async ({
   page,
