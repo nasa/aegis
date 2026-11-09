@@ -1,0 +1,103 @@
+{
+  "_source": "Live captures from https://jsxim-gisproc1.ndc.nasa.gov/api/v1 (Newton sha 9dfcb1c, 2026-10-27; the 502 and 503 proxy pages from earlier captures). Bodies are verbatim.",
+  "health": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": "{\"status\":\"ok\",\"sha\":\"9dfcb1c\",\"map_count\":3,\"terrain_cache\":{\"bytes\":0,\"terrain_hits\":0,\"evictions\":0,\"budget_bytes\":100000000000,\"slope_misses\":0,\"terrains\":0,\"slope_hits\":0,\"terrain_misses\":0,\"slopes\":0}}"
+  },
+  "maps": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": "{\"maps\":[{\"planet\":\"moon\",\"type\":\"slope\",\"name\":\"ms3_slope\",\"crs\":\"PROJCS[\\\"Moon (2015) - Sphere / Ocentric / South Polar\\\",GEOGCS[\\\"Moon (2015) - Sphere / Ocentric\\\",DATUM[\\\"Moon (2015) - Sphere\\\",SPHEROID[\\\"Moon (2015) - Sphere\\\",1737400,0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PRIMEM[\\\"Reference Meridian\\\",0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],UNIT[\\\"degree\\\",0.0174532925199433,AUTHORITY[\\\"EPSG\\\",\\\"9122\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PROJECTION[\\\"Polar_Stereographic\\\"],PARAMETER[\\\"latitude_of_origin\\\",-90],PARAMETER[\\\"central_meridian\\\",0],PARAMETER[\\\"scale_factor\\\",1],PARAMETER[\\\"false_easting\\\",0],PARAMETER[\\\"false_northing\\\",0],UNIT[\\\"metre\\\",1,AUTHORITY[\\\"EPSG\\\",\\\"9001\\\"]],AXIS[\\\"Easting\\\",NORTH],AXIS[\\\"Northing\\\",NORTH],AUTHORITY[\\\"IAU\\\",\\\"30135\\\"]]\",\"extent\":[71470,118030,129310,159820],\"resolution\":[1,1],\"description\":\"Minisim 3 slope in AEGIS probably\"}],\"next_cursor\":null}"
+  },
+  "mapsBadType": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": "{\"error\":{\"details\":[],\"message\":\"invalid MapType: \\\"bogus\\\", must be one of \\\"slope\\\", \\\"elevation\\\", \\\"aspect\\\", \\\"tri\\\", or \\\"obstacle\\\"\",\"code\":\"invalid_request\"}}"
+  },
+  "probeInside": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": "{\"maps\":[{\"planet\":\"moon\",\"type\":\"elevation\",\"name\":\"ms3_elevation\",\"crs\":\"PROJCS[\\\"Moon (2015) - Sphere / Ocentric / South Polar\\\",GEOGCS[\\\"Moon (2015) - Sphere / Ocentric\\\",DATUM[\\\"Moon (2015) - Sphere\\\",SPHEROID[\\\"Moon (2015) - Sphere\\\",1737400,0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PRIMEM[\\\"Reference Meridian\\\",0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],UNIT[\\\"degree\\\",0.0174532925199433,AUTHORITY[\\\"EPSG\\\",\\\"9122\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PROJECTION[\\\"Polar_Stereographic\\\"],PARAMETER[\\\"latitude_of_origin\\\",-90],PARAMETER[\\\"central_meridian\\\",0],PARAMETER[\\\"scale_factor\\\",1],PARAMETER[\\\"false_easting\\\",0],PARAMETER[\\\"false_northing\\\",0],UNIT[\\\"metre\\\",1,AUTHORITY[\\\"EPSG\\\",\\\"9001\\\"]],AXIS[\\\"Easting\\\",NORTH],AXIS[\\\"Northing\\\",NORTH],AUTHORITY[\\\"IAU\\\",\\\"30135\\\"]]\",\"extent\":[71470,118030,129310,159820],\"resolution\":[1,1],\"description\":\"Minisim 3 elevation in AEGIS probably\"},{\"planet\":\"moon\",\"type\":\"slope\",\"name\":\"ms3_slope\",\"crs\":\"PROJCS[\\\"Moon (2015) - Sphere / Ocentric / South Polar\\\",GEOGCS[\\\"Moon (2015) - Sphere / Ocentric\\\",DATUM[\\\"Moon (2015) - Sphere\\\",SPHEROID[\\\"Moon (2015) - Sphere\\\",1737400,0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PRIMEM[\\\"Reference Meridian\\\",0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],UNIT[\\\"degree\\\",0.0174532925199433,AUTHORITY[\\\"EPSG\\\",\\\"9122\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PROJECTION[\\\"Polar_Stereographic\\\"],PARAMETER[\\\"latitude_of_origin\\\",-90],PARAMETER[\\\"central_meridian\\\",0],PARAMETER[\\\"scale_factor\\\",1],PARAMETER[\\\"false_easting\\\",0],PARAMETER[\\\"false_northing\\\",0],UNIT[\\\"metre\\\",1,AUTHORITY[\\\"EPSG\\\",\\\"9001\\\"]],AXIS[\\\"Easting\\\",NORTH],AXIS[\\\"Northing\\\",NORTH],AUTHORITY[\\\"IAU\\\",\\\"30135\\\"]]\",\"extent\":[71470,118030,129310,159820],\"resolution\":[1,1],\"description\":\"Minisim 3 slope in AEGIS probably\"}]}"
+  },
+  "probeOutside": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": "{\"maps\":[]}"
+  },
+  "postNoSlopeMap": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": "{\"error\":{\"details\":[],\"message\":\"no slope map registered for planet=moon that covers every waypoint\",\"code\":\"no_slope_map\"}}"
+  },
+  "postUnknownField": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": "{\"error\":{\"details\":[{\"field\":\"bogus\"}],\"message\":\"unknown field \\\"bogus\\\"\",\"code\":\"unknown_field\"}}"
+  },
+  "postDroppedField": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": "{\"error\":{\"details\":[{\"field\":\"obstacle_maps\"}],\"message\":\"`obstacle_maps` is no longer supported; obstacle maps are chosen by the server: every registered obstacle map that overlaps the slope map is used\",\"code\":\"dropped_field\"}}"
+  },
+  "postOneWaypoint": {
+    "status": 400,
+    "contentType": "application/json",
+    "body": "{\"error\":{\"details\":[],\"message\":\"waypoints must contain at least a start and a goal, found 1 point(s)\",\"code\":\"invalid_request\"}}"
+  },
+  "postCached": {
+    "status": 202,
+    "contentType": "application/json",
+    "body": "{\"cached\":true,\"request_hash\":\"v1:edb959cf42af04d6592c5fcbb9f88fc69995111d28673ba4ca266b0602f28ae1\",\"traverse_id\":\"ab82e76a-1019-45d2-8641-508e1327000b\"}"
+  },
+  "postNew": {
+    "status": 202,
+    "contentType": "application/json",
+    "body": "{\"request_hash\":\"v1:6b952d900a7f216461931f0600d8b0231eff9d053bc20374c76843d1a2ced001\",\"traverse_id\":\"da02444c-a9c4-4ac5-86cb-e99dd1e32ad5\"}"
+  },
+  "getNotFound": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": "{\"error\":{\"details\":[],\"message\":\"traverse not found: 00000000-0000-4000-8000-000000000000\",\"code\":\"not_found\"}}"
+  },
+  "getSucceeded": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": "{\"method\":\"astar\",\"runtime\":89298,\"path\":{\"coordinates\":[[33.50230085464163,-84.22339218986714],[33.502753769344366,-84.22340146232473],[33.50320668550354,-84.22341073442199],[33.50365960311914,-84.22342000615906],[33.50411252219108,-84.22342927753571],[33.50456544271933,-84.2234385485522],[33.50483795763354,-84.22342039080088],[33.50529087863002,-84.22342966124009],[33.505563390840074,-84.22341150314159],[33.50583590133398,-84.22339334491296],[33.506108410111764,-84.22337518655418],[33.506380917173416,-84.22335702806525],[33.50665342251895,-84.22333886944612],[33.50692592614838,-84.22332071069683],[33.50719842806168,-84.22330255181735],[33.50747092825887,-84.22328439280781],[33.507563012389646,-84.22323880612858],[33.50783550842674,-84.22322064694544],[33.50810800274776,-84.22320248763224],[33.508380495352704,-84.2231843281888],[33.50865298624158,-84.22316616861526],[33.508925475414394,-84.22314800891154],[33.509378381588455,-84.22315727609637],[33.50965086805691,-84.22313911604556],[33.51010377469818,-84.22314838265315],[33.510376258462195,-84.22313022225525],[33.510648740510135,-84.22311206172718],[33.51092122084198,-84.223093901069],[33.51119369945774,-84.22307574028068],[33.51146617635743,-84.22305757936225],[33.511738651541044,-84.22303941831365],[33.512011125008584,-84.22302125713489],[33.51228359676007,-84.22300309582602],[33.51255606679549,-84.22298493438701],[33.512828535114856,-84.22296677281784],[33.51310100171817,-84.22294861111857],[33.51337346660542,-84.22293044928921],[33.51364592977664,-84.22291228732963],[33.51391839123181,-84.22289412523997],[33.51419085097095,-84.22287596302021],[33.514463308994046,-84.2228578006703],[33.51473576530111,-84.22283963819025],[33.51500821989216,-84.22282147558005],[33.51528067276718,-84.22280331283976],[33.51555312392618,-84.2227851499694],[33.51582557336917,-84.22276698696888],[33.516098021096155,-84.22274882383822],[33.51637046710712,-84.22273066057743],[33.51664291140209,-84.22271249718655],[33.516915353981055,-84.2226943336656],[33.51736823736272,-84.22270359448952],[33.51782112219873,-84.22271285495317],[33.51827400848906,-84.22272211505658],[33.51854644638543,-84.2227039507547],[33.51881888256577,-84.22268578632276],[33.51909131703007,-84.22266762176066],[33.519363749778336,-84.22264945706844],[33.519636180810565,-84.22263129224616],[33.51990861012677,-84.22261312729383],[33.52018103772696,-84.22259496221129],[33.52045346361112,-84.22257679699868],[33.52072588777927,-84.22255863165603],[33.520998310231406,-84.22254046618316],[33.521270730967544,-84.22252230058032],[33.52154314998767,-84.2225041348473],[33.5218155672918,-84.2224859689842],[33.52208798287994,-84.22246780299106],[33.52217993844247,-84.22242221398157],[33.52245234987181,-84.22240404781502],[33.522544301537955,-84.22235845874918],[33.52263625175054,-84.22231286967038],[33.52290865657852,-84.22229470328716],[33.523181059690586,-84.22227653677392],[33.52327300356439,-84.22223094759553],[33.52336494598479,-84.2221853584041],[33.5234568869518,-84.22213976919963],[33.52372928102031,-84.22212160242645],[33.52400167337299,-84.22210343552315],[33.52427406400985,-84.22208526848983],[33.52454645293089,-84.2220671013264],[33.52481884013611,-84.22204893403287],[33.52509122562552,-84.2220307666093],[33.52536360939913,-84.22201259905562],[33.52563599145693,-84.22199443137185],[33.52590837179893,-84.22197626355806],[33.526180750425134,-84.22195809561423],[33.52645312733554,-84.2219399275403],[33.52672550253017,-84.22192175933628],[33.52681741273588,-84.22187616959961],[33.52708978377254,-84.22185800122229],[33.527362153093456,-84.22183983271488],[33.52763452069862,-84.22182166407742],[33.527906886588035,-84.22180349530991],[33.52817925076171,-84.2217853264123],[33.52845161321964,-84.22176715738466],[33.52872397396183,-84.22174898822696],[33.52899633298829,-84.22173081893922],[33.52926869029903,-84.22171264952141],[33.52936057707367,-84.22166705938251],[33.529452462395916,-84.22162146923053],[33.5295443462658,-84.2215758790656]],\"type\":\"LineString\"},\"request_hash\":\"v1:edb959cf42af04d6592c5fcbb9f88fc69995111d28673ba4ca266b0602f28ae1\",\"effective_problem\":{\"method\":\"astar\",\"waypoints\":[[33.5021945,-84.223397],[33.529543847174324,-84.22158866054008]],\"slope_limit\":20,\"slope_buffer_m\":0,\"planet\":\"moon\",\"subpixel_hazard_penalty\":0,\"slope_map\":\"ms3_slope\"},\"map_info\":[{\"planet\":\"moon\",\"type\":\"slope\",\"name\":\"ms3_slope\",\"crs\":\"PROJCS[\\\"Moon (2015) - Sphere / Ocentric / South Polar\\\",GEOGCS[\\\"Moon (2015) - Sphere / Ocentric\\\",DATUM[\\\"Moon (2015) - Sphere\\\",SPHEROID[\\\"Moon (2015) - Sphere\\\",1737400,0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PRIMEM[\\\"Reference Meridian\\\",0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],UNIT[\\\"degree\\\",0.0174532925199433,AUTHORITY[\\\"EPSG\\\",\\\"9122\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PROJECTION[\\\"Polar_Stereographic\\\"],PARAMETER[\\\"latitude_of_origin\\\",-90],PARAMETER[\\\"central_meridian\\\",0],PARAMETER[\\\"scale_factor\\\",1],PARAMETER[\\\"false_easting\\\",0],PARAMETER[\\\"false_northing\\\",0],UNIT[\\\"metre\\\",1,AUTHORITY[\\\"EPSG\\\",\\\"9001\\\"]],AXIS[\\\"Easting\\\",NORTH],AXIS[\\\"Northing\\\",NORTH],AUTHORITY[\\\"IAU\\\",\\\"30135\\\"]]\",\"extent\":[71470,118030,129310,159820],\"resolution\":[1,1],\"description\":\"Minisim 3 slope in AEGIS probably\"}],\"status\":\"succeeded\",\"traverse_problem\":{\"planet\":\"moon\",\"waypoints\":[[33.5021945,-84.223397],[33.529543847174324,-84.22158866054008]],\"slope_limit\":null,\"slope_buffer\":null,\"slope_buffer_m\":null,\"obstacle_buffer\":null,\"obstacle_buffer_m\":null,\"resolution\":null,\"method\":\"astar\",\"vehicle\":null,\"subpixel_hazard_penalty\":null},\"cancel_requested\":false}"
+  },
+  "getInProgress": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": "{\"method\":\"astar\",\"runtime\":null,\"path\":null,\"request_hash\":\"v1:e746cfc378200545a401be86668930cf48aced196b447d810e11cca6b001c8e6\",\"effective_problem\":{\"method\":\"astar\",\"waypoints\":[[33.5021945,-84.223397],[33.5021945,-84.223397]],\"slope_limit\":20,\"slope_buffer_m\":0,\"planet\":\"moon\",\"subpixel_hazard_penalty\":0,\"slope_map\":\"ms3_slope\"},\"map_info\":[{\"planet\":\"moon\",\"type\":\"slope\",\"name\":\"ms3_slope\",\"crs\":\"PROJCS[\\\"Moon (2015) - Sphere / Ocentric / South Polar\\\",GEOGCS[\\\"Moon (2015) - Sphere / Ocentric\\\",DATUM[\\\"Moon (2015) - Sphere\\\",SPHEROID[\\\"Moon (2015) - Sphere\\\",1737400,0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PRIMEM[\\\"Reference Meridian\\\",0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],UNIT[\\\"degree\\\",0.0174532925199433,AUTHORITY[\\\"EPSG\\\",\\\"9122\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PROJECTION[\\\"Polar_Stereographic\\\"],PARAMETER[\\\"latitude_of_origin\\\",-90],PARAMETER[\\\"central_meridian\\\",0],PARAMETER[\\\"scale_factor\\\",1],PARAMETER[\\\"false_easting\\\",0],PARAMETER[\\\"false_northing\\\",0],UNIT[\\\"metre\\\",1,AUTHORITY[\\\"EPSG\\\",\\\"9001\\\"]],AXIS[\\\"Easting\\\",NORTH],AXIS[\\\"Northing\\\",NORTH],AUTHORITY[\\\"IAU\\\",\\\"30135\\\"]]\",\"extent\":[71470,118030,129310,159820],\"resolution\":[1,1],\"description\":\"Minisim 3 slope in AEGIS probably\"}],\"status\":\"in_progress\",\"traverse_problem\":{\"planet\":\"moon\",\"waypoints\":[[33.5021945,-84.223397],[33.5021945,-84.223397]],\"slope_limit\":null,\"slope_buffer\":null,\"slope_buffer_m\":null,\"obstacle_buffer\":null,\"obstacle_buffer_m\":null,\"resolution\":null,\"method\":\"astar\",\"vehicle\":null,\"subpixel_hazard_penalty\":null}}"
+  },
+  "getFailedLegacy": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": "{\"method\":\"astar\",\"runtime\":85545,\"path\":null,\"request_hash\":\"v1:a4e4fc2037e273dd8efef1ff84396cd76923b65556bfe2357e707edf269c6e97\",\"effective_problem\":{\"method\":\"astar\",\"waypoints\":[[37.27177,-85.03925],[37.28,-85.039]],\"slope_limit\":20,\"slope_buffer_m\":0,\"planet\":\"moon\",\"subpixel_hazard_penalty\":0,\"slope_map\":\"ms3_slope\"},\"map_info\":[{\"planet\":\"moon\",\"type\":\"slope\",\"name\":\"ms3_slope\",\"crs\":\"PROJCS[\\\"Moon (2015) - Sphere / Ocentric / South Polar\\\",GEOGCS[\\\"Moon (2015) - Sphere / Ocentric\\\",DATUM[\\\"Moon (2015) - Sphere\\\",SPHEROID[\\\"Moon (2015) - Sphere\\\",1737400,0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PRIMEM[\\\"Reference Meridian\\\",0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],UNIT[\\\"degree\\\",0.0174532925199433,AUTHORITY[\\\"EPSG\\\",\\\"9122\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PROJECTION[\\\"Polar_Stereographic\\\"],PARAMETER[\\\"latitude_of_origin\\\",-90],PARAMETER[\\\"central_meridian\\\",0],PARAMETER[\\\"scale_factor\\\",1],PARAMETER[\\\"false_easting\\\",0],PARAMETER[\\\"false_northing\\\",0],UNIT[\\\"metre\\\",1,AUTHORITY[\\\"EPSG\\\",\\\"9001\\\"]],AXIS[\\\"Easting\\\",NORTH],AXIS[\\\"Northing\\\",NORTH],AUTHORITY[\\\"IAU\\\",\\\"30135\\\"]]\",\"extent\":[71470,118030,129310,159820],\"resolution\":[1,1],\"description\":\"Minisim 3 slope in AEGIS probably\"}],\"status\":\"failed\",\"traverse_problem\":{\"planet\":\"moon\",\"waypoints\":[[37.27177,-85.03925],[37.28,-85.039]],\"slope_limit\":null,\"slope_buffer\":null,\"slope_buffer_m\":null,\"obstacle_buffer\":null,\"obstacle_buffer_m\":null,\"resolution\":null,\"method\":null,\"vehicle\":null,\"subpixel_hazard_penalty\":null},\"cancel_requested\":false,\"error\":{\"details\":[],\"message\":\"ArgumentError: no traversable path between waypoint 1 and waypoint 2\",\"code\":\"internal_error\"}}"
+  },
+  "getCancelled": {
+    "status": 200,
+    "contentType": "application/json",
+    "body": "{\"method\":\"astar\",\"runtime\":46701,\"path\":null,\"request_hash\":\"v1:6d48ebddd610aea55819a695bd946ff8c200bb7612125bc4d5151fc3a5cb53b3\",\"effective_problem\":{\"method\":\"astar\",\"waypoints\":[[33.5021945,-84.223397],[33.529543847174324,-84.22158866054008]],\"slope_limit\":19,\"slope_buffer_m\":0,\"planet\":\"moon\",\"subpixel_hazard_penalty\":0,\"slope_map\":\"ms3_slope\"},\"map_info\":[{\"planet\":\"moon\",\"type\":\"slope\",\"name\":\"ms3_slope\",\"crs\":\"PROJCS[\\\"Moon (2015) - Sphere / Ocentric / South Polar\\\",GEOGCS[\\\"Moon (2015) - Sphere / Ocentric\\\",DATUM[\\\"Moon (2015) - Sphere\\\",SPHEROID[\\\"Moon (2015) - Sphere\\\",1737400,0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PRIMEM[\\\"Reference Meridian\\\",0,AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],UNIT[\\\"degree\\\",0.0174532925199433,AUTHORITY[\\\"EPSG\\\",\\\"9122\\\"]],AUTHORITY[\\\"IAU\\\",\\\"30100\\\"]],PROJECTION[\\\"Polar_Stereographic\\\"],PARAMETER[\\\"latitude_of_origin\\\",-90],PARAMETER[\\\"central_meridian\\\",0],PARAMETER[\\\"scale_factor\\\",1],PARAMETER[\\\"false_easting\\\",0],PARAMETER[\\\"false_northing\\\",0],UNIT[\\\"metre\\\",1,AUTHORITY[\\\"EPSG\\\",\\\"9001\\\"]],AXIS[\\\"Easting\\\",NORTH],AXIS[\\\"Northing\\\",NORTH],AUTHORITY[\\\"IAU\\\",\\\"30135\\\"]]\",\"extent\":[71470,118030,129310,159820],\"resolution\":[1,1],\"description\":\"Minisim 3 slope in AEGIS probably\"}],\"status\":\"cancelled\",\"traverse_problem\":{\"planet\":\"moon\",\"waypoints\":[[33.5021945,-84.223397],[33.529543847174324,-84.22158866054008]],\"slope_limit\":19,\"slope_buffer\":null,\"slope_buffer_m\":null,\"obstacle_buffer\":null,\"obstacle_buffer_m\":null,\"resolution\":null,\"method\":null,\"vehicle\":null,\"subpixel_hazard_penalty\":null},\"cancel_requested\":true}"
+  },
+  "deleteNotFound": {
+    "status": 404,
+    "contentType": "application/json",
+    "body": "{\"error\":{\"details\":[],\"message\":\"traverse not found: 00000000-0000-4000-8000-000000000000\",\"code\":\"not_found\"}}"
+  },
+  "deleteRunningLegacy": {
+    "status": 202,
+    "contentType": "application/json",
+    "body": "{\"status\": \"cancelled\"}"
+  },
+  "proxy502": {
+    "status": 502,
+    "contentType": "text/html; charset=iso-8859-1",
+    "body": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>502 Proxy Error</title>\n</head><body>\n<h1>Proxy Error</h1>\n<p>The proxy server received an invalid\r\nresponse from an upstream server.<br />\r\nThe proxy server could not handle the request<p>Reason: <strong>Error reading from remote server</strong></p></p>\n</body></html>\n"
+  },
+  "proxy503": {
+    "status": 503,
+    "contentType": "text/html; charset=iso-8859-1",
+    "body": "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\n<html><head>\n<title>503 Service Unavailable</title>\n</head><body>\n<h1>Service Unavailable</h1>\n<p>The server is temporarily unable to service your\nrequest due to maintenance downtime or capacity\nproblems. Please try again later.</p>\n</body></html>\n"
+  }
+}
