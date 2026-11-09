@@ -171,22 +171,29 @@ describe("apply-asset", () => {
 });
 
 describe("checkMissionIntegrity assets", () => {
-  it("reports orphan asset folder items, duplicate membership, and broken placement", () => {
-    const placed = generateBlankAsset({ location: { lat: NaN, lng: 1 } });
+  it("reports missing asset references without auditing values or duplicate membership", () => {
+    const placed = generateBlankAsset({ location: { lat: NaN, lng: 1 }, uncertaintyMeters: -1 });
     const unplaced = generateBlankAsset();
     const poi = generateBlankPoi();
     const mission = generateBlankMission({
       pois: { [poi.uuid]: poi },
       assets: { [placed.uuid]: placed, [unplaced.uuid]: unplaced },
       folders: {
-        a: generateBlankFolder({ uuid: "a", type: "asset", items: [unplaced.uuid, poi.uuid] }),
+        a: generateBlankFolder({
+          uuid: "a",
+          type: "asset",
+          items: [unplaced.uuid, unplaced.uuid, poi.uuid],
+        }),
         b: generateBlankFolder({ uuid: "b", type: "asset", items: [unplaced.uuid] }),
       },
     });
-    const findings = checkMissionIntegrity(1, mission).map((f) => `${f.entity}:${f.field}`);
-    expect(findings).toEqual(
-      expect.arrayContaining(["Folder:items", "Folder:items (duplicate)", "Asset:location"])
-    );
-    expect(findings.filter((f) => f.startsWith("Asset"))).toEqual(["Asset:location"]);
+    expect(checkMissionIntegrity(1, mission)).toEqual([
+      expect.objectContaining({
+        entity: "Folder",
+        entityUuid: "a",
+        field: "items",
+        orphanedUuid: poi.uuid,
+      }),
+    ]);
   });
 });

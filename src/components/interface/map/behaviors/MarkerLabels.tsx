@@ -138,6 +138,10 @@ export function MarkerLabels(): null {
   const selectedRexUuid = useAppSelector((s) => s.rex.selectedRexUuid, refEqual);
   // The inEdit preview belongs to the editor; other maps draw the saved asset.
   const assetInEdit = useAppSelector((s) => (mode === "editor" ? s.asset.inEdit : null), refEqual);
+  const selectedAssetUuid = useAppSelector(
+    (s) => (mode === "editor" ? s.asset.selectedAssetUuid : null),
+    refEqual
+  );
 
   // --- Automerge doc state ---
   const selectedEva = useMissionDocSelector((m) => {
@@ -518,6 +522,7 @@ export function MarkerLabels(): null {
       assets: assetsFromDoc ?? [],
       folders,
       inEdit: assetInEdit,
+      selectedAssetUuid,
       showAssets: mapDisplayAssets.show,
     });
     if (config.asset.labelsEnabled && mapDisplayAssets.showLabels) {
@@ -634,6 +639,7 @@ export function MarkerLabels(): null {
     config.asset.labelsEnabled,
     assetsFromDoc,
     assetInEdit,
+    selectedAssetUuid,
     selectedEva,
     allStationsFromDoc,
     asPlannedStationsFromDoc,

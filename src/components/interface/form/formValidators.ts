@@ -16,6 +16,22 @@ const mustBeNumber = (value: Stringy): string | undefined => {
   return !regex.test(String(value)) ? "Not a valid number/float" : undefined;
 };
 
+const mustBeLatitude = (value: Stringy): string | undefined => {
+  if (value === "" || value == null) return undefined;
+  const number = Number(value);
+  return !Number.isFinite(number) || number < -90 || number > 90
+    ? "Latitude must be between -90 and 90"
+    : undefined;
+};
+
+const mustBeLongitude = (value: Stringy): string | undefined => {
+  if (value === "" || value == null) return undefined;
+  const number = Number(value);
+  return !Number.isFinite(number) || number < -360 || number > 360
+    ? "Longitude must be between -360 and 360"
+    : undefined;
+};
+
 const minValue =
   (min: number) =>
   (value: Stringy): string | undefined =>
@@ -149,6 +165,8 @@ const mustBeISOString = (value: Stringy): string | undefined => {
 export const validators = {
   required,
   mustBeNumber,
+  mustBeLatitude,
+  mustBeLongitude,
   minValue,
   maxValue,
   minLength,
@@ -203,6 +221,8 @@ const validatorsWithFilters: Record<string, (value: Stringy) => string> = {
   ...Object.fromEntries(filterNumbersValidators.map((validator) => [validator, filterNumbersOnly])),
 
   mustBeInteger: filterIntegersOnly,
+  mustBeLatitude: filterNumbersOnly,
+  mustBeLongitude: filterNumbersOnly,
   mustBeYYYYMMDD: filterIntegersOnly,
   mustBeHHMMSS: filterHHMMSS,
   mustBeISOString: filterISOString,

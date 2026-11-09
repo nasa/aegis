@@ -3,6 +3,7 @@ import {
   filterIntegersOnly,
   filterISOString,
   filterNumbersOnly,
+  getFiltersForValidators,
   validators,
 } from "components/interface/form/formValidators";
 
@@ -57,5 +58,24 @@ describe("Filter functions", () => {
   it("should strip non-ISO string characters", () => {
     expect(filterISOString("2026-09-28T14:30:00.123Z")).toEqual("2026-09-28T14:30:00.123Z");
     expect(filterISOString("2026-AB/28T14:30:00.123Z")).toEqual("2026-28T14:30:00.123Z");
+  });
+});
+
+describe("coordinate range validators", () => {
+  it.each(["", "0", "-90", "90", "-89.123456"])("accepts latitude %j", (value) => {
+    expect(validators.mustBeLatitude(value)).toBeUndefined();
+  });
+  it.each(["", "0", "-360", "360", "270.5"])("accepts longitude %j", (value) => {
+    expect(validators.mustBeLongitude(value)).toBeUndefined();
+  });
+  it.each(["-90.001", "90.001", "NaN", "Infinity", "abc"])("rejects latitude %j", (value) => {
+    expect(validators.mustBeLatitude(value)).toBe("Latitude must be between -90 and 90");
+  });
+  it.each(["-360.001", "360.001", "NaN", "Infinity", "abc"])("rejects longitude %j", (value) => {
+    expect(validators.mustBeLongitude(value)).toBe("Longitude must be between -360 and 360");
+  });
+  it("uses numeric character filters in shared fields", () => {
+    expect(getFiltersForValidators([validators.mustBeLatitude])("abc-89.5")).toBe("-89.5");
+    expect(getFiltersForValidators([validators.mustBeLongitude])("abc270.5")).toBe("270.5");
   });
 });

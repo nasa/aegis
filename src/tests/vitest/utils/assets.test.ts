@@ -86,7 +86,7 @@ describe("getCurrentAssetPet", () => {
     });
     expect(getCurrentAssetPet({ rexes: { [rex.uuid]: rex } }, now)).toEqual({
       petSeconds: 660,
-      petRex: { uuid: rex.uuid, name: rex.name },
+      rexUuid: rex.uuid,
     });
   });
 
@@ -103,16 +103,16 @@ describe("getCurrentAssetPet", () => {
     rex.petValueAtStartStop = "+05:00:00";
     rex.name = "Renamed";
     delete mission.rexes[rex.uuid];
-    expect(captured).toEqual({ petSeconds: -30, petRex: { uuid: rex.uuid, name: "REX A" } });
+    expect(captured).toEqual({ petSeconds: -30, rexUuid: rex.uuid });
   });
 
   test("leaves PET blank with zero or multiple running REXes", () => {
     const a = generateBlankRex({ evaUuid: "eva", isRunning: true });
     const b = generateBlankRex({ evaUuid: "eva", isRunning: true });
-    expect(getCurrentAssetPet({ rexes: {} }, now)).toEqual({ petSeconds: null, petRex: null });
+    expect(getCurrentAssetPet({ rexes: {} }, now)).toEqual({ petSeconds: null, rexUuid: null });
     expect(getCurrentAssetPet({ rexes: { [a.uuid]: a, [b.uuid]: b } }, now)).toEqual({
       petSeconds: null,
-      petRex: null,
+      rexUuid: null,
     });
   });
 });
@@ -187,6 +187,45 @@ describe("map visibility", () => {
     });
     expect(result.map((a) => a.uuid)).toEqual([shown.uuid]);
     expect(result[0].icon).toBe("2754");
+  });
+
+  test("selection reveals only its placed asset, then deselection restores visibility", () => {
+    const selected = placed({ visible: false });
+    const other = placed();
+    const unplaced = generateBlankAsset();
+    const folder = generateBlankFolder({ type: "asset", visible: false, items: [selected.uuid] });
+    const options: Parameters<typeof getVisibleMapAssets>[0] = {
+      assets: [selected, other, unplaced],
+      folders: [folder],
+      inEdit: null,
+      showAssets: false,
+    };
+    expect(
+      getVisibleMapAssets({ ...options, selectedAssetUuid: selected.uuid }).map((a) => a.uuid)
+    ).toEqual([selected.uuid]);
+    expect(getVisibleMapAssets({ ...options, selectedAssetUuid: unplaced.uuid })).toEqual([]);
+    expect(getVisibleMapAssets(options)).toEqual([]);
+    expect(selected.visible).toBe(false);
+    expect(folder.visible).toBe(false);
+  });
+
+  test("a new placed draft is previewed while other assets remain hidden", () => {
+    const draft = placed();
+    const inEdit: AssetInEdit = {
+      uuid: draft.uuid,
+      isNew: true,
+      base: null,
+      values: getAssetEditValues(draft),
+      elevationPending: false,
+    };
+    const options: Parameters<typeof getVisibleMapAssets>[0] = {
+      assets: [placed()],
+      folders: [],
+      showAssets: false,
+      inEdit: null,
+    };
+    expect(getVisibleMapAssets({ ...options, inEdit }).map((a) => a.uuid)).toEqual([draft.uuid]);
+    expect(getVisibleMapAssets({ ...options, inEdit: null })).toEqual([]);
   });
 
   test("edit mode shows concurrent saved fields while previewing a position change", () => {
@@ -268,7 +307,7 @@ describe("in-edit change tracking", () => {
   test("PET edits leave location and elevation out of the change", () => {
     expect(getChangedAssetFields(base, { ...base, petSeconds: -30 })).toEqual({
       petSeconds: -30,
-      petRex: null,
+      rexUuid: null,
     });
   });
 

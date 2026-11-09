@@ -20,7 +20,7 @@ export const generateBlankAsset = (partialAsset?: Partial<Asset>): Asset => {
     uncertaintyMeters: 0,
     notes: null,
     petSeconds: null,
-    petRex: null,
+    rexUuid: null,
     createdAt: now,
     updatedAt: now,
   };

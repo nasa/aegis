@@ -363,6 +363,51 @@ describe("asset map behaviors", () => {
     ]);
   });
 
+  it("shows only the selected hidden asset and hides it again after deselection", () => {
+    const asset = placed({ visible: false, uncertaintyMeters: 20 });
+    const other = placed();
+    const folder = generateBlankFolder({ type: "asset", visible: false, items: [asset.uuid] });
+    mockMissionDoc.assets = { [asset.uuid]: asset, [other.uuid]: other };
+    mockMissionDoc.folders = { [folder.uuid]: folder };
+    render();
+    flushSync(() => setters!.setSubmenuAssets({ show: false, showLabels: false }));
+    expect(assetSource!.getFeatures()).toHaveLength(0);
+    flushSync(() => store.dispatch(setSelectedAssetUuid(asset.uuid)));
+    expect(assetSource!.getFeatures().map((f) => f.getId())).toEqual([asset.uuid]);
+    expect(radiusCircles()).toHaveLength(1);
+    expect(assetLabels()).toHaveLength(0);
+    flushSync(() => store.dispatch(setSelectedAssetUuid(null)));
+    expect(assetSource!.getFeatures()).toHaveLength(0);
+    expect(radiusCircles()).toHaveLength(0);
+    expect(asset.visible).toBe(false);
+    expect(folder.visible).toBe(false);
+  });
+
+  it("previews a newly placed draft with markers and labels hidden, then removes it on cancel", () => {
+    const other = placed();
+    mockMissionDoc.assets = { [other.uuid]: other };
+    const draft = placed({ uncertaintyMeters: 10 });
+    render();
+    flushSync(() => setters!.setSubmenuAssets({ show: false, showLabels: false }));
+    flushSync(() =>
+      store.dispatch(
+        setAssetInEdit({
+          uuid: draft.uuid,
+          isNew: true,
+          base: null,
+          values: getAssetEditValues(draft),
+          elevationPending: false,
+        })
+      )
+    );
+    expect(assetSource!.getFeatures().map((f) => f.getId())).toEqual([draft.uuid]);
+    expect(radiusCircles()).toHaveLength(1);
+    expect(assetLabels()).toHaveLength(0);
+    flushSync(() => store.dispatch(assetSlice.actions.clearAssetInEdit()));
+    expect(assetSource!.getFeatures()).toHaveLength(0);
+    expect(radiusCircles()).toHaveLength(0);
+  });
+
   it("hiding Assets in the visibility menu cancels positioning and keeps the draft", () => {
     const asset = placed({ name: "Drill" });
     mockMissionDoc.assets = { [asset.uuid]: asset };
@@ -401,7 +446,7 @@ describe("asset map behaviors", () => {
     flushSync(() => toggle.click());
     expect(store.getState().map.mapDirective).toBeNull();
     expect(store.getState().asset.inEdit?.values.name).toBe("Moved");
-    expect(assetSource!.getFeatures()).toHaveLength(0);
+    expect(assetSource!.getFeatures()).toHaveLength(1);
 
     flushSync(() => toggle.click());
     expect(store.getState().map.mapDirective).toBeNull();

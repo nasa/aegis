@@ -52,7 +52,7 @@ export const ASSET_EDIT_FIELDS: readonly (keyof AssetEditValues)[] = [
   "uncertaintyMeters",
   "notes",
   "petSeconds",
-  "petRex",
+  "rexUuid",
 ];
 
 /** Map each asset uuid to the uuid of the asset folder holding it. */
@@ -97,22 +97,23 @@ export function isAssetVisibleOnMap(
 }
 
 /**
- * The assets to draw on a map. The in-edit asset replaces its saved values (same uuid) and a
- * new asset is drawn once it has a location. Hidden or unplaced assets are filtered out before any
- * map conversion, so nothing is drawn at the projection origin.
+ * The assets to draw on a map. Selection and editing reveal only the active asset without
+ * changing visibility settings. The in-edit asset replaces its saved values under the same uuid.
+ * Unplaced assets are filtered out before map conversion.
  */
 export function getVisibleMapAssets({
   assets,
   folders,
   inEdit,
   showAssets,
+  selectedAssetUuid = null,
 }: {
   assets: Asset[];
   folders: Folder[];
   inEdit: AssetInEdit | null;
   showAssets: boolean;
+  selectedAssetUuid?: string | null;
 }): AssetMapItem[] {
-  if (!showAssets) return [];
   const folderUuidByItem = getAssetFolderUuidByItem(folders);
   const foldersByUuid = new Map(folders.map((folder) => [folder.uuid, folder]));
   const inEditAsset = inEdit
@@ -130,7 +131,9 @@ export function getVisibleMapAssets({
   const result: AssetMapItem[] = [];
   for (const asset of candidates) {
     const folder = foldersByUuid.get(folderUuidByItem[asset.uuid]);
-    if (!isAssetVisibleOnMap(asset, folder, showAssets)) continue;
+    const active = asset.uuid === selectedAssetUuid || asset.uuid === inEditAsset?.uuid;
+    if (!isPlacedLocation(asset.location)) continue;
+    if (!active && !isAssetVisibleOnMap(asset, folder, showAssets)) continue;
     result.push({
       uuid: asset.uuid,
       name: asset.name,
@@ -147,13 +150,13 @@ export function getVisibleMapAssets({
 export function getCurrentAssetPet(
   mission: Pick<Mission, "rexes">,
   nowMs: number
-): Pick<Asset, "petSeconds" | "petRex"> {
+): Pick<Asset, "petSeconds" | "rexUuid"> {
   const runningRexes = Object.values(mission.rexes ?? {}).filter((rex) => rex.isRunning);
   const rex = runningRexes.length === 1 ? runningRexes[0] : null;
   const petSeconds = petSecondsAt(rex, nowMs);
   return {
     petSeconds,
-    petRex: petSeconds !== null ? { uuid: rex.uuid, name: rex.name } : null,
+    rexUuid: petSeconds !== null ? rex.uuid : null,
   };
 }
 
@@ -175,7 +178,7 @@ export function getAssetEditValues(asset: Asset): AssetEditValues {
 }
 
 const LOCATION_FIELDS: readonly (keyof AssetEditValues)[] = ["location", "elevation"];
-const PET_FIELDS: readonly (keyof AssetEditValues)[] = ["petSeconds", "petRex"];
+const PET_FIELDS: readonly (keyof AssetEditValues)[] = ["petSeconds", "rexUuid"];
 
 /**
  * Fields of `values` that differ from `base`, detached. Location and elevation are

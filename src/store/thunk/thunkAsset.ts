@@ -219,7 +219,7 @@ export const thunkSaveAssetEdit = appCreateAsyncThunk<
     Object.assign(values, pet);
   } else if (petUpdate === "clear") {
     values.petSeconds = null;
-    values.petRex = null;
+    values.rexUuid = null;
   }
   const invalid = validateAssetEditValues(values);
   if (invalid) throw new Error(invalid);

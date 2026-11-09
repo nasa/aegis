@@ -693,6 +693,8 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
   toFocus,
   onChange,
   onBlur,
+  inputProps,
+  onValueChange,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -732,12 +734,15 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
             ) : null}
             <input
               {...input}
+              {...inputProps}
               className={`${className} ${meta.error && meta.touched ? classNameError : null}`}
               type="text"
               aria-label={ariaLabel}
               style={style}
               onChange={(event) => {
-                input.onChange(composedFilter(event.target.value));
+                const value = composedFilter(event.target.value);
+                input.onChange(value);
+                onValueChange?.(value);
                 if (onChange) onChange(event); //call custom on change
               }}
               onBlur={(event) => {
@@ -777,6 +782,8 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
   initialValue,
   onChange,
   onBlur,
+  inputProps,
+  onValueChange,
 }) => {
   const composedFilter = validators.length
     ? getFiltersForValidators(validators)
@@ -803,11 +810,14 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
           ) : null}
           <textarea
             {...input}
+            {...inputProps}
             className={`${className} ${meta.error && meta.touched ? classNameError : null}`}
             aria-label={ariaLabel}
             style={style}
             onChange={(event) => {
-              input.onChange(composedFilter(event.target.value));
+              const value = composedFilter(event.target.value);
+              input.onChange(value);
+              onValueChange?.(value);
               if (onChange) onChange(event); //call custom on change
             }}
             onBlur={(event) => {

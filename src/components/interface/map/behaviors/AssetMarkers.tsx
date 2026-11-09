@@ -42,6 +42,10 @@ export function useVisibleMapAssets(): AssetMapItem[] {
   const folders: Folder[] =
     useMissionDocSelector((m) => Object.values(m.folders ?? {}), deepEqual) ?? EMPTY_DOC_LIST;
   const inEdit = useAppSelector((s) => (mode === "editor" ? s.asset.inEdit : null), refEqual);
+  const selectedAssetUuid = useAppSelector(
+    (s) => (mode === "editor" ? s.asset.selectedAssetUuid : null),
+    refEqual
+  );
 
   return useMemo(
     () =>
@@ -50,8 +54,9 @@ export function useVisibleMapAssets(): AssetMapItem[] {
         folders,
         inEdit,
         showAssets: submenuAssets.show,
+        selectedAssetUuid,
       }),
-    [assets, folders, inEdit, submenuAssets.show]
+    [assets, folders, inEdit, submenuAssets.show, selectedAssetUuid]
   );
 }
 

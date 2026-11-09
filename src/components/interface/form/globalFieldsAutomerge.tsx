@@ -1,11 +1,10 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPencil } from "@fortawesome/free-solid-svg-icons";
-import { useRef, useEffect, useState, useCallback } from "react";
-import type { FunctionComponent, CSSProperties, ReactNode } from "react";
+import { useRef, useEffect, useState } from "react";
+import type { FunctionComponent, CSSProperties } from "react";
 import formStyles from "./globalFieldsAutomerge.module.css";
 import paneStyles from "../../panes/global-pane-styles.module.css";
 import { Field, Form, FormSpy } from "react-final-form";
-import type { FieldRenderProps } from "react-final-form";
 import type { FormApi } from "final-form";
 import React from "react";
 import {
@@ -468,11 +467,7 @@ export const ValidatedInputField: FunctionComponent<{
   focusContents?: boolean;
   onChange?: React.ChangeEventHandler;
   displayStyle?: CSSProperties;
-  displayValue?: ReactNode;
-  /** Custom control inside the standard validated field dialog (e.g. PET and its source selector). */
-  renderInput?: (input: FieldRenderProps<string>["input"]) => ReactNode;
-  minDialogWidth?: number;
-  fitDialogToContents?: boolean;
+  displayValue?: string;
 }> = ({
   value,
   editMode,
@@ -483,9 +478,6 @@ export const ValidatedInputField: FunctionComponent<{
   onChange,
   displayStyle,
   displayValue,
-  renderInput,
-  minDialogWidth = 160,
-  fitDialogToContents = false,
 }) => {
   const valueToShow = value || "";
 
@@ -503,11 +495,7 @@ export const ValidatedInputField: FunctionComponent<{
     if (!containerRef.current || !dialogChildrenRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    if (fitDialogToContents) dialogChildrenRef.current.style.width = "max-content";
-    const contentWidth = fitDialogToContents
-      ? dialogChildrenRef.current.getBoundingClientRect().width
-      : rect.width;
-    const width = Math.min(window.innerWidth - 16, Math.max(minDialogWidth, contentWidth));
+    const width = Math.min(window.innerWidth - 16, Math.max(160, rect.width));
     setIsNarrowDialog(width <= 160); // Check if we're using the minimum width (meaning container was <= 130px)
 
     // Check if dialog would overflow right edge of viewport
@@ -601,36 +589,32 @@ export const ValidatedInputField: FunctionComponent<{
                       }
                       type="input"
                     >
-                      {({ input }) =>
-                        renderInput ? (
-                          <div onClick={(e) => e.stopPropagation()}>{renderInput(input)}</div>
-                        ) : (
-                          <React.Fragment>
-                            <input
-                              {...input}
-                              className={`${formStyles.editField} ${fieldProps.className}`}
-                              type="text"
-                              aria-label={fieldProps.ariaLabel}
-                              style={{
-                                width: "100%",
-                                textAlign: isRightAligned ? "right" : "left",
-                              }}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                              }}
-                              onFocus={(event) => {
-                                handleFocus(event);
-                                input.onFocus(event); // call native onFocus
-                              }}
-                              onChange={(event) => {
-                                if (onChange) onChange(event);
-                                input.onChange(composedFilter(event.target.value));
-                              }}
-                              ref={inputRef}
-                            />
-                          </React.Fragment>
-                        )
-                      }
+                      {({ input }) => (
+                        <React.Fragment>
+                          <input
+                            {...input}
+                            className={`${formStyles.editField} ${fieldProps.className}`}
+                            type="text"
+                            aria-label={fieldProps.ariaLabel}
+                            style={{
+                              width: "100%",
+                              textAlign: isRightAligned ? "right" : "left",
+                            }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                            }}
+                            onFocus={(event) => {
+                              handleFocus(event);
+                              input.onFocus(event); // call native onFocus
+                            }}
+                            onChange={(event) => {
+                              if (onChange) onChange(event);
+                              input.onChange(composedFilter(event.target.value));
+                            }}
+                            ref={inputRef}
+                          />
+                        </React.Fragment>
+                      )}
                     </Field>
                   </div>
                   <div
@@ -705,56 +689,25 @@ export const ValidatedTextArea: FunctionComponent<{
   styleContainer?: CSSProperties;
   onSubmit: (value: string) => void;
   focusContents?: boolean;
-  /** Cap the displayed text and the editor's automatic height at this many wrapped lines. */
-  maxRows?: number;
-  resizable?: boolean;
-}> = ({
-  value,
-  editMode,
-  styleContainer,
-  onSubmit,
-  fieldProps,
-  focusContents,
-  maxRows,
-  resizable = false,
-}) => {
+}> = ({ value, editMode, styleContainer, onSubmit, fieldProps, focusContents }) => {
   const valueToShow = value || "";
 
   const dialogRef = useRef<HTMLDialogElement>(null); // Used to control the dialog box (open/close)
   const dialogChildrenRef = useRef<HTMLDivElement>(null); // Used to position the dialog box
   const containerRef = useRef<HTMLDivElement>(null); // Used to position the dialog box
   const inputRef = useRef<HTMLTextAreaElement>(null); // Used to focus the textarea when dialog opens
-  const automaticHeightRef = useRef<number | null>(null);
   const initialValueRef = useRef<string>(valueToShow); // Track last successfully submitted value
   const formApiRef = useRef<FormApi<Record<string, string>> | null>(null); // Access the form outside of the form
   const isOnline = useAppSelector(isConnected, refEqual);
 
-  const autoResizeTextarea = useCallback(() => {
+  const autoResizeTextarea = () => {
     if (!inputRef.current) return;
     const textarea = inputRef.current;
-    // A native resize changes dimensions without an input event. Preserve that choice while typing.
-    if (
-      resizable &&
-      (textarea.style.width.endsWith("px") ||
-        (automaticHeightRef.current !== null &&
-          Math.abs(textarea.getBoundingClientRect().height - automaticHeightRef.current) > 1))
-    )
-      return;
     textarea.style.height = "auto";
-    const styles = getComputedStyle(textarea);
-    const borders = parseFloat(styles.borderTopWidth) + parseFloat(styles.borderBottomWidth);
-    const maxHeight = maxRows
-      ? maxRows * parseFloat(styles.lineHeight) +
-        parseFloat(styles.paddingTop) +
-        parseFloat(styles.paddingBottom) +
-        borders
-      : parseFloat(styles.maxHeight);
-    const newHeight = Math.min(textarea.scrollHeight + borders, maxHeight);
+    const newHeight = Math.min(textarea.scrollHeight, 300);
     textarea.style.height = `${newHeight}px`;
-    textarea.style.overflowY =
-      resizable || textarea.scrollHeight > textarea.clientHeight ? "auto" : "hidden";
-    automaticHeightRef.current = textarea.getBoundingClientRect().height;
-  }, [maxRows, resizable]);
+    textarea.style.overflowY = textarea.scrollHeight > 300 ? "auto" : "hidden";
+  };
 
   const setDialogLocation = () => {
     if (!containerRef.current || !dialogChildrenRef.current) return;
@@ -783,20 +736,7 @@ export const ValidatedTextArea: FunctionComponent<{
 
   useEffect(() => {
     autoResizeTextarea();
-  }, [valueToShow, autoResizeTextarea]);
-
-  useEffect(() => {
-    if (!resizable || !inputRef.current) return;
-    const textarea = inputRef.current;
-    const observer = new ResizeObserver(() => {
-      const dialog = dialogChildrenRef.current;
-      if (!dialog || !dialogRef.current?.open || !textarea.style.width.endsWith("px")) return;
-      // Keep the background and Save/Cancel controls aligned with the resized input.
-      dialog.style.width = `${textarea.offsetWidth + dialog.offsetWidth - dialog.clientWidth}px`;
-    });
-    observer.observe(textarea);
-    return () => observer.disconnect();
-  }, [resizable]);
+  }, [valueToShow]);
 
   return (
     <div
@@ -810,8 +750,6 @@ export const ValidatedTextArea: FunctionComponent<{
         setDialogLocation();
         dialogRef.current?.showModal();
         initialValueRef.current = valueToShow; // Initialize valid value when dialog opens
-        automaticHeightRef.current = null;
-        if (resizable && inputRef.current) inputRef.current.style.width = "100%";
         requestAnimationFrame(() => autoResizeTextarea()); // Resize textarea after dialog is rendered
       }}
     >
@@ -862,12 +800,8 @@ export const ValidatedTextArea: FunctionComponent<{
                             style={{
                               width: "100%",
                               minHeight: "60px",
-                              resize: resizable ? "both" : "none",
+                              resize: "none",
                               boxSizing: "border-box",
-                              ...(maxRows && {
-                                lineHeight: 1.4,
-                                maxHeight: resizable ? "none" : `calc(${maxRows}lh + 10px)`,
-                              }),
                             }}
                             onChange={(event) => {
                               autoResizeTextarea();
@@ -931,7 +865,6 @@ export const ValidatedTextArea: FunctionComponent<{
       <div className={`${formStyles.labelContainer}`}>
         <div
           className={`${formStyles.textAreaValue}`}
-          style={maxRows ? { lineHeight: 1.4, maxHeight: `${maxRows}lh` } : undefined}
           data-tooltip-id="aegis-tooltip"
           data-tooltip-content={fieldProps.ariaLabel}
           aria-label={fieldProps.ariaLabel}

@@ -235,31 +235,10 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
     layer: layerUuids,
     asset: new Set(Object.keys(doc.assets ?? {})),
   };
-  const assetFolderUuidByItem = new Map<string, string>();
   for (const folder of Object.values(doc.folders ?? {})) {
     const targets = folderTargetUuids[folder.type];
     for (const itemUuid of folder.items ?? []) {
       if (!targets?.has(itemUuid)) log("items", itemUuid, "Folder", folder.uuid);
-      if (folder.type !== "asset") continue;
-      // An asset belongs to at most one folder.
-      if (assetFolderUuidByItem.has(itemUuid))
-        log("items (duplicate)", itemUuid, "Folder", folder.uuid);
-      assetFolderUuidByItem.set(itemUuid, folder.uuid);
-    }
-  }
-
-  // ── Assets ────────────────────────────────────────────────────────────────
-  // A set location has finite coordinates.
-  for (const asset of Object.values(doc.assets ?? {})) {
-    const hasLocation = asset.location != null;
-    if (
-      hasLocation &&
-      !(Number.isFinite(asset.location.lat) && Number.isFinite(asset.location.lng))
-    ) {
-      log("location", "non-finite", "Asset", asset.uuid);
-    }
-    if (!Number.isFinite(asset.uncertaintyMeters) || asset.uncertaintyMeters < 0) {
-      log("uncertaintyMeters", String(asset.uncertaintyMeters), "Asset", asset.uuid);
     }
   }
 

@@ -5,6 +5,7 @@ import {
 } from "utils/mapping/geoMath";
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
 import { isPartialLgrsLabel, parseLgrsLabel } from "utils/lgrs/parse";
+import { validators } from "components/interface/form/formValidators";
 
 const LAT_LNG_PATTERN = /^\s*([+-]?\d+(?:\.\d+)?)\s*[,\s]\s*([+-]?\d+(?:\.\d+)?)\s*$/;
 /** A "lat, lng" pair so far — only digits, sign, decimal point, and at most one separator. */
@@ -79,13 +80,7 @@ export function parseCoordinateEntry(
 
 /** Range violations of a parsed "lat, lng" pair, shared by the submit and live typing checks. */
 function latLngRangeError(lat: number, lng: number): string | null {
-  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
-    return "Latitude must be between -90 and 90";
-  }
-  if (!Number.isFinite(lng) || lng < -360 || lng > 360) {
-    return "Longitude must be between -360 and 360";
-  }
-  return null;
+  return validators.mustBeLatitude(lat) || validators.mustBeLongitude(lng) || null;
 }
 
 /**

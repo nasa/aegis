@@ -1,9 +1,5 @@
-import type { CSSProperties, FunctionComponent } from "react";
+import type { FunctionComponent } from "react";
 import styles from "./map-menu-assets.module.css";
-import {
-  ValidatedInputField,
-  ValidatedTextArea,
-} from "components/interface/form/globalFieldsAutomerge";
 import { PathColorPickerMenu } from "components/interface/form/globalFields";
 import { LastEditedNumeric } from "components/interface/_global-elements";
 import { shallowEqual } from "utils/useAppSelector";
@@ -12,15 +8,13 @@ import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { hhmmssFromSeconds } from "utils/formatting";
 
-const compactFieldStyle: CSSProperties = { padding: 0, minWidth: 0 };
-
-export const AssetPetSource: FunctionComponent<{ petRex: Asset["petRex"] }> = ({ petRex }) => {
+export const AssetPetSource: FunctionComponent<{ rexUuid: Asset["rexUuid"] }> = ({ rexUuid }) => {
   const source = useMissionDocSelector((m) => {
-    const rex = petRex ? m.rexes?.[petRex.uuid] : null;
+    const rex = rexUuid ? m.rexes?.[rexUuid] : null;
     const eva = rex ? m.evas?.[rex.evaUuid] : null;
     return {
       eva: eva ? getAsPlannedEvaFromRefUuid(m, eva.refUuid)?.name : null,
-      rex: rex?.name || petRex?.name || petRex?.uuid,
+      rex: rex?.name || rexUuid,
     };
   }, shallowEqual);
   return (
@@ -60,14 +54,7 @@ export const AssetDetails: FunctionComponent<{
         <span className={styles.fieldLabel}>Radius (m)</span>
         <div className={styles.fieldControls}>
           <div data-testid="asset-editor-uncertainty">
-            <ValidatedInputField
-              value={String(asset.uncertaintyMeters)}
-              fieldProps={{ name: "assetRadius", ariaLabel: "Radius in meters" }}
-              editMode={false}
-              onSubmit={() => undefined}
-              styleContainer={compactFieldStyle}
-              displayStyle={{ fontSize: "inherit" }}
-            />
+            <span aria-label="Radius in meters">{asset.uncertaintyMeters}</span>
           </div>
           <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
           <div data-testid="asset-editor-color">
@@ -81,15 +68,9 @@ export const AssetDetails: FunctionComponent<{
         </div>
         <span className={styles.fieldLabel}>Position</span>
         <div className={styles.fieldControls} data-testid="asset-editor-coordinates">
-          <ValidatedInputField
-            value={formattedLocation}
-            displayValue={asset.location ? formattedLocation : "Not placed"}
-            editMode={false}
-            onSubmit={() => undefined}
-            styleContainer={{ ...compactFieldStyle, flex: "1 1 110px" }}
-            displayStyle={{ fontSize: "inherit" }}
-            fieldProps={{ name: "assetCoordinates", ariaLabel: "Asset coordinates" }}
-          />
+          <span aria-label="Asset coordinates">
+            {asset.location ? formattedLocation : "Not placed"}
+          </span>
         </div>
         {asset.location && (
           <div className={`${styles.fieldNote} ${styles.fieldValueColumn}`}>
@@ -99,28 +80,14 @@ export const AssetDetails: FunctionComponent<{
             </span>
           </div>
         )}
-        <AssetPetSource petRex={asset.petRex} />
+        <AssetPetSource rexUuid={asset.rexUuid} />
         <span className={styles.fieldLabel}>PET</span>
-        <ValidatedInputField
-          value={formattedPet}
-          editMode={false}
-          onSubmit={() => undefined}
-          styleContainer={compactFieldStyle}
-          displayStyle={{ fontSize: "inherit" }}
-          displayValue={<span data-testid="asset-editor-pet">{formattedPet || "\u2014"}</span>}
-          fieldProps={{ name: "assetPet", ariaLabel: "Asset PET" }}
-        />
+        <span aria-label="Asset PET" data-testid="asset-editor-pet">
+          {formattedPet || "\u2014"}
+        </span>
         <span className={`${styles.fieldLabel} ${styles.notesLabel}`}>Notes</span>
         <div className={styles.viewNotes} data-testid="asset-editor-notes">
-          <ValidatedTextArea
-            value={asset.notes || ""}
-            maxRows={6}
-            resizable={true}
-            editMode={false}
-            onSubmit={() => undefined}
-            styleContainer={compactFieldStyle}
-            fieldProps={{ name: "assetNotes", ariaLabel: "Asset notes" }}
-          />
+          <div aria-label="Asset notes">{asset.notes || ""}</div>
         </div>
         <div className={styles.editorLastModified} data-testid="asset-editor-last-modified">
           <span className={styles.fieldLabel}>Last Edited:</span>

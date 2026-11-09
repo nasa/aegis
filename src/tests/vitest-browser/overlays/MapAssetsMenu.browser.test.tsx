@@ -16,7 +16,11 @@ import "styles/globals.css";
 import "styles/fonts.css";
 
 import { MapAssetsMenu } from "components/interface/map/overlays/map-menu-assets";
-import { MapMenuProvider, useMapMenuContext } from "components/interface/map/MapMenuProvider";
+import {
+  MapMenuProvider,
+  useMapMenuContext,
+  useMapMenuSetters,
+} from "components/interface/map/MapMenuProvider";
 import { assetSlice, setAssetInEdit } from "store/asset";
 import { connectionSlice } from "store/connection";
 import { hoverSlice } from "store/hover";
@@ -106,10 +110,12 @@ function makeStore(canEdit: boolean, isInEditMode = false) {
 
 let harness: ReactHarness;
 let store: ReturnType<typeof makeStore>;
+let menuSetters: ReturnType<typeof useMapMenuSetters> | null = null;
 let menuSettings: ReturnType<typeof useMapMenuContext> | null = null;
 
 function CaptureMenu(): null {
   menuSettings = useMapMenuContext();
+  menuSetters = useMapMenuSetters();
   return null;
 }
 
@@ -179,7 +185,7 @@ describe("MapAssetsMenu", () => {
       const asset = generateBlankAsset({
         name: "N".repeat(ASSET_NAME_MAX_LENGTH),
         notes,
-        petRex: { uuid: "rex", name: "REX".repeat(150) },
+        rexUuid: "rex",
       });
       const folder = generateBlankFolder({
         type: "asset",
@@ -187,6 +193,11 @@ describe("MapAssetsMenu", () => {
         items: [asset.uuid],
       });
       mockMissionDoc.assets = { [asset.uuid]: asset };
+      const eva = generateBlankEVA();
+      mockMissionDoc.evas = { [eva.uuid]: eva };
+      mockMissionDoc.rexes = {
+        rex: generateBlankRex({ evaUuid: eva.uuid, uuid: "rex", name: "REX".repeat(150) }),
+      };
       mockMissionDoc.folders = { [folder.uuid]: folder };
       store = makeStore(true);
       render();
@@ -640,9 +651,10 @@ describe("MapAssetsMenu", () => {
     }
   });
 
-  it("turns the viewer's Assets and Asset Labels back on when placing starts", () => {
+  it("preserves hidden Assets and Labels settings when placing starts", () => {
     store = makeStore(true);
     render();
+    flushSync(() => menuSetters!.setSubmenuAssets({ show: false, showLabels: false }));
     flushSync(() =>
       store.dispatch(
         setAssetInEdit({
@@ -663,8 +675,64 @@ describe("MapAssetsMenu", () => {
     expect(q("[data-testid='asset-editor'] [aria-label='Asset folder']")).toBeNull();
 
     flushSync(() => byText("Place on Map")!.click());
-    expect(menuSettings!.submenuAssets).toEqual({ show: true, showLabels: true });
+    expect(menuSettings!.submenuAssets).toEqual({ show: false, showLabels: false });
     expect(startMapDirective).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([true, false])(
+    "uses shared field filters in the single Save/Cancel editor (creating: %s)",
+    (creating) => {
+      const asset = generateBlankAsset({ name: "Drill" });
+      if (!creating) mockMissionDoc.assets = { [asset.uuid]: asset };
+      store = makeStore(true);
+      render();
+      openDraft(asset, creating);
+      const radius = q("input[aria-label='Radius in meters']") as HTMLInputElement;
+      enterValue(radius, "abc12x.5");
+      expect(radius.value).toBe("12.5");
+      expect(store.getState().asset.inEdit?.values.uncertaintyMeters).toBe(12.5);
+      expect(q("[data-testid='asset-editor'] dialog")).toBeNull();
+      expect(q("[aria-label='Save']")).not.toBeNull();
+      expect(q("[aria-label='Cancel']")).not.toBeNull();
+      expect(saveAsset).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([true, false])(
+    "preserves label settings while editing a position (assets shown: %s)",
+    (show) => {
+      const asset = generateBlankAsset({ name: "Drill", location: { lat: 1, lng: 2 } });
+      mockMissionDoc.assets = { [asset.uuid]: asset };
+      store = makeStore(true);
+      render();
+      flushSync(() => menuSetters!.setSubmenuAssets({ show, showLabels: false }));
+      openDraft(asset, false);
+      flushSync(() => byText("Edit Pos.")!.click());
+      expect(startMapDirective).toHaveBeenCalledTimes(1);
+      expect(menuSettings!.submenuAssets).toEqual({ show, showLabels: false });
+    }
+  );
+
+  it("looks up current REX names and retains the source UUID and PET after deletion", () => {
+    const asset = generateBlankAsset({ name: "Drill", petSeconds: 600, rexUuid: "rex" });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    const eva = generateBlankEVA();
+    mockMissionDoc.evas = { [eva.uuid]: eva };
+    const rex = generateBlankRex({ evaUuid: eva.uuid, uuid: "rex", name: "Original name" });
+    mockMissionDoc.rexes = { rex };
+    store = makeStore(true);
+    render();
+    flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
+    expect(q("[data-testid='asset-editor-rex']")?.textContent).toBe("Original name");
+    expect(q("[data-testid='asset-editor'] dialog")).toBeNull();
+    mockMissionDoc.rexes.rex = { ...rex, name: "Renamed REX" };
+    render();
+    expect(q("[data-testid='asset-editor-rex']")?.textContent).toBe("Renamed REX");
+    delete mockMissionDoc.rexes.rex;
+    render();
+    expect(q("[data-testid='asset-editor-rex']")?.textContent).toBe("rex");
+    expect(q("[data-testid='asset-editor-pet']")?.textContent).toBe("+00:10:00");
+    expect(asset.rexUuid).toBe("rex");
   });
 
   it("shows coordinate validation errors while typing, without waiting for blur", async () => {
@@ -916,9 +984,14 @@ describe("MapAssetsMenu", () => {
     const asset = generateBlankAsset({
       name: "Drill",
       petSeconds: 600,
-      petRex: { uuid: "rex", name: "Recorded REX" },
+      rexUuid: "rex",
     });
     mockMissionDoc.assets = { [asset.uuid]: asset };
+    const eva = generateBlankEVA();
+    mockMissionDoc.evas = { [eva.uuid]: eva };
+    mockMissionDoc.rexes = {
+      rex: generateBlankRex({ evaUuid: eva.uuid, uuid: "rex", name: "Recorded REX" }),
+    };
     store = makeStore(true);
     render();
     expect(q(`[data-testid='asset-row-${asset.uuid}']`)?.textContent).not.toContain("+00:10:00");
@@ -969,7 +1042,7 @@ describe("MapAssetsMenu", () => {
     expect(mockMissionDoc.assets[asset.uuid].petSeconds).toBe(600);
     flushSync(() => q("[aria-label='Save']")!.click());
     expect(store.getState().asset.inEdit?.values.petSeconds).toBeNull();
-    expect(store.getState().asset.inEdit?.values.petRex).toBeNull();
+    expect(store.getState().asset.inEdit?.values.rexUuid).toBeNull();
     expect(saveAsset).toHaveBeenCalledWith(undefined);
     expect(store.getState().asset.inEdit?.uuid).toBe(asset.uuid);
     flushSync(() => q("[aria-label='Cancel']")!.click());
@@ -1010,10 +1083,7 @@ describe("MapAssetsMenu", () => {
       flushSync(() => q("[aria-label='Set to current PET']")!.click());
       await vi.waitFor(() => expect(input.value).toBe("-00:02:30"));
       expect(input.disabled).toBe(false);
-      expect(store.getState().asset.inEdit?.values.petRex).toEqual({
-        uuid: rex.uuid,
-        name: rex.name,
-      });
+      expect(store.getState().asset.inEdit?.values.rexUuid).toBe(rex.uuid);
       if (!creating) {
         expect(q("[data-testid='asset-editor-eva']")?.textContent).toBe("EVA 1");
         expect(q("[data-testid='asset-editor-rex']")?.textContent).toBe("REX 1");
@@ -1028,7 +1098,7 @@ describe("MapAssetsMenu", () => {
       enterValue(input, "abc+00:03:00def");
       await vi.waitFor(() => expect(input.value).toBe("+00:03:00"));
       expect(store.getState().asset.inEdit?.values.petSeconds).toBe(180);
-      expect(store.getState().asset.inEdit?.values.petRex).toBeNull();
+      expect(store.getState().asset.inEdit?.values.rexUuid).toBeNull();
       flushSync(() => q("[aria-label='Save']")!.click());
       expect(saveAsset).toHaveBeenCalledWith(undefined);
     }
@@ -1046,7 +1116,7 @@ describe("MapAssetsMenu", () => {
     expect((q("input[aria-label='Asset PET']") as HTMLInputElement).value).toBe("+00:10:00");
   });
 
-  it("disables Edit Pos. for an asset hidden by its folder, naming the folder", () => {
+  it("allows editing the active asset position while its folder stays hidden", () => {
     const asset = generateBlankAsset({
       name: "Drill",
       location: { lat: 1, lng: 1 },
@@ -1073,9 +1143,10 @@ describe("MapAssetsMenu", () => {
       )
     );
     const editPos = byText("Edit Pos.")!.parentElement!;
-    expect(editPos.getAttribute("data-tooltip-content")).toContain('"Cache"');
+    expect(editPos.getAttribute("aria-disabled")).toBe("false");
     flushSync(() => editPos.click());
-    expect(startMapDirective).not.toHaveBeenCalled();
+    expect(startMapDirective).toHaveBeenCalledTimes(1);
+    expect(mockMissionDoc.folders[folder.uuid].visible).toBe(false);
     expect(q("[data-testid='asset-editor-coordinates']")?.hasAttribute("disabled")).toBe(false);
   });
 

@@ -27,7 +27,7 @@ export const assetSlice = createSlice({
     updateAssetInEditValues: (
       state,
       action: {
-        payload: Partial<Omit<AssetEditValues, "location" | "elevation" | "petRex">>;
+        payload: Partial<Omit<AssetEditValues, "location" | "elevation" | "rexUuid">>;
       }
     ) => {
       if (!state.inEdit) return;
@@ -35,18 +35,18 @@ export const assetSlice = createSlice({
         "petSeconds" in action.payload &&
         action.payload.petSeconds !== state.inEdit.values.petSeconds
       ) {
-        state.inEdit.values.petRex = null;
+        state.inEdit.values.rexUuid = null;
       }
       state.inEdit.values = { ...state.inEdit.values, ...action.payload };
     },
     /** Capture a PET value together with the REX that supplied it. */
     setAssetInEditPet: (
       state,
-      action: { payload: Pick<AssetEditValues, "petSeconds" | "petRex"> }
+      action: { payload: Pick<AssetEditValues, "petSeconds" | "rexUuid"> }
     ) => {
       if (!state.inEdit) return;
       state.inEdit.values.petSeconds = action.payload.petSeconds;
-      state.inEdit.values.petRex = action.payload.petRex;
+      state.inEdit.values.rexUuid = action.payload.rexUuid;
     },
     /** Accept or clear an in-edit location. */
     setAssetInEditLocation: (

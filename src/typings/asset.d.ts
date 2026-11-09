@@ -21,7 +21,7 @@ interface Asset {
   /** Editable PET in seconds, initially captured from the running REX when adding the asset. */
   petSeconds: number | null;
   /** REX that supplied PET; null for a manually entered or absent PET. */
-  petRex: Pick<Rex, "uuid" | "name"> | null;
+  rexUuid: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -37,7 +37,7 @@ type AssetEditValues = Pick<
   | "uncertaintyMeters"
   | "notes"
   | "petSeconds"
-  | "petRex"
+  | "rexUuid"
 >;
 
 /** Unsaved Add or Edit session, including the map position preview. */

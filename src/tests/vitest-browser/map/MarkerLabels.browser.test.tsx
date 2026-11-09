@@ -141,7 +141,7 @@ function makeAsset(uuid: string, lat: number, lng: number, color: string | null)
     uncertaintyMeters: 0,
     notes: null,
     petSeconds: null,
-    petRex: null,
+    rexUuid: null,
     createdAt: 0,
     updatedAt: 0,
   } as unknown as Asset;

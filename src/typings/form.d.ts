@@ -41,6 +41,8 @@ interface FFTextProps {
   toFocus?: boolean;
   onChange?: React.ChangeEventHandler;
   onBlur?: React.FocusEventHandler;
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement> & { "data-testid"?: string };
+  onValueChange?: (value: string) => void;
 }
 
 interface FFTextAreaProps {
@@ -54,4 +56,6 @@ interface FFTextAreaProps {
   initialValue?: string;
   onChange?: React.ChangeEventHandler;
   onBlur?: React.FocusEventHandler;
+  inputProps?: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { "data-testid"?: string };
+  onValueChange?: (value: string) => void;
 }

@@ -140,6 +140,12 @@
   color: var(--grey4);
 }
 
+.viewNotes > div {
+  max-height: 6lh;
+  line-height: 1.4;
+  overflow: auto;
+}
+
 .viewNotes {
   min-width: 0;
   overflow-wrap: anywhere;
