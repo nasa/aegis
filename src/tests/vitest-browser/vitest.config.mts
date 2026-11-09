@@ -65,7 +65,7 @@ export default defineConfig(
       globals: true,
       // Keep the browser API outside ports commonly reserved by Windows Hyper-V.
       api: { port: Number(process.env.VITEST_BROWSER_PORT ?? 15315) },
-      // Bound real-browser rendering work consistently with the CI jobs.
+      // Local default; CI uses one worker in each coverage shard and parity job.
       maxWorkers: 3,
       browser: {
         enabled: true,

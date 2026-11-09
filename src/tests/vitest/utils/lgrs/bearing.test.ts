@@ -211,13 +211,13 @@ describe("getLgrsGridBearing() edge cases", () => {
   const valid = { lat: -89, lng: 10 };
 
   test.each([
-    { lat: NaN, lng: 0 },
-    { lat: 0, lng: NaN },
-    { lat: 91, lng: 0 },
-    { lat: -90.5, lng: 0 },
-    { lat: 0, lng: 400 },
-    { lat: 0, lng: Infinity },
-  ])("returns NaN for invalid point %j", (invalid) => {
+    { label: "NaN latitude", point: { lat: NaN, lng: 0 } },
+    { label: "NaN longitude", point: { lat: 0, lng: NaN } },
+    { label: "latitude above 90", point: { lat: 91, lng: 0 } },
+    { label: "latitude below -90", point: { lat: -90.5, lng: 0 } },
+    { label: "longitude above 360", point: { lat: 0, lng: 400 } },
+    { label: "infinite longitude", point: { lat: 0, lng: Infinity } },
+  ])("returns NaN for invalid point $label", ({ point: invalid }) => {
     expect(getLgrsGridBearing(invalid, valid)).toBeNaN();
     expect(getLgrsGridBearing(valid, invalid)).toBeNaN();
   });

@@ -18,5 +18,7 @@ export async function selectExecution(page: Page, plan: string, evaUuid: string)
 export async function openExecutionInfo(page: Page, plan: string, evaUuid: string): Promise<void> {
   await selectExecution(page, plan, evaUuid);
   await page.getByLabelText("rex_info_panel", { exact: true }).click();
-  await expect.element(page.getByText("REX Information", { exact: true })).toBeVisible();
+  await expect
+    .element(page.getByTestId("mission-panel-right").getByText("REX Information", { exact: true }))
+    .toBeVisible();
 }

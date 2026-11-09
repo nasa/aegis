@@ -81,17 +81,17 @@ const allBrowser = vitestFiles(browserConfig, "browser", ["chromium", "chromium-
 const allNode = vitestFiles("src/tests/vitest/vitest.config.mts", "node");
 vitestFiles(browserConfig, "parity", ["firefox", "webkit", "firefox-hidpi", "webkit-hidpi"]);
 // `vitest list --filesOnly` does not apply --shard; use the runner's sequencer.
-const vitestShards = (files) =>
+const vitestShards = (files, count) =>
   Promise.all(
-    [1, 2, 3].map(async (index) => {
+    Array.from({ length: count }, (_, index) => index + 1).map(async (index) => {
       const sequencer = new BaseSequencer({
-        config: { root: process.cwd(), shard: { index, count: 3 } },
+        config: { root: process.cwd(), shard: { index, count } },
       });
       return sequencer.shard(files.map((row) => ({ ...row, moduleId: row.file })));
     })
   );
-const browserShards = await vitestShards(allBrowser);
-const nodeShards = await vitestShards(allNode);
+const browserShards = await vitestShards(allBrowser, 6);
+const nodeShards = await vitestShards(allNode, 3);
 const summary = {
   playwright: Object.fromEntries(
     [...new Set(allPlaywright.map((row) => row.project))].map((project) => [

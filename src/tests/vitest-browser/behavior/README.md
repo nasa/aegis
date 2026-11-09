@@ -18,8 +18,8 @@ map-editing, celestial-control, smoke, crew-source and slope-legend parity workf
 checks run at device pixel ratio 2 in each browser.
 `npm run test:vitest:browser:parity` runs the Firefox/WebKit projects separately.
 V8 coverage requires Chromium's CDP, so `test:coverage:browser` selects the two
-Chromium projects. CI runs three Chromium coverage shards and a separate parity
-job in parallel; see the [CI layout](../../../../docs/testing/ci-layout.md).
+Chromium projects. CI runs six Chromium coverage shards and a separate parity
+job, each with one worker; see the [CI layout](../../../../docs/testing/ci-layout.md).
 
 ## Fixture
 

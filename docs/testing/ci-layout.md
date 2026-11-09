@@ -8,13 +8,13 @@ download boundaries.
 
 ## Jobs
 
-| Job                          | Scheduling                                         | Scope                                            | Reports                                   |
-| ---------------------------- | -------------------------------------------------- | ------------------------------------------------ | ----------------------------------------- |
-| `test-vitest`                | Three automatic shards                             | Existing unit/server tests                       | Three Node coverage blobs                 |
-| `test-vitest:browser`        | Three automatic shards, at most three workers each | Chromium and Chromium high-DPI, with V8 coverage | Distinct coverage blobs and JUnit reports |
-| `test-vitest:browser:parity` | One automatic job, at most three workers           | Firefox/WebKit, standard and high-DPI            | Separate JUnit report                     |
-| `merge-vitest-coverage`      | After every Node and browser coverage shard        | Combined coverage and Node test results          | Node JUnit, combined Cobertura and LCOV   |
-| `test-playwright`            | Four shards after `test-playwright:start`          | All configured end-to-end projects               | Playwright diagnostics and reports        |
+| Job                          | Scheduling                                  | Scope                                            | Reports                                   |
+| ---------------------------- | ------------------------------------------- | ------------------------------------------------ | ----------------------------------------- |
+| `test-vitest`                | Three automatic shards                      | Existing unit/server tests                       | Three Node coverage blobs                 |
+| `test-vitest:browser`        | Six automatic shards, one worker each       | Chromium and Chromium high-DPI, with V8 coverage | Distinct coverage blobs and JUnit reports |
+| `test-vitest:browser:parity` | One automatic job, one worker               | Firefox/WebKit, standard and high-DPI            | Separate JUnit report                     |
+| `merge-vitest-coverage`      | After every Node and browser coverage shard | Combined coverage and Node test results          | Node JUnit, combined Cobertura and LCOV   |
+| `test-playwright`            | Four shards after `test-playwright:start`   | All configured end-to-end projects               | Playwright diagnostics and reports        |
 
 Authentication setup runs as a dependency in each Playwright shard. Use the
 configured tests and the selection checker below to discover the current
@@ -32,9 +32,9 @@ omission. Parity stays independent because V8 coverage requires Chromium's CDP.
 ## Coverage and deployment integrity
 
 Node blobs are named `blob-node-<index>-3.json`; browser blobs are named
-`blob-browser-<index>-3.json`. The coverage merge requires all six nonempty files.
+`blob-browser-<index>-6.json`. The coverage merge requires all nine nonempty files.
 Only blob JSON goes in `.vitest-reports/`. Browser shards publish distinct JUnit
-files at `test-results/vitest-browser-<index>-3.xml`; parity uses
+files at `test-results/vitest-browser-<index>-6.xml`; parity uses
 `test-results/vitest-browser-parity.xml`.
 
 The merge uses the Node configuration and publishes its Node JUnit results.
@@ -83,11 +83,11 @@ Vitest `list --filesOnly` does not apply `--shard`; this checker uses Vitest's
 own `BaseSequencer` for selection and checks actual blob execution separately.
 Playwright dependency setup is excluded only from application partition checks.
 
-The artifact checker consumes a local evidence directory with six blobs under
+The artifact checker consumes a local evidence directory with nine blobs under
 `blobs/`, each shard's JSON coverage under `coverage-node-<index>/` or
 `coverage-browser-<index>/`, merged JSON under `coverage-merged/`, and JUnit files
 `junit-node.xml`, `junit-browser-<index>.xml`, `junit-parity.xml`. Store parity's
-blob as `parity-blob.json` outside the six coverage inputs. Run the selection
+blob as `parity-blob.json` outside the nine coverage inputs. Run the selection
 checker above into its `layout/` subdirectory first. Emit shard JSON with
 `--coverage.reporter=json --coverage.reportsDirectory=<unique-directory>`;
 retain the CI blob/JUnit reporter arguments shown in the job definitions.
