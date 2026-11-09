@@ -213,6 +213,15 @@ export const config: DotenvConfig<typeof environments> = {
   },
 
   /**
+   * Newton
+   * Base URL (including `/api/v1`) of the Newton traverse-planning API, used by the API
+   * server only. Leave empty to disable Newton requests.
+   */
+  NEWTON_BASE_URL: { default: "https://jsxim-gisproc1.ndc.nasa.gov/api/v1" },
+  // Per-request timeout. Just over the ~60 s proxy timeout in front of Newton.
+  NEWTON_TIMEOUT_MS: { default: "65000" },
+
+  /**
    * Logging
    */
   // Used by @emss/logger package to determine if server or client (client logs are
