@@ -3,11 +3,8 @@ import {
   findGlobalGridCoordsFromPoint,
   gridHasCellNamePrefix,
 } from "utils/mapping/geoMath";
-import {
-  getSouthLpsDisplayCoordinate,
-  isPartialSouthLpsLabel,
-  parseSouthLpsLabel,
-} from "utils/lgrs/southLps";
+import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
+import { isPartialLgrsLabel, parseLgrsLabel } from "utils/lgrs/parse";
 
 const LAT_LNG_PATTERN = /^\s*([+-]?\d+(?:\.\d+)?)\s*[,\s]\s*([+-]?\d+(?:\.\d+)?)\s*$/;
 /** A "lat, lng" pair so far — only digits, sign, decimal point, and at most one separator. */
@@ -25,8 +22,9 @@ export function formatCoordinateEntry(
 ): string {
   if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lng)) return "";
   if (context.usingLGRSCoordinates) {
-    const label = getSouthLpsDisplayCoordinate(
+    const label = formatLgrsFromLatLon(
       location,
+      LGRS_DISPLAY_PRECISION_METERS,
       context.dynamicLgrs ? "full" : "condensed"
     );
     if (label) return label;
@@ -40,7 +38,7 @@ export function formatCoordinateEntry(
 /** The accepted coordinate syntax, shown as the field placeholder. */
 export function getCoordinateEntryHint(context: CoordinateEntryContext): string {
   if (context.usingLGRSCoordinates) {
-    return context.dynamicLgrs ? "LGRS (BKL K12 L34) or lat, lng" : "LGRS (K12 L34) or lat, lng";
+    return context.dynamicLgrs ? "LGRS (23NFF -00 -00) or lat, lng" : "LGRS (K12 L34) or lat, lng";
   }
   if (context.serverGrid) return "Grid cell name or lat, lng";
   return "lat, lng (e.g. -89.5, 45.2)";
@@ -67,7 +65,7 @@ export function parseCoordinateEntry(
   }
 
   if (context.usingLGRSCoordinates) {
-    const location = parseSouthLpsLabel(trimmed, context.landerLocation);
+    const location = parseLgrsLabel(trimmed, context.landerLocation);
     if (location) return { location, error: null };
     return { location: null, error: `Not a valid LGRS label or lat, lng: "${trimmed}"` };
   }
@@ -108,8 +106,8 @@ export function getLiveCoordinateEntryError(
   if (LAT_LNG_PARTIAL_PATTERN.test(trimmed)) return null;
 
   if (context.usingLGRSCoordinates) {
-    if (parseSouthLpsLabel(trimmed, context.landerLocation)) return null;
-    if (isPartialSouthLpsLabel(trimmed)) return null;
+    if (parseLgrsLabel(trimmed, context.landerLocation)) return null;
+    if (isPartialLgrsLabel(trimmed)) return null;
     return `Not a valid LGRS label or lat, lng: "${trimmed}"`;
   }
   if (context.serverGrid) {

@@ -5,7 +5,7 @@ import {
   parseCoordinateEntry,
 } from "utils/coordinateEntry";
 import { findGlobalGridCoordsFromPoint, findGridCellCenterByName } from "utils/mapping/geoMath";
-import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
+import { formatLgrsFromLatLon } from "utils/lgrs/display";
 
 const RADIUS = 1737400;
 const latLngOnly: CoordinateEntryContext = {
@@ -42,8 +42,13 @@ describe("parseCoordinateEntry", () => {
     expect(parseCoordinateEntry("  ", latLngOnly).error).toBeTruthy();
   });
 
-  it("round-trips LGRS labels in the mission's presentation", () => {
-    const point = { lat: -89.5, lng: 45.2 };
+  it.each([
+    { lat: -89.5, lng: 45.2 },
+    { lat: 89.5, lng: 45.2 },
+    { lat: 45, lng: 90 },
+    { lat: -45, lng: -90 },
+    { lat: 0, lng: 0 },
+  ])("round-trips LGRS labels in the mission's presentation at %o", (point) => {
     for (const dynamicLgrs of [true, false]) {
       const context = {
         ...latLngOnly,
@@ -52,7 +57,7 @@ describe("parseCoordinateEntry", () => {
         landerLocation: point,
       };
       const text = formatCoordinateEntry(point, context);
-      expect(text).toBe(getSouthLpsDisplayCoordinate(point, dynamicLgrs ? "full" : "condensed"));
+      expect(text).toBe(formatLgrsFromLatLon(point, 10, dynamicLgrs ? "full" : "condensed"));
       const parsed = parseCoordinateEntry(text, context).location;
       expect(formatCoordinateEntry(parsed, context)).toBe(text);
     }
@@ -104,11 +109,11 @@ describe("getLiveCoordinateEntryError", () => {
       dynamicLgrs: true,
       landerLocation: point,
     };
-    for (const text of ["B", "BK", "BKL", "K", "K1", "K12 L"]) {
+    for (const text of ["B", "BK", "BKL", "Y", "Z", "23N", "23NFF -00 -", "K", "K1", "K12 L"]) {
       expect(getLiveCoordinateEntryError(text, lgrs)).toBeNull();
     }
     expect(
-      getLiveCoordinateEntryError(getSouthLpsDisplayCoordinate(point, "condensed"), lgrs)
+      getLiveCoordinateEntryError(formatLgrsFromLatLon(point, 10, "condensed"), lgrs)
     ).toBeNull();
     expect(getLiveCoordinateEntryError("K12 34", lgrs)).toMatch(/LGRS/);
   });
