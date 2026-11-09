@@ -220,6 +220,12 @@ export const config: DotenvConfig<typeof environments> = {
   NEWTON_BASE_URL: { default: "https://jsxim-gisproc1.ndc.nasa.gov/api/v1" },
   // Per-request timeout. Just over the ~60 s proxy timeout in front of Newton.
   NEWTON_TIMEOUT_MS: { default: "65000" },
+  // Server-wide limit on Newton jobs AEGIS has submitting, pending or running.
+  NEWTON_MAX_IN_FLIGHT: { default: "1" },
+  // A failed Newton traverse is cached this long before a request resubmits it.
+  NEWTON_FAILED_TTL_MS: { default: "86400000" },
+  // An unfinished Newton job older than this fails as `timeout` and frees its slot.
+  NEWTON_MAX_JOB_AGE_MS: { default: "600000" },
 
   /**
    * Logging

@@ -50,6 +50,7 @@ import missionAutomergeRoutes from "./routes/missionAutomerge";
 
 import dustRoute from "./routes/external/dust";
 import missionCatalogRoutes from "./routes/missionCatalog";
+import newtonRoutes from "./routes/newton";
 import { retainMissionDocuments } from "server/automerge/missionCatalogRuntime";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -122,6 +123,7 @@ app.use("/api/v1/missionAutomerge", missionAutomergeRoutes);
 app.use("/api/v1/missionHomepageItems", missionHomepageItemsRoutes);
 app.use("/api/v1/missionDup", missionDup);
 app.use("/api/v1/missionDump", missionDump);
+app.use("/api/v1/newton", newtonRoutes);
 app.use("/api/v1/metrics", metricsRoutes);
 app.use("/api/v1/sublayer", sublayerRoutes);
 app.use("/api/v1/appUsers", appUsersRoutes);

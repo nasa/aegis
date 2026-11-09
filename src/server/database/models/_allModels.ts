@@ -11,6 +11,7 @@ import {
 } from "./terrain_profile_cache.model";
 import { Mission_Catalog_db, Mission_Catalog_dbSchema } from "./mission_catalog.model";
 import { Mission_Eva_Catalog_db, Mission_Eva_Catalog_dbSchema } from "./mission_eva_catalog.model";
+import { Newton_Traverse_db, Newton_Traverse_dbSchema } from "./newton_traverse.model";
 
 export const allSchemas = [
   App_User_dbSchema,
@@ -20,6 +21,7 @@ export const allSchemas = [
   EnvironmentConfig_dbSchema,
   Mission_Catalog_dbSchema,
   Mission_Eva_Catalog_dbSchema,
+  Newton_Traverse_dbSchema,
   Terrain_Profile_Cache_dbSchema,
 ];
 
@@ -31,5 +33,6 @@ export {
   EnvironmentConfig_db,
   Mission_Catalog_db,
   Mission_Eva_Catalog_db,
+  Newton_Traverse_db,
   Terrain_Profile_Cache_db,
 };
