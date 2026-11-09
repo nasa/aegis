@@ -23,14 +23,12 @@ function makeLabelFeature(overrides: {
   labelCoord?: [number, number];
   anchorCoord?: [number, number];
   labelOpacity?: number;
-  accentColor?: string;
 }): Feature {
   const f = new Feature(new Point(overrides.labelCoord ?? [0, 0]));
   if (overrides.name !== undefined) f.set("name", overrides.name);
   if (overrides.labelType) f.set("labelType", overrides.labelType);
   if (overrides.anchorCoord) f.set("anchorCoord", overrides.anchorCoord);
   if (overrides.labelOpacity !== undefined) f.set("labelOpacity", overrides.labelOpacity);
-  if (overrides.accentColor) f.set("accentColor", overrides.accentColor);
   return f;
 }
 
@@ -155,29 +153,6 @@ describe("createMarkerLabelStyle", () => {
     expect(largeImg.height).toBeGreaterThan(smallImg.height);
   });
 
-  it("draws an accent border when the feature carries accentColor", () => {
-    const fn = createMarkerLabelStyle();
-    const plainIcon = asArray(
-      fn(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1)
-    )[0].getImage() as Icon;
-    const accentIcon = asArray(
-      fn(makeLabelFeature({ name: "Rover", labelType: "asset", accentColor: "#ff0000" }), 1)
-    )[0].getImage() as Icon;
-
-    const plainCtx = (plainIcon.getImage(1) as HTMLCanvasElement).getContext("2d")!;
-    const accentCtx = (accentIcon.getImage(1) as HTMLCanvasElement).getContext("2d")!;
-    const midY = Math.floor(plainCtx.canvas.height / 2);
-    const plainPx = Array.from(plainCtx.getImageData(1, midY, 1, 1).data);
-    const accentPx = Array.from(accentCtx.getImageData(1, midY, 1, 1).data);
-
-    // The left border edge is opaque accent red; the plain label is the
-    // translucent dark background there. Also proves the cache key separates
-    // accent variants of the same name+type.
-    expect(accentPx).toEqual([255, 0, 0, 255]);
-    expect(plainPx).not.toEqual(accentPx);
-    expect(plainPx[3]).toBeLessThan(255);
-  });
-
   it("asset config overrides the asset label font size and box colors", () => {
     const fn = createMarkerLabelStyle(14, 1.5, {
       show: true,
@@ -189,8 +164,6 @@ describe("createMarkerLabelStyle", () => {
       labelFontWeight: "normal",
       labelTextColor: "rgba(0,255,0,1)",
       labelBgColor: "rgba(0,0,255,0.5)",
-      labelAccentBorder: true,
-      labelAccentBorderWidth: 2,
     });
     const assetCanvas = (
       asArray(fn(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1))[0].getImage() as Icon
@@ -212,80 +185,6 @@ describe("createMarkerLabelStyle", () => {
     expect(px[3]).toBeLessThan(200);
   });
 
-  it("asset labelAccentBorder: false suppresses the accent border", () => {
-    const fn = createMarkerLabelStyle(14, 1.5, {
-      show: true,
-      iconSize: 20,
-      clickable: false,
-      hoverable: false,
-      labelsEnabled: true,
-      labelFontSize: 14,
-      labelFontWeight: "normal",
-      labelTextColor: "rgba(255,236,170,0.95)",
-      labelBgColor: "rgba(0,0,0,0.5)",
-      labelAccentBorder: false,
-      labelAccentBorderWidth: 2,
-    });
-    const withAccentCanvas = (
-      asArray(
-        fn(makeLabelFeature({ name: "Rover", labelType: "asset", accentColor: "#ff0000" }), 1)
-      )[0].getImage() as Icon
-    ).getImage(1) as HTMLCanvasElement;
-    const plainCanvas = (
-      asArray(fn(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1))[0].getImage() as Icon
-    ).getImage(1) as HTMLCanvasElement;
-
-    const midY = Math.floor(plainCanvas.height / 2);
-    const accentPx = Array.from(
-      withAccentCanvas.getContext("2d")!.getImageData(1, midY, 1, 1).data
-    );
-    const plainPx = Array.from(plainCanvas.getContext("2d")!.getImageData(1, midY, 1, 1).data);
-
-    // The feature still carries accentColor, but the config turns the border off
-    expect(accentPx).toEqual(plainPx);
-    expect(plainPx[3]).toBeLessThan(255);
-  });
-
-  it("asset labelAccentBorderWidth widens the accent border", () => {
-    const makeFn = (width: number) =>
-      createMarkerLabelStyle(14, 1.5, {
-        show: true,
-        iconSize: 20,
-        clickable: false,
-        hoverable: false,
-        labelsEnabled: true,
-        labelFontSize: 14,
-        labelFontWeight: "normal",
-        labelTextColor: "rgba(255,236,170,0.95)",
-        labelBgColor: "rgba(0,0,0,0.5)",
-        labelAccentBorder: true,
-        labelAccentBorderWidth: width,
-      });
-    const wideCanvas = (
-      asArray(
-        makeFn(4)(
-          makeLabelFeature({ name: "Rover", labelType: "asset", accentColor: "#ff0000" }),
-          1
-        )
-      )[0].getImage() as Icon
-    ).getImage(1) as HTMLCanvasElement;
-    const narrowCanvas = (
-      asArray(
-        makeFn(2)(
-          makeLabelFeature({ name: "Rover", labelType: "asset", accentColor: "#ff0000" }),
-          1
-        )
-      )[0].getImage() as Icon
-    ).getImage(1) as HTMLCanvasElement;
-
-    // Width 4 covers pixel 2 outright; width 2 leaves it as background there
-    const midY = Math.floor(wideCanvas.height / 2);
-    const widePx = Array.from(wideCanvas.getContext("2d")!.getImageData(2, midY, 1, 1).data);
-    const narrowPx = Array.from(narrowCanvas.getContext("2d")!.getImageData(2, midY, 1, 1).data);
-    expect(widePx).toEqual([255, 0, 0, 255]);
-    expect(narrowPx).toEqual([0, 0, 0, 128]);
-  });
-
   it("asset bold renders a wider text box", () => {
     const makeFn = (fontWeight: string) =>
       createMarkerLabelStyle(14, 1.5, {
@@ -298,8 +197,6 @@ describe("createMarkerLabelStyle", () => {
         labelFontWeight: fontWeight,
         labelTextColor: "rgba(255,236,170,0.95)",
         labelBgColor: "rgba(0,0,0,0.5)",
-        labelAccentBorder: true,
-        labelAccentBorderWidth: 2,
       });
     const plainCanvas = (
       asArray(

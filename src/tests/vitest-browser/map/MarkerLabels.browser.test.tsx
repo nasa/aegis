@@ -16,7 +16,7 @@
  *    they are NOT force-shown when labels are turned off
  *  - Hover-induced labels appear and are flagged isHover
  *  - The lander label is hover-only (no permanent label)
- *  - Asset labels carry the asset's color as accentColor (transparent radius color fallback)
+ *  - Asset labels render for assets with and without a color
  *  - Labels stay visible as reference while an unrelated mapDirective is active
  *  - Stale labels removed when the underlying station is removed
  *  - Label opacities computed and stored on features (default = 1, since no overlap)
@@ -577,7 +577,7 @@ describe("MarkerLabels", () => {
     expect(feature!.get("labelType")).toBe("poi");
   });
 
-  it("renders asset labels carrying the asset color as accentColor", () => {
+  it("renders labels for assets with and without a color", () => {
     const stationA = makeStation(STATION_A_UUID, 10, 20);
     mockMissionDoc.stations = { [STATION_A_UUID]: stationA } as unknown as Mission["stations"];
     mockMissionDoc.assets = {
@@ -601,18 +601,16 @@ describe("MarkerLabels", () => {
     const colored = labelSource!.getFeatureById(`asset-${ASSET_UUID}`)!;
     expect(colored.get("labelType")).toBe("asset");
     expect(colored.get("name")).toBe("Asset 1");
-    expect(colored.get("accentColor")).toBe("#ff0000");
 
-    // No color set — the accent stays clear
     const uncolored = labelSource!.getFeatureById(`asset-${ASSET_UUID_2}`)!;
-    expect(uncolored.get("accentColor")).toBe("transparent");
+    expect(uncolored.get("labelType")).toBe("asset");
+    expect(uncolored.get("name")).toBe("Asset 2");
 
-    // Non-asset labels carry no accent
     const stationLabel = labelSource!.getFeatureById(`station-${STATION_A_UUID}`)!;
-    expect(stationLabel.get("accentColor")).toBeNull();
+    expect(stationLabel.get("labelType")).toBe("station");
   });
 
-  it("carries accentColor on the asset hover tooltip label", () => {
+  it("renders the asset hover tooltip label", () => {
     mockMissionDoc.assets = {
       [ASSET_UUID]: makeAsset(ASSET_UUID, 12, 22, "#00ff00"),
     } as unknown as Mission["assets"];
@@ -635,7 +633,8 @@ describe("MarkerLabels", () => {
     const feature = labelSource!.getFeatureById(`asset-${ASSET_UUID}`);
     expect(feature).not.toBeNull();
     expect(feature!.get("isHover")).toBe(true);
-    expect(feature!.get("accentColor")).toBe("#00ff00");
+    expect(feature!.get("labelType")).toBe("asset");
+    expect(feature!.get("name")).toBe("Asset 1");
   });
 
   it("renders action label for selected station when actions.showLabels is on", () => {

@@ -82,10 +82,6 @@ export interface ModeConfig {
     labelTextColor: string;
     /** Rounded-rect background color behind the text. */
     labelBgColor: string;
-    /** Whether the box gets an accent border in the asset's own color. */
-    labelAccentBorder: boolean;
-    /** Width (px) of the accent border stroke. Only drawn when `labelAccentBorder` is true. */
-    labelAccentBorderWidth: number;
   };
 
   // Proximity circles
@@ -189,8 +185,6 @@ const EDITOR_CONFIG: ModeConfig = {
     labelFontWeight: "normal",
     labelTextColor: "rgba(255,236,170,0.95)",
     labelBgColor: "rgba(0,0,0,0.5)",
-    labelAccentBorder: false,
-    labelAccentBorderWidth: 1,
   },
   circle: {
     minWidth: 1.5,
@@ -268,8 +262,6 @@ const DASHBOARD_CONFIG: ModeConfig = {
     labelFontWeight: "normal",
     labelTextColor: "rgba(255,236,170,0.95)",
     labelBgColor: "rgba(0,0,0,0.5)",
-    labelAccentBorder: false,
-    labelAccentBorderWidth: 2,
   },
   circle: {
     minWidth: 3,
@@ -347,8 +339,6 @@ const MINIMAP_CONFIG: ModeConfig = {
     labelFontWeight: "normal",
     labelTextColor: "rgba(255,236,170,0.95)",
     labelBgColor: "rgba(0,0,0,0.5)",
-    labelAccentBorder: false,
-    labelAccentBorderWidth: 2,
   },
   circle: {
     minWidth: 1.5,

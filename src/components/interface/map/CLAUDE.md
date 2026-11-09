@@ -330,12 +330,12 @@ a cache key omits a varying input:
   `zIndex 9999`; dashboard in-progress stations get a green ring (triggered by
   `config.station.hoverable === false`).
 - `markerLabels.ts` (`createMarkerLabelStyle`): caches the rendered text-box canvas by
-  `name-labelType-fontSize`. Draws a dashed black+white connector from label to anchor (skipped
-  when the label is within 2px of the anchor). Opacity applied via `Icon.opacity`, not baked.
-  Asset labels take per-mode colors/font size/weight/accent border (toggle + width) from
+  `name-labelType-fontSize-fontWeight-dpr`. Draws a dashed black+white connector from label to
+  anchor (skipped when the label is within 2px of the anchor). Opacity applied via `Icon.opacity`,
+  not baked.
+  Asset labels take per-mode colors/font size/weight from
   `MODE_CONFIGS[mode].asset` (passed to the builder by `MarkerLabels`); without it they fall
-  back to the hard-coded `asset` `LABEL_COLORS` entry. The accent border (the asset's own color)
-  is baked into the canvas.
+  back to the hard-coded `asset` `LABEL_COLORS` entry.
 - `polylines.ts`: module-level `baseStyleCache` for traverse lines (keyed
   `color|weight|selectedWeight|isSelected`) + `arrowCache` for chevron SVG data-URIs. Selected
   "glow" only pushed when `selectedWeight > 0` (dashboard/minimap set it to 0 = no emphasis).

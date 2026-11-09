@@ -38,7 +38,7 @@ import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
-import { DEFAULT_ASSET_RADIUS_COLOR, getVisibleMapAssets } from "utils/assets";
+import { getVisibleMapAssets } from "utils/assets";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -104,8 +104,6 @@ interface LabelInfo {
   labelType: "lander" | "station" | "poi" | "action" | "pos" | "asset";
   anchorCoord: [number, number]; // projected map coordinate
   priority: number;
-  /** Optional accent (e.g. the asset's own color) drawn as the label box border */
-  accentColor?: string | null;
   /** Transient hover tooltip — always renders at full opacity, never draggable */
   isHover?: boolean;
 }
@@ -527,7 +525,6 @@ export function MarkerLabels(): null {
         infos.push({
           id: `asset-${asset.uuid}`,
           name: asset.name,
-          accentColor: asset.color || DEFAULT_ASSET_RADIUS_COLOR,
           labelType: "asset",
           anchorCoord: toMapCoord(asset.location) as [number, number],
           priority: PRIORITY_ASSET,
@@ -603,7 +600,6 @@ export function MarkerLabels(): null {
             infos.push({
               id: hoverLabelId,
               name: asset.name,
-              accentColor: asset.color || DEFAULT_ASSET_RADIUS_COLOR,
               labelType: "asset",
               anchorCoord: toMapCoord(asset.location) as [number, number],
               priority: PRIORITY_ASSET,
@@ -697,7 +693,6 @@ export function MarkerLabels(): null {
         feature.set("anchorCoord", info.anchorCoord);
         feature.set("name", info.name);
         feature.set("labelType", info.labelType);
-        feature.set("accentColor", info.accentColor ?? null);
         feature.set("isHover", info.isHover ?? false);
       } else {
         feature = new Feature({ geometry: new Point(labelCoord) });
@@ -705,7 +700,6 @@ export function MarkerLabels(): null {
         feature.set("anchorCoord", info.anchorCoord);
         feature.set("name", info.name);
         feature.set("labelType", info.labelType);
-        feature.set("accentColor", info.accentColor ?? null);
         feature.set("isHover", info.isHover ?? false);
         labelSource.addFeature(feature);
       }
