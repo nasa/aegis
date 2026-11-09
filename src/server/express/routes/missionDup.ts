@@ -17,7 +17,7 @@ import { emssTokenIsValid } from "utils/permissions";
 
 const router = express.Router();
 router.post("/", async (req: Request, res: Response): Promise<void> => {
-  const { missionId, dataOwner } = req.body;
+  const { missionId, missionRequestedBy } = req.body;
   const emssToken = req.headers["emss-token"] as string;
 
   if (!req.session?.appUser?.isSuperAdmin && !emssTokenIsValid(emssToken)) {
@@ -94,7 +94,7 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const newMissionId: number | null = await upsertDatabaseRetry(() =>
-      duplicateMission(parsedMissionId, dataOwner, writeProgress)
+      duplicateMission(parsedMissionId, missionRequestedBy, writeProgress)
     );
 
     // Check response
@@ -148,7 +148,7 @@ export default router;
 
 const duplicateMission = async (
   missionId: number,
-  dataOwner: string,
+  missionRequestedBy: string,
   onProgress: (message: string) => void
 ): Promise<number> => {
   if (!missionId) {
@@ -166,7 +166,7 @@ const duplicateMission = async (
     const newMissionId = await createMissionCopy(
       sourceData,
       { nameSuffix: "Copy", copyGISAssets: true },
-      dataOwner,
+      missionRequestedBy,
       onProgress
     );
 
@@ -183,7 +183,7 @@ const duplicateMission = async (
 export const createMissionCopy = async (
   sourceData: MissionSourceData,
   options: MissionCopyOptions,
-  dataOwner: string,
+  missionRequestedBy: string,
   onProgress?: (message: string) => void
 ): Promise<number> => {
   try {
@@ -198,7 +198,7 @@ export const createMissionCopy = async (
       name: `${sourceMission.name} - ${options.nameSuffix}`,
       createdAt: getAccurateNow().getTime(),
       updatedAt: getAccurateNow().getTime(),
-      dataOwner,
+      missionRequestedBy,
     };
 
     // create an mission automerge document; entities ride along and are scoped by the new doc

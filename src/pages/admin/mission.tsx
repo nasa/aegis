@@ -183,21 +183,24 @@ const Mission: React.FunctionComponent = () => {
                     <div id="missionDiv">
                       <div className={adminStyles.editDiv}>
                         <InLineEditInput
-                          value={automergeMission.dataOwner}
+                          value={automergeMission.missionRequestedBy}
                           editing={true}
                           fieldProps={{
-                            name: "owner",
-                            ariaLabel: "Data Owner *",
+                            name: "requestedBy",
+                            ariaLabel: "Mission Requested By *",
                             style: { width: "100%" },
                             validators: [validators.required, validators.maxLength(50)],
-                            label: { label: "Data Owner", className: adminStyles.editLabel },
+                            label: {
+                              label: "Mission Requested By",
+                              className: adminStyles.editLabel,
+                            },
                           }}
                           onSubmit={(value) => {
                             changeAutomergeMission((m: Mission) => {
-                              m.dataOwner = value || "";
+                              m.missionRequestedBy = value || "";
                             });
                           }}
-                          key={`${automergeMission.id}-dataOwner`}
+                          key={`${automergeMission.id}-missionRequestedBy`}
                           debounceSubmit={false}
                         />
                       </div>

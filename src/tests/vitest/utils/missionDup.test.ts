@@ -66,7 +66,7 @@ const CHANGING_PROPS = {
     "updatedAt",
     "name",
     "version",
-    "dataOwner",
+    "missionRequestedBy",
     ...MISSION_ID_COLLECTIONS,
   ],
 };

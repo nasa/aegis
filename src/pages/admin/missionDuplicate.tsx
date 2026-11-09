@@ -16,7 +16,7 @@ type RouteParams = {
 const AdminMissionDuplicate: React.FunctionComponent = () => {
   const action = useAsyncStatus();
   const [status, setStatus] = useState<string>("Idle");
-  const [dataOwner, setDataOwner] = useState(null);
+  const [missionRequestedBy, setMissionRequestedBy] = useState(null);
 
   const params = useParams<RouteParams>();
   const slug = params.id;
@@ -26,10 +26,10 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
   const { mission: missionDoc } = mission;
   const missionName = missionDoc?.name;
 
-  const onDuplicateMission = async (missionId: number, dataOwner: string) => {
+  const onDuplicateMission = async (missionId: number, missionRequestedBy: string) => {
     setStatus("Starting duplication...");
     try {
-      const response = await duplicateMission(missionId, dataOwner, (progress) => {
+      const response = await duplicateMission(missionId, missionRequestedBy, (progress) => {
         setStatus(`${progress.message} (${progress.elapsedSeconds}s elapsed)`);
       });
       if (response.status !== "success") {
@@ -74,26 +74,28 @@ const AdminMissionDuplicate: React.FunctionComponent = () => {
                   editing={true}
                   value={""}
                   fieldProps={{
-                    name: "owner",
-                    ariaLabel: "Data Owner *",
+                    name: "requestedBy",
+                    ariaLabel: "Mission Requested By *",
                     style: { width: "100%" },
                     validators: [validators.required, validators.maxLength(50)],
-                    label: { label: "Data Owner", className: adminStyles.editLabel },
+                    label: { label: "Mission Requested By", className: adminStyles.editLabel },
                   }}
                   onSubmit={(value) => {
-                    setDataOwner(value);
+                    setMissionRequestedBy(value);
                   }}
-                  key={`${intMissionId}-dataOwner`}
+                  key={`${intMissionId}-missionRequestedBy`}
                   debounceSubmit={false}
                 />
               </div>
               <button
                 className={adminCommon.buttonPrimary}
                 type="button"
-                disabled={!dataOwner || !!action.pending || !!mission.pending || !!mission.error}
+                disabled={
+                  !missionRequestedBy || !!action.pending || !!mission.pending || !!mission.error
+                }
                 onClick={() => {
                   action.run("Duplicating mission and GIS files...", () =>
-                    onDuplicateMission(intMissionId, dataOwner)
+                    onDuplicateMission(intMissionId, missionRequestedBy)
                   );
                 }}
               >
