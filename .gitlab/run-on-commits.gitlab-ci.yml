@@ -174,11 +174,11 @@ test-vitest:
       --shard=${SHARD_INDEX}/${NUM_SHARDS}
   artifacts:
     paths:
-      - .vitest-reports/
+      - .vitest/blob/
     expire_in: 1 day
 
 # Merge sharded vitest blob reports into a single coverage + junit set.
-# `vitest --merge-reports` reads .vitest-reports/ from all shard artifacts,
+# `vitest --merge-reports` reads .vitest/blob/ from all shard artifacts,
 # replays the embedded coverage/test data, and emits whatever reporters we
 # pass. No DB needed — this step does not run tests.
 merge-vitest-coverage:
@@ -237,7 +237,7 @@ test-playwright:
   extends: .test_template
   stage: stageless
   # Keep this tag in sync with the @playwright/test version in package.json.
-  image: mcr.microsoft.com/playwright:v1.63.0-jammy
+  image: mcr.microsoft.com/playwright:v1.64.1-jammy
   needs:
     - install_dependencies
     - make-dotenv:test
@@ -267,7 +267,7 @@ test-playwright:
 test-vitest:browser:
   stage: stageless
   # Keep this tag in sync with the @playwright/test version in package.json.
-  image: mcr.microsoft.com/playwright:v1.63.0-jammy
+  image: mcr.microsoft.com/playwright:v1.64.1-jammy
   needs:
     - install_dependencies
   tags: ["openshift"]
@@ -291,7 +291,7 @@ test-vitest:browser:
           --coverage \
           --reporter=default \
           --reporter=blob \
-          --outputFile.blob=.vitest-reports/blob-browser.json
+          --outputFile.blob=.vitest/blob/blob-browser.json
       }
 
       set +e
@@ -301,7 +301,7 @@ test-vitest:browser:
 
       if grep -q "Vite unexpectedly reloaded a test" /tmp/vitest-browser.log; then
         echo "Vite changed optimized dependencies; retrying with the warmed cache."
-        rm -rf .vitest-reports
+        rm -rf .vitest/blob
         run_browser_tests
       else
         exit "$test_status"
@@ -309,7 +309,7 @@ test-vitest:browser:
   timeout: 20 minutes
   artifacts:
     paths:
-      - .vitest-reports/
+      - .vitest/blob/
     expire_in: 1 day
 
 # Test the automerge migrations against a prod database

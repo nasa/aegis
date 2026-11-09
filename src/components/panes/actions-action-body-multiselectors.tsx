@@ -77,29 +77,35 @@ export const EquipmentSelector: FunctionComponent<{
         <div className={actionStyles.propertyListColumn}>
           {equipmentItemsColumn1 &&
             equipmentItemsColumn1.map(([uuid, equipmentItem]) => {
-              return EquipmentCheckbox({
-                equipmentItemsUsage,
-                editMode,
-                equipmentItemUuid: uuid,
-                equipmentItem,
-                addEquipmentItem,
-                removeEquipmentItem,
-                uniqueId,
-              });
+              return (
+                <EquipmentCheckbox
+                  key={uuid}
+                  equipmentItemsUsage={equipmentItemsUsage}
+                  editMode={editMode}
+                  equipmentItemUuid={uuid}
+                  equipmentItem={equipmentItem}
+                  addEquipmentItem={addEquipmentItem}
+                  removeEquipmentItem={removeEquipmentItem}
+                  uniqueId={uniqueId}
+                />
+              );
             })}
         </div>
         <div className={paneStyles.propertyListColumn}>
           {equipmentItemsColumn2 &&
             equipmentItemsColumn2.map(([uuid, equipmentItem]) => {
-              return EquipmentCheckbox({
-                equipmentItemsUsage,
-                editMode,
-                equipmentItemUuid: uuid,
-                equipmentItem,
-                addEquipmentItem,
-                removeEquipmentItem,
-                uniqueId,
-              });
+              return (
+                <EquipmentCheckbox
+                  key={uuid}
+                  equipmentItemsUsage={equipmentItemsUsage}
+                  editMode={editMode}
+                  equipmentItemUuid={uuid}
+                  equipmentItem={equipmentItem}
+                  addEquipmentItem={addEquipmentItem}
+                  removeEquipmentItem={removeEquipmentItem}
+                  uniqueId={uniqueId}
+                />
+              );
             })}
         </div>
       </div>
@@ -222,29 +228,35 @@ export const GeographicUnitSelector: FunctionComponent<{
         <div className={actionStyles.propertyListColumn}>
           {geographicUnitsColumn1 &&
             geographicUnitsColumn1.map(([uuid, geographicUnit]) => {
-              return GeographicUnitCheckbox({
-                geographicUnitsUsage,
-                editMode,
-                geographicUnitUuid: uuid,
-                geographicUnit,
-                addGeographicUnit: addGeographicUnit,
-                removeGeographicUnit: removeNewGeographicUnit,
-                uniqueId,
-              });
+              return (
+                <GeographicUnitCheckbox
+                  key={uuid}
+                  geographicUnitsUsage={geographicUnitsUsage}
+                  editMode={editMode}
+                  geographicUnitUuid={uuid}
+                  geographicUnit={geographicUnit}
+                  addGeographicUnit={addGeographicUnit}
+                  removeGeographicUnit={removeNewGeographicUnit}
+                  uniqueId={uniqueId}
+                />
+              );
             })}
         </div>
         <div className={paneStyles.propertyListColumn}>
           {geographicUnitsColumn2 &&
             geographicUnitsColumn2.map(([uuid, geographicUnit]) => {
-              return GeographicUnitCheckbox({
-                geographicUnitsUsage,
-                editMode,
-                geographicUnitUuid: uuid,
-                geographicUnit,
-                addGeographicUnit: addGeographicUnit,
-                removeGeographicUnit: removeNewGeographicUnit,
-                uniqueId,
-              });
+              return (
+                <GeographicUnitCheckbox
+                  key={uuid}
+                  geographicUnitsUsage={geographicUnitsUsage}
+                  editMode={editMode}
+                  geographicUnitUuid={uuid}
+                  geographicUnit={geographicUnit}
+                  addGeographicUnit={addGeographicUnit}
+                  removeGeographicUnit={removeNewGeographicUnit}
+                  uniqueId={uniqueId}
+                />
+              );
             })}
         </div>
       </div>

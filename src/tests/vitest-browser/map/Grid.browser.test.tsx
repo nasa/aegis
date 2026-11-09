@@ -345,11 +345,6 @@ function renderGridInBounds(mode: "dashboard" | "minimap") {
   harness.render(gridInBoundsTree(mode));
 }
 
-/** Lets React flush the state update Grid publishes from its effect. */
-function flushPublish(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
-}
-
 function lineFeatureCount(): number {
   return findLayerAtZIndex(Z_INDEX.GRID_LINES)!.getSource()!.getFeatures().length;
 }
@@ -615,9 +610,7 @@ describe("Grid", () => {
     renderGridInBounds("dashboard");
 
     // 3×3 grid over the whole viewport → stride 1 → spacing == base spacing.
-    await flushPublish();
-
-    expect(bounds.ctx!.gridSpacing).toEqual({ line: 10, label: 10 });
+    await expect.poll(() => bounds.ctx?.gridSpacing).toEqual({ line: 10, label: 10 });
   });
 
   it("minimap draws the dashboard's spacing instead of its own", async () => {
@@ -642,9 +635,7 @@ describe("Grid", () => {
     store = makeStore(visibleGridState());
 
     renderGridInBounds("dashboard");
-    await flushPublish();
-
-    expect(bounds.ctx!.gridSpacing!.line).toBeGreaterThan(0);
+    await expect.poll(() => bounds.ctx?.gridSpacing?.line ?? 0).toBeGreaterThan(0);
     expect(bounds.ctx!.gridSpacing!.label).toBeGreaterThanOrEqual(bounds.ctx!.gridSpacing!.line);
   });
 
