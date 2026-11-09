@@ -6,14 +6,17 @@
 # # # # # # # #
 
 ### Build the React client
-FROM node:24.22.1-alpine AS build
+FROM node:26.13.0-alpine AS build
 
 WORKDIR /clientsrc
 
 # Prepare for build
 RUN pwd
+COPY .npmrc* ./
 COPY package*.json ./
 COPY emss-fallback/check-installed.mjs ./emss-fallback/
+
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
 
 RUN npm ci
 # Copy the rest of the files

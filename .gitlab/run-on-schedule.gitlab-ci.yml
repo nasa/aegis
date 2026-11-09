@@ -88,6 +88,7 @@ automerge-schema-validate:
         # /tmp lets initdb create the data directory regardless of UID.
         PGDATA: /tmp/pgdata
   before_script:
+    - !reference [.npm-toolchain, before_script]
     # node_modules is shipped as a tarball artifact (see install_dependencies)
     - tar -xf node_modules.tar
     # The service container's credentials win over whatever make-dotenv wrote
@@ -114,8 +115,9 @@ npm-audit:
     - if: $SCHEDULE_TYPE == "audit"
       when: always
   tags: ["openshift"]
-  image: ${CI_REGISTRY}/emss/docker-images/node-ci:npm-audit # custom image, not on Docker Hub
   allow_failure: true
+  before_script:
+    - !reference [.npm-toolchain, before_script]
   script:
     # Run this without --json to make a pretty-print for the job log, plus will pass/fail the job
     - npm audit

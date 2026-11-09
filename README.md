@@ -57,6 +57,14 @@ The map is a custom [OpenLayers](https://openlayers.org/) engine purpose-built f
 
 AEGIS includes a GIS data processing pipeline that can generate the full set of map assets for **any region of the Moon** given a DEM (Digital Elevation Model) and a NAC (Narrow Angle Camera) mosaic as input. From those inputs it produces the cap-grid raster tile pyramids, Cloud Optimized GeoTIFFs, PMTiles vector tiles (including DEM-derived elevation contours), and LGRS grid definitions that AEGIS renders -- reprojecting the source data into the appropriate lunar CRS (south-pole stereographic) along the way. It can also register the generated products directly onto a running AEGIS server over HTTP (mission projection/DEM/lander fields, header layers, sublayers, and the active grid), so no manual admin import is required.
 
+## Development runtime
+
+Use **Node.js 26.13.0 LTS** (pinned in `.nvmrc`) and **npm 12.2.1** for local
+development, CI, and Docker builds. With nvm, run `nvm install 26.13.0` and
+`nvm use 26.13.0`, then `npm install --global npm@12.2.1`.
+The `allowScripts` policy in `package.json` enables the native/build dependency
+install scripts needed by npm 12.
+
 ## Setup Outside of NASA
 
 > **Note:** The [First-Time Setup within NASA](#first-time-setup-within-nasa) instructions below assume access to NASA's internal infrastructure (EMSS dev servers, the AEGIS Box asset source, prod database dumps, and internal package registries). The steps in this section provide a self-contained path to run AEGIS with the Apollo 14 demo mission outside of that environment.

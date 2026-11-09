@@ -54,11 +54,12 @@ dependency-check:
 
 npm-audit:
   stage: stageless
-  image: ${CI_REGISTRY}/emss/docker-images/node-ci:npm-audit # custom image, not on Docker Hub
   when: manual
   needs: []
   tags: ["openshift"]
   allow_failure: true
+  before_script:
+    - !reference [.npm-toolchain, before_script]
   script:
     # Run this without --json to make a pretty-print for the job log, plus will pass/fail the job
     - npm audit
@@ -83,7 +84,7 @@ node-sbom:
       - "./BOM.md"
     expire_in: 1 day
 
-# Template for `test` and `test-node-next` jobs, adding database service, etc.
+# Test jobs with a database service.
 .test_template:
   stage: stageless
   needs:
@@ -112,6 +113,7 @@ node-sbom:
         PGDATA: /tmp/pgdata
   tags: ["openshift"]
   before_script:
+    - !reference [.npm-toolchain, before_script]
     # node_modules is shipped as a tarball artifact (see install_dependencies)
     - tar -xf node_modules.tar
     # Remove lines from .env file. See "Variable Precedence" section above
@@ -128,6 +130,7 @@ node-sbom:
   needs:
     - install_dependencies
   before_script:
+    - !reference [.npm-toolchain, before_script]
     - tar -xf node_modules.tar
 
 lint-js:
@@ -189,6 +192,7 @@ merge-vitest-coverage:
     - test-vitest
     - test-vitest:browser
   before_script:
+    - !reference [.npm-toolchain, before_script]
     - tar -xf node_modules.tar
   script:
     - npx vitest --merge-reports
@@ -210,20 +214,6 @@ merge-vitest-coverage:
     paths:
       - ./coverage/*
     expire_in: 1 day
-
-test-node-next:
-  extends: .test_template
-  image: ${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:25.8.1-alpine
-  when: manual
-  allow_failure: true
-  script:
-    - node .gitlab/scripts/load-sql-dump.mjs aegis.sql
-    - npm run migration:up
-    - npm run schema:create
-    - npm run lint
-    - npm run tsc
-    - npm run build
-    - npm run test:vitest
 
 test-playwright:
   parallel:
@@ -272,6 +262,7 @@ test-vitest:browser:
     - install_dependencies
   tags: ["openshift"]
   before_script:
+    - !reference [.npm-toolchain, before_script]
     # node_modules is shipped as a tarball artifact (see install_dependencies)
     - tar -xf node_modules.tar
     # node_modules artifact was built on Alpine (musl); this image is Ubuntu (glibc).
