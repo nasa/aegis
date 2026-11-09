@@ -158,7 +158,7 @@ test.describe("POI action adoption and action content", () => {
     await mission.open();
     await expect
       .element(page.getByLabelText("missionNameHeader", { exact: true }))
-      .toHaveTextContent(exactText((await mission.read()).name));
+      .toMatchTextContent(exactText((await mission.read()).name));
     await selectPlanningStationActions(page, "Alpha station");
     await expect.element(actionRow(page, "Station-only sample")).toBeVisible();
     await page.getByText("Associated POI Actions", { exact: true }).click();
@@ -168,7 +168,7 @@ test.describe("POI action adoption and action content", () => {
     await mission.open();
     await expect
       .element(page.getByLabelText("missionNameHeader", { exact: true }))
-      .toHaveTextContent(exactText((await mission.read()).name));
+      .toMatchTextContent(exactText((await mission.read()).name));
     await selectPlanningPoi(page, "Reference POI");
     await page.getByLabelText("actions_panel", { exact: true }).click();
     await expect.element(actionRow(page, "Updated POI source")).toBeVisible();
@@ -209,10 +209,10 @@ test.describe("POI action adoption and action content", () => {
     const persisted = (await mission.read()).actions[mission.ids.actionA];
     await expect
       .element(page.getBySelector('div[aria-label="Action Description"]'))
-      .toHaveTextContent(exactText(actionDescription));
+      .toMatchTextContent(exactText(actionDescription));
     await expect
       .element(page.getBySelector('div[aria-label="Task Description"]'))
-      .toHaveTextContent(exactText(taskDescription));
+      .toMatchTextContent(exactText(taskDescription));
     expect(persisted.description).toBe(actionDescription);
     expect(persisted.descriptionTask).toBe(taskDescription);
   });
@@ -229,10 +229,10 @@ test.describe("POI action adoption and action content", () => {
 
     await expect
       .element(actionTotal(page, "Total Action Time (mins):"))
-      .toHaveTextContent(exactText("6"));
+      .toMatchTextContent(exactText("6"));
     await expect
       .element(actionTotal(page, "Total Planned Mass (g):"))
-      .toHaveTextContent(exactText("0"));
+      .toMatchTextContent(exactText("0"));
     await rejectNumericField(page, "Duration in minutes", "", "Required");
     expect((await mission.read()).actions[mission.ids.actionA].duration).toBe(6);
 
@@ -247,7 +247,7 @@ test.describe("POI action adoption and action content", () => {
       .toBe(15);
     await expect
       .element(actionTotal(page, "Total Action Time (mins):"))
-      .toHaveTextContent(exactText("15"));
+      .toMatchTextContent(exactText("15"));
 
     await saveNumericField(page, "Duration in minutes", "0");
     await expect
@@ -255,14 +255,14 @@ test.describe("POI action adoption and action content", () => {
       .toBe(0);
     await expect
       .element(actionTotal(page, "Total Action Time (mins):"))
-      .toHaveTextContent(exactText("0"));
+      .toMatchTextContent(exactText("0"));
     await saveNumericField(page, "Duration in minutes", "9999");
     await expect
       .poll(async () => (await mission.read()).actions[mission.ids.actionA].duration)
       .toBe(9999);
     await expect
       .element(actionTotal(page, "Total Action Time (mins):"))
-      .toHaveTextContent(exactText("9999"));
+      .toMatchTextContent(exactText("9999"));
     await rejectNumericField(
       page,
       "Duration in minutes",
@@ -276,7 +276,7 @@ test.describe("POI action adoption and action content", () => {
       .toBe(-1);
     await expect
       .element(actionTotal(page, "Total Action Time (mins):"))
-      .toHaveTextContent(exactText("-1"));
+      .toMatchTextContent(exactText("-1"));
 
     await saveNumericField(page, "Planned Sample Mass", "");
     await expect
@@ -284,12 +284,12 @@ test.describe("POI action adoption and action content", () => {
       .toBeNull();
     await expect
       .element(actionTotal(page, "Total Planned Mass (g):"))
-      .toHaveTextContent(exactText("0"));
+      .toMatchTextContent(exactText("0"));
     await saveNumericField(page, "Planned Sample Mass", "0");
     await expect.poll(async () => (await mission.read()).actions[mission.ids.actionA].mass).toBe(0);
     await expect
       .element(actionTotal(page, "Total Planned Mass (g):"))
-      .toHaveTextContent(exactText("0"));
+      .toMatchTextContent(exactText("0"));
 
     const fractionalMass = await openPlanningField(page, "Planned Sample Mass");
     const massInput = fractionalMass.getByLabelText("Planned Sample Mass", { exact: true });
@@ -302,7 +302,7 @@ test.describe("POI action adoption and action content", () => {
       .toBe(12);
     await expect
       .element(actionTotal(page, "Total Planned Mass (g):"))
-      .toHaveTextContent(exactText("12"));
+      .toMatchTextContent(exactText("12"));
 
     await saveNumericField(page, "Planned Sample Mass", "9999");
     await expect
@@ -310,7 +310,7 @@ test.describe("POI action adoption and action content", () => {
       .toBe(9999);
     await expect
       .element(actionTotal(page, "Total Planned Mass (g):"))
-      .toHaveTextContent(exactText("9999"));
+      .toMatchTextContent(exactText("9999"));
     await rejectNumericField(
       page,
       "Planned Sample Mass",
@@ -324,7 +324,7 @@ test.describe("POI action adoption and action content", () => {
       .toBe(-1);
     await expect
       .element(actionTotal(page, "Total Planned Mass (g):"))
-      .toHaveTextContent(exactText("-1"));
+      .toMatchTextContent(exactText("-1"));
 
     await mission.open();
     await selectPlanningStationActions(page, "Alpha station");

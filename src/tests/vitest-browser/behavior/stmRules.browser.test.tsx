@@ -304,12 +304,12 @@ test("STM matching uses exact tuples and wildcards, matches missing categories t
   await enablePlanningEditMode(page);
   await openRules(page);
   const stats = page.getBySelector('[class*="matchingActionStats"]');
-  await expect.element(stats.nth(0)).toHaveTextContent("3 Actions at 1");
-  await expect.element(stats.nth(1)).toHaveTextContent("5 Actions at 1");
+  await expect.element(stats.nth(0)).toMatchTextContent("3 Actions at 1");
+  await expect.element(stats.nth(1)).toMatchTextContent("5 Actions at 1");
   const exactRuleRow = page.getBySelector('[class*="stmRuleRowContainer"]').nth(0);
-  await expect.element(exactRuleRow).toHaveTextContent("Observe");
-  await expect.element(exactRuleRow).toHaveTextContent("Core");
-  await expect.element(exactRuleRow).toHaveTextContent("Pristine");
+  await expect.element(exactRuleRow).toMatchTextContent("Observe");
+  await expect.element(exactRuleRow).toMatchTextContent("Core");
+  await expect.element(exactRuleRow).toMatchTextContent("Pristine");
   expect((await mission.read()).actions[actionIds[2]].enabled).toBe(false);
   expect((await mission.read()).stmRules[exactRuleUuid].count).toBe(2);
 
@@ -357,7 +357,7 @@ test("STM matching uses exact tuples and wildcards, matches missing categories t
     });
   await expect
     .element(emptyExactRuleRow.getBySelector('[class*="matchingActionStats"]'))
-    .toHaveTextContent(exactText(""));
+    .toMatchTextContent(exactText(""));
   await page.getByLabelText("reports Section", { exact: true }).click();
   await page.getByText("EVA STM Coverage", { exact: true }).click();
   await expect

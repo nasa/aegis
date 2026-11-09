@@ -22,7 +22,7 @@ async function selectPreset(page: Page, name: string): Promise<void> {
     .click();
   await expect
     .element(page.getBySelector('div[aria-label="Preset Title"]'))
-    .toHaveTextContent(exactText(name));
+    .toMatchTextContent(exactText(name));
 }
 
 test("preset drafts save or cancel independently and styles, visibility and descriptions survive remount", async ({
@@ -157,12 +157,12 @@ test("preset drafts save or cancel independently and styles, visibility and desc
   await page.getByLabelText("info_panel", { exact: true }).click();
   await expect
     .element(page.getBySelector('div[aria-label="Preset Description"]'))
-    .toHaveTextContent(exactText("210"));
+    .toMatchTextContent(exactText("210"));
   await selectPreset(page, "Overview");
   await page.getByLabelText("info_panel", { exact: true }).click();
   await expect
     .element(page.getBySelector('div[aria-label="Preset Description"]'))
-    .toHaveTextContent(exactText("75"));
+    .toMatchTextContent(exactText("75"));
   await mission.open();
   expect((await mission.read()).presets[mission.ids.presetA]).toMatchObject({
     description: "75",

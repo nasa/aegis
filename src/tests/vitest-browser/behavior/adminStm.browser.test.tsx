@@ -69,7 +69,7 @@ test("admin STM import validates hierarchy references and preserves the existing
     await importButton.click();
     await expect
       .element(page.getByRole("alert"))
-      .toHaveTextContent(exactText("Invalid STM JSON. Check that the file contains valid JSON."));
+      .toMatchTextContent(exactText("Invalid STM JSON. Check that the file contains valid JSON."));
     await expectPriorTree();
 
     const orphanedTree = {
@@ -90,7 +90,7 @@ test("admin STM import validates hierarchy references and preserves the existing
     await importButton.click();
     await expect
       .element(page.getByRole("alert"))
-      .toHaveTextContent(exactText("STM level3s contains a reference to a missing level2."));
+      .toMatchTextContent(exactText("STM level3s contains a reference to a missing level2."));
     await expectPriorTree();
 
     const sourceIds = {
@@ -259,7 +259,7 @@ test("v2 STM edits honor referenced rules and import validation preserves or cle
   await page.getByRole("button", { name: "Import STM", exact: true }).click();
   await expect
     .element(page.getByRole("alert"))
-    .toHaveTextContent(exactText("STM level2s contains a reference to a missing level1."));
+    .toMatchTextContent(exactText("STM level2s contains a reference to a missing level1."));
   const invalid = await mission.read();
   expect(invalid.stmRules).toEqual(snapshot.stmRules);
   expect(invalid.stmLevel3s).toEqual(snapshot.stmLevel3s);

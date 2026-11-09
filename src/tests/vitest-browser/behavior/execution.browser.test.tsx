@@ -33,7 +33,7 @@ async function openExecutionInformation(
   await page.getByLabelText("rex_info_panel", { exact: true }).click();
   await expect
     .element(page.getBySelector('div[aria-label="REX Title"]'))
-    .toHaveTextContent(exactText(executionName));
+    .toMatchTextContent(exactText(executionName));
 }
 
 async function enableEditing(page: Page): Promise<void> {
@@ -44,7 +44,7 @@ async function enableEditing(page: Page): Promise<void> {
 }
 
 async function expectPet(page: Page, pet: string): Promise<void> {
-  await expect.element(page.getByTestId("rex-pet-clock")).toHaveTextContent(pet);
+  await expect.element(page.getByTestId("rex-pet-clock")).toMatchTextContent(pet);
 }
 
 async function expectPositionAge(
@@ -101,7 +101,7 @@ test.describe("Execution time ownership", () => {
       if (otherExecutionRunning) {
         await expect
           .element(page.getByTestId("header-pet-clock"))
-          .toHaveTextContent(exactText("+00:05:00"));
+          .toMatchTextContent(exactText("+00:05:00"));
       } else {
         await expect.poll(() => page.getByTestId("header-pet-clock").length).toBe(0);
       }
@@ -148,7 +148,7 @@ test.describe("Execution time ownership", () => {
     await selectExecution(page, "Survey Alpha", mission.ids.evaA);
     await expect
       .element(page.getBySelector('div[aria-label="EVA Title"]'))
-      .toHaveTextContent(exactText("Survey Alpha"));
+      .toMatchTextContent(exactText("Survey Alpha"));
     await expect.poll(() => page.getByLabelText("rex_info_panel", { exact: true }).length).toBe(0);
     await expect
       .poll(async () => (await readMapFeatures()).filter((feature) => feature.labelType === "pos"))
@@ -171,7 +171,7 @@ test.describe("Execution time ownership", () => {
     await expectPositionAge(mission.ids.posB, "+00:03:00");
     await expect
       .element(page.getByTestId("header-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
   });
 
   test("stopped execution stays frozen while a different execution's clock advances", async ({
@@ -191,7 +191,7 @@ test.describe("Execution time ownership", () => {
     await advanceClock(60_000);
     await expect
       .element(page.getByTestId("header-pet-clock"))
-      .not.toHaveTextContent(exactText(headerPet ?? ""));
+      .not.toMatchTextContent(exactText(headerPet ?? ""));
     await expectPet(page, "+02:10:05");
     await expectPositionAge(mission.ids.posA, "+00:15:00");
   });
@@ -224,7 +224,7 @@ test.describe("Execution lifecycle", () => {
       await expectPositionAge(mission.ids.posB, "+00:00:15");
       await expect
         .element(page.getByTestId("header-pet-clock"))
-        .toHaveTextContent(exactText(boundary.expected));
+        .toMatchTextContent(exactText(boundary.expected));
     });
   }
 

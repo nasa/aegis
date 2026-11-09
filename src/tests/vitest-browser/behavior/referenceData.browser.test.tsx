@@ -16,7 +16,7 @@ async function openMissionConfig(page: Page, tab: string, title: string): Promis
   await page.getByLabelText(tab, { exact: true }).click();
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText(title));
+    .toMatchTextContent(exactText(title));
 }
 
 async function editDialogField(

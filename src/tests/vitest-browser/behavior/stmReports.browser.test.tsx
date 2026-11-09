@@ -357,21 +357,21 @@ test("STM drilldown expands sequence counts and scopes matched and unmatched rul
     .element(
       objectiveRow(page).getBySelector('[data-tooltip-html="Alpha station: 2 matching actions"]')
     )
-    .toHaveTextContent(exactText("2"));
+    .toMatchTextContent(exactText("2"));
   await expect
     .element(
       objectiveRow(page).getBySelector('[data-tooltip-html="Bravo station: 1 matching actions"]')
     )
-    .toHaveTextContent(exactText("1"));
+    .toMatchTextContent(exactText("1"));
 
   await summaryCell(page, 1).click();
   const panel = page.getBySelector('[class*="drilldownContent"]');
   await expect
     .element(page.getBySelector('[class*="drilldownTitle"]'))
-    .toHaveTextContent(exactText("Known core objective"));
+    .toMatchTextContent(exactText("Known core objective"));
   await expect
     .element(page.getBySelector('[class*="drilldownSubtitle"]'))
-    .toHaveTextContent(exactText("REX: Survey Alpha"));
+    .toMatchTextContent(exactText("REX: Survey Alpha"));
   await expect
     .poll(
       () =>
@@ -406,7 +406,7 @@ test("STM drilldown expands sequence counts and scopes matched and unmatched rul
   await statusFilter.selectOptions("completeOnly");
   await expect
     .element(page.getBySelector('[class*="drilldownSubtitle"]'))
-    .toHaveTextContent(exactText("REX: Survey Alpha"));
+    .toMatchTextContent(exactText("REX: Survey Alpha"));
   await expect
     .poll(
       () =>
@@ -425,7 +425,7 @@ test("STM drilldown expands sequence counts and scopes matched and unmatched rul
   await summaryCell(page, 2).click();
   await expect
     .element(page.getBySelector('[class*="drilldownSubtitle"]'))
-    .toHaveTextContent(exactText("Survey Bravo"));
+    .toMatchTextContent(exactText("Survey Bravo"));
   await expect
     .poll(
       () =>
@@ -457,7 +457,7 @@ test("STM drilldown expands sequence counts and scopes matched and unmatched rul
   await summaryCell(page, 5).click();
   await expect
     .element(page.getBySelector('[class*="drilldownSubtitle"]'))
-    .toHaveTextContent(exactText("Executed set"));
+    .toMatchTextContent(exactText("Executed set"));
   await expect.poll(() => panel.getBySelector('[class*="drilldownActionRow"]').length).toBe(3);
   expect(await mission.read()).toEqual(before);
 });

@@ -270,7 +270,7 @@ test("POI trace shows each execution status and preserves zero, missing mass, an
   const zeroMassRow = executionRows.getBySelector("li").filter({ hasText: "Completed" });
   await zeroMassRow.getByRole("button", { name: "Preview executed action" }).click();
   let dialog = page.getByRole("dialog", { name: "Action preview" });
-  await expect.element(dialog).toHaveTextContent("REX: Stopped Alpha / Completed");
+  await expect.element(dialog).toMatchTextContent("REX: Stopped Alpha / Completed");
   await expect
     .element(dialog.getBySelector('input[aria-label="Executed Sample Mass"]'))
     .toHaveValue("0");
@@ -288,7 +288,7 @@ test("POI trace shows each execution status and preserves zero, missing mass, an
   const missingMassRow = executionRows.getBySelector("li").filter({ hasText: "In progress" });
   await missingMassRow.getByRole("button", { name: "Preview executed action" }).click();
   dialog = page.getByRole("dialog", { name: "Action preview" });
-  await expect.element(dialog).toHaveTextContent("REX: Alpha in-progress execution / In progress");
+  await expect.element(dialog).toMatchTextContent("REX: Alpha in-progress execution / In progress");
   await expect
     .element(dialog.getBySelector('input[aria-label="Executed Sample Mass"]'))
     .toHaveValue("");
@@ -303,7 +303,7 @@ test("POI trace shows each execution status and preserves zero, missing mass, an
   const skippedRow = executionRows.getBySelector("li").filter({ hasText: "Skipped" });
   await skippedRow.getByRole("button", { name: "Preview executed action" }).click();
   dialog = page.getByRole("dialog", { name: "Action preview" });
-  await expect.element(dialog).toHaveTextContent("REX: Active Bravo / Skipped");
+  await expect.element(dialog).toMatchTextContent("REX: Active Bravo / Skipped");
   await expect
     .element(dialog.getBySelector('input[aria-label="Executed Sample Mass"]'))
     .toHaveValue("");

@@ -22,7 +22,7 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
   await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
-  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
+  await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
   await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
@@ -243,7 +243,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await setSource(page, "All");
 
   await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
-  await expect.element(menu).toHaveTextContent("Survey Alpha - Stopped Alpha");
+  await expect.element(menu).toMatchTextContent("Survey Alpha - Stopped Alpha");
   await expect
     .poll(async () =>
       (await positionFeatures())
@@ -313,7 +313,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
   await selectExecution(page, "Survey Alpha", mission.ids.evaA);
   await expect
     .element(page.getBySelector('div[aria-label="EVA Title"]'))
-    .toHaveTextContent(exactText("Survey Alpha"));
+    .toMatchTextContent(exactText("Survey Alpha"));
   await expect
     .poll(async () =>
       (await positionFeatures()).filter(

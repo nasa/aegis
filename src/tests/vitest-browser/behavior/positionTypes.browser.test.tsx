@@ -62,7 +62,7 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
   await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
-  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
+  await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
   await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
@@ -303,7 +303,7 @@ test("position types create, rename, reorder, style, guard used deletion and upd
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   await expect.element(page.getByLabelText("rex_positions_panel", { exact: true })).toBeVisible();
   await page.getByLabelText("rex_positions_panel", { exact: true }).click();
-  await expect.element(namedTypeRow(page, "Tool")).toHaveTextContent("T");
+  await expect.element(namedTypeRow(page, "Tool")).toMatchTextContent("T");
   expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual(
     afterTypeCrud.rexes[mission.ids.rexB].posEntries
   );

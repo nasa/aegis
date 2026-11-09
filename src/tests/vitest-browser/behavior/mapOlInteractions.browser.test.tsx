@@ -271,7 +271,7 @@ test.describe("Isolated mission — Section Navigation", () => {
     await page.getByLabelText("station Section", { exact: true }).click();
     await expect
       .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-      .toHaveTextContent("Stations");
+      .toMatchTextContent("Stations");
   });
 
   test("clicking POI section shows Points of Interest panel title", async ({ page, mission }) => {
@@ -280,7 +280,7 @@ test.describe("Isolated mission — Section Navigation", () => {
     await page.getByLabelText("poi Section", { exact: true }).click();
     await expect
       .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-      .toHaveTextContent("Points of Interest");
+      .toMatchTextContent("Points of Interest");
   });
 
   test("clicking EVAs section shows EVAs panel title", async ({ page, mission }) => {
@@ -289,7 +289,7 @@ test.describe("Isolated mission — Section Navigation", () => {
     await page.getByLabelText("evas Section", { exact: true }).click();
     await expect
       .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-      .toHaveTextContent("EVAs");
+      .toMatchTextContent("EVAs");
   });
 
   test("clicking presets section shows preset panel", async ({ page, mission }) => {
@@ -298,7 +298,7 @@ test.describe("Isolated mission — Section Navigation", () => {
     await page.getByLabelText("preset Section", { exact: true }).click();
     await expect
       .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-      .toHaveTextContent("Presets");
+      .toMatchTextContent("Presets");
   });
 
   test("station section shows a list of stations when mission has station data", async ({
@@ -415,7 +415,7 @@ test.describe("Isolated mission — Station Interactions", () => {
     await page.getByLabelText("station Section", { exact: true }).click();
     await expect
       .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-      .toHaveTextContent("Stations");
+      .toMatchTextContent("Stations");
 
     // Click the first station item
     const firstStation = page.getByLabelText("stationList-item", { exact: true }).first();

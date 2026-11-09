@@ -15,7 +15,7 @@ async function openPreferences(page: Page): Promise<void> {
   await page.getByLabelText("prefs_panel", { exact: true }).click();
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText("Mission Preferences"));
+    .toMatchTextContent(exactText("Mission Preferences"));
 }
 
 test.describe("Mission preference contracts", () => {
@@ -87,16 +87,16 @@ test.describe("Mission preference contracts", () => {
     await openPreferences(page);
     await expect
       .element(planningField(page, "Mission Name"))
-      .toHaveTextContent(exactText("N".repeat(50)));
+      .toMatchTextContent(exactText("N".repeat(50)));
     await expect
       .element(planningField(page, "Mission Banner"))
-      .toHaveTextContent(exactText("B".repeat(255)));
+      .toMatchTextContent(exactText("B".repeat(255)));
     await expect
       .element(planningField(page, "Average traverse rate"))
-      .toHaveTextContent(exactText("1.25"));
+      .toMatchTextContent(exactText("1.25"));
     await expect
       .element(planningField(page, "Default walkback rate"))
-      .toHaveTextContent(exactText("1.25"));
+      .toMatchTextContent(exactText("1.25"));
   });
 });
 
@@ -129,13 +129,13 @@ test("saved mission preferences update headers and new EVA defaults while cancel
   }
   await expect
     .element(page.getByLabelText("missionNameHeader", { exact: true }))
-    .toHaveTextContent(values.name);
+    .toMatchTextContent(values.name);
   await expect.element(page.getByText(values.missionBanner, { exact: true }).first()).toBeVisible();
   expect(await mission.read()).toMatchObject(values);
   await mission.open();
   await openPreferences(page);
   for (const [label, value] of fields)
-    await expect.element(planningField(page, label)).toHaveTextContent(exactText(value));
+    await expect.element(planningField(page, label)).toMatchTextContent(exactText(value));
   await enablePlanningEditMode(page);
   await openPlanningSection(page, "evas");
   await page.getByLabelText("addEva", { exact: true }).click();
@@ -145,6 +145,6 @@ test("saved mission preferences update headers and new EVA defaults while cancel
   );
   expect(created).toMatchObject({ duration: 315, traverseRate: 3.5 });
   await page.getByLabelText("info_panel", { exact: true }).click();
-  await expect.element(planningField(page, "Duration")).toHaveTextContent("315");
-  await expect.element(planningField(page, "Average Traverse Rate")).toHaveTextContent("3.5");
+  await expect.element(planningField(page, "Duration")).toMatchTextContent("315");
+  await expect.element(planningField(page, "Average Traverse Rate")).toMatchTextContent("3.5");
 });

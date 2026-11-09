@@ -113,7 +113,7 @@ for (const zoom of [17, 19]) {
       .click();
     await expect
       .element(page.getByLabelText("missionNameHeader", { exact: true }))
-      .toHaveTextContent(exactText(name));
+      .toMatchTextContent(exactText(name));
     await openMeasurements(page);
     await expect.poll(() => tabs(page).length).toBe(0);
     await page.getBySelector('svg[data-icon="bars"]').click();
@@ -124,7 +124,7 @@ for (const zoom of [17, 19]) {
       .click();
     await expect
       .element(page.getByLabelText("missionNameHeader", { exact: true }))
-      .toHaveTextContent(exactText(mission.name));
+      .toMatchTextContent(exactText(mission.name));
     await openMeasurements(page);
     await expect.poll(() => tabs(page).length).toBe(0);
     await page.getBySelector('[data-tooltip-content="Add Temporary Measurement"]').click();

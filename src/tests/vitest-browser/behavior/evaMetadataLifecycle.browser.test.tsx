@@ -25,7 +25,7 @@ async function selectPlannedEva(page: Page, name: string, plannedEvaUuid: string
   if (!isVisible(title) || title.element().textContent !== name) {
     await row.getByText(name, { exact: true }).first().click();
   }
-  await expect.element(planningField(page, "EVA Title")).toHaveTextContent(exactText(name));
+  await expect.element(planningField(page, "EVA Title")).toMatchTextContent(exactText(name));
 }
 
 async function selectRex(page: Page, family: string, rexEvaUuid: string): Promise<void> {
@@ -53,8 +53,10 @@ test.describe("EVA metadata lifecycle", () => {
     await expect
       .poll(async () => (await mission.read()).evas[mission.ids.evaA].datetime)
       .toBe(Date.parse("2026-10-25T12:34:56Z"));
-    await expect.element(planningField(page, "evaDate")).toHaveTextContent(exactText("2026-10-25"));
-    await expect.element(planningField(page, "evaTime")).toHaveTextContent(exactText("12:34:56"));
+    await expect
+      .element(planningField(page, "evaDate"))
+      .toMatchTextContent(exactText("2026-10-25"));
+    await expect.element(planningField(page, "evaTime")).toMatchTextContent(exactText("12:34:56"));
     await cancelPlanningField(page, "evaDate", "2030-01-01");
     await cancelPlanningField(page, "evaTime", "00:00:00");
     expect((await mission.read()).evas[mission.ids.evaA].datetime).toBe(
@@ -63,8 +65,10 @@ test.describe("EVA metadata lifecycle", () => {
     await mission.open();
     await selectPlannedEva(page, "Survey Alpha", mission.ids.evaA);
     await page.getByLabelText("info_panel", { exact: true }).click();
-    await expect.element(planningField(page, "evaDate")).toHaveTextContent(exactText("2026-10-25"));
-    await expect.element(planningField(page, "evaTime")).toHaveTextContent(exactText("12:34:56"));
+    await expect
+      .element(planningField(page, "evaDate"))
+      .toMatchTextContent(exactText("2026-10-25"));
+    await expect.element(planningField(page, "evaTime")).toMatchTextContent(exactText("12:34:56"));
   });
 
   test("validates plan metadata while REX names stay family-scoped across remount", async ({
@@ -104,7 +108,7 @@ test.describe("EVA metadata lifecycle", () => {
     await savePlanningField(page, "EVA Description", description);
     await expect
       .element(planningField(page, "EVA Description"))
-      .toHaveTextContent(exactText(description));
+      .toMatchTextContent(exactText(description));
     await cancelPlanningField(page, "EVA Description", "Discard after commit");
 
     const colorControl = page.getBySelector('[class*="propertyPathColor"]');
@@ -136,8 +140,8 @@ test.describe("EVA metadata lifecycle", () => {
     // A plan and a REX can share a title because their uniqueness scopes are separate.
     await selectRex(page, title, mission.ids.rexEvaA);
     await savePlanningField(page, "REX Title", title);
-    await expect.element(planningField(page, "EVA Title")).toHaveTextContent(exactText(title));
-    await expect.element(planningField(page, "REX Title")).toHaveTextContent(exactText(title));
+    await expect.element(planningField(page, "EVA Title")).toMatchTextContent(exactText(title));
+    await expect.element(planningField(page, "REX Title")).toMatchTextContent(exactText(title));
     await selectPlannedEva(page, title, mission.ids.evaA);
     await page.getByLabelText("info_panel", { exact: true }).click();
 
@@ -159,13 +163,13 @@ test.describe("EVA metadata lifecycle", () => {
 
     await expect
       .element(planningField(page, "EVA Description"))
-      .toHaveTextContent(exactText(description));
-    await expect.element(planningField(page, "Duration")).toHaveTextContent(exactText("360"));
+      .toMatchTextContent(exactText(description));
+    await expect.element(planningField(page, "Duration")).toMatchTextContent(exactText("360"));
     await expect
       .element(planningField(page, "Average Traverse Rate"))
-      .toHaveTextContent(exactText("3.5"));
-    await expect.element(planningField(page, "evaDate")).toHaveTextContent(exactText(date));
-    await expect.element(planningField(page, "evaTime")).toHaveTextContent(exactText(time));
+      .toMatchTextContent(exactText("3.5"));
+    await expect.element(planningField(page, "evaDate")).toMatchTextContent(exactText(date));
+    await expect.element(planningField(page, "evaTime")).toMatchTextContent(exactText(time));
 
     const after = await mission.read();
     expect(after.evas[mission.ids.evaA]).toEqual({
@@ -196,15 +200,15 @@ test.describe("EVA metadata lifecycle", () => {
     await page.getByLabelText("info_panel", { exact: true }).click();
     await expect
       .element(planningField(page, "EVA Description"))
-      .toHaveTextContent(exactText(description));
-    await expect.element(planningField(page, "Duration")).toHaveTextContent(exactText("360"));
+      .toMatchTextContent(exactText(description));
+    await expect.element(planningField(page, "Duration")).toMatchTextContent(exactText("360"));
     await expect
       .element(planningField(page, "Average Traverse Rate"))
-      .toHaveTextContent(exactText("3.5"));
-    await expect.element(planningField(page, "evaDate")).toHaveTextContent(exactText(date));
-    await expect.element(planningField(page, "evaTime")).toHaveTextContent(exactText(time));
+      .toMatchTextContent(exactText("3.5"));
+    await expect.element(planningField(page, "evaDate")).toMatchTextContent(exactText(date));
+    await expect.element(planningField(page, "evaTime")).toMatchTextContent(exactText(time));
     await selectRex(page, title, mission.ids.rexEvaA);
-    await expect.element(planningField(page, "REX Title")).toHaveTextContent(exactText(title));
-    await expect.element(planningField(page, "EVA Title")).toHaveTextContent(exactText(title));
+    await expect.element(planningField(page, "REX Title")).toMatchTextContent(exactText(title));
+    await expect.element(planningField(page, "EVA Title")).toMatchTextContent(exactText(title));
   });
 });

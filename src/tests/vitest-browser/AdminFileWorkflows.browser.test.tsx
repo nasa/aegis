@@ -121,7 +121,7 @@ test("Box browsing decodes streamed byte progress, clears provider failures on r
   await expect.element(page.getByText("Survey bundle.zip (4 B) -", { exact: false })).toBeVisible();
   const row = page.getByRole("listitem").filter({ hasText: zip.name });
   await row.getByText("Download", { exact: true }).click();
-  await expect.element(row.getByRole("alert")).toHaveTextContent("Fixture permission denied");
+  await expect.element(row.getByRole("alert")).toMatchTextContent("Fixture permission denied");
   expect(directoryReads).toBe(1);
   await row.getByText("Download", { exact: true }).click();
   const progress = row.getByRole("progressbar", { name: "Box download progress" });

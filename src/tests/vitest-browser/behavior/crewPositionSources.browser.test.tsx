@@ -74,7 +74,7 @@ test("position tabs minimize and restore, separate paths keep source colors and 
   await page.getBySelector(".dv-tab").filter({ hasText: "Assets" }).click();
   await expect
     .element(page.getByTestId("assets-map-menu"))
-    .toHaveTextContent(exactText("Asset Management Coming Soon"));
+    .toMatchTextContent(exactText("Asset Management Coming Soon"));
   await page.getByRole("button", { name: "Minimize Rex Menu", exact: true }).click();
   await expect.poll(() => isVisible(page.getByTestId("assets-map-menu"))).toBe(false);
   await page

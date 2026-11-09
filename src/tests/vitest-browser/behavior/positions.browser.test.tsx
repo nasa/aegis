@@ -40,7 +40,7 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
   await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
-  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
+  await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
   await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   // The application defaults to Task/Crew sources; these cases also use Rover.
@@ -204,7 +204,7 @@ test.describe("Execution position contracts", () => {
       const menu = await openPositions(page, mission);
       await expect
         .element(page.getByTestId("header-pet-clock"))
-        .toHaveTextContent(exactText("+00:05:00"));
+        .toMatchTextContent(exactText("+00:05:00"));
       await choice(menu, "EV1").click();
       await menu.getByLabelText("New Pos.", { exact: true }).click();
       await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
@@ -215,7 +215,7 @@ test.describe("Execution position contracts", () => {
       await vi.setSystemTime(new Date(Date.parse(BEHAVIORAL_NOW) + 90_000));
       await expect
         .element(page.getByTestId("header-pet-clock"))
-        .toHaveTextContent(exactText(ticking ? "+00:06:30" : "+00:05:00"));
+        .toMatchTextContent(exactText(ticking ? "+00:06:30" : "+00:05:00"));
       // Changes made after New Pos belong to the draft; PET remains the captured value.
       await choice(menu, "EV2").click();
       await choice(menu, "EV1").click();
@@ -243,14 +243,14 @@ test.describe("Execution position contracts", () => {
       );
       expect(after.rexes[mission.ids.rexA]).toEqual(before.rexes[mission.ids.rexA]);
       expect(after.evas).toEqual(before.evas);
-      await expect.element(positionRow(page, "+00:05:00")).toHaveTextContent("EV2");
+      await expect.element(positionRow(page, "+00:05:00")).toMatchTextContent("EV2");
       await expect
         .element(positionRow(page, "+00:05:00").getByRole("cell", { name: "R", exact: true }))
         .toBeVisible();
       await expectPositionMarker(page, created.uuid, location);
 
       await openPositions(page, mission);
-      await expect.element(positionRow(page, "+00:05:00")).toHaveTextContent("EV2");
+      await expect.element(positionRow(page, "+00:05:00")).toMatchTextContent("EV2");
       await expectPositionMarker(page, created.uuid, location);
       expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual(
         after.rexes[mission.ids.rexB].posEntries
@@ -461,7 +461,7 @@ test.describe("Execution position contracts", () => {
       await sourceRow.getByText("All", { exact: true }).click();
     });
     await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
-    await expect.element(menu).toHaveTextContent("Survey Alpha - Stopped Alpha");
+    await expect.element(menu).toMatchTextContent("Survey Alpha - Stopped Alpha");
     await expectPositionMarker(
       page,
       mission.ids.posA,
@@ -484,7 +484,7 @@ test.describe("Execution position contracts", () => {
     await selectExecution(page, "Survey Alpha", mission.ids.evaA);
     await expect
       .element(page.getBySelector('div[aria-label="EVA Title"]'))
-      .toHaveTextContent(exactText("Survey Alpha"));
+      .toMatchTextContent(exactText("Survey Alpha"));
     await expect
       .poll(async () =>
         (await readMapFeatures()).filter(
@@ -707,7 +707,7 @@ test("moving an existing position commits coordinates only while Save and Cancel
     });
   for (const client of [page]) {
     await expectPositionMarker(client, original.uuid, location);
-    await expect.element(positionRow(client, "+00:02:00")).toHaveTextContent("EV1");
+    await expect.element(positionRow(client, "+00:02:00")).toMatchTextContent("EV1");
     await expect
       .element(positionRow(client, "+00:02:00").getByRole("cell", { name: "C", exact: true }))
       .toBeVisible();
@@ -736,7 +736,7 @@ test("moving an existing position commits coordinates only while Save and Cancel
       posSourceUuid: SECOND_SOURCE,
       updatedAt: Date.parse(BEHAVIORAL_NOW) + 120_000,
     });
-  await expect.element(positionRow(page, "+00:02:00")).toHaveTextContent("EV1, EV2");
+  await expect.element(positionRow(page, "+00:02:00")).toMatchTextContent("EV1, EV2");
   await expect
     .element(positionRow(page, "+00:02:00").getByRole("cell", { name: "R", exact: true }))
     .toBeVisible();
@@ -754,7 +754,7 @@ test("moving an existing position commits coordinates only while Save and Cancel
   for (const client of [page]) {
     await openPositions(page, mission);
     await expectPositionMarker(client, original.uuid, location);
-    await expect.element(positionRow(client, "+00:02:00")).toHaveTextContent("EV1, EV2");
+    await expect.element(positionRow(client, "+00:02:00")).toMatchTextContent("EV1, EV2");
   }
   expect(await mission.read()).toEqual(saved);
 });

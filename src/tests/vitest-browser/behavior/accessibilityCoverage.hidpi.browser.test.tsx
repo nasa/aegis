@@ -66,7 +66,7 @@ test("long labels, report text and timeline canvas stay inside the narrow editor
   const stationRow = page
     .getByLabelText("stationList-item", { exact: true })
     .filter({ hasText: longStationName });
-  await expect.element(stationRow).toHaveTextContent(longStationName);
+  await expect.element(stationRow).toMatchTextContent(longStationName);
   const stationName = stationRow.getBySelector("div").nth(1);
   const stationNameLayout = await ((element) => ({
     clientWidth: element.clientWidth,

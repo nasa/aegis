@@ -90,7 +90,7 @@ test("dashboard follows newest source-filtered positions and independently selec
   await mission.openDashboard();
   await expect
     .element(page.getByTestId("dashboard-pet-clock"))
-    .toHaveTextContent(exactText("+00:05:00"));
+    .toMatchTextContent(exactText("+00:05:00"));
   await followChoice(page, "Stations", false);
   await followChoice(page, "Traverses", false);
   await expectCenter(page, task);

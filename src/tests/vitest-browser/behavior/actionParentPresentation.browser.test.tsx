@@ -159,12 +159,12 @@ test.describe("Action parent matrix coverage", () => {
       await row(page, "Sample regolith").getBySelector('svg[data-icon="caret-right"]').click();
       await expect
         .element(planningField(page, "Action Description"))
-        .toHaveTextContent(exactText(description));
-      await expect.element(row(page, "Sample regolith")).toHaveTextContent("🚀");
+        .toMatchTextContent(exactText(description));
+      await expect.element(row(page, "Sample regolith")).toMatchTextContent("🚀");
       if (parent !== "poi")
         await expect
           .element(planningField(page, "Task Description"))
-          .toHaveTextContent(exactText(task));
+          .toMatchTextContent(exactText(task));
       else await expect.poll(() => planningField(page, "Task Description").length).toBe(0);
 
       expect((await mission.read()).actions[mission.ids.actionA]).toEqual(saved);

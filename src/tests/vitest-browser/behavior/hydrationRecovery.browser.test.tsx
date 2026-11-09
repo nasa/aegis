@@ -23,7 +23,7 @@ for (const path of ["/api/v1/all", "/api/v1/docListing"]) {
       await mission.open({ waitForReady: false });
       await expect
         .element(page.getByRole("alert"))
-        .toHaveTextContent("Mission data could not be loaded");
+        .toMatchTextContent("Mission data could not be loaded");
       await expect.element(page.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
       await expect
         .poll(() => page.getByLabelText("globalEditToggle", { exact: true }).length)
@@ -32,7 +32,7 @@ for (const path of ["/api/v1/all", "/api/v1/docListing"]) {
       await page.getByRole("button", { name: "Retry", exact: true }).click();
       await expect
         .element(page.getByLabelText("missionNameHeader", { exact: true }))
-        .toHaveTextContent(mission.name);
+        .toMatchTextContent(mission.name);
       await expect.element(page.getByLabelText("globalEditToggle", { exact: true })).toBeEnabled();
       expect(requests).toBe(2);
       expect(await mission.read()).toEqual(before);
@@ -75,7 +75,7 @@ gatedTest(
       release();
       await expect
         .element(page.getByLabelText("missionNameHeader", { exact: true }))
-        .toHaveTextContent(mission.name);
+        .toMatchTextContent(mission.name);
       await expect.element(page.getByLabelText("globalEditToggle", { exact: true })).toBeEnabled();
       expect(await mission.read()).toEqual(before);
     } finally {
@@ -116,12 +116,12 @@ gatedTest(
       await mission.navigate(`/mission/${next.id}`);
       await expect
         .element(page.getByLabelText("missionNameHeader", { exact: true }))
-        .toHaveTextContent(next.name);
+        .toMatchTextContent(next.name);
       release();
       await expect.poll(() => completed).toBe(true);
       await expect
         .element(page.getByLabelText("missionNameHeader", { exact: true }))
-        .toHaveTextContent(next.name);
+        .toMatchTextContent(next.name);
       await expect.element(page.getByLabelText("globalEditToggle", { exact: true })).toBeEnabled();
       await expect
         .poll(
@@ -157,12 +157,12 @@ gatedTest(
       await mission.navigate("/admin/export/2147483647");
       await expect
         .element(page.getByRole("status"))
-        .toHaveTextContent("Loading mission for export...");
+        .toMatchTextContent("Loading mission for export...");
       await expect.poll(() => dump.length).toBe(0);
       release();
       await expect
         .element(page.getByRole("alert"))
-        .toHaveTextContent("Mission 2147483647 was not found or is unavailable.");
+        .toMatchTextContent("Mission 2147483647 was not found or is unavailable.");
       await expect.poll(() => dump.length).toBe(0);
     } finally {
       release();

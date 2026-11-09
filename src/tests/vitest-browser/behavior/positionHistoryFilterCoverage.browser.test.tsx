@@ -18,7 +18,7 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
   await mission.open();
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
-  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
+  await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
   await menu.getByText("All Positions", { exact: true }).click();
   await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
@@ -135,7 +135,7 @@ test("historical source filters use that REX's own PET and do not leak into acti
 
   await setSourceFilter(page, "All");
   await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
-  await expect.element(menu).toHaveTextContent("Survey Alpha - Stopped Alpha");
+  await expect.element(menu).toMatchTextContent("Survey Alpha - Stopped Alpha");
   await expect
     .poll(() => visiblePositionIds(page, [mission.ids.posA, OLDER_A, NEWER_A]))
     .toEqual([mission.ids.posA]);
@@ -180,7 +180,7 @@ test("historical source filters use that REX's own PET and do not leak into acti
     ]);
 
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-  await expect.element(menu).toHaveTextContent("Survey Bravo - Active Bravo");
+  await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
   await expect
     .poll(() => visiblePositionIds(page, [mission.ids.posB, ROVER_B]))
     .toEqual([mission.ids.posB]);
@@ -191,7 +191,7 @@ test("historical source filters use that REX's own PET and do not leak into acti
   await selectExecution(page, "Survey Alpha", mission.ids.evaA);
   await expect
     .element(page.getBySelector('div[aria-label="EVA Title"]'))
-    .toHaveTextContent(exactText("Survey Alpha"));
+    .toMatchTextContent(exactText("Survey Alpha"));
   await expect
     .poll(async () =>
       (await readMapFeatures()).filter(

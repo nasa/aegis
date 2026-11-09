@@ -101,7 +101,7 @@ async function selectPreset(page: Page, name: string): Promise<void> {
     .click();
   await expect
     .element(page.getBySelector('div[aria-label="Preset Title"]'))
-    .toHaveTextContent(exactText(name));
+    .toMatchTextContent(exactText(name));
 }
 
 function addTimeLayer(

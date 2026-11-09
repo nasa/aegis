@@ -15,7 +15,7 @@ async function openMissionPreferences(page: Page) {
   await page.getByLabelText("prefs_panel", { exact: true }).click();
   await expect
     .element(page.getByLabelText("rightBodyTitle", { exact: true }))
-    .toHaveTextContent(exactText("Mission Preferences"));
+    .toMatchTextContent(exactText("Mission Preferences"));
 }
 
 async function openPreset(page: Page) {
@@ -27,7 +27,7 @@ async function openPreset(page: Page) {
     .click();
   await expect
     .element(page.getBySelector('div[aria-label="Preset Title"]'))
-    .toHaveTextContent(exactText("Overview"));
+    .toMatchTextContent(exactText("Overview"));
 }
 
 async function openComparison(page: Page) {

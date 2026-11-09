@@ -175,7 +175,7 @@ async function expectDisplay(
         .getBySelector("../..")
         .getBySelector('[class*="displayFieldValue"]')
     )
-    .toHaveTextContent(exactText(value));
+    .toMatchTextContent(exactText(value));
 }
 
 async function displayValue(container: Page | Locator, label: string): Promise<string> {
@@ -237,12 +237,12 @@ test.describe("POI and action point location lifecycles", () => {
     expect(createdPoi).toMatchObject({ uuid: originalPoi.uuid, name: originalPoi.name });
     await expect
       .element(page.getBySelector('div[aria-label="LatitudePoi"]'))
-      .toHaveTextContent(
+      .toMatchTextContent(
         exactText(createdPoint.lat.toFixed(6).replace(/0+$/, "").replace(/\.$/, ""))
       );
     await expect
       .element(page.getBySelector('div[aria-label="LongitudePoi"]'))
-      .toHaveTextContent(
+      .toMatchTextContent(
         exactText(createdPoint.lng.toFixed(6).replace(/0+$/, "").replace(/\.$/, ""))
       );
     await expectDisplay(
@@ -303,7 +303,7 @@ test.describe("POI and action point location lifecycles", () => {
     await page.getByLabelText("info_panel", { exact: true }).click();
     await expect
       .element(page.getBySelector('div[aria-label="LatitudePoi"]'))
-      .toHaveTextContent(
+      .toMatchTextContent(
         exactText(current.location.lat.toFixed(6).replace(/0+$/, "").replace(/\.$/, ""))
       );
     await expectDisplay(page, "Grid Coords:", movedGrid);

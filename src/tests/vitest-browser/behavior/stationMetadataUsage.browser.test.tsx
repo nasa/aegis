@@ -22,7 +22,7 @@ async function selectStation(page: Page, name: string): Promise<void> {
       .getByText(name, { exact: true })
       .click();
   }
-  await expect.element(selectedName).toHaveTextContent(exactText(name));
+  await expect.element(selectedName).toMatchTextContent(exactText(name));
 }
 
 async function stationMarker(uuid: string) {
@@ -121,14 +121,14 @@ test.describe("Shared station metadata and usage", () => {
         .getByText(label, { exact: true })
         .getBySelector("../..")
         .getBySelector('[class*="displayFieldValue"]');
-    await expect.element(poiTotal(page, "Number of Actions:")).toHaveTextContent(exactText("1"));
+    await expect.element(poiTotal(page, "Number of Actions:")).toMatchTextContent(exactText("1"));
     await expect
       .element(poiTotal(page, "Total Action Time (mins):"))
-      .toHaveTextContent(exactText("8"));
-    await expect.element(poiTotal(page, "Total Mass (g):")).toHaveTextContent(exactText("12"));
+      .toMatchTextContent(exactText("8"));
+    await expect.element(poiTotal(page, "Total Mass (g):")).toMatchTextContent(exactText("12"));
     await expect
       .element(poiTotal(page, "Stations using this POI:"))
-      .toHaveTextContent(exactText("1"));
+      .toMatchTextContent(exactText("1"));
     await selectStation(page, "Bravo station");
     const usage = (client: Page) =>
       client
@@ -136,7 +136,7 @@ test.describe("Shared station metadata and usage", () => {
         .getBySelector("../..")
         .getBySelector('[class*="displayFieldValue"]');
     await page.getByLabelText("info_panel", { exact: true }).click();
-    await expect.element(usage(page)).toHaveTextContent(exactText("2"));
+    await expect.element(usage(page)).toMatchTextContent(exactText("2"));
     await expect
       .poll(async () => (await mission.read()).stations[mission.ids.stationB].description)
       .toBe(description);
@@ -166,8 +166,8 @@ test.describe("Shared station metadata and usage", () => {
     await page.getByLabelText("info_panel", { exact: true }).click();
     await expect
       .element(planningField(page, "Station Description"))
-      .toHaveTextContent(exactText(description));
-    await expect.element(usage(page)).toHaveTextContent(exactText("2"));
+      .toMatchTextContent(exactText(description));
+    await expect.element(usage(page)).toMatchTextContent(exactText("2"));
     await expect
       .poll(() => stationMarker(mission.ids.stationB))
       .toMatchObject({
@@ -175,14 +175,14 @@ test.describe("Shared station metadata and usage", () => {
       });
     await selectPlanningPoi(page, "Bravo linked outcrop");
     await page.getByLabelText("info_panel", { exact: true }).click();
-    await expect.element(poiTotal(page, "Number of Actions:")).toHaveTextContent(exactText("1"));
+    await expect.element(poiTotal(page, "Number of Actions:")).toMatchTextContent(exactText("1"));
     await expect
       .element(poiTotal(page, "Total Action Time (mins):"))
-      .toHaveTextContent(exactText("8"));
-    await expect.element(poiTotal(page, "Total Mass (g):")).toHaveTextContent(exactText("12"));
+      .toMatchTextContent(exactText("8"));
+    await expect.element(poiTotal(page, "Total Mass (g):")).toMatchTextContent(exactText("12"));
     await expect
       .element(poiTotal(page, "Stations using this POI:"))
-      .toHaveTextContent(exactText("1"));
+      .toMatchTextContent(exactText("1"));
 
     await expect.poll(() => stationMarker(mission.ids.stationB)).toEqual(pageMarker);
   });

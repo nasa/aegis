@@ -118,10 +118,10 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
     await selectPlanningStationActions(page, "Alpha station");
     await expect
       .element(total(page, "Total Action Time (mins):"))
-      .toHaveTextContent(exactText(enabled ? "6" : "0"));
+      .toMatchTextContent(exactText(enabled ? "6" : "0"));
     await expect
       .element(total(page, "Total Planned Mass (g):"))
-      .toHaveTextContent(exactText(enabled ? "1500" : "0"));
+      .toMatchTextContent(exactText(enabled ? "1500" : "0"));
     await expect.element(actionRow(page, "Excluded work")).toBeVisible();
     await openEvaInfo(page);
     for (const [label, value] of Object.entries({
@@ -134,9 +134,9 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
       "Traverse Time (mins):": "15",
       "EVA Duration (mins):": enabled ? "21" : "15",
     }))
-      await expect.element(total(page, label)).toHaveTextContent(exactText(value));
+      await expect.element(total(page, label)).toMatchTextContent(exactText(value));
     const consumable = page.getByText("Sample bags", { exact: true }).getBySelector("../..");
-    await expect.element(consumable).toHaveTextContent(enabled ? "5" : "3");
+    await expect.element(consumable).toMatchTextContent(enabled ? "5" : "3");
     await page.getByLabelText("actions_panel", { exact: true }).click();
     await expect.element(actionRow(page, "Station work")).toBeVisible();
     await expect.element(actionRow(page, "Traverse work")).toBeVisible();
@@ -164,13 +164,13 @@ test("enabled station and traverse work controls EVA resources, timeline and rep
         .first();
     await expect
       .element(reportCell("Action count"))
-      .toHaveTextContent(exactText(enabled ? "2" : "1"));
+      .toMatchTextContent(exactText(enabled ? "2" : "1"));
     await expect
       .element(reportCell("Planned sample mass"))
-      .toHaveTextContent(exactText(enabled ? "1.8" : "0.3"));
+      .toMatchTextContent(exactText(enabled ? "1.8" : "0.3"));
     await expect
       .element(reportCell("Single-use consumables"))
-      .toHaveTextContent(exactText(enabled ? "5" : "3"));
+      .toMatchTextContent(exactText(enabled ? "5" : "3"));
   };
   await check(true);
   await selectPlanningStationActions(page, "Alpha station");
@@ -222,8 +222,8 @@ test("fractional sequence estimates retain raw seconds while displayed totals ce
   });
   await mission.open();
   await openEvaInfo(page);
-  await expect.element(total(page, "Station Time (mins):")).toHaveTextContent(exactText("4"));
-  await expect.element(total(page, "Action Time (mins):")).toHaveTextContent(exactText("3"));
+  await expect.element(total(page, "Station Time (mins):")).toMatchTextContent(exactText("4"));
+  await expect.element(total(page, "Action Time (mins):")).toMatchTextContent(exactText("3"));
   let exported = (await exportEvas(page, mission)).find((eva) => eva.uuid === mission.ids.evaA)!;
   expect(
     exported.calculatedFields.sequenceItemsCalculatedData
@@ -248,7 +248,7 @@ test("fractional sequence estimates retain raw seconds while displayed totals ce
     await openEvaInfo(page);
     await expect
       .element(total(page, "Station Time (mins):"))
-      .toHaveTextContent(exactText(totalMinutes));
+      .toMatchTextContent(exactText(totalMinutes));
     exported = (await exportEvas(page, mission)).find((eva) => eva.uuid === mission.ids.evaA)!;
     expect(
       exported.calculatedFields.sequenceItemsCalculatedData.find(
@@ -313,8 +313,8 @@ test("ten minutes movement plus five minutes traverse work exposes combined dura
   });
   await mission.open();
   await openTraverse(page);
-  await expect.element(total(page, "Movement Time (mins):")).toHaveTextContent(exactText("10"));
-  await expect.element(total(page, "Dwell Time (mins):")).toHaveTextContent(exactText("5"));
+  await expect.element(total(page, "Movement Time (mins):")).toMatchTextContent(exactText("10"));
+  await expect.element(total(page, "Dwell Time (mins):")).toMatchTextContent(exactText("5"));
   await expect.element(page.getByText("Using Calculated Total: 15", { exact: true })).toBeVisible();
   await expect
     .element(
@@ -322,10 +322,10 @@ test("ten minutes movement plus five minutes traverse work exposes combined dura
         .getBySelector('[data-tooltip-content="Est traverse time"]')
         .nth(1)
     )
-    .toHaveTextContent(exactText("0:15"));
+    .toMatchTextContent(exactText("0:15"));
   await openEvaInfo(page);
-  await expect.element(total(page, "Traverse Time (mins):")).toHaveTextContent(exactText("15"));
-  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("15"));
+  await expect.element(total(page, "Traverse Time (mins):")).toMatchTextContent(exactText("15"));
+  await expect.element(total(page, "EVA Duration (mins):")).toMatchTextContent(exactText("15"));
   const exported = (await exportEvas(page, mission)).find((eva) => eva.uuid === mission.ids.evaA)!;
   expect(
     exported.calculatedFields.sequenceItemsCalculatedData.find(
@@ -418,7 +418,7 @@ test("empty graphs and large valid durations display finite totals and independe
     "EV2 Action Time (mins):",
     "Dwell Time (mins):",
   ])
-    await expect.element(total(page, label)).toHaveTextContent(exactText("0"));
+    await expect.element(total(page, label)).toMatchTextContent(exactText("0"));
   await openEvaInfo(page);
   for (const label of [
     "EVA Duration (mins):",
@@ -427,10 +427,10 @@ test("empty graphs and large valid durations display finite totals and independe
     "Traverse Distance (m):",
     "Total Mass (g):",
   ])
-    await expect.element(total(page, label)).toHaveTextContent(exactText("0"));
+    await expect.element(total(page, label)).toMatchTextContent(exactText("0"));
   await selectPlanningEva(page, "Survey Bravo");
   await page.getByLabelText("info_panel", { exact: true }).click();
-  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("0"));
+  await expect.element(total(page, "EVA Duration (mins):")).toMatchTextContent(exactText("0"));
   await page.getByLabelText("report_panel", { exact: true }).click();
   await expect
     .element(page.getByText("EVA has no stations or traverses", { exact: true }))
@@ -444,13 +444,13 @@ test("empty graphs and large valid durations display finite totals and independe
     doc.traverses[mission.ids.traverseA].pathSegmentDistances = [1000000000];
   });
   await openEvaInfo(page);
-  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("19998"));
+  await expect.element(total(page, "EVA Duration (mins):")).toMatchTextContent(exactText("19998"));
   await expect
     .element(total(page, "Traverse Distance (m):"))
-    .toHaveTextContent(exactText("1,000,000,000"));
+    .toMatchTextContent(exactText("1,000,000,000"));
   await mission.open();
   await openEvaInfo(page);
-  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("19998"));
+  await expect.element(total(page, "EVA Duration (mins):")).toMatchTextContent(exactText("19998"));
 });
 
 test("a traverse with geometry and zero cached distances keeps the EVA responsive and preserves its original points", async ({
@@ -463,13 +463,13 @@ test("a traverse with geometry and zero cached distances keeps the EVA responsiv
   const before = await mission.read();
   await mission.open();
   await openEvaInfo(page);
-  await expect.element(total(page, "Traverse Distance (m):")).toHaveTextContent(exactText("0"));
-  await expect.element(total(page, "EVA Duration (mins):")).toHaveTextContent(exactText("65"));
+  await expect.element(total(page, "Traverse Distance (m):")).toMatchTextContent(exactText("0"));
+  await expect.element(total(page, "EVA Duration (mins):")).toMatchTextContent(exactText("65"));
   await page.getByLabelText("actions_panel", { exact: true }).click();
   await expect.element(actionRow(page, "Sample regolith")).toBeVisible();
   await selectPlanningStation(page, "Alpha station");
   await expect
     .element(page.getBySelector('div[aria-label="Station"]'))
-    .toHaveTextContent(exactText("Alpha station"));
+    .toMatchTextContent(exactText("Alpha station"));
   expect((await mission.read()).traverses).toEqual(before.traverses);
 });

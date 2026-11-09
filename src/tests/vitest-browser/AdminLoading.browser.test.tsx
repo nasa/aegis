@@ -305,7 +305,7 @@ describe("admin user dialogs", () => {
       await page.getByLabelText("Username", { exact: true }).fill(username);
       await page.getByLabelText("Password", { exact: true }).fill(password);
       await page.getByRole("button", { name: "Create", exact: true }).click();
-      await expect.element(page.getByRole("alert").last()).toHaveTextContent(message);
+      await expect.element(page.getByRole("alert").last()).toMatchTextContent(message);
       await expect
         .element(page.getByRole("heading", { name: "Create User", exact: true }))
         .toBeVisible();

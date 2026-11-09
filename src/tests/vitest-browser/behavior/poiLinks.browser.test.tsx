@@ -25,7 +25,7 @@ async function expectUsage(page: Page, count: number): Promise<void> {
         .getBySelector("../..")
         .getBySelector('[class*="displayFieldValue"]')
     )
-    .toHaveTextContent(exactText(String(count)));
+    .toMatchTextContent(exactText(String(count)));
 }
 
 test("linking a POI across stations updates counters and navigation without adopting source actions", async ({
@@ -60,7 +60,7 @@ test("linking a POI across stations updates counters and navigation without adop
   for (const name of ["Alpha station", "Bravo station"]) {
     await openStationLinks(page, name);
     await page.getByText("Reference POI", { exact: true }).click();
-    await expect.element(planningField(page, "POI")).toHaveTextContent(exactText("Reference POI"));
+    await expect.element(planningField(page, "POI")).toMatchTextContent(exactText("Reference POI"));
     await expectUsage(page, 2);
   }
 

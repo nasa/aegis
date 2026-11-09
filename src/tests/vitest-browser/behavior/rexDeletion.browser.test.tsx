@@ -31,7 +31,7 @@ for (const otherRunning of [false, true]) {
     expect(await mission.read()).toEqual(before);
     await expect
       .element(planningField(page, "REX Title"))
-      .toHaveTextContent(exactText("Stopped Alpha"));
+      .toMatchTextContent(exactText("Stopped Alpha"));
     vi.spyOn(window, "confirm").mockReturnValueOnce(true);
     await page.getByLabelText("deleteEva", { exact: true }).click();
     await expect.poll(async () => (await mission.read()).rexes[mission.ids.rexA]).toBeUndefined();
@@ -65,7 +65,7 @@ for (const otherRunning of [false, true]) {
       .toBe(0);
     await expect
       .element(planningField(page, "EVA Title"))
-      .toHaveTextContent(exactText("Survey Alpha"));
+      .toMatchTextContent(exactText("Survey Alpha"));
     await expect
       .element(page.getByText("EVA Information (As Planned)", { exact: true }))
       .toBeVisible();
@@ -82,11 +82,11 @@ for (const otherRunning of [false, true]) {
     await planningEvaRow(page, "Survey Alpha").getByText("Survey Alpha", { exact: true }).click();
     await expect
       .element(planningField(page, "EVA Title"))
-      .toHaveTextContent(exactText("Survey Alpha"));
+      .toMatchTextContent(exactText("Survey Alpha"));
     await selectRex(page, "Survey Bravo", mission.ids.rexEvaB);
     await expect
       .element(planningField(page, "REX Title"))
-      .toHaveTextContent(exactText("Active Bravo"));
+      .toMatchTextContent(exactText("Active Bravo"));
 
     expect(await mission.read()).toEqual(expected);
   });

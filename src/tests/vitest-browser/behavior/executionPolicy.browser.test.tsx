@@ -56,7 +56,7 @@ test.describe("Execution policy contracts", () => {
     }) => {
       await startAlpha(page, mission, mode);
       await expect.poll(() => policyControl(page).getBySelector("select").length).toBe(0);
-      await expect.element(policyControl(page)).toHaveTextContent(label);
+      await expect.element(policyControl(page)).toMatchTextContent(label);
       const frozen = (await mission.read()).rexes[mission.ids.rexA].executeEditState;
       expect(frozen).toEqual({
         addedStationUuids: [],
@@ -86,7 +86,7 @@ test.describe("Execution policy contracts", () => {
       await openExecutionInfo(page, "Survey Alpha", mission.ids.rexEvaA);
       await page.getByLabelText("Stop Execution", { exact: true }).click();
       await expect.poll(() => policyControl(page).getBySelector("select").length).toBe(0);
-      await expect.element(policyControl(page)).toHaveTextContent(label);
+      await expect.element(policyControl(page)).toMatchTextContent(label);
       await page.getByLabelText("Execute EVA", { exact: true }).click();
       await expect
         .poll(async () => (await mission.read()).rexes[mission.ids.rexA])
@@ -95,7 +95,7 @@ test.describe("Execution policy contracts", () => {
       await enablePlanningEditMode(page);
       await openExecutionInfo(page, "Survey Alpha", mission.ids.rexEvaA);
       await expect.poll(() => policyControl(page).getBySelector("select").length).toBe(0);
-      await expect.element(policyControl(page)).toHaveTextContent(label);
+      await expect.element(policyControl(page)).toMatchTextContent(label);
       expect((await mission.read()).rexes[mission.ids.rexA].executeEditState).toEqual(
         beforeRestart
       );

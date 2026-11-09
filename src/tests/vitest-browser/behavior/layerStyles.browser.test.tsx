@@ -74,7 +74,7 @@ async function selectPreset(page: Page, name: string) {
     .click();
   await expect
     .element(page.getBySelector('div[aria-label="Preset Title"]'))
-    .toHaveTextContent(exactText(name));
+    .toMatchTextContent(exactText(name));
 }
 
 test.describe("PRESET-005 vector and contour style variants", () => {
@@ -137,7 +137,7 @@ test.describe("PRESET-005 vector and contour style variants", () => {
     await selectPreset(page, "Overview");
     await page.getByLabelText("layers_panel", { exact: true }).click();
     const row = layerRow(page, "Contour and mapped units");
-    await expect.element(row).toHaveTextContent("Contour and mapped units (vector)");
+    await expect.element(row).toMatchTextContent("Contour and mapped units (vector)");
     await expect.poll(() => vectorStyles(page, ids.vector, 2)).toHaveLength(3);
     const lowZoom = await vectorStyles(page, ids.vector, 2);
     expect(lowZoom.map(({ geometry }) => geometry).sort()).toEqual([
@@ -151,9 +151,9 @@ test.describe("PRESET-005 vector and contour style variants", () => {
     ).toBe(true);
 
     await row.getBySelector('svg[data-icon="circle-info"]').click();
-    await expect.element(row).toHaveTextContent("Legend (m)");
+    await expect.element(row).toMatchTextContent("Legend (m)");
     for (const item of ["Contour line", "Mapped fill", "Point feature"]) {
-      await expect.element(row).toHaveTextContent(item);
+      await expect.element(row).toMatchTextContent(item);
     }
     await row.getBySelector('svg[data-icon="sliders"]').click();
     await row.getByLabelText("weight", { exact: true }).fill("5");

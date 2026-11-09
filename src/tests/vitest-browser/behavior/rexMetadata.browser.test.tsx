@@ -71,12 +71,12 @@ test("REX names are family-scoped and Maestro control survives remount without r
   await selectRex(page, "Survey Alpha", created.evaUuid);
   await expect
     .element(planningField(page, "REX Title"))
-    .toHaveTextContent(exactText("Active Bravo"));
+    .toMatchTextContent(exactText("Active Bravo"));
   await page.getByLabelText("rex_info_panel", { exact: true }).click();
   const maestroValue = page
     .getByText("Maestro Controlled:", { exact: true })
     .getBySelector("../..");
-  await expect.element(maestroValue).toHaveTextContent("Yes");
+  await expect.element(maestroValue).toMatchTextContent("Yes");
   const after = await mission.read();
   expect(after.evas).toEqual(arranged.evas);
   expect(after.rexes[created.uuid]).not.toHaveProperty("description");
@@ -94,16 +94,16 @@ test("REX names are family-scoped and Maestro control survives remount without r
   await selectRex(page, "Survey Alpha", created.evaUuid);
   await expect
     .element(planningField(page, "REX Title"))
-    .toHaveTextContent(exactText("Active Bravo"));
+    .toMatchTextContent(exactText("Active Bravo"));
   await expect
     .element(planningField(page, "EVA Title"))
-    .toHaveTextContent(exactText("Survey Alpha"));
+    .toMatchTextContent(exactText("Survey Alpha"));
   await page.getByLabelText("rex_info_panel", { exact: true }).click();
   await expect
     .element(page.getByText("Maestro Controlled:", { exact: true }).getBySelector("../.."))
-    .toHaveTextContent("Yes");
+    .toMatchTextContent("Yes");
   await selectRex(page, "Survey Alpha", mission.ids.rexEvaA);
   await expect
     .element(planningField(page, "REX Title"))
-    .toHaveTextContent(exactText("First Alpha run"));
+    .toMatchTextContent(exactText("First Alpha run"));
 });

@@ -30,7 +30,7 @@ async function expectCrewTime(page: Page, crew: "EV1" | "EV2", minutes: string):
         .getBySelector("../..")
         .getBySelector('[class*="displayFieldValue"]')
     )
-    .toHaveTextContent(exactText(minutes));
+    .toMatchTextContent(exactText(minutes));
 }
 
 test.describe("Action planning contracts", () => {
@@ -59,7 +59,7 @@ test.describe("Action planning contracts", () => {
     await selectPlanningStationActions(page, "Alpha station");
     await expect
       .element(planningField(page, "Action Name"))
-      .toHaveTextContent(exactText("Collect core sample"));
+      .toMatchTextContent(exactText("Collect core sample"));
   });
 
   test("action name and duration validation and Cancel preserve the saved action and totals", async ({
@@ -94,7 +94,7 @@ test.describe("Action planning contracts", () => {
     await selectPlanningStationActions(page, "Alpha station");
     await expect
       .element(planningField(page, "Action Name"))
-      .toHaveTextContent(exactText("Sample regolith"));
+      .toMatchTextContent(exactText("Sample regolith"));
     await expectCrewTime(page, "EV1", "6");
   });
 
@@ -232,7 +232,7 @@ test.describe("Action planning contracts", () => {
     await selectPlanningStationActions(page, "Bravo station");
     await expect
       .element(planningField(page, "Action Name"))
-      .toHaveTextContent(exactText("Photograph outcrop"));
+      .toMatchTextContent(exactText("Photograph outcrop"));
     expect((await mission.read()).actions[created.uuid].crewAssigned).toEqual(["EV2"]);
   });
 });

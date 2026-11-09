@@ -358,7 +358,7 @@ test("fixed-grid visibility, labels, style and preset scope match known CRS inte
     .element(
       page.getByText("Grid Visibility:", { exact: true }).getBySelector("..").getBySelector("..")
     )
-    .toHaveTextContent("Visible");
+    .toMatchTextContent("Visible");
   await expect
     .element(
       page
@@ -366,7 +366,7 @@ test("fixed-grid visibility, labels, style and preset scope match known CRS inte
         .getBySelector("..")
         .getBySelector("..")
     )
-    .toHaveTextContent("Visible");
+    .toMatchTextContent("Visible");
   expect((await mission.read()).presets[mission.ids.presetA].mapGridControl.style.opacity).toBe(
     savedGridStyle.opacity
   );

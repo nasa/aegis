@@ -190,7 +190,7 @@ test("Escape dismisses a field dialog before cancelling the POI marker edit and 
   await page.getByLabelText("station Section", { exact: true }).click();
   await expect
     .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-    .toHaveTextContent("Stations");
+    .toMatchTextContent("Stations");
 });
 
 test("turning Edit off exits a pending POI placement without creating a coordinate", async ({
@@ -217,7 +217,7 @@ test("turning Edit off exits a pending POI placement without creating a coordina
   await page.getByLabelText("station Section", { exact: true }).click();
   await expect
     .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-    .toHaveTextContent("Stations");
+    .toMatchTextContent("Stations");
 });
 
 test("station location can be cancelled, cleared, and recreated from a known map pixel", async ({
@@ -347,7 +347,7 @@ test("Escape restores a dragged traverse and removes the modify interaction", as
   await selectPlanningPoi(page, "Reference POI");
   await expect
     .element(page.getBySelector('div[aria-label="POI"]'))
-    .toHaveTextContent(exactText("Reference POI"));
+    .toMatchTextContent(exactText("Reference POI"));
 });
 
 const planningDirectiveTargets = ["poi", "station", "action", "walkback", "traverse"] as const;
@@ -367,7 +367,7 @@ for (const target of planningDirectiveTargets) {
       await selectPlanningStation(page, "Bravo station");
       await expect
         .element(page.getBySelector('div[aria-label="Station"]'))
-        .toHaveTextContent(exactText("Bravo station"));
+        .toMatchTextContent(exactText("Bravo station"));
     });
   }
 }
@@ -416,7 +416,7 @@ test.describe("execution position map directives", () => {
       await page.getByLabelText("station Section", { exact: true }).click();
       await expect
         .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-        .toHaveTextContent("Stations");
+        .toMatchTextContent("Stations");
     });
   }
 });

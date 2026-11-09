@@ -155,7 +155,7 @@ executionTest(
     await mission.openDashboard();
     await expect
       .element(page.getByTestId("dashboard-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
     await expect
       .element(page.getBySelector('[data-map-mode="dashboard"] .ol-viewport'))
       .toBeVisible();
@@ -218,7 +218,7 @@ test("invalid numeric input exposes a readable error and prevents saving", async
   await dialog.getByLabelText("Time in minutes", { exact: true }).fill("0");
   await expect
     .element(dialog.getByRole("alert"))
-    .toHaveTextContent(exactText("Must be a number greater than 0"));
+    .toMatchTextContent(exactText("Must be a number greater than 0"));
   expect(await textContrastRatio(dialog.getByRole("alert"))).toBeGreaterThanOrEqual(4.5);
   expect(await dialog.element().textContent).toContain("Must be a number greater than 0");
   await expect.element(dialog.getByLabelText("Time in minutes", { exact: true })).toBeVisible();
@@ -232,7 +232,7 @@ test("invalid numeric input exposes a readable error and prevents saving", async
   await userEvent.keyboard("{Enter}");
   const actionDialog = page.getBySelector("dialog[open]");
   await actionDialog.getByLabelText("Action Name", { exact: true }).fill("");
-  await expect.element(actionDialog.getByRole("alert")).toHaveTextContent(exactText("Required"));
+  await expect.element(actionDialog.getByRole("alert")).toMatchTextContent(exactText("Required"));
   await expect
     .element(actionDialog.getByRole("button", { name: "Save", exact: true }))
     .toBeDisabled();

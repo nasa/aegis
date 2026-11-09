@@ -30,7 +30,7 @@ async function expectScaleBars(page: Page, visible: boolean): Promise<void> {
       await expect.element(map.getByLabelText("scaleBar", { exact: true })).toBeVisible();
       await expect
         .element(map.getByLabelText("scaleBar", { exact: true }))
-        .toHaveTextContent(/^\d+(\.\d+)? (m|km)$/);
+        .toMatchTextContent(/^\d+(\.\d+)? (m|km)$/);
     }
   }
 }
@@ -43,7 +43,7 @@ test.describe("Dashboard and minimap display contracts", () => {
     await mission.openDashboard();
     await expect
       .element(page.getByTestId("dashboard-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
     await expectScaleBars(page, true);
 
     await openDashboardVisibilityMenu(page);
@@ -56,7 +56,7 @@ test.describe("Dashboard and minimap display contracts", () => {
     await mission.openDashboard();
     await expect
       .element(page.getByTestId("dashboard-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
     await expectScaleBars(page, false);
     await openDashboardVisibilityMenu(page);
     await page
@@ -68,7 +68,7 @@ test.describe("Dashboard and minimap display contracts", () => {
     await mission.openDashboard();
     await expect
       .element(page.getByTestId("dashboard-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
     await expectScaleBars(page, true);
   });
 
@@ -85,7 +85,7 @@ test.describe("Dashboard and minimap display contracts", () => {
     await mission.openDashboard();
     await expect
       .element(page.getByTestId("dashboard-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
     await expect.poll(stationIds).toEqual([mission.ids.rexStationB]);
     await expectMapLabel("+00:03:00 / 1 (C)", "dashboard");
     await expect
@@ -99,7 +99,7 @@ test.describe("Dashboard and minimap display contracts", () => {
     await mission.openDashboard();
     await expect
       .element(page.getByTestId("dashboard-pet-clock"))
-      .toHaveTextContent(exactText("+00:05:00"));
+      .toMatchTextContent(exactText("+00:05:00"));
     await expect.poll(stationIds).toEqual([mission.ids.rexStationB]);
     await expectMapLabel("+00:03:00 / 1 (C)", "dashboard");
   });

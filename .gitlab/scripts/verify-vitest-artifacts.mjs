@@ -1,19 +1,21 @@
 import assert from "node:assert/strict";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import coverageLibrary from "istanbul-lib-coverage";
 import { parse } from "flatted";
 
 const directory = path.resolve(process.argv[2] ?? ".local/migration");
 const layout = JSON.parse(readFileSync(path.join(directory, "layout/summary.json"), "utf8"));
 const shardCounts = { node: layout.nodeShards.length, browser: layout.browserShards.length };
 const coveredLines = (filename) => {
-  const coverage = coverageLibrary.createCoverageMap(JSON.parse(readFileSync(filename, "utf8")));
+  const coverage = JSON.parse(readFileSync(filename, "utf8"));
   return new Set(
-    coverage.files().flatMap((file) =>
-      Object.entries(coverage.fileCoverageFor(file).getLineCoverage())
+    Object.entries(coverage).flatMap(([file, data]) =>
+      Object.entries(data.s)
         .filter(([, hits]) => hits > 0)
-        .map(([line]) => `${file.replaceAll("\\", "/")}:${line}`)
+        .map(
+          ([statement]) =>
+            `${file.replaceAll("\\", "/")}:${data.statementMap[statement].start.line}`
+        )
     )
   );
 };
