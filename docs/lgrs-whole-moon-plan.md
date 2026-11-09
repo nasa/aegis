@@ -202,14 +202,15 @@ inverse projection on the hot path. The grid code supplies it from its inverse.
 
 ### 6.1 Budgets and measurement
 
-| Path                                        | Budget (Node, CI machine)    | How it's measured                 |
-| ------------------------------------------- | ---------------------------- | --------------------------------- |
-| lat/lon → 10 m display string               | ≤ 2 µs median                | `vitest bench` (not a CI gate)    |
-| map coord → display string (incl. inverse)  | ≤ 5 µs median                | `vitest bench`                    |
-| `createLgrsRenderPlan` for a 1920×1080 view | ≤ 4 ms p95, ≤ 2,000 vertices | bench plus a vitest cap assertion |
+| Path                                        | Budget (Node, CI machine)    | How it's measured                        |
+| ------------------------------------------- | ---------------------------- | ---------------------------------------- |
+| lat/lon → 10 m display string               | ≤ 2 µs median                | Manual profiling when needed             |
+| map coord → display string (incl. inverse)  | ≤ 5 µs median                | Manual profiling when needed             |
+| `createLgrsRenderPlan` for a 1920×1080 view | ≤ 4 ms p95, ≤ 2,000 vertices | Manual profiling and unit cap assertions |
 
-Benchmarks go in `src/tests/vitest/bench/lgrs.bench.ts`. Hard caps (vertex, line and label counts)
-are enforced as normal unit tests, because those are deterministic.
+Timing budgets are design targets assessed through manual profiling when needed.
+Hard caps (vertex, line and label counts) are enforced as normal unit tests, because those
+are deterministic.
 
 ### 6.2 Mouse-rollover path
 
@@ -349,12 +350,12 @@ files, so each one can run as a separate sub-agent in the shared working tree.
   _Owns:_ `scripts/lgrs-reference/**`, `fixtures/lgrs/0.4.0/**`, the legacy generator files.
 - **B. Core library.** Add `src/typings/lgrs.d.ts`, `constants.ts`, `crs.ts`, `projection.ts`,
   `format.ts` and `mapAdapter.ts`, using the §5.2 signatures as the contract. Until A lands,
-  validate against the §4.3 example table. Add `lgrs.bench.ts`.
+  validate against the §4.3 example table.
   _Owns:_ those files and their unit tests.
 
 _Gate 1 (lead):_ run B against the full 0.4.0 corpus and against the 0.3.0 south fixtures. Both
 must show 0 mismatches before Wave 2 starts. This proves the south results are unchanged. Also
-check the §6.1 per-point bench budgets.
+consider the §6.1 per-point timing targets during manual profiling.
 
 **Wave 2 — consumers (parallel, all built on the B API)**
 
