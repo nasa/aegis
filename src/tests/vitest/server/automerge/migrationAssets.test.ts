@@ -17,8 +17,10 @@ const handleFor = (getDoc: () => MissionDoc, setDoc: (doc: MissionDoc) => void) 
   }) as unknown as DocHandle<Mission>;
 
 describe("add-mission-assets migration", () => {
-  it("is the latest registered migration", () => {
-    expect(AUTOMERGE_MIGRATIONS.at(-1)).toBe(Migration20261030000000);
+  it("is registered after the document-history migration", () => {
+    const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261030000000);
+    expect(index).toBeGreaterThan(0);
+    expect(AUTOMERGE_MIGRATIONS[index - 1].version).toBe(20261028000000);
   });
 
   it("adds an empty assets dictionary, validates, and is idempotent", async () => {

@@ -1,10 +1,15 @@
-import { formatSouthLpsCoordinate, type LgrsPrecision } from "utils/lgrs/dynamicGrid";
+import { LGRS_CRS_LPS_SOUTH } from "utils/lgrs/crs";
+import { formatLgrsLabel } from "utils/lgrs/format";
+
 import {
   getSouthLpsDisplayCoordinate,
   latLonToSouthLps,
   parseSouthLpsLabel,
   southLpsToLatLon,
 } from "utils/lgrs/southLps";
+
+const formatSouthLpsCoordinate = (coordinate: LgrsCoordinate, precision: LgrsPrecision) =>
+  formatLgrsLabel(coordinate[0], coordinate[1], LGRS_CRS_LPS_SOUTH, precision);
 
 // Points on both halves of the grid, near and away from the pole.
 const POINTS: AEGISPoint[] = [
