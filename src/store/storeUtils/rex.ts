@@ -58,7 +58,6 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     uuid: uuidv4(),
     ownerId: 0,
     name: "",
-    description: "",
     petStartStopTimestamp: null,
     petValueAtStartStop: "+00:00:00",
     petRunning: false,
