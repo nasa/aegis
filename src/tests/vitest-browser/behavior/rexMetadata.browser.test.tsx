@@ -33,6 +33,7 @@ test("REX names are family-scoped and Maestro control survives remount without r
   const arranged = await mission.read();
   const created = Object.values(arranged.rexes).find((rex) => !before.rexes[rex.uuid]);
   expect(created).toBeDefined();
+  expect(created).not.toHaveProperty("description");
   expect(arranged.evas[created.evaUuid].refUuid).toBe(before.evas[mission.ids.evaA].refUuid);
   await savePlanningField(page, "REX Title", "Second Alpha run");
   await cancelPlanningField(page, "REX Title", "Discarded run name");
