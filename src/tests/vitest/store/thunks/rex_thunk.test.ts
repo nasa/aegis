@@ -29,8 +29,6 @@ vi.mock("store/thunk/thunkEva", async () => {
   };
 });
 
-const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => true);
-
 const getMission = (): Mission => getMissionDocHandle().doc();
 
 beforeAll(() => {
@@ -56,7 +54,6 @@ beforeEach(() => {
 
 afterAll(() => {
   vi.restoreAllMocks();
-  alertSpy.mockRestore();
 });
 
 describe("Thunk Rex Tests", () => {

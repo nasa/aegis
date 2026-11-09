@@ -303,7 +303,7 @@ const LayerList = (props: {
 
   async function delSubLayer(sublayer: Sublayer) {
     const confirmed = await displayToast({
-      message: "Are you sure you want to delete sublayer " + sublayer.name,
+      message: `Are you sure you want to delete sublayer ${sublayer.name}?`,
       toastType: "confirm",
     });
     if (confirmed) {
@@ -317,7 +317,7 @@ const LayerList = (props: {
 
   async function delLayer(layer: Layer) {
     const confirmed = await displayToast({
-      message: "Are you sure you want to delete layer " + layer.name,
+      message: `Are you sure you want to delete layer ${layer.name}`,
       toastType: "confirm",
     });
     if (confirmed) {

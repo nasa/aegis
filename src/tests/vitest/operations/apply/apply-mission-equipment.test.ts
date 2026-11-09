@@ -22,7 +22,6 @@ beforeEach(() => {
     m.stations = {};
     m.pois = {};
   });
-  vi.spyOn(window, "alert").mockImplementation(() => {});
 });
 
 afterAll(() => {

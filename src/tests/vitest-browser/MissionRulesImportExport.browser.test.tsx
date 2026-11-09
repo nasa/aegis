@@ -7,8 +7,12 @@ import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStmLvl3, generateBlankStmRule } from "store/storeUtils/stm";
 import { exportStmRules } from "utils/stmRulesImportExport";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
+import { displayToast } from "components/toastNotifications";
 
 vi.mock("@automerge/automerge-repo-react-hooks", () => ({ useDocument: vi.fn() }));
+vi.mock("components/toastNotifications", () => ({
+  displayToast: vi.fn(async (): Promise<boolean> => true),
+}));
 
 const url = generateAutomergeUrl();
 let harness: ReactHarness;
@@ -24,7 +28,7 @@ beforeEach(() => {
   mission.stmRules = { [rule.uuid]: rule };
   changeMission = vi.fn((update: (doc: Mission) => void) => update(mission));
   vi.mocked(useDocument).mockReturnValue([mission, changeMission]);
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.mocked(displayToast).mockResolvedValue(true);
   vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
     paint = callback;
     return 1;
@@ -140,7 +144,7 @@ describe("mission rules admin feedback", () => {
     const json = exportStmRules(mission);
     await page.getByRole("textbox").fill(json);
     await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    vi.mocked(displayToast).mockResolvedValueOnce(false);
     await page.getByRole("button", { name: "Import Mission Rules", exact: true }).click();
     paint(0);
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();

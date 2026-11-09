@@ -1,4 +1,4 @@
-import type { FunctionComponent } from "react";
+import type { ReactElement } from "react";
 import { type ToastContentProps, type ToastOptions, toast } from "react-toastify";
 import styles from "./toast-notifications.module.css";
 
@@ -12,10 +12,10 @@ export type DisplayToastOptions = {
   onCancel?: () => void;
 } & ToastOptions;
 
-const ToastContent: FunctionComponent<ToastContentProps<DisplayToastOptions>> = ({
+const ToastContent = ({
   data,
   closeToast,
-}) => {
+}: ToastContentProps<DisplayToastOptions>): ReactElement => {
   const isConfirm = data.toastType === "confirm";
 
   return (
