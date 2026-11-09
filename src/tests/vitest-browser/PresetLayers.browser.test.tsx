@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { configureStore } from "@reduxjs/toolkit";
 import { Provider } from "react-redux";
+import { StrictMode } from "react";
+import { flushSync } from "react-dom";
+import styles from "components/panes/preset/preset-right-layers.module.css";
 import Layers_Panel from "components/panes/preset/preset-right-layers";
 import { presetSlice } from "store/preset";
 import { generateBlankLayer } from "store/storeUtils/layer";
@@ -12,6 +15,9 @@ const fixture = vi.hoisted(() => ({ mission: null as Mission | null }));
 vi.mock("utils/useDocSelector", () => ({
   useMissionDocSelector: (selector: (mission: Mission | null) => unknown) =>
     selector(fixture.mission),
+}));
+vi.mock("client/automergeDocHandles", () => ({
+  withMissionChange: (change: (mission: Mission) => void) => change(fixture.mission),
 }));
 
 const existingLayer = generateBlankLayer({ name: "Existing Layer" });
@@ -88,6 +94,62 @@ const addToMission = ({ layer, sublayer }: { layer?: Layer; sublayer: Sublayer }
 };
 
 describe("Preset layers panel", () => {
+  it("reorders layers and sublayers through the real drag handles in StrictMode", () => {
+    const secondSublayer = generateBlankSublayer({
+      name: "Second Sublayer",
+      layerUuid: existingLayer.uuid,
+    });
+    const secondLayer = generateBlankLayer({ name: "Second Layer" });
+    addToMission({ sublayer: secondSublayer });
+    addToMission({
+      layer: secondLayer,
+      sublayer: generateBlankSublayer({ name: "Other", layerUuid: secondLayer.uuid }),
+    });
+    const renderEditable = () =>
+      harness.render(
+        <StrictMode>
+          <Provider store={store}>
+            <Layers_Panel editMode />
+          </Provider>
+        </StrictMode>
+      );
+    renderEditable();
+
+    const drag = (handleSelector: string, rowClass: string) => {
+      const handles = harness.container.querySelectorAll<HTMLElement>(handleSelector);
+      const source = handles[0].closest(`.${rowClass}`);
+      const target = handles[1].closest(`.${rowClass}`);
+      flushSync(() => handles[0].dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
+      expect(source.getAttribute("draggable")).toBe("true");
+      const dataTransfer = new DataTransfer();
+      flushSync(() =>
+        source.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer }))
+      );
+      flushSync(() =>
+        target.dispatchEvent(new DragEvent("dragenter", { bubbles: true, dataTransfer }))
+      );
+      flushSync(() =>
+        source.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer }))
+      );
+    };
+    drag("a.sublayerReorder", styles.sublayerItemContainer);
+    expect(fixture.mission.presets[preset.uuid].layerOrder[0].sublayerUuids).toEqual([
+      secondSublayer.uuid,
+      existingSublayer.uuid,
+    ]);
+    renderEditable();
+    const rows = harness.container.querySelectorAll(`.${styles.sublayerItemContainer}`);
+    expect(rows[0].textContent).toContain("Second Sublayer");
+    drag("a.headerReorder", styles.layerGroup);
+    expect(fixture.mission.presets[preset.uuid].layerOrder.map((entry) => entry.layerUuid)).toEqual(
+      [secondLayer.uuid, existingLayer.uuid]
+    );
+    renderEditable();
+    expect(harness.container.querySelector(`.${styles.layerGroup}`).textContent).toContain(
+      "Second Layer"
+    );
+  });
+
   it("renders a sublayer added under an existing layer after the store was populated", () => {
     const addedSublayer = generateBlankSublayer({
       name: "Added Sublayer",

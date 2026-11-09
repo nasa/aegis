@@ -1,5 +1,6 @@
 import type { FunctionComponent } from "react";
-import Picker from "@emoji-mart/react";
+import { useEffect, useRef } from "react";
+import { Picker } from "emoji-mart";
 import emojiPickerData from "@emoji-mart/data";
 
 /**
@@ -46,25 +47,6 @@ export const EmojiRenderer: FunctionComponent<{
   return <>{emoji}</>;
 };
 
-interface EmojiSelectEvent {
-  unified?: string;
-  id?: string;
-  [key: string]: unknown;
-}
-
-interface CustomEmoji {
-  id: string;
-  name: string;
-  keywords: string[];
-  skins: { src: string }[];
-}
-
-interface CustomEmojiCategory {
-  id: string;
-  name: string;
-  emojis: CustomEmoji[];
-}
-
 /**
  * Custom emoji picker component with configurable custom emojis
  */
@@ -102,15 +84,32 @@ export const EmojiPicker: FunctionComponent<{
 
   const emojiCategories = customEmojis || defaultCustomEmojis;
 
-  return (
-    <Picker
-      data={emojiPickerData}
-      custom={emojiCategories}
-      emojiButtonSize={emojiButtonSize}
-      emojiSize={emojiSize}
-      perLine={perLine}
-      darkMode={darkMode}
-      onEmojiSelect={onEmojiSelect}
-    />
-  );
+  const options = {
+    data: emojiPickerData,
+    custom: emojiCategories,
+    emojiButtonSize,
+    emojiSize,
+    perLine,
+    darkMode,
+    onEmojiSelect,
+  };
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<Picker | null>(null);
+  const initialOptions = useRef(options);
+
+  useEffect(() => {
+    const picker = new Picker(initialOptions.current);
+    pickerRef.current = picker;
+    containerRef.current?.appendChild(picker);
+    return () => {
+      picker.remove();
+      pickerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    pickerRef.current?.update(options);
+  });
+
+  return <div ref={containerRef} />;
 };

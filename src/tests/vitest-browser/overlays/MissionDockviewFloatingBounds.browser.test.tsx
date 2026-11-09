@@ -115,6 +115,22 @@ describe("MissionDockviewLayout floating Rex Menu bounds", () => {
     expect(widgetRect.bottom).toBeLessThanOrEqual(mapRect.bottom + 1);
   });
 
+  it("resizes the floating widget while the main layout is locked", () => {
+    const widget = getRexMenuWidget()!;
+    const before = widget.getBoundingClientRect();
+    const handle = widget.querySelector<HTMLElement>(".dv-resize-handle-left")!;
+
+    dragResizeHandle(handle, {
+      clientX: before.left - 60,
+      clientY: before.top + before.height / 2,
+    });
+
+    const after = widget.getBoundingClientRect();
+    expect(after.width).toBeGreaterThan(before.width + 40);
+    expect(Math.abs(after.right - before.right)).toBeLessThanOrEqual(1);
+    expect(after.left).toBeGreaterThanOrEqual(getMapRect().left - 1);
+  });
+
   it.each(["left", "right", "bottom", "top", "bottomleft", "topright"])(
     "cannot be resized past the map from the %s handle",
     (direction) => {

@@ -18,7 +18,7 @@ type ImageOptions = {
 const makeImage = (options: ImageOptions = {}): RasterImage =>
   ({
     getFileDirectory: vi.fn(() => ({
-      ModelTransformation: options.modelTransformation,
+      hasTag: (tag: string) => tag === "ModelTransformation" && !!options.modelTransformation,
     })),
     getOrigin: vi.fn(() => options.origin ?? [100, 200, 0]),
     getResolution: vi.fn(() => options.resolution ?? [2, -3, 0]),
@@ -29,7 +29,7 @@ const makeImage = (options: ImageOptions = {}): RasterImage =>
     isTiled: true,
     getSamplesPerPixel: vi.fn(() => 2),
     getGDALNoData: vi.fn(() => -9999),
-    getGDALMetadata: vi.fn(() => options.gdalMetadata),
+    getGDALMetadata: vi.fn(async () => options.gdalMetadata),
     getGeoKeys: vi.fn(() => options.geoKeys),
   }) as unknown as RasterImage;
 
@@ -72,6 +72,25 @@ describe("openRaster", () => {
     await expect(openRaster("dem.tif")).resolves.toMatchObject({
       metadata: { geoKeys: {} },
     });
+  });
+
+  it("reads asynchronous band scale and offset metadata", async () => {
+    const image = makeImage({ gdalMetadata: { SCALE: "0.25", OFFSET: "-120" } });
+    cacheImage(image);
+
+    await expect(openRaster("dem.tif")).resolves.toMatchObject({
+      metadata: { scale: 0.25, offset: -120 },
+    });
+    expect(image.getGDALMetadata).toHaveBeenCalledWith(0);
+  });
+
+  it.each([
+    { key: "SCALE", value: "invalid", message: "scale" },
+    { key: "OFFSET", value: "Infinity", message: "offset" },
+  ])("rejects invalid asynchronous $key metadata", async ({ key, value, message }) => {
+    cacheImage(makeImage({ gdalMetadata: { [key]: value } }));
+
+    await expect(openRaster("dem.tif")).rejects.toThrow(`Raster band ${message} is invalid`);
   });
 
   it("rejects transformation matrices", async () => {
