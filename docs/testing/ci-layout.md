@@ -28,6 +28,11 @@ rather than this guide.
 
 High-DPI Chromium remains in the same shard selection, preventing accidental
 omission. Parity stays independent because V8 coverage requires Chromium's CDP.
+The parity job allows 120 seconds for each browser session to connect on shared
+runners. This startup allowance does not change test timeouts. Its
+`vitest:browser:pool`, `vitest:browser:playwright` and `pw:browser` debug logs record
+session scheduling and browser launches so connection failures can be
+distinguished from test failures.
 
 ## Coverage and deployment integrity
 

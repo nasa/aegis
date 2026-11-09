@@ -386,10 +386,14 @@ test-vitest:browser:
 
 test-vitest:browser:parity:
   extends: .browser-test-template
+  variables:
+    DEBUG: "vitest:browser:pool,vitest:browser:playwright,pw:browser"
   script:
     # Firefox/WebKit have no V8/CDP coverage; keep their test results separate.
+    # Allow cold browser startup on shared runners without extending test timeouts.
     - npm run test:vitest:browser:parity --
       --maxWorkers=1
+      --browser.connectTimeout=120000
       --reporter=default
       --reporter=./.gitlab/scripts/browser-junit-reporter.mjs
       --outputFile.junit=test-results/vitest-browser-parity.xml
