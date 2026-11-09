@@ -23,6 +23,7 @@ import cloneDeep from "lodash/cloneDeep";
 import capitalize from "lodash/capitalize";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getActionDefinitionLabel, selectStmRules } from "store/selectors";
+import { displayToast } from "components/toastNotifications";
 
 /** Write one STM rule field to the mission doc. */
 const updateRuleField = <K extends keyof STMRule>(
@@ -153,8 +154,12 @@ const STMRuleButtons: FunctionComponent<{ rule: STMRule; isEditing: boolean }> =
         <Button
           ariaLabel="deleteRule"
           icon={faTrashAlt}
-          onClick={() => {
-            if (window.confirm("Are you sure you want to delete this rule?")) {
+          onClick={async () => {
+            const confirmed = await displayToast({
+              message: "Are you sure you want to delete this rule?",
+              toastType: "confirm",
+            });
+            if (confirmed) {
               dispatch(thunkDeleteStmRuleByUuid({ stmRuleUuid: rule.uuid }));
             }
           }}

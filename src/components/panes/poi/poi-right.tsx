@@ -25,6 +25,7 @@ import { RightTabs } from "components/interface/side-controls";
 import { getCalcFieldsForPoi } from "store/processing/calculatedFields";
 import isNull from "lodash/isNull";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { displayToast } from "components/toastNotifications";
 
 const PoiEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -187,7 +188,7 @@ const PoiEditorRight: FunctionComponent = () => {
               <Button
                 ariaLabel="deletePoi"
                 icon={faTrashAlt}
-                onClick={() => {
+                onClick={async () => {
                   if (selectedPoi) {
                     let confirmMsg = "Are you sure you want to delete this POI?";
                     if (stationNamesAssociatedWithPoi.length > 0) {
@@ -195,7 +196,11 @@ const PoiEditorRight: FunctionComponent = () => {
                       const stationList = stationNamesAssociatedWithPoi.join(", ");
                       confirmMsg += `\n\nThis POI is associated with the following station(s): ${stationList}`;
                     }
-                    if (window.confirm(confirmMsg)) {
+                    const confirmed = await displayToast({
+                      message: confirmMsg,
+                      toastType: "confirm",
+                    });
+                    if (confirmed) {
                       dispatch(
                         thunkDocDeletePoi({
                           poiUuid: selectedPoi.uuid,

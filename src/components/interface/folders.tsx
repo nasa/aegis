@@ -46,17 +46,19 @@ import { clientLogger } from "utils/logging/clientLogger";
 import { displayToast } from "components/toastNotifications";
 
 /** Delete a folder from the mission doc and remove its saved open state from the cookie. */
-export const deleteFolder = (folderUuid: string): void => {
-  let deleted = false;
+export const deleteFolder = async (folderUuid: string): Promise<void> => {
+  const confirmed = await displayToast({
+    message: "Are you sure you want to delete this folder?",
+    toastType: "confirm",
+  });
   const inUseMessage = withMissionOp(opDeleteFolder, folderUuid, () => {
-    deleted = window.confirm("Are you sure you want to delete this folder?");
-    return deleted;
+    return confirmed;
   });
   if (inUseMessage) {
     displayToast({ message: inUseMessage });
     return;
   }
-  if (!deleted) return;
+  if (!confirmed) return;
 
   // Remove folder state from cookie
   try {

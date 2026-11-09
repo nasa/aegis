@@ -23,6 +23,7 @@ import { applyUpdatePresetByField } from "operations/apply/apply-mission-preset"
 import { RightTabs } from "components/interface/side-controls";
 import Grid_Panel from "./preset-right-grid";
 import GridSquareIcon from "assets/draw-square-regular-full.svg?react";
+import { displayToast } from "components/toastNotifications";
 
 const PresetEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -122,8 +123,12 @@ const PresetEditorRight: FunctionComponent = () => {
             {isInEditMode && (
               <Button
                 icon={faTrashAlt}
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to delete this Preset?")) {
+                onClick={async () => {
+                  const confirmed = await displayToast({
+                    message: "Are you sure you want to delete this Preset?",
+                    toastType: "confirm",
+                  });
+                  if (confirmed) {
                     dispatch(thunkDeletePreset({ presetUuid: selectedPreset.uuid }));
                   }
                 }}

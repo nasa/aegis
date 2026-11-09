@@ -39,6 +39,7 @@ import {
   findRexUuidForEntity,
   useRexExecuteEditMode,
 } from "utils/rexExecuteEditMode";
+import { displayToast } from "components/toastNotifications";
 
 const StationEditorRight: FunctionComponent = () => {
   const dispatch = useAppDispatch();
@@ -242,8 +243,12 @@ const StationEditorRight: FunctionComponent = () => {
               <Button
                 ariaLabel="deleteStation"
                 icon={faTrashAlt}
-                onClick={() => {
-                  if (window.confirm("Are you sure you want to delete this Station?")) {
+                onClick={async () => {
+                  const confirmed = await displayToast({
+                    message: "Are you sure you want to delete this Station?",
+                    toastType: "confirm",
+                  });
+                  if (confirmed) {
                     dispatch(
                       thunkDocDeleteStations({
                         stationUuids: [selectedStation.uuid],

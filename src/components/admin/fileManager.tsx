@@ -123,7 +123,7 @@ const FileManager: FunctionComponent<{
   async function deleteFileToAPI(e: React.MouseEvent, filename: string): Promise<void> {
     const confirmDelete = await displayToast({
       message: "Are you sure you want to delete " + filename,
-      showCancel: true,
+      toastType: "confirm",
     });
     if (confirmDelete) {
       const res = await deleteFile(`${path}/${filename}`);
@@ -151,7 +151,7 @@ const FileManager: FunctionComponent<{
     }
     const confirmDelete = await displayToast({
       message: `Are you sure you want to delete ${unusedFolders.length} unused folders?`,
-      showCancel: true,
+      toastType: "confirm",
     });
     if (confirmDelete) {
       const errors: string[] = [];

@@ -7,6 +7,7 @@ import { useAsyncStatus } from "./useAsyncStatus";
 import adminStyles from "./admin.module.css";
 import adminCommon from "pages/admin/adminCommon.module.css";
 import styles from "./missionPriorityImportExport.module.css";
+import { displayToast } from "components/toastNotifications";
 
 export default function MissionRulesImportExport({
   automergeUrl,
@@ -27,12 +28,11 @@ export default function MissionRulesImportExport({
       // Let the browser paint the status before parsing and updating the document.
       await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
       const rules = parseStmRules(json, mission);
-      if (
-        !confirm(
-          `Replace all ${count} mission rules with ${rules.length} imported rules? Export a backup first if you want to keep the current rules.`
-        )
-      )
-        return;
+      const confirmed = await displayToast({
+        message: `Replace all ${count} mission rules with ${rules.length} imported rules? Export a backup first if you want to keep the current rules.`,
+        toastType: "confirm",
+      });
+      if (!confirmed) return;
       // This admin page writes to its own mission document, not the active mission.
       changeMission((doc) => {
         applyImportStmRules(doc, json);

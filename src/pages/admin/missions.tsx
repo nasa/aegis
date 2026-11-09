@@ -18,6 +18,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCaretDown, faCaretRight, faRocket } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
 import styles from "./missions.module.css";
+import { displayToast } from "components/toastNotifications";
 
 const Missions: React.FunctionComponent = () => {
   const loading = useAsyncStatus("Loading missions...");
@@ -211,11 +212,11 @@ const MissionList = ({
 
   async function delMissionAndAutomerge(missionId: number | null) {
     if (!missionId) return;
-    if (
-      confirm(
-        `Are you sure you want to delete mission ${missionId} and all of its GIS data? This will also delete the automerge doc listing.\nThis cannot be undone!`
-      )
-    ) {
+    const confirmed = await displayToast({
+      message: `Are you sure you want to delete mission ${missionId} and all of its GIS data? This will also delete the automerge doc listing.\nThis cannot be undone!`,
+      toastType: "confirm",
+    });
+    if (confirmed) {
       const res: WrappedResponse<number[]> = await deleteMissions([missionId]);
       if (res.status !== "success") {
         throw new Error(res.message || "Failed to delete mission");
@@ -320,13 +321,13 @@ const MissionList = ({
                   disabled={!!action.pending || isLoading || loadError}
                   className={styles.buttonSecondary}
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const archiveLabel = mission.archivedAt ? "Unarchive" : "Archive";
-                    if (
-                      confirm(
-                        `Are you sure you want to ${archiveLabel.toLowerCase()} "${mission.name}"?`
-                      )
-                    ) {
+                    const confirmed = await displayToast({
+                      message: `Are you sure you want to ${archiveLabel.toLowerCase()} "${mission.name}"?`,
+                      toastType: "confirm",
+                    });
+                    if (confirmed) {
                       action.run("Updating mission archive...", () =>
                         archiveMission({
                           id: mission.id,

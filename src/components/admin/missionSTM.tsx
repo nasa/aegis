@@ -59,8 +59,12 @@ const MissionSTM: FunctionComponent<{
   );
 
   //delete a level 1, 2, or 3
-  function delSTM(uuid: string, stmType: "Level1" | "Level2" | "Level3") {
-    if (!confirm("Are you sure you want to delete " + stmType)) return;
+  async function delSTM(uuid: string, stmType: "Level1" | "Level2" | "Level3") {
+    const confirmed = await displayToast({
+      message: "Are you sure you want to delete " + stmType,
+      toastType: "confirm",
+    });
+    if (!confirmed) return;
     const collection = STM_COLLECTION_BY_TYPE[stmType];
     const blocker = getStmLevelDeleteBlocker(missionDocHandle.doc(), { collection, uuid });
     if (blocker) {

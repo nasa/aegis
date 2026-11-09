@@ -142,8 +142,12 @@ export const ActionMenu: FunctionComponent<{
           {rexEditCapabilities.destructive && (
             <div
               className={actionStyles.menuItem}
-              onClick={(e) => {
-                if (window.confirm("Are you sure you want to delete this Action?")) {
+              onClick={async (e) => {
+                const confirmed = await displayToast({
+                  message: "Are you sure you want to delete this Action?",
+                  toastType: "confirm",
+                });
+                if (confirmed) {
                   withMissionChange((m) => {
                     applyDeleteActionAndUpdateParent(m, { uuid: action.uuid });
                     if (restrictedRexUuid) {

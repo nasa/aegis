@@ -45,6 +45,7 @@ import { applyUpdateRexByField } from "operations/apply/apply-rex";
 import { useRexExecuteEditMode } from "utils/rexExecuteEditMode";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
+import { displayToast } from "components/toastNotifications";
 
 const EvaRightEva: FunctionComponent = () => {
   const terrainProfiles = useAppSelector(
@@ -426,9 +427,11 @@ const EvaRightEva: FunctionComponent = () => {
               onClick={async () => {
                 if (isRexEva) {
                   // This is a rex EVA
-                  const confirmMsg =
-                    "Are you sure you want to delete this Real-time Execution (REX)?";
-                  if (!window.confirm(confirmMsg)) return;
+                  const confirmed = await displayToast({
+                    message: "Are you sure you want to delete this Real-time Execution (REX)?",
+                    toastType: "confirm",
+                  });
+                  if (!confirmed) return;
                   setShowOverlay({ showOverlay: true, message: "Deleting EVA Execution..." });
                   try {
                     await dispatch(thunkDocDeleteRex({ rexUuid: selectedRex?.uuid }));
@@ -443,7 +446,11 @@ const EvaRightEva: FunctionComponent = () => {
                     confirmMsg +=
                       "\nWARNING: This EVA has REXes. Deleting this EVA will delete ALL REXes in this EVA.";
                   }
-                  if (!window.confirm(confirmMsg)) return;
+                  const confirmed = await displayToast({
+                    message: confirmMsg,
+                    toastType: "confirm",
+                  });
+                  if (!confirmed) return;
                   setShowOverlay({ showOverlay: true, message: "Deleting EVA..." });
                   try {
                     await dispatch(thunkDocDeleteEva({ evaUuid: selectedEvaUuid, forRex: false }));
