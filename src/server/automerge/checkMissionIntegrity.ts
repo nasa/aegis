@@ -249,12 +249,9 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
   }
 
   // ── Assets ────────────────────────────────────────────────────────────────
-  // Location and its timestamp are set together; a set location has finite coordinates.
+  // A set location has finite coordinates.
   for (const asset of Object.values(doc.assets ?? {})) {
     const hasLocation = asset.location != null;
-    if (hasLocation !== (asset.locationSetAt != null)) {
-      log("locationSetAt", hasLocation ? "missing" : "unexpected", "Asset", asset.uuid);
-    }
     if (
       hasLocation &&
       !(Number.isFinite(asset.location.lat) && Number.isFinite(asset.location.lng))

@@ -82,7 +82,6 @@ export const thunkAddAsset = appCreateAsyncThunk<void>(
           icon: null,
           color: latest?.color ?? null,
           location: null,
-          locationSetAt: null,
           elevation: null,
           uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
           notes: null,
@@ -153,7 +152,7 @@ export const thunkStartAssetMapDirective = appCreateAsyncThunk<void>(
 
 /**
  * Accept or clear an in-edit location from a map click, a completed drag, or coordinate entry:
- * record the location timestamp and fetch the elevation when placed. The position stays in
+ * fetch the elevation when placed. The position stays in
  * the draft until Save, together with the other edited fields.
  */
 export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
@@ -172,7 +171,6 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
     setAssetInEditLocation({
       uuid,
       location: point,
-      locationSetAt: point ? getAccurateNow().getTime() : null,
       elevationPending: hasDem,
     })
   );

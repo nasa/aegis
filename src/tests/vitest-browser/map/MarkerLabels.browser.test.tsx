@@ -140,7 +140,6 @@ function makeAsset(uuid: string, lat: number, lng: number, color: string | null)
     elevation: null,
     uncertaintyMeters: 0,
     notes: null,
-    locationSetAt: 0,
     petSeconds: null,
     petRex: null,
     createdAt: 0,

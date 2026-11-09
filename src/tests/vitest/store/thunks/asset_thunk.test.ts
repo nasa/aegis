@@ -265,14 +265,13 @@ describe("thunkSetAssetEditLocation", () => {
     await store.dispatch(thunkSetAssetEditLocation({ uuid, location: null })).unwrap();
     expect(inEdit()).toMatchObject({
       elevationPending: false,
-      values: { location: null, locationSetAt: null, elevation: null },
+      values: { location: null, elevation: null },
     });
     expect(await store.dispatch(thunkSaveAssetEdit()).unwrap()).toBe(true);
     elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 25 });
     await pending.unwrap();
     expect(doc().assets[uuid]).toMatchObject({
       location: null,
-      locationSetAt: null,
       elevation: null,
     });
   });
@@ -298,7 +297,6 @@ describe("thunkSetAssetEditLocation", () => {
     await flush();
     expect(inEdit().elevationPending).toBe(true);
     expect(inEdit().values.petRex).toEqual({ uuid: running.uuid, name: running.name });
-    expect(inEdit().values.locationSetAt).toEqual(expect.any(Number));
     expect(inEdit().values.petSeconds).toBe(20 * 60);
     elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 42 });
     await pending;
@@ -360,7 +358,6 @@ describe("existing asset draft", () => {
     petSeconds: 600,
     petRex: { uuid: "original", name: "Original REX" },
     location: { lat: 1, lng: 1 },
-    locationSetAt: 7,
     elevation: 3,
   });
   beforeEach(async () => {
@@ -435,12 +432,11 @@ describe("existing asset draft", () => {
       expect(doc().assets[asset.uuid]).toEqual(asset);
       expect(inEdit()).toMatchObject({
         elevationPending: false,
-        values: { location: null, locationSetAt: null, elevation: null },
+        values: { location: null, elevation: null },
       });
       await store.dispatch(thunkSaveAssetEdit()).unwrap();
       expect(doc().assets[asset.uuid]).toMatchObject({
         location: null,
-        locationSetAt: null,
         elevation: null,
         notes: "Original notes",
       });
@@ -516,7 +512,6 @@ describe("thunkSaveAssetEdit", () => {
     expect(doc().assets[asset.uuid].petSeconds).toBe(2700);
     const source = nextRex ? next : original;
     expect(doc().assets[asset.uuid].petRex).toEqual({ uuid: source.uuid, name: source.name });
-    expect(doc().assets[asset.uuid].locationSetAt).toBeNull();
   });
 
   it("clears PET on Save during replanning without a running REX", async () => {
@@ -571,7 +566,6 @@ describe("thunkSaveAssetEdit", () => {
       name: "Drill",
       icon: null,
       location: null,
-      locationSetAt: null,
       visible: true,
     });
     expect(doc().folders[folder.uuid].items).toEqual([]);
@@ -586,13 +580,12 @@ describe("thunkSaveAssetEdit", () => {
     expect(inEdit()).not.toBeNull();
   });
 
-  it("waits for a pending elevation and keeps the location timestamp on a delayed Save", async () => {
+  it("waits for a pending elevation on a delayed Save", async () => {
     await store.dispatch(thunkAddAsset());
     store.dispatch(updateAssetInEditValues({ name: "Drill" }));
     const uuid = inEdit().uuid;
     store.dispatch(thunkSetAssetEditLocation({ uuid, location: { lat: 1, lng: 1 } }));
     await flush();
-    const placedAt = inEdit().values.locationSetAt;
     const saving = store.dispatch(thunkSaveAssetEdit());
     await flush();
     expect(doc().assets[uuid]).toBeUndefined();
@@ -601,16 +594,14 @@ describe("thunkSaveAssetEdit", () => {
     expect(doc().assets[uuid]).toMatchObject({
       elevation: null,
       location: { lat: 1, lng: 1 },
-      locationSetAt: placedAt,
     });
   });
 
-  it("writes only metadata on a metadata-only edit, keeping the location timestamp", async () => {
+  it("writes only metadata on a metadata-only edit, keeping the position and elevation", async () => {
     const asset = generateBlankAsset({
       name: "Drill",
       location: { lat: 1, lng: 1 },
       elevation: 3,
-      locationSetAt: 7,
     });
     getMissionDocHandle().change((m) => {
       m.assets[asset.uuid] = asset;
@@ -622,8 +613,8 @@ describe("thunkSaveAssetEdit", () => {
     expect(inEdit()).toBeNull();
     expect(doc().assets[asset.uuid]).toMatchObject({
       notes: "by the boulder",
+      location: { lat: 1, lng: 1 },
       elevation: 3,
-      locationSetAt: 7,
     });
   });
 

@@ -151,7 +151,6 @@ describe("map visibility", () => {
     generateBlankAsset({
       name: "Drill",
       location: { lat: 0, lng: 0 },
-      locationSetAt: Date.parse("2026-10-30T12:00:00Z"),
       ...overrides,
     });
 
@@ -257,33 +256,30 @@ describe("in-edit change tracking", () => {
       name: "Drill",
       location: { lat: 1, lng: 1 },
       elevation: 5,
-      locationSetAt: Date.parse("2026-10-30T12:00:00Z"),
     })
   );
 
-  test("metadata edits leave location, elevation, and its timestamp out of the change", () => {
+  test("metadata edits leave location and elevation out of the change", () => {
     expect(getChangedAssetFields(base, { ...base, notes: "left by rover" })).toEqual({
       notes: "left by rover",
     });
   });
 
-  test("PET edits leave location, elevation, and its timestamp out of the change", () => {
+  test("PET edits leave location and elevation out of the change", () => {
     expect(getChangedAssetFields(base, { ...base, petSeconds: -30 })).toEqual({
       petSeconds: -30,
       petRex: null,
     });
   });
 
-  test("a location change carries elevation and its timestamp with it", () => {
+  test("a location change carries elevation with it", () => {
     const moved = {
       ...base,
       location: { lat: 2, lng: 2 },
-      locationSetAt: 9,
     };
     expect(Object.keys(getChangedAssetFields(base, moved)).sort()).toEqual([
       "elevation",
       "location",
-      "locationSetAt",
     ]);
   });
 
@@ -295,9 +291,7 @@ describe("in-edit change tracking", () => {
     expect(validateAssetEditValues({ ...base, petSeconds: 0.5 })).toMatch(/PET/);
     expect(validateAssetEditValues({ ...base, location: { lat: NaN, lng: 0 } })).toMatch(/finite/);
     expect(validateAssetEditValues(base)).toBeNull();
-    expect(
-      validateAssetEditValues({ ...base, location: null, locationSetAt: null, elevation: null })
-    ).toBeNull();
+    expect(validateAssetEditValues({ ...base, location: null, elevation: null })).toBeNull();
   });
 
   test.each([1, ASSET_NAME_MAX_LENGTH - 1, ASSET_NAME_MAX_LENGTH])(

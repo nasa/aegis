@@ -80,7 +80,6 @@ const placed = (overrides: Partial<Asset> = {}) =>
   generateBlankAsset({
     name: "Drill",
     location: { lat: 0.01, lng: 0.02 },
-    locationSetAt: 1,
     ...overrides,
   });
 

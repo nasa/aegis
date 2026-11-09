@@ -172,7 +172,7 @@ describe("apply-asset", () => {
 
 describe("checkMissionIntegrity assets", () => {
   it("reports orphan asset folder items, duplicate membership, and broken placement", () => {
-    const placed = generateBlankAsset({ location: { lat: 1, lng: 1 }, locationSetAt: null });
+    const placed = generateBlankAsset({ location: { lat: NaN, lng: 1 } });
     const unplaced = generateBlankAsset();
     const poi = generateBlankPoi();
     const mission = generateBlankMission({
@@ -185,8 +185,8 @@ describe("checkMissionIntegrity assets", () => {
     });
     const findings = checkMissionIntegrity(1, mission).map((f) => `${f.entity}:${f.field}`);
     expect(findings).toEqual(
-      expect.arrayContaining(["Folder:items", "Folder:items (duplicate)", "Asset:locationSetAt"])
+      expect.arrayContaining(["Folder:items", "Folder:items (duplicate)", "Asset:location"])
     );
-    expect(findings.filter((f) => f.startsWith("Asset"))).toEqual(["Asset:locationSetAt"]);
+    expect(findings.filter((f) => f.startsWith("Asset"))).toEqual(["Asset:location"]);
   });
 });

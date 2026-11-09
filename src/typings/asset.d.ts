@@ -12,10 +12,8 @@ interface Asset {
   color: string | null;
   /** Shared map visibility of this asset. */
   visible: boolean;
-  /** Null until the asset is placed. Set together with `locationSetAt`. */
+  /** Null until the asset is placed. */
   location: AEGISPoint | null;
-  /** UTC epoch ms when the location was last set; null exactly when `location` is null. */
-  locationSetAt: number | null;
   elevation: number | null;
   /** Uncertainty radius in meters; zero draws no radius circle. */
   uncertaintyMeters: number;
@@ -35,7 +33,6 @@ type AssetEditValues = Pick<
   | "icon"
   | "color"
   | "location"
-  | "locationSetAt"
   | "elevation"
   | "uncertaintyMeters"
   | "notes"

@@ -219,12 +219,10 @@ describe("Mission Duplication Tests", () => {
   });
 
   describe("Asset Duplication", () => {
-    test("Duplicated mission keeps assets, asset folders, null locations, and location timestamps", async () => {
+    test("Duplicated mission keeps assets, asset folders, and placed and unplaced locations", async () => {
       const originalAssets = sourceData.mission.assets ?? {};
       expect(Object.values(originalAssets).some((asset) => asset.location === null)).toBe(true);
-      expect(Object.values(originalAssets).some((asset) => asset.locationSetAt !== null)).toBe(
-        true
-      );
+      expect(Object.values(originalAssets).some((asset) => asset.location !== null)).toBe(true);
 
       const duplicatedMission = await getDuplicatedMission();
       expect(duplicatedMission.assets).toEqual(originalAssets);

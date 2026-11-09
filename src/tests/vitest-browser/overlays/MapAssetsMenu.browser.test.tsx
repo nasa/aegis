@@ -428,7 +428,6 @@ describe("MapAssetsMenu", () => {
         uncertaintyMeters: 50,
         color: "#8055ff",
         location: { lat: -84.214738, lng: 33.589402 },
-        locationSetAt: 1,
         elevation: 539.71,
         notes: "Near the boulder",
       });
@@ -735,7 +734,7 @@ describe("MapAssetsMenu", () => {
       mockMissionDoc.usingLGRSCoordinates = usingLGRSCoordinates;
       mockMissionDoc.landerLocation = point;
       mockMissionDoc.planetRadius = 1737400;
-      const asset = generateBlankAsset({ name: "Drill", location: point, locationSetAt: 123456 });
+      const asset = generateBlankAsset({ name: "Drill", location: point });
       mockMissionDoc.assets = { [asset.uuid]: asset };
       store = makeStore(true);
       render();
@@ -869,7 +868,6 @@ describe("MapAssetsMenu", () => {
     const asset = generateBlankAsset({
       name: "Drill",
       location: { lat: 1, lng: 2 },
-      locationSetAt: 1,
       uncertaintyMeters: 20,
     });
     if (!creating) mockMissionDoc.assets = { [asset.uuid]: asset };
@@ -1052,7 +1050,6 @@ describe("MapAssetsMenu", () => {
     const asset = generateBlankAsset({
       name: "Drill",
       location: { lat: 1, lng: 1 },
-      locationSetAt: 1,
     });
     const folder = generateBlankFolder({
       type: "asset",

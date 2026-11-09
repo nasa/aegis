@@ -48,7 +48,6 @@ export const ASSET_EDIT_FIELDS: readonly (keyof AssetEditValues)[] = [
   "icon",
   "color",
   "location",
-  "locationSetAt",
   "elevation",
   "uncertaintyMeters",
   "notes",
@@ -175,15 +174,11 @@ export function getAssetEditValues(asset: Asset): AssetEditValues {
   return values;
 }
 
-const LOCATION_FIELDS: readonly (keyof AssetEditValues)[] = [
-  "location",
-  "elevation",
-  "locationSetAt",
-];
+const LOCATION_FIELDS: readonly (keyof AssetEditValues)[] = ["location", "elevation"];
 const PET_FIELDS: readonly (keyof AssetEditValues)[] = ["petSeconds", "petRex"];
 
 /**
- * Fields of `values` that differ from `base`, detached. Location, elevation, and its timestamp are
+ * Fields of `values` that differ from `base`, detached. Location and elevation are
  * one unit; PET and its source REX are another. A change carries the whole unit.
  */
 export function getChangedAssetFields(
@@ -218,9 +213,6 @@ export function validateAssetEditValues(values: AssetEditValues): string | null 
   }
   if (values.location !== null && !isPlacedLocation(values.location)) {
     return "Coordinates must be finite";
-  }
-  if ((values.location === null) !== (values.locationSetAt === null)) {
-    return "Location and its timestamp must be set together";
   }
   return null;
 }
