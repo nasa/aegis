@@ -15,6 +15,7 @@ import {
   buildStationStyleFunction,
   buildPoiStyleFunction,
   buildActionStyleFunction,
+  buildAssetStyleFunction,
   buildLanderStyle,
 } from "components/interface/map/utils/styles/markers";
 import { MODE_CONFIGS } from "components/interface/map/utils/modeConfig";
@@ -33,6 +34,48 @@ function makeFeature(uuid: string, props: Record<string, unknown> = {}): Feature
 function getIconStyle(styles: Style[]): Style | undefined {
   return styles.find((s) => s.getImage() instanceof Icon);
 }
+
+describe("custom emoji markers", () => {
+  it.each([
+    ["station", "/images/station.svg"],
+    ["landerIcon", "/images/lander.svg"],
+  ])("loads %s as an image for assets and stations", async (emoji, src) => {
+    const builders = [
+      buildAssetStyleFunction("custom", 20),
+      buildAssetStyleFunction(null, 34),
+      buildStationStyleFunction(MODE_CONFIGS.editor, null, []),
+      buildStationStyleFunction(MODE_CONFIGS.dashboard, null, []),
+      buildPoiStyleFunction(null),
+      buildActionStyleFunction(null),
+    ];
+    for (const builder of builders) {
+      const feature = makeFeature("custom", { emoji });
+      const styles = builder(feature, 1);
+      const icon = getIconStyle(styles)!.getImage() as Icon;
+      expect(icon.getSrc()).toContain(src);
+      icon.load();
+      await icon.ready();
+      const image = icon.getImage(1) as HTMLImageElement;
+      expect(image).toBeInstanceOf(HTMLImageElement);
+      expect(image.naturalWidth).toBeGreaterThan(0);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 40;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(image, 0, 0, 40, 40);
+      const pixels = ctx.getImageData(0, 0, 40, 40).data;
+      expect(pixels.some((value, index) => index % 4 === 3 && value > 0)).toBe(true);
+      expect(builder(feature, 1)).toBe(styles);
+    }
+  });
+
+  it("keeps Unicode assets on a canvas and preserves selection outlines", () => {
+    const builder = buildAssetStyleFunction("selected");
+    const styles = builder(makeFeature("selected", { emoji: "1f680" }), 1);
+    const icon = getIconStyle(styles)!.getImage() as Icon;
+    expect(icon.getImage(1)).toBeInstanceOf(HTMLCanvasElement);
+    expect(styles.some((style) => style.getImage() instanceof CircleStyle)).toBe(true);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // buildStationStyleFunction

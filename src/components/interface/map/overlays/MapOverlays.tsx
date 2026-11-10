@@ -69,11 +69,6 @@ export function MapOverlays(): JSX.Element {
 
   const presets = useMissionDocSelector(selectPresets, deepEqual) ?? [];
 
-  const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
-  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const selectedRex = useMissionDocSelector((m) => {
-    return selectedRexUuid ? (m.rexes?.[selectedRexUuid] ?? null) : null;
-  }, deepEqual);
   const rexMenuIsMinimized = useAppSelector(
     (state) => state.interface.rexMenuIsMinimized,
     refEqual
@@ -94,6 +89,8 @@ export function MapOverlays(): JSX.Element {
             setMapDisplayStations={setters.setSubmenuStations}
             mapDisplayActions={display.submenuActions}
             setMapDisplayActions={setters.setSubmenuActions}
+            mapDisplayAssets={display.submenuAssets}
+            setMapDisplayAssets={setters.setSubmenuAssets}
             showArrows={display.showArrows}
             setShowArrows={setters.setShowArrows}
             showBearings={display.showBearings}
@@ -154,11 +151,8 @@ export function MapOverlays(): JSX.Element {
       )}
 
       {/* Rex Menu launcher — top right while the floating Rex Menu widget is minimized (editor
-          only, when EVAs section active and a REX is selected) */}
-      {config.mode === "editor" &&
-        sectionSelected === "evas" &&
-        selectedRex &&
-        rexMenuIsMinimized && <RexMenuLauncher />}
+          only, in every section) */}
+      {config.mode === "editor" && rexMenuIsMinimized && <RexMenuLauncher />}
     </>
   );
 }

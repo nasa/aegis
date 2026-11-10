@@ -2,7 +2,8 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon, type CSSVariables } from "@fortawesome/react-fontawesome";
 import { faCheckSquare, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 import type { FunctionComponent, CSSProperties, ChangeEvent, ReactNode } from "react";
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
+import { PickerPopover } from "./PickerPopover";
 import { EmojiRenderer } from "components/interface/emojis";
 import type { FieldRenderProps } from "react-final-form";
 import formStyles from "./globalFields.module.css";
@@ -13,8 +14,7 @@ import {
   getFiltersForValidators,
   type Stringy,
 } from "components/interface/form/formValidators";
-import Select from "react-select";
-import type { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "typings/form";
+import type { FFTextProps, FFTextAreaProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import CircularSlider from "@fseehawer/react-circular-slider";
 import CompactColor from "@uiw/react-color-compact";
@@ -58,6 +58,7 @@ export const Button: FunctionComponent<{
       }}
       style={style}
       aria-label={ariaLabel || label || ""}
+      aria-disabled={!enabled}
     >
       {icon && (
         <FontAwesomeIcon
@@ -616,12 +617,13 @@ export const DegreesInputSlider: FunctionComponent<{
  * Color picker
  */
 export const PathColorPickerMenu: FunctionComponent<{
-  currentColor: string;
+  currentColor: string | null;
   editMode: boolean;
   updateColor: (color: string) => void;
   styleContainer?: CSSProperties;
   direction?: "left" | "right";
   hasDarkBorder?: boolean;
+  circular?: boolean;
 }> = ({
   currentColor,
   editMode,
@@ -629,56 +631,45 @@ export const PathColorPickerMenu: FunctionComponent<{
   styleContainer,
   direction = "left",
   hasDarkBorder,
+  circular = false,
 }) => {
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const closePicker = useCallback(() => setAnchor(null), []);
 
   return (
     <>
       <div>
         <div
           style={styleContainer}
-          className={`${formStyles.propertyPathColor} ${hasDarkBorder ? formStyles.propertyPathColorDark : formStyles.propertyPathColorLight} ${editMode ? formStyles.propertyEditMode : ""}`}
-          onClick={() => {
+          className={`${formStyles.propertyPathColor} ${hasDarkBorder ? formStyles.propertyPathColorDark : formStyles.propertyPathColorLight} ${editMode ? formStyles.propertyEditMode : ""} ${circular ? formStyles.propertyCircular : ""}`}
+          onClick={(e) => {
             if (!editMode) return;
-            setShowColorPicker(true);
+            setAnchor(e.currentTarget);
           }}
         >
           <div
-            className={formStyles.pathColorSample}
+            className={`${formStyles.pathColorSample} ${currentColor === null ? formStyles.pathColorSampleNone : ""}`}
+            title={currentColor === null ? "No color selected" : undefined}
             style={{
-              backgroundColor: currentColor,
+              backgroundColor: currentColor ?? "#ffffff",
             }}
           ></div>
         </div>
-        {showColorPicker ? (
-          <>
-            <div className={formStyles.colorPickerPopover}>
-              <div
-                className={formStyles.colorPickerCover}
-                onClick={() => {
-                  setShowColorPicker(false);
-                }}
-              ></div>
-              <div
-                className={formStyles.colorPickerMenu}
-                ref={menuRef}
-                style={direction === "left" ? { transform: "translateX(-180px)" } : null}
-              >
-                <CompactColor
-                  color={currentColor}
-                  colors={COLOR_PALATTE}
-                  onChange={(color) => {
-                    updateColor(color.hex);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        ) : null}
+        {anchor && editMode && (
+          <PickerPopover anchor={anchor} onClose={closePicker} direction={direction}>
+            <CompactColor
+              color={currentColor ?? undefined}
+              colors={COLOR_PALATTE}
+              rectProps={circular ? { style: { borderRadius: "50%" } } : undefined}
+              onChange={(color) => {
+                updateColor(color.hex);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            />
+          </PickerPopover>
+        )}
       </div>
     </>
   );
@@ -689,7 +680,7 @@ export const PathColorPickerMenu: FunctionComponent<{
  * @param param0
  * @returns
  */
-export const FFInput: FunctionComponent<FFTextProps> = ({
+const FFInput: FunctionComponent<FFTextProps> = ({
   name,
   ariaLabel,
   label = false,
@@ -701,6 +692,8 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
   toFocus,
   onChange,
   onBlur,
+  inputProps,
+  onValueChange,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
@@ -740,12 +733,15 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
             ) : null}
             <input
               {...input}
+              {...inputProps}
               className={`${className} ${meta.error && meta.touched ? classNameError : null}`}
               type="text"
               aria-label={ariaLabel}
               style={style}
               onChange={(event) => {
-                input.onChange(composedFilter(event.target.value));
+                const value = composedFilter(event.target.value);
+                input.onChange(value);
+                onValueChange?.(value);
                 if (onChange) onChange(event); //call custom on change
               }}
               onBlur={(event) => {
@@ -774,7 +770,7 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
  * @param param0
  * @returns
  */
-export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
+const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
   name,
   ariaLabel,
   label = false,
@@ -785,6 +781,8 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
   initialValue,
   onChange,
   onBlur,
+  inputProps,
+  onValueChange,
 }) => {
   const composedFilter = validators.length
     ? getFiltersForValidators(validators)
@@ -811,11 +809,14 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
           ) : null}
           <textarea
             {...input}
+            {...inputProps}
             className={`${className} ${meta.error && meta.touched ? classNameError : null}`}
             aria-label={ariaLabel}
             style={style}
             onChange={(event) => {
-              input.onChange(composedFilter(event.target.value));
+              const value = composedFilter(event.target.value);
+              input.onChange(value);
+              onValueChange?.(value);
               if (onChange) onChange(event); //call custom on change
             }}
             onBlur={(event) => {
@@ -829,85 +830,6 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
           <ValidationErrors meta={meta} />
         </React.Fragment>
       )}
-    </Field>
-  );
-};
-
-/**
- * Should not be called directly. Use the {@link Checkbox} component instead
- * @param param0
- * @returns
- */
-export const FFCheckbox: FunctionComponent<FFCheckboxProps> = ({
-  name,
-  label = false,
-  className,
-  validators = [],
-  style = {},
-  initialValue,
-}) => {
-  return (
-    <Field
-      name={name}
-      validate={composeValidators(...validators)}
-      type="checkbox"
-      initialValue={initialValue}
-    >
-      {({ input, meta }) => (
-        <React.Fragment>
-          {label ? (
-            <label
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-content={label.title}
-              className={label.className}
-              style={label.style}
-            >
-              {label.label}
-            </label>
-          ) : null}
-          <div className={className} style={style}>
-            <input
-              {...input}
-              className={meta.error && meta.touched ? "error" : undefined}
-              type="checkbox"
-              style={style}
-            />
-          </div>
-          <ValidationErrors meta={meta} />
-        </React.Fragment>
-      )}
-    </Field>
-  );
-};
-
-/**
- * Should not be called directly. Use the {@link Dropdown} component instead
- * @param param0
- * @returns
- */
-export const FFSelect: FunctionComponent<FFSelectProps> = ({
-  name,
-  className,
-  label = false,
-  searchable = false,
-  options,
-}) => {
-  const selectAdapter = (
-    { input, ...rest }: { input: any } // eslint-disable-line @typescript-eslint/no-explicit-any
-  ) => <Select {...input} {...rest} className={className} searchable={searchable} />;
-
-  return (
-    <Field name={name} component={selectAdapter} type="select" options={options}>
-      {label ? (
-        <label
-          data-tooltip-id="aegis-tooltip"
-          data-tooltip-content={label.title}
-          className={label.className}
-          style={label.style}
-        >
-          {label.label}
-        </label>
-      ) : null}
     </Field>
   );
 };

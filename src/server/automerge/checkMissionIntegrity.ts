@@ -233,6 +233,7 @@ export function checkMissionIntegrity(missionId: number, doc: Mission): Integrit
     eva: evaUuids,
     preset: new Set(Object.keys(doc.presets ?? {})),
     layer: layerUuids,
+    asset: new Set(Object.keys(doc.assets ?? {})),
   };
   for (const folder of Object.values(doc.folders ?? {})) {
     const targets = folderTargetUuids[folder.type];

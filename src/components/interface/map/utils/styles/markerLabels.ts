@@ -19,6 +19,8 @@ import Point from "ol/geom/Point";
 import { LineString } from "ol/geom";
 import { Style, Icon, Stroke, Fill, Circle as CircleStyle } from "ol/style";
 
+import type { ModeConfig } from "../modeConfig";
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -30,31 +32,30 @@ const TEXT_PADDING_V = 4;
 const DOT_RADIUS = 3;
 
 // Colors per label type
-const LABEL_COLORS: Record<string, { text: string; bg: string; connector: string }> = {
+const LABEL_COLORS: Record<string, { text: string; bg: string }> = {
   lander: {
     text: "rgba(255,255,255,1)",
     bg: "rgba(0,0,0,0.6)",
-    connector: "rgba(255,255,255,0.7)",
   },
   station: {
     text: "rgba(255,255,255,0.95)",
     bg: "rgba(0,0,0,0.5)",
-    connector: "rgba(255,255,255,0.5)",
   },
   poi: {
     text: "rgba(200,220,255,0.9)",
     bg: "rgba(0,0,0,0.5)",
-    connector: "rgba(200,220,255,0.45)",
   },
   action: {
     text: "rgba(255,220,180,0.9)",
     bg: "rgba(0,0,0,0.5)",
-    connector: "rgba(255,220,180,0.45)",
   },
   pos: {
     text: "rgb(255, 255, 255)",
     bg: "rgba(0,0,0,0.9)",
-    connector: "rgba(180,255,200,0.45)",
+  },
+  asset: {
+    text: "rgba(255,236,170,0.95)",
+    bg: "rgba(0,0,0,0.5)",
   },
 };
 
@@ -69,17 +70,21 @@ if (_measureCtx) _measureCtx.font = LABEL_FONT;
  *
  * Each label feature must have properties:
  * - `name` (string) — label text
- * - `labelType` ('lander' | 'station' | 'poi' | 'action')
+ * - `labelType` ('lander' | 'station' | 'poi' | 'action' | 'pos' | 'asset')
  * - `anchorCoord` ([number, number]) — projected map coordinate of the marker
+ *
+ * `asset` (optional `ModeConfig["asset"]`) restyles asset labels per mode
+ * (font size and text/box colors). When omitted, asset labels use
+ * the hard-coded `LABEL_COLORS.asset` entry.
  *
  * The feature's geometry is a Point at the label position (may differ from
  * anchor if auto-laid-out or dragged).
  */
 export function createMarkerLabelStyle(
   fontSizePx: number = DEFAULT_LABEL_FONT_SIZE,
-  connectorWidth: number = 1.5
+  connectorWidth: number = 1.5,
+  asset?: ModeConfig["asset"]
 ) {
-  const font = `${fontSizePx}px sans-serif`;
   // Scale the dash pattern with the line width so the dashes keep the same
   // visual proportion as the line thickens (short dashes on a thick line read
   // as a muddy solid colour). Base ratio: 4px dash at 1.5px width.
@@ -95,6 +100,15 @@ export function createMarkerLabelStyle(
     const colors = LABEL_COLORS[labelType] || DEFAULT_COLORS;
     const opacity = (feature.get("labelOpacity") as number) ?? 1.0;
 
+    // Asset labels are restyled per mode via `asset`; every other type
+    // keeps its LABEL_COLORS entry.
+    const isAsset = labelType === "asset";
+    const fontPx = isAsset && asset ? asset.labelFontSize : fontSizePx;
+    const fontWeight = isAsset && asset ? asset.labelFontWeight : "normal";
+    const fontSpec = `${fontWeight} ${fontPx}px sans-serif`;
+    const boxColors =
+      isAsset && asset ? { ...colors, text: asset.labelTextColor, bg: asset.labelBgColor } : colors;
+
     const geom = feature.getGeometry() as Point | undefined;
     if (!geom) return undefined;
     const labelCoord = geom.getCoordinates();
@@ -106,10 +120,17 @@ export function createMarkerLabelStyle(
     const dpr = window.devicePixelRatio || 1;
 
     // Build base label canvas (text box only)
-    const baseCacheKey = `${name}-${labelType}-${fontSizePx}-${dpr}`;
+    const baseCacheKey = `${name}-${labelType}-${fontPx}-${fontWeight}-${dpr}`;
     let baseLabelImg = baseLabelCache.get(baseCacheKey);
     if (!baseLabelImg) {
-      baseLabelImg = renderBaseLabelCanvas(name, colors.text, colors.bg, font, fontSizePx, dpr);
+      baseLabelImg = renderBaseLabelCanvas(
+        name,
+        boxColors.text,
+        boxColors.bg,
+        fontSpec,
+        fontPx,
+        dpr
+      );
       if (!baseLabelImg) return undefined;
       baseLabelCache.set(baseCacheKey, baseLabelImg);
     }
@@ -169,7 +190,7 @@ export function createMarkerLabelStyle(
     const anchorDot = new Style({
       image: new CircleStyle({
         radius: DOT_RADIUS,
-        fill: new Fill({ color: applyOpacity(colors.text, opacity) }),
+        fill: new Fill({ color: applyOpacity(boxColors.text, opacity) }),
         stroke: new Stroke({
           color: applyOpacity("rgba(0,0,0,0.5)", opacity),
           width: 1,

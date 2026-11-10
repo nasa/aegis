@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { MapBrowserEvent } from "ol";
 import type { Coordinate } from "ol/coordinate";
 
+import { formatLatLng } from "utils/coordinateEntry";
 import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridCoordinatesFromPoint } from "utils/mapping/geoMath";
@@ -80,7 +81,7 @@ export function MouseCoordinateDisplay({
       if (inputs.adapter.mapToLatLon(coordinate[0], coordinate[1], latLon)) {
         const point: AEGISPoint = { lat: latLon[0], lng: latLon[1] };
         next = {
-          latLng: `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`,
+          latLng: formatLatLng(point),
           grid: inputs.formatGrid(point),
         };
       }

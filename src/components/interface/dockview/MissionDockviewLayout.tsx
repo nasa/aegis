@@ -6,7 +6,12 @@ import {
   useState,
   type FunctionComponent,
 } from "react";
-import { DockviewReact, type DockviewApi, type DockviewReadyEvent } from "dockview-react";
+import {
+  DockviewReact,
+  themeDark,
+  type DockviewApi,
+  type DockviewReadyEvent,
+} from "dockview-react";
 import "dockview-react/dist/styles/dockview.css";
 
 import {
@@ -38,6 +43,11 @@ const BOTTOM_CLOSED_HEIGHT = 0;
 const RIGHT_OPEN_WIDTH = 480;
 const RIGHT_CLOSED_WIDTH = 0;
 const PANEL_SEPARATOR_SIZE = 1;
+
+// Dockview's built-in dark theme supplies the default tab formatting (active vs inactive tab
+// colors, dividers, drag-over styles); missionDockviewLayout.module.css recolors it to the AEGIS
+// palette via --dv-* variables, the same pattern CODA's dockview setup uses.
+const dockviewTheme = themeDark;
 
 const LeftPanel: FunctionComponent = () => {
   const selectedNavItem = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
@@ -248,6 +258,7 @@ export function MissionDockviewLayout(): JSX.Element {
         tabComponents={rexMenuTabComponents}
         rightHeaderActionsComponent={RexMenuHeaderActions}
         onReady={onReady}
+        theme={dockviewTheme}
         locked={true}
         disableDnd={true}
         floatingGroupBounds="boundedWithinViewport"

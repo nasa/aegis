@@ -8,12 +8,32 @@ export type Stringy = string | string[] | number;
  *    they must be passed through the {@link composeValidators} function
  */
 
-const required = (value: Stringy): string | undefined => (value ? undefined : "Required");
+// Whitespace-only text counts as empty.
+const required = (value: Stringy): string | undefined => {
+  if (typeof value === "string") return value.trim() ? undefined : "Required";
+  return value ? undefined : "Required";
+};
 
 const mustBeNumber = (value: Stringy): string | undefined => {
   if (!value) return undefined;
   const regex = /^-?(\d+)(\.\d+)?$/;
   return !regex.test(String(value)) ? "Not a valid number/float" : undefined;
+};
+
+const mustBeLatitude = (value: Stringy): string | undefined => {
+  if (value === "" || value == null) return undefined;
+  const number = Number(value);
+  return !Number.isFinite(number) || number < -90 || number > 90
+    ? "Latitude must be between -90 and 90"
+    : undefined;
+};
+
+const mustBeLongitude = (value: Stringy): string | undefined => {
+  if (value === "" || value == null) return undefined;
+  const number = Number(value);
+  return !Number.isFinite(number) || number < -360 || number > 360
+    ? "Longitude must be between -360 and 360"
+    : undefined;
 };
 
 const minValue =
@@ -87,13 +107,18 @@ const mustBeNumberGTEZero = (value: Stringy): string | undefined => {
 
 const mustBeHHMMSS = (value: Stringy): string | undefined => {
   if (!value) return undefined;
-  if (value === "") return undefined;
-  const regex = /^(\-|\+)?([0-9]{2}):([0-9]{2}):([0-9]{2})$/;
-  if (regex.test(value as string)) {
-    return undefined;
-  } else {
-    return "Must be in HH:MM:SS format";
+  const text = String(value).trim();
+  if (!text) return undefined;
+  const match = /^[+-]?(\d{2,}):(\d{2}):(\d{2})$/.exec(text);
+  if (!match) return "Must be in HH:MM:SS format";
+  const [, hours, minutes, seconds] = match;
+  if (Number(minutes) > 59 || Number(seconds) > 59) {
+    return "Minutes and seconds must be between 00 and 59";
   }
+  if (!Number.isSafeInteger(Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds))) {
+    return "Time is too large";
+  }
+  return undefined;
 };
 
 const mustBeYYYYMMDD = (value: Stringy): string | undefined => {
@@ -144,6 +169,8 @@ const mustBeISOString = (value: Stringy): string | undefined => {
 export const validators = {
   required,
   mustBeNumber,
+  mustBeLatitude,
+  mustBeLongitude,
   minValue,
   maxValue,
   minLength,
@@ -198,6 +225,8 @@ const validatorsWithFilters: Record<string, (value: Stringy) => string> = {
   ...Object.fromEntries(filterNumbersValidators.map((validator) => [validator, filterNumbersOnly])),
 
   mustBeInteger: filterIntegersOnly,
+  mustBeLatitude: filterNumbersOnly,
+  mustBeLongitude: filterNumbersOnly,
   mustBeYYYYMMDD: filterIntegersOnly,
   mustBeHHMMSS: filterHHMMSS,
   mustBeISOString: filterISOString,

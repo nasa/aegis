@@ -6,9 +6,9 @@
  *
  * Owns its own `<MapMenuProvider>` so eyeball menu settings are scoped to this map
  * only — with two exceptions mirrored from the dashboard menu via
- * `DashboardBoundsProvider`: scale bar and traverse arrows. The scale bar is gated
- * on the shared value directly; arrows are synced into the local provider by
- * `MinimapMenuSubscriber` so the shared `TraverseLines` behavior picks them up.
+ * `DashboardBoundsProvider`: scale bar, traverse arrows, and assets. The scale bar is
+ * gated on the shared value directly; arrows and assets are synced into the local provider
+ * by `MinimapMenuSubscriber` so the shared behaviors pick them up.
  */
 import { AegisMap } from "./AegisMap";
 import { MapMenuProvider } from "./MapMenuProvider";
@@ -20,6 +20,8 @@ import { LanderMarker } from "./behaviors/LanderMarker";
 import { StationMarkers } from "./behaviors/StationMarkers";
 import { TraverseLines } from "./behaviors/TraverseLines";
 import { PosEntries } from "./behaviors/PosEntries";
+import { AssetMarkers } from "./behaviors/AssetMarkers";
+import { AssetUncertainty } from "./behaviors/AssetUncertainty";
 import { BigMapBoundsBox } from "./behaviors/BigMapBoundsBox";
 import { AutoFitBounds } from "./behaviors/AutoFitBounds";
 import { ScaleBar } from "./overlays/ScaleBar";
@@ -38,7 +40,9 @@ export function AegisMapMinimap(): JSX.Element {
         <TileLayers />
         <Grid />
         <TraverseLines />
+        <AssetUncertainty />
         <StationMarkers />
+        <AssetMarkers />
         <LanderMarker />
         <PosEntries />
         <BigMapBoundsBox />

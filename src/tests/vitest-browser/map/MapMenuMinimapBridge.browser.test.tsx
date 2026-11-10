@@ -46,12 +46,6 @@ afterEach(() => {
   harness.unmount();
 });
 
-// The bridge relays values through a `useEffect`, so propagation lands one tick
-// after the source setter. Drain the effect cascade before asserting.
-async function flushEffects(): Promise<void> {
-  await new Promise((r) => setTimeout(r, 0));
-}
-
 describe("DashboardMenuPublisher", () => {
   it("publishes menu scale bar + arrows into DashboardBoundsProvider", async () => {
     let menuSetters: MapMenuSetters | null = null;
@@ -79,12 +73,10 @@ describe("DashboardMenuPublisher", () => {
     expect(bounds!.showArrows).toBe(true);
 
     flushSync(() => menuSetters!.setShowScaleBar(false));
-    await flushEffects();
-    expect(bounds!.showScaleBar).toBe(false);
+    await expect.poll(() => bounds!.showScaleBar).toBe(false);
 
     flushSync(() => menuSetters!.setShowArrows(false));
-    await flushEffects();
-    expect(bounds!.showArrows).toBe(false);
+    await expect.poll(() => bounds!.showArrows).toBe(false);
   });
 });
 
@@ -113,7 +105,45 @@ describe("MinimapMenuSubscriber", () => {
     expect(menu!.showArrows).toBe(true);
 
     flushSync(() => bounds!.setShowArrows(false));
-    await flushEffects();
-    expect(menu!.showArrows).toBe(false);
+    await expect.poll(() => menu!.showArrows).toBe(false);
+  });
+});
+
+describe("asset visibility bridge", () => {
+  it("mirrors the dashboard's Assets toggle into the minimap's own provider", async () => {
+    let dashboardSetters: MapMenuSetters | null = null;
+    let minimapMenu: MapMenuSettings | null = null;
+
+    function DashboardProbe(): null {
+      dashboardSetters = useMapMenuSetters();
+      return null;
+    }
+    function MinimapProbe(): null {
+      minimapMenu = useMapMenuContext();
+      return null;
+    }
+
+    harness.render(
+      <CookiesProvider cookies={cookies}>
+        <DashboardBoundsProvider>
+          <MapMenuProvider>
+            <DashboardMenuPublisher />
+            <DashboardProbe />
+          </MapMenuProvider>
+          <MapMenuProvider>
+            <MinimapMenuSubscriber />
+            <MinimapProbe />
+          </MapMenuProvider>
+        </DashboardBoundsProvider>
+      </CookiesProvider>
+    );
+
+    expect(minimapMenu!.submenuAssets.show).toBe(true);
+    flushSync(() => dashboardSetters!.setSubmenuAssets({ show: false, showLabels: true }));
+    await expect.poll(() => minimapMenu!.submenuAssets.show).toBe(false);
+
+    flushSync(() => dashboardSetters!.setSubmenuAssets({ show: true, showLabels: false }));
+    await expect.poll(() => minimapMenu!.submenuAssets.show).toBe(true);
+    expect(minimapMenu!.submenuAssets.showLabels).toBe(true);
   });
 });

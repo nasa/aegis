@@ -136,6 +136,7 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
   - See `src/operations/README.md` for the full convention with examples.
 - **Socket.io** client syncs non-Automerge real-time events (connection status, heartbeats, version checks).
 - Vite path aliases map `"store"`, `"components"`, `"utils"`, etc. directly to `src/` subdirectories — use these aliases in imports.
+- **Form fields** — use the exported components in `src/components/interface/form/globalFields.tsx` (`InLineEditInput`, `TextArea`, `Checkbox`, `Dropdown`, ...) or the Automerge variants in `globalFieldsAutomerge.tsx`. The final-form `FFInput` / `FFTextArea` are internal to `globalFields.tsx` and not exported. Validate with the `validators` from `formValidators.ts`; the components apply the matching input filters (for example, digits only for `mustBeNumber`) and the standard error border and warning-icon tooltip. `validators.required` treats whitespace-only text as empty. Do not add per-feature validators that repeat these checks.
 
 ### TypeScript Type Conventions
 
@@ -216,6 +217,7 @@ The app organizes around these core entities. Since the Automerge entity migrati
 | **Layers / Sublayers**      | `apply-mission-layer.ts`                             | —                           | ❌ dropped | ✅ (doc-backed) |
 | **Preset**                  | `apply-mission-preset.ts`                            | `preset.ts`                 | ❌ dropped | ❌ removed      |
 | **Folder**                  | `apply-mission-folder.ts`                            | `interface.ts`              | ❌ dropped | ❌ removed      |
+| **Asset**                   | `apply-asset.ts`                                     | `asset.ts`                  | ❌ none    | ❌ none         |
 
 - **Mission** — top-level planning container; Automerge document root. Per-mission doc holds all collaborative entity data.
 - **EVA** — Extra-Vehicular Activity; lives inside the mission Automerge doc.
@@ -227,6 +229,7 @@ The app organizes around these core entities. Since the Automerge entity migrati
 - **STM** — Science Traceability Matrix (`stmLevel1s` → `stmLevel2s` → `stmLevel3s`, plus `stmRules`); lives inside the mission Automerge doc. `action.stmPriorities` and `stmRule.stmUuid` reference level 3 uuids.
 - **Layers / Sublayers** — GIS map layers (`layers`, `sublayers`); live inside the mission Automerge doc. Adding, moving, or deleting a layer or sublayer updates every preset's `layerOrder` and `mapSublayerControls` in the same change.
 - **Preset** — saved map display configurations (`presets`); live inside the mission Automerge doc and are edited with the global edit toggle like stations.
+- **Asset** — tracked point assets (`assets`); mission data, not EVA/REX data, so one asset appears in every EVA and REX. Edited from the Assets tab of the floating map widget with mission edit permission and the global Edit toggle, through a Redux edit session (`state.asset.inEdit`, covering both Add and Edit) written in one change on Save. `location` and `placement` (the running-REX/PET record from when the location was set) are both null until placed. Grouped by `type: "asset"` folders whose `visible` flag, like each asset's own `visible`, is shared on every viewer's maps.
 - **Folder** — left-panel folders for POIs, stations, EVAs, and presets (`folders`); live inside the mission Automerge doc. Deleting an entity removes it from every folder in the same change. Station and POI folder map visibility (`folder.visible`) is shared through the doc; folder open/closed state is UI-only (`interface.foldersInterface`, cookie-backed).
 
 > **Note**: "DB model (legacy)" means a MikroORM model still exists and is used by `src/server/automerge/migration.ts` to seed Automerge docs from existing PostgreSQL data, but is no longer written at runtime.

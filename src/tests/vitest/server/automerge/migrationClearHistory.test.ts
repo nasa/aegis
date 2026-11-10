@@ -12,7 +12,6 @@ import { Migration20261022000000 } from "server/automerge/migrations/Migration20
 import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 import { Migration20261028000000 } from "server/automerge/migrations/Migration20261028000000";
-import { Migration20261102000000 } from "server/automerge/migrations/Migration20261102000000";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -113,7 +112,7 @@ describe("clear Automerge document history", () => {
   it("is registered after the existing document migrations", () => {
     const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261028000000);
     expect(index).toBeGreaterThan(0);
-    expect(AUTOMERGE_MIGRATIONS[index - 1].version).toBe(20261026000000);
+    expect(AUTOMERGE_MIGRATIONS[index - 1]).toBe(Migration20261026000000);
   });
 
   it("runs after schema migrations and passes replacement handles to later migrations and release", async () => {
@@ -133,14 +132,14 @@ describe("clear Automerge document history", () => {
     const listings = [first.listing, second.listing];
     const oldUrls = listings.map(({ automergeUrl }) => automergeUrl);
     const schemaMigrations = AUTOMERGE_MIGRATIONS.filter(
-      ({ version }) => version >= Migration20261022000000.version
+      ({ version }) =>
+        version >= Migration20261022000000.version && version <= Migration20261028000000.version
     );
     expect(schemaMigrations).toEqual([
       Migration20261022000000,
       Migration20261022010000,
       Migration20261026000000,
       Migration20261028000000,
-      Migration20261102000000,
     ]);
     globalValues.automergeRepo = repo;
 

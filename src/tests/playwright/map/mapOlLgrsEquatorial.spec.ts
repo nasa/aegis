@@ -9,7 +9,7 @@
 
 import type { APIRequestContext, Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
-import { toggleEditMode, waitForPageReady } from "../helpers";
+import { minimizeRexMenu, toggleEditMode, waitForPageReady } from "../helpers";
 
 const LANDER = { lat: -3.645, lng: -17.47 };
 
@@ -126,6 +126,7 @@ test.describe("Equatorial mission — whole-Moon LGRS", () => {
       const mapPanel = page.getByTestId("mission-panel-map");
       const viewport = mapPanel.locator(".ol-viewport").first();
       await viewport.waitFor({ state: "visible", timeout: 15000 });
+      await minimizeRexMenu(page);
 
       await test.step("mouse readout shows lat/lng and an LTM LGRS string", async () => {
         const box = await viewport.boundingBox();

@@ -252,6 +252,7 @@ interface WholeStoreState {
   action: ActionState;
   rex: RexState;
   measure: MeasureState;
+  asset: AssetState;
 }
 
 type ReportItem = {

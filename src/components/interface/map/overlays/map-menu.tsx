@@ -10,6 +10,7 @@ import { getGridBaseSpacingMeters } from "utils/mapping/grid";
 import { LGRS_GRID_BASE_SPACING_METERS } from "utils/lgrs/grid/plan";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { setMapMenuIsOpen } from "store/interface";
+import { thunkCancelAssetMapDirective } from "store/thunk/thunkAsset";
 import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
 
 const GRID_SPACING_OPTIONS: { label: string; value: GridSpacingMode }[] = [
@@ -73,6 +74,8 @@ interface MapMenuProps {
   setMapDisplayStations: Dispatch<SetStateAction<MapSubmenuStations>>;
   mapDisplayActions: MapSubmenuMarkers;
   setMapDisplayActions: Dispatch<SetStateAction<MapSubmenuMarkers>>;
+  mapDisplayAssets: MapSubmenuMarkers;
+  setMapDisplayAssets: Dispatch<SetStateAction<MapSubmenuMarkers>>;
   showArrows: boolean;
   setShowArrows: Dispatch<SetStateAction<boolean>>;
   showBearings: boolean;
@@ -102,6 +105,8 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   setMapDisplayStations,
   mapDisplayActions,
   setMapDisplayActions,
+  mapDisplayAssets,
+  setMapDisplayAssets,
   showArrows,
   setShowArrows,
   showBearings,
@@ -123,6 +128,7 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   floating = false,
   onClose,
 }) => {
+  const dispatch = useAppDispatch();
   const [showMenu, setShowMenu] = useState(floating);
   const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
   const selectedRexPosSources = useMissionDocSelector((mission) => {
@@ -325,6 +331,44 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                     show: !mapDisplayActions.show ? true : mapDisplayActions.show,
                   });
                 }}
+              >
+                Labels
+              </div>
+            </div>
+            <div className={styles.menuItemTitleContainer}>
+              <div
+                className={styles.menuEyeIcon}
+                onClick={() => {
+                  if (mapDisplayAssets.show) dispatch(thunkCancelAssetMapDirective());
+                  setMapDisplayAssets({ ...mapDisplayAssets, show: !mapDisplayAssets.show });
+                }}
+                data-testid="map-menu-assets-toggle"
+              >
+                <FontAwesomeIcon
+                  icon={faEye}
+                  size="sm"
+                  style={{
+                    marginTop: "3px",
+                    width: "15px",
+                    color: mapDisplayAssets.show ? "var(--grey5)" : "var(--grey3)",
+                    outline: "none",
+                  }}
+                  tabIndex={0}
+                />
+              </div>
+              <div className={styles.menuItemTitle}>Assets</div>
+              <div
+                className={`${styles.toggleSingle} ${styles.center} ${
+                  mapDisplayAssets.showLabels && styles.toggleSelected
+                }`}
+                onClick={() => {
+                  setMapDisplayAssets({
+                    ...mapDisplayAssets,
+                    showLabels: !mapDisplayAssets.showLabels,
+                    show: !mapDisplayAssets.show ? true : mapDisplayAssets.show,
+                  });
+                }}
+                data-testid="map-menu-asset-labels-toggle"
               >
                 Labels
               </div>
@@ -806,6 +850,8 @@ export const MapMenuPanel: FunctionComponent = () => {
       setMapDisplayStations={setters.setSubmenuStations}
       mapDisplayActions={display.submenuActions}
       setMapDisplayActions={setters.setSubmenuActions}
+      mapDisplayAssets={display.submenuAssets}
+      setMapDisplayAssets={setters.setSubmenuAssets}
       showArrows={display.showArrows}
       setShowArrows={setters.setShowArrows}
       showBearings={display.showBearings}
