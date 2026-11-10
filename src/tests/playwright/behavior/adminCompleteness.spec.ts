@@ -330,6 +330,8 @@ test("admin imports configured archives, persists every sublayer kind and reconc
       await page.getByRole("button", { name: "Add New Header Layer", exact: true }).click();
       await page.getByLabel("Header Layer Name", { exact: true }).fill(name);
       await page.getByRole("button", { name: "Save", exact: true }).last().click();
+      // Persistence can finish before the layer reload and modal teardown.
+      await expect(page.getByLabel("Header Layer Name", { exact: true })).toBeHidden();
       await expect
         .poll(
           async () =>
@@ -378,6 +380,7 @@ test("admin imports configured archives, persists every sublayer kind and reconc
       const name = kind === "tile" ? properties.name : `Admin ${kind}`;
       await expect(page.getByText("Loading data files...", { exact: true })).toBeHidden();
       await page.getByRole("button", { name: "Save", exact: true }).last().click();
+      await expect(page.getByLabel("Sublayer Name", { exact: true })).toBeHidden();
       await expect
         .poll(
           async () =>
@@ -424,6 +427,7 @@ test("admin imports configured archives, persists every sublayer kind and reconc
         .fill(`Edited ${sublayer.type}`);
       await expect(page.getByText("Loading data files...", { exact: true })).toBeHidden();
       await page.getByRole("button", { name: "Save", exact: true }).last().click();
+      await expect(page.getByLabel("Sublayer Description", { exact: true })).toBeHidden();
       await expect
         .poll(async () => (await mission.read()).sublayers[sublayer.uuid].description)
         .toBe(`Edited ${sublayer.type}`);
