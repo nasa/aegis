@@ -1,0 +1,60 @@
+/* App shell: banners on top, the routed page fills the remaining height */
+.appShell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.appContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.bannerStack {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  border-bottom: 1px solid rgb(0 0 0 / 25%);
+}
+
+.bannerText {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 12px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.bannerMessage {
+  font-weight: 600;
+}
+
+.dismissButton {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dismissButton:hover,
+.dismissButton:focus-visible {
+  background-color: rgb(0 0 0 / 20%);
+}

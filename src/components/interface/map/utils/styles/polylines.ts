@@ -11,6 +11,7 @@ import type { FeatureLike } from "ol/Feature";
 import type { Coordinate } from "ol/coordinate";
 import Color from "color";
 import { range_bearing_from_xy } from "utils/surf-nav/orienteering";
+import { formatBearingDegrees } from "utils/mapping/geoMath";
 
 // ---------------------------------------------------------------------------
 // Chevron arrow SVG (inline data URI, cached)
@@ -213,7 +214,7 @@ export function buildTraverseStyleFunction(
             new Style({
               geometry: new Point([bx, by]),
               text: new Text({
-                text: `${arrowChar} ${Math.round(bearing)}°`,
+                text: `${arrowChar} ${formatBearingDegrees(bearing)}`,
                 font: `bold ${opts.bearingLabelFontSize}px sans-serif`,
                 fill: new Fill({ color: opts.bearingLabelColor }),
                 stroke: new Stroke({ color: "#000000", width: 3 }),
@@ -426,7 +427,7 @@ export function buildMeasurementStyleFunction(
         new Style({
           geometry: new Point([bx, by]),
           text: new Text({
-            text: `${arrowChar} ${Math.round(bearing)}°`,
+            text: `${arrowChar} ${formatBearingDegrees(bearing)}`,
             font: "bold 11px sans-serif",
             fill: new Fill({ color: "#ffcc00" }),
             stroke: new Stroke({ color: "#000000", width: 3 }),

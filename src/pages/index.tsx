@@ -14,7 +14,6 @@ import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { setAppUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { clientLogger } from "utils/logging/clientLogger";
-import isEqual from "lodash/isEqual";
 
 const Login = () => {
   const dispatch = useAppDispatch();
@@ -468,32 +467,6 @@ const Home: React.FunctionComponent = () => {
   useEffect(() => {
     dispatch(thunkObliterateMissionSpecificData());
   }, [dispatch]);
-
-  // check the app version
-  const clientAppVersion = useAppSelector((state) => state.connection.clientAppVersion, deepEqual);
-  useEffect(() => {
-    const checkVersion = async () => {
-      const res = await fetch(`/api/v1/version?_=${Date.now()}`, {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache" },
-      });
-      if (res.status !== 200) {
-        console.warn(`Unable to check app version: ${res.status} ${res.statusText}`);
-        return;
-      } else {
-        const serverAppVersion: AppVersion = await res.json();
-        if (!isEqual(clientAppVersion, serverAppVersion)) {
-          alert(
-            `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${clientAppVersion.version}/${clientAppVersion.gitCommit}/${clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid}`
-          );
-          // Redirect to version check page with version info and return URL
-          const currentUrl = window.location.pathname + window.location.search;
-          window.location.href = `/versionCheck?returnUrl=${encodeURIComponent(currentUrl)}`;
-        }
-      }
-    };
-    checkVersion();
-  }, [clientAppVersion]);
 
   useEffect(() => {
     document.title = "AEGIS";

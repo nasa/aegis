@@ -1,6 +1,8 @@
 import type { FunctionComponent } from "react";
-import Picker from "@emoji-mart/react";
+import { useEffect, useRef } from "react";
+import { Picker } from "emoji-mart";
 import emojiPickerData from "@emoji-mart/data";
+import { getCustomEmoji } from "utils/emojis";
 
 /**
  * Component to render both standard Unicode emojis and custom emoji images
@@ -13,22 +15,24 @@ export const EmojiRenderer: FunctionComponent<{
   customSizeEm?: number;
   /** Class applied to image-backed icons; replaces the inline em sizing. */
   imageClassName?: string;
-}> = ({ iconValue, customSizeEm = 1.1, imageClassName }) => {
+  /** Optional wrapper class for Unicode emoji text. */
+  textClassName?: string;
+}> = ({ iconValue, customSizeEm = 1.1, imageClassName, textClassName }) => {
   if (!iconValue) return null;
 
   const imageStyle = imageClassName
     ? undefined
     : { width: `${customSizeEm}em`, height: `${customSizeEm}em` };
 
-  // Handle custom emojis by ID
-  if (iconValue === "station") {
+  const customEmoji = getCustomEmoji(iconValue);
+  if (customEmoji) {
     return (
-      <img src="/images/station.svg" alt="Station" className={imageClassName} style={imageStyle} />
-    );
-  }
-  if (iconValue === "landerIcon") {
-    return (
-      <img src="/images/lander.svg" alt="Lander" className={imageClassName} style={imageStyle} />
+      <img
+        src={customEmoji.src}
+        alt={customEmoji.alt}
+        className={imageClassName}
+        style={imageStyle}
+      />
     );
   }
 
@@ -43,27 +47,8 @@ export const EmojiRenderer: FunctionComponent<{
     return null;
   }
 
-  return <>{emoji}</>;
+  return textClassName ? <span className={textClassName}>{emoji}</span> : <>{emoji}</>;
 };
-
-interface EmojiSelectEvent {
-  unified?: string;
-  id?: string;
-  [key: string]: unknown;
-}
-
-interface CustomEmoji {
-  id: string;
-  name: string;
-  keywords: string[];
-  skins: { src: string }[];
-}
-
-interface CustomEmojiCategory {
-  id: string;
-  name: string;
-  emojis: CustomEmoji[];
-}
 
 /**
  * Custom emoji picker component with configurable custom emojis
@@ -102,15 +87,32 @@ export const EmojiPicker: FunctionComponent<{
 
   const emojiCategories = customEmojis || defaultCustomEmojis;
 
-  return (
-    <Picker
-      data={emojiPickerData}
-      custom={emojiCategories}
-      emojiButtonSize={emojiButtonSize}
-      emojiSize={emojiSize}
-      perLine={perLine}
-      darkMode={darkMode}
-      onEmojiSelect={onEmojiSelect}
-    />
-  );
+  const options = {
+    data: emojiPickerData,
+    custom: emojiCategories,
+    emojiButtonSize,
+    emojiSize,
+    perLine,
+    darkMode,
+    onEmojiSelect,
+  };
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<Picker | null>(null);
+  const initialOptions = useRef(options);
+
+  useEffect(() => {
+    const picker = new Picker(initialOptions.current);
+    pickerRef.current = picker;
+    containerRef.current?.appendChild(picker);
+    return () => {
+      picker.remove();
+      pickerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    pickerRef.current?.update(options);
+  });
+
+  return <div ref={containerRef} />;
 };

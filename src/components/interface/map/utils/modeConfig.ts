@@ -63,6 +63,27 @@ export interface ModeConfig {
     limitToRunningEva: boolean;
   };
 
+  // Asset markers, their name labels (MarkerLabels), and their uncertainty
+  // circles. The label boxes share the style of other marker labels; these
+  // knobs restyle the asset boxes per mode.
+  asset: {
+    /** Whether this mode draws assets at all (markers + uncertainty circles). */
+    show: boolean;
+    iconSize: number;
+    clickable: boolean;
+    hoverable: boolean;
+    /** Whether this mode draws asset name labels at all. */
+    labelsEnabled: boolean;
+    /** Font size (px) for asset label text. */
+    labelFontSize: number;
+    /** CSS font-weight for asset label text ("normal", "bold", "600", ...). */
+    labelFontWeight: string;
+    /** Label text color inside the box. */
+    labelTextColor: string;
+    /** Rounded-rect background color behind the text. */
+    labelBgColor: string;
+  };
+
   // Proximity circles
   circle: {
     /** Minimum stroke width (px) for proximity circles, regardless of data `weight`. */
@@ -154,6 +175,17 @@ const EDITOR_CONFIG: ModeConfig = {
     zIndexOffset: 2000,
     limitToRunningEva: false,
   },
+  asset: {
+    show: true,
+    iconSize: 20,
+    clickable: true,
+    hoverable: true,
+    labelsEnabled: true,
+    labelFontSize: 13,
+    labelFontWeight: "normal",
+    labelTextColor: "rgba(255,236,170,0.95)",
+    labelBgColor: "rgba(0,0,0,0.5)",
+  },
   circle: {
     minWidth: 1.5,
     labelFontSize: 14,
@@ -220,6 +252,17 @@ const DASHBOARD_CONFIG: ModeConfig = {
     zIndexOffset: 0,
     limitToRunningEva: false,
   },
+  asset: {
+    show: true,
+    iconSize: 34,
+    clickable: false,
+    hoverable: false,
+    labelsEnabled: true,
+    labelFontSize: 20,
+    labelFontWeight: "normal",
+    labelTextColor: "rgba(255,236,170,0.95)",
+    labelBgColor: "rgba(0,0,0,0.5)",
+  },
   circle: {
     minWidth: 3,
     labelFontSize: 20,
@@ -285,6 +328,17 @@ const MINIMAP_CONFIG: ModeConfig = {
     hoverable: false,
     zIndexOffset: 0,
     limitToRunningEva: true,
+  },
+  asset: {
+    show: false,
+    iconSize: 20,
+    clickable: false,
+    hoverable: false,
+    labelsEnabled: false,
+    labelFontSize: 12,
+    labelFontWeight: "normal",
+    labelTextColor: "rgba(255,236,170,0.95)",
+    labelBgColor: "rgba(0,0,0,0.5)",
   },
   circle: {
     minWidth: 1.5,

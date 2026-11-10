@@ -14,7 +14,6 @@ import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router";
 
 import DashboardHeader from "components/dashboard/header";
-import SocketClient from "components/page/socketClient";
 import DashTimeline from "components/dashboard/timeline/dashTimeline";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { FeatureSourcesProvider } from "components/interface/map/FeatureSourcesProvider";
@@ -121,9 +120,8 @@ const Main = (): JSX.Element => {
   }, [automergeRepo, dispatch, intMissionId, missionPerms, isVersionChecked]);
 
   useEffect(() => {
-    // update session storage information. This is for sockets
+    // update session storage information. File requests read the mission id from here
     window.sessionStorage.setItem("missionId", intMissionId.toString());
-    window.sessionStorage.setItem("socketId", "null");
   }, [intMissionId]);
 
   // in it's own useEffect in case grid changes while user is on the page
@@ -217,7 +215,6 @@ const Main = (): JSX.Element => {
         ) : (
           <LoadingOverlay message="Loading dashboard..." />
         )}
-        <SocketClient missionId={intMissionId} />
       </div>
     </>
   );

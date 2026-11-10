@@ -58,6 +58,7 @@ interface Mission {
   evas: { [uuid: string]: Eva };
   rexes: { [uuid: string]: Rex };
   folders: { [uuid: string]: Folder };
+  assets: { [uuid: string]: Asset };
   layers: { [uuid: string]: Layer };
   sublayers: { [uuid: string]: Sublayer };
   presets: { [uuid: string]: Preset };
@@ -258,7 +259,7 @@ type GridIndex = {
 
 interface MissionCopyOptions {
   nameSuffix: string;
-  copyAssets?: boolean;
+  copyGISAssets?: boolean;
 }
 
 type MissionDuplicationProgress = {

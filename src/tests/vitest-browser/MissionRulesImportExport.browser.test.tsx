@@ -87,7 +87,7 @@ describe("mission rules admin feedback", () => {
       .toHaveTextContent("Reading mission rules file...");
     await expectDisabled(true);
     rejectRead(new Error("Read failed"));
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Read failed");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Read failed");
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();
     await expect.element(page.getByRole("textbox")).toHaveValue("");
     await expect
@@ -132,7 +132,7 @@ describe("mission rules admin feedback", () => {
     await page.getByRole("textbox").fill('{"version":2,"stmRules":[]}');
     await page.getByRole("button", { name: "Import Mission Rules", exact: true }).click();
     paint(0);
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Expected a version 1 export");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Expected a version 1 export");
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();
     await expectDisabled(false);
     expect(changeMission).not.toHaveBeenCalled();
@@ -158,7 +158,7 @@ describe("mission rules admin feedback", () => {
     await page.getByRole("textbox").fill(json);
     await page.getByRole("button", { name: "Import Mission Rules", exact: true }).click();
     paint(0);
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Document unavailable");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Document unavailable");
     await expect.element(page.getByRole("textbox")).toHaveValue(json);
     await expectDisabled(false);
     await page.getByRole("button", { name: "Import Mission Rules", exact: true }).click();
@@ -184,7 +184,7 @@ describe("mission rules admin feedback", () => {
       expect(download).not.toHaveBeenCalled();
       paint(0);
       await expect.element(page.getByRole("status")).not.toBeInTheDocument();
-      if (fail) await expect.element(page.getByRole("alert")).toHaveTextContent("Download failed");
+      if (fail) await expect.element(page.getByRole("alert")).toMatchTextContent("Download failed");
       else await expect.element(page.getByRole("alert")).not.toBeInTheDocument();
       expect(download).toHaveBeenCalledOnce();
       expect(revokeUrl).toHaveBeenCalledWith("blob:rules-export");

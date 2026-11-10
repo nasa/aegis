@@ -1,7 +1,7 @@
 import meanBy from "lodash/meanBy";
 import isEqual from "lodash/isEqual";
-import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
-import { getBearingFromLatLngPoints } from "utils/surf-nav/surfNavWrapper";
+import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
+import { getLgrsGridBearing } from "utils/lgrs/bearing";
 
 /**
  * This uses the 'haversine' formula to calculate the great-circle distance between two points
@@ -31,8 +31,8 @@ export function getDistanceBetweenTwoCoordinates(
 
 /**
  * Find the grid coordinates of a point depending on which grid should be used.
- * LGRS display values come from the pinned LGRS port; surf-nav is only used
- * below for LPS grid-north bearings.
+ * LGRS values cover the whole Moon (LTM, LPS N, LPS S) at 10 m; `dynamicLgrs` selects the
+ * `"full"` style with the zone/band prefix.
  * @param {AEGISPoint} point - the point to find coordinates for
  * @param {number} radius - The radius of the planet in question (usually meters)
  * @reference http://www.movable-type.co.uk/scripts/latlong.html
@@ -47,7 +47,11 @@ export function getGridCoordinatesFromPoint(
   if (!point) return null;
 
   if (usingLGRSCoordinates) {
-    return getSouthLpsDisplayCoordinate(point, dynamicLgrs ? "full" : "condensed");
+    return formatLgrsFromLatLon(
+      point,
+      LGRS_DISPLAY_PRECISION_METERS,
+      dynamicLgrs ? "full" : "condensed"
+    );
   } else if (globalGrid) {
     return findGlobalGridCoordsFromPoint(globalGrid, point, radius);
   } else {
@@ -180,6 +184,57 @@ export function findGlobalGridCoordsFromPoint(
 }
 
 /**
+ * Inverse of `findGlobalGridCoordsFromPoint`: the centre of the grid cell with the given name.
+ * A cell is named after its lower-left corner point. Matching ignores case and surrounding
+ * whitespace.
+ * @returns null when no point has that name, or the named cell is not one the forward lookup
+ *   reports (e.g. on the grid edge).
+ */
+export function findGridCellCenterByName(
+  grid: MissionGridPoint[][],
+  name: string,
+  radius: number
+): AEGISPoint | null {
+  const target = name.trim().toUpperCase();
+  if (!grid?.length || !target) return null;
+  for (let row = 0; row < grid.length; row++) {
+    for (let col = 0; col < grid[row].length; col++) {
+      if (grid[row][col].name?.trim().toUpperCase() !== target) continue;
+      const corners = [
+        grid[row][col],
+        grid[row - 1]?.[col],
+        grid[row]?.[col + 1],
+        grid[row - 1]?.[col + 1],
+      ].map((corner) => corner?.coordinates);
+      if (corners.some((c) => !Number.isFinite(c?.lat) || !Number.isFinite(c?.lng))) return null;
+      const center = {
+        lat: corners.reduce((sum, c) => sum + c.lat, 0) / corners.length,
+        lng: corners.reduce((sum, c) => sum + c.lng, 0) / corners.length,
+      };
+      const roundTrip = findGlobalGridCoordsFromPoint(grid, center, radius);
+      return roundTrip?.trim().toUpperCase() === target ? center : null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Whether any grid point's name starts with the given text (case/space-insensitive, like
+ * `findGridCellCenterByName`), so a half-typed cell name can be told apart from text that
+ * can never match a cell.
+ */
+export function gridHasCellNamePrefix(grid: MissionGridPoint[][], name: string): boolean {
+  const target = name.trim().toUpperCase();
+  if (!grid?.length || !target) return false;
+  for (const row of grid) {
+    for (const point of row) {
+      if (point.name?.trim().toUpperCase().startsWith(target)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Adjust grid indicies to be one shown cell out
  * @param {GridIndex} index - the index to adjust
  * @param {number} numRows - the number of rows in the grid
@@ -264,12 +319,9 @@ export function getTrueBearingFromLatLngPoints(
 /**
  * Segment bearing appropriate to the mission's coordinate frame.
  *
- * LGRS/lunar missions use the LPS grid-north bearing: near the projection's
- * south-pole origin true north is degenerate, so bearings are given relative to
- * the lunar polar grid. Every other mission (e.g. Earth / Web Mercator) uses a
- * true-north great-circle azimuth — running those through the lunar LPS
- * projection rotates the frame by roughly the point's longitude, which is why an
- * east-west line otherwise reports a bogus bearing.
+ * LGRS missions use the grid-north bearing in the origin's LGRS CRS (LPS or LTM zone), and
+ * return NaN when either point cannot be projected. Other missions (e.g. Earth / Web Mercator)
+ * use a true-north great-circle azimuth.
  */
 export function getSegmentBearing(
   origin: AEGISPoint,
@@ -277,8 +329,13 @@ export function getSegmentBearing(
   usingLGRSCoordinates: boolean
 ): number {
   return usingLGRSCoordinates
-    ? getBearingFromLatLngPoints(origin, destination)
+    ? getLgrsGridBearing(origin, destination)
     : getTrueBearingFromLatLngPoints(origin, destination);
+}
+
+/** Whole-degree bearing label, or an em dash when the bearing could not be computed. */
+export function formatBearingDegrees(bearing: number): string {
+  return Number.isFinite(bearing) ? `${Math.round(bearing)}°` : "—";
 }
 
 /**

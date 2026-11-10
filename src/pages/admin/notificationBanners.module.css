@@ -1,0 +1,98 @@
+.editorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.editorSaveActions {
+  display: flex;
+  gap: 12px;
+}
+
+.colorFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 24px;
+}
+
+.backgroundColorField {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.textColorField {
+  flex: 0 0 auto;
+}
+
+.textColorOptions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 40px;
+}
+
+.expiryCountdown {
+  display: block;
+  margin-top: 4px;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.colorValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.colorSwatch {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1px solid #94a3b8;
+  border-radius: 3px;
+}
+
+.bannerHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 2rem;
+  gap: 12px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.timeWindow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: 20px;
+}
+
+.timeInput {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.timeInput input[type="datetime-local"] {
+  color-scheme: dark;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}

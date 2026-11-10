@@ -26,7 +26,7 @@ import { validators } from "components/interface/form/formValidators";
 import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
-import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
+import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
@@ -61,8 +61,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   const landerGridCoordinates = useAppSelector((state) => {
     if (automergeMission.landerLocation && automergeMission.usingLGRSCoordinates) {
       return (
-        getSouthLpsDisplayCoordinate(
+        formatLgrsFromLatLon(
           automergeMission.landerLocation,
+          LGRS_DISPLAY_PRECISION_METERS,
           resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
         ) ?? "Not set"
       );

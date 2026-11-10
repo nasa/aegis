@@ -8,7 +8,7 @@ import { getMissionHomepageItems } from "http-client/mission";
 import React from "react";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import { createClientSocket } from "utils/clientSocketHelpers";
+import { getClientSocket, joinInspectorRoom } from "utils/clientSocketHelpers";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlug, faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -71,8 +71,7 @@ const MaestroV2: React.FunctionComponent = () => {
   const action = useAsyncStatus();
   const navigate = useNavigate();
 
-  // Inspector socket (default namespace on the new /socket server).
-  const inspectorSocket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
+  // Inspector room status on the shared app socket (default namespace on the /api/socket server).
   const [inspectorConnectionStatus, setInspectorConnectionStatus] =
     useState<ConnectionStatus>("connecting");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
@@ -129,28 +128,18 @@ const MaestroV2: React.FunctionComponent = () => {
     });
   };
 
-  // ── Auth check + inspector socket setup ──────────────────────────────────
+  // ── Auth check + inspector room setup ────────────────────────────────────
   useEffect(() => {
-    // Create the inspector socket synchronously so React can attach a matching
+    // Join the inspector room synchronously so React can attach a matching
     // cleanup that actually runs on unmount (returning cleanup from an async
     // IIFE would be discarded by React).
-    if (!inspectorSocket.current || !inspectorSocket.current.connected) {
-      inspectorSocket.current = createClientSocket(window.location.origin);
-    }
-    const socket = inspectorSocket.current;
-
-    socket.on("connect", () => {
-      socket.emit("inspectorJoin");
-      setInspectorConnectionStatus("connected");
-    });
-
-    socket.on("disconnect", () => {
-      setInspectorConnectionStatus("disconnected");
-    });
-
-    socket.on("inspectorUpdate", () => {
-      setLastUpdatedAt(new Date().toISOString());
-    });
+    const leaveInspectorRoom = joinInspectorRoom(
+      getClientSocket(),
+      setInspectorConnectionStatus,
+      () => {
+        setLastUpdatedAt(new Date().toISOString());
+      }
+    );
 
     runLoad("Loading missions...", async () => {
       const response = await isLoggedIn();
@@ -171,10 +160,7 @@ const MaestroV2: React.FunctionComponent = () => {
     });
 
     return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("inspectorUpdate");
-      socket.disconnect();
+      leaveInspectorRoom();
     };
   }, [navigate, runLoad]);
 

@@ -9,7 +9,7 @@
 
 import type { Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
-import { waitForPageReady } from "../helpers";
+import { waitForPageReady, minimizeRexMenu } from "../helpers";
 
 const MISSION_URL = "http://localhost:4000/mission/22";
 
@@ -27,6 +27,7 @@ async function openEyeballMenu(page: Page): Promise<void> {
   const menuPanel = page.getByTestId("map-menu-floating-panel");
   const isOpen = await menuPanel.isVisible().catch(() => false);
   if (!isOpen) {
+    await minimizeRexMenu(page);
     await page.getByTestId("map-menu-launcher").click();
   }
   await expect(menuPanel).toBeVisible();
@@ -155,6 +156,7 @@ test.describe("Mission 22 — Keyboard & Focus", () => {
     await openMissionMap(page);
 
     // Focus the map
+    await minimizeRexMenu(page);
     await page.locator(".ol-viewport").first().click();
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
@@ -214,6 +216,7 @@ test.describe("Mission 22 — Edge Cases", () => {
     page.on("pageerror", (err) => errors.push(err.message));
 
     await openMissionMap(page);
+    await minimizeRexMenu(page);
 
     // Click zoom-out many times to reach max extent
     const zoomOut = page.locator(".ol-zoom-out").first();
@@ -235,6 +238,7 @@ test.describe("Mission 22 — Edge Cases", () => {
     page.on("pageerror", (err) => errors.push(err.message));
 
     await openMissionMap(page);
+    await minimizeRexMenu(page);
 
     // Click zoom-in many times (may become disabled at max zoom)
     const zoomIn = page.locator(".ol-zoom-in").first();

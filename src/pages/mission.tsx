@@ -8,7 +8,6 @@ import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router";
 import Header from "components/interface/header";
 import { NavGutter } from "components/interface/side-controls";
-import SocketClient from "components/page/socketClient";
 import { MissionDockviewLayout } from "components/interface/dockview/MissionDockviewLayout";
 import { MapMenuProvider } from "components/interface/map/MapMenuProvider";
 import { setAllSliceStores } from "store/crossActions";
@@ -151,9 +150,8 @@ const Main: React.FunctionComponent = () => {
   ]);
 
   useEffect(() => {
-    // update session storage information. This is for sockets
+    // update session storage information. File requests read the mission id from here
     window.sessionStorage.setItem("missionId", intMissionId.toString());
-    window.sessionStorage.setItem("socketId", "null");
   }, [intMissionId]);
 
   // in it's own useEffect in case grid changes while user is on the page
@@ -270,8 +268,6 @@ const Main: React.FunctionComponent = () => {
       ) : (
         <LoadingOverlay message="Loading mission data..." />
       )}
-
-      <SocketClient missionId={intMissionId} />
     </>
   );
 };

@@ -30,6 +30,7 @@ export interface FeatureSourcesContextValue {
   posPathSource: VectorSource;
   circleSource: VectorSource;
   poiSource: VectorSource;
+  assetSource: VectorSource;
   actionSource: VectorSource;
   walkbackSource: VectorSource;
   measurementSource: VectorSource;
@@ -67,6 +68,7 @@ export function FeatureSourcesProvider({ children }: FeatureSourcesProviderProps
       posPathSource: new VectorSource(),
       circleSource: new VectorSource(),
       poiSource: new VectorSource(),
+      assetSource: new VectorSource(),
       actionSource: new VectorSource(),
       walkbackSource: new VectorSource(),
       measurementSource: new VectorSource(),

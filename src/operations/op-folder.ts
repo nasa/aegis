@@ -8,6 +8,7 @@ const getFolderTargetUuids = (mission: Mission, type: FolderType): Set<string> =
     eva: mission.evas,
     preset: mission.presets,
     layer: mission.layers,
+    asset: mission.assets,
   };
   return new Set(Object.keys(targets[type] ?? {}));
 };

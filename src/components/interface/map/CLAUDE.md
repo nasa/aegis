@@ -32,11 +32,11 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
 
 ### The three entry points
 
-| File                    | `mode`        | Notes                                                                                                                                                                                                      |
-| ----------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AegisMapEditor.tsx`    | `"editor"`    | Full feature set. Self-wraps `FeatureSourcesProvider`. Only editor has POI/measurement/interaction/highlight/timeline behaviors and zoom controls.                                                         |
-| `AegisMapDashboard.tsx` | `"dashboard"` | Adds `FollowModeProvider` + `FollowMode` behavior. No editing behaviors.                                                                                                                                   |
-| `AegisMapMinimap.tsx`   | `"minimap"`   | Stripped down. Adds `BigMapBoundsBox` + `AutoFitBounds`. Non-interactive. Has no eyeball menu, but mirrors the dashboard menu's scale-bar + traverse-arrow toggles via `DashboardBoundsProvider` (see §2). |
+| File                    | `mode`        | Notes                                                                                                                                                                                                                                                                                      |
+| ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `AegisMapEditor.tsx`    | `"editor"`    | Full feature set. Self-wraps `FeatureSourcesProvider`. Only editor has POI/measurement/interaction/highlight/timeline behaviors and zoom controls.                                                                                                                                         |
+| `AegisMapDashboard.tsx` | `"dashboard"` | Adds `FollowModeProvider` + `FollowMode` behavior. No editing behaviors.                                                                                                                                                                                                                   |
+| `AegisMapMinimap.tsx`   | `"minimap"`   | Stripped down. Adds `BigMapBoundsBox` + `AutoFitBounds`. Non-interactive. Has no eyeball menu, but mirrors the dashboard menu's scale-bar, traverse-arrow, and Assets toggles via `DashboardBoundsProvider` (see §2). Assets never draw here (`MODE_CONFIGS.minimap.asset.show` is false). |
 
 `MapMode` is defined in `src/typings/map/ol.d.ts` (`"editor" | "dashboard" | "minimap"`).
 
@@ -66,11 +66,18 @@ one concern (one layer, one interaction, one overlay) and reconciles it against 
   on setter reference. Persists to the `AEGIS_Map_Menu_Settings` cookie. Each map has its own
   provider (separate state trees) but they **share the cookie** — a change on one map persists
   and loads into the other on next mount; live changes are not synced. **Exception:** the minimap
-  has no menu of its own and mirrors the dashboard menu's `showScaleBar` + `showArrows` **live**
-  via `DashboardBoundsProvider` — see the bridge components in `MapMenuMinimapBridge.tsx`
-  (`DashboardMenuPublisher` pushes those two values from the dashboard menu into the shared
-  context; `MinimapMenuSubscriber` copies `showArrows` back into the minimap's own provider so
-  `TraverseLines` reads it; the minimap's `ScaleBar` is gated on the shared `showScaleBar`).
+  has no menu of its own and mirrors the dashboard menu's `showScaleBar`, `showArrows`, and
+  `submenuAssets.show` **live** via `DashboardBoundsProvider` — see the bridge components in
+  `MapMenuMinimapBridge.tsx` (`DashboardMenuPublisher` pushes those values from the dashboard menu
+  into the shared context; `MinimapMenuSubscriber` copies `showArrows` and the Assets toggle back
+  into the minimap's own provider so `TraverseLines` and the asset behaviors read them; the
+  minimap's `ScaleBar` is gated on the shared `showScaleBar`). The mirrored Assets toggle does
+  not make assets draw on the minimap, though — `MODE_CONFIGS.minimap.asset.show` is false, so
+  the asset behaviors stay mounted but inert. The minimap draws no labels, so Asset Labels is
+  not mirrored.
+- **The editor's provider wraps the whole mission dockview layout** (`pages/mission.tsx`), so the
+  floating widgets (Map Item Visibility and the Rex Menu's Assets tab) read and set the editor's
+  toggles directly — e.g. Place on Map / Edit Pos. turns Assets + Asset Labels back on.
 - **`FollowModeProvider`** (dashboard only) — `followMode` toggle + per-item `followModeOptions`
   keyed `"stations"`, `"traverses"`, and each running-REX pos-type uuid. Rebuilds pos-type
   options when the running REX's `posTypes` change.
@@ -106,13 +113,24 @@ Bug-prone details:
 - `toMapCoord` returns `[0, 0]` (projection origin) for a null lat/lng — **fails silently**, not
   an error.
 - The projection **must be registered** before the converters run (MapProvider handles it).
-- The `projCode` derivation logic is **duplicated** in `MapProvider` and `useCoordConverters` —
-  keep them in sync or the View and the converters target different CRS.
+- The `projCode` derivation logic is **duplicated** in `MapProvider`, `useCoordConverters` and
+  `getLgrsMapProjection` (`utils/lgrs/mapAdapter.ts`) — keep all three in sync or the View, the
+  converters and the LGRS grid/readout target different CRS.
 - Distances/bearings for traverses/measurements are computed **geodesically from lat/lng**
-  (haversine, LGRS-aware via `usingLGRSCoordinates`) in `utils/mapping/geoMath.ts`, **not** from
+  (haversine; with `usingLGRSCoordinates`, the grid-north bearing in the origin's LGRS CRS from
+  `utils/lgrs/bearing.ts`, NaN → `—` via `formatBearingDegrees`) in `utils/mapping/geoMath.ts`, **not** from
   projected geometry — projected length over-reports on distorted projections (Web Mercator
   ≈ sec(lat)) and near the pole. `TimelineAstronaut` interpolates position with
   `LineString.getCoordinateAt()` in projected CRS (fine — it's a screen position, not a distance).
+
+**LGRS map adapter.** `getLgrsMapAdapter(getLgrsMapProjection(mission))` (`utils/lgrs/mapAdapter.ts`)
+is the cached map ↔ lat/lon ↔ LGRS (LPS S/N, LTM zone) converter used by the dynamic grid and the
+mouse readout. It builds proj4 converters once per projection and has closed-form fast paths
+(bit-identical to proj4) for polar stereographic, Web Mercator and `+approx` tmerc maps.
+`getAffine(crs)` reports when the map CRS is affine to an LGRS CRS, so grid lines can stay
+two-vertex segments. `getLgrsCompatibility(mission)` (`utils/lgrs/compatibility.ts`) gates dynamic
+LGRS: exact lunar radius plus a projection the adapter can build (any lunar projection, including
+the default EPSG:3857).
 
 Tile resolutions for legacy raster layers come from `buildLegacyResolutions()`
 (`utils/parsers/leafletShim.ts`). **Critical:** use the API `projResUnitsPerPixel`, NOT the XML
@@ -150,8 +168,8 @@ Traps that cause real bugs:
 ## 5. Shared feature sources
 
 `FeatureSourcesProvider` creates one `VectorSource` per type:
-`stationSource, traverseSource, posSource, posPathSource, circleSource, poiSource, actionSource,
-walkbackSource, measurementSource, highlightSource, labelSource`.
+`stationSource, traverseSource, posSource, posPathSource, circleSource, poiSource, assetSource,
+actionSource, walkbackSource, measurementSource, highlightSource, labelSource`.
 
 - One instance per page, **shared across dashboard + minimap**. Each map builds its own
   `VectorLayer` (with per-mode styles) over the shared source. A feature mutation redraws on
@@ -159,12 +177,12 @@ walkbackSource, measurementSource, highlightSource, labelSource`.
 - **Consequence:** per-map visual differences must live in the **per-layer style function**, not
   in feature geometry/props. Reconciling a shared source in one mode's component mutates the
   features every map sees.
-- **All marker labels** (lander/station/poi/action/pos) live on the single shared `labelSource`,
+- **All marker labels** (lander/station/poi/action/pos/asset) live on the single shared `labelSource`,
   not on the marker layers — this enables one overlap-dimming pass and the drag-to-reposition
   system (`MarkerLabels` + `ol/interaction/Translate`). See §8 MarkerLabels.
 
 Some behaviors deliberately use their **own** (non-shared) sources: `Grid`, `Circles`,
-`HoverHighlight`, `SelectionHighlight`, `BigMapBoundsBox`.
+`AssetUncertainty`, `HoverHighlight`, `SelectionHighlight`, `BigMapBoundsBox`.
 
 ---
 
@@ -184,7 +202,20 @@ Key behaviors:
   `selectionKey` (section + selected poi/station/seq-item/measurement). If that key later changes,
   it dispatches `updateMapDirective(null)`. This prevents a stale `Modify`/`Translate` surviving a
   context switch — the bug it fixes let you "drag when not in edit mode" and crashed on the next
-  edit. posEntry edits are excluded from this watcher.
+  edit. posEntry edits are excluded from this watcher. Asset directives are section-agnostic:
+  their key is the selected asset uuid only, so section/EVA/REX/POI/station changes keep them.
+- **Rex Menu and asset edits are staged in Redux** so the map, `InteractionManager`, and thunks can
+  all read them. Crew positions (`state.rex.posEntryInEdit`) draft pos types and source until
+  Save, but a map click or drag writes the location straight to the doc. Assets
+  (`state.asset.inEdit`) keep the location in the in-edit session too and write everything in one
+  change on Save. Other map-editable items have no staged copy and save directly.
+- **Asset locations go to the in-edit session, not the doc.** The `"asset"` branch of `saveItemPosition`
+  (used by the `createMarker` click, `editMarker` click, and `translateend`) dispatches
+  `thunkSetAssetEditLocation`; the asset is written on Save from the asset editor. The asset
+  marker's feature id is the asset uuid, and `AssetMarkers` draws the open session under that same id.
+- **`thunkUpdateMapDirective`'s 200 ms delayed start is cancellable** (`cancelPendingMapDirective`),
+  a newer request replaces an unfired one, and an asset directive only fires if its edit session is still
+  open.
 - **Endpoint pinning** (traverse/walkback): first/last coords are pinned to the neighbouring
   station/lander. `Modify` `condition`/`deleteCondition` block grabbing/deleting endpoint vertices
   within `ENDPOINT_PIXEL_TOLERANCE` (10px, matches OL default); the vertex style hides the
@@ -293,18 +324,25 @@ All OL `Style`/`StyleFunction` objects live in `utils/styles/` — **never inlin
 outside. The style builders each keep a `Map` cache; know its **key**, because a bug often means
 a cache key omits a varying input:
 
-- `markers.ts` (`buildStation/Poi/Action/LanderStyleFunction`): keyed by emoji + selection
-  (+ in-progress). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
+- `markers.ts` (`buildStation/Poi/Action/Asset/LanderStyleFunction`): keyed by emoji + selection
+  (+ in-progress; assets: + whether the selection outline shows, i.e. selected with no radius). **`iconSize` is NOT in the key** — it's captured at builder-creation time, so a
   size change requires rebuilding the whole builder, not re-calling it. Selected marker →
   `zIndex 9999`; dashboard in-progress stations get a green ring (triggered by
   `config.station.hoverable === false`).
 - `markerLabels.ts` (`createMarkerLabelStyle`): caches the rendered text-box canvas by
-  `name-labelType-fontSize`. Draws a dashed black+white connector from label to anchor (skipped
-  when the label is within 2px of the anchor). Opacity applied via `Icon.opacity`, not baked.
+  `name-labelType-fontSize-fontWeight-dpr`. Draws a dashed black+white connector from label to
+  anchor (skipped when the label is within 2px of the anchor). Opacity applied via `Icon.opacity`,
+  not baked.
+  Asset labels take per-mode colors/font size/weight from
+  `MODE_CONFIGS[mode].asset` (passed to the builder by `MarkerLabels`); without it they fall
+  back to the hard-coded `asset` `LABEL_COLORS` entry.
 - `polylines.ts`: module-level `baseStyleCache` for traverse lines (keyed
   `color|weight|selectedWeight|isSelected`) + `arrowCache` for chevron SVG data-URIs. Selected
   "glow" only pushed when `selectedWeight > 0` (dashboard/minimap set it to 0 = no emphasis).
   Measurement style hardcodes label colors and ignores stale segment arrays while editing.
+- `assetRadius.ts` (`buildAssetRadiusStyleFunction`): asset radius circles, filled in
+  `getAssetRadiusColor` with no stroke; the selected asset gets a white stroke instead of a
+  marker outline. Uncolored assets use a transparent fill. Keyed by color + selection.
 - `posPath.ts`: style cache is **cleared wholesale when size > 500** (crude cap). Has its own
   duplicate `arrowCache`.
 - `gazetteerLabels.ts` (`createGazetteerLabelStyle(style, dataLayer)`): draggable data-layer
@@ -316,12 +354,15 @@ a cache key omits a varying input:
   (`=== false` hides; undefined shows), matching `buildVectorStyleFn`. The font size comes
   from `dataLayer` (see §10) and is **not** in either cache key — it's captured at
   builder-creation time, so a size change means rebuilding the builder.
+- `grid.ts` (`createGridLineStyles`, `createGridLabelStyleFn`): grid line styles built once per
+  render (seams heavier), and a label `Style` cache keyed by text and centring, cleared past 2,000
+  entries. Style and font size are captured at builder-creation time.
 - `emojiRenderer.ts`: unbounded canvas cache keyed `emoji-size`. A failed lander SVG load caches a
   **blank** canvas permanently (sticky failure until cache clears).
 
 `utils/labelLayout.ts` computes overlap-based opacity for the shared label layer. Priority:
-lander 0 > station 1 > poi 2 > action 3 > pos 4 (lower = higher priority, always opaque, drawn on
-top, dims lower-priority overlaps via point-sampled union coverage).
+lander 0 > station 1 > poi 2 > action 3 > pos 4 > asset 5 (lower = higher priority, always opaque,
+drawn on top, dims lower-priority overlaps via point-sampled union coverage).
 
 ---
 
@@ -341,15 +382,16 @@ LANDER            : 11
 ACTIONS           : 12
 STATIONS          : 14
 POIS              : 15
+ASSETS            : 16   (asset markers; radius circles use CIRCLES)
 HOVER             : 18
 SELECTION         : 19   (also BigMapBoundsBox)
-PLACE_LABELS      : 20   (MarkerLabels)
-POS_ENTRIES       : 22   (POS paths)
+POS_ENTRIES       : 20   (POS paths)
+PLACE_LABELS      : 21   (MarkerLabels)
 POS_MARKERS       : 23   (POS markers, above paths + labels)
 TIMELINE_ASTRONAUT: 28
 ```
 
-Gaps (4–5, 9, 13, 16–17, 21, 24–27) are intentional insertion room. The `ol/Overlay` DOM node
+Gaps (4–5, 9, 13, 17, 22, 24–27) are intentional insertion room. The `ol/Overlay` DOM node
 for the timeline astronaut renders above all vector layers regardless.
 
 ---
@@ -358,19 +400,21 @@ for the timeline astronaut renders above all vector layers regardless.
 
 `utils/modeConfig.ts` → `MODE_CONFIGS[mode]` (mode from `useMapContext()`). Same rendering
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
-branching on mode. Sections: `map`, `lander`, `station`, `circle`, `traverse`, `markerLabel`,
-`pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
+branching on mode. Sections: `map`, `lander`, `station`, `asset` (markers + label styling),
+`circle`,
+`traverse`, `markerLabel`, `pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
 
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
 - dashboard: larger icons and label fonts throughout, `tooltipOpacity 0.65`, `hoverable: false`
   (→ in-progress green ring), `traverse.selectedWeight: 0` (no selection glow).
 - minimap: `map.interactive: false`, tooltips off, no bearings/distances, `pos.drawPathWeight: false`,
-  `grid.labelsEnabled: false`, `dataLayer.labelsEnabled: false`.
+  `grid.labelsEnabled: false`, `dataLayer.labelsEnabled: false`, `asset.show: false` (no asset
+  markers or uncertainty circles).
 
 **Every** on-map font size is a mode-config number — `circle.labelFontSize`,
-`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `grid.labelFontSize`,
-`scaleBar.fontSize`, and `dataLayer.gazetteer/featureFontSize`. Don't hardcode a `px` size in a
-style file; add it here instead.
+`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `asset.fontSize`,
+`grid.labelFontSize`, `scaleBar.fontSize`, and `dataLayer.gazetteer/featureFontSize`. Don't hardcode
+a `px` size in a style file; add it here instead.
 
 `dataLayer` (`DataLayerConfig`) is the one section consumed outside the behavior components:
 `layerFactory` takes it on `LayerFactoryInput` and as the 2nd arg of `buildVectorStyleFn`, and
@@ -397,17 +441,29 @@ launcher (crosshair icon, shown only while the Rex Menu widget is minimized).
 creates/removes/shows/hides it) lives in `overlays/rex-menu.tsx`, not in `MissionDockviewLayout`.
 `MissionDockviewLayout` (`src/components/interface/dockview/`) just calls the hook and spreads
 `rexMenuComponents`/`rexMenuTabComponents` into its own dockview config. The widget is created
-when the EVA section is active and a REX is selected, and removed otherwise. It holds two
-non-closable tabs:
+once a mission is loaded and stays available in every section, with or without a selected REX.
+It holds two non-closable tabs:
 
 - **Positions** — `MapPositionMenu` (`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`): pos-type /
-  source toggles, New/Edit Pos., and the position table. The widget's removal is driven by a
-  `useEffect` in `useRexMenuDockviewPanel`, so `MapPositionMenu` can still render for a tick with
-  `selectedRexUuid` set but no matching REX in the mission doc (e.g. the EVA dropdown just
-  switched from this REX back to As Planned) — guard on `!selectedRex` and return `null` before
-  dereferencing anything off it, rather than relying on the parent to unmount it first.
-- **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`): placeholder ("Asset Management Coming
-  Soon"). Add asset management components here.
+  source toggles, New/Edit Pos., and the position table. With no REX selected, or a selected REX
+  missing from the mission doc (e.g. the EVA dropdown just switched back to As Planned), it shows
+  "Select a REX to see positions." — guard on `!selectedRex` before dereferencing anything off it.
+- **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`, with `map-menu-assets-editor.tsx` and
+  `map-menu-assets-table.tsx`): Add Asset / Add Folder toolbar, the asset editor (one Redux edit
+  session in `state.asset.inEdit`, written to `mission.assets` in one change on Save), and one
+  folder-aware table (`colgroup`, folder header rows over their own `tbody` drop targets, root
+  rows last). Mutations need mission edit permission and a live connection. An
+  asset marker click (`thunkJumpToAsset`) restores the widget, asks for this tab via
+  `state.asset.assetsTabRequestId`, expands the folder, and selects the row without changing the
+  section. The Assets visibility toggle and asset/folder visibility thunks cancel positioning
+  directly while keeping the draft. `AegisMapEditor` discards the in-edit session on unmount.
+  Editor fields are `InLineEditInput` / `TextArea` from `globalFields.tsx` validated only by
+  `formValidators` (coordinates use the live coordinate-entry check); there are no separate
+  asset-level validators and `thunkSaveAssetEdit` does not revalidate. Each field writes only
+  valid text to `inEdit.values`; the editor keeps every field's displayed text in local state so
+  Save stays disabled while any field holds invalid text. The Save tooltip shows the first
+  non-coordinate field error; coordinate errors show under the Position field. Coordinates are
+  parsed and committed on blur, Enter, and Save, not on every keystroke.
 
 Dockview owns drag (via the tab bar's empty space) and resize. Dockview clamps floating-group
 drag and resize only to its `.dv-floating-overlay-host` element, which it sizes (inline styles) to
@@ -471,6 +527,8 @@ Overlay gotchas:
 - Dashboard menus are hover-gated (mouseenter/mouseleave on `map.getTargetElement()`); if the
   target element isn't ready when the effect runs, listeners silently don't attach.
 - `MouseCoordinateDisplay` needs BOTH `config.map.showMouseCoords` (editor) AND the eyeball toggle.
+  It converts through the memoised LGRS map adapter, coalesces `pointermove` with
+  `requestAnimationFrame`, and only sets state when the formatted text changes.
 - `ScaleBar` assumes resolution == meters/pixel — only exact for a metric projected CRS;
   approximate on EPSG:3857 away from the equator. Updates on `moveend` only.
 
@@ -478,27 +536,29 @@ Overlay gotchas:
 
 ## 12. Behavior component reference
 
-| Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                           |
-| -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/feature labels                                        |
-| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; animation-frame-throttled adaptive density; dashboard publishes its spacing, minimap mirrors it       |
-| `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                     |
-| `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                             |
-| `WalkbackLines`      | shared `walkbackSource`                                | all         | ✅                           | feature id `walkback-${uuid}`; edit-drag dance                                                                                                  |
-| `MeasurementLines`   | shared `measurementSource`                             | editor      | ✅                           | edit-drag dance; new measurements spawn at viewport thirds                                                                                      |
-| `StationMarkers`     | shared `stationSource`                                 | all         | ✅                           | dashboard in-progress green ring; drag = selected only                                                                                          |
-| `PoiMarkers`         | shared `poiSource`                                     | all         | ✅                           | selected POI always shown; `source.changed()` repaint                                                                                           |
-| `ActionMarkers`      | shared `actionSource`                                  | all         | ✅                           | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`)    |
-| `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                   |
-| `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition) |
-| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | only when section=="evas" & selectedRex; epsilon egress skip; keeps edited entry visible                                                        |
-| `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                              |
-| `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                     |
-| `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                        |
-| `TimelineAstronaut`  | `ol/Overlay`                                           | editor      | —                            | `getCoordinateAt(fraction)`; `percentElapsed === 0` is valid                                                                                    |
-| `FollowMode`         | drives `view.fit()`                                    | dashboard   | —                            | sorts pos entries newest-first (documented fix); publishes `bigMapExtent`                                                                       |
-| `AutoFitBounds`      | drives `view.fit()`                                    | minimap     | —                            | fits objects + dashboard box                                                                                                                    |
-| `BigMapBoundsBox`    | own source                                             | minimap     | rebuild                      | draws dashboard viewport box                                                                                                                    |
+| Component            | Owns                                                   | Mode        | Reconciler                   | Notes                                                                                                                                                                                                                        |
+| -------------------- | ------------------------------------------------------ | ----------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TileLayers`         | all data layers (neg z) + label Translate              | all         | layer-level                  | preset hot-swap, async PMTiles, COG by ext, per-document GeoJSON CRS, draggable gazetteer/feature labels                                                                                                                     |
+| `Grid`               | own line + label layers                                | all         | rebuild on view move         | resolved server-file/dynamic LGRS source; dynamic LGRS = whole-Moon `createLgrsRenderPlan` (`utils/lgrs/grid/`): box tier per LPS/LTM region or zone-framework tier when zoomed out, seams stroked heavier, hard caps coarsen spacing; label `Style`s cached by text (`utils/styles/grid.ts`); dashboard publishes its spacing (null in zone tier), minimap mirrors it |
+| `Circles`            | own circle layers                                      | all         | **full rebuild** each change | dashed altColor = 2× layers; dupes station visibility logic                                                                                                                                                                  |
+| `TraverseLines`      | shared `traverseSource`                                | all         | ✅                           | geodesic bearings/distances; edit-drag detach dance                                                                                                                                                                          |
+| `WalkbackLines`      | shared `walkbackSource`                                | all         | ✅                           | feature id `walkback-${uuid}`; edit-drag dance                                                                                                                                                                               |
+| `MeasurementLines`   | shared `measurementSource`                             | editor      | ✅                           | edit-drag dance; new measurements spawn at viewport thirds                                                                                                                                                                   |
+| `StationMarkers`     | shared `stationSource`                                 | all         | ✅                           | dashboard in-progress green ring; drag = selected only                                                                                                                                                                       |
+| `PoiMarkers`         | shared `poiSource`                                     | all         | ✅                           | selected POI always shown; `source.changed()` repaint                                                                                                                                                                        |
+| `ActionMarkers`      | shared `actionSource`                                  | all         | ✅                           | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`)                                                                                 |
+| `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                                                                                                |
+| `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition)                                                                              |
+| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                                                                                                       |
+| `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also radii/labels); draws nothing when `MODE_CONFIGS[mode].asset.show` is false (minimap); editor draws the in-edit asset under the asset's id; click → `thunkJumpToAsset` |
+| `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; gated by `asset.show` like AssetMarkers (minimap: off); no ids, not interactive; zero radius draws no circle                         |
+| `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                                                                                                           |
+| `HoverHighlight`     | own source                                             | editor      | —                            | clones hovered geometry; POS resolved from REX (not vector)                                                                                                                                                                  |
+| `SelectionHighlight` | own source + auto-pan                                  | editor      | —                            | one target via priority chain; pans only outside viewport & not mid-edit                                                                                                                                                     |
+| `TimelineAstronaut`  | `ol/Overlay`                                           | editor      | —                            | `getCoordinateAt(fraction)`; `percentElapsed === 0` is valid                                                                                                                                                                 |
+| `FollowMode`         | drives `view.fit()`                                    | dashboard   | —                            | sorts pos entries newest-first (documented fix); publishes `bigMapExtent`                                                                                                                                                    |
+| `AutoFitBounds`      | drives `view.fit()`                                    | minimap     | —                            | fits objects + dashboard box                                                                                                                                                                                                 |
+| `BigMapBoundsBox`    | own source                                             | minimap     | rebuild                      | draws dashboard viewport box                                                                                                                                                                                                 |
 
 > **Grid density is owned by the dashboard.** After each rebuild the dashboard `Grid` publishes the
 > line + label spacing it used (in projection metres) to `DashboardBoundsProvider`; the minimap
@@ -506,7 +566,8 @@ Overlay gotchas:
 > as many grid lines as the dashboard shows. The editor map has no provider and is unaffected.
 > One safety valve: because the minimap is far more zoomed out, the inherited spacing is doubled
 > until adjacent lines are ≥ `MINIMAP_MIN_LINE_PX` (3px) apart — doubling keeps the drawn lines a
-> subset of the dashboard's. Both paths (dynamic-LGRS and server-file grid) implement this.
+> subset of the dashboard's. Both paths (dynamic-LGRS and server-file grid) implement this; the
+> dynamic-LGRS plan applies the coarsening per region via `inheritedSpacing`.
 
 ---
 

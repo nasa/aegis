@@ -5,6 +5,8 @@ import {
   generateBlankMission,
 } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
+import { generateBlankPoi } from "store/storeUtils/poi";
+import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { seedTerrainProfile, terrainProfiles } from "tests/vitest/fixtures/terrainProfiles";
 import {
@@ -210,6 +212,46 @@ describe("Export tests", () => {
     });
 
     expect(JSON.parse(output).exportMission.gridCoordinates).toBe("AZM B95 D44");
+  });
+
+  // Oracle (lgrs 0.4.0) 10 m ACC labels in the "full" export style.
+  test.each([
+    ["LTM 23N", { lat: 0, lng: 0 }, "23NFF -00 -00"],
+    ["LTM 34N", { lat: 45, lng: 90 }, "34TGQ S84 N71"],
+    ["LTM 12S", { lat: -45, lng: -90 }, "12GDR G15 L28"],
+    ["LTM 1N", { lat: 0, lng: -180 }, "1NAA C72 -00"],
+    ["LPS N", { lat: 80, lng: 10 }, "ZCA B47 B40"],
+  ])("exports full %s LGRS coordinates for every entity", (_system, location, expected) => {
+    const mission = generateBlankMission({ name: "Whole-Moon LGRS Export Mission" });
+    mission.usingLGRSCoordinates = true;
+    mission.landerLocation = location;
+    const poi = generateBlankPoi({ location });
+    const station = generateBlankStation({ location });
+    const action = generateBlankAction({ location });
+    mission.pois = { [poi.uuid]: poi };
+    mission.stations = { [station.uuid]: station };
+    mission.actions = { [action.uuid]: action };
+
+    const output = JSON.parse(
+      makeExportString({
+        terrainProfiles: {},
+        mission,
+        selectEvas: false,
+        selectMission: true,
+        selectPois: true,
+        selectStations: true,
+        selectActions: true,
+        selectTraverses: false,
+        selectRexes: false,
+      })
+    );
+
+    expect(output.exportMission.gridCoordinates).toBe(expected);
+    for (const key of ["pois", "stations", "actions"]) {
+      expect(output[key].map((item: { gridCoordinates: string }) => item.gridCoordinates)).toEqual([
+        expected,
+      ]);
+    }
   });
 
   test("keeps the Maestro EVA shape: terrain arrays present, UI-only flags absent", () => {

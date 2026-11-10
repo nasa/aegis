@@ -126,6 +126,12 @@ const Index: React.FunctionComponent = () => {
                 enabled={!!user?.isSuperAdmin}
               />
               <NavCard
+                to="/admin/notificationBanners"
+                title="Notification Banners"
+                description="Show banner messages at the top of every page or on specific missions, with optional start and end times."
+                enabled={!!user?.isSuperAdmin}
+              />
+              <NavCard
                 to="/admin/maestroV2"
                 title="Maegistro v2 Monitor"
                 description="Monitor Maegistro v2 connections on /api/socket on the /maestro/v2 namespace."

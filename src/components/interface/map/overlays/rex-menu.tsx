@@ -16,8 +16,8 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 
-const REX_MENU_WIDTH = 384;
-const REX_MENU_HEIGHT = 320;
+const REX_MENU_WIDTH = 420;
+const REX_MENU_HEIGHT = 360;
 // The widget cannot be dragged/resized smaller than this (enforced in CSS on the floating
 // resize container, see missionDockviewLayout.module.css).
 const REX_MENU_MIN_WIDTH = 325;
@@ -170,20 +170,16 @@ export const RexMenuHeaderActions: FunctionComponent<IDockviewHeaderActionsProps
 };
 
 // Manages the floating Rex Menu widget's two dockview panels (Positions + Assets tabs): creates
-// them when the EVA section is active and a REX is selected, removes them otherwise, and toggles
-// the group's visibility when minimized.
+// them once a mission is loaded, in every section and with or without a selected REX, removes
+// them otherwise, toggles the group's visibility when minimized, and shows the Assets tab on
+// request (e.g. an asset marker click).
 export function useRexMenuDockviewPanel(api: DockviewApi | null): void {
-  const sectionSelected = useAppSelector((state) => state.interface.sectionSelectedLabel, refEqual);
-  const selectedRexUuid = useAppSelector((state) => state.rex.selectedRexUuid, refEqual);
-  const selectedRexExists = useMissionDocSelector(
-    (mission) => !!(selectedRexUuid && mission.rexes?.[selectedRexUuid]),
-    refEqual
-  );
-  const showRexMenu = sectionSelected === "evas" && selectedRexExists;
+  const showRexMenu = useMissionDocSelector((mission) => !!mission, refEqual) ?? false;
   const rexMenuIsMinimized = useAppSelector(
     (state) => state.interface.rexMenuIsMinimized,
     refEqual
   );
+  const assetsTabRequestId = useAppSelector((state) => state.asset.assetsTabRequestId, refEqual);
 
   useEffect(() => {
     if (!api) return;
@@ -206,4 +202,9 @@ export function useRexMenuDockviewPanel(api: DockviewApi | null): void {
     if (!api || !showRexMenu) return;
     api.getPanel("positions")?.group.api.setVisible(!rexMenuIsMinimized);
   }, [api, showRexMenu, rexMenuIsMinimized]);
+
+  useEffect(() => {
+    if (!api || !showRexMenu || assetsTabRequestId === 0) return;
+    api.getPanel("assets")?.api.setActive();
+  }, [api, showRexMenu, assetsTabRequestId]);
 }

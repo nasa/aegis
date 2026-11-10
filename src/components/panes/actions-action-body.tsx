@@ -43,7 +43,7 @@ import {
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { thunkDocAddCollectionId, thunkDocAddRexActionMass } from "store/thunk/thunkRex";
-import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
+import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 import { UNRESTRICTED_ACTION_EDIT_CAPABILITIES } from "utils/rexExecuteEditMode";
@@ -107,8 +107,9 @@ const RightActionBody: FunctionComponent<{
   const actionGridCoordinates = useAppSelector((state) => {
     if (action.location && partialMission.usingLGRSCoordinates) {
       return (
-        getSouthLpsDisplayCoordinate(
+        formatLgrsFromLatLon(
           action.location,
+          LGRS_DISPLAY_PRECISION_METERS,
           resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
         ) ?? "Not set"
       );

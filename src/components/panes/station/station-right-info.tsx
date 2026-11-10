@@ -32,7 +32,7 @@ import CalculatedDwell from "../calculated-dwell";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { setOriginalPoints, updateMapDirective } from "store/map";
 import { getCalcFieldsForStation } from "store/processing/calculatedFields";
-import { getSouthLpsDisplayCoordinate } from "utils/lgrs/southLps";
+import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
@@ -169,8 +169,9 @@ const Info_Panel: FunctionComponent<{
   const stationGridCoordinates = useMemo(() => {
     if (selectedStation?.location && partialMission.usingLGRSCoordinates) {
       return (
-        getSouthLpsDisplayCoordinate(
+        formatLgrsFromLatLon(
           selectedStation.location,
+          LGRS_DISPLAY_PRECISION_METERS,
           resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
         ) ?? "Not set"
       );

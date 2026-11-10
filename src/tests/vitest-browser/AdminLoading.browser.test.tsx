@@ -99,7 +99,7 @@ describe("admin request feedback", () => {
     await expect.element(page.getByRole("status")).toBeInTheDocument();
     failure.reject(new Error("Connection lost"));
     await failedRun;
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Connection lost");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Connection lost");
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();
     const retry = deferred<void>();
     const retryRun = status.run("Retrying...", () => retry.promise);
@@ -139,7 +139,7 @@ describe("admin directory loading", () => {
       .toHaveTextContent("Loading directory listing...");
     expect(harness.container.textContent).not.toContain("No files");
     refresh.reject(new Error("Directory unavailable"));
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Directory unavailable");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Directory unavailable");
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();
     await expect.element(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
   });
@@ -179,7 +179,7 @@ describe("admin layer loading", () => {
     );
     await page.getByRole("button", { name: "Add New Header Layer" }).click();
     await page.getByRole("button", { name: "Save", exact: true }).click();
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Layer save failed");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Layer save failed");
     await expect.element(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await page.getByRole("button", { name: "Add New Header Layer" }).click();
@@ -224,7 +224,7 @@ describe("admin layer loading", () => {
         <Layers missionId={1} />
       </MemoryRouter>
     );
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Layers unavailable");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Layers unavailable");
     expect(harness.container.textContent).not.toContain("No Layers Found");
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();
   });
@@ -282,7 +282,7 @@ describe("admin mission document loading", () => {
     vi.mocked(getAutomergeDocListing).mockReturnValueOnce(record.promise);
     vi.mocked(useDocument).mockReturnValue([undefined, vi.fn()]);
     harness.render(<MissionName />);
-    await expect.element(page.getByRole("status")).toHaveTextContent("Loading mission");
+    await expect.element(page.getByRole("status")).toMatchTextContent("Loading mission");
     const url = generateAutomergeUrl();
     record.resolve({
       status: "success",
@@ -290,7 +290,7 @@ describe("admin mission document loading", () => {
       data: [{ missionId: 1, automergeUrl: url } as AutomergeDocListing],
     });
     await vi.waitFor(() => expect(useDocument).toHaveBeenCalledWith(url));
-    await expect.element(page.getByRole("status")).toHaveTextContent("Loading mission");
+    await expect.element(page.getByRole("status")).toMatchTextContent("Loading mission");
     vi.mocked(useDocument).mockReturnValue([{ id: 1, name: "Lunar Mission" } as Mission, vi.fn()]);
     harness.render(<MissionName />);
     await expect.element(page.getByText("Lunar Mission")).toBeInTheDocument();
@@ -305,7 +305,7 @@ describe("admin mission document loading", () => {
       data: [],
     });
     harness.render(<MissionName />);
-    await expect.element(page.getByRole("alert")).toHaveTextContent("Mission record not found");
+    await expect.element(page.getByRole("alert")).toMatchTextContent("Mission record not found");
     await expect.element(page.getByRole("status")).not.toBeInTheDocument();
   });
 });

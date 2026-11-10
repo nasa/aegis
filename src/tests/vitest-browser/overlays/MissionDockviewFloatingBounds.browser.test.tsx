@@ -9,17 +9,14 @@
 
 import { page } from "vitest/browser";
 import { configureStore } from "@reduxjs/toolkit";
+import { assetSlice } from "store/asset";
 import { Provider } from "react-redux";
 import { MissionDockviewLayout } from "components/interface/dockview/MissionDockviewLayout";
 import { interfaceSlice, initialState as interfaceInitialState } from "store/interface";
 import { rexSlice, initialState as rexInitialState } from "store/rex";
 import { createReactHarness, type ReactHarness } from "../map/helpers/reactBrowserHarness";
 
-const REX_UUID = "rex-uuid-floating-bounds-1";
-
-const mockMissionDoc: Partial<Mission> = {
-  rexes: { [REX_UUID]: { uuid: REX_UUID } as unknown as Mission["rexes"][string] },
-};
+const mockMissionDoc: Partial<Mission> = { rexes: {} };
 
 vi.mock("utils/useDocSelector", () => ({
   useMissionDocSelector: <TSel,>(selector: (doc: unknown) => TSel): TSel =>
@@ -45,15 +42,21 @@ vi.mock("components/interface/map/overlays/map-menu-pos", () => ({
   MapPositionMenu: (): null => null,
 }));
 
+vi.mock("components/interface/map/overlays/map-menu-assets", () => ({
+  MapAssetsMenu: (): null => null,
+}));
+
 function makeStore() {
   return configureStore({
     reducer: {
       interface: interfaceSlice.reducer,
       rex: rexSlice.reducer,
+      asset: assetSlice.reducer,
     },
+    // The widget is available in every section, with no REX selected.
     preloadedState: {
-      interface: { ...interfaceInitialState, sectionSelectedLabel: "evas" },
-      rex: { ...rexInitialState, selectedRexUuid: REX_UUID },
+      interface: { ...interfaceInitialState, sectionSelectedLabel: "station" },
+      rex: { ...rexInitialState, selectedRexUuid: null },
     },
   });
 }
@@ -113,6 +116,22 @@ describe("MissionDockviewLayout floating Rex Menu bounds", () => {
     expect(widgetRect.top).toBeGreaterThanOrEqual(mapRect.top - 1);
     expect(widgetRect.right).toBeLessThanOrEqual(mapRect.right + 1);
     expect(widgetRect.bottom).toBeLessThanOrEqual(mapRect.bottom + 1);
+  });
+
+  it("resizes the floating widget while the main layout is locked", () => {
+    const widget = getRexMenuWidget()!;
+    const before = widget.getBoundingClientRect();
+    const handle = widget.querySelector<HTMLElement>(".dv-resize-handle-left")!;
+
+    dragResizeHandle(handle, {
+      clientX: before.left - 60,
+      clientY: before.top + before.height / 2,
+    });
+
+    const after = widget.getBoundingClientRect();
+    expect(after.width).toBeGreaterThan(before.width + 40);
+    expect(Math.abs(after.right - before.right)).toBeLessThanOrEqual(1);
+    expect(after.left).toBeGreaterThanOrEqual(getMapRect().left - 1);
   });
 
   it.each(["left", "right", "bottom", "top", "bottomleft", "topright"])(

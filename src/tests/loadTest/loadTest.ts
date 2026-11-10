@@ -4,7 +4,7 @@ import { setAllSliceStores } from "store/crossActions";
 import { syncMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import {
   attachSocketListeners,
-  cleanupSocketListeners,
+  getVisitorPageData,
   createClientSocket,
 } from "utils/clientSocketHelpers";
 import type { RootState } from "store/index";
@@ -128,14 +128,25 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
     // Add socket listeners
     // Disable TLS verification for self-signed certificates in load testing
     const socket = createClientSocket(serverURL, { rejectUnauthorized: false });
-    attachSocketListeners(socket, dispatch, connectionStoreRef, userRef, TEST_MISSION_ID);
+    // Each worker reports itself as a visitor on the test mission page
+    const visitorPageDataRef = {
+      current: getVisitorPageData(`/mission/${TEST_MISSION_ID}`, userRef.current.missionPerms),
+    };
+    const detachSocketListeners = attachSocketListeners(
+      socket,
+      dispatch,
+      connectionStoreRef,
+      userRef,
+      visitorPageDataRef
+    );
 
     let keepAlive = true;
 
     // if duration is reached, resolve the promise and exit
     setTimeout(() => {
       keepAlive = false;
-      cleanupSocketListeners(socket);
+      detachSocketListeners();
+      socket.disconnect();
       const finalStoreState: RootState = reduxStore.getState();
       resolve({ finalState: finalStoreState });
     }, duration);

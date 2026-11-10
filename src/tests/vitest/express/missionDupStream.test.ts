@@ -1,7 +1,7 @@
 import express from "express";
 import supertest from "supertest";
 
-const { em, sourceHandle, copiedHandle, copyAssets, createMission, authorized } = vi.hoisted(
+const { em, sourceHandle, copiedHandle, copyGISAssets, createMission, authorized } = vi.hoisted(
   () => ({
     em: {
       begin: vi.fn(),
@@ -11,7 +11,7 @@ const { em, sourceHandle, copiedHandle, copyAssets, createMission, authorized } 
     },
     sourceHandle: { whenReady: vi.fn(), doc: vi.fn() },
     copiedHandle: { whenReady: vi.fn(), doc: vi.fn(), change: vi.fn() },
-    copyAssets: vi.fn(),
+    copyGISAssets: vi.fn(),
     createMission: vi.fn(),
     authorized: vi.fn(),
   })
@@ -28,7 +28,7 @@ vi.mock("server/express/global", () => ({
 vi.mock("server/express/routes/missionAutomerge", () => ({
   createAutomergeMission: createMission,
 }));
-vi.mock("server/file/file", () => ({ copyDirectoryContents: copyAssets }));
+vi.mock("server/file/file", () => ({ copyDirectoryContents: copyGISAssets }));
 vi.mock("utils/permissions", () => ({ emssTokenIsValid: authorized }));
 vi.mock("utils/logging/serverLogger", () => ({
   serverLogger: { apiRoute: vi.fn(), info: vi.fn() },
@@ -47,14 +47,16 @@ beforeEach(() => {
   sourceHandle.doc.mockReturnValue({ id: 50, name: "Source mission" });
   copiedHandle.doc.mockReturnValue({ id: 51 });
   createMission.mockResolvedValue({ automergeUrl: "automerge:copy" });
-  copyAssets.mockResolvedValue(undefined);
+  copyGISAssets.mockResolvedValue(undefined);
 });
 
 afterEach(() => vi.restoreAllMocks());
 
 test("sends progress and heartbeats while GIS copying is still running", async () => {
   let finishCopy: () => void;
-  copyAssets.mockImplementationOnce(() => new Promise<void>((resolve) => (finishCopy = resolve)));
+  copyGISAssets.mockImplementationOnce(
+    () => new Promise<void>((resolve) => (finishCopy = resolve))
+  );
   const intervals = vi.spyOn(globalThis, "setInterval");
   const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
   const events: (MissionDuplicationProgress | WrappedResponse<number>)[] = [];
@@ -95,12 +97,12 @@ test("sends progress and heartbeats while GIS copying is still running", async (
 
   expect(events.at(-1)).toMatchObject({ status: "success", data: 51 });
   expect(em.commit).toHaveBeenCalledOnce();
-  expect(copyAssets).toHaveBeenCalledWith(50, 51);
+  expect(copyGISAssets).toHaveBeenCalledWith(50, 51);
   expect(clearIntervalSpy).toHaveBeenCalledWith(intervals.mock.results[0].value);
 });
 
 test("streams copy errors and rolls back instead of reporting success", async () => {
-  copyAssets.mockRejectedValueOnce(new Error("Disk full"));
+  copyGISAssets.mockRejectedValueOnce(new Error("Disk full"));
   const res = await supertest(app)
     .post("/missionDup")
     .set("Accept", "application/x-ndjson")
@@ -120,7 +122,9 @@ test("streams copy errors and rolls back instead of reporting success", async ()
 
 test("continues the copy and commits if the client disconnects", async () => {
   let finishCopy: () => void;
-  copyAssets.mockImplementationOnce(() => new Promise<void>((resolve) => (finishCopy = resolve)));
+  copyGISAssets.mockImplementationOnce(
+    () => new Promise<void>((resolve) => (finishCopy = resolve))
+  );
   const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
   const request = supertest(app)
     .post("/missionDup")
@@ -132,7 +136,7 @@ test("continues the copy and commits if the client disconnects", async () => {
   );
 
   try {
-    await vi.waitFor(() => expect(copyAssets).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(copyGISAssets).toHaveBeenCalledOnce());
     request.abort();
     await result;
     await vi.waitFor(() => expect(clearIntervalSpy).toHaveBeenCalled());
@@ -152,7 +156,7 @@ test("preserves JSON responses for clients that do not request a stream", async 
 });
 
 test("preserves HTTP errors for JSON clients", async () => {
-  copyAssets.mockRejectedValueOnce(new Error("Disk full"));
+  copyGISAssets.mockRejectedValueOnce(new Error("Disk full"));
   const res = await supertest(app).post("/missionDup").send({ missionId: 50 });
   expect(res.status).toBe(500);
   expect(res.body.status).toBe("error");

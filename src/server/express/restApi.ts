@@ -23,7 +23,6 @@ import timeRoutes from "./routes/time";
 
 import rexByEvaV2 from "../maestro/v2/routes/getRexesByEva";
 import getMissionsV2 from "../maestro/v2/routes/getMissions";
-import getRefUuidMapV2 from "../maestro/v2/routes/getRefUuidMap";
 import readableEvaRoutesV2 from "../maestro/v2/routes/eva";
 import readableMissionRoutesV2 from "../maestro/v2/routes/mission";
 import docCreateV2 from "../maestro/v2/routes/docCreate";
@@ -46,6 +45,7 @@ import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
 import docListingRoute from "./routes/docListing";
 import environmentConfigRoute from "./routes/environmentConfig";
+import notificationBannerRoute from "./routes/notificationBanner";
 import missionAutomergeRoutes from "./routes/missionAutomerge";
 
 import dustRoute from "./routes/external/dust";
@@ -135,6 +135,7 @@ app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
 app.use("/api/v1/docListing", docListingRoute);
 app.use("/api/v1/environmentConfig", environmentConfigRoute);
+app.use("/api/v1/notificationBanner", notificationBannerRoute);
 
 // require emssToken auth only
 app.use("/api/v1/emss/enableEmssApi", enableEmssApi);
@@ -144,7 +145,6 @@ app.use("/api/v1/maestro/v2/eva", readableEvaRoutesV2);
 app.use("/api/v1/maestro/v2/mission", readableMissionRoutesV2);
 app.use("/api/v1/maestro/v2/getRexesByEva", rexByEvaV2);
 app.use("/api/v1/maestro/v2/getMissions", getMissionsV2);
-app.use("/api/v1/maestro/v2/getRefUuidMap", getRefUuidMapV2);
 app.use("/api/v1/maestro/v2/doc/create", docCreateV2);
 
 // external endpoints used by other stakeholders
