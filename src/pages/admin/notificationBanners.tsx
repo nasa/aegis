@@ -13,6 +13,8 @@ import {
 } from "http-client/notificationBanner";
 import bannerStyles from "components/page/notificationBannerBar.module.css";
 import adminCommon from "./adminCommon.module.css";
+import styles from "./notificationBanners.module.css";
+import { getBannerTimeError } from "utils/notificationBannerValidation";
 
 const MAX_MESSAGE_LENGTH = 500;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -36,7 +38,7 @@ const PRESET_BANNER_COLORS = {
 const BANNER_STATUS_COLORS = {
   Active: "#4ade80",
   Scheduled: "#60a5fa",
-  Expired: "#94a3b8",
+  Expired: "#fbbf24",
   Disabled: "#f87171",
 } as const;
 
@@ -92,8 +94,10 @@ const NotificationBanners: FunctionComponent = () => {
 
   const handleSaved = (saved: NotificationBanner) => {
     setBanners((previous) => {
-      const others = (previous ?? []).filter((banner) => banner.id !== saved.id);
-      return [saved, ...others].sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+      const current = previous ?? [];
+      return current.some((banner) => banner.id === saved.id)
+        ? current.map((banner) => (banner.id === saved.id ? saved : banner))
+        : [saved, ...current];
     });
     setEditing(null);
   };
@@ -132,10 +136,10 @@ const NotificationBanners: FunctionComponent = () => {
           </div>
         )}
 
-        {editing !== null && (
+        {editing === "new" && (
           <BannerEditor
-            key={editing === "new" ? "new" : editing.id}
-            banner={editing === "new" ? null : editing}
+            key="new"
+            banner={null}
             missions={missions}
             onSaved={handleSaved}
             onCancel={() => setEditing(null)}
@@ -146,16 +150,26 @@ const NotificationBanners: FunctionComponent = () => {
           <p style={mutedText}>No notification banners have been created.</p>
         )}
 
-        {banners?.map((banner) => (
-          <BannerCard
-            key={banner.id}
-            banner={banner}
-            missionNameById={missionNameById}
-            onEdit={() => setEditing(banner)}
-            onSaved={handleSaved}
-            onDeleted={handleDeleted}
-          />
-        ))}
+        {banners?.map((banner) =>
+          editing && editing !== "new" && editing.id === banner.id ? (
+            <BannerEditor
+              key={banner.id}
+              banner={editing}
+              missions={missions}
+              onSaved={handleSaved}
+              onCancel={() => setEditing(null)}
+            />
+          ) : (
+            <BannerCard
+              key={banner.id}
+              banner={banner}
+              missionNameById={missionNameById}
+              onEdit={() => setEditing(banner)}
+              onSaved={handleSaved}
+              onDeleted={handleDeleted}
+            />
+          )
+        )}
       </div>
     </main>
   );
@@ -174,7 +188,8 @@ const BannerCard: FunctionComponent<{
 }> = ({ banner, missionNameById, onEdit, onSaved, onDeleted }) => {
   const action = useAsyncStatus();
   const busy = !!action.pending;
-  const status = getBannerStatus(banner, new Date());
+  const [now] = useBannerClock();
+  const status = getBannerStatus(banner, now);
 
   const handleToggleEnabled = () =>
     action.run(banner.enabled ? "Disabling banner..." : "Enabling banner...", async () => {
@@ -210,9 +225,14 @@ const BannerCard: FunctionComponent<{
 
   return (
     <section className={adminCommon.section}>
-      <h2 className={adminCommon.sectionHeading}>
+      <h2 className={`${adminCommon.sectionHeading} ${styles.bannerHeading}`}>
         Banner {banner.id}
-        <span style={{ ...statusBadge, color: BANNER_STATUS_COLORS[status] }}>{status}</span>
+        <span
+          className={styles.statusBadge}
+          style={{ backgroundColor: BANNER_STATUS_COLORS[status] }}
+        >
+          {status}
+        </span>
       </h2>
       <div className={adminCommon.details}>
         <AsyncStatus {...action} />
@@ -237,12 +257,29 @@ const BannerCard: FunctionComponent<{
             <dt style={dtStyle}>Ends</dt>
             <dd style={ddStyle}>
               <TimeWithUtc isoTime={banner.endsAt} emptyLabel="No end time" />
+              {banner.endsAt && <ExpiryCountdown isoTime={banner.endsAt} now={now} />}
             </dd>
           </div>
           <div className={adminCommon.definitionRow}>
             <dt style={dtStyle}>Colors</dt>
             <dd style={ddStyle}>
-              <code>{banner.backgroundColor}</code> background, <code>{banner.textColor}</code> text
+              <span className={styles.colorValue}>
+                <span
+                  className={styles.colorSwatch}
+                  style={{ backgroundColor: banner.backgroundColor }}
+                  aria-hidden="true"
+                />
+                <code>{banner.backgroundColor}</code> background
+              </span>
+              {", "}
+              <span className={styles.colorValue}>
+                <span
+                  className={styles.colorSwatch}
+                  style={{ backgroundColor: banner.textColor }}
+                  aria-hidden="true"
+                />
+                <code>{banner.textColor}</code> text
+              </span>
             </dd>
           </div>
         </dl>
@@ -284,6 +321,8 @@ const BannerEditor: FunctionComponent<{
   const [hexText, setHexText] = useState(values.backgroundColor);
   const [missionFilter, setMissionFilter] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [now, setNow] = useBannerClock();
+  const timeError = getTimeWindowError(values, now);
 
   const setValue = <K extends keyof NotificationBannerFormValues>(
     key: K,
@@ -314,9 +353,11 @@ const BannerEditor: FunctionComponent<{
     );
 
   const handleSave = () => {
+    const saveTime = new Date();
+    setNow(saveTime);
     const errorMessage = getFormError(values, hexText);
     setValidationError(errorMessage);
-    if (errorMessage) return;
+    if (errorMessage || getTimeWindowError(values, saveTime)) return;
 
     action.run("Saving banner...", async () => {
       const requestBanner = toBannerFromForm(values);
@@ -335,8 +376,16 @@ const BannerEditor: FunctionComponent<{
 
   return (
     <section className={adminCommon.section}>
-      <h2 className={adminCommon.sectionHeading}>
+      <h2 className={`${adminCommon.sectionHeading} ${styles.bannerHeading}`}>
         {banner ? `Edit Banner ${banner.id}` : "New Banner"}
+        {!values.enabled && (
+          <span
+            className={styles.statusBadge}
+            style={{ backgroundColor: BANNER_STATUS_COLORS.Disabled }}
+          >
+            Disabled
+          </span>
+        )}
       </h2>
       <div className={adminCommon.details}>
         <AsyncStatus {...action} />
@@ -358,29 +407,92 @@ const BannerEditor: FunctionComponent<{
             </span>
           </div>
 
-          <label className={adminCommon.checkboxItem}>
-            <input
-              type="checkbox"
-              checked={values.enabled}
-              onChange={(e) => setValue("enabled", e.target.checked)}
-            />
-            Enabled (uncheck to turn the banner off regardless of its time window)
-          </label>
+          <div className={adminCommon.formGroup}>
+            <div className={styles.timeWindow}>
+              <TimeWindowInput
+                id="banner-starts-at"
+                label="Start time"
+                noLimitLabel="Start immediately"
+                value={values.startsAtLocal}
+                onChange={(value) => setValue("startsAtLocal", value)}
+                invalid={!!timeError}
+              />
+              <TimeWindowInput
+                id="banner-ends-at"
+                label="End time"
+                noLimitLabel="No end time"
+                value={values.endsAtLocal}
+                onChange={(value) => setValue("endsAtLocal", value)}
+                invalid={!!timeError}
+                countdownNow={now}
+              />
+            </div>
+            {timeError && (
+              <p id="banner-time-error" role="alert" style={errorText}>
+                {timeError}
+              </p>
+            )}
+          </div>
 
-          <TimeWindowInput
-            id="banner-starts-at"
-            label="Start time"
-            noLimitLabel="Start immediately"
-            value={values.startsAtLocal}
-            onChange={(value) => setValue("startsAtLocal", value)}
-          />
-          <TimeWindowInput
-            id="banner-ends-at"
-            label="End time"
-            noLimitLabel="No end time"
-            value={values.endsAtLocal}
-            onChange={(value) => setValue("endsAtLocal", value)}
-          />
+          <div className={styles.colorFields}>
+            <div className={`${adminCommon.formGroup} ${styles.backgroundColorField}`}>
+              <span className={adminCommon.formLabel}>Background color</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+                {(Object.keys(PRESET_BANNER_COLORS) as (keyof typeof PRESET_BANNER_COLORS)[]).map(
+                  (preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => selectPreset(preset)}
+                      aria-pressed={selectedPreset === preset}
+                      style={{
+                        ...swatchStyle,
+                        backgroundColor: PRESET_BANNER_COLORS[preset].backgroundColor,
+                        color: PRESET_BANNER_COLORS[preset].textColor,
+                        outline: selectedPreset === preset ? "3px solid #e2e8f0" : "none",
+                      }}
+                    >
+                      {preset}
+                    </button>
+                  )
+                )}
+                <input
+                  type="color"
+                  aria-label="Custom background color"
+                  value={values.backgroundColor.toLowerCase()}
+                  onChange={(e) => setCustomColor(e.target.value)}
+                  style={{ width: "44px", height: "34px", padding: 0, border: "none" }}
+                />
+                <input
+                  className={adminCommon.formInput}
+                  type="text"
+                  aria-label="Custom background hex value"
+                  value={hexText}
+                  onChange={(e) => setCustomColor(e.target.value.trim())}
+                  placeholder="#RRGGBB"
+                  style={{ width: "110px" }}
+                />
+                {!selectedPreset && <span style={mutedText}>(custom)</span>}
+              </div>
+            </div>
+
+            <div className={`${adminCommon.formGroup} ${styles.textColorField}`}>
+              <span className={adminCommon.formLabel}>Text color</span>
+              <div className={styles.textColorOptions}>
+                {TEXT_COLOR_OPTIONS.map(({ label, textColor }) => (
+                  <label key={textColor} className={adminCommon.checkboxItem}>
+                    <input
+                      type="radio"
+                      name="banner-text-color"
+                      checked={values.textColor.toUpperCase() === textColor}
+                      onChange={() => setValue("textColor", textColor)}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
 
           <div className={adminCommon.formGroup}>
             <span className={adminCommon.formLabel}>Shows on</span>
@@ -435,64 +547,6 @@ const BannerEditor: FunctionComponent<{
           </div>
 
           <div className={adminCommon.formGroup}>
-            <span className={adminCommon.formLabel}>Background color</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
-              {(Object.keys(PRESET_BANNER_COLORS) as (keyof typeof PRESET_BANNER_COLORS)[]).map(
-                (preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => selectPreset(preset)}
-                    aria-pressed={selectedPreset === preset}
-                    style={{
-                      ...swatchStyle,
-                      backgroundColor: PRESET_BANNER_COLORS[preset].backgroundColor,
-                      color: PRESET_BANNER_COLORS[preset].textColor,
-                      outline: selectedPreset === preset ? "3px solid #e2e8f0" : "none",
-                    }}
-                  >
-                    {preset}
-                  </button>
-                )
-              )}
-              <input
-                type="color"
-                aria-label="Custom background color"
-                value={values.backgroundColor.toLowerCase()}
-                onChange={(e) => setCustomColor(e.target.value)}
-                style={{ width: "44px", height: "34px", padding: 0, border: "none" }}
-              />
-              <input
-                className={adminCommon.formInput}
-                type="text"
-                aria-label="Custom background hex value"
-                value={hexText}
-                onChange={(e) => setCustomColor(e.target.value.trim())}
-                placeholder="#RRGGBB"
-                style={{ width: "110px" }}
-              />
-              {!selectedPreset && <span style={mutedText}>(custom)</span>}
-            </div>
-          </div>
-
-          <div className={adminCommon.formGroup}>
-            <span className={adminCommon.formLabel}>Text color</span>
-            <div style={{ display: "flex", gap: "16px" }}>
-              {TEXT_COLOR_OPTIONS.map(({ label, textColor }) => (
-                <label key={textColor} className={adminCommon.checkboxItem}>
-                  <input
-                    type="radio"
-                    name="banner-text-color"
-                    checked={values.textColor.toUpperCase() === textColor}
-                    onChange={() => setValue("textColor", textColor)}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className={adminCommon.formGroup}>
             <span className={adminCommon.formLabel}>Preview</span>
             <BannerPreview
               message={values.message || "Banner message"}
@@ -503,13 +557,23 @@ const BannerEditor: FunctionComponent<{
 
           {validationError && <p style={errorText}>{validationError}</p>}
 
-          <div className={adminCommon.formActions}>
-            <button className={adminCommon.buttonPrimary} onClick={handleSave} disabled={saving}>
-              {saving ? "Saving…" : "Save"}
-            </button>
+          <div className={styles.editorActions}>
             <button className={adminCommon.buttonCancel} onClick={onCancel} disabled={saving}>
               Cancel
             </button>
+            <div className={styles.editorSaveActions}>
+              <button
+                type="button"
+                className={adminCommon.buttonCancel}
+                disabled={saving}
+                onClick={() => setValue("enabled", !values.enabled)}
+              >
+                {values.enabled ? "Disable" : "Enable"}
+              </button>
+              <button className={adminCommon.buttonPrimary} onClick={handleSave} disabled={saving}>
+                {saving ? "Saving…" : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -524,7 +588,9 @@ const TimeWindowInput: FunctionComponent<{
   noLimitLabel: string;
   value: string;
   onChange: (value: string) => void;
-}> = ({ id, label, noLimitLabel, value, onChange }) => {
+  invalid: boolean;
+  countdownNow?: Date;
+}> = ({ id, label, noLimitLabel, value, onChange, invalid, countdownNow }) => {
   const noLimit = value === "";
   const isoTime = localInputToIso(value);
   return (
@@ -532,13 +598,15 @@ const TimeWindowInput: FunctionComponent<{
       <label htmlFor={id} className={adminCommon.formLabel}>
         {label} (your local time)
       </label>
-      <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+      <div className={styles.timeInput}>
         <input
           id={id}
           className={adminCommon.formInput}
           type="datetime-local"
           value={value}
           disabled={noLimit}
+          aria-invalid={invalid}
+          aria-describedby={invalid ? "banner-time-error" : undefined}
           onChange={(e) => onChange(e.target.value)}
         />
         <label className={adminCommon.checkboxItem}>
@@ -557,6 +625,7 @@ const TimeWindowInput: FunctionComponent<{
           Local: {formatBannerTime(isoTime)} · UTC: {formatBannerTime(isoTime, "UTC")}
         </span>
       )}
+      {isoTime && countdownNow && <ExpiryCountdown isoTime={isoTime} now={countdownNow} />}
     </div>
   );
 };
@@ -570,8 +639,33 @@ const TimeWithUtc: FunctionComponent<{ isoTime: string | null; emptyLabel: strin
   return (
     <>
       {formatBannerTime(isoTime)}
-      <span style={{ color: "#94a3b8" }}> · {formatBannerTime(isoTime, "UTC")}</span>
+      <span style={{ color: "#94a3b8" }}> [{formatBannerTime(isoTime, "UTC")}]</span>
     </>
+  );
+};
+
+/** Keeps countdowns, statuses, and time validation current while the page stays open. */
+function useBannerClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return [now, setNow] as const;
+}
+
+const ExpiryCountdown: FunctionComponent<{ isoTime: string; now: Date }> = ({ isoTime, now }) => {
+  const remaining = Math.max(0, Math.ceil((new Date(isoTime).getTime() - now.getTime()) / 1000));
+  const days = Math.floor(remaining / 86400);
+  const hours = Math.floor((remaining % 86400) / 3600);
+  const minutes = Math.floor((remaining % 3600) / 60);
+  const seconds = remaining % 60;
+  return (
+    <span className={styles.expiryCountdown}>
+      {remaining > 0
+        ? `Expires in ${days ? `${days}d ` : ""}${hours}h ${minutes}m ${seconds}s`
+        : "Expired"}
+    </span>
   );
 };
 
@@ -666,19 +760,22 @@ function toBannerFromForm(values: NotificationBannerFormValues): NotificationBan
   };
 }
 
-/** Client-side copy of the server's validation rules, for immediate feedback. */
+/** Non-scheduling validation displayed by the Save button. */
 function getFormError(values: NotificationBannerFormValues, hexText: string): string | null {
   if (values.message.trim() === "") return "Enter a message.";
   if (!HEX_COLOR_PATTERN.test(hexText)) return "Background color must be a hex color like #1D4ED8.";
   if (values.scope === "missions" && values.missionIds.length === 0) {
     return "Select at least one mission.";
   }
-  const startsAt = localInputToIso(values.startsAtLocal);
-  const endsAt = localInputToIso(values.endsAtLocal);
-  if (startsAt && endsAt && new Date(startsAt) >= new Date(endsAt)) {
-    return "Start time must be before end time.";
-  }
   return null;
+}
+
+function getTimeWindowError(values: NotificationBannerFormValues, now: Date): string | null {
+  const startsAt = values.startsAtLocal ? new Date(values.startsAtLocal) : null;
+  const endsAt = values.endsAtLocal ? new Date(values.endsAtLocal) : null;
+  if (startsAt && Number.isNaN(startsAt.getTime())) return "Enter a valid start time.";
+  if (endsAt && Number.isNaN(endsAt.getTime())) return "Enter a valid end time.";
+  return getBannerTimeError(startsAt, endsAt, now);
 }
 
 /** Converts a `datetime-local` value (admin's local time) to a UTC ISO string; "" becomes null. */
@@ -711,12 +808,6 @@ const dtStyle: React.CSSProperties = {
 };
 
 const ddStyle: React.CSSProperties = { padding: "6px 0", margin: 0 };
-
-const statusBadge: React.CSSProperties = {
-  marginLeft: "12px",
-  fontSize: "0.9rem",
-  fontWeight: 600,
-};
 
 const swatchStyle: React.CSSProperties = {
   border: "1px solid #00000066",

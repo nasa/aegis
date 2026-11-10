@@ -8,6 +8,7 @@ import { globalValues } from "../global";
 import { upsertDatabaseRetry } from "utils/database";
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
+import { getBannerTimeError } from "utils/notificationBannerValidation";
 
 /** Notification banner create/update body after validation, with times parsed to Dates. */
 type ValidatedNotificationBannerInput = Omit<
@@ -106,14 +107,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   if (!rejectIfNotSuperAdmin(req, res, "POST")) return;
 
   try {
-    const validation = validateBannerInput(req.body);
+    const now = new Date();
+    const validation = validateBannerInput(req.body, now);
     if (validation.ok === false) {
       res.status(400).json({ status: "failure", message: validation.message });
       return;
     }
 
     const em = globalValues.orm.em;
-    const now = new Date();
     const username = getRequestUsername(req);
     const row = em.create(Notification_Banner_db, {
       ...validation.value,
@@ -156,17 +157,13 @@ router.post("/:id", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const validation = validateBannerInput(req.body);
-    if (validation.ok === false) {
-      res.status(400).json({ status: "failure", message: validation.message });
-      return;
-    }
-
     const username = getRequestUsername(req);
     const result = await upsertDatabaseRetry(async () => {
       const em = globalValues.orm.em.fork();
       const row = await em.findOne(Notification_Banner_db, { id });
       if (!row) return { found: false as const };
+      const validation = validateBannerInput(req.body);
+      if (validation.ok === false) return { found: true as const, error: validation.message };
       em.assign(row, { ...validation.value, updatedBy: username, updatedAt: new Date() });
       await em.flush();
       return { found: true as const, banner: serializeBanner(row) };
@@ -195,6 +192,10 @@ router.post("/:id", async (req: Request, res: Response): Promise<void> => {
     }
     if (!result.found) {
       res.status(404).json({ status: "failure", message: `Notification banner ${id} not found` });
+      return;
+    }
+    if ("error" in result) {
+      res.status(400).json({ status: "failure", message: result.error });
       return;
     }
 
@@ -406,7 +407,10 @@ export function getNextBannerTransition(
 }
 
 /** Checks and normalizes a create/update request body. Does not check that missions exist. */
-export function validateBannerInput(body: unknown): NotificationBannerValidationResult {
+export function validateBannerInput(
+  body: unknown,
+  now: Date = new Date()
+): NotificationBannerValidationResult {
   if (!body || typeof body !== "object") return { ok: false, message: "Request body is required" };
   const input = body as Partial<Record<keyof NotificationBanner, unknown>>;
 
@@ -426,9 +430,8 @@ export function validateBannerInput(body: unknown): NotificationBannerValidation
   if (startsAt === undefined) return { ok: false, message: "startsAt must be a date or null" };
   const endsAt = parseOptionalDate(input.endsAt);
   if (endsAt === undefined) return { ok: false, message: "endsAt must be a date or null" };
-  if (startsAt && endsAt && startsAt >= endsAt) {
-    return { ok: false, message: "Start time must be before end time" };
-  }
+  const timeError = getBannerTimeError(startsAt, endsAt, now);
+  if (timeError) return { ok: false, message: timeError };
 
   if (input.scope !== "application" && input.scope !== "missions") {
     return { ok: false, message: 'scope must be "application" or "missions"' };

@@ -122,6 +122,47 @@ describe("getNextBannerTransition", () => {
 });
 
 describe("validateBannerInput", () => {
+  test.each([
+    [
+      "equal start and end",
+      { startsAt: hoursFromNow(1).toISOString(), endsAt: hoursFromNow(1).toISOString() },
+    ],
+    ["end before creation with immediate start", { endsAt: hoursFromNow(-1).toISOString() }],
+    ["end at creation", { endsAt: NOW.toISOString() }],
+    [
+      "past window",
+      { startsAt: hoursFromNow(-2).toISOString(), endsAt: hoursFromNow(-1).toISOString() },
+    ],
+  ])("rejects %s", (_label, overrides) => {
+    expect(validateBannerInput({ ...validInput, ...overrides }, NOW).ok).toBe(false);
+  });
+
+  test("allows an active window whose start is in the past", () => {
+    expect(
+      validateBannerInput(
+        {
+          ...validInput,
+          startsAt: hoursFromNow(-1).toISOString(),
+          endsAt: hoursFromNow(1).toISOString(),
+        },
+        NOW
+      ).ok
+    ).toBe(true);
+  });
+
+  test("rejects expired edits even if the end follows the original creation time", () => {
+    expect(
+      validateBannerInput(
+        {
+          ...validInput,
+          createdAt: hoursFromNow(-2).toISOString(),
+          endsAt: hoursFromNow(-1).toISOString(),
+        },
+        NOW
+      ).ok
+    ).toBe(false);
+  });
+
   test("accepts valid input and normalizes it", () => {
     const result = validateBannerInput(validInput);
     expect(result.ok).toBe(true);
@@ -282,6 +323,55 @@ describe("Notification Banner API Endpoint", () => {
     expect(banner.backgroundColor).toBe("#1D4ED8");
     expect(banner.createdBy).toBe(testSuperAdmin.username);
     expect(emitMock).toHaveBeenCalledWith("bannersChanged");
+  });
+
+  test("create rejects a banner that would already be expired", async () => {
+    const res = await supertest(app)
+      .post("/api/v1/notificationBanner")
+      .set("Cookie", superAdminCookies)
+      .send({ ...validInput, endsAt: new Date(Date.now() - HOUR_MS).toISOString() });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("End time must be in the future.");
+  });
+
+  test("update rejects expired end times until they are moved into the future or removed", async () => {
+    const banner = await createBanner(validInput);
+    const expiredAt = new Date(Date.now() - HOUR_MS);
+    const em = globalValues.orm.em.fork();
+    await em.nativeUpdate(
+      Notification_Banner_db,
+      { id: banner.id },
+      {
+        createdAt: new Date(expiredAt.getTime() - HOUR_MS),
+        endsAt: expiredAt,
+      }
+    );
+
+    const res = await supertest(app)
+      .post(`/api/v1/notificationBanner/${banner.id}`)
+      .set("Cookie", superAdminCookies)
+      .send({ ...banner, endsAt: expiredAt.toISOString(), message: "Updated expired banner" });
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("End time must be in the future.");
+
+    const invalidRes = await supertest(app)
+      .post(`/api/v1/notificationBanner/${banner.id}`)
+      .set("Cookie", superAdminCookies)
+      .send({ ...banner, endsAt: new Date(expiredAt.getTime() - 2 * HOUR_MS).toISOString() });
+    expect(invalidRes.statusCode).toBe(400);
+    expect(invalidRes.body.message).toBe("End time must be in the future.");
+
+    const futureRes = await supertest(app)
+      .post(`/api/v1/notificationBanner/${banner.id}`)
+      .set("Cookie", superAdminCookies)
+      .send({ ...banner, endsAt: new Date(Date.now() + HOUR_MS).toISOString() });
+    expect(futureRes.statusCode).toBe(200);
+
+    const noEndRes = await supertest(app)
+      .post(`/api/v1/notificationBanner/${banner.id}`)
+      .set("Cookie", superAdminCookies)
+      .send({ ...banner, endsAt: null });
+    expect(noEndRes.statusCode).toBe(200);
   });
 
   test("/active scopes mission banners to their missions", async () => {
