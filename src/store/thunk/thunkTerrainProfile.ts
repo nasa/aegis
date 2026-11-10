@@ -6,6 +6,7 @@ import {
   normalizeTerrainProfile,
 } from "http-client/terrainProfile";
 import { insertElevationPending, removeElevationPending } from "store/interface";
+import { isRetryableStatus } from "utils/fetch-with-timeout";
 
 import appCreateAsyncThunk from "./thunkUtil";
 
@@ -34,10 +35,6 @@ class TerrainProfileLoadError extends Error {
     super(message);
   }
 }
-
-/** Client errors other than timeouts, conflicts, and throttling will fail the same way again. */
-const isRetryableStatus = (httpStatus: number | undefined): boolean =>
-  !httpStatus || httpStatus >= 500 || [408, 409, 429].includes(httpStatus);
 
 async function loadProfile(
   entry: TerrainProfileEntry,
