@@ -21,7 +21,7 @@ const REX_MENU_HEIGHT = 360;
 // The widget cannot be dragged/resized smaller than this (enforced in CSS on the floating
 // resize container, see missionDockviewLayout.module.css).
 const REX_MENU_MIN_WIDTH = 325;
-const REX_MENU_MIN_HEIGHT = 318;
+const REX_MENU_MIN_HEIGHT = 165;
 const REX_MENU_TOP_OFFSET = 10;
 const REX_MENU_RIGHT_OFFSET = 10;
 // Panels that live in the floating Rex Menu widget (Positions + Assets tabs). Their tabs cannot
