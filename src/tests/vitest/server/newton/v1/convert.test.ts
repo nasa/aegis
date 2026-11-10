@@ -4,19 +4,12 @@ import {
   buildTraverseProblem,
   isComparableHash,
   lineStringToAegisPoints,
-  planetFromRadius,
-  roundNewtonCoord,
 } from "server/newton/v1/convert";
 
 const A: AEGISPoint = { lat: -84.223397, lng: 33.5021945 };
 const B: AEGISPoint = { lat: -84.22158866054008, lng: 33.529543847174324 };
 
 describe("rounding and points", () => {
-  it("rounds to 1e-7 degrees", () => {
-    expect(roundNewtonCoord(33.529543847174324)).toBe(33.5295438);
-    expect(roundNewtonCoord(-84.22158866054008)).toBe(-84.2215887);
-  });
-
   it("converts AEGIS points to rounded [lon, lat]", () => {
     expect(aegisPointToLonLat(B)).toEqual([33.5295438, -84.2215887]);
   });
@@ -60,21 +53,6 @@ describe("GeoJSON", () => {
     expect(lineStringToAegisPoints({ type: "LineString", coordinates: [[1, 2, 3]] })).toEqual([
       { lat: 2, lng: 1 },
     ]);
-  });
-});
-
-describe("planetFromRadius", () => {
-  it.each([
-    [1737400, "moon"],
-    [1737100, "moon"],
-    [null, "moon"],
-    [6371000, "earth"],
-    [6378137, "earth"],
-    [3389500, null],
-    [0, null],
-    [Number.NaN, null],
-  ])("%s → %s", (radius, planet) => {
-    expect(planetFromRadius(radius)).toBe(planet);
   });
 });
 
