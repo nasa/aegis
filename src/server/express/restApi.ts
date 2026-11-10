@@ -46,6 +46,7 @@ import { handleUnableToDecodeJWT } from "@emss/oauth2-proxy-backend";
 
 import docListingRoute from "./routes/docListing";
 import environmentConfigRoute from "./routes/environmentConfig";
+import notificationBannerRoute from "./routes/notificationBanner";
 import missionAutomergeRoutes from "./routes/missionAutomerge";
 
 import dustRoute from "./routes/external/dust";
@@ -135,6 +136,7 @@ app.use("/api/v1/file/delete", fileDeleteRoute);
 app.use("/api/v1/log/from-client", logFromClient);
 app.use("/api/v1/docListing", docListingRoute);
 app.use("/api/v1/environmentConfig", environmentConfigRoute);
+app.use("/api/v1/notificationBanner", notificationBannerRoute);
 
 // require emssToken auth only
 app.use("/api/v1/emss/enableEmssApi", enableEmssApi);

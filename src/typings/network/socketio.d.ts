@@ -6,11 +6,14 @@ interface ServerToClientEvents {
   statusFromServer: (payload: StatusFromServer) => void;
   version: (version: AppVersion) => void; // server version sent to client
   inspectorUpdate: (payload: ServerSocketStatus) => void;
+  bannersChanged: () => void; // notification banners changed; clients refetch them over REST
 }
 
 interface ClientToServerEvents {
-  visitorJoin: (visitorData: VisitorData) => void;
+  visitorJoin: (visitorJoinData: VisitorJoinData) => void; // who the visitor is; sent on every connect
+  visitorPageChange: (visitorPageData: VisitorPageData) => void; // which page the visitor is on
   inspectorJoin: () => void;
+  inspectorLeave: () => void;
 }
 
 type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting" | "failed";
@@ -26,16 +29,37 @@ interface ServerSocketStatus {
   visitorsData: VisitorData[];
 }
 
-// sent by client when joining and stored in server's globalValues
+// The kind of page a visitor's tab is showing
+type AppPages = "home" | "mission" | "dashboard" | "admin" | "versionCheck" | "other";
+
+// one entry per connected AEGIS tab, stored in server's globalValues
 interface VisitorData {
   socketId: string; // identifier for managing the list on server global
-  missionId: number;
-  permission: "editor" | "viewer";
   clientAppVersion: AppVersion;
-  appUser: AppUser;
+  appUser: AppUser | null; // null until the page has checked the login
   launchpadUser: LaunchpadUser;
   connectedAt: number; // timestamp when the visitor joined
+  page: AppPages | null; // null until the client reports its page
+  // set only on mission and dashboard pages after the mission permission check; the socket is in this mission's room
+  missionId: number | null;
+  permission: "editor" | "viewer" | null;
 }
+
+// sent by the client in visitorJoin
+type VisitorJoinData = {
+  appUser: AppUser | null; // null until the page has checked the login
+  launchpadUser: LaunchpadUser;
+  clientAppVersion: AppVersion;
+  connectedAt: number;
+};
+
+// sent by the client in visitorPageChange
+type VisitorPageData = {
+  page: AppPages;
+  missionId: number | null;
+  permission: "editor" | "viewer" | null;
+};
+
 interface VisitorCounts {
   editors: number;
   viewers: number;

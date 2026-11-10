@@ -33,6 +33,8 @@ type GlobalValues = {
   socketio: Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, {}>;
   serverSocketStatus: ServerSocketStatus;
   socketInterval: NodeJS.Timeout;
+  /** Fires at the next notification banner start/end time to notify clients. */
+  notificationBannerTimer: NodeJS.Timeout | null;
   appVersion: AppVersion;
   isEmssApiEnabled: boolean;
   automergeRepo: Repo;

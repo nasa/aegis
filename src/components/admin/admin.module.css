@@ -1095,7 +1095,7 @@
 .pageStyle {
   background-color: var(--admin-bg, #19181b);
   overflow-y: auto;
-  height: 100vh;
+  height: 100%;
   color: #e2e8f0;
 }
 
