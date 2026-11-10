@@ -15,6 +15,7 @@ import { rexSlice } from "store/rex";
 import { mapSlice } from "store/map";
 import { hoverSlice } from "store/hover";
 import { evaSlice } from "store/eva";
+import formStyles from "components/interface/form/globalFields.module.css";
 import { createReactHarness, type ReactHarness } from "../map/helpers/reactBrowserHarness";
 
 // Mutable mock Automerge doc — tests populate rexes here before rendering.
@@ -31,14 +32,18 @@ const editPosEntry = vi.fn((args: { posEntryUuid: string }) => ({
   type: "mock/editPosEntry",
   payload: args,
 }));
+const setLocation = vi.fn((args: { uuid: string; location: AEGISPoint | null }) =>
+  rexSlice.actions.setPosEntryInEditLocation({ ...args, elevationPending: false })
+);
+const savePosEntry = vi.fn(() => ({ type: "mock/savePosEntryEdit" }));
 vi.mock("store/thunk/thunkRexPosEntry", () => ({
   thunkAddPosEntry: () => addPosEntry(),
   thunkEditPosEntry: (args: { posEntryUuid: string }) => editPosEntry(args),
   thunkCancelPosEntryEdit: () => ({ type: "mock/cancelPosEntryEdit" }),
   thunkCancelPosEntryMapDirective: () => ({ type: "mock/cancelPosEntryMapDirective" }),
   thunkStartPosEntryMapDirective: () => ({ type: "mock/startPosEntryMapDirective" }),
-  thunkSetPosEntryEditLocation: () => ({ type: "mock/setPosEntryEditLocation" }),
-  thunkSavePosEntryEdit: () => ({ type: "mock/savePosEntryEdit" }),
+  thunkSetPosEntryEditLocation: (args: Parameters<typeof setLocation>[0]) => setLocation(args),
+  thunkSavePosEntryEdit: () => savePosEntry(),
   thunkDeletePosEntry: () => ({ type: "mock/deletePosEntry" }),
 }));
 vi.mock("store/thunk/crossThunk", () => ({
@@ -110,6 +115,39 @@ function makeStore() {
       },
     },
   });
+}
+
+function makeEditingStore() {
+  setRex();
+  const store = makeStore();
+  store.dispatch(
+    rexSlice.actions.setPosEntryInEdit({
+      uuid: "draft",
+      rexUuid: REX_UUID,
+      isNew: true,
+      values: {
+        location: { lat: 1, lng: 2 },
+        elevation: null,
+        petSeconds: 600,
+        posTypeUuids: [EV1.uuid],
+        posSourceUuid: TASK.uuid,
+        uncertaintyMeters: 5,
+        color: null,
+      },
+      base: null,
+      elevationPending: false,
+    })
+  );
+  return store;
+}
+
+function typeField(testId: string, text: string) {
+  const input = harness.container.querySelector<HTMLInputElement>(`[data-testid='${testId}']`)!;
+  flushSync(() => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, text);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  return input;
 }
 
 let harness: ReactHarness;
@@ -307,5 +345,85 @@ describe("MapPositionMenu", () => {
     )!;
     flushSync(() => edit.click());
     expect(editPosEntry).toHaveBeenCalledWith({ posEntryUuid: "e1" });
+  });
+
+  it.each([
+    { field: "uncertainty", invalid: "-1", valid: "12.5", key: "uncertaintyMeters", value: 12.5 },
+    { field: "uncertainty", invalid: "1.2.3", valid: "8", key: "uncertaintyMeters", value: 8 },
+    { field: "pet", invalid: "+00:61:00", valid: "+00:20:30", key: "petSeconds", value: 1230 },
+  ])(
+    "validates $field independently before updating the draft ($invalid)",
+    async ({ field, invalid, valid, key, value }) => {
+      const store = makeEditingStore();
+      renderMapPositionMenu(store);
+      const save = () => harness.container.querySelector<HTMLElement>("[aria-label='Save']")!;
+      const original = store.getState().rex.posEntryInEdit!.values;
+
+      const input = typeField(`position-editor-${field}`, invalid);
+      expect(input.classList.contains(formStyles.inLineEditInput)).toBe(true);
+      expect(input.value).toBe(invalid);
+      expect(store.getState().rex.posEntryInEdit!.values).toEqual(original);
+      expect(save().getAttribute("aria-disabled")).toBe("true");
+      flushSync(() => save().click());
+      expect(savePosEntry).not.toHaveBeenCalled();
+
+      typeField(`position-editor-${field}`, valid);
+      expect(store.getState().rex.posEntryInEdit!.values).toMatchObject({ [key]: value });
+      expect(mockMissionDoc.rexes![REX_UUID].posEntries).toEqual([]);
+      expect(save().getAttribute("aria-disabled")).toBe("false");
+      flushSync(() => save().click());
+      await vi.waitFor(() => expect(savePosEntry).toHaveBeenCalledTimes(1));
+    }
+  );
+
+  it("validates and applies typed coordinates when saving without a blur", async () => {
+    const store = makeEditingStore();
+    renderMapPositionMenu(store);
+    const save = () => harness.container.querySelector<HTMLElement>("[aria-label='Save']")!;
+
+    typeField("position-editor-coordinates", "95, 20");
+    expect(save().getAttribute("aria-disabled")).toBe("true");
+    expect(setLocation).not.toHaveBeenCalled();
+
+    typeField("position-editor-coordinates", "3, 4");
+    expect(store.getState().rex.posEntryInEdit!.values.location).toEqual({ lat: 1, lng: 2 });
+    expect(save().getAttribute("aria-disabled")).toBe("false");
+    flushSync(() => save().click());
+    await vi.waitFor(() => expect(savePosEntry).toHaveBeenCalledTimes(1));
+    expect(setLocation).toHaveBeenCalledWith({ uuid: "draft", location: { lat: 3, lng: 4 } });
+    expect(store.getState().rex.posEntryInEdit!.values.location).toEqual({ lat: 3, lng: 4 });
+  });
+
+  it("shows map placement and current PET changes in the inline fields", async () => {
+    const store = makeEditingStore();
+    renderMapPositionMenu(store);
+    const coordinateInput = () =>
+      harness.container.querySelector<HTMLInputElement>(
+        "[data-testid='position-editor-coordinates']"
+      )!;
+    const before = coordinateInput().value;
+    flushSync(() =>
+      store.dispatch(
+        rexSlice.actions.setPosEntryInEditLocation({
+          uuid: "draft",
+          location: { lat: 3, lng: 4 },
+          elevationPending: false,
+        })
+      )
+    );
+    await vi.waitFor(() => expect(coordinateInput().value).toBe("3.000000, 4.000000"));
+    expect(coordinateInput().value).not.toBe(before);
+
+    typeField("position-editor-pet", "+00:20:00");
+    flushSync(() =>
+      harness.container.querySelector<HTMLElement>("[aria-label='Set to current PET']")!.click()
+    );
+    await vi.waitFor(() =>
+      expect(
+        harness.container.querySelector<HTMLInputElement>("[data-testid='position-editor-pet']")!
+          .value
+      ).toBe("+00:10:00")
+    );
+    expect(store.getState().rex.posEntryInEdit!.values.petSeconds).toBe(600);
   });
 });

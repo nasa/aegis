@@ -675,8 +675,12 @@ export const PathColorPickerMenu: FunctionComponent<{
   );
 };
 
-/** Text input for fields inside an existing react-final-form Form. */
-export const FFInput: FunctionComponent<FFTextProps> = ({
+/**
+ * Should not be called directly. Use the {@link InLineEditInput} component instead
+ * @param param0
+ * @returns
+ */
+const FFInput: FunctionComponent<FFTextProps> = ({
   name,
   ariaLabel,
   label = false,
