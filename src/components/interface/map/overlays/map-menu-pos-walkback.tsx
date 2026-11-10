@@ -26,16 +26,17 @@ export const PositionWalkback: FunctionComponent<{
   const walkbackMins = Number.isFinite(distanceToLander)
     ? Math.ceil(calcPathDurationMins([distanceToLander], walkback.traverseRate))
     : NaN;
+  const unavailableValue = location ? "Not set" : "-";
 
   return (
     <>
       <span className={assetStyles.fieldLabel}>Lander Dist.</span>
       <span data-testid={`${testIdPrefix}-lander-distance`}>
-        {Number.isFinite(distanceToLander) ? `${distanceToLander.toFixed(2)} m` : "Not set"}
+        {Number.isFinite(distanceToLander) ? `${distanceToLander.toFixed(2)} m` : unavailableValue}
       </span>
       <span className={assetStyles.fieldLabel}>WB Dur.</span>
       <span data-testid={`${testIdPrefix}-walkback`}>
-        {Number.isFinite(walkbackMins) ? `${walkbackMins} min` : "Not set"}
+        {Number.isFinite(walkbackMins) ? `${walkbackMins} min` : unavailableValue}
       </span>
     </>
   );

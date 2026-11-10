@@ -416,13 +416,11 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
           </div>
         )}
 
-        {values.location && (
-          <PositionWalkback
-            location={values.location}
-            evaUuid={rex.evaUuid}
-            testIdPrefix="position-editor"
-          />
-        )}
+        <PositionWalkback
+          location={values.location}
+          evaUuid={rex.evaUuid}
+          testIdPrefix="position-editor"
+        />
 
         <span className={assetStyles.fieldLabel}>PET *</span>
         <div className={assetStyles.petControls}>
