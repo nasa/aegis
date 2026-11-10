@@ -4,7 +4,6 @@ import {
   getAssetEditValues,
   getAssetFolderUuidByItem,
   getChangedAssetFields,
-  validateAssetEditValues,
 } from "utils/assets";
 import appCreateAsyncThunk from "./thunkUtil";
 import { getMissionDocHandle } from "client/automergeDocHandles";
@@ -190,9 +189,9 @@ export const thunkSetAssetEditLocation = appCreateAsyncThunk<{
 });
 
 /**
- * Save the open edit session in one document change. Editability is enforced by the editor's
- * Save button. Throws when the values are invalid, and cancels the session when the asset was
- * deleted underneath it.
+ * Save the open edit session in one document change. Editability and field validation are
+ * enforced by the editor's Save button. Cancels the session when the asset was deleted underneath
+ * it.
  * @returns true when saved.
  */
 export const thunkSaveAssetEdit = appCreateAsyncThunk<
@@ -221,8 +220,6 @@ export const thunkSaveAssetEdit = appCreateAsyncThunk<
     values.petSeconds = null;
     values.rexUuid = null;
   }
-  const invalid = validateAssetEditValues(values);
-  if (invalid) throw new Error(invalid);
   const current = mission.assets?.[uuid];
 
   if (inEdit.isNew) {

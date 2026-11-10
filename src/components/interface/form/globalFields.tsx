@@ -14,8 +14,7 @@ import {
   getFiltersForValidators,
   type Stringy,
 } from "components/interface/form/formValidators";
-import Select from "react-select";
-import type { FFTextProps, FFCheckboxProps, FFSelectProps, FFTextAreaProps } from "typings/form";
+import type { FFTextProps, FFTextAreaProps } from "typings/form";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import CircularSlider from "@fseehawer/react-circular-slider";
 import CompactColor from "@uiw/react-color-compact";
@@ -681,7 +680,7 @@ export const PathColorPickerMenu: FunctionComponent<{
  * @param param0
  * @returns
  */
-export const FFInput: FunctionComponent<FFTextProps> = ({
+const FFInput: FunctionComponent<FFTextProps> = ({
   name,
   ariaLabel,
   label = false,
@@ -771,7 +770,7 @@ export const FFInput: FunctionComponent<FFTextProps> = ({
  * @param param0
  * @returns
  */
-export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
+const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
   name,
   ariaLabel,
   label = false,
@@ -831,85 +830,6 @@ export const FFTextArea: FunctionComponent<FFTextAreaProps> = ({
           <ValidationErrors meta={meta} />
         </React.Fragment>
       )}
-    </Field>
-  );
-};
-
-/**
- * Should not be called directly. Use the {@link Checkbox} component instead
- * @param param0
- * @returns
- */
-export const FFCheckbox: FunctionComponent<FFCheckboxProps> = ({
-  name,
-  label = false,
-  className,
-  validators = [],
-  style = {},
-  initialValue,
-}) => {
-  return (
-    <Field
-      name={name}
-      validate={composeValidators(...validators)}
-      type="checkbox"
-      initialValue={initialValue}
-    >
-      {({ input, meta }) => (
-        <React.Fragment>
-          {label ? (
-            <label
-              data-tooltip-id="aegis-tooltip"
-              data-tooltip-content={label.title}
-              className={label.className}
-              style={label.style}
-            >
-              {label.label}
-            </label>
-          ) : null}
-          <div className={className} style={style}>
-            <input
-              {...input}
-              className={meta.error && meta.touched ? "error" : undefined}
-              type="checkbox"
-              style={style}
-            />
-          </div>
-          <ValidationErrors meta={meta} />
-        </React.Fragment>
-      )}
-    </Field>
-  );
-};
-
-/**
- * Should not be called directly. Use the {@link Dropdown} component instead
- * @param param0
- * @returns
- */
-export const FFSelect: FunctionComponent<FFSelectProps> = ({
-  name,
-  className,
-  label = false,
-  searchable = false,
-  options,
-}) => {
-  const selectAdapter = (
-    { input, ...rest }: { input: any } // eslint-disable-line @typescript-eslint/no-explicit-any
-  ) => <Select {...input} {...rest} className={className} searchable={searchable} />;
-
-  return (
-    <Field name={name} component={selectAdapter} type="select" options={options}>
-      {label ? (
-        <label
-          data-tooltip-id="aegis-tooltip"
-          data-tooltip-content={label.title}
-          className={label.className}
-          style={label.style}
-        >
-          {label.label}
-        </label>
-      ) : null}
     </Field>
   );
 };

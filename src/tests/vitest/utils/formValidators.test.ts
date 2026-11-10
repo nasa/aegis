@@ -7,6 +7,20 @@ import {
   validators,
 } from "components/interface/form/formValidators";
 
+describe("required validation", () => {
+  it.each(["", "   ", " \t\n "])("rejects blank text %j", (value) =>
+    expect(validators.required(value)).toBe("Required")
+  );
+
+  it.each(["a", " a ", 5])("accepts %j", (value) =>
+    expect(validators.required(value)).toBeUndefined()
+  );
+
+  it("keeps rejecting zero", () => {
+    expect(validators.required(0)).toBe("Required");
+  });
+});
+
 describe("HH:MM:SS validation", () => {
   it.each(["", "  ", "00:00:00", "+12:34:56", "-00:00:30", "+100:00:00", " -01:02:03 "])(
     "accepts %j",

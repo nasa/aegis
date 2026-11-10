@@ -71,15 +71,6 @@ describe("asset save boundaries", () => {
     notes: `First line\n${"x".repeat(ASSET_NOTES_MAX_LENGTH - 11)}`,
     uncertaintyMeters: ASSET_RADIUS_MAX_METERS,
   };
-  const invalidChanges: Partial<AssetEditValues>[] = [
-    { name: "x".repeat(ASSET_NAME_MAX_LENGTH + 1) },
-    { name: " \t\n " },
-    { notes: "x".repeat(ASSET_NOTES_MAX_LENGTH + 1) },
-    { uncertaintyMeters: ASSET_RADIUS_MAX_METERS + 0.01 },
-    { uncertaintyMeters: -0.01 },
-    { uncertaintyMeters: Infinity },
-    { uncertaintyMeters: NaN },
-  ];
 
   it("persists exact limits on creation and editing without losing multiline notes", async () => {
     await store.dispatch(thunkAddAsset());
@@ -95,31 +86,6 @@ describe("asset save boundaries", () => {
     expect(await store.dispatch(thunkSaveAssetEdit()).unwrap()).toBe(true);
     expect(doc().assets[uuid]).toMatchObject(atLimits);
   });
-
-  it.each(invalidChanges)(
-    "rejects invalid creation values without writing (case %#)",
-    async (changes) => {
-      await store.dispatch(thunkAddAsset());
-      store.dispatch(updateAssetInEditValues({ name: "Drill", ...changes }));
-      await expect(store.dispatch(thunkSaveAssetEdit()).unwrap()).rejects.toThrow();
-      expect(doc().assets).toEqual({});
-      expect(inEdit()).not.toBeNull();
-    }
-  );
-
-  it.each(invalidChanges)(
-    "rejects invalid updates without changing the saved asset (case %#)",
-    async (changes) => {
-      const asset = generateBlankAsset({ name: "Drill", notes: "Keep me", uncertaintyMeters: 10 });
-      getMissionDocHandle().change((m) => {
-        m.assets[asset.uuid] = asset;
-      });
-      await store.dispatch(thunkEditAsset({ assetUuid: asset.uuid }));
-      store.dispatch(updateAssetInEditValues(changes));
-      await expect(store.dispatch(thunkSaveAssetEdit()).unwrap()).rejects.toThrow();
-      expect(doc().assets[asset.uuid]).toEqual(asset);
-    }
-  );
 });
 
 describe("getMostRecentAsset", () => {
@@ -572,12 +538,6 @@ describe("thunkSaveAssetEdit", () => {
     expect(inEdit()).toBeNull();
     expect(store.getState().asset.selectedAssetUuid).toBe(uuid);
     expect(store.getState().asset.expandedAssetUuid).toBe(uuid);
-  });
-
-  it("throws on a blank name and keeps the inEdit", async () => {
-    await store.dispatch(thunkAddAsset());
-    await expect(store.dispatch(thunkSaveAssetEdit()).unwrap()).rejects.toThrow(/Name/);
-    expect(inEdit()).not.toBeNull();
   });
 
   it("waits for a pending elevation on a delayed Save", async () => {

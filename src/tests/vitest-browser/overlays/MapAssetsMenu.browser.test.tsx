@@ -16,6 +16,7 @@ import "styles/globals.css";
 import "styles/fonts.css";
 
 import { MapAssetsMenu } from "components/interface/map/overlays/map-menu-assets";
+import formStyles from "components/interface/form/globalFields.module.css";
 import {
   MapMenuProvider,
   useMapMenuContext,
@@ -174,6 +175,22 @@ describe("MapAssetsMenu", () => {
       Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(input, value);
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
+  }
+
+  // Standard form fields mark an invalid value with an error border and a warning icon tooltip.
+  function hasFieldError(input: HTMLInputElement | HTMLTextAreaElement) {
+    return (
+      input.classList.contains(formStyles.inLineEditInputError) ||
+      input.classList.contains(formStyles.textAreaError)
+    );
+  }
+
+  function getFieldErrorMessage(input: HTMLInputElement | HTMLTextAreaElement) {
+    return (
+      input.parentElement
+        ?.querySelector("[data-tooltip-content]")
+        ?.getAttribute("data-tooltip-content") ?? null
+    );
   }
 
   it.each([320, 420, 600])(
@@ -416,7 +433,7 @@ describe("MapAssetsMenu", () => {
           HTMLInputElement | HTMLTextAreaElement;
         // Programmatic input bypasses native maxLength to also exercise validation of existing/imported content.
         enterValue(input, invalidValue);
-        expect(input.getAttribute("aria-invalid")).toBe("true");
+        expect(hasFieldError(input)).toBe(true);
         expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).toBe("true");
         flushSync(() => q("[aria-label='Save']")!.click());
         expect(saveAsset).not.toHaveBeenCalled();
@@ -428,6 +445,30 @@ describe("MapAssetsMenu", () => {
       expect(saveAsset).not.toHaveBeenCalled();
     }
   );
+
+  it("blocks saving while a field holds invalid text that is not in the Redux preview", () => {
+    store = makeStore(true);
+    render();
+    openDraft(generateBlankAsset({ name: "Drill" }), true);
+    const input = q("input[aria-label='Asset name']") as HTMLInputElement;
+    enterValue(input, "");
+    expect(hasFieldError(input)).toBe(true);
+    expect(getFieldErrorMessage(input)).toBe("Required");
+    // Invalid text is never submitted, so the preview keeps the last valid name.
+    expect(store.getState().asset.inEdit?.values.name).toBe("Drill");
+    expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).toBe("true");
+    flushSync(() => q("[aria-label='Save']")!.click());
+    expect(saveAsset).not.toHaveBeenCalled();
+    // Whitespace-only text is blank for validators.required.
+    enterValue(input, "   ");
+    expect(getFieldErrorMessage(input)).toBe("Required");
+    expect(store.getState().asset.inEdit?.values.name).toBe("Drill");
+    expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).toBe("true");
+    enterValue(input, "Hammer");
+    expect(hasFieldError(input)).toBe(false);
+    expect(store.getState().asset.inEdit?.values.name).toBe("Hammer");
+    expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true");
+  });
 
   it.each([false, true])(
     "keeps expanded details compact at the floating widget width (editing: %s)",
@@ -1032,13 +1073,13 @@ describe("MapAssetsMenu", () => {
       "99999999999999999:00:00",
     ]) {
       type(invalid);
-      await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("true"));
+      await vi.waitFor(() => expect(hasFieldError(input)).toBe(true));
       flushSync(() => q("[aria-label='Save']")!.click());
       expect(saveAsset).not.toHaveBeenCalled();
     }
 
     type("");
-    await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("false"));
+    await vi.waitFor(() => expect(hasFieldError(input)).toBe(false));
     expect(mockMissionDoc.assets[asset.uuid].petSeconds).toBe(600);
     flushSync(() => q("[aria-label='Save']")!.click());
     expect(store.getState().asset.inEdit?.values.petSeconds).toBeNull();
@@ -1090,7 +1131,7 @@ describe("MapAssetsMenu", () => {
       }
       expect(saveAsset).not.toHaveBeenCalled();
       enterValue(input, "+00:60:00");
-      await vi.waitFor(() => expect(input.getAttribute("aria-invalid")).toBe("true"));
+      await vi.waitFor(() => expect(hasFieldError(input)).toBe(true));
       flushSync(() => q("[aria-label='Save']")!.click());
       expect(saveAsset).not.toHaveBeenCalled();
       // Changing the clock after filling must not change the value that will be saved.

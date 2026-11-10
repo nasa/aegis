@@ -457,6 +457,13 @@ It holds two non-closable tabs:
   `state.asset.assetsTabRequestId`, expands the folder, and selects the row without changing the
   section. The Assets visibility toggle and asset/folder visibility thunks cancel positioning
   directly while keeping the draft. `AegisMapEditor` discards the in-edit session on unmount.
+  Editor fields are `InLineEditInput` / `TextArea` from `globalFields.tsx` validated only by
+  `formValidators` (coordinates use the live coordinate-entry check); there are no separate
+  asset-level validators and `thunkSaveAssetEdit` does not revalidate. Each field writes only
+  valid text to `inEdit.values`; the editor keeps every field's displayed text in local state so
+  Save stays disabled while any field holds invalid text. The Save tooltip shows the first
+  non-coordinate field error; coordinate errors show under the Position field. Coordinates are
+  parsed and committed on blur, Enter, and Save, not on every keystroke.
 
 Dockview owns drag (via the tab bar's empty space) and resize. Dockview clamps floating-group
 drag and resize only to its `.dv-floating-overlay-host` element, which it sizes (inline styles) to
