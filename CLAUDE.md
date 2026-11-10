@@ -261,6 +261,6 @@ Deleting cascades along the same relationship: deleting an as-planned EVA also d
 ## Technology Stack
 
 - **Frontend**: React 18, Redux Toolkit, Vite, TypeScript, OpenLayers, Automerge 3, Socket.io-client, Axios, React Router 7, React Final Form, Paper.js, Dayjs
-- **Backend**: Express 5, Node 26.13.0 LTS, Socket.io, Automerge-Repo, MikroORM 6, PostgreSQL 17
+- **Backend**: Express 5, Node 26 LTS, Socket.io, Automerge-Repo, MikroORM 6, PostgreSQL 17
 - **Testing**: Vitest (unit), Vitest browser mode (component/DOM), Playwright (E2E)
 - **Linting**: ESLint, StyleLint, Prettier

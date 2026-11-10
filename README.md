@@ -59,11 +59,8 @@ AEGIS includes a GIS data processing pipeline that can generate the full set of 
 
 ## Development runtime
 
-Use **Node.js 26.13.0 LTS** (pinned in `.nvmrc`) and **npm 12.2.1** for local
-development, CI, and Docker builds. With nvm, run `nvm install 26.13.0` and
-`nvm use 26.13.0`, then `npm install --global npm@12.2.1`.
-The `allowScripts` policy in `package.json` enables the native/build dependency
-install scripts needed by npm 12.
+Use **Node.js 26 LTS**. The exact Node version is pinned in `.nvmrc` and the
+Dockerfiles; the npm version is pinned in the `packageManager` field in `package.json`.
 
 ## Setup Outside of NASA
 

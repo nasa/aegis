@@ -16,9 +16,8 @@ COPY .npmrc* ./
 COPY package*.json ./
 COPY emss-fallback/check-installed.mjs ./emss-fallback/
 
-RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
-
-RUN npm ci
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')" \
+  && npm ci
 # Copy the rest of the files
 COPY . /clientsrc
 
