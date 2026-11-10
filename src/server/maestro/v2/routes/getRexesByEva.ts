@@ -66,6 +66,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
 
   if (!queryObj.missionId || isNaN(queryObj.missionId)) {
     serverLogger.apiRoute({
+      logId: "api-route:emss/getRexesByEva:GET:rejectedInvalidMissionId",
       logLevel: "notice",
       httpMethod: "GET",
       responseStatus: 400,
