@@ -1,17 +1,23 @@
 import type { FunctionComponent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { faBan, faCaretDown, faCaretRight, faEdit, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
+import {
+  faBan,
+  faCaretDown,
+  faCaretRight,
+  faEdit,
+  faTrashAlt,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import assetStyles from "./map-menu-assets.module.css";
 import posStyles from "./map-menu-pos.module.css";
 import { RowMenu } from "./map-menu-assets-table";
 import { PositionEditor } from "./map-menu-pos-editor";
+import { PositionWalkback } from "./map-menu-pos-walkback";
 import { PathColorPickerMenu } from "components/interface/form/globalFields";
 import { LastEditedNumeric } from "components/interface/_global-elements";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
-import { useMissionDocSelector } from "utils/useDocSelector";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { setExpandedPosEntryUuid, setSelectedPosEntryUuid } from "store/rex";
 import { setHoverUuidsForPosEntry } from "store/hover";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -19,7 +25,6 @@ import { thunkCancelPosEntryEdit, thunkDeletePosEntry } from "store/thunk/thunkR
 import { getLatestPosEntryUuids, orderPosEntriesNewestFirst } from "utils/posEntries";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { hhmmssFromSeconds } from "utils/formatting";
-import { calcPathDurationMins, getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 
 const COLUMN_COUNT = 6;
 
@@ -296,7 +301,10 @@ const PositionRow: FunctionComponent<{
         )}
       </tr>
       {isExpanded && (
-        <tr className={assetStyles.assetDetailRow} data-testid={`position-detail-row-${entry.uuid}`}>
+        <tr
+          className={assetStyles.assetDetailRow}
+          data-testid={`position-detail-row-${entry.uuid}`}
+        >
           <td colSpan={columnCount} className={assetStyles.assetDetailCell}>
             {isEditing ? (
               <PositionEditor
@@ -331,26 +339,6 @@ const PositionDetails: FunctionComponent<{
   sourceName: string | undefined;
   coordinateContext: CoordinateEntryContext;
 }> = ({ entry, rex, typeNames, sourceName, coordinateContext }) => {
-  const walkback = useMissionDocSelector(
-    (m) => ({
-      landerLocation: m.landerLocation,
-      planetRadius: m.planetRadius,
-      traverseRate: m.evas?.[rex.evaUuid]?.traverseRate || m.traverseRate,
-    }),
-    deepEqual
-  );
-  const distanceToLander =
-    entry.location && walkback.landerLocation && walkback.planetRadius
-      ? +getDistanceBetweenTwoCoordinates(
-          entry.location,
-          walkback.landerLocation,
-          walkback.planetRadius
-        )
-      : NaN;
-  const walkbackMins = Number.isFinite(distanceToLander)
-    ? Math.ceil(calcPathDurationMins([distanceToLander], walkback.traverseRate))
-    : NaN;
-
   return (
     <div
       className={`${assetStyles.editor} ${assetStyles.editorView}`}
@@ -386,14 +374,11 @@ const PositionDetails: FunctionComponent<{
             </span>
           </div>
         )}
-        <span className={assetStyles.fieldLabel}>Lander Dist.</span>
-        <span data-testid="position-details-lander-distance">
-          {Number.isFinite(distanceToLander) ? `${distanceToLander.toFixed(2)} m` : "Not set"}
-        </span>
-        <span className={assetStyles.fieldLabel}>WB Dur.</span>
-        <span data-testid="position-details-walkback">
-          {Number.isFinite(walkbackMins) ? `${walkbackMins} min` : "Not set"}
-        </span>
+        <PositionWalkback
+          location={entry.location}
+          evaUuid={rex.evaUuid}
+          testIdPrefix="position-details"
+        />
         <span className={assetStyles.fieldLabel}>PET</span>
         <span data-testid="position-details-pet">{hhmmssFromSeconds(entry.petSeconds)}</span>
         <div className={assetStyles.editorLastModified}>

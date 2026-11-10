@@ -215,8 +215,15 @@ describe("MapPositionMenu", () => {
     expect(addPosEntry).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the new-position editor above the table with the draft's types selected", () => {
+  it("shows draft details as soon as a new position is placed and updates them before saving", () => {
     setRex();
+    mockMissionDoc.landerLocation = { lat: 0, lng: 0 };
+    // One degree along the equator is 1 km; prefer the EVA's 2 km/h over the mission's 4.
+    mockMissionDoc.planetRadius = 180_000 / Math.PI;
+    mockMissionDoc.traverseRate = 4;
+    mockMissionDoc.evas = {
+      "eva-uuid-1": { traverseRate: 2 } as Eva,
+    };
     const store = makeStore();
     store.dispatch(
       rexSlice.actions.setPosEntryInEdit({
@@ -248,9 +255,43 @@ describe("MapPositionMenu", () => {
       editor.querySelector<HTMLInputElement>("[data-testid='position-editor-pet']")!.value
     ).toBe("+00:10:00");
     // No location yet, so Save is disabled.
-    expect(editor.querySelector("[aria-label='Save']")!.getAttribute("aria-disabled")).toBe(
-      "true"
+    expect(editor.querySelector("[aria-label='Save']")!.getAttribute("aria-disabled")).toBe("true");
+    expect(editor.querySelector("[data-testid='position-editor-lander-distance']")).toBeNull();
+
+    // Map placement updates only the Redux draft; details must not depend on a saved entry
+    // or on the asynchronous elevation request finishing.
+    flushSync(() => {
+      store.dispatch(
+        rexSlice.actions.setPosEntryInEditLocation({
+          uuid: "draft",
+          location: { lat: 0, lng: 1 },
+          elevationPending: true,
+        })
+      );
+    });
+    const detail = (name: string) =>
+      editor.querySelector(`[data-testid='position-editor-${name}']`)?.textContent;
+    expect(detail("lander-distance")).toBe("1000.00 m");
+    expect(detail("walkback")).toBe("30 min");
+
+    flushSync(() =>
+      store.dispatch(
+        rexSlice.actions.setPosEntryInEditLocation({
+          uuid: "draft",
+          location: { lat: 0, lng: 2 },
+          elevationPending: true,
+        })
+      )
     );
+    expect(detail("lander-distance")).toBe("2000.00 m");
+    expect(detail("walkback")).toBe("60 min");
+    expect(mockMissionDoc.rexes![REX_UUID].posEntries).toEqual([]);
+
+    // Missing lander information uses the same fallback as the saved-position view.
+    mockMissionDoc.landerLocation = null;
+    renderMapPositionMenu(store);
+    expect(detail("lander-distance")).toBe("Not set");
+    expect(detail("walkback")).toBe("Not set");
   });
 
   it("opens an existing entry for editing from its row menu", () => {

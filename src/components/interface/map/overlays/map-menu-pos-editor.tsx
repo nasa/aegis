@@ -6,6 +6,7 @@ import { faBan, faCrosshairs, faFloppyDisk, faXmark } from "@fortawesome/free-so
 import { LastEditedNumeric } from "components/interface/_global-elements";
 import assetStyles from "./map-menu-assets.module.css";
 import posStyles from "./map-menu-pos.module.css";
+import { PositionWalkback } from "./map-menu-pos-walkback";
 import { Button, FFInput, PathColorPickerMenu } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -413,6 +414,14 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
           >
             Click the map to place the position.
           </div>
+        )}
+
+        {values.location && (
+          <PositionWalkback
+            location={values.location}
+            evaUuid={rex.evaUuid}
+            testIdPrefix="position-editor"
+          />
         )}
 
         <span className={assetStyles.fieldLabel}>PET *</span>
