@@ -67,11 +67,14 @@ export default defineConfig({
   // Retry on CI only.
   retries: process.env.CI ? 2 : 0,
 
-  // Bound simultaneous full-stack clients on developer machines and CI shards.
+  // Each shard shares one API process and Automerge repository. Concurrent test
+  // setup/cleanup can collide with another test's repository-wide saves, and
+  // overload the authenticated WebSocket handshake. Shards still run in parallel;
+  // collaboration tests retain their multiple clients within a single test.
   workers: process.env.PLAYWRIGHT_WORKERS
     ? Number(process.env.PLAYWRIGHT_WORKERS)
     : process.env.CI
-      ? 4
+      ? 1
       : 3,
 
   expect: { timeout: 60000 },
