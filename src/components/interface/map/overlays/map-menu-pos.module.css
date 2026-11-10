@@ -81,7 +81,6 @@
 
 .toggleButton {
   min-width: 22px;
-  height: 20px;
   margin-right: 1px;
   padding: 0 4px;
   border: 0;
@@ -165,4 +164,14 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+.pairedFields {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, max-content);
+  align-items: center;
+  justify-content: start;
+  gap: 4px 18px;
+  text-align: left;
 }
