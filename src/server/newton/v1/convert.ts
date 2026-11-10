@@ -1,21 +1,8 @@
 /** Conversions between AEGIS types and the Newton wire format. */
-
-/** Waypoints are rounded to this many decimal degrees (≤ 1.1 cm). */
-export const NEWTON_ROUND_DIGITS = 7;
+import { roundNewtonCoord } from "utils/newtonInputs";
 
 /** Newton needs at least a start and a goal. */
 export const NEWTON_MIN_WAYPOINTS = 2;
-
-const ROUND_FACTOR = 10 ** NEWTON_ROUND_DIGITS;
-
-/** Above this radius a mission is Earth-scale; below it, Moon-scale. */
-const EARTH_MOON_THRESHOLD_M = 4_000_000;
-const MOON_RADIUS_M = 1_737_400;
-const PLANET_RADIUS_TOLERANCE = 0.01;
-
-export function roundNewtonCoord(value: number): number {
-  return Math.round(value * ROUND_FACTOR) / ROUND_FACTOR;
-}
 
 /** `AEGISPoint` → rounded `[lon, lat]`, or null when the point has no location. */
 export function aegisPointToLonLat(point: AEGISPoint | null | undefined): Newton.LonLat | null {
@@ -52,18 +39,6 @@ export function aegisPointsToLineString(points: readonly AEGISPoint[]): Newton.L
     if (lonLat) coordinates.push(lonLat);
   }
   return { type: "LineString", coordinates };
-}
-
-/**
- * The Newton planet for a mission's `planetRadius`. A missing radius is the Moon (the
- * AEGIS default). Moon-scale radii other than the Moon's (e.g. Mars) are unsupported.
- */
-export function planetFromRadius(planetRadius: number | null | undefined): Newton.Planet | null {
-  if (planetRadius == null) return "moon";
-  if (!Number.isFinite(planetRadius) || planetRadius <= 0) return null;
-  if (planetRadius > EARTH_MOON_THRESHOLD_M) return "earth";
-  const relative = Math.abs(planetRadius - MOON_RADIUS_M) / MOON_RADIUS_M;
-  return relative <= PLANET_RADIUS_TOLERANCE ? "moon" : null;
 }
 
 /** Only `v1:` hashes are comparable; older jobs carry unprefixed values or null. */
