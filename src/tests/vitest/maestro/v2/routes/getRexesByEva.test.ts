@@ -15,6 +15,7 @@ let testAutomergeDocListings: Doc_Listing_db[];
 let testMissionsPartial: Partial<Mission>[];
 let testEvas: Eva[];
 let testRexes: Rex[];
+let missionId: number;
 const emssToken = process.env.EMSS_TOKEN;
 
 beforeAll(async () => {
@@ -40,6 +41,7 @@ beforeAll(async () => {
     generateBlankRex({ name: "Vitest Rex-0", evaUuid: testEvas[0].uuid, isRunning: false }),
     generateBlankRex({ name: "Vitest Rex-1", evaUuid: testEvas[1].uuid, isRunning: true }),
   ];
+  missionId = testAutomergeDocListings[0].missionId;
 
   const evasRecord: Record<string, Eva> = {};
   for (const e of testEvas) evasRecord[e.uuid] = e;
@@ -48,7 +50,7 @@ beforeAll(async () => {
 
   testMissionsPartial = [
     {
-      id: testAutomergeDocListings[0].missionId,
+      id: missionId,
       name: "Vitest Test Mission GetRexesByEva V2",
       archivedAt: null,
       evas: evasRecord,
@@ -98,7 +100,7 @@ describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaUuid: "non-existent-uuid" });
+        .query({ evaUuid: "non-existent-uuid", missionId });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.data).toEqual([]);
@@ -108,7 +110,7 @@ describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaUuid: testEvas[0].uuid });
+        .query({ evaUuid: testEvas[0].uuid, missionId });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.message).toContain("Rexes retrieved");
@@ -121,7 +123,7 @@ describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaUuid: testEvas[0].uuid });
+        .query({ evaUuid: testEvas[0].uuid, missionId });
       expect(res.statusCode).toBe(200);
       const rex0 = res.body.data.find((r: { uuid: string }) => r.uuid === testRexes[0].uuid);
       expect(rex0.isRunning).toBe(false);
@@ -131,7 +133,7 @@ describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaUuid: testEvas[0].uuid });
+        .query({ evaUuid: testEvas[0].uuid, missionId });
       expect(res.statusCode).toBe(200);
       const rex1 = res.body.data.find((r: { uuid: string }) => r.uuid === testRexes[1].uuid);
       expect(rex1.isRunning).toBe(true);
@@ -141,7 +143,7 @@ describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaUuid: testEvas[0].uuid });
+        .query({ evaUuid: testEvas[0].uuid, missionId });
       expect(res.statusCode).toBe(200);
       expect(res.body.data.length).toBe(2);
       for (const rex of res.body.data) {
@@ -162,7 +164,7 @@ describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
       const res = await supertest(app)
         .get("/api/v1/maestro/v2/getRexesByEva")
         .set("emss-token", emssToken)
-        .query({ evaUuid: testEvas[0].uuid });
+        .query({ evaUuid: testEvas[0].uuid, missionId });
       expect(res.statusCode).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.message).toContain("Rexes retrieved");
