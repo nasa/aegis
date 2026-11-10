@@ -10,7 +10,13 @@ import {
 } from "utils/posEntries";
 
 const entry = (uuid: string, petSeconds: number, posTypeUuids: string[], createdAt = 1) =>
-  generateBlankPosEntry({ uuid, petSeconds, posTypeUuids, createdAt, location: { lat: 1, lng: 2 } });
+  generateBlankPosEntry({
+    uuid,
+    petSeconds,
+    posTypeUuids,
+    createdAt,
+    location: { lat: 1, lng: 2 },
+  });
 
 describe("posEntries utils", () => {
   it("orders newest-first by PET, then creation time, then uuid", () => {
@@ -39,7 +45,9 @@ describe("posEntries utils", () => {
   });
 
   it("carries location and elevation together as one change", () => {
-    const base = getPosEntryEditValues(generateBlankPosEntry({ location: { lat: 1, lng: 1 }, elevation: 3 }));
+    const base = getPosEntryEditValues(
+      generateBlankPosEntry({ location: { lat: 1, lng: 1 }, elevation: 3 })
+    );
     expect(getChangedPosEntryFields(base, { ...base, uncertaintyMeters: 4 })).toEqual({
       uncertaintyMeters: 4,
     });
@@ -82,11 +90,17 @@ describe("posEntries utils", () => {
 
     it("replaces the saved entry with the draft under the same uuid", () => {
       const [drawn] = applyPosEntryDraft([saved], draft({}), "rex");
-      expect(drawn).toMatchObject({ uuid: "saved", uncertaintyMeters: 9, createdAt: saved.createdAt });
+      expect(drawn).toMatchObject({
+        uuid: "saved",
+        uncertaintyMeters: 9,
+        createdAt: saved.createdAt,
+      });
     });
 
     it("appends a new draft and ignores a draft for another REX", () => {
-      expect(applyPosEntryDraft([saved], draft({ uuid: "new", isNew: true }), "rex")).toHaveLength(2);
+      expect(applyPosEntryDraft([saved], draft({ uuid: "new", isNew: true }), "rex")).toHaveLength(
+        2
+      );
       expect(applyPosEntryDraft([saved], draft({ rexUuid: "other" }), "rex")).toEqual([saved]);
     });
   });

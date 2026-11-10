@@ -150,13 +150,14 @@ describe("Thunk Position Entry Tests", () => {
         })
       );
       await store.dispatch(thunkSetPosEntryEditLocation({ uuid, location: { lat: 2, lng: 3 } }));
-      const changeSpy = vi.spyOn(getMissionDocHandle(), "change");
+      const changeSpy = vi.mocked(getMissionDocHandle().change);
+      // Count only Save; the shared mock also records the mission setup above.
+      changeSpy.mockClear();
 
       const saved = await store.dispatch(thunkSavePosEntryEdit()).unwrap();
 
       expect(saved).toBe(true);
       expect(changeSpy).toHaveBeenCalledTimes(1);
-      changeSpy.mockRestore();
       expect(entries()).toHaveLength(1);
       expect(entries()[0]).toMatchObject({
         uuid,
