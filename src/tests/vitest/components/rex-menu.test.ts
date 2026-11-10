@@ -116,7 +116,7 @@ describe("repositionRexMenuPanel", () => {
 
     const bounds = panels.get("positions")!.group.api.boundingBox;
     expect(bounds.width).toBe(325);
-    expect(bounds.height).toBe(318);
+    expect(bounds.height).toBe(165);
   });
 
   test("preserves minimized visibility and the active tab across a reposition", () => {

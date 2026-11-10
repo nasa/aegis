@@ -491,11 +491,11 @@ hides the group with `group.api.setVisible(false)` (content stays mounted, so in
 survives) and shows `RexMenuLauncher` in `MapOverlays`; clicking the launcher restores it. The
 tabs use a custom `nonClosable` tab component.
 
-The widget cannot be dragged/resized below 325×318 — `setConstraints` only affects docked
+The widget cannot be dragged/resized below 325×165 — `setConstraints` only affects docked
 panels, not a floating group's interactive resize handles (those are hardcoded in dockview-core
 to a 20px minimum), so the floor is enforced in CSS (`:global(.dv-resize-container:has(...))`
 in `missionDockviewLayout.module.css`) targeting the resize container that wraps the Positions
-tab's content. The same 325×318 is baked into the initial/reposition bounds math in
+tab's content. The same 325×165 is baked into the initial/reposition bounds math in
 `rex-menu.tsx` so the widget never computes an x/y assuming it's smaller than its enforced floor.
 
 It is re-anchored to the top-right of the map whenever the map area's bounds change (e.g. the
