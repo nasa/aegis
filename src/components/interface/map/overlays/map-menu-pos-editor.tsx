@@ -1,14 +1,21 @@
-import type { FunctionComponent } from "react";
+import type { CSSProperties, FunctionComponent } from "react";
 import { useEffect, useState } from "react";
-import { Form, useForm, useFormState } from "react-final-form";
 import { faBan, faCrosshairs, faFloppyDisk, faXmark } from "@fortawesome/free-solid-svg-icons";
 
 import { LastEditedNumeric } from "components/interface/_global-elements";
 import assetStyles from "./map-menu-assets.module.css";
 import posStyles from "./map-menu-pos.module.css";
 import { PositionWalkback } from "./map-menu-pos-walkback";
-import { Button, FFInput, PathColorPickerMenu } from "components/interface/form/globalFields";
-import { validators } from "components/interface/form/formValidators";
+import {
+  Button,
+  InLineEditInput,
+  PathColorPickerMenu,
+} from "components/interface/form/globalFields";
+import {
+  composeValidators,
+  validators,
+  type Stringy,
+} from "components/interface/form/formValidators";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { updatePosEntryInEditValues } from "store/rex";
@@ -42,44 +49,19 @@ interface PositionEditorProps {
   coordinateContext: CoordinateEntryContext;
 }
 
-interface PositionFormValues {
+interface PositionEditorFieldText {
   radius: string;
   coordinates: string;
   pet: string;
 }
 
-// Save commits the Redux draft's changed fields together.
-export const PositionEditor: FunctionComponent<PositionEditorProps> = (props) => {
-  const values = props.inEdit.values;
-  const dispatch = useAppDispatch();
-  return (
-    <Form<PositionFormValues>
-      initialValues={{
-        radius: String(values.uncertaintyMeters),
-        coordinates: formatCoordinateEntry(values.location, props.coordinateContext),
-        pet: values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds),
-      }}
-      keepDirtyOnReinitialize={true}
-      onSubmit={async (fields) => {
-        const text = (fields.coordinates ?? "").trim();
-        const formatted = formatCoordinateEntry(values.location, props.coordinateContext).trim();
-        if (text !== formatted) {
-          const result = text
-            ? parseCoordinateEntry(text, props.coordinateContext)
-            : { location: null, error: null };
-          if (result.error) return { coordinates: result.error };
-          dispatch(thunkCancelPosEntryMapDirective());
-          dispatch(
-            thunkSetPosEntryEditLocation({ uuid: props.inEdit.uuid, location: result.location })
-          );
-        }
-        await dispatch(thunkSavePosEntryEdit());
-      }}
-      subscription={{}}
-      render={() => <PositionEditorFields {...props} />}
-    />
-  );
-};
+const RADIUS_VALIDATORS = [
+  validators.mustBeNumber,
+  validators.minValue(0),
+  validators.maxValue(POS_ENTRY_RADIUS_MAX_METERS),
+];
+const PET_VALIDATORS = [validators.mustBeHHMMSS];
+const GROW_INPUT_CONTAINER_STYLE: CSSProperties = { flex: "1 1 110px", minWidth: 0 };
 
 /** Segmented toggle buttons for pos types (multi-select) or pos sources (single-select). */
 const ToggleGroup: FunctionComponent<{
@@ -119,24 +101,14 @@ const ToggleGroup: FunctionComponent<{
   </div>
 );
 
-const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
+// Save commits the Redux draft's changed fields together.
+export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
   inEdit,
   rex,
   entry,
   canMutate,
   coordinateContext,
 }) => {
-  const form = useForm<PositionFormValues>();
-  const {
-    values: textValues,
-    invalid: formInvalid,
-    submitting: saving,
-  } = useFormState<PositionFormValues>({
-    subscription: { values: true, invalid: true, submitting: true },
-  });
-  const coordinateText = textValues.coordinates ?? "";
-  const radiusText = textValues.radius ?? "";
-  const petText = textValues.pet ?? "";
   const dispatch = useAppDispatch();
   const values = inEdit.values;
   const editable = canMutate;
@@ -150,28 +122,45 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
   const mapDirectiveActive = mapAction === "createMarker" || mapAction === "editMarker";
 
   const formattedLocation = formatCoordinateEntry(values.location, coordinateContext);
+  const formattedPet = values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds);
+  const [fieldText, setFieldText] = useState<PositionEditorFieldText>(() => ({
+    radius: String(values.uncertaintyMeters),
+    coordinates: formattedLocation,
+    pet: formattedPet,
+  }));
+  const setText = (field: keyof PositionEditorFieldText, text: string) =>
+    setFieldText((previous) => ({ ...previous, [field]: text }));
+  const coordinateText = fieldText.coordinates;
+  const radiusText = fieldText.radius;
+  const petText = fieldText.pet;
   const [submitError, setSubmitError] = useState<string | null>(null);
   const coordinateValidationError =
     coordinateText.trim() && coordinateText.trim() !== formattedLocation.trim()
       ? parseCoordinateEntry(coordinateText, coordinateContext).error
       : null;
   useEffect(() => {
-    form.change("coordinates", formattedLocation);
+    setFieldText((previous) => ({ ...previous, coordinates: formattedLocation }));
     setSubmitError(null);
-  }, [form, formattedLocation]);
+  }, [formattedLocation]);
 
   useEffect(() => {
-    const current = form.getState().values.radius;
-    if (Number(current) !== values.uncertaintyMeters)
-      form.change("radius", String(values.uncertaintyMeters));
-  }, [form, values.uncertaintyMeters]);
-  const radiusError = validatePosEntryRadius(Number(radiusText));
+    setFieldText((previous) =>
+      Number(previous.radius) === values.uncertaintyMeters
+        ? previous
+        : { ...previous, radius: String(values.uncertaintyMeters) }
+    );
+  }, [values.uncertaintyMeters]);
+  const radiusError =
+    composeValidators(...RADIUS_VALIDATORS)(radiusText, {}) ||
+    validatePosEntryRadius(Number(radiusText));
 
-  const formattedPet = values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds);
   useEffect(() => {
-    const current = form.getState().values.pet ?? "";
-    if (parseAssetPetSeconds(current) !== values.petSeconds) form.change("pet", formattedPet);
-  }, [form, values.petSeconds, formattedPet]);
+    setFieldText((previous) =>
+      parseAssetPetSeconds(previous.pet) === values.petSeconds
+        ? previous
+        : { ...previous, pet: formattedPet }
+    );
+  }, [values.petSeconds, formattedPet]);
   const petError = validators.mustBeHHMMSS(petText);
   const currentPetAvailable = petSecondsAt(rex, getAccurateNow().getTime()) !== null;
 
@@ -181,33 +170,44 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
     { ...values, location: values.location ?? (typedLocationPending ? { lat: 0, lng: 0 } : null) },
     rex
   );
+  const [saving, setSaving] = useState(false);
   const saveEnabled =
-    editable &&
-    !formInvalid &&
-    !invalid &&
-    !petError &&
-    !coordinateValidationError &&
-    !radiusError &&
-    !saving;
+    editable && !invalid && !petError && !coordinateValidationError && !radiusError && !saving;
 
   const submitCoordinates = () => {
     const text = coordinateText.trim();
     if (text === formattedLocation.trim()) {
-      form.change("coordinates", formattedLocation);
+      setText("coordinates", formattedLocation);
       setSubmitError(null);
-      return;
+      return true;
     }
     const result = text
       ? parseCoordinateEntry(text, coordinateContext)
       : { location: null, error: null };
     if (result.error) {
       setSubmitError(result.error);
-      return;
+      return false;
     }
     setSubmitError(null);
     dispatch(thunkCancelPosEntryMapDirective());
     dispatch(thunkSetPosEntryEditLocation({ uuid: inEdit.uuid, location: result.location }));
+    return true;
   };
+
+  const save = async () => {
+    if (!submitCoordinates() || !saveEnabled) return;
+    setSaving(true);
+    try {
+      await dispatch(thunkSavePosEntryEdit());
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const coordinateValidators = [
+    (value: Stringy) =>
+      getLiveCoordinateEntryError(String(value ?? ""), coordinateContext) ?? undefined,
+  ];
 
   // Live validation while typing; the authoritative submit check reports on blur/Enter.
   const coordinateError =
@@ -232,7 +232,7 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
         </div>
         <div className={assetStyles.editorActions}>
           <Button
-            onClick={() => form.submit()}
+            onClick={save}
             icon={faFloppyDisk}
             ariaLabel="Save"
             toolTip={
@@ -282,30 +282,28 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
 
         <span className={assetStyles.fieldLabel}>Radius (m)</span>
         <div className={assetStyles.fieldControls}>
-          <FFInput
-            name="radius"
-            ariaLabel="Radius in meters"
-            className={`${assetStyles.editorInput} ${assetStyles.numberInput}`}
-            classNameError={assetStyles.editorInputError}
-            validators={[
-              validators.mustBeNumber,
-              validators.minValue(0),
-              validators.maxValue(POS_ENTRY_RADIUS_MAX_METERS),
-            ]}
-            inputProps={{
-              inputMode: "decimal",
-              "data-testid": "position-editor-uncertainty",
-              disabled: !editable,
-              "aria-invalid": !!radiusError,
-              "aria-describedby": radiusError ? "position-radius-error" : undefined,
-            }}
-            onValueChange={(text) => {
-              const parsed = Number(text);
-              if (!validatePosEntryRadius(parsed))
-                dispatch(updatePosEntryInEditValues({ uncertaintyMeters: parsed }));
-            }}
-            onBlur={() => {
-              if (!radiusText.trim()) form.change("radius", "0");
+          <InLineEditInput
+            value={radiusText}
+            editing={editable}
+            debounceSubmit={false}
+            onSubmit={(text) =>
+              dispatch(updatePosEntryInEditValues({ uncertaintyMeters: Number(text) }))
+            }
+            fieldProps={{
+              name: "radius",
+              ariaLabel: "Radius in meters",
+              className: assetStyles.numberInput,
+              validators: RADIUS_VALIDATORS,
+              inputProps: {
+                inputMode: "decimal",
+                "data-testid": "position-editor-uncertainty",
+                "aria-invalid": !!radiusError,
+                "aria-describedby": radiusError ? "position-radius-error" : undefined,
+              },
+              onValueChange: (text) => setText("radius", text),
+              onBlur: () => {
+                if (!radiusText.trim()) setText("radius", "0");
+              },
             }}
           />
           <span className={`${assetStyles.fieldLabel} ${assetStyles.inlineFieldLabel}`}>
@@ -343,28 +341,33 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
 
         <span className={assetStyles.fieldLabel}>Position *</span>
         <div className={assetStyles.fieldControls}>
-          <FFInput
-            name="coordinates"
-            ariaLabel="Position coordinates"
-            className={`${assetStyles.editorInput} ${assetStyles.growInput} ${coordinateError ? assetStyles.editorInputError : ""}`}
-            validators={[
-              (value) =>
-                getLiveCoordinateEntryError(String(value ?? ""), coordinateContext) ?? undefined,
-            ]}
-            inputProps={{
-              placeholder: getCoordinateEntryHint(coordinateContext),
-              "data-testid": "position-editor-coordinates",
-              disabled: !editable,
-              onKeyDown: (e) => {
-                if (e.key === "Enter") submitCoordinates();
-                if (e.key === "Escape") {
-                  form.change("coordinates", formattedLocation);
-                  setSubmitError(null);
-                }
+          <InLineEditInput
+            value={coordinateText}
+            editing={editable}
+            debounceSubmit={false}
+            styleContainer={GROW_INPUT_CONTAINER_STYLE}
+            fieldProps={{
+              name: "coordinates",
+              ariaLabel: "Position coordinates",
+              className: assetStyles.growInput,
+              validators: coordinateValidators,
+              inputProps: {
+                placeholder: getCoordinateEntryHint(coordinateContext),
+                "data-testid": "position-editor-coordinates",
+                onKeyDown: (e) => {
+                  if (e.key === "Enter") submitCoordinates();
+                  if (e.key === "Escape") {
+                    setText("coordinates", formattedLocation);
+                    setSubmitError(null);
+                  }
+                },
               },
+              onValueChange: (text) => {
+                setText("coordinates", text);
+                setSubmitError(null);
+              },
+              onBlur: submitCoordinates,
             }}
-            onValueChange={() => setSubmitError(null)}
-            onBlur={submitCoordinates}
           />
           {mapDirectiveActive ? (
             <Button
@@ -424,26 +427,28 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
 
         <span className={assetStyles.fieldLabel}>PET *</span>
         <div className={assetStyles.petControls}>
-          <FFInput
-            name="pet"
-            ariaLabel="Position PET"
-            className={`${assetStyles.editorInput} ${assetStyles.petInput}`}
-            classNameError={assetStyles.editorInputError}
-            validators={[validators.mustBeHHMMSS]}
-            inputProps={{
-              placeholder: "+HH:MM:SS",
-              "data-testid": "position-editor-pet",
-              disabled: !editable,
-              "aria-invalid": !!petError,
-              "aria-describedby": petError ? "position-pet-error" : undefined,
-            }}
-            onValueChange={(text) => {
-              const seconds = parseAssetPetSeconds(text);
-              if (!text.trim() || seconds !== null)
-                dispatch(updatePosEntryInEditValues({ petSeconds: seconds }));
-            }}
-            onBlur={() => {
-              if (!petError) form.change("pet", formattedPet);
+          <InLineEditInput
+            value={petText}
+            editing={editable}
+            debounceSubmit={false}
+            onSubmit={(text) =>
+              dispatch(updatePosEntryInEditValues({ petSeconds: parseAssetPetSeconds(text) }))
+            }
+            fieldProps={{
+              name: "pet",
+              ariaLabel: "Position PET",
+              className: assetStyles.petInput,
+              validators: PET_VALIDATORS,
+              inputProps: {
+                placeholder: "+HH:MM:SS",
+                "data-testid": "position-editor-pet",
+                "aria-invalid": !!petError,
+                "aria-describedby": petError ? "position-pet-error" : undefined,
+              },
+              onValueChange: (text) => setText("pet", text),
+              onBlur: () => {
+                if (!petError) setText("pet", formattedPet);
+              },
             }}
           />
           <Button
@@ -454,7 +459,7 @@ const PositionEditorFields: FunctionComponent<PositionEditorProps> = ({
             onClick={() => {
               const petSeconds = petSecondsAt(rex, getAccurateNow().getTime());
               if (petSeconds === null) return;
-              form.change("pet", hhmmssFromSeconds(petSeconds));
+              setText("pet", hhmmssFromSeconds(petSeconds));
               dispatch(updatePosEntryInEditValues({ petSeconds }));
             }}
           />
