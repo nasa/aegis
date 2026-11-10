@@ -147,8 +147,8 @@ describe("NotificationBannerBar", () => {
 
     const banners = page.getByTestId("notification-banner");
     // The banner with an endsAt shows only its message
-    await expect.element(banners.first()).toHaveTextContent(/^Second$/);
-    await expect.element(banners.nth(1)).toHaveTextContent(/^First$/);
+    await expect.element(banners.first()).toHaveTextContent("Second");
+    await expect.element(banners.nth(1)).toHaveTextContent("First");
     await expect.element(banners.nth(1)).toHaveStyle({
       backgroundColor: "rgb(250, 204, 21)",
       color: "rgb(0, 0, 0)",
