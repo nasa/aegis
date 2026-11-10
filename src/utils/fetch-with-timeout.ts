@@ -16,3 +16,7 @@ export async function clientFetchWithTimeout(
   clearTimeout(id);
   return response;
 }
+
+/** Client errors other than timeouts, conflicts, and throttling will fail the same way again. */
+export const isRetryableStatus = (httpStatus: number | undefined): boolean =>
+  !httpStatus || httpStatus >= 500 || [408, 409, 429].includes(httpStatus);

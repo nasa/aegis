@@ -7,6 +7,7 @@ import {
   getTerrainProfile,
   getTerrainProfiles,
 } from "http-client/terrainProfile";
+import { postNewtonTraverse, postNewtonTraverses } from "http-client/newton";
 import { deleteLayers, upsertLayers } from "http-client/layer";
 import { deleteSublayers, upsertSublayers } from "http-client/sublayer";
 import { generateBlankLayer } from "store/storeUtils/layer";
@@ -248,6 +249,70 @@ describe("Mission duplication", () => {
     await expect(duplicateMission(50)).resolves.toEqual({
       status: "error",
       message: "504 Gateway Time-out",
+    });
+  });
+});
+
+describe("Newton traverse client", () => {
+  const traverse: NewtonTraversePostData = {
+    waypoints: [
+      { lat: 0, lng: 0 },
+      { lat: 1, lng: 1 },
+    ],
+  };
+
+  test("posts a batch for the mission and returns per-entry results", async () => {
+    const results: NewtonTraverseResponse[] = [
+      { status: "success", message: "ok", data: { uuid: "a" } as NewtonTraverseRow },
+      { status: "error", message: "bad", httpStatus: 400 },
+    ];
+    mockFetchResponse({ status: "success", data: results });
+    await expect(postNewtonTraverses(42, [traverse, traverse])).resolves.toEqual(results);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/v1/newton/traverses/batch?missionId=42",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ traverses: [traverse, traverse] }),
+      })
+    );
+  });
+
+  test("turns a batch-level HTTP error into per-entry errors", async () => {
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue({ status: 401, json: async () => ({ message: "Unauthorized" }) });
+    await expect(postNewtonTraverses(42, [traverse, traverse])).resolves.toEqual([
+      { status: "error", message: "Unauthorized", httpStatus: 401 },
+      { status: "error", message: "Unauthorized", httpStatus: 401 },
+    ]);
+  });
+
+  test("rejects a batch response with the wrong number of entries", async () => {
+    mockFetchResponse({ status: "success", data: [] });
+    await expect(postNewtonTraverses(42, [traverse])).rejects.toThrow(
+      "Invalid Newton traverse batch response"
+    );
+  });
+
+  test("posts a single request without the mission in the body", async () => {
+    mockFetchResponse({ status: "success", message: "ok", data: { uuid: "a" } });
+    await postNewtonTraverse({ missionId: 42, ...traverse, raw: true });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/v1/newton/traverses?missionId=42",
+      expect.objectContaining({ body: JSON.stringify({ ...traverse, raw: true }) })
+    );
+  });
+
+  test("returns the HTTP status of a failed single request", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 503,
+      statusText: "Service Unavailable",
+      json: async () => ({ message: "Newton is not configured" }),
+    });
+    await expect(postNewtonTraverse({ missionId: 42, ...traverse })).resolves.toEqual({
+      status: "error",
+      message: "Newton is not configured",
+      httpStatus: 503,
     });
   });
 });
