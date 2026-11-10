@@ -223,4 +223,30 @@
   --dv-activegroup-hiddenpanel-tab-background-color: black;
   --dv-inactivegroup-hiddenpanel-tab-background-color: black;
 }
+
+.container
+  :global(
+    .dv-groupview-floating:has(
+        [data-testid="positions-floating-panel"],
+        [data-testid="assets-floating-panel"]
+      )
+      .dv-tab
+  ) {
+  min-width: 80px;
+  box-shadow: inset -1px 0 var(--grey1);
+}
+
+/* Dockview reserves label spacing for a close button even when that button is hidden. */
+.container
+  :global(
+    .dv-groupview-floating:has(
+        [data-testid="positions-floating-panel"],
+        [data-testid="assets-floating-panel"]
+      )
+      .dv-default-tab
+      .dv-default-tab-content
+  ) {
+  margin-right: 0;
+  text-align: center;
+}
 /* stylelint-enable selector-class-pattern */
