@@ -256,7 +256,10 @@ describe("MapPositionMenu", () => {
     ).toBe("+00:10:00");
     // No location yet, so Save is disabled.
     expect(editor.querySelector("[aria-label='Save']")!.getAttribute("aria-disabled")).toBe("true");
-    expect(editor.querySelector("[data-testid='position-editor-lander-distance']")).toBeNull();
+    const detail = (name: string) =>
+      editor.querySelector(`[data-testid='position-editor-${name}']`)?.textContent;
+    expect(detail("lander-distance")).toBe("-");
+    expect(detail("walkback")).toBe("-");
 
     // Map placement updates only the Redux draft; details must not depend on a saved entry
     // or on the asynchronous elevation request finishing.
@@ -269,8 +272,6 @@ describe("MapPositionMenu", () => {
         })
       );
     });
-    const detail = (name: string) =>
-      editor.querySelector(`[data-testid='position-editor-${name}']`)?.textContent;
     expect(detail("lander-distance")).toBe("1000.00 m");
     expect(detail("walkback")).toBe("30 min");
 
