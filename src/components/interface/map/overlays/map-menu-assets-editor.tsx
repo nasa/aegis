@@ -1,6 +1,5 @@
-import type { FunctionComponent } from "react";
+import type { CSSProperties, FunctionComponent } from "react";
 import { useCallback, useEffect, useState } from "react";
-import { Form, useForm, useFormState } from "react-final-form";
 import { PickerPopover } from "components/interface/form/PickerPopover";
 import { faBan, faCrosshairs, faFloppyDisk, faXmark } from "@fortawesome/free-solid-svg-icons";
 
@@ -9,11 +8,15 @@ import { AssetPetSource } from "./map-menu-asset-details";
 import styles from "./map-menu-assets.module.css";
 import {
   Button,
-  FFInput,
-  FFTextArea,
+  InLineEditInput,
   PathColorPickerMenu,
+  TextArea,
 } from "components/interface/form/globalFields";
-import { validators } from "components/interface/form/formValidators";
+import {
+  composeValidators,
+  validators,
+  type Stringy,
+} from "components/interface/form/formValidators";
 import { EmojiPicker, EmojiRenderer } from "components/interface/emojis";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
@@ -33,10 +36,6 @@ import {
   DEFAULT_ASSET_ICON,
   getCurrentAssetPet,
   parseAssetPetSeconds,
-  validateAssetEditValues,
-  validateAssetName,
-  validateAssetNotes,
-  validateAssetRadius,
 } from "utils/assets";
 import {
   formatCoordinateEntry,
@@ -46,6 +45,36 @@ import {
   parseCoordinateEntry,
 } from "utils/coordinateEntry";
 import { getAccurateNow, hhmmssFromSeconds } from "utils/formatting";
+
+const NAME_VALIDATORS = [validators.required, validators.maxLength(ASSET_NAME_MAX_LENGTH)];
+const RADIUS_VALIDATORS = [
+  validators.mustBeNumber,
+  validators.minValue(0),
+  validators.maxValue(ASSET_RADIUS_MAX_METERS),
+];
+const PET_VALIDATORS = [validators.mustBeHHMMSS];
+const NOTES_VALIDATORS = [validators.maxLength(ASSET_NOTES_MAX_LENGTH)];
+
+const GROW_INPUT_CONTAINER_STYLE: CSSProperties = { flex: "1 1 110px", minWidth: 0 };
+// Sizes the notes box by its rows so the editor fits the floating widget; the user can resize it.
+const NOTES_TEXT_AREA_STYLE: CSSProperties = {
+  height: "auto",
+  minHeight: 22,
+  boxSizing: "border-box",
+  lineHeight: 1.4,
+  fontFamily: "inherit",
+  overflowWrap: "anywhere",
+  overflowY: "auto",
+  resize: "both",
+};
+
+// Runs a field's validators against its text so Save stays disabled while any field is invalid.
+function getFieldTextError(
+  fieldValidators: Array<(value: Stringy) => string | undefined>,
+  text: string
+): string | undefined {
+  return composeValidators(...fieldValidators)(text, {});
+}
 
 /** UTC wall-clock time, e.g. "2026-10-30 14:05:09 UTC". */
 export function formatUtcTime(ms: number): string {
@@ -59,69 +88,13 @@ interface AssetEditorProps {
   coordinateContext: CoordinateEntryContext;
 }
 
-interface AssetFormValues {
-  name: string;
-  radius: string;
-  coordinates: string;
-  pet: string;
-  notes: string;
-}
-
 // Save commits the Redux preview's changed fields together.
-export const AssetEditor: FunctionComponent<AssetEditorProps> = (props) => {
-  const values = props.inEdit.values;
-  const dispatch = useAppDispatch();
-  return (
-    <Form<AssetFormValues>
-      initialValues={{
-        name: values.name,
-        radius: String(values.uncertaintyMeters),
-        coordinates: formatCoordinateEntry(values.location, props.coordinateContext),
-        pet: values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds),
-        notes: values.notes ?? "",
-      }}
-      keepDirtyOnReinitialize={true}
-      onSubmit={async (fields) => {
-        const text = (fields.coordinates ?? "").trim();
-        const formatted = formatCoordinateEntry(values.location, props.coordinateContext).trim();
-        if (text !== formatted) {
-          const result = text
-            ? parseCoordinateEntry(text, props.coordinateContext)
-            : { location: null, error: null };
-          if (result.error) return { coordinates: result.error };
-          dispatch(thunkCancelAssetMapDirective());
-          dispatch(
-            thunkSetAssetEditLocation({ uuid: props.inEdit.uuid, location: result.location })
-          );
-        }
-        await dispatch(thunkSaveAssetEdit());
-      }}
-      subscription={{}}
-      render={() => <AssetEditorFields {...props} />}
-    />
-  );
-};
-
-const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
+export const AssetEditor: FunctionComponent<AssetEditorProps> = ({
   inEdit,
   asset,
   canMutate,
   coordinateContext,
 }) => {
-  const form = useForm<AssetFormValues>();
-  const {
-    values: textValues,
-    invalid: formInvalid,
-    submitting: saving,
-  } = useFormState<AssetFormValues>({
-    subscription: { values: true, invalid: true, submitting: true },
-  });
-  const coordinateText = textValues.coordinates ?? "";
-  const uncertaintyText = textValues.radius ?? "";
-  const petText = textValues.pet ?? "";
-  const setCoordinateText = (value: string) => form.change("coordinates", value);
-  const setUncertaintyText = (value: string) => form.change("radius", value);
-  const setPetText = (value: string) => form.change("pet", value);
   const dispatch = useAppDispatch();
   const assetUuid = inEdit.uuid;
   const values = inEdit.values;
@@ -135,74 +108,98 @@ const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
   );
   const mapDirectiveActive = mapAction === "createMarker" || mapAction === "editMarker";
 
-  const invalid = validateAssetEditValues({ ...values, name: values.name.trim() });
-  const nameError = validateAssetName(values.name);
-  const notesError = validateAssetNotes(values.notes);
-
   const formattedLocation = formatCoordinateEntry(values.location, coordinateContext);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const coordinateValidationError =
-    coordinateText.trim() && coordinateText.trim() !== formattedLocation.trim()
+  const formattedPet = values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds);
+  const [fieldText, setFieldText] = useState<AssetEditorFieldText>(() => ({
+    name: values.name,
+    radius: String(values.uncertaintyMeters),
+    coordinates: formattedLocation,
+    pet: formattedPet,
+    notes: values.notes ?? "",
+  }));
+  const setText = (field: keyof AssetEditorFieldText, text: string) =>
+    setFieldText((previous) => ({ ...previous, [field]: text }));
+
+  // Show values set outside the fields, such as a map placement or the current PET.
+  useEffect(() => {
+    setFieldText((previous) => ({ ...previous, coordinates: formattedLocation }));
+  }, [formattedLocation]);
+  useEffect(() => {
+    setFieldText((previous) =>
+      Number(previous.radius) === values.uncertaintyMeters
+        ? previous
+        : { ...previous, radius: String(values.uncertaintyMeters) }
+    );
+  }, [values.uncertaintyMeters]);
+  useEffect(() => {
+    setFieldText((previous) =>
+      parseAssetPetSeconds(previous.pet) === values.petSeconds
+        ? previous
+        : { ...previous, pet: formattedPet }
+    );
+  }, [values.petSeconds, formattedPet]);
+
+  // Partial coordinates are allowed while typing; the full parse runs on blur, Enter, and Save.
+  const coordinateValidators = [
+    (value: Stringy) =>
+      getLiveCoordinateEntryError(String(value ?? ""), coordinateContext) ?? undefined,
+  ];
+  const coordinateText = fieldText.coordinates.trim();
+  const coordinateParseError =
+    coordinateText && coordinateText !== formattedLocation.trim()
       ? parseCoordinateEntry(coordinateText, coordinateContext).error
       : null;
-  useEffect(() => {
-    form.change("coordinates", formattedLocation);
-    setSubmitError(null);
-  }, [form, formattedLocation]);
+  // Shown under the field: the full-parse error from the last blur, Enter, or Save, else the live one.
+  const [coordinateSubmitError, setCoordinateSubmitError] = useState<string | null>(null);
+  const coordinateError =
+    coordinateSubmitError ?? getFieldTextError(coordinateValidators, fieldText.coordinates);
+  useEffect(() => setCoordinateSubmitError(null), [formattedLocation]);
 
-  useEffect(() => {
-    const current = form.getState().values.radius;
-    if (Number(current) !== values.uncertaintyMeters)
-      form.change("radius", String(values.uncertaintyMeters));
-  }, [form, values.uncertaintyMeters]);
-  const uncertaintyError = validateAssetRadius(Number(uncertaintyText));
-  const uncertaintyValid = !uncertaintyError;
+  const petError = getFieldTextError(PET_VALIDATORS, fieldText.pet);
+  // Coordinate errors are shown under their field, not in the Save tooltip.
+  const otherFieldError =
+    getFieldTextError(NAME_VALIDATORS, fieldText.name) ||
+    getFieldTextError(RADIUS_VALIDATORS, fieldText.radius) ||
+    petError ||
+    getFieldTextError(NOTES_VALIDATORS, fieldText.notes);
 
-  const formattedPet = values.petSeconds === null ? "" : hhmmssFromSeconds(values.petSeconds);
   const rexes = useMissionDocSelector((m) => m.rexes, refEqual);
   const hasRunningRex = Object.values(rexes ?? {}).some((rex) => rex.isRunning);
   const currentPetAvailable =
     getCurrentAssetPet({ rexes }, getAccurateNow().getTime()).petSeconds !== null;
-  useEffect(() => {
-    const current = form.getState().values.pet ?? "";
-    if (parseAssetPetSeconds(current) !== values.petSeconds) form.change("pet", formattedPet);
-  }, [form, values.petSeconds, formattedPet]);
-  const petError = validators.mustBeHHMMSS(petText);
 
+  const [saving, setSaving] = useState(false);
   const saveEnabled =
-    editable &&
-    !formInvalid &&
-    !invalid &&
-    !petError &&
-    !coordinateValidationError &&
-    uncertaintyValid &&
-    !saving;
+    editable && !otherFieldError && !coordinateError && !coordinateParseError && !saving;
   const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null);
   const closeEmojiPicker = useCallback(() => setEmojiAnchor(null), []);
 
+  // Commits the coordinate text to the Redux preview; false when it does not parse.
   const submitCoordinates = () => {
-    const text = coordinateText.trim();
-    if (text === formattedLocation.trim()) {
-      setCoordinateText(formattedLocation);
-      setSubmitError(null);
+    if (coordinateText === formattedLocation.trim()) {
+      setText("coordinates", formattedLocation);
+      setCoordinateSubmitError(null);
       return true;
     }
-    const result = text
-      ? parseCoordinateEntry(text, coordinateContext)
+    const result = coordinateText
+      ? parseCoordinateEntry(coordinateText, coordinateContext)
       : { location: null, error: null };
-    if (result.error) {
-      setSubmitError(result.error);
-      return false;
-    }
-    setSubmitError(null);
+    setCoordinateSubmitError(result.error);
+    if (result.error) return false;
     dispatch(thunkCancelAssetMapDirective());
-    dispatch(thunkSetAssetEditLocation({ uuid: inEdit.uuid, location: result.location }));
+    dispatch(thunkSetAssetEditLocation({ uuid: assetUuid, location: result.location }));
     return true;
   };
 
-  // Live validation while typing; the authoritative submit check reports on blur/Enter.
-  const liveCoordinateError = getLiveCoordinateEntryError(coordinateText, coordinateContext);
-  const coordinateError = submitError ?? liveCoordinateError;
+  const save = async () => {
+    if (!submitCoordinates() || !saveEnabled) return;
+    setSaving(true);
+    try {
+      await dispatch(thunkSaveAssetEdit());
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const startMapDirective = () => {
     dispatch(thunkStartAssetMapDirective());
@@ -211,9 +208,7 @@ const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
   const actions = (
     <div className={styles.editorActions}>
       <Button
-        onClick={() => {
-          form.submit();
-        }}
+        onClick={save}
         icon={faFloppyDisk}
         ariaLabel="Save"
         toolTip={
@@ -221,7 +216,7 @@ const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
             ? inEdit?.elevationPending
               ? "Waiting for elevation…"
               : "Saving…"
-            : petError || coordinateValidationError || invalid || "Save"
+            : otherFieldError || "Save"
         }
         className={`${styles.iconOnlyButton} ${saveEnabled ? styles.saveButton : styles.saveButtonDisabled}`}
         enabled={saveEnabled}
@@ -244,41 +239,35 @@ const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
       </div>
 
       <div className={styles.editorForm}>
-        <>
-          <span className={styles.fieldLabel}>Name *</span>
-          <div className={styles.fieldControls}>
-            <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
-            <Button
-              label={emojiAnchor ? "Close" : "Pick Icon"}
-              className={styles.editorButton}
-              enabled={editable}
-              onClick={(e) => setEmojiAnchor(emojiAnchor ? null : e.currentTarget)}
-            />
-            <FFInput
-              name="name"
-              ariaLabel="Asset name"
-              className={`${styles.editorInput} ${styles.growInput}`}
-              validators={[(value) => validateAssetName(String(value ?? "")) ?? undefined]}
-              inputProps={{
+        <span className={styles.fieldLabel}>Name *</span>
+        <div className={styles.fieldControls}>
+          <EmojiRenderer iconValue={values.icon || DEFAULT_ASSET_ICON} />
+          <Button
+            label={emojiAnchor ? "Close" : "Pick Icon"}
+            className={styles.editorButton}
+            enabled={editable}
+            onClick={(e) => setEmojiAnchor(emojiAnchor ? null : e.currentTarget)}
+          />
+          <InLineEditInput
+            value={fieldText.name}
+            editing={editable}
+            debounceSubmit={false}
+            styleContainer={GROW_INPUT_CONTAINER_STYLE}
+            onSubmit={(name) => dispatch(updateAssetInEditValues({ name }))}
+            fieldProps={{
+              name: "name",
+              ariaLabel: "Asset name",
+              className: styles.growInput,
+              validators: NAME_VALIDATORS,
+              inputProps: {
                 placeholder: "Required",
                 "data-testid": "asset-editor-name",
-                disabled: !editable,
                 maxLength: ASSET_NAME_MAX_LENGTH,
-                "aria-invalid": !!nameError,
-                "aria-describedby": nameError ? "asset-name-error" : undefined,
-              }}
-              onValueChange={(name) => dispatch(updateAssetInEditValues({ name }))}
-            />
-          </div>
-          {nameError && (
-            <div
-              id="asset-name-error"
-              className={`${styles.fieldError} ${styles.fieldValueColumn}`}
-            >
-              {nameError}
-            </div>
-          )}
-        </>
+              },
+              onValueChange: (text) => setText("name", text),
+            }}
+          />
+        </div>
 
         {editable && emojiAnchor && (
           <PickerPopover anchor={emojiAnchor} onClose={closeEmojiPicker}>
@@ -296,30 +285,26 @@ const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
         )}
         <span className={styles.fieldLabel}>Radius (m)</span>
         <div className={styles.fieldControls}>
-          <FFInput
-            name="radius"
-            ariaLabel="Radius in meters"
-            className={`${styles.editorInput} ${styles.numberInput}`}
-            classNameError={styles.editorInputError}
-            validators={[
-              validators.mustBeNumber,
-              validators.minValue(0),
-              validators.maxValue(ASSET_RADIUS_MAX_METERS),
-            ]}
-            inputProps={{
-              inputMode: "decimal",
-              "data-testid": "asset-editor-uncertainty",
-              disabled: !editable,
-              "aria-invalid": !!uncertaintyError,
-              "aria-describedby": uncertaintyError ? "asset-radius-error" : undefined,
-            }}
-            onValueChange={(text) => {
-              const parsed = Number(text);
-              if (!validateAssetRadius(parsed))
-                dispatch(updateAssetInEditValues({ uncertaintyMeters: parsed }));
-            }}
-            onBlur={() => {
-              if (!uncertaintyText.trim()) setUncertaintyText("0");
+          <InLineEditInput
+            value={fieldText.radius}
+            editing={editable}
+            debounceSubmit={false}
+            onSubmit={(text) =>
+              dispatch(updateAssetInEditValues({ uncertaintyMeters: Number(text) }))
+            }
+            fieldProps={{
+              name: "radius",
+              ariaLabel: "Radius in meters",
+              className: styles.numberInput,
+              validators: RADIUS_VALIDATORS,
+              inputProps: {
+                inputMode: "decimal",
+                "data-testid": "asset-editor-uncertainty",
+              },
+              onValueChange: (text) => setText("radius", text),
+              onBlur: () => {
+                if (!fieldText.radius.trim()) setText("radius", "0");
+              },
             }}
           />
           <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
@@ -345,39 +330,35 @@ const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
           )}
         </div>
 
-        {uncertaintyError && (
-          <div
-            id="asset-radius-error"
-            className={`${styles.fieldError} ${styles.fieldValueColumn}`}
-          >
-            {uncertaintyError}
-          </div>
-        )}
-
         <span className={styles.fieldLabel}>Position</span>
         <div className={styles.fieldControls}>
-          <FFInput
-            name="coordinates"
-            ariaLabel="Asset coordinates"
-            className={`${styles.editorInput} ${styles.growInput} ${coordinateError ? styles.editorInputError : ""}`}
-            validators={[
-              (value) =>
-                getLiveCoordinateEntryError(String(value ?? ""), coordinateContext) ?? undefined,
-            ]}
-            inputProps={{
-              placeholder: getCoordinateEntryHint(coordinateContext),
-              "data-testid": "asset-editor-coordinates",
-              disabled: !editable,
-              onKeyDown: (e) => {
-                if (e.key === "Enter") submitCoordinates();
-                if (e.key === "Escape") {
-                  setCoordinateText(formattedLocation);
-                  setSubmitError(null);
-                }
+          <InLineEditInput
+            value={fieldText.coordinates}
+            editing={editable}
+            debounceSubmit={false}
+            styleContainer={GROW_INPUT_CONTAINER_STYLE}
+            fieldProps={{
+              name: "coordinates",
+              ariaLabel: "Asset coordinates",
+              className: styles.growInput,
+              validators: coordinateValidators,
+              inputProps: {
+                placeholder: getCoordinateEntryHint(coordinateContext),
+                "data-testid": "asset-editor-coordinates",
+                onKeyDown: (e) => {
+                  if (e.key === "Enter") submitCoordinates();
+                  if (e.key === "Escape") {
+                    setText("coordinates", formattedLocation);
+                    setCoordinateSubmitError(null);
+                  }
+                },
               },
+              onValueChange: (text) => {
+                setText("coordinates", text);
+                setCoordinateSubmitError(null);
+              },
+              onBlur: submitCoordinates,
             }}
-            onValueChange={() => setSubmitError(null)}
-            onBlur={submitCoordinates}
           />
           {mapDirectiveActive ? (
             <Button
@@ -432,26 +413,26 @@ const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
         {!inEdit.isNew && <AssetPetSource rexUuid={values.rexUuid} />}
         <span className={styles.fieldLabel}>PET</span>
         <div className={styles.petControls}>
-          <FFInput
-            name="pet"
-            ariaLabel="Asset PET"
-            className={`${styles.editorInput} ${styles.petInput}`}
-            classNameError={styles.editorInputError}
-            validators={[validators.mustBeHHMMSS]}
-            inputProps={{
-              placeholder: "+HH:MM:SS",
-              "data-testid": "asset-editor-pet",
-              disabled: !editable,
-              "aria-invalid": !!petError,
-              "aria-describedby": petError ? "asset-pet-error" : undefined,
-            }}
-            onValueChange={(text) => {
-              const seconds = parseAssetPetSeconds(text);
-              if (!text.trim() || seconds !== null)
-                dispatch(updateAssetInEditValues({ petSeconds: seconds }));
-            }}
-            onBlur={() => {
-              if (!petError) setPetText(formattedPet);
+          <InLineEditInput
+            value={fieldText.pet}
+            editing={editable}
+            debounceSubmit={false}
+            onSubmit={(text) =>
+              dispatch(updateAssetInEditValues({ petSeconds: parseAssetPetSeconds(text) }))
+            }
+            fieldProps={{
+              name: "pet",
+              ariaLabel: "Asset PET",
+              className: styles.petInput,
+              validators: PET_VALIDATORS,
+              inputProps: {
+                placeholder: "+HH:MM:SS",
+                "data-testid": "asset-editor-pet",
+              },
+              onValueChange: (text) => setText("pet", text),
+              onBlur: () => {
+                if (!petError) setText("pet", formattedPet);
+              },
             }}
           />
           {hasRunningRex && (
@@ -463,44 +444,33 @@ const AssetEditorFields: FunctionComponent<AssetEditorProps> = ({
               onClick={() => {
                 const pet = getCurrentAssetPet({ rexes }, getAccurateNow().getTime());
                 if (pet.petSeconds === null) return;
-                setPetText(hhmmssFromSeconds(pet.petSeconds));
+                setText("pet", hhmmssFromSeconds(pet.petSeconds));
                 dispatch(setAssetInEditPet(pet));
               }}
             />
           )}
         </div>
-        {petError && (
-          <div
-            id="asset-pet-error"
-            className={`${styles.fieldError} ${styles.fieldValueColumn}`}
-            data-testid="asset-editor-pet-error"
-          >
-            {petError}
-          </div>
-        )}
 
         <span className={`${styles.fieldLabel} ${styles.notesLabel}`}>Notes</span>
-        <FFTextArea
-          name="notes"
-          ariaLabel="Asset notes"
-          className={`${styles.editorInput} ${styles.editorNotes}`}
-          validators={[validators.maxLength(ASSET_NOTES_MAX_LENGTH)]}
-          inputProps={{
-            placeholder: "Optional",
-            maxLength: ASSET_NOTES_MAX_LENGTH,
-            "data-testid": "asset-editor-notes",
-            disabled: !editable,
-            rows: 3,
-            "aria-invalid": !!notesError,
-            "aria-describedby": notesError ? "asset-notes-error" : undefined,
+        <TextArea
+          value={fieldText.notes}
+          editing={editable}
+          debounceSubmit={false}
+          onSubmit={(notes) => dispatch(updateAssetInEditValues({ notes: notes || null }))}
+          fieldProps={{
+            name: "notes",
+            ariaLabel: "Asset notes",
+            style: NOTES_TEXT_AREA_STYLE,
+            validators: NOTES_VALIDATORS,
+            inputProps: {
+              placeholder: "Optional",
+              maxLength: ASSET_NOTES_MAX_LENGTH,
+              "data-testid": "asset-editor-notes",
+              rows: 3,
+            },
+            onValueChange: (text) => setText("notes", text),
           }}
-          onValueChange={(notes) => dispatch(updateAssetInEditValues({ notes: notes || null }))}
         />
-        {notesError && (
-          <div id="asset-notes-error" className={`${styles.fieldError} ${styles.fieldValueColumn}`}>
-            {notesError}
-          </div>
-        )}
         {asset && (
           <div className={styles.editorLastModified} data-testid="asset-editor-last-modified">
             <span className={styles.fieldLabel}>Last Edited:</span>

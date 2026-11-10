@@ -7,28 +7,6 @@ interface label {
   style?: React.CSSProperties;
 }
 
-interface option {
-  value: string;
-  label: string;
-}
-
-interface FFSelectProps {
-  name: string;
-  options: option[];
-  label?: label | false;
-  className?: string;
-  searchable?: boolean;
-}
-
-interface FFCheckboxProps {
-  name: string;
-  label?: label | false;
-  className?: string;
-  validators?: FieldValidator<unknown>[];
-  style?: React.CSSProperties;
-  initialValue?: boolean;
-}
-
 interface FFTextProps {
   name: string;
   ariaLabel?: string;
