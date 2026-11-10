@@ -1,3 +1,4 @@
+import { userEvent } from "vitest/browser";
 import { exactText, isVisible } from "./browserAssertions";
 import type { BrowserPage as Page } from "vitest/browser";
 import { test as base, expect } from "./missionHarness";
@@ -113,13 +114,13 @@ test.describe("EVA metadata lifecycle", () => {
 
     const colorControl = page.getBySelector('[class*="propertyPathColor"]');
     await colorControl.click();
-    const colorSwatch = page.getBySelector('[class*="colorPickerPopover"] [title="#009CE0"]');
+    const colorSwatch = page.getBySelector('[popover]:popover-open [title="#009CE0"]');
     await expect.element(colorSwatch).toBeVisible();
     await colorSwatch.click();
     await expect
       .poll(async () => (await mission.read()).evas[mission.ids.evaA].traverseColor)
       .toBe("#009ce0");
-    await page.getBySelector('[class*="colorPickerCover"]').click();
+    await userEvent.keyboard("{Escape}");
 
     for (const [label, value, error] of [
       ["Duration", "100000", "Must be at no more than 5 characters"],

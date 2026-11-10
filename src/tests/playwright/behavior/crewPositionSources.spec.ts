@@ -85,8 +85,8 @@ test("position source color edits reach a live peer and persist after reload", a
     .filter({ hasText: "Rover" })
     .locator("xpath=ancestor::li");
   await source.locator('[class*="propertyPathColor"]').click();
-  await page.locator('[class*="colorPickerMenu"] [title="#F44E3B"]').click();
-  await page.locator('[class*="colorPickerCover"]').click();
+  await page.locator('[popover]:popover-open [title="#F44E3B"]').click();
+  await page.keyboard.press("Escape");
   await expect
     .poll(
       async () =>

@@ -2,7 +2,7 @@ import { commands, type BrowserPage as Page } from "vitest/browser";
 import type VectorLayer from "ol/layer/Vector";
 import type LineString from "ol/geom/LineString";
 import { expect } from "./missionHarness";
-import { mapFeaturePixel, waitForMapIdle } from "./mapInteractions";
+import { mapFeaturePixel, waitForMapIdle, minimizeRexMenu } from "./mapInteractions";
 
 export async function clickMeasurementPoint(point: BrowserScreenPoint): Promise<void> {
   const map = window.__aegisMaps.find(
@@ -15,6 +15,7 @@ export async function clickMeasurementPoint(point: BrowserScreenPoint): Promise<
 }
 
 export async function openMeasurements(page: Page): Promise<void> {
+  await minimizeRexMenu(page);
   await page.getBySelector('[data-tooltip-content="Measurements"]').click();
   await expect
     .element(page.getBySelector('[data-tooltip-content="Add Temporary Measurement"]'))

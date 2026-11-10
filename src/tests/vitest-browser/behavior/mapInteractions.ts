@@ -2,6 +2,13 @@ import { afterEach, expect } from "vitest";
 import type SimpleGeometry from "ol/geom/SimpleGeometry";
 import type VectorLayer from "ol/layer/Vector";
 import { readMapFeatures } from "./mapObserver";
+import type { BrowserPage } from "vitest/browser";
+import { isVisible } from "./browserAssertions";
+
+export async function minimizeRexMenu(page: BrowserPage): Promise<void> {
+  const minimize = page.getByTestId("rex-menu-minimize");
+  if (isVisible(minimize)) await minimize.click();
+}
 
 const errorObservers = new Set<() => void>();
 afterEach(() => {

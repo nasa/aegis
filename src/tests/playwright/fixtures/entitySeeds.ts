@@ -1,5 +1,24 @@
 const createdAt = Date.parse("2026-10-24T12:00:00.000Z");
 
+export function seedAsset(overrides: Partial<Asset>): Asset {
+  return {
+    uuid: "",
+    name: "",
+    icon: null,
+    color: null,
+    visible: true,
+    location: null,
+    elevation: null,
+    uncertaintyMeters: 0,
+    notes: null,
+    petSeconds: null,
+    rexUuid: null,
+    createdAt,
+    updatedAt: createdAt,
+    ...overrides,
+  };
+}
+
 export function seedEva(overrides: Partial<Eva>): Eva {
   return {
     uuid: "",

@@ -163,7 +163,11 @@ const duplicateMission = async (
 
     // 2. Create a copy of the mission with related entities
     onProgress("Creating mission copy...");
-    const newMissionId = await createMissionCopy(sourceData, { nameSuffix: "Copy", copyGISAssets: copyAssets }, onProgress);
+    const newMissionId = await createMissionCopy(
+      sourceData,
+      { nameSuffix: "Copy", copyGISAssets: copyAssets },
+      onProgress
+    );
 
     onProgress("Saving duplicated mission...");
     await em.commit(); // Commit the transaction

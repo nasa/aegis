@@ -173,7 +173,7 @@
   }
 }
 
-/* The Rex Menu widget (Positions + Assets tabs) cannot be dragged/resized smaller than this. */
+/* Keep the preferred minimum size within the available map area. */
 .container
   :global(
     .dv-resize-container:has(
@@ -181,8 +181,9 @@
       [data-testid="assets-floating-panel"]
     )
   ) {
-  min-width: 325px;
-  min-height: 318px;
+  box-sizing: border-box;
+  min-width: min(325px, var(--floating-overlay-host-width));
+  min-height: min(318px, var(--floating-overlay-host-height));
 }
 
 /* Floating groups mount outside .dv-dockview, so their tab colors are set on the overlay host.

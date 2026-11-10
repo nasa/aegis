@@ -107,7 +107,7 @@ describe("repositionRexMenuPanel", () => {
     expect(repositioned.left + repositioned.width).toBeLessThanOrEqual(narrowedBounds.width);
   });
 
-  test("never shrinks the widget below the enforced minimum size, even on a narrow map", () => {
+  test("caps the preferred widget size to the available map area", () => {
     const { api, panels } = createFakeApi();
     seedInitialPanels(api, { x: 570, y: 10, width: 420, height: 360 });
 
@@ -115,8 +115,8 @@ describe("repositionRexMenuPanel", () => {
     repositionRexMenuPanel(api, tinyMapBounds);
 
     const bounds = panels.get("positions")!.group.api.boundingBox;
-    expect(bounds.width).toBe(325);
-    expect(bounds.height).toBe(318);
+    expect(bounds.width).toBe(200);
+    expect(bounds.height).toBe(150);
   });
 
   test("preserves minimized visibility and the active tab across a reposition", () => {

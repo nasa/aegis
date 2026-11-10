@@ -18,10 +18,6 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 
 const REX_MENU_WIDTH = 420;
 const REX_MENU_HEIGHT = 360;
-// The widget cannot be dragged/resized smaller than this (enforced in CSS on the floating
-// resize container, see missionDockviewLayout.module.css).
-const REX_MENU_MIN_WIDTH = 325;
-const REX_MENU_MIN_HEIGHT = 318;
 const REX_MENU_TOP_OFFSET = 10;
 const REX_MENU_RIGHT_OFFSET = 10;
 // Panels that live in the floating Rex Menu widget (Positions + Assets tabs). Their tabs cannot
@@ -33,11 +29,11 @@ function getMapBounds(api: DockviewApi) {
 }
 
 // Anchors the widget to the top-right of the current map bounds, clamped so it never exceeds
-// the map area nor drops below the enforced minimum size. x/y are relative to the map's top-left
+// the map area. CSS caps resize minimums to the same area. x/y are relative to the map's top-left
 // corner because the floating overlay host is pinned to the map panel.
 function getRexMenuFloatingBounds(mapBounds: { width: number; height: number }) {
-  const width = Math.max(REX_MENU_MIN_WIDTH, Math.min(REX_MENU_WIDTH, mapBounds.width));
-  const height = Math.max(REX_MENU_MIN_HEIGHT, Math.min(REX_MENU_HEIGHT, mapBounds.height));
+  const width = Math.min(REX_MENU_WIDTH, mapBounds.width);
+  const height = Math.min(REX_MENU_HEIGHT, mapBounds.height);
   return {
     x: Math.max(0, mapBounds.width - width - REX_MENU_RIGHT_OFFSET),
     y: Math.min(REX_MENU_TOP_OFFSET, Math.max(0, mapBounds.height - height)),
