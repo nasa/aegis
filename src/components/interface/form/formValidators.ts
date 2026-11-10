@@ -8,7 +8,11 @@ export type Stringy = string | string[] | number;
  *    they must be passed through the {@link composeValidators} function
  */
 
-const required = (value: Stringy): string | undefined => (value ? undefined : "Required");
+// Whitespace-only text counts as empty.
+const required = (value: Stringy): string | undefined => {
+  if (typeof value === "string") return value.trim() ? undefined : "Required";
+  return value ? undefined : "Required";
+};
 
 const mustBeNumber = (value: Stringy): string | undefined => {
   if (!value) return undefined;

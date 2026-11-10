@@ -136,6 +136,7 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
   - See `src/operations/README.md` for the full convention with examples.
 - **Socket.io** client syncs non-Automerge real-time events (connection status, heartbeats, version checks).
 - Vite path aliases map `"store"`, `"components"`, `"utils"`, etc. directly to `src/` subdirectories — use these aliases in imports.
+- **Form fields** — use the exported components in `src/components/interface/form/globalFields.tsx` (`InLineEditInput`, `TextArea`, `Checkbox`, `Dropdown`, ...) or the Automerge variants in `globalFieldsAutomerge.tsx`. The final-form `FFInput` / `FFTextArea` are internal to `globalFields.tsx` and not exported. Validate with the `validators` from `formValidators.ts`; the components apply the matching input filters (for example, digits only for `mustBeNumber`) and the standard error border and warning-icon tooltip. `validators.required` treats whitespace-only text as empty. Do not add per-feature validators that repeat these checks.
 
 ### TypeScript Type Conventions
 

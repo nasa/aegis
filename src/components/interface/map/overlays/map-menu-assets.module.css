@@ -174,33 +174,14 @@
   color: var(--rex);
 }
 
-.editorInput {
-  height: 22px;
-  min-width: 0;
-  padding: 0 5px;
-  border: 1px solid var(--grey3);
-  border-radius: var(--radius);
-  background-color: var(--grey1);
-  color: var(--grey5);
-  font-size: 0.75rem;
-}
-
-.editorInput:disabled {
-  color: var(--grey4);
-}
-
-.editorInputError {
-  border-color: var(--error);
-}
-
 .growInput {
-  flex: 1 1 110px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-/* The radius row matches the editor buttons so it stays compact */
 .numberInput {
   width: 56px;
-  height: 20px;
 }
 
 .petInput {
@@ -235,19 +216,6 @@
 .saveButtonDisabled {
   background-color: var(--alert-disabled);
   color: var(--grey4);
-}
-
-.editorNotes {
-  width: 100%;
-  box-sizing: border-box;
-  overflow-wrap: anywhere;
-  min-height: 22px;
-  height: auto;
-  line-height: 1.4;
-  overflow-y: auto;
-  padding-top: 3px;
-  font-family: inherit;
-  resize: both;
 }
 
 .editorActions {

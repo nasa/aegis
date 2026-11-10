@@ -51,6 +51,15 @@ interface AssetInEdit {
   elevationPending: boolean;
 }
 
+/** Text shown in each asset editor field, including invalid text not yet in `AssetInEdit.values`. */
+interface AssetEditorFieldText {
+  name: string;
+  radius: string;
+  coordinates: string;
+  pet: string;
+  notes: string;
+}
+
 /** A placed, visible asset as drawn on a map (the in-edit values while they are being edited). */
 type AssetMapItem = Pick<Asset, "uuid" | "name" | "color" | "uncertaintyMeters"> & {
   icon: string;

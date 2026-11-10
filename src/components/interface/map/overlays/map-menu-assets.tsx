@@ -84,7 +84,12 @@ export const MapAssetsMenu: FunctionComponent = () => {
         </div>
       )}
       {inEdit?.isNew && (
-        <AssetEditor inEdit={inEdit} canMutate={canEdit} coordinateContext={coordinateContext} />
+        <AssetEditor
+          key={inEdit.uuid}
+          inEdit={inEdit}
+          canMutate={canEdit}
+          coordinateContext={coordinateContext}
+        />
       )}
       <div className={assetsMenuStyles.tableContainer}>
         <AssetTable
