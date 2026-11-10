@@ -162,7 +162,11 @@ test("rechecks the clock on save when a new banner's end time has passed", async
 test("editing checks the current time rather than the banner's creation time", async () => {
   await act(async () => button("Cancel").click());
   vi.setSystemTime(new Date("2026-11-10T10:42"));
-  await act(async () => button("Edit").click());
+  const expiredBanner = Array.from(container.querySelectorAll("main section")).find((section) =>
+    section.textContent?.includes("Existing banner")
+  )!;
+  await act(async () => expiredBanner.querySelector<HTMLButtonElement>("button")!.click());
+  expect(container.querySelector("textarea")!.value).toBe("Existing banner");
   expect(container.querySelector("#banner-time-error")!.textContent).toBe(
     "End time must be in the future."
   );
@@ -187,6 +191,7 @@ test("editing checks the current time rather than the banner's creation time", a
   await fill("banner-ends-at", "2026-11-10T10:45");
   await act(async () => button("Save").click());
   expect(updateNotificationBanner).toHaveBeenCalledOnce();
+  expect(updateNotificationBanner).toHaveBeenCalledWith(1, expect.any(Object));
 });
 
 test("edits in place without a duplicate and preserves the position on cancel and save", async () => {
