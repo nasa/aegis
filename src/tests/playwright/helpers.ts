@@ -29,6 +29,15 @@ export async function toggleEditMode(page: Page): Promise<void> {
   await page.waitForTimeout(300);
 }
 
+/**
+ * Click the OK button on the toast rendered by `displayToast` (the app's replacement
+ * for `window.confirm`). The toast has no reliable container testid, so it's targeted
+ * by the exact button name.
+ */
+export async function acceptConfirmToast(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "OK", exact: true }).last().click();
+}
+
 /** Reveal map controls and gesture space covered by the floating widget on narrow maps. */
 export async function minimizeRexMenu(page: Page): Promise<void> {
   const minimize = page.getByTestId("rex-menu-minimize");

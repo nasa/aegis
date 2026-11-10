@@ -1,17 +1,17 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import { waitForPageReady, toggleEditMode, displayField, editValidatedField } from "../helpers";
+import {
+  waitForPageReady,
+  toggleEditMode,
+  displayField,
+  editValidatedField,
+  acceptConfirmToast,
+} from "../helpers";
 
-/** Click the delete button and accept the resulting confirm dialog. */
+/** Click the delete button and accept the resulting confirm toast. */
 async function deleteSelectedPreset(page: Page): Promise<void> {
-  const dialogPromise = new Promise<void>((resolve) => {
-    page.once("dialog", async (dialog) => {
-      await dialog.accept();
-      resolve();
-    });
-  });
   await page.getByLabel("deleteButton", { exact: true }).click();
-  await dialogPromise;
+  await acceptConfirmToast(page);
 }
 
 export async function presetTest(page: Page): Promise<string> {
