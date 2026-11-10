@@ -345,10 +345,12 @@ const PositionDetails: FunctionComponent<{
       data-testid="position-details"
     >
       <div className={assetStyles.editorForm}>
-        <span className={assetStyles.fieldLabel}>Types</span>
-        <span data-testid="position-details-types">{typeNames.join(", ") || "—"}</span>
-        <span className={assetStyles.fieldLabel}>Source</span>
-        <span data-testid="position-details-source">{sourceName || "—"}</span>
+        <div className={posStyles.pairedFields}>
+          <span className={assetStyles.fieldLabel}>Types</span>
+          <span data-testid="position-details-types">{typeNames.join(", ") || "—"}</span>
+          <span className={assetStyles.fieldLabel}>Source</span>
+          <span data-testid="position-details-source">{sourceName || "—"}</span>
+        </div>
         <span className={assetStyles.fieldLabel}>Radius (m)</span>
         <div className={assetStyles.fieldControls}>
           <span data-testid="position-details-uncertainty">{entry.uncertaintyMeters ?? 0}</span>

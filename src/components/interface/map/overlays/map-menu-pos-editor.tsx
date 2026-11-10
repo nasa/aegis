@@ -86,7 +86,7 @@ const ToggleGroup: FunctionComponent<{
         <button
           key={option.uuid}
           type="button"
-          className={`${posStyles.toggleButton} ${position} ${isSelected(option.uuid) ? posStyles.toggleSelected : ""}`}
+          className={`${assetStyles.editorButton} ${posStyles.toggleButton} ${position} ${isSelected(option.uuid) ? posStyles.toggleSelected : ""}`}
           aria-pressed={isSelected(option.uuid)}
           aria-label={option.name}
           disabled={!enabled}
@@ -256,28 +256,30 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
       </div>
 
       <div className={assetStyles.editorForm}>
-        <span className={assetStyles.fieldLabel}>Types *</span>
-        <div className={assetStyles.fieldControls}>
-          <ToggleGroup
-            label="Position types"
-            options={rex.posTypes ?? []}
-            isSelected={(uuid) => values.posTypeUuids.includes(uuid)}
-            onToggle={togglePosType}
-            enabled={editable}
-            testId="position-editor-types"
-          />
-        </div>
+        <div className={posStyles.pairedFields}>
+          <span className={assetStyles.fieldLabel}>Types *</span>
+          <div className={assetStyles.fieldControls}>
+            <ToggleGroup
+              label="Position types"
+              options={rex.posTypes ?? []}
+              isSelected={(uuid) => values.posTypeUuids.includes(uuid)}
+              onToggle={togglePosType}
+              enabled={editable}
+              testId="position-editor-types"
+            />
+          </div>
 
-        <span className={assetStyles.fieldLabel}>Source *</span>
-        <div className={assetStyles.fieldControls}>
-          <ToggleGroup
-            label="Position source"
-            options={rex.posSources ?? []}
-            isSelected={(uuid) => values.posSourceUuid === uuid}
-            onToggle={(uuid) => dispatch(updatePosEntryInEditValues({ posSourceUuid: uuid }))}
-            enabled={editable}
-            testId="position-editor-source"
-          />
+          <span className={assetStyles.fieldLabel}>Source *</span>
+          <div className={assetStyles.fieldControls}>
+            <ToggleGroup
+              label="Position source"
+              options={rex.posSources ?? []}
+              isSelected={(uuid) => values.posSourceUuid === uuid}
+              onToggle={(uuid) => dispatch(updatePosEntryInEditValues({ posSourceUuid: uuid }))}
+              enabled={editable}
+              testId="position-editor-source"
+            />
+          </div>
         </div>
 
         <span className={assetStyles.fieldLabel}>Radius (m)</span>
