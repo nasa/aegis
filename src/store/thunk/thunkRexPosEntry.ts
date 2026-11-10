@@ -1,154 +1,259 @@
 import appCreateAsyncThunk from "./thunkUtil";
 import { v4 as uuidv4 } from "uuid";
-import { getAccurateNow } from "utils/formatting";
-import { clearPosEntryInEdit, setSelectedPosEntryUuid } from "store/rex";
+import { getAccurateNow, petSecondsAt } from "utils/formatting";
+import {
+  clearPosEntryInEdit,
+  setExpandedPosEntryUuid,
+  setPosEntryInEdit,
+  setPosEntryInEditElevation,
+  setPosEntryInEditLocation,
+  setSelectedPosEntryUuid,
+} from "store/rex";
+import { setHoverUuidsForPosEntry } from "store/hover";
 import { updateMapDirective } from "store/map";
 import { getMissionDocHandle } from "client/automergeDocHandles";
-import cloneDeep from "lodash/cloneDeep";
-import { applyDeletePosType } from "operations/apply/apply-rex";
+import { generateBlankPosEntry } from "store/storeUtils/rex";
+import {
+  applyCreatePosEntry,
+  applyDeletePosEntry,
+  applyDeletePosType,
+  applyUpdatePosEntry,
+} from "operations/apply/apply-rex";
+import {
+  getChangedPosEntryFields,
+  getMostRecentPosEntry,
+  getPosEntryEditValues,
+  validatePosEntryEditValues,
+} from "utils/posEntries";
+import { cancelPendingMapDirective, thunkUpdateMapDirective } from "./thunkMap";
+import { thunkFetchPointElevation } from "./thunkTerrainProfile";
 
-/*
- * Update the position entry with a location
- * and then save to automerge. Also called when creating a new position entry
- */
-export const thunkDocUpdatePosEntryWithLocation = appCreateAsyncThunk<{
-  location: AEGISPoint;
-  posEntryUuid: string;
-}>("updatePosEntryLoc", async ({ location, posEntryUuid }, { dispatch, getState }) => {
-  if (posEntryUuid !== getState().rex.posEntryInEdit?.uuid) {
-    throw new Error("Error updating Pos Entry: posEntryUuid does not match the one in edit");
-  }
+// Elevation fetches still in flight, keyed by pos entry uuid. Save waits for them to settle.
+const pendingElevationFetches = new Map<string, Promise<void>>();
 
-  // Step 1: Read the selected REX UUID and the pos entry in edit from state.
-  const selectedRexUuid = getState().rex.selectedRexUuid;
-  // Serialized through JSON so no nested value is still an Automerge object from the doc.
-  const posEntryInEdit: PosEntry = JSON.parse(JSON.stringify(getState().rex.posEntryInEdit));
-  const missionDocHandle = getMissionDocHandle();
-  if (!missionDocHandle) return;
+/** The source a new entry starts with: the latest entry's, else "Task", else the first. */
+function getDefaultPosSourceUuid(rex: Rex, latest: PosEntry | null): string | null {
+  const sources = rex.posSources ?? [];
+  if (latest && sources.some((s) => s.uuid === latest.posSourceUuid)) return latest.posSourceUuid;
+  return (sources.find((s) => s.name === "Task") ?? sources[0])?.uuid ?? null;
+}
 
-  // Step 2: Update pos entry with the new location, or push a new entry if it doesn't exist yet.
-  let createdNewEntry = false;
-  missionDocHandle.change((m: Mission) => {
-    const rex = m.rexes[selectedRexUuid];
-    if (!rex) return;
-    if (!rex.posEntries) rex.posEntries = [];
-    const posEntryIndex = rex.posEntries?.findIndex((p) => p.uuid === posEntryUuid);
-    if (posEntryIndex >= 0) {
-      // Existing record
-      rex.posEntries[posEntryIndex].location = location;
-      rex.posEntries[posEntryIndex].updatedAt = getAccurateNow().getTime();
-    } else {
-      // New entry — append the in-edit one from store with the location applied.
-      // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
-      // Existing entries are serialized through JSON first to fully detach them from the live
-      // Automerge proxy — spreading proxy objects directly back into the doc throws
-      // "Cannot create a reference to an existing document object".
-      const existingPosEntries: PosEntry[] = JSON.parse(JSON.stringify(rex.posEntries));
-      rex.posEntries = [
-        ...existingPosEntries,
-        {
-          ...posEntryInEdit,
-          location,
-          updatedAt: getAccurateNow().getTime(),
-        },
-      ];
-      createdNewEntry = true;
+/** End an active or scheduled position map directive without touching the in-edit session. */
+export const thunkCancelPosEntryMapDirective = appCreateAsyncThunk<void>(
+  "posEntry/cancelMapDirective",
+  async (__, { dispatch, getState }) => {
+    cancelPendingMapDirective();
+    if (getState().map.mapDirective?.mapItemType === "posEntry") {
+      dispatch(updateMapDirective(null));
     }
-    rex.updatedAt = getAccurateNow().getTime();
-  });
-
-  // Step 3: UI side-effects
-  // Auto-select the newly created pos entry and clear the pos entry from edit state.
-  if (createdNewEntry) {
-    dispatch(setSelectedPosEntryUuid(posEntryUuid));
   }
-  dispatch(clearPosEntryInEdit());
+);
+
+/** Discard the in-edit session and any map directive. Nothing was written, so nothing is rolled back. */
+export const thunkCancelPosEntryEdit = appCreateAsyncThunk<void>(
+  "posEntry/cancelEdit",
+  async (__, { dispatch }) => {
+    dispatch(clearPosEntryInEdit({ keepExpanded: true }));
+    await dispatch(thunkCancelPosEntryMapDirective());
+  }
+);
+
+/** Start Place on Map (unplaced draft) or Edit Pos. (placed draft) for the open session. */
+export const thunkStartPosEntryMapDirective = appCreateAsyncThunk<void>(
+  "posEntry/startMapDirective",
+  async (__, { dispatch, getState }) => {
+    const inEdit = getState().rex.posEntryInEdit;
+    if (!inEdit) return;
+    await dispatch(
+      thunkUpdateMapDirective({
+        mapItemType: "posEntry",
+        uuid: inEdit.uuid,
+        mapAction: inEdit.values.location ? "editMarker" : "createMarker",
+      })
+    );
+  }
+);
+
+/**
+ * Open a new entry for the selected REX at its current PET, prefilled from the most recent
+ * entry's types, source, radius, and color, and start placing it on the map.
+ */
+export const thunkAddPosEntry = appCreateAsyncThunk<void>(
+  "posEntry/add",
+  async (__, { dispatch, getState }) => {
+    if (getState().rex.posEntryInEdit?.isNew) return;
+    const rexUuid = getState().rex.selectedRexUuid;
+    const rex = rexUuid ? getMissionDocHandle()?.doc()?.rexes?.[rexUuid] : null;
+    if (!rex) return;
+    if (getState().rex.posEntryInEdit) await dispatch(thunkCancelPosEntryEdit());
+    const latest = getMostRecentPosEntry(rex.posEntries ?? []);
+    const uuid = uuidv4();
+    dispatch(setSelectedPosEntryUuid(uuid));
+    dispatch(
+      setPosEntryInEdit({
+        uuid,
+        rexUuid: rex.uuid,
+        isNew: true,
+        values: {
+          location: null,
+          elevation: null,
+          petSeconds: petSecondsAt(rex, getAccurateNow().getTime()),
+          posTypeUuids: (latest?.posTypeUuids ?? []).filter((typeUuid) =>
+            rex.posTypes?.some((type) => type.uuid === typeUuid)
+          ),
+          posSourceUuid: getDefaultPosSourceUuid(rex, latest),
+          uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
+          color: latest?.color ?? null,
+        },
+        base: null,
+        elevationPending: false,
+      })
+    );
+    await dispatch(thunkStartPosEntryMapDirective());
+  }
+);
+
+/** Open the editor on an existing entry of the selected REX, selecting and expanding its row. */
+export const thunkEditPosEntry = appCreateAsyncThunk<{ posEntryUuid: string }>(
+  "posEntry/edit",
+  async ({ posEntryUuid }, { dispatch, getState }) => {
+    const rexUuid = getState().rex.selectedRexUuid;
+    const rex = rexUuid ? getMissionDocHandle()?.doc()?.rexes?.[rexUuid] : null;
+    const entry = rex?.posEntries?.find((item) => item.uuid === posEntryUuid);
+    if (!entry) return;
+    await dispatch(thunkCancelPosEntryMapDirective());
+    dispatch(setSelectedPosEntryUuid(posEntryUuid));
+    dispatch(
+      setPosEntryInEdit({
+        uuid: posEntryUuid,
+        rexUuid: rex.uuid,
+        isNew: false,
+        values: getPosEntryEditValues(entry),
+        base: getPosEntryEditValues(entry),
+        elevationPending: false,
+      })
+    );
+  }
+);
+
+/**
+ * Accept or clear an in-edit location from a map click, a completed drag, or coordinate entry,
+ * and fetch its elevation. The position stays in the draft until Save.
+ */
+export const thunkSetPosEntryEditLocation = appCreateAsyncThunk<{
+  uuid: string;
+  location: AEGISPoint | null;
+}>("posEntry/setEditLocation", async ({ uuid, location }, { dispatch, getState }) => {
+  const inEdit = getState().rex.posEntryInEdit;
+  if (!inEdit || inEdit.uuid !== uuid) return;
+  const mission = getMissionDocHandle()?.doc();
+  if (!mission) return;
+  if (location && (!Number.isFinite(location.lat) || !Number.isFinite(location.lng))) return;
+
+  const point = location ? { lat: location.lat, lng: location.lng } : null;
+  const hasDem = !!point && !!mission.demFilePath;
+  dispatch(setPosEntryInEditLocation({ uuid, location: point, elevationPending: hasDem }));
+  const fetchElevation = (async () => {
+    if (!hasDem || !point) return;
+    const result = await dispatch(thunkFetchPointElevation({ point, uuid }));
+    const elevation =
+      result.meta.requestStatus === "fulfilled" ? ((result.payload as number) ?? null) : null;
+    dispatch(setPosEntryInEditElevation({ uuid, location: point, elevation }));
+  })();
+  pendingElevationFetches.set(uuid, fetchElevation);
+  try {
+    await fetchElevation;
+  } finally {
+    if (pendingElevationFetches.get(uuid) === fetchElevation) pendingElevationFetches.delete(uuid);
+  }
 });
 
 /**
- * Save existing pos entry from redux store when the save button is clicked
- * This does not save a location, just the fields in the pos menu
+ * Save the open edit session in one document change. Throws when the values are invalid, and
+ * cancels the session when its REX or entry was deleted underneath it.
+ * @returns true when saved.
  */
-export const thunkDocSavePosEntryNoLocation = appCreateAsyncThunk<void>(
-  "thunkSavePosEntryNoLocation",
+export const thunkSavePosEntryEdit = appCreateAsyncThunk<void, boolean>(
+  "posEntry/saveEdit",
   async (__, { dispatch, getState }) => {
-    // Step 1: Read the pos entry in edit and selected REX UUID from state.
-    const posEntryInEdit = cloneDeep(getState().rex.posEntryInEdit);
-    if (!posEntryInEdit) {
-      throw new Error("Error cannot save pos entry. No pos entry in edit to save");
-    }
-    const selectedRexUuid = getState().rex.selectedRexUuid;
+    const uuid = getState().rex.posEntryInEdit?.uuid;
+    if (!uuid) return false;
+
+    // Wait for the latest elevation fetch; a newer location may start another one meanwhile.
+    while (pendingElevationFetches.has(uuid)) await pendingElevationFetches.get(uuid);
+
+    const inEdit = getState().rex.posEntryInEdit;
+    if (!inEdit || inEdit.uuid !== uuid) return false;
     const missionDocHandle = getMissionDocHandle();
-    if (!missionDocHandle) return;
+    const rex = missionDocHandle?.doc()?.rexes?.[inEdit.rexUuid];
+    if (!missionDocHandle || !rex) {
+      await dispatch(thunkCancelPosEntryEdit());
+      return false;
+    }
+    const values = inEdit.values;
+    const invalid = validatePosEntryEditValues(values, rex);
+    if (invalid) throw new Error(invalid);
+    const current = rex.posEntries?.find((entry) => entry.uuid === uuid);
 
-    // Step 2: Overwrite the pos entry fields and timestamp in the Automerge doc.
-    missionDocHandle.change((m: Mission) => {
-      const rex = m.rexes[selectedRexUuid];
-      if (!rex) return;
-      if (!rex.posEntries) rex.posEntries = [];
-      const posEntryIndex = rex.posEntries?.findIndex((p) => p.uuid === posEntryInEdit.uuid);
-      if (posEntryIndex === undefined || posEntryIndex < 0) {
-        throw new Error("Error cannot save pos entry. Pos entry in edit not found in automerge");
+    if (inEdit.isNew) {
+      if (!current) {
+        const now = getAccurateNow().getTime();
+        const posEntry = generateBlankPosEntry({
+          ...values,
+          uuid,
+          location: { lat: values.location.lat, lng: values.location.lng },
+          posTypeUuids: [...values.posTypeUuids],
+          createdAt: now,
+          updatedAt: now,
+        });
+        missionDocHandle.change((m: Mission) =>
+          applyCreatePosEntry(m, { rexUuid: inEdit.rexUuid, posEntry })
+        );
       }
-      rex.posEntries[posEntryIndex] = {
-        ...rex.posEntries[posEntryIndex],
-        ...posEntryInEdit,
-        updatedAt: getAccurateNow().getTime(),
-      };
-      rex.updatedAt = getAccurateNow().getTime();
-    });
+    } else {
+      if (!current) {
+        // The entry was deleted underneath the edit; discard the session.
+        await dispatch(thunkCancelPosEntryEdit());
+        return false;
+      }
+      const changes = getChangedPosEntryFields(inEdit.base, values);
+      if (Object.keys(changes).length > 0) {
+        missionDocHandle.change((m: Mission) =>
+          applyUpdatePosEntry(m, { rexUuid: inEdit.rexUuid, posEntryUuid: uuid, changes })
+        );
+      }
+    }
 
-    // Step 3: Clear the pos entry from edit state.
-    dispatch(clearPosEntryInEdit());
+    await dispatch(thunkCancelPosEntryMapDirective());
+    dispatch(clearPosEntryInEdit({ keepExpanded: true }));
+    dispatch(setSelectedPosEntryUuid(uuid));
+    return true;
   }
 );
 
-export const thunkUICancelPosEntryInEdit = appCreateAsyncThunk<void>(
-  "cancelPosEntry",
-  async (_, { dispatch, getState }) => {
-    const posEntryInEdit = getState().rex.posEntryInEdit;
-
-    //cancel out map action if they were in the middle of one for this
-    if (getState().map.mapDirective?.uuid === posEntryInEdit.uuid) {
-      dispatch(
-        updateMapDirective({
-          mapItemType: "posEntry",
-          uuid: posEntryInEdit.uuid,
-          mapAction: "cancelEditMarker",
-        })
-      );
+/** Delete a position entry of the selected REX and clear everything that referenced it. */
+export const thunkDeletePosEntry = appCreateAsyncThunk<{ posEntryUuid: string }>(
+  "posEntry/delete",
+  async ({ posEntryUuid }, { dispatch, getState }) => {
+    const state = getState();
+    if (!state.user.missionPerms?.permissions.edit) return;
+    const rexUuid = state.rex.selectedRexUuid;
+    if (!rexUuid) return;
+    if (state.rex.posEntryInEdit?.uuid === posEntryUuid) await dispatch(thunkCancelPosEntryEdit());
+    if (getState().rex.selectedPosEntryUuid === posEntryUuid) {
+      dispatch(setSelectedPosEntryUuid(null));
     }
-
-    dispatch(clearPosEntryInEdit());
+    if (getState().rex.expandedPosEntryUuid === posEntryUuid) {
+      dispatch(setExpandedPosEntryUuid(null));
+    }
+    if (getState().hover.posEntryItemUuid === posEntryUuid) {
+      dispatch(setHoverUuidsForPosEntry(null));
+    }
+    getMissionDocHandle()?.change((m: Mission) =>
+      applyDeletePosEntry(m, { rexUuid, posEntryUuid })
+    );
   }
 );
-
-export const thunkDocDeletePosEntryByUuid = appCreateAsyncThunk<{
-  posEntryUuid: string;
-}>("deletePosEntry", async ({ posEntryUuid }, { dispatch, getState }) => {
-  // Step 1: Read the selected REX UUID from state.
-  const selectedRexUuid = getState().rex.selectedRexUuid;
-  const missionDocHandle = getMissionDocHandle();
-  if (!missionDocHandle) return;
-
-  // Step 2: Remove the pos entry from the Automerge doc.
-  missionDocHandle.change((m: Mission) => {
-    const rex = m.rexes[selectedRexUuid];
-    if (!rex) return;
-    // Do a full array reassignment due to an automerge bug where the push/splice updating to the maestro socket.
-    // Serialize through JSON first to fully detach elements from the live Automerge proxy —
-    // filtering proxy objects directly and reassigning them back throws
-    // "Cannot create a reference to an existing document object".
-    if (rex.posEntries) {
-      const existingPosEntries: PosEntry[] = JSON.parse(JSON.stringify(rex.posEntries));
-      rex.posEntries = existingPosEntries.filter((c) => c.uuid !== posEntryUuid);
-    }
-    rex.updatedAt = getAccurateNow().getTime();
-  });
-
-  // Step 3: Clear the pos entry from edit state.
-  dispatch(clearPosEntryInEdit());
-});
 
 export const thunkDocCreatePosType = appCreateAsyncThunk<void>(
   "createPosType",

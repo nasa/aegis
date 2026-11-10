@@ -75,8 +75,8 @@ vi.mock("store/thunk/thunkAction", () => ({
 }));
 
 vi.mock("store/thunk/thunkRexPosEntry", () => ({
-  thunkDocUpdatePosEntryWithLocation: vi.fn(() => ({
-    type: "mock/thunkDocUpdatePosEntryWithLocation",
+  thunkSetPosEntryEditLocation: vi.fn(() => ({
+    type: "mock/thunkSetPosEntryEditLocation",
   })),
 }));
 
@@ -401,8 +401,8 @@ describe("InteractionManager", () => {
     expect(mapContainer.style.cursor).toBe("crosshair");
   });
 
-  it("editMarker for a posEntry: clicking the map moves it and finishes", async () => {
-    const { thunkDocUpdatePosEntryWithLocation } = await import("store/thunk/thunkRexPosEntry");
+  it("editMarker for a posEntry: clicking the map moves its draft and finishes", async () => {
+    const { thunkSetPosEntryEditLocation } = await import("store/thunk/thunkRexPosEntry");
 
     const source = new VectorSource();
     const feature = new Feature(new Point([0, 0]));
@@ -424,9 +424,9 @@ describe("InteractionManager", () => {
       dispatchMapClick(map, [50, 50], [20000, 10000]);
     });
 
-    expect(vi.mocked(thunkDocUpdatePosEntryWithLocation)).toHaveBeenCalledWith({
+    expect(vi.mocked(thunkSetPosEntryEditLocation)).toHaveBeenCalledWith({
       location: { lat: 10, lng: 20 },
-      posEntryUuid: "pos-1",
+      uuid: "pos-1",
     });
     // Edit finishes after a click-to-place
     expect(store.getState().map.mapDirective).toBeNull();

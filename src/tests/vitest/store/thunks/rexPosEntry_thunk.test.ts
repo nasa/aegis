@@ -1,404 +1,290 @@
 import { createCustomTestStore } from "../../fixtures/store";
-import { initialState as rexInitialState } from "store/rex";
-import { initialState as mapInitialState } from "store/map";
+import { initialState as rexInitialState, updatePosEntryInEditValues } from "store/rex";
+import { initialState as userInitialState } from "store/user";
+import { updateMapDirective } from "store/map";
+import type { StoreType } from "store";
 import {
-  thunkUICancelPosEntryInEdit,
+  thunkAddPosEntry,
+  thunkCancelPosEntryEdit,
+  thunkDeletePosEntry,
   thunkDocCreatePosType,
-  thunkDocDeletePosEntryByUuid,
   thunkDocDeletePosType,
-  thunkDocSavePosEntryNoLocation,
-  thunkDocUpdatePosEntryWithLocation,
+  thunkEditPosEntry,
+  thunkSavePosEntryEdit,
+  thunkSetPosEntryEditLocation,
 } from "store/thunk/thunkRexPosEntry";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 
-const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => true);
+type ElevationResult = { meta: { requestStatus: string }; payload?: number };
+const elevationCalls: { point: AEGISPoint; resolve: (r: ElevationResult) => void }[] = [];
+vi.mock("store/thunk/thunkTerrainProfile", () => ({
+  thunkFetchPointElevation:
+    ({ point }: { point: AEGISPoint }) =>
+    () =>
+      new Promise<ElevationResult>((resolve) => elevationCalls.push({ point, resolve })),
+}));
 
+const editor: UserState = {
+  ...userInitialState,
+  missionPerms: { permissions: { edit: true } } as Permission,
+};
 const getMission = (): Mission => getMissionDocHandle().doc();
+let store: StoreType;
+let rex: Rex;
+const inEdit = () => store.getState().rex.posEntryInEdit;
+const entries = () => getMission().rexes[rex.uuid].posEntries ?? [];
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-beforeAll(() => {
-  setMissionAutomergeDocHandle(null);
-});
+beforeAll(() => setMissionAutomergeDocHandle(null));
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // wipe automerge for a clean slate per test
+  elevationCalls.length = 0;
+  const eva = generateBlankEVA({ name: "Vitest EVA" });
+  rex = generateBlankRex({
+    name: "Vitest Rex-1",
+    evaUuid: eva.uuid,
+    isRunning: true,
+    petValueAtStartStop: "+00:20:00",
+  });
   getMissionDocHandle().change((m) => {
-    m.evas = {};
-    m.rexes = {};
+    m.evas = { [eva.uuid]: eva };
+    m.rexes = { [rex.uuid]: rex };
+    m.demFilePath = "";
+  });
+  store = createCustomTestStore({
+    user: editor,
+    rex: { ...rexInitialState, selectedRexUuid: rex.uuid },
   });
 });
 
-afterAll(() => {
-  vi.restoreAllMocks();
-  alertSpy.mockRestore();
-});
+function seedEntry(partial: Partial<PosEntry> = {}): PosEntry {
+  const entry = generateBlankPosEntry({
+    location: { lat: 1, lng: 1 },
+    petSeconds: 60,
+    posTypeUuids: [rex.posTypes[0].uuid],
+    posSourceUuid: rex.posSources[0].uuid,
+    ...partial,
+  });
+  getMissionDocHandle().change((m) => {
+    const existing: PosEntry[] = JSON.parse(JSON.stringify(m.rexes[rex.uuid].posEntries ?? []));
+    m.rexes[rex.uuid].posEntries = [...existing, entry];
+  });
+  return entry;
+}
 
 describe("Thunk Position Entry Tests", () => {
-  describe("thunkDocUpdatePosEntryWithLocation", () => {
-    test("adds a new pos entry to the rex on automerge", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      rex.posEntries = [posEntry];
-      const posEntryInEdit = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
+  describe("thunkAddPosEntry", () => {
+    test("opens a draft at the REX's PET with Task as the default source", async () => {
+      await store.dispatch(thunkAddPosEntry());
 
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
+      const draft = inEdit();
+      expect(draft.isNew).toBe(true);
+      expect(draft.rexUuid).toBe(rex.uuid);
+      expect(draft.values).toEqual({
+        location: null,
+        elevation: null,
+        petSeconds: 1200,
+        posTypeUuids: [],
+        posSourceUuid: rex.posSources.find((s) => s.name === "Task").uuid,
+        uncertaintyMeters: 0,
+        color: null,
       });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-          posEntryInEdit: posEntryInEdit,
-        },
-      });
-
-      const newLoc: AEGISPoint = { lat: 1, lng: 2 };
-      await store.dispatch(
-        thunkDocUpdatePosEntryWithLocation({ location: newLoc, posEntryUuid: posEntryInEdit.uuid })
-      );
-
-      const updatedRex = getMission().rexes[rex.uuid];
-      expect(updatedRex.posEntries.length).toEqual(2);
-      expect(updatedRex.posEntries.find((p) => p.uuid === posEntryInEdit.uuid).location).toEqual(
-        newLoc
-      );
-      expect(updatedRex.updatedAt).not.toBeNull();
-      // posEntryInEdit cleared in redux
-      expect(store.getState().rex.posEntryInEdit.uuid).toBeNull();
-      // newly created pos entry is auto-selected
-      expect(store.getState().rex.selectedPosEntryUuid).toEqual(posEntryInEdit.uuid);
+      expect(store.getState().rex.selectedPosEntryUuid).toBe(draft.uuid);
+      // Nothing is written until Save.
+      expect(entries()).toEqual([]);
     });
 
-    test("creates a new entry whose fields came from an entry read out of the doc", async () => {
-      // Editing an existing entry puts the doc's entry into posEntryInEdit, so its nested
-      // posTypeUuids array is an Automerge object. A new entry reusing that array must not
-      // throw "Cannot create a reference to an existing document object".
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const existingEntry = generateBlankPosEntry({
-        posTypeUuids: [rex.posTypes[0].uuid],
-        posSourceUuid: rex.posSources[0].uuid,
-        location: { lat: 1, lng: 1 },
-      });
-      rex.posEntries = [existingEntry];
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
+    test("prefills types, source, radius, and color from the most recently created entry", async () => {
+      seedEntry({ createdAt: 1, uncertaintyMeters: 3, color: "#00ff00" });
+      const latest = seedEntry({
+        createdAt: 2,
+        posTypeUuids: [rex.posTypes[1].uuid, "deleted-type"],
+        posSourceUuid: rex.posSources[2].uuid,
+        uncertaintyMeters: 25,
+        color: "#ff0000",
       });
 
-      const docEntry = getMission().rexes[rex.uuid].posEntries[0];
-      const newEntry = generateBlankPosEntry({
-        posTypeUuids: docEntry.posTypeUuids,
-        posSourceUuid: rex.posSources[1].uuid,
-      });
-      const store = createCustomTestStore({
-        rex: { ...rexInitialState, selectedRexUuid: rex.uuid, posEntryInEdit: newEntry },
-      });
+      await store.dispatch(thunkAddPosEntry());
 
-      const result = await store.dispatch(
-        thunkDocUpdatePosEntryWithLocation({
-          location: { lat: 2, lng: 2 },
-          posEntryUuid: newEntry.uuid,
+      expect(inEdit().values).toMatchObject({
+        posTypeUuids: [rex.posTypes[1].uuid],
+        posSourceUuid: latest.posSourceUuid,
+        uncertaintyMeters: 25,
+        color: "#ff0000",
+      });
+    });
+
+    test("starts placing the draft on the map", async () => {
+      vi.useFakeTimers();
+      try {
+        await store.dispatch(thunkAddPosEntry());
+        vi.advanceTimersByTime(250);
+        expect(store.getState().map.mapDirective).toEqual({
+          mapItemType: "posEntry",
+          uuid: inEdit().uuid,
+          mapAction: "createMarker",
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe("thunkSavePosEntryEdit", () => {
+    test("creates the new entry in one change and keeps it selected", async () => {
+      await store.dispatch(thunkAddPosEntry());
+      const uuid = inEdit().uuid;
+      store.dispatch(
+        updatePosEntryInEditValues({
+          posTypeUuids: [rex.posTypes[0].uuid],
+          uncertaintyMeters: 12,
+          color: "#123456",
         })
       );
+      await store.dispatch(thunkSetPosEntryEditLocation({ uuid, location: { lat: 2, lng: 3 } }));
+      const changeSpy = vi.spyOn(getMissionDocHandle(), "change");
 
-      expect(result.meta.requestStatus).toBe("fulfilled");
-      const posEntries = getMission().rexes[rex.uuid].posEntries;
-      expect(posEntries).toHaveLength(2);
-      expect(posEntries[1].posTypeUuids).toEqual([rex.posTypes[0].uuid]);
+      const saved = await store.dispatch(thunkSavePosEntryEdit()).unwrap();
+
+      expect(saved).toBe(true);
+      expect(changeSpy).toHaveBeenCalledTimes(1);
+      changeSpy.mockRestore();
+      expect(entries()).toHaveLength(1);
+      expect(entries()[0]).toMatchObject({
+        uuid,
+        location: { lat: 2, lng: 3 },
+        petSeconds: 1200,
+        posTypeUuids: [rex.posTypes[0].uuid],
+        uncertaintyMeters: 12,
+        color: "#123456",
+      });
+      expect(inEdit()).toBeNull();
+      expect(store.getState().rex.selectedPosEntryUuid).toBe(uuid);
     });
 
-    test("updates an existing pos entry's location on automerge", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      rex.posEntries = [posEntry];
+    test("rejects an unplaced draft or one without a pos type", async () => {
+      await store.dispatch(thunkAddPosEntry());
+      const uuid = inEdit().uuid;
 
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-          posEntryInEdit: posEntry,
-        },
-      });
-
-      const newLoc: AEGISPoint = { lat: 1, lng: 2 };
-      await store.dispatch(
-        thunkDocUpdatePosEntryWithLocation({ location: newLoc, posEntryUuid: posEntry.uuid })
+      await expect(store.dispatch(thunkSavePosEntryEdit()).unwrap()).rejects.toThrow(
+        "Select at least one position type"
       );
-
-      const updatedRex = getMission().rexes[rex.uuid];
-      expect(updatedRex.posEntries[0].location).toEqual(newLoc);
-      expect(updatedRex.updatedAt).not.toBeNull();
-      expect(store.getState().rex.posEntryInEdit.uuid).toBeNull();
-      // editing an existing entry does not change the selected pos entry
-      expect(store.getState().rex.selectedPosEntryUuid).toBeNull();
+      store.dispatch(updatePosEntryInEditValues({ posTypeUuids: [rex.posTypes[0].uuid] }));
+      await expect(store.dispatch(thunkSavePosEntryEdit()).unwrap()).rejects.toThrow(
+        "Place the position"
+      );
+      await store.dispatch(thunkSetPosEntryEditLocation({ uuid, location: { lat: 1, lng: 1 } }));
+      store.dispatch(updatePosEntryInEditValues({ petSeconds: null }));
+      await expect(store.dispatch(thunkSavePosEntryEdit()).unwrap()).rejects.toThrow(
+        "PET is required"
+      );
+      expect(entries()).toEqual([]);
+      expect(inEdit()).not.toBeNull();
     });
 
-    test("rejects when posEntryUuid does not match posEntryInEdit", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      const otherPosEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      rex.posEntries = [posEntry];
+    test("writes only the changed fields of an existing entry", async () => {
+      const entry = seedEntry({ elevation: 7 });
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
+      expect(store.getState().rex.expandedPosEntryUuid).toBe(entry.uuid);
+      store.dispatch(updatePosEntryInEditValues({ uncertaintyMeters: 40, petSeconds: 90 }));
 
+      await store.dispatch(thunkSavePosEntryEdit()).unwrap();
+
+      expect(entries()[0]).toMatchObject({
+        uuid: entry.uuid,
+        location: entry.location,
+        elevation: 7,
+        petSeconds: 90,
+        uncertaintyMeters: 40,
+        posSourceUuid: entry.posSourceUuid,
+      });
+      expect(entries()[0].updatedAt).toBeGreaterThanOrEqual(entry.updatedAt);
+      // The row stays expanded after saving.
+      expect(store.getState().rex.expandedPosEntryUuid).toBe(entry.uuid);
+    });
+
+    test("moving an existing entry waits for its elevation", async () => {
       getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
+        m.demFilePath = "dem.tif";
       });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-          // posEntryInEdit is posEntry but we dispatch with otherPosEntry's uuid
-          posEntryInEdit: posEntry,
-        },
-      });
-
-      const newLoc: AEGISPoint = { lat: 5, lng: 10 };
-      const result = await store.dispatch(
-        thunkDocUpdatePosEntryWithLocation({ location: newLoc, posEntryUuid: otherPosEntry.uuid })
+      const entry = seedEntry({ elevation: 7 });
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
+      const placing = store.dispatch(
+        thunkSetPosEntryEditLocation({ uuid: entry.uuid, location: { lat: 5, lng: 6 } })
       );
+      expect(inEdit().elevationPending).toBe(true);
+      const saving = store.dispatch(thunkSavePosEntryEdit());
+      await flush();
+      expect(entries()[0].location).toEqual(entry.location);
 
-      expect(result.meta.requestStatus).toBe("rejected");
-      // automerge should be unchanged
-      expect(getMission().rexes[rex.uuid].posEntries.length).toBe(1);
-      expect(getMission().rexes[rex.uuid].posEntries[0].uuid).toBe(posEntry.uuid);
-      expect(getMission().rexes[rex.uuid].posEntries[0].location).not.toEqual(newLoc);
+      elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 25 });
+      await placing;
+      await saving;
+
+      expect(entries()[0]).toMatchObject({ location: { lat: 5, lng: 6 }, elevation: 25 });
+    });
+
+    test("discards the session when the edited entry was deleted", async () => {
+      const entry = seedEntry();
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
+      getMissionDocHandle().change((m) => {
+        m.rexes[rex.uuid].posEntries = [];
+      });
+
+      const saved = await store.dispatch(thunkSavePosEntryEdit()).unwrap();
+
+      expect(saved).toBe(false);
+      expect(inEdit()).toBeNull();
+      expect(entries()).toEqual([]);
     });
   });
 
-  describe("thunkDocSavePosEntryNoLocation", () => {
-    test("rejects when there is no posEntryInEdit", async () => {
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          posEntryInEdit: null,
-        },
-      });
+  describe("thunkCancelPosEntryEdit", () => {
+    test("discards the draft and ends its map directive without touching the doc", async () => {
+      const entry = seedEntry();
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
+      store.dispatch(updatePosEntryInEditValues({ uncertaintyMeters: 99 }));
+      store.dispatch(
+        updateMapDirective({ mapItemType: "posEntry", uuid: entry.uuid, mapAction: "editMarker" })
+      );
 
-      const result = await store.dispatch(thunkDocSavePosEntryNoLocation());
-      expect(result.meta.requestStatus).toBe("rejected");
-    });
+      await store.dispatch(thunkCancelPosEntryEdit());
 
-    test("saves the posEntryInEdit to automerge and clears redux state", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      rex.posEntries = [posEntry];
-
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-
-      // Modify the posEntry in redux (simulating user editing fields)
-      const editedPosEntry = { ...posEntry, posSourceUuid: rex.posSources[0].uuid };
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-          posEntryInEdit: editedPosEntry,
-        },
-      });
-
-      const result = await store.dispatch(thunkDocSavePosEntryNoLocation());
-      expect(result.meta.requestStatus).toBe("fulfilled");
-
-      const updatedRex = getMission().rexes[rex.uuid];
-      expect(updatedRex.posEntries[0].posSourceUuid).toBe(editedPosEntry.posSourceUuid);
-      expect(updatedRex.updatedAt).not.toBeNull();
-      // posEntryInEdit cleared in redux
-      expect(store.getState().rex.posEntryInEdit.uuid).toBeNull();
-    });
-
-    test("rejects when posEntryInEdit is not found in automerge", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      // No posEntries on rex in automerge
-      rex.posEntries = [];
-
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-
-      // posEntryInEdit refers to a posEntry that doesn't exist in automerge
-      const missingPosEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-          posEntryInEdit: missingPosEntry,
-        },
-      });
-
-      const result = await store.dispatch(thunkDocSavePosEntryNoLocation());
-      expect(result.meta.requestStatus).toBe("rejected");
-    });
-  });
-
-  describe("thunkUICancelPosEntryInEdit", () => {
-    test("clears edit state and cancels any active map edit", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      const posEntryModified = { ...posEntry, location: { lat: 1, lng: 2 } };
-      rex.posEntries = [posEntry];
-
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-          posEntryInEdit: posEntryModified,
-        },
-        map: {
-          ...mapInitialState,
-          mapDirective: {
-            mapItemType: "posEntry",
-            uuid: posEntryModified.uuid,
-            mapAction: "editMarker",
-          },
-        },
-      });
-
-      await store.dispatch(thunkUICancelPosEntryInEdit());
-      expect(store.getState().rex.posEntryInEdit.uuid).toBeNull();
-      expect(store.getState().map.mapDirective).toEqual({
-        mapItemType: "posEntry",
-        uuid: posEntryModified.uuid,
-        mapAction: "cancelEditMarker",
-      });
-      expect(getMission().rexes[rex.uuid].posEntries[0].location).toEqual(posEntry.location);
-    });
-
-    test("clears edit state without dispatching cancelEditMarker when mapDirective uuid does not match", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      const otherPosEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      rex.posEntries = [posEntry];
-
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-          posEntryInEdit: posEntry,
-        },
-        map: {
-          ...mapInitialState,
-          // mapDirective uuid refers to a DIFFERENT pos entry — should not trigger cancelEditMarker
-          mapDirective: {
-            mapItemType: "posEntry",
-            uuid: otherPosEntry.uuid,
-            mapAction: "editMarker",
-          },
-        },
-      });
-
-      await store.dispatch(thunkUICancelPosEntryInEdit());
-
-      // posEntryInEdit should be cleared
-      expect(store.getState().rex.posEntryInEdit.uuid).toBeNull();
-      // mapDirective should remain unchanged (uuid still points to otherPosEntry)
-      expect(store.getState().map.mapDirective?.uuid).toBe(otherPosEntry.uuid);
-      expect(store.getState().map.mapDirective?.mapAction).toBe("editMarker");
-    });
-
-    test("clears edit state when mapDirective is null", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      rex.posEntries = [posEntry];
-
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-          posEntryInEdit: posEntry,
-        },
-        map: {
-          ...mapInitialState,
-          mapDirective: null,
-        },
-      });
-
-      await store.dispatch(thunkUICancelPosEntryInEdit());
-      expect(store.getState().rex.posEntryInEdit.uuid).toBeNull();
+      expect(inEdit()).toBeNull();
       expect(store.getState().map.mapDirective).toBeNull();
+      expect(entries()[0].uncertaintyMeters).toBe(0);
     });
   });
 
-  describe("thunkDocDeletePosEntryByUuid", () => {
-    test("removes the pos entry from the rex on automerge", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      const posEntry = generateBlankPosEntry({ posTypeUuids: [rex.posTypes[0].uuid] });
-      rex.posEntries = [posEntry];
+  describe("thunkDeletePosEntry", () => {
+    test("removes the entry and clears its selection, expansion, and edit session", async () => {
+      const kept = seedEntry();
+      const entry = seedEntry();
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
 
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
+      await store.dispatch(thunkDeletePosEntry({ posEntryUuid: entry.uuid }));
 
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-        },
-      });
+      expect(entries().map((e) => e.uuid)).toEqual([kept.uuid]);
+      expect(inEdit()).toBeNull();
+      expect(store.getState().rex.selectedPosEntryUuid).toBeNull();
+      expect(store.getState().rex.expandedPosEntryUuid).toBeNull();
+    });
 
-      await store.dispatch(thunkDocDeletePosEntryByUuid({ posEntryUuid: posEntry.uuid }));
+    test("does nothing without edit permission", async () => {
+      const entry = seedEntry();
+      store = createCustomTestStore({ rex: { ...rexInitialState, selectedRexUuid: rex.uuid } });
 
-      expect(getMission().rexes[rex.uuid].posEntries).toEqual([]);
+      await store.dispatch(thunkDeletePosEntry({ posEntryUuid: entry.uuid }));
+
+      expect(entries()).toHaveLength(1);
     });
   });
 
   describe("thunkDocCreatePosType", () => {
     test("adds a new posType to the rex on automerge", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-        },
-      });
-
       const initialPosTypeCount = getMission().rexes[rex.uuid].posTypes.length;
 
       const result = await store.dispatch(thunkDocCreatePosType());
@@ -406,78 +292,45 @@ describe("Thunk Position Entry Tests", () => {
 
       const updatedRex = getMission().rexes[rex.uuid];
       expect(updatedRex.posTypes.length).toBe(initialPosTypeCount + 1);
-
-      // Verify the newly added posType has the expected default shape
       const newPosType = updatedRex.posTypes[updatedRex.posTypes.length - 1];
       expect(newPosType.abbr).toBe("1");
       expect(newPosType.name).toBe("EV1");
       expect(newPosType.icon).toBe("1f468-200d-1f680");
       expect(newPosType.pathColor).toBe("#ff0000");
       expect(newPosType.uuid).toBeTruthy();
-      expect(updatedRex.updatedAt).not.toBeNull();
     });
 
     test("initializes posTypes array if rex has none and adds the new posType", async () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex-1", evaUuid: eva.uuid });
-      // Force posTypes to null to exercise the initialization branch
-      (rex as Rex).posTypes = null;
-
       getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-
-      const store = createCustomTestStore({
-        rex: {
-          ...rexInitialState,
-          selectedRexUuid: rex.uuid,
-        },
+        (m.rexes[rex.uuid] as Rex).posTypes = null;
       });
 
       const result = await store.dispatch(thunkDocCreatePosType());
       expect(result.meta.requestStatus).toBe("fulfilled");
 
       const updatedRex = getMission().rexes[rex.uuid];
-      expect(Array.isArray(updatedRex.posTypes)).toBe(true);
-      expect(updatedRex.posTypes.length).toBe(1);
+      expect(updatedRex.posTypes).toHaveLength(1);
       expect(updatedRex.posTypes[0].name).toBe("EV1");
     });
   });
 
   describe("thunkDocDeletePosType", () => {
-    const makeRexWithPosType = () => {
-      const eva = generateBlankEVA({ name: "Vitest EVA" });
-      const rex = generateBlankRex({ name: "Vitest Rex", evaUuid: eva.uuid });
-      const posTypeUuid = rex.posTypes[0].uuid;
-      rex.posEntries = [];
-      getMissionDocHandle().change((m) => {
-        m.evas[eva.uuid] = eva;
-        m.rexes[rex.uuid] = rex;
-      });
-      return { rexUuid: rex.uuid, posTypeUuid };
-    };
-
     it("deletes a posType when it is not in use", async () => {
-      const { rexUuid, posTypeUuid } = makeRexWithPosType();
-      const store = createCustomTestStore({});
-      const result = await store.dispatch(thunkDocDeletePosType({ rexUuid, posTypeUuid }));
+      const posTypeUuid = rex.posTypes[0].uuid;
+      const result = await store.dispatch(thunkDocDeletePosType({ rexUuid: rex.uuid, posTypeUuid }));
       expect(thunkDocDeletePosType.rejected.match(result)).toBe(false);
-      const rex = getMission().rexes[rexUuid];
-      expect(rex.posTypes.find((pt) => pt.uuid === posTypeUuid)).toBeUndefined();
+      expect(
+        getMission().rexes[rex.uuid].posTypes.find((pt) => pt.uuid === posTypeUuid)
+      ).toBeUndefined();
     });
 
     it("rejects when posType is used by a posEntry", async () => {
-      const { rexUuid, posTypeUuid } = makeRexWithPosType();
-      getMissionDocHandle().change((m) => {
-        const rex = m.rexes[rexUuid];
-        rex.posEntries = [generateBlankPosEntry({ posTypeUuids: [posTypeUuid] }) as PosEntry];
-      });
-      const store = createCustomTestStore({});
-      const result = await store.dispatch(thunkDocDeletePosType({ rexUuid, posTypeUuid }));
+      const posTypeUuid = rex.posTypes[0].uuid;
+      seedEntry({ posTypeUuids: [posTypeUuid] });
+      const result = await store.dispatch(thunkDocDeletePosType({ rexUuid: rex.uuid, posTypeUuid }));
       expect(thunkDocDeletePosType.rejected.match(result)).toBe(true);
       expect(result.payload).toContain("Position Item Type");
-      expect(getMission().rexes[rexUuid].posTypes).toHaveLength(3); // generateBlankRex starts with 3
+      expect(getMission().rexes[rex.uuid].posTypes).toHaveLength(3); // generateBlankRex starts with 3
     });
   });
 });

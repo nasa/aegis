@@ -93,6 +93,8 @@ const buildPosEntry = (overrides?: Partial<PosEntry>): PosEntry => ({
   petSeconds: 60,
   posTypeUuids: [posType1.uuid],
   posSourceUuid: posSourceCrew.uuid,
+  uncertaintyMeters: 0,
+  color: null,
   createdAt: 1000,
   updatedAt: 1000,
   ...overrides,

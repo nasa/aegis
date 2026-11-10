@@ -311,3 +311,53 @@ export function applyDeletePosType(
   rex.posTypes = existingPosTypes.filter((item) => item.uuid !== posTypeUuid);
   rex.updatedAt = getAccurateNow().getTime();
 }
+
+/** Append a crew position entry to a REX. Does nothing for a missing REX or an existing uuid. */
+export function applyCreatePosEntry(
+  m: Mission,
+  { rexUuid, posEntry }: { rexUuid: string; posEntry: PosEntry }
+): void {
+  const rex = m.rexes[rexUuid];
+  if (!rex) return;
+  if (rex.posEntries?.some((entry) => entry.uuid === posEntry.uuid)) return;
+  // Reassign the whole array: a push/splice is not picked up by the Maestro socket. JSON
+  // detaches the existing entries from the Automerge proxy before they are written back.
+  const existingPosEntries: PosEntry[] = JSON.parse(JSON.stringify(rex.posEntries ?? []));
+  rex.posEntries = [...existingPosEntries, cloneDeep(posEntry)];
+  rex.updatedAt = getAccurateNow().getTime();
+}
+
+/** Write only the given fields of an existing position entry. Does nothing for a deleted entry. */
+export function applyUpdatePosEntry(
+  m: Mission,
+  {
+    rexUuid,
+    posEntryUuid,
+    changes,
+  }: { rexUuid: string; posEntryUuid: string; changes: Partial<PosEntryEditValues> }
+): void {
+  const rex = m.rexes[rexUuid];
+  const entry = rex?.posEntries?.find((item) => item.uuid === posEntryUuid);
+  if (!entry) return;
+  const fields = Object.keys(changes) as (keyof PosEntryEditValues)[];
+  if (fields.length === 0) return;
+  for (const field of fields) {
+    (entry as unknown as Record<string, unknown>)[field] = cloneDeep(changes[field] ?? null);
+  }
+  const now = getAccurateNow().getTime();
+  entry.updatedAt = now;
+  rex.updatedAt = now;
+}
+
+/** Delete a position entry from a REX by uuid. */
+export function applyDeletePosEntry(
+  m: Mission,
+  { rexUuid, posEntryUuid }: { rexUuid: string; posEntryUuid: string }
+): void {
+  const rex = m.rexes[rexUuid];
+  if (!rex?.posEntries) return;
+  // Reassign the whole array for the Maestro socket, detached through JSON (see applyCreatePosEntry).
+  const existingPosEntries: PosEntry[] = JSON.parse(JSON.stringify(rex.posEntries));
+  rex.posEntries = existingPosEntries.filter((entry) => entry.uuid !== posEntryUuid);
+  rex.updatedAt = getAccurateNow().getTime();
+}

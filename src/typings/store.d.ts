@@ -215,7 +215,8 @@ interface ActionState {
 interface RexState {
   selectedRexUuid: string;
   selectedPosEntryUuid: string;
-  posEntryInEdit: PosEntry | null;
+  expandedPosEntryUuid: string | null;
+  posEntryInEdit: PosEntryInEdit | null;
 }
 
 interface Measurement {

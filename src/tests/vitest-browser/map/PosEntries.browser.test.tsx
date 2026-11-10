@@ -99,6 +99,8 @@ function makePosEntry(
     petSeconds: 0,
     posTypeUuids,
     posSourceUuid,
+    uncertaintyMeters: 0,
+    color: null,
     createdAt,
     updatedAt: createdAt,
   };

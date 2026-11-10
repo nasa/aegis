@@ -276,6 +276,7 @@ describe("Thunk Rex Tests", () => {
         rex: {
           selectedRexUuid: runningRex.uuid,
           selectedPosEntryUuid: null,
+          expandedPosEntryUuid: null,
           posEntryInEdit: null,
         },
       });

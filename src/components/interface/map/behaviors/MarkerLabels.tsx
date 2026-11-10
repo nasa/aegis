@@ -30,7 +30,6 @@ import Point from "ol/geom/Point";
 import VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
 import { Translate } from "ol/interaction";
-import orderBy from "lodash/orderBy";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -39,12 +38,14 @@ import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
 import { getVisibleMapAssets } from "utils/assets";
+import { getLatestPosEntriesByType, orderPosEntriesNewestFirst } from "utils/posEntries";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useFeatureSourcesContext } from "../FeatureSourcesProvider";
 import { useMapMenuContext } from "../MapMenuProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useMapPosEntries } from "../hooks/useMapPosEntries";
 import { Z_INDEX } from "../utils/zIndex";
 import { useRexPetTime } from "../hooks/useRexPetTime";
 import { createMarkerLabelStyle } from "../utils/styles/markerLabels";
@@ -78,20 +79,6 @@ function filterPosEntries(posEntries: PosEntry[], mapDisplayPos: MapSubmenuPos):
     return withLocations.filter((e) => mapDisplayPos.sourceUuids.includes(e.posSourceUuid));
   }
   return withLocations;
-}
-
-function getLatestPosEntryByType(allPosEntries: PosEntry[]): Record<string, PosEntry[]> {
-  const result: Record<string, PosEntry[]> = {};
-  const sorted = orderBy(allPosEntries, ["createdAt"], ["desc"]);
-  for (const entry of sorted) {
-    for (const posTypeUuid of entry.posTypeUuids) {
-      if (!result[posTypeUuid]) result[posTypeUuid] = [];
-      if (result[posTypeUuid].length < 2) {
-        result[posTypeUuid].push(entry);
-      }
-    }
-  }
-  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -196,9 +183,7 @@ export function MarkerLabels(): null {
     return selectedRexUuid ? (m.rexes?.[selectedRexUuid] ?? null) : null;
   }, deepEqual);
 
-  const posEntries = useMissionDocSelector((m) => {
-    return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posEntries ?? []) : [];
-  }, deepEqual);
+  const posEntries = useMapPosEntries();
 
   const posTypes = useMissionDocSelector((m) => {
     return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posTypes ?? []) : [];
@@ -449,8 +434,8 @@ export function MarkerLabels(): null {
 
     if (showPosLabels) {
       const filteredPosEntries = filterPosEntries(posEntries ?? [], mapDisplayPos);
-      const sortedPosEntries = orderBy(filteredPosEntries, ["createdAt"], ["desc"]);
-      const latestByType = getLatestPosEntryByType(sortedPosEntries);
+      const sortedPosEntries = orderPosEntriesNewestFirst(filteredPosEntries);
+      const latestByType = getLatestPosEntriesByType(sortedPosEntries);
 
       const latestUuids = new Set<string>();
       for (const entries of Object.values(latestByType)) {
