@@ -90,6 +90,38 @@ describe("isBannerHiddenOnPath", () => {
 });
 
 describe("NotificationBannerBar", () => {
+  it.each(["bannersChanged", "reconnect"])(
+    "ignores an older response after a newer %s refresh",
+    async (event) => {
+      let completeOldRequest: (value: WrappedResponse<NotificationBanner[]>) => void;
+      vi.mocked(getActiveNotificationBanners).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            completeOldRequest = resolve;
+          })
+      );
+      renderAt("/mission/1");
+      await vi.waitFor(() => expect(getActiveNotificationBanners).toHaveBeenCalledTimes(1));
+      mockBanners([makeBanner({ message: "Current message" })]);
+      (event === "reconnect" ? managerHandlers : socketHandlers).get(event)();
+      await expect
+        .element(page.getByTestId("notification-banner"))
+        .toHaveTextContent("Current message");
+      completeOldRequest({
+        status: "success",
+        message: "",
+        data: [makeBanner({ message: "Obsolete message" })],
+      });
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await expect
+        .element(page.getByTestId("notification-banner"))
+        .toHaveTextContent("Current message");
+      await expect
+        .element(page.getByText("Obsolete message", { exact: true }))
+        .not.toBeInTheDocument();
+    }
+  );
+
   it("renders nothing when there are no banners", async () => {
     mockBanners([]);
     renderAt("/");

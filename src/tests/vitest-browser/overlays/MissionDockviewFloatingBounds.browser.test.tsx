@@ -109,6 +109,25 @@ afterEach(() => {
 });
 
 describe("MissionDockviewLayout floating Rex Menu bounds", () => {
+  it("keeps the widget and its minimize button inside a map narrower than the preferred minimum", async () => {
+    await page.viewport(360, 900);
+    harness.container.style.width = "360px";
+    harness.container.style.height = "900px";
+    await vi.waitFor(() => {
+      const mapRect = getMapRect();
+      const widget = getRexMenuWidget()!;
+      const widgetRect = widget.getBoundingClientRect();
+      expect(mapRect.width).toBeLessThan(325);
+      expect(widgetRect.width).toBeGreaterThan(0);
+      expect(widgetRect.left).toBeGreaterThanOrEqual(mapRect.left - 1);
+      expect(widgetRect.right).toBeLessThanOrEqual(mapRect.right + 1);
+      const close = widget.querySelector<HTMLElement>('[data-testid="rex-menu-minimize"]')!;
+      expect(close.getBoundingClientRect().right).toBeLessThanOrEqual(mapRect.right + 1);
+    });
+    await page.getByTestId("rex-menu-minimize").click();
+    await expect.element(page.getByTestId("rex-menu-minimize")).not.toBeVisible();
+  });
+
   it("opens inside the map panel", () => {
     const widgetRect = getRexMenuWidget()!.getBoundingClientRect();
     const mapRect = getMapRect();

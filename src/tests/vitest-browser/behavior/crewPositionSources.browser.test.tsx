@@ -1,4 +1,5 @@
-import { exactText, isVisible } from "./browserAssertions";
+import { userEvent } from "vitest/browser";
+import { isVisible } from "./browserAssertions";
 import type VectorLayer from "ol/layer/Vector";
 import type LineString from "ol/geom/LineString";
 import type { BrowserPage as Page } from "vitest/browser";
@@ -73,8 +74,11 @@ test("position tabs minimize and restore, separate paths keep source colors and 
   await expect.element(page.getByTestId("positions-menu")).toBeVisible();
   await page.getBySelector(".dv-tab").filter({ hasText: "Assets" }).click();
   await expect
-    .element(page.getByTestId("assets-map-menu"))
-    .toMatchTextContent(exactText("Asset Management Coming Soon"));
+    .element(page.getByTestId("assets-map-menu").getByLabelText("Asset", { exact: true }))
+    .toBeEnabled();
+  await expect
+    .element(page.getByTestId("assets-map-menu").getByLabelText("Folder", { exact: true }))
+    .toBeEnabled();
   await page.getByRole("button", { name: "Minimize Rex Menu", exact: true }).click();
   await expect.poll(() => isVisible(page.getByTestId("assets-map-menu"))).toBe(false);
   await page
@@ -150,8 +154,8 @@ test("position tabs minimize and restore, separate paths keep source colors and 
     .filter({ hasText: "Rover" })
     .getBySelector("xpath=ancestor::li");
   await source.getBySelector('[class*="propertyPathColor"]').click();
-  await page.getBySelector('[class*="colorPickerMenu"] [title="#F44E3B"]').click();
-  await page.getBySelector('[class*="colorPickerCover"]').click();
+  await page.getBySelector('[popover]:popover-open [title="#F44E3B"]').click();
+  await userEvent.keyboard("{Escape}");
   await expect
     .poll(
       async () =>

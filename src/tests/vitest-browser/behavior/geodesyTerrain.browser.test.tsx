@@ -3,7 +3,7 @@ import { commands } from "vitest/browser";
 import type { BrowserPage as Page } from "vitest/browser";
 import { test, expect } from "./missionHarness";
 import { selectPlanningEva } from "./planningHelpers";
-import { measurements, featurePixel } from "./measurementHelpers";
+import { measurements, featurePixel, openMeasurements } from "./measurementHelpers";
 
 const knownPolarPath = [
   { lat: 89.9, lng: 0 },
@@ -131,7 +131,7 @@ for (const { name, radius } of [
     };
     const missionDocument = await mission.read();
     await mission.open();
-    await page.getBySelector('[data-tooltip-content="Measurements"]').click();
+    await openMeasurements(page);
     await page.getBySelector('[data-tooltip-content="Add Temporary Measurement"]').click();
     await expect.poll(() => measurements()).toHaveLength(1);
     const id = (await measurements())[0].id;
@@ -211,7 +211,7 @@ test("terrain profile errors retain a usable measurement and recover after the w
   };
   const missionDocument = await mission.read();
   await mission.open();
-  await page.getBySelector('[data-tooltip-content="Measurements"]').click();
+  await openMeasurements(page);
   await page.getBySelector('[data-tooltip-content="Add Temporary Measurement"]').click();
   await expect.poll(() => measurements()).toHaveLength(1);
   const id = (await measurements())[0].id;

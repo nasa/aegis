@@ -4,7 +4,7 @@ import { test as base, expect } from "./missionHarness";
 const test = base;
 import type { BrowserPage as Page } from "vitest/browser";
 import { readMapFeatures } from "./mapObserver";
-import { mapFeaturePixel } from "./mapInteractions";
+import { mapFeaturePixel, minimizeRexMenu } from "./mapInteractions";
 import {
   enablePlanningEditMode,
   openPlanningField,
@@ -323,6 +323,7 @@ test("Escape restores a dragged traverse and removes the modify interaction", as
   await expect.poll(() => mapCursor()).toBe("crosshair");
 
   const vertex = await mapFeaturePixel(mission.ids.traverseA, "editor", 1);
+  await minimizeRexMenu(page);
   await commands.mapPointer("move", vertex.x, vertex.y);
   await commands.mapPointer("down");
   await commands.mapPointer("move", vertex.x + 45, vertex.y - 35, 12);

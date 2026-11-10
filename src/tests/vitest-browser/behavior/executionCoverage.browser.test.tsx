@@ -158,10 +158,10 @@ test.describe("PET manual edit boundaries", () => {
     { title: "zero", typed: "+00:00:00", saved: "+00:00:00", seconds: 0 },
     { title: "maximum two-digit hour", typed: "+99:59:59", saved: "+99:59:59", seconds: 359_999 },
     {
-      title: "minute and second values above 59",
-      typed: "+00:60:60",
-      saved: "+00:60:60",
-      seconds: 3_660,
+      title: "minute and second values at 59",
+      typed: "+00:59:59",
+      saved: "+00:59:59",
+      seconds: 3_599,
     },
     {
       title: "typing filters non-time characters",
@@ -205,6 +205,16 @@ test.describe("PET manual edit boundaries", () => {
   }
 
   for (const invalid of [
+    {
+      title: "minutes above 59",
+      value: "+00:60:00",
+      error: "Minutes and seconds must be between 00 and 59",
+    },
+    {
+      title: "seconds above 59",
+      value: "+00:00:60",
+      error: "Minutes and seconds must be between 00 and 59",
+    },
     {
       title: "hour exceeds the two-digit maximum",
       value: "+100:00:00",

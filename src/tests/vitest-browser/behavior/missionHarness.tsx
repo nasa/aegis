@@ -11,6 +11,7 @@ import HomePage from "pages/index";
 import VersionCheck from "pages/versionCheck";
 import ExportPage from "pages/admin/export";
 import MissionSTMPage from "pages/admin/missionSTM";
+import NotificationBannersPage from "pages/admin/notificationBanners";
 import store, { initialState, sliceReducers } from "store";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { stopMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
@@ -152,6 +153,7 @@ export const test = base.extend<BrowserMissionFixtures>({
                   <Route path="/versionCheck" element={<VersionCheck />} />
                   <Route path="/admin/export/:id" element={<ExportPage />} />
                   <Route path="/admin/mission_stm/:id" element={<MissionSTMPage />} />
+                  <Route path="/admin/notificationBanners" element={<NotificationBannersPage />} />
                   <Route path="/mission/:id" element={<MissionPage />} />
                   <Route path="/dashboard/:id" element={<DashboardPage />} />
                 </Routes>

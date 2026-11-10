@@ -9,6 +9,7 @@ import { migrateDocuments } from "server/automerge/migrateDocuments";
 import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
 import { Migration20261015000000 } from "server/automerge/migrations/Migration20261015000000";
 import { Migration20261022000000 } from "server/automerge/migrations/Migration20261022000000";
+import { Migration20261102000000 } from "server/automerge/migrations/Migration20261102000000";
 import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 import { Migration20261028000000 } from "server/automerge/migrations/Migration20261028000000";

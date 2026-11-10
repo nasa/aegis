@@ -1,3 +1,4 @@
+import { userEvent } from "vitest/browser";
 import { vi } from "vitest";
 import { commands } from "vitest/browser";
 import { isVisible } from "./browserAssertions";
@@ -183,10 +184,10 @@ test("position types create, rename, reorder, style, guard used deletion and upd
   await expect.poll(() => iconDialog.length).toBe(0);
 
   await namedTypeRow(page, "Tool").getBySelector('[class*="propertyPathColor"]').click();
-  const swatch = page.getBySelector('[class*="colorPickerMenu"] [title="#F44E3B"]');
+  const swatch = page.getBySelector('[popover]:popover-open [title="#F44E3B"]');
   await expect.element(swatch).toBeVisible();
   await swatch.click();
-  await page.getBySelector('[class*="colorPickerCover"]').click();
+  await userEvent.keyboard("{Escape}");
   await expect
     .poll(async () =>
       (await mission.read()).rexes[mission.ids.rexB].posTypes

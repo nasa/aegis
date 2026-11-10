@@ -7,7 +7,7 @@ import type VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
 import type Point from "ol/geom/Point";
 import { readMapFeatures } from "./mapObserver";
-import { mapFeaturePixel } from "./mapInteractions";
+import { mapFeaturePixel, minimizeRexMenu } from "./mapInteractions";
 import {
   enablePlanningEditMode,
   openPlanningSection,
@@ -107,6 +107,7 @@ test("selection context wins over stale selections, while POI station traverse a
     doc.pois[mission.ids.poiA].actionOrderUuids.push(ids.poiOnlyAction);
   });
   await mission.open();
+  await minimizeRexMenu(page);
   await selectPlanningStation(page, "Alpha station");
   await page.getByLabelText("actions_panel", { exact: true }).click();
   await ensureActionMarkers(page, [ids.stationOnlyAction]);
@@ -199,6 +200,7 @@ test("selection pans only to off-screen targets, preserves zoom, and geometry ed
     doc.pois[mission.ids.poiA].location = { lat: 0.045, lng: 0.045 };
   });
   await mission.open();
+  await minimizeRexMenu(page);
   const initial = await mapView();
   const initialTarget = await expectedCoord(page, { lat: 0.001, lng: 0.001 });
   await selectPlanningStation(page, "Alpha station");
@@ -216,6 +218,7 @@ test("selection pans only to off-screen targets, preserves zoom, and geometry ed
     .toEqual([expect.closeTo(farTarget[0], 6), expect.closeTo(farTarget[1], 6)]);
   expect((await mapView()).zoom).toBe(initial.zoom);
   await mission.open();
+  await minimizeRexMenu(page);
   await expect
     .poll(() =>
       (() =>

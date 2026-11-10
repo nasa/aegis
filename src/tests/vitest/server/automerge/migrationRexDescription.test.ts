@@ -7,10 +7,12 @@ import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 
 describe("REX description migration", () => {
-  it("is registered immediately after history replacement", () => {
+  it("is registered after history replacement and asset initialization", () => {
     const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261102000000);
     expect(index).toBeGreaterThan(0);
-    expect(AUTOMERGE_MIGRATIONS[index - 1].version).toBe(20261028000000);
+    expect(
+      AUTOMERGE_MIGRATIONS.slice(index - 2, index).map((migration) => migration.version)
+    ).toEqual([20261028000000, 20261030000000]);
   });
 
   it("removes populated and empty legacy descriptions while preserving execution data", async () => {

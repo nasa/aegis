@@ -3,7 +3,7 @@ import { exactText } from "./browserAssertions";
 import type { BrowserPage as Page, Locator } from "vitest/browser";
 import { test, expect } from "./missionHarness";
 import { readMapFeatures } from "./mapObserver";
-import { mapFeaturePixel, expectMapLabel } from "./mapInteractions";
+import { mapFeaturePixel, expectMapLabel, minimizeRexMenu } from "./mapInteractions";
 import {
   enablePlanningEditMode,
   selectPlanningEva,
@@ -29,6 +29,7 @@ async function selectTraverse(page: Page): Promise<void> {
 }
 
 async function dragVertex(page: Page, id: string, vertex: number): Promise<AEGISPoint> {
+  await minimizeRexMenu(page);
   const pixel = await mapFeaturePixel(id, "editor", vertex);
   await (() => {
     const map = window.__aegisMaps.find(

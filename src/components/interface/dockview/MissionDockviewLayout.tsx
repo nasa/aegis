@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type FunctionComponent,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type FunctionComponent } from "react";
 import {
   DockviewReact,
   themeDark,
