@@ -15,10 +15,11 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Circle, Style, Stroke } from "ol/style";
 
-import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
+import { useAppSelector, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useMapPosEntries } from "../hooks/useMapPosEntries";
 import { Z_INDEX } from "../utils/zIndex";
 
 // ---------------------------------------------------------------------------
@@ -47,12 +48,8 @@ export function HoverHighlight(): null {
   const mapHoverItemUuid = useAppSelector((s) => s.hover.mapItemUuid, refEqual);
   const mapHoverItemType = useAppSelector((s) => s.hover.mapItemType, refEqual);
 
-  // POS markers are DOM overlays (not vector features), so resolve their
-  // location from the selected REX's pos entries for the hover circle.
-  const selectedRexUuid = useAppSelector((s) => s.rex?.selectedRexUuid ?? null, refEqual);
-  const posEntries = useMissionDocSelector((m) => {
-    return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posEntries ?? []) : [];
-  }, deepEqual);
+  // Resolve POS locations from the selected REX's entries, including an unsaved draft.
+  const posEntries = useMapPosEntries();
 
   // Lander copies have no marker of their own, so a hover on one resolves to the
   // standalone lander feature that actually occupies that coordinate.

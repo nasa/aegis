@@ -42,7 +42,7 @@ import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
-import { thunkDocUpdatePosEntryWithLocation } from "store/thunk/thunkRexPosEntry";
+import { thunkSetPosEntryEditLocation } from "store/thunk/thunkRexPosEntry";
 import { thunkSetAssetEditLocation } from "store/thunk/thunkAsset";
 
 import { useMapContext } from "../MapProvider";
@@ -72,8 +72,8 @@ function findFeatureOnMap(map: OLMap, featureId: string): Feature<Geometry> | nu
 }
 
 /**
- * Dispatch the correct save-position thunk based on `mapItemType`. Assets go to the open
- * edit session: existing assets save the position, while new assets keep a creation draft.
+ * Dispatch the correct save-position thunk based on `mapItemType`. Assets and crew positions go
+ * to their open edit session and are written on Save.
  */
 function saveItemPosition(
   dispatch: ReturnType<typeof useAppDispatch>,
@@ -95,7 +95,7 @@ function saveItemPosition(
       dispatch(thunkDocUpdateActionLocation({ location, actionUuid: uuid }));
       break;
     case "posEntry":
-      dispatch(thunkDocUpdatePosEntryWithLocation({ location, posEntryUuid: uuid }));
+      dispatch(thunkSetPosEntryEditLocation({ location, uuid }));
       break;
     case "asset":
       dispatch(thunkSetAssetEditLocation({ location, uuid }));

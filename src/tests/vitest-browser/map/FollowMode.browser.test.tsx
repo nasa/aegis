@@ -135,8 +135,9 @@ function makePosEntry(
   lng: number,
   posTypeUuids: string[],
   posSourceUuid: string,
-  createdAt: string
+  createdAtIso: string
 ): PosEntry {
+  const createdAt = Date.parse(createdAtIso);
   return {
     uuid,
     location: { lat, lng },
@@ -144,9 +145,11 @@ function makePosEntry(
     petSeconds: 0,
     posTypeUuids,
     posSourceUuid,
+    uncertaintyMeters: 0,
+    color: null,
     createdAt,
     updatedAt: createdAt,
-  } as unknown as PosEntry;
+  };
 }
 
 // Full MapSubmenuPos with overrides — mirrors the eyeball-menu defaults.

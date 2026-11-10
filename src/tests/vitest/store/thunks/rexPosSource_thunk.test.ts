@@ -40,6 +40,7 @@ describe("Thunk Rex PosSource Tests", () => {
         rex: {
           selectedRexUuid: rex.uuid,
           selectedPosEntryUuid: null,
+          expandedPosEntryUuid: null,
           posEntryInEdit: null,
         },
       });
@@ -74,6 +75,7 @@ describe("Thunk Rex PosSource Tests", () => {
         rex: {
           selectedRexUuid: rex.uuid,
           selectedPosEntryUuid: null,
+          expandedPosEntryUuid: null,
           posEntryInEdit: null,
         },
       });
@@ -88,6 +90,7 @@ describe("Thunk Rex PosSource Tests", () => {
         rex: {
           selectedRexUuid: null,
           selectedPosEntryUuid: null,
+          expandedPosEntryUuid: null,
           posEntryInEdit: null,
         },
       });

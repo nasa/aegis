@@ -629,7 +629,7 @@ const AssetRow: FunctionComponent<{
 };
 
 // Kebab menu opened with a normal click; it never relies on right-click or a native menu.
-const RowMenu: FunctionComponent<{
+export const RowMenu: FunctionComponent<{
   label: string;
   items: { icon: IconDefinition; label: string; onClick: () => void }[];
 }> = ({ label, items }) => {

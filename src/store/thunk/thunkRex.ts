@@ -280,6 +280,8 @@ export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<{ rexUuid: st
         petSeconds: 0,
         posTypeUuids: rex.posTypes.map((posType) => posType.uuid),
         posSourceUuid: posSource.uuid,
+        uncertaintyMeters: 0,
+        color: null,
         createdAt: getAccurateNow().getTime(),
         updatedAt: getAccurateNow().getTime(),
       };

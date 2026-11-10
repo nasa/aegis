@@ -11,10 +11,9 @@
 import { useEffect, useMemo } from "react";
 import { boundingExtent } from "ol/extent";
 import type { Coordinate } from "ol/coordinate";
-import orderBy from "lodash/orderBy";
-
 import { deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { getLatestPosEntriesByType } from "utils/posEntries";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { useDashboardBoundsContext } from "../DashboardBoundsProvider";
@@ -55,21 +54,11 @@ export function FollowMode(): null {
       posSourceUuids.length > 0
         ? allEntries.filter((e) => posSourceUuids.includes(e.posSourceUuid))
         : allEntries;
-    // Sort newest-first so `[0]` is the latest position per type. Without this,
+    // Newest-first by PET so `[0]` is the latest position per type. Without sorting,
     // the raw (append-ordered) array yields the oldest entries — the follow
     // effect would track a stale point and, since deepEqual sees no change when
     // a newer entry is appended, never re-fire to pan to the new drop.
-    const sortedEntries = orderBy(sourceFiltered, ["createdAt"], ["desc"]);
-    const byType: Record<string, PosEntry[]> = {};
-    for (const entry of sortedEntries) {
-      for (const posTypeUuid of entry.posTypeUuids) {
-        if (!byType[posTypeUuid]) byType[posTypeUuid] = [];
-        if (byType[posTypeUuid].length < 2) {
-          byType[posTypeUuid].push(entry);
-        }
-      }
-    }
-    return byType;
+    return getLatestPosEntriesByType(sourceFiltered);
   }, deepEqual);
 
   // --- Publish viewport extent on move ---

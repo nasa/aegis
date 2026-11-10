@@ -182,7 +182,8 @@ actionSource, walkbackSource, measurementSource, highlightSource, labelSource`.
   system (`MarkerLabels` + `ol/interaction/Translate`). See §8 MarkerLabels.
 
 Some behaviors deliberately use their **own** (non-shared) sources: `Grid`, `Circles`,
-`AssetUncertainty`, `HoverHighlight`, `SelectionHighlight`, `BigMapBoundsBox`.
+`AssetUncertainty`, `HoverHighlight`, `SelectionHighlight`, `BigMapBoundsBox`, and the POS
+uncertainty-radius layer in `PosEntries`.
 
 ---
 
@@ -204,18 +205,20 @@ Key behaviors:
   context switch — the bug it fixes let you "drag when not in edit mode" and crashed on the next
   edit. posEntry edits are excluded from this watcher. Asset directives are section-agnostic:
   their key is the selected asset uuid only, so section/EVA/REX/POI/station changes keep them.
-- **Rex Menu and asset edits are staged in Redux** so the map, `InteractionManager`, and thunks can
-  all read them. Crew positions (`state.rex.posEntryInEdit`) draft pos types and source until
-  Save, but a map click or drag writes the location straight to the doc. Assets
-  (`state.asset.inEdit`) keep the location in the in-edit session too and write everything in one
-  change on Save. Other map-editable items have no staged copy and save directly.
-- **Asset locations go to the in-edit session, not the doc.** The `"asset"` branch of `saveItemPosition`
-  (used by the `createMarker` click, `editMarker` click, and `translateend`) dispatches
-  `thunkSetAssetEditLocation`; the asset is written on Save from the asset editor. The asset
-  marker's feature id is the asset uuid, and `AssetMarkers` draws the open session under that same id.
+- **Crew position and asset edits are staged in Redux** so the map, `InteractionManager`, and
+  thunks can all read them. Crew positions (`state.rex.posEntryInEdit`, bound to one REX by
+  `rexUuid`) and assets (`state.asset.inEdit`) keep every edited field, including the location, in
+  the in-edit session and write it in one change on Save. Other map-editable items have no staged
+  copy and save directly.
+- **Asset and crew position locations go to the in-edit session, not the doc.** The `"asset"` and
+  `"posEntry"` branches of `saveItemPosition` (used by the `createMarker` click, `editMarker` click,
+  and `translateend`) dispatch `thunkSetAssetEditLocation` / `thunkSetPosEntryEditLocation`; the
+  item is written on Save from its editor. The marker's feature id is the item uuid, and
+  `AssetMarkers` / `PosEntries` draw the open session under that same id (`PosEntries` through
+  `useMapPosEntries`, which overlays the draft on the editor map only).
 - **`thunkUpdateMapDirective`'s 200 ms delayed start is cancellable** (`cancelPendingMapDirective`),
-  a newer request replaces an unfired one, and an asset directive only fires if its edit session is still
-  open.
+  a newer request replaces an unfired one, and an asset or posEntry directive only fires if its edit
+  session is still open.
 - **Endpoint pinning** (traverse/walkback): first/last coords are pinned to the neighbouring
   station/lander. `Modify` `condition`/`deleteCondition` block grabbing/deleting endpoint vertices
   within `ENDPOINT_PIXEL_TOLERANCE` (10px, matches OL default); the vertex style hides the
@@ -340,9 +343,10 @@ a cache key omits a varying input:
   `color|weight|selectedWeight|isSelected`) + `arrowCache` for chevron SVG data-URIs. Selected
   "glow" only pushed when `selectedWeight > 0` (dashboard/minimap set it to 0 = no emphasis).
   Measurement style hardcodes label colors and ignores stale segment arrays while editing.
-- `assetRadius.ts` (`buildAssetRadiusStyleFunction`): asset radius circles, filled in
-  `getAssetRadiusColor` with no stroke; the selected asset gets a white stroke instead of a
-  marker outline. Uncolored assets use a transparent fill. Keyed by color + selection.
+- `assetRadius.ts` (`buildAssetRadiusStyleFunction`): asset and crew position radius circles,
+  filled in `getAssetRadiusColor` / `getPosEntryRadiusColor` with no stroke; the selected item
+  (`assetUuid` or `posEntryUuid` feature property) gets a white stroke instead of a marker outline.
+  Uncolored items use a transparent fill. Keyed by color + selection.
 - `posPath.ts`: style cache is **cleared wholesale when size > 500** (crude cap). Has its own
   duplicate `arrowCache`.
 - `gazetteerLabels.ts` (`createGazetteerLabelStyle(style, dataLayer)`): draggable data-layer
@@ -444,8 +448,17 @@ creates/removes/shows/hides it) lives in `overlays/rex-menu.tsx`, not in `Missio
 once a mission is loaded and stays available in every section, with or without a selected REX.
 It holds two non-closable tabs:
 
-- **Positions** — `MapPositionMenu` (`map-menu-pos.tsx` + `map-menu-pos-menu.tsx`): pos-type /
-  source toggles, New/Edit Pos., and the position table. With no REX selected, or a selected REX
+- **Positions** — `MapPositionMenu` (`map-menu-pos.tsx`, with `map-menu-pos-editor.tsx` and
+  `map-menu-pos-table.tsx`): the same toolbar / editor / table design as Assets, reusing the Assets
+  CSS module and `RowMenu`, for the selected REX's entries. Add Position (running REX + mission edit
+  permission) opens a draft at the REX's current PET, prefilled with the latest-created entry's
+  types, source, radius, and color, and starts map placement. The editor holds type and source
+  toggles, uncertainty radius + color, typed coordinates / Place on Map, and an editable PET; Save
+  writes one change. The table has no folders: each pos type's newest entry (by PET) is pinned in a
+  Latest group, everything else is in a collapsible Earlier group, both newest-first by PET, with
+  `#` counting up from the oldest. Rows show PET, types, coordinates, and source; the expanded
+  details add radius, elevation, lander distance, and walkback duration. A session whose REX is no
+  longer selected, or whose entry was deleted, is cancelled. With no REX selected, or a selected REX
   missing from the mission doc (e.g. the EVA dropdown just switched back to As Planned), it shows
   "Select a REX to see positions." — guard on `!selectedRex` before dereferencing anything off it.
 - **Assets** — `MapAssetsMenu` (`map-menu-assets.tsx`, with `map-menu-assets-editor.tsx` and
@@ -549,7 +562,7 @@ Overlay gotchas:
 | `ActionMarkers`      | shared `actionSource`                                  | all         | ✅                           | shown only when parent selected + eyeball on; STM (v2) action label built from the definition via `getActionDisplayName` (not `action.name`)                                                                                 |
 | `LanderMarker`       | own source                                             | all         | single feature `"lander"`    | disabled mid-edit (sits on traverse endpoint)                                                                                                                                                                                |
 | `MarkerLabels`       | shared `labelSource`                                   | editor/dash | layout pass                  | single overlap-dim + drag-reposition system; freezes PET during drag; action labels use `getActionDisplayName` (STM v2 → built from definition)                                                                              |
-| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) | all         | ✅ markers / rebuild paths   | every section while a REX is selected; epsilon egress skip; keeps edited entry visible                                                                                                                                       |
+| `PosEntries`         | shared `posSource` (markers) + `posPathSource` (paths) + own radius layer | all | ✅ markers / rebuild paths + radii | every section while a REX is selected; newest-first by PET; epsilon egress skip; keeps the edited/in-edit entry visible; uncertainty radii for drawn markers (no ids, `CIRCLES` z-index) |
 | `AssetMarkers`       | shared `assetSource`                                   | all         | ✅                           | `getVisibleMapAssets` is the one visibility rule (also radii/labels); draws nothing when `MODE_CONFIGS[mode].asset.show` is false (minimap); editor draws the in-edit asset under the asset's id; click → `thunkJumpToAsset` |
 | `AssetUncertainty`   | own radius-circle layer                                | all         | **full rebuild** each change | filled polygons in `getAssetRadiusColor`, no stroke unless selected; gated by `asset.show` like AssetMarkers (minimap: off); no ids, not interactive; zero radius draws no circle                         |
 | `InteractionManager` | active Translate/Modify                                | editor      | —                            | one interaction at a time; auto-cancel-on-navigate                                                                                                                                                                           |
@@ -585,14 +598,16 @@ Overlay gotchas:
    - Station visible-set: `StationMarkers`, `Circles`, `MarkerLabels`.
    - POS latest/filter/egress-skip: `PosEntries` (epsilon `1e-7°`) vs `MarkerLabels` (exact float
      equality — **known inconsistency**).
-   - Pos-entry ordering: `FollowMode` sorts newest-first; `AutoFitBounds` does **not** (candidate
-     stale-tracking bug).
+   - Pos-entry ordering: "latest" means newest PET (`orderPosEntriesNewestFirst` /
+     `getLatestPosEntriesByType` in `utils/posEntries.ts`), shared by `PosEntries`,
+     `MarkerLabels`, `FollowMode`, and the Positions table; `AutoFitBounds` does **not** sort
+     (candidate stale-tracking bug).
 8. **"First running REX" assumption** in `FollowModeProvider`, `MapFollowMenu`, `map-menu` —
    mismatches with "selected REX" used elsewhere. `useRexPetTime` takes an optional `rexUuid`;
    `MarkerLabels` passes the selected REX so POS label ages work for stopped REXes.
 9. **Effects that reset user state** on REX/source change: `map-menu` sourceUuids reset,
-   `map-menu-pos` `posEntryInEdit` reset, `FollowModeProvider` option rebuild — can clobber
-   in-progress edits/selections.
+   `map-menu-pos` cancelling the position edit session when the selected REX changes,
+   `FollowModeProvider` option rebuild — can clobber in-progress edits/selections.
 10. **Custom vs Mercator tile grid** — Mercator must use default EPSG:3857 grid. (§7)
 
 ---

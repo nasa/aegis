@@ -19,6 +19,7 @@ import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useMapContext } from "../MapProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useMapPosEntries } from "../hooks/useMapPosEntries";
 import { Z_INDEX } from "../utils/zIndex";
 
 // ---------------------------------------------------------------------------
@@ -94,9 +95,7 @@ export function SelectionHighlight(): null {
     deepEqual
   );
 
-  const posEntries = useMissionDocSelector((m) => {
-    return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posEntries ?? []) : [];
-  }, deepEqual);
+  const posEntries = useMapPosEntries();
 
   const allTraversesFromDoc = useMissionDocSelector(
     (m) => Object.values(m.traverses ?? {}),

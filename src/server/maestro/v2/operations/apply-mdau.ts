@@ -194,6 +194,8 @@ const generateInitialPosEntries = (m: Mission, rex: Rex): void => {
       petSeconds: 0,
       posTypeUuids: rex.posTypes.map((posType) => posType.uuid),
       posSourceUuid: posSource.uuid,
+      uncertaintyMeters: 0,
+      color: null,
       createdAt: now,
       updatedAt: now,
     };

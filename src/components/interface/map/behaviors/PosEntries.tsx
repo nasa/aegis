@@ -10,6 +10,15 @@
  *
  * POS paths use a canvas-rendered VectorLayer for performance (`posPathSource`).
  *
+ * Uncertainty radii are filled circles on an own (non-shared) layer at `Z_INDEX.CIRCLES`, one
+ * per drawn marker with a positive radius, rebuilt in full on change. They have no ids, so they
+ * can never be an edit target, and are not interactive. The selected entry's circle gets a white
+ * stroke on the editor.
+ *
+ * Entries come from `useMapPosEntries`, so on the editor the open edit session is drawn under its
+ * entry's uuid, and the edited or in-edit entry stays visible regardless of filters. Entries are
+ * ordered newest-first by PET (`orderPosEntriesNewestFirst`).
+ *
  * Labels (ticking PET-relative text) are NOT rendered here — they live on the
  * shared label layer (`MarkerLabels`), anchored to each entry's location.
  *
@@ -26,11 +35,11 @@
 import { useEffect, useRef, useMemo } from "react";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
-import { LineString } from "ol/geom";
+import { Circle as CircleGeom, LineString } from "ol/geom";
+import { fromCircle } from "ol/geom/Polygon";
 import VectorLayer from "ol/layer/Vector";
-import type VectorSource from "ol/source/Vector";
+import VectorSource from "ol/source/Vector";
 import type { MapBrowserEvent } from "ol";
-import orderBy from "lodash/orderBy";
 
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
@@ -39,38 +48,29 @@ import { setSelectedPosEntryUuid } from "store/rex";
 import { setHoverUuidsForPosEntry, clearMapItemHover } from "store/hover";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
+import {
+  getLatestPosEntriesByType,
+  getPosEntryRadiusColor,
+  orderPosEntriesNewestFirst,
+} from "utils/posEntries";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useFeatureSourcesContext } from "../FeatureSourcesProvider";
 import { useMapMenuContext } from "../MapMenuProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useMapPosEntries } from "../hooks/useMapPosEntries";
 import { reconcileFeatures, type FeatureDescriptor } from "../utils/featureReconciler";
 import { buildPosPathStyleFunction } from "../utils/styles/posPath";
 import { buildPosMarkerStyleFunction, type PosMarkerIcon } from "../utils/styles/posMarker";
+import { buildAssetRadiusStyleFunction } from "../utils/styles/assetRadius";
 import { Z_INDEX } from "../utils/zIndex";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Returns up to 2 most recent entries per posType UUID.
- */
-function getLatestPosEntryByType(allPosEntries: PosEntry[]): Record<string, PosEntry[]> {
-  const result: Record<string, PosEntry[]> = {};
-  const sorted = orderBy(allPosEntries, ["createdAt"], ["desc"]);
-
-  for (const entry of sorted) {
-    for (const posTypeUuid of entry.posTypeUuids) {
-      if (!result[posTypeUuid]) result[posTypeUuid] = [];
-      if (result[posTypeUuid].length < 2) {
-        result[posTypeUuid].push(entry);
-      }
-    }
-  }
-  return result;
-}
+const CIRCLE_VERTICES = 128;
 
 /**
  * Filter POS entries by source UUIDs and location validity.
@@ -92,6 +92,8 @@ interface PosMarkerFeature {
   location: AEGISPoint;
   posMarkers: PosMarkerIcon[];
   faded: boolean;
+  uncertaintyMeters: number;
+  color: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,6 +111,14 @@ export function PosEntries(): null {
   // --- Redux UI state ---
   const selectedRexUuid = useAppSelector((s) => s.rex.selectedRexUuid, refEqual);
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
+  const inEditUuid = useAppSelector(
+    (s) => (mode === "editor" ? (s.rex?.posEntryInEdit?.uuid ?? null) : null),
+    refEqual
+  );
+  const selectedPosEntryUuid = useAppSelector(
+    (s) => (mode === "editor" ? (s.rex?.selectedPosEntryUuid ?? null) : null),
+    refEqual
+  );
 
   // While any map directive is active, reference markers stay visible but become
   // non-interactive — the edited item is manipulated only by InteractionManager.
@@ -119,9 +129,7 @@ export function PosEntries(): null {
     return selectedRexUuid ? (m.rexes?.[selectedRexUuid] ?? null) : null;
   }, deepEqual);
 
-  const posEntries = useMissionDocSelector((m) => {
-    return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posEntries ?? []) : [];
-  }, deepEqual);
+  const posEntries = useMapPosEntries();
 
   const posTypes = useMissionDocSelector((m) => {
     return selectedRexUuid ? (m.rexes?.[selectedRexUuid]?.posTypes ?? []) : [];
@@ -142,20 +150,26 @@ export function PosEntries(): null {
   // --- Layers (one per map) ---
   const markerLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
   const pathLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const radiusLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
 
   useEffect(() => {
     const markerLayer = new VectorLayer({ source: posSource, zIndex: Z_INDEX.POS_MARKERS });
     const pathLayer = new VectorLayer({ source: posPathSource, zIndex: Z_INDEX.POS_ENTRIES });
+    const radiusLayer = new VectorLayer({ source: new VectorSource(), zIndex: Z_INDEX.CIRCLES });
     map.addLayer(markerLayer);
     map.addLayer(pathLayer);
+    map.addLayer(radiusLayer);
     markerLayerRef.current = markerLayer;
     pathLayerRef.current = pathLayer;
+    radiusLayerRef.current = radiusLayer;
 
     return () => {
       map.removeLayer(markerLayer);
       map.removeLayer(pathLayer);
+      map.removeLayer(radiusLayer);
       markerLayerRef.current = null;
       pathLayerRef.current = null;
+      radiusLayerRef.current = null;
     };
   }, [map, posSource, posPathSource]);
 
@@ -165,10 +179,13 @@ export function PosEntries(): null {
 
   const filteredEntries = useMemo(() => {
     if (!shouldShow) return [];
-    return orderBy(filterPosEntries(posEntries, mapDisplayPos), ["createdAt"], ["desc"]);
+    return orderPosEntriesNewestFirst(filterPosEntries(posEntries, mapDisplayPos));
   }, [shouldShow, posEntries, mapDisplayPos]);
 
-  const latestByType = useMemo(() => getLatestPosEntryByType(filteredEntries), [filteredEntries]);
+  const latestByType = useMemo(
+    () => getLatestPosEntriesByType(filteredEntries),
+    [filteredEntries]
+  );
 
   // Set of UUIDs that are "latest" for at least one posType
   const latestUuids = useMemo(() => {
@@ -179,14 +196,14 @@ export function PosEntries(): null {
     return set;
   }, [latestByType]);
 
-  // The pos entry currently being edited/created on the map, if any. Kept
-  // visible regardless of eyeball/source filters so InteractionManager can find
-  // its feature to attach the Translate.
+  // The pos entry being placed on the map or edited in the Positions tab, if any. Kept
+  // visible regardless of eyeball/source filters so InteractionManager can find its
+  // feature to attach the Translate, and so the unsaved draft stays visible.
   const editingUuid =
     mapDirective?.mapItemType === "posEntry" &&
     (mapDirective.mapAction === "editMarker" || mapDirective.mapAction === "createMarker")
       ? mapDirective.uuid
-      : null;
+      : inEditUuid;
 
   // --- Resolve visible marker features ---
   const markerFeatures = useMemo((): PosMarkerFeature[] => {
@@ -249,6 +266,8 @@ export function PosEntries(): null {
           location: entry.location,
           posMarkers,
           faded: mapDisplayPos.fadeOldMarkers && !isRecent,
+          uncertaintyMeters: entry.uncertaintyMeters ?? 0,
+          color: entry.color ?? null,
         });
         drawn.add(entry.uuid);
       }
@@ -260,7 +279,14 @@ export function PosEntries(): null {
       if (entry?.location) {
         const posMarkers = toPosMarkers(entry.posTypeUuids);
         if (posMarkers.length > 0) {
-          result.push({ uuid: entry.uuid, location: entry.location, posMarkers, faded: false });
+          result.push({
+            uuid: entry.uuid,
+            location: entry.location,
+            posMarkers,
+            faded: false,
+            uncertaintyMeters: entry.uncertaintyMeters ?? 0,
+            color: entry.color ?? null,
+          });
         }
       }
     }
@@ -295,6 +321,31 @@ export function PosEntries(): null {
     // Force repaint so composite icon/bar changes are picked up by the style fn.
     posSource.changed();
   }, [markerFeatures, posSource, toMapCoord]);
+
+  // --- Uncertainty radius circles (own layer, rebuilt in full) ---
+  useEffect(() => {
+    const source = radiusLayerRef.current?.getSource();
+    if (!source) return;
+    const features: Feature[] = [];
+    for (const marker of markerFeatures) {
+      const color = getPosEntryRadiusColor(marker);
+      if (!color) continue;
+      const center = toMapCoord(marker.location) as [number, number];
+      const feature = new Feature({
+        geometry: fromCircle(new CircleGeom(center, marker.uncertaintyMeters), CIRCLE_VERTICES),
+      });
+      feature.setProperties({ posEntryUuid: marker.uuid, color }, true);
+      features.push(feature);
+    }
+    source.clear(true);
+    source.addFeatures(features);
+  }, [markerFeatures, toMapCoord, map]);
+
+  useEffect(() => {
+    radiusLayerRef.current?.setStyle(
+      buildAssetRadiusStyleFunction(selectedPosEntryUuid ?? null, "posEntryUuid")
+    );
+  }, [selectedPosEntryUuid, map]);
 
   // --- Marker style ---
   useEffect(() => {
