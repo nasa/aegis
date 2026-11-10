@@ -5,6 +5,7 @@ import type { Page } from "@playwright/test";
 import type VectorLayer from "ol/layer/Vector";
 import type LineString from "ol/geom/LineString";
 import { test, expect } from "../fixtures/behavioralTest";
+import { minimizeRexMenu } from "../helpers";
 
 const demFile = "coverage90-measurement-synthetic.tif";
 const raster = {
@@ -241,6 +242,7 @@ test("golden terrain samples and a no-data break match the displayed segmented p
   expect(expectedDescent).toBe(0);
 
   await mission.open(page);
+  await minimizeRexMenu(page);
   await page.locator('[data-tooltip-content="Measurements"]').click();
   await expect(page.locator('[data-tooltip-content="Add Temporary Measurement"]')).toBeVisible();
   const initialProfileRequest = page.waitForRequest(
