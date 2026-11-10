@@ -12,6 +12,7 @@ import {
   thunkEditPosEntry,
   thunkSavePosEntryEdit,
   thunkSetPosEntryEditLocation,
+  thunkStartPosEntryMapDirective,
 } from "store/thunk/thunkRexPosEntry";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -117,10 +118,14 @@ describe("Thunk Position Entry Tests", () => {
       });
     });
 
-    test("starts placing the draft on the map", async () => {
+    test("waits for Place on Map before starting draft placement", async () => {
       vi.useFakeTimers();
       try {
         await store.dispatch(thunkAddPosEntry());
+        vi.advanceTimersByTime(250);
+        expect(store.getState().map.mapDirective).toBeNull();
+
+        await store.dispatch(thunkStartPosEntryMapDirective());
         vi.advanceTimersByTime(250);
         expect(store.getState().map.mapDirective).toEqual({
           mapItemType: "posEntry",
@@ -317,7 +322,9 @@ describe("Thunk Position Entry Tests", () => {
   describe("thunkDocDeletePosType", () => {
     it("deletes a posType when it is not in use", async () => {
       const posTypeUuid = rex.posTypes[0].uuid;
-      const result = await store.dispatch(thunkDocDeletePosType({ rexUuid: rex.uuid, posTypeUuid }));
+      const result = await store.dispatch(
+        thunkDocDeletePosType({ rexUuid: rex.uuid, posTypeUuid })
+      );
       expect(thunkDocDeletePosType.rejected.match(result)).toBe(false);
       expect(
         getMission().rexes[rex.uuid].posTypes.find((pt) => pt.uuid === posTypeUuid)
@@ -327,7 +334,9 @@ describe("Thunk Position Entry Tests", () => {
     it("rejects when posType is used by a posEntry", async () => {
       const posTypeUuid = rex.posTypes[0].uuid;
       seedEntry({ posTypeUuids: [posTypeUuid] });
-      const result = await store.dispatch(thunkDocDeletePosType({ rexUuid: rex.uuid, posTypeUuid }));
+      const result = await store.dispatch(
+        thunkDocDeletePosType({ rexUuid: rex.uuid, posTypeUuid })
+      );
       expect(thunkDocDeletePosType.rejected.match(result)).toBe(true);
       expect(result.payload).toContain("Position Item Type");
       expect(getMission().rexes[rex.uuid].posTypes).toHaveLength(3); // generateBlankRex starts with 3
