@@ -119,16 +119,68 @@
   flex: none;
 }
 
-.container :global(.dv-resize-container .dv-tabs-and-actions-container) {
-  border-bottom: 1px solid var(--grey3);
-}
-
 .container :global(.dv-resize-container-with-titlebar .dv-tab) {
   pointer-events: none;
 }
 
+/* Enlarge the invisible mouse targets around floating windows without thickening their borders.
+   Leave Dockview's larger touch targets in place for coarse pointers. */
+@media (pointer: fine) {
+  .container :global(.dv-resize-container .dv-resize-handle-top),
+  .container :global(.dv-resize-container .dv-resize-handle-bottom) {
+    height: 12px;
+    width: calc(100% - 12px);
+    left: 6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-left),
+  .container :global(.dv-resize-container .dv-resize-handle-right) {
+    width: 12px;
+    height: calc(100% - 12px);
+    top: 6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-topleft),
+  .container :global(.dv-resize-container .dv-resize-handle-topright),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomleft),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomright) {
+    width: 12px;
+    height: 12px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-top),
+  .container :global(.dv-resize-container .dv-resize-handle-topleft),
+  .container :global(.dv-resize-container .dv-resize-handle-topright) {
+    top: -6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-bottom),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomleft),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomright) {
+    bottom: -6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-left),
+  .container :global(.dv-resize-container .dv-resize-handle-topleft),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomleft) {
+    left: -6px;
+  }
+
+  .container :global(.dv-resize-container .dv-resize-handle-right),
+  .container :global(.dv-resize-container .dv-resize-handle-topright),
+  .container :global(.dv-resize-container .dv-resize-handle-bottomright) {
+    right: -6px;
+  }
+}
+
 /* The Rex Menu widget (Positions + Assets tabs) cannot be dragged/resized smaller than this. */
-.container :global(.dv-resize-container:has([data-testid="positions-floating-panel"])) {
+.container
+  :global(
+    .dv-resize-container:has(
+      [data-testid="positions-floating-panel"],
+      [data-testid="assets-floating-panel"]
+    )
+  ) {
   min-width: 325px;
   min-height: 318px;
 }
@@ -145,15 +197,30 @@
 
   --dv-tabs-and-actions-container-height: 26px;
   --dv-tabs-and-actions-container-font-size: 0.8rem;
-  --dv-tabs-and-actions-container-background-color: var(--grey2);
+  --dv-tab-divider-color: transparent;
+  --dv-tabs-and-actions-container-background-color: var(--grey0);
   --dv-group-view-background-color: var(--grey2);
-  --dv-activegroup-visiblepanel-tab-background-color: var(--grey3);
-  --dv-inactivegroup-visiblepanel-tab-background-color: var(--grey3);
-  --dv-activegroup-hiddenpanel-tab-background-color: var(--grey2);
-  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--grey2);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--grey2);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--grey2);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--grey1);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--grey1);
   --dv-activegroup-visiblepanel-tab-color: var(--grey5);
   --dv-inactivegroup-visiblepanel-tab-color: var(--grey5);
   --dv-activegroup-hiddenpanel-tab-color: var(--grey4);
   --dv-inactivegroup-hiddenpanel-tab-color: var(--grey4);
+}
+/* The selected Rex Menu tab matches the Assets background; the rest of the tab bar is black. */
+.container
+  :global(
+    .dv-groupview-floating:has(
+      [data-testid="positions-floating-panel"],
+      [data-testid="assets-floating-panel"]
+    )
+  ) {
+  --dv-tabs-and-actions-container-background-color: black;
+  --dv-activegroup-visiblepanel-tab-background-color: var(--grey1);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--grey1);
+  --dv-activegroup-hiddenpanel-tab-background-color: black;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: black;
 }
 /* stylelint-enable selector-class-pattern */

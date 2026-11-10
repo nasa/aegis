@@ -495,7 +495,7 @@ export const ValidatedInputField: FunctionComponent<{
     if (!containerRef.current || !dialogChildrenRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const width = Math.max(160, rect.width);
+    const width = Math.min(window.innerWidth - 16, Math.max(160, rect.width));
     setIsNarrowDialog(width <= 160); // Check if we're using the minimum width (meaning container was <= 130px)
 
     // Check if dialog would overflow right edge of viewport
@@ -542,8 +542,8 @@ export const ValidatedInputField: FunctionComponent<{
 
         // open the dialog for editing
         e.stopPropagation();
-        setDialogLocation();
         dialogRef.current?.showModal();
+        setDialogLocation();
         initialValueRef.current = valueToShow; // Initialize valid value when dialog opens
       }}
     >
@@ -568,7 +568,10 @@ export const ValidatedInputField: FunctionComponent<{
               // final-form omits cleared fields from formValues, yielding undefined.
               // Automerge rejects undefined, so normalize to an empty string.
               const newValue = formValues[fieldProps.name] ?? "";
+              if (!isOnline) return;
               onSubmit(newValue);
+              initialValueRef.current = newValue;
+              dialogRef.current?.close();
             }}
             initialValues={{ [fieldProps.name]: valueToShow }}
             render={({ handleSubmit, form }) => {
@@ -593,7 +596,10 @@ export const ValidatedInputField: FunctionComponent<{
                             className={`${formStyles.editField} ${fieldProps.className}`}
                             type="text"
                             aria-label={fieldProps.ariaLabel}
-                            style={{ width: "100%", textAlign: isRightAligned ? "right" : "left" }}
+                            style={{
+                              width: "100%",
+                              textAlign: isRightAligned ? "right" : "left",
+                            }}
                             onClick={(event) => {
                               event.stopPropagation();
                             }}
@@ -638,7 +644,6 @@ export const ValidatedInputField: FunctionComponent<{
                                 className={`${formStyles.saveButton} ${(hasError || !isOnline) && formStyles.saveButtonDisabled}`}
                                 onClick={(e) => {
                                   if (hasError || !isOnline) return;
-                                  dialogRef.current?.close();
                                   form.submit();
                                   e.stopPropagation();
                                 }}

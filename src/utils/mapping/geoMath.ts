@@ -184,6 +184,57 @@ export function findGlobalGridCoordsFromPoint(
 }
 
 /**
+ * Inverse of `findGlobalGridCoordsFromPoint`: the centre of the grid cell with the given name.
+ * A cell is named after its lower-left corner point. Matching ignores case and surrounding
+ * whitespace.
+ * @returns null when no point has that name, or the named cell is not one the forward lookup
+ *   reports (e.g. on the grid edge).
+ */
+export function findGridCellCenterByName(
+  grid: MissionGridPoint[][],
+  name: string,
+  radius: number
+): AEGISPoint | null {
+  const target = name.trim().toUpperCase();
+  if (!grid?.length || !target) return null;
+  for (let row = 0; row < grid.length; row++) {
+    for (let col = 0; col < grid[row].length; col++) {
+      if (grid[row][col].name?.trim().toUpperCase() !== target) continue;
+      const corners = [
+        grid[row][col],
+        grid[row - 1]?.[col],
+        grid[row]?.[col + 1],
+        grid[row - 1]?.[col + 1],
+      ].map((corner) => corner?.coordinates);
+      if (corners.some((c) => !Number.isFinite(c?.lat) || !Number.isFinite(c?.lng))) return null;
+      const center = {
+        lat: corners.reduce((sum, c) => sum + c.lat, 0) / corners.length,
+        lng: corners.reduce((sum, c) => sum + c.lng, 0) / corners.length,
+      };
+      const roundTrip = findGlobalGridCoordsFromPoint(grid, center, radius);
+      return roundTrip?.trim().toUpperCase() === target ? center : null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Whether any grid point's name starts with the given text (case/space-insensitive, like
+ * `findGridCellCenterByName`), so a half-typed cell name can be told apart from text that
+ * can never match a cell.
+ */
+export function gridHasCellNamePrefix(grid: MissionGridPoint[][], name: string): boolean {
+  const target = name.trim().toUpperCase();
+  if (!grid?.length || !target) return false;
+  for (const row of grid) {
+    for (const point of row) {
+      if (point.name?.trim().toUpperCase().startsWith(target)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Adjust grid indicies to be one shown cell out
  * @param {GridIndex} index - the index to adjust
  * @param {number} numRows - the number of rows in the grid

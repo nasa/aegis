@@ -1,17 +1,622 @@
 .assetsMenu {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  row-gap: 5px;
   width: 100%;
   height: 100%;
+  min-height: 0;
   box-sizing: border-box;
-  padding: 5px;
-  border: 1px solid var(--grey3);
+  padding: 5px 5px 0;
+  background-color: var(--grey1);
+  font-size: 0.8rem;
+  overflow: hidden;
+}
+
+.toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.toolbar .toolbarButton {
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.toolbarButton > svg {
+  display: block;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Editor area above the table (Add) or inside an expanded row (View/Edit) */
+.editor {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  row-gap: 5px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 5px 6px 6px;
+  border: 0;
   border-radius: var(--radius);
+  background-color: var(--grey2);
+  color: var(--grey5);
+  font-size: 0.75rem;
+}
+
+.editorView {
+  border-color: var(--grey4);
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.editorHeading {
+  flex: 0 0 auto;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.editorLastModified {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 8px;
+  text-align: right;
+  overflow-wrap: anywhere;
+  color: white;
+}
+
+/* Label column + control column; every control shares one height */
+.editorForm {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.fieldLabel {
+  color: var(--grey4);
+}
+
+.notesLabel {
+  align-self: start;
+}
+
+.fieldControls {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.petControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.petControls > input {
+  flex: 0 1 auto;
+  min-width: 0;
+  width: 12ch;
+}
+
+.petControls .editorButton {
+  flex-shrink: 0;
+}
+
+.petPopoverControls {
+  padding: 8px;
+}
+
+.inlineFieldLabel {
+  margin-left: auto;
+}
+
+.fieldValueColumn {
+  grid-column: 2;
+  margin-top: -2px;
+}
+
+.fieldNote {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 2px 10px;
+  color: var(--grey4);
+}
+
+.viewNotes > div {
+  max-height: 6lh;
+  line-height: 1.4;
+  overflow: auto;
+}
+
+.viewNotes {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.petSourceNames {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.evaName,
+.rexName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evaName {
+  color: var(--eva);
+}
+
+.rexName {
+  color: var(--rex);
+}
+
+.growInput {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.numberInput {
+  width: 56px;
+}
+
+.petInput {
+  width: 110px;
+}
+
+.fieldError {
+  color: var(--error);
+}
+
+/* Match toolbar and editor buttons, including Place on Map. */
+.toolbar .toolbarButton,
+.fieldControls .editorButton,
+.petControls .editorButton {
+  height: 20px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.iconOnlyButton {
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 0.75rem;
+}
+
+.saveButton {
+  background-color: var(--alert);
+}
+
+.saveButtonDisabled {
+  background-color: var(--alert-disabled);
+  color: var(--grey4);
+}
+
+.editorActions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-flow: row wrap;
+  gap: 4px;
+}
+
+/* Scrolling table below the toolbar and editor */
+.tableContainer {
+  flex: 1 1 60px;
+  min-height: 60px;
+  overflow: auto;
+  border-radius: var(--radius);
+  background-color: var(--grey1);
+}
+
+.assetTable {
+  --folder-indent: 10px;
+  --group-gap: 5px;
+  --detail-indent: 24px;
+
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.assetTable td,
+.assetTable th {
+  padding: 2px 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.colName {
+  width: auto;
+}
+
+.colCoords {
+  width: 70px;
+}
+
+.colNotes {
+  width: 20px;
+}
+
+.assetTable .notesCell {
+  padding: 2px;
+  text-overflow: clip;
+}
+
+.notesIndicator {
+  display: flex;
+  justify-content: center;
+  color: var(--grey4);
+}
+
+.notesPresent {
+  color: white;
+}
+
+.colVisible {
+  width: 20px;
+}
+
+.colActions {
+  width: 18px;
+}
+
+.headerRow th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--grey1);
+  color: var(--grey4);
+  font-weight: normal;
+}
+
+.folderGroup,
+.rootGroup {
+  background-color: var(--grey2);
+  clip-path: inset(0 round var(--radius));
+}
+
+/* The separator belongs to the next tbody; round the group below that gap. */
+.assetTable tbody + tbody {
+  clip-path: inset(var(--group-gap) 0 0 round var(--radius));
+}
+
+/* A small gutter separates groups while keeping every item in the shared table columns. */
+.assetTable tbody + tbody::before {
+  content: "";
+  display: table-row;
+  height: var(--group-gap);
+  background-color: var(--grey1);
+}
+
+.folderRow {
+  cursor: pointer;
+  user-select: none;
+}
+
+.folderRow td {
+  padding: 6px 3px;
+}
+
+.folderCell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.folderToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--grey5);
+  cursor: pointer;
+}
+
+.folderName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folderNameInput {
+  width: 100%;
+  min-width: 0;
+  font-size: 1em;
+}
+
+.folderNameInput:focus {
+  outline: 1px solid var(--grey4);
+  outline-offset: -1px;
+}
+
+.folderSaveButton {
+  flex-shrink: 0;
+  padding: 3px 4px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.folderHidden .folderName,
+.folderHidden .folderToggle {
+  color: var(--grey4);
+}
+
+.dropHintRow td {
+  color: var(--grey4);
+  font-style: italic;
+  padding-left: 24px;
+}
+
+.dropTarget {
+  background-color: var(--grey3);
+}
+
+.assetRow {
+  cursor: default;
+}
+
+.assetRowHover {
+  background-color: var(--grey1);
+}
+
+.assetRowSelected {
+  background-color: var(--grey5);
+  color: #000000;
+}
+
+.assetRowSelected .notesPresent {
+  color: #000000;
+}
+
+.assetRowExpanded:not(.assetRowSelected) {
+  color: var(--grey5);
+}
+
+.assetRowExpanded:not(.assetRowSelected, .assetRowHover) {
   background-color: var(--grey2);
 }
 
-.comingSoon {
-  font-size: 0.8rem;
+.assetRowDragging {
+  cursor: grabbing;
+  opacity: 0.4;
+}
+
+.assetRowHidden {
   color: var(--grey4);
+}
+
+.assetNameCell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.assetName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowToggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rowToggle > svg {
+  color: white;
+}
+
+/* Folder children indent under their folder header; root assets stay at the left edge. */
+.folderItem .assetNameCell {
+  margin-left: var(--folder-indent);
+}
+
+.assetDetailRow {
+  background-color: var(--grey2);
+}
+
+.assetTable .assetDetailCell {
+  padding: 0;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+/* Separate expanded assets from adjacent assets within the same group. */
+.assetRow + .assetRowExpanded:not(.assetRowSelected) td {
+  background-image: linear-gradient(var(--grey3), var(--grey3));
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+}
+
+.assetRow + .assetRowExpanded:not(.assetRowSelected) td:first-child {
+  background-position: top right;
+  background-size: calc(100% - var(--detail-indent)) 1px;
+}
+
+.assetRow + .assetRowExpanded:not(.assetRowSelected) td:last-child {
+  background-size: calc(100% - 6px) 1px;
+}
+
+.assetDetailCell .editor {
+  position: relative;
+  padding-left: var(--detail-indent);
+  border: 0;
+  border-radius: 0;
+}
+
+.assetDetailRow:has(+ .assetRow) .editor::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 6px;
+  left: var(--detail-indent);
+  border-top: 1px solid var(--grey3);
+  pointer-events: none;
+}
+
+.folderItem,
+.folderItem + .assetDetailRow {
+  --detail-indent: calc(24px + var(--folder-indent));
+}
+
+.emojiBackground {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 45%;
+}
+
+.emojiGlyph {
+  /* Emoji font ink sits below the center of its text box. */
+  transform: translateY(-0.05em);
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--grey5);
+  cursor: pointer;
+}
+
+.iconButton > svg {
+  min-width: 0;
+}
+
+.iconButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.inheritedHidden {
+  opacity: 0.4;
+}
+
+.assetRowSelected .iconButton {
+  color: #000000;
+}
+
+.assetRowSelected .rowToggle > svg {
+  color: #000000;
+}
+
+.emptyState {
+  padding: 10px 5px;
+  color: var(--grey4);
+  text-align: center;
+}
+
+.dragOverlayContainer {
+  display: flex;
+  align-items: center;
+  cursor: grabbing;
+}
+
+.dragOverlay {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 3px;
+  border-radius: var(--radius);
+  background-color: var(--grey1);
+  color: var(--grey5);
+  font-size: 0.8rem;
+  opacity: 0.8;
+  transform: rotate(3deg);
+  box-shadow: 0 5px 15px rgb(0 0 0 / 30%);
+}
+
+.menuDialog {
+  position: relative;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+}
+
+.menuDialog::backdrop {
+  background: transparent;
+}
+
+.menu {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  width: 160px;
+  border: 1px solid var(--grey4);
+  border-radius: var(--radius);
+  background-color: var(--grey3);
+  color: var(--grey5);
+  font-size: 0.8rem;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  column-gap: 5px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.menuItem:hover,
+.menuItem:focus {
+  background-color: var(--grey2);
+  border-radius: var(--radius);
+}
+
+.menuItem:not(:last-child) {
+  border-bottom: 1px solid var(--grey4);
 }

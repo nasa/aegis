@@ -12,12 +12,13 @@
  * 2. For each marker, positions a Point feature at (anchor + pixelOffset * resolution).
  * 3. Computes overlap-based opacities: higher-priority labels occlude lower-priority ones.
  * 4. The style function (`createMarkerLabelStyle`) renders each label + connector line
- *    with the computed opacity.
+ *    with the computed opacity. Asset label boxes are styled per mode via
+ *    `MODE_CONFIGS[mode].asset`.
  * 5. Dragging via `ol/interaction/Translate` stores the new pixel offset.
  *
  * ## Priority
  *
- * Lander = 0 (highest), Station = 1, POI = 2, Action = 3.
+ * Lander = 0 (highest), Station = 1, POI = 2, Action = 3, Pos = 4, Asset = 5.
  * Higher-priority labels render on top and at full opacity.
  *
  * Returns null — headless behavior component.
@@ -37,6 +38,7 @@ import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
+import { getVisibleMapAssets } from "utils/assets";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -62,6 +64,7 @@ const PRIORITY_STATION = 1;
 const PRIORITY_POI = 2;
 const PRIORITY_ACTION = 3;
 const PRIORITY_POS = 4;
+const PRIORITY_ASSET = 5;
 
 // ---------------------------------------------------------------------------
 // POS entry helpers (mirror logic from PosEntries.tsx)
@@ -98,7 +101,7 @@ function getLatestPosEntryByType(allPosEntries: PosEntry[]): Record<string, PosE
 interface LabelInfo {
   id: string;
   name: string;
-  labelType: "lander" | "station" | "poi" | "action" | "pos";
+  labelType: "lander" | "station" | "poi" | "action" | "pos" | "asset";
   anchorCoord: [number, number]; // projected map coordinate
   priority: number;
   /** Transient hover tooltip — always renders at full opacity, never draggable */
@@ -114,6 +117,7 @@ export function MarkerLabels(): null {
     submenuPois: mapDisplayPois,
     submenuActions: mapDisplayActions,
     submenuPos: mapDisplayPos,
+    submenuAssets: mapDisplayAssets,
   } = useMapMenuContext();
   const { toMapCoord } = useCoordConverters();
 
@@ -132,6 +136,12 @@ export function MarkerLabels(): null {
   const hoverMapItemUuid = useAppSelector((s) => s.hover.mapItemUuid, refEqual);
   const hoverMapItemType = useAppSelector((s) => s.hover.mapItemType, refEqual);
   const selectedRexUuid = useAppSelector((s) => s.rex.selectedRexUuid, refEqual);
+  // The inEdit preview belongs to the editor; other maps draw the saved asset.
+  const assetInEdit = useAppSelector((s) => (mode === "editor" ? s.asset.inEdit : null), refEqual);
+  const selectedAssetUuid = useAppSelector(
+    (s) => (mode === "editor" ? s.asset.selectedAssetUuid : null),
+    refEqual
+  );
 
   // --- Automerge doc state ---
   const selectedEva = useMissionDocSelector((m) => {
@@ -145,6 +155,7 @@ export function MarkerLabels(): null {
   const asPlannedStationsFromDoc = useMissionDocSelector(selectAsPlannedStations, deepEqual);
   const poisFromDoc = useMissionDocSelector((m) => Object.values(m.pois ?? {}), deepEqual);
   const actionsFromDoc = useMissionDocSelector((m) => Object.values(m.actions ?? {}), deepEqual);
+  const assetsFromDoc = useMissionDocSelector((m) => Object.values(m.assets ?? {}), deepEqual);
 
   // Naming inputs for STM (v2) actions, whose label is built from the
   // verb/noun/adjective definition joined by the mission's custom conjunctions.
@@ -236,7 +247,8 @@ export function MarkerLabels(): null {
   useEffect(() => {
     const styleFn = createMarkerLabelStyle(
       config.markerLabel.fontSize,
-      config.markerLabel.connectorWidth
+      config.markerLabel.connectorWidth,
+      config.asset
     );
     const layer = new VectorLayer({
       source: labelSource,
@@ -250,7 +262,13 @@ export function MarkerLabels(): null {
       map.removeLayer(layer);
       layerRef.current = null;
     };
-  }, [map, labelSource, config.markerLabel.fontSize, config.markerLabel.connectorWidth]);
+  }, [
+    map,
+    labelSource,
+    config.markerLabel.fontSize,
+    config.markerLabel.connectorWidth,
+    config.asset,
+  ]);
 
   // --- Drag interaction ---
   useEffect(() => {
@@ -426,7 +444,6 @@ export function MarkerLabels(): null {
     // POS entry labels
     const showPosLabels =
       mapDisplayPos.show &&
-      sectionSelected === "evas" &&
       !!selectedRex &&
       (mapDisplayPos.showAllLabels || mapDisplayPos.showLatestLabels);
 
@@ -500,6 +517,26 @@ export function MarkerLabels(): null {
       }
     }
 
+    // Asset labels — same visibility rule as AssetMarkers, plus the label toggle
+    const visibleAssets = getVisibleMapAssets({
+      assets: assetsFromDoc ?? [],
+      folders,
+      inEdit: assetInEdit,
+      selectedAssetUuid,
+      showAssets: mapDisplayAssets.show,
+    });
+    if (config.asset.labelsEnabled && mapDisplayAssets.showLabels) {
+      for (const asset of visibleAssets) {
+        infos.push({
+          id: `asset-${asset.uuid}`,
+          name: asset.name,
+          labelType: "asset",
+          anchorCoord: toMapCoord(asset.location) as [number, number],
+          priority: PRIORITY_ASSET,
+        });
+      }
+    }
+
     // Hover tooltip — show label for hovered marker even when showLabels is off
     if (hoverMapItemUuid && hoverMapItemType) {
       // Hovering a lander copy resolves to the lander itself
@@ -516,7 +553,9 @@ export function MarkerLabels(): null {
               ? `poi-${hoverMapItemUuid}`
               : hoverMapItemType === "action"
                 ? `action-${hoverMapItemUuid}`
-                : null;
+                : hoverMapItemType === "asset"
+                  ? `asset-${hoverMapItemUuid}`
+                  : null;
 
       if (hoverLabelId && !infos.some((i) => i.id === hoverLabelId)) {
         if (hoverMapItemType === "lander" || hoveredIsLanderXgress) {
@@ -560,6 +599,18 @@ export function MarkerLabels(): null {
               isHover: true,
             });
           }
+        } else if (hoverMapItemType === "asset" && config.asset.labelsEnabled) {
+          const asset = visibleAssets.find((a) => a.uuid === hoverMapItemUuid);
+          if (asset) {
+            infos.push({
+              id: hoverLabelId,
+              name: asset.name,
+              labelType: "asset",
+              anchorCoord: toMapCoord(asset.location) as [number, number],
+              priority: PRIORITY_ASSET,
+              isHover: true,
+            });
+          }
         } else if (hoverMapItemType === "action" && mapDisplayActions.show) {
           const action = actions.find((a) => a.uuid === hoverMapItemUuid);
           if (action?.location?.lat != null && action?.location?.lng != null) {
@@ -584,6 +635,11 @@ export function MarkerLabels(): null {
     mapDisplayStations,
     mapDisplayPois,
     mapDisplayActions,
+    mapDisplayAssets,
+    config.asset.labelsEnabled,
+    assetsFromDoc,
+    assetInEdit,
+    selectedAssetUuid,
     selectedEva,
     allStationsFromDoc,
     asPlannedStationsFromDoc,
@@ -667,7 +723,11 @@ export function MarkerLabels(): null {
     // 2. Compute overlap-based opacities in pixel space
     const descriptors: LabelDescriptor[] = [];
     for (const info of labelInfos) {
-      const measurement = measureLabelText(info.name, config.markerLabel.fontSize);
+      const measurement = measureLabelText(
+        info.name,
+        info.labelType === "asset" ? config.asset.labelFontSize : config.markerLabel.fontSize,
+        info.labelType === "asset" ? config.asset.labelFontWeight : "normal"
+      );
       if (!measurement) continue;
 
       const feature = labelSource.getFeatureById(info.id) as Feature<Point> | null;

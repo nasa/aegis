@@ -24,6 +24,8 @@ import { PosEntries } from "./behaviors/PosEntries";
 import { FollowMode } from "./behaviors/FollowMode";
 import { MapOverlays } from "./overlays/MapOverlays";
 import { MarkerLabels } from "./behaviors/MarkerLabels";
+import { AssetMarkers } from "./behaviors/AssetMarkers";
+import { AssetUncertainty } from "./behaviors/AssetUncertainty";
 import { DashboardMenuPublisher } from "./MapMenuMinimapBridge";
 
 export function AegisMapDashboard(): JSX.Element {
@@ -34,10 +36,12 @@ export function AegisMapDashboard(): JSX.Element {
           <TileLayers />
           <Grid />
           <Circles />
+          <AssetUncertainty />
           <TraverseLines />
           <WalkbackLines />
           <StationMarkers />
           <PoiMarkers />
+          <AssetMarkers />
           <ActionMarkers />
           <LanderMarker />
           <MarkerLabels />

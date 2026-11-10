@@ -152,4 +152,65 @@ describe("createMarkerLabelStyle", () => {
     const largeImg = (largeStyle.getImage() as Icon).getImage(1) as HTMLCanvasElement;
     expect(largeImg.height).toBeGreaterThan(smallImg.height);
   });
+
+  it("asset config overrides the asset label font size and box colors", () => {
+    const fn = createMarkerLabelStyle(14, 1.5, {
+      show: true,
+      iconSize: 20,
+      clickable: false,
+      hoverable: false,
+      labelsEnabled: true,
+      labelFontSize: 24,
+      labelFontWeight: "normal",
+      labelTextColor: "rgba(0,255,0,1)",
+      labelBgColor: "rgba(0,0,255,0.5)",
+    });
+    const assetCanvas = (
+      asArray(fn(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1))[0].getImage() as Icon
+    ).getImage(1) as HTMLCanvasElement;
+    const stationCanvas = (
+      asArray(
+        fn(makeLabelFeature({ name: "Rover", labelType: "station" }), 1)
+      )[0].getImage() as Icon
+    ).getImage(1) as HTMLCanvasElement;
+
+    // The per-mode font size applies to asset labels only
+    expect(assetCanvas.height).toBeGreaterThan(stationCanvas.height);
+
+    // Box background uses the configured bgColor (corner pixel, inside the
+    // rounded rect and clear of the text glyphs)
+    const px = Array.from(assetCanvas.getContext("2d")!.getImageData(2, 2, 1, 1).data);
+    expect(px[0]).toBeLessThan(50);
+    expect(px[2]).toBeGreaterThan(200);
+    expect(px[3]).toBeLessThan(200);
+  });
+
+  it("asset bold renders a wider text box", () => {
+    const makeFn = (fontWeight: string) =>
+      createMarkerLabelStyle(14, 1.5, {
+        show: true,
+        iconSize: 20,
+        clickable: false,
+        hoverable: false,
+        labelsEnabled: true,
+        labelFontSize: 14,
+        labelFontWeight: fontWeight,
+        labelTextColor: "rgba(255,236,170,0.95)",
+        labelBgColor: "rgba(0,0,0,0.5)",
+      });
+    const plainCanvas = (
+      asArray(
+        makeFn("normal")(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1)
+      )[0].getImage() as Icon
+    ).getImage(1) as HTMLCanvasElement;
+    const boldCanvas = (
+      asArray(
+        makeFn("bold")(makeLabelFeature({ name: "Rover", labelType: "asset" }), 1)
+      )[0].getImage() as Icon
+    ).getImage(1) as HTMLCanvasElement;
+
+    // Bold glyphs are wider, so the box is wider; the height is unchanged
+    expect(boldCanvas.width).toBeGreaterThan(plainCanvas.width);
+    expect(boldCanvas.height).toBe(plainCanvas.height);
+  });
 });

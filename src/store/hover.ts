@@ -68,6 +68,17 @@ export const hoverSlice = createSlice({
       state.mapItemUuid = action.payload.sequenceUuid;
       state.mapItemType = action.payload.mapItemType;
     },
+    /** Hover an asset marker or row; null clears an asset hover only. */
+    setHoverAssetUuid: (state, action: { payload: string | null }) => {
+      if (action.payload === null) {
+        if (state.mapItemType !== "asset") return;
+        state.mapItemUuid = null;
+        state.mapItemType = null;
+        return;
+      }
+      state.mapItemUuid = action.payload;
+      state.mapItemType = "asset";
+    },
     setHoverUuidsForPosEntry: (state, action: { payload: string }) => {
       state.posEntryItemUuid = action.payload;
       state.timelineSeqItemUuid = action.payload;
@@ -90,5 +101,6 @@ export const {
   clearMapItemHover,
   setHoverUuidsForSequence,
   setHoverUuidsForPosEntry,
+  setHoverAssetUuid,
   obliterateState,
 } = hoverSlice.actions;

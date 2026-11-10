@@ -10,6 +10,7 @@ import Cookies from "js-cookie";
 import { makeUniqueStringCopy } from "utils/names/duplicate";
 import { getMissionDocHandle, withMissionChange } from "client/automergeDocHandles";
 import { clientLogger } from "utils/logging/clientLogger";
+import { thunkCancelAssetMapDirective } from "./thunkAsset";
 import {
   applyRenameFolder,
   applyUpsertFolder,
@@ -95,8 +96,14 @@ export const thunkToggleFolderOpen = appCreateAsyncThunk<{ folderUuid: string }>
 
 export const thunkToggleFolderVisible = appCreateAsyncThunk<{ folderUuid: string }>(
   "thunkToggleFolderVisible",
-  async ({ folderUuid }, { getState }) => {
-    if (!getState().user.missionPerms?.permissions.edit) return;
+  async ({ folderUuid }, { dispatch, getState }) => {
+    const state = getState();
+    if (!state.user.missionPerms?.permissions.edit) return;
+    const folder = getMissionDocHandle()?.doc()?.folders?.[folderUuid];
+    if (folder?.type !== "asset" && !state.mission.isInEditMode) return;
+    if (folder?.type === "asset" && folder.items.includes(state.asset.inEdit?.uuid)) {
+      dispatch(thunkCancelAssetMapDirective());
+    }
     withMissionChange((m) => applyToggleFolderVisible(m, folderUuid));
   }
 );
