@@ -120,10 +120,11 @@ test("EVA lookup preserves duplicates and archives, loading only matching missio
   await createMission({ name: "Unrelated history" });
   const find = vi.spyOn(repo, "find");
   expect(await getMissionIdsForEva(eva.uuid)).toEqual(ids.slice(0, 2));
-  expect((await getRexesByEva(eva.uuid)).map((r) => r.uuid)).toEqual([rex.uuid, rex.uuid]);
+  expect((await getRexesByEva(eva.uuid, ids[0])).map((r) => r.uuid)).toEqual([rex.uuid]);
+  expect((await getRexesByEva(eva.uuid, ids[1])).map((r) => r.uuid)).toEqual([rex.uuid]);
   expect(find.mock.calls.map(([url]) => url)).toEqual([first.url, second.url]);
   find.mockClear();
-  expect(await getRexesByEva("missing")).toEqual([]);
+  expect(await getRexesByEva("missing", null)).toEqual([]);
   expect(find).not.toHaveBeenCalled();
 });
 
