@@ -17,6 +17,7 @@ import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
+import { rescheduleBannerTimer } from "./routes/notificationBanner";
 import { setupMaestroNamespace as setupMaestroNamespaceV2 } from "../maestro/v2/sockets-maestro";
 import { setupDustNamespace as setupDustNamespaceV1 } from "../dust/v1/sockets-dust";
 import { globalValues } from "./global";
@@ -97,6 +98,8 @@ initializeBase64Wasm(automergeWasmBase64);
   });
 
   setupSocketIO();
+  // Start the server timer for active banners
+  await rescheduleBannerTimer();
   // v2 Maegistro lives on the /api/socket server under the /maestro/v2 namespace.
   setupMaestroNamespaceV2(globalValues.socketio);
   // v1 DUST lives on the /api/socket server under the /dust/v1 namespace.
@@ -255,6 +258,12 @@ initializeBase64Wasm(automergeWasmBase64);
         logId: "server:gracefulShutdown:globalSocketStatusIntervalStopped",
         logValue: "Global socket status interval stopped",
       });
+    }
+
+    // Clear notification banner timer
+    if (globalValues.notificationBannerTimer) {
+      clearTimeout(globalValues.notificationBannerTimer);
+      globalValues.notificationBannerTimer = null;
     }
 
     // Close Socket.IO connections

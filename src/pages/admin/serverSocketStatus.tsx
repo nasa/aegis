@@ -1,14 +1,14 @@
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import type { FunctionComponent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { isLoggedIn } from "http-client/login";
 import { getMissionHomepageItems } from "http-client/mission";
 import React from "react";
 import uniq from "lodash/uniq";
-import type { Socket } from "socket.io-client";
-import { createClientSocket } from "utils/clientSocketHelpers";
+import { getClientSocket, joinInspectorRoom } from "utils/clientSocketHelpers";
+import { deepEqual, useAppSelector } from "utils/useAppSelector";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlug,
@@ -19,15 +19,19 @@ import {
   faCaretDown,
   faComputer,
 } from "@fortawesome/free-solid-svg-icons";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import adminCommon from "./adminCommon.module.css";
 
 const ServerSocketStatus: React.FunctionComponent = () => {
   const loading = useAsyncStatus("Loading missions...");
   const { run: runLoad } = loading;
   const navigate = useNavigate();
-  const socket = useRef<Socket<ServerToClientEvents, ClientToServerEvents>>(null);
   const [serverSocketStatus, setServerSocketStatus] = useState<ServerSocketStatus>(null);
-  const [appVersion, setAppVersion] = useState<AppVersion>(null);
+  // The app-wide socket stores the server version it receives on connect
+  const appVersion = useAppSelector(
+    (state) => state.connection.socketStatus.lastStatusFromServer.serverVersion,
+    deepEqual
+  );
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [missionNames, setMissionNames] = useState<Map<number, string>>(new Map());
@@ -35,6 +39,7 @@ const ServerSocketStatus: React.FunctionComponent = () => {
   //on load check login
   useEffect(() => {
     let cancelled = false;
+    let leaveInspectorRoom: (() => void) | null = null;
     runLoad("Loading missions...", async () => {
       const response = await isLoggedIn();
       if (response.status === "success") {
@@ -56,38 +61,19 @@ const ServerSocketStatus: React.FunctionComponent = () => {
         setMissionNames(nameMap);
       }
 
-      // connect to the inspector socket room
-      if (!socket.current || (socket.current && !socket.current.connected)) {
-        socket.current = createClientSocket(window.location.origin);
-      }
-
-      socket.current.on("connect", () => {
-        socket.current.emit("inspectorJoin");
-        setConnectionStatus("connected");
-      });
-
-      socket.current.on("disconnect", () => {
-        setConnectionStatus("disconnected");
-      });
-
-      socket.current.on("connect_error", () => {
-        setConnectionStatus("failed");
-      });
-
-      socket.current.on("inspectorUpdate", (data: ServerSocketStatus) => {
-        setServerSocketStatus(data);
-        setLastUpdatedAt(new Date().toISOString());
-      });
-
-      socket.current.on("version", (serverAppVersion: AppVersion) => {
-        setAppVersion(serverAppVersion);
-      });
+      // join the inspector room on the shared socket
+      leaveInspectorRoom = joinInspectorRoom(
+        getClientSocket(),
+        setConnectionStatus,
+        (data: ServerSocketStatus) => {
+          setServerSocketStatus(data);
+          setLastUpdatedAt(new Date().toISOString());
+        }
+      );
     });
     return () => {
       cancelled = true;
-      socket.current?.removeAllListeners();
-      socket.current?.disconnect();
-      socket.current = null;
+      leaveInspectorRoom?.();
     };
   }, [navigate, runLoad]);
 
@@ -169,42 +155,58 @@ const ServerSocketStatus: React.FunctionComponent = () => {
   );
 };
 
+// Key for the group of visitors who are not on a mission or dashboard page
+const NOT_ON_MISSION_GROUP_KEY = "notOnMission";
+
+const visitorPageLabels: Record<AppPages, string> = {
+  home: "Home",
+  mission: "Mission",
+  dashboard: "Dashboard",
+  admin: "Admin",
+  versionCheck: "Version check",
+  other: "Other",
+};
+
 const PrintUserLists: FunctionComponent<{
   visitorData: VisitorData[];
   missionNames: Map<number, string>;
 }> = ({ visitorData, missionNames }) => {
-  const missionIds = uniq(visitorData.map((visitor) => visitor.missionId)).sort((a, b) => a - b);
+  const missionIds = uniq(
+    visitorData.map((visitor) => visitor.missionId).filter((missionId) => missionId !== null)
+  ).sort((a, b) => a - b);
+  const notOnMissionVisitorData = visitorData.filter((visitor) => visitor.missionId === null);
 
-  const [expandedMissions, setExpandedMissions] = useState<Record<number, boolean>>({});
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const initialState: Record<number, boolean> = {};
+    const initialState: Record<string, boolean> = { [NOT_ON_MISSION_GROUP_KEY]: true };
     const missionIds = uniq(visitorData.map((visitor) => visitor.missionId));
     missionIds.forEach((missionId) => {
-      initialState[missionId] = true;
+      if (missionId !== null) initialState[missionId] = true;
     });
-    setExpandedMissions(initialState);
+    setExpandedGroups(initialState);
   }, [visitorData]);
 
-  const toggleMission = (missionId: number) => {
-    setExpandedMissions((prev) => ({
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups((prev) => ({
       ...prev,
-      [missionId]: !prev[missionId],
+      [groupKey]: !prev[groupKey],
     }));
   };
 
   return (
     <>
       {missionIds.map((missionId) => {
+        const groupKey = missionId.toString();
         const missionVisitorData = visitorData.filter((visitor) => visitor.missionId === missionId);
         const missionEditorData = missionVisitorData.filter((v) => v.permission === "editor");
         const missionViewerData = missionVisitorData.filter((v) => v.permission === "viewer");
 
         return (
-          <section key={missionId} className={adminCommon.section}>
-            <div className={adminCommon.collapsibleHeader} onClick={() => toggleMission(missionId)}>
+          <section key={groupKey} className={adminCommon.section}>
+            <div className={adminCommon.collapsibleHeader} onClick={() => toggleGroup(groupKey)}>
               <span className={adminCommon.collapsibleIcon}>
-                <FontAwesomeIcon icon={expandedMissions[missionId] ? faCaretDown : faCaretRight} />
+                <FontAwesomeIcon icon={expandedGroups[groupKey] ? faCaretDown : faCaretRight} />
               </span>
               <h2 className={adminCommon.sectionHeading}>
                 <FontAwesomeIcon icon={faUsers} className={adminCommon.mutedIcon} />
@@ -215,20 +217,22 @@ const PrintUserLists: FunctionComponent<{
                 </span>
               </h2>
             </div>
-            {expandedMissions[missionId] && (
+            {expandedGroups[groupKey] && (
               <div className={adminCommon.details}>
                 {missionEditorData.length > 0 && (
                   <PrintUsers
-                    missionId={missionId}
+                    groupKey={groupKey}
                     visitorData={missionEditorData}
-                    permission="Editor"
+                    heading="Editors"
+                    icon={faPen}
                   />
                 )}
                 {missionViewerData.length > 0 && (
                   <PrintUsers
-                    missionId={missionId}
+                    groupKey={groupKey}
                     visitorData={missionViewerData}
-                    permission="Viewer"
+                    heading="Viewers"
+                    icon={faEye}
                   />
                 )}
               </div>
@@ -236,15 +240,48 @@ const PrintUserLists: FunctionComponent<{
           </section>
         );
       })}
+      {notOnMissionVisitorData.length > 0 && (
+        <section className={adminCommon.section}>
+          <div
+            className={adminCommon.collapsibleHeader}
+            onClick={() => toggleGroup(NOT_ON_MISSION_GROUP_KEY)}
+          >
+            <span className={adminCommon.collapsibleIcon}>
+              <FontAwesomeIcon
+                icon={expandedGroups[NOT_ON_MISSION_GROUP_KEY] ? faCaretDown : faCaretRight}
+              />
+            </span>
+            <h2 className={adminCommon.sectionHeading}>
+              <FontAwesomeIcon icon={faUsers} className={adminCommon.mutedIcon} />
+              Not on a mission
+              <span className={adminCommon.badgeSuccess}>
+                {notOnMissionVisitorData.length} connection
+                {notOnMissionVisitorData.length !== 1 ? "s" : ""}
+              </span>
+            </h2>
+          </div>
+          {expandedGroups[NOT_ON_MISSION_GROUP_KEY] && (
+            <div className={adminCommon.details}>
+              <PrintUsers
+                groupKey={NOT_ON_MISSION_GROUP_KEY}
+                visitorData={notOnMissionVisitorData}
+                heading="Visitors"
+                icon={faComputer}
+              />
+            </div>
+          )}
+        </section>
+      )}
     </>
   );
 };
 
 const PrintUsers: FunctionComponent<{
-  missionId: number;
+  groupKey: string;
   visitorData: VisitorData[];
-  permission: "Editor" | "Viewer";
-}> = ({ missionId, visitorData, permission }) => {
+  heading: string;
+  icon: IconDefinition;
+}> = ({ groupKey, visitorData, heading, icon }) => {
   const [showUsers, setShowUsers] = useState<boolean>(true);
   const launchpadUsers = visitorData.map((visitor) => visitor.launchpadUser);
   const uniqueUsers = launchpadUsers.filter(
@@ -266,12 +303,9 @@ const PrintUsers: FunctionComponent<{
             className={adminCommon.mutedIcon}
           />
         </span>
-        <FontAwesomeIcon
-          icon={permission === "Editor" ? faPen : faEye}
-          className={adminCommon.mutedIcon}
-        />
+        <FontAwesomeIcon icon={icon} className={adminCommon.mutedIcon} />
         <span>
-          {permission}s ({visitorData.length})
+          {heading} ({visitorData.length})
         </span>
       </div>
       {showUsers && (
@@ -279,6 +313,7 @@ const PrintUsers: FunctionComponent<{
           <thead>
             <tr>
               <th>Name</th>
+              <th>Page</th>
               <th>Sessions</th>
               <th>App User</th>
               <th>IP Address</th>
@@ -293,20 +328,25 @@ const PrintUsers: FunctionComponent<{
               );
               const displayName = user?.display_name || `${user?.surname}, ${user?.givenname}`;
               return allVisitorRecords.map((record, index) => (
-                <tr key={`${missionId}-${record.socketId}-${index}`}>
+                <tr key={`${groupKey}-${record.socketId}-${index}`}>
                   {index === 0 ? <td rowSpan={allVisitorRecords.length}>{displayName}</td> : null}
+                  <td>{record.page ? visitorPageLabels[record.page] : "Unknown"}</td>
                   <td>
-                    <span
-                      className={
-                        record.permission === "editor"
-                          ? adminCommon.statusDisconnected
-                          : adminCommon.statusConnected
-                      }
-                    >
-                      {record.permission}
-                    </span>
+                    {record.permission ? (
+                      <span
+                        className={
+                          record.permission === "editor"
+                            ? adminCommon.statusDisconnected
+                            : adminCommon.statusConnected
+                        }
+                      >
+                        {record.permission}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
                   </td>
-                  <td>{record.appUser.username || "N/A"}</td>
+                  <td>{record.appUser?.username || "N/A"}</td>
                   <td>{record.launchpadUser?.ip_address || "N/A"}</td>
                   <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.85em" }}>
                     {record.clientAppVersion.version} – {record.clientAppVersion.gitCommit} –

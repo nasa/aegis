@@ -1,25 +1,30 @@
 /**
  * Tests for the admin DUST monitor page's socket lifecycle — specifically that
- * unmounting tears down the DUST namespace socket, not just the inspector socket.
+ * unmounting tears down the DUST namespace socket and leaves the inspector room on the shared app
+ * socket without disconnecting it.
  */
 import * as React from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
+import type * as ClientSocketHelpers from "utils/clientSocketHelpers";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-const { mockIo, mockCreateClientSocket, mockIsLoggedIn, mockGetMissionHomepageItems } = vi.hoisted(
+const { mockIo, mockGetClientSocket, mockIsLoggedIn, mockGetMissionHomepageItems } = vi.hoisted(
   () => ({
     mockIo: vi.fn(),
-    mockCreateClientSocket: vi.fn(),
+    mockGetClientSocket: vi.fn(),
     mockIsLoggedIn: vi.fn(),
     mockGetMissionHomepageItems: vi.fn(),
   })
 );
 
 vi.mock("socket.io-client", () => ({ io: mockIo }));
-vi.mock("utils/clientSocketHelpers", () => ({ createClientSocket: mockCreateClientSocket }));
+vi.mock("utils/clientSocketHelpers", async (importOriginal) => ({
+  ...(await importOriginal<typeof ClientSocketHelpers>()),
+  getClientSocket: mockGetClientSocket,
+}));
 vi.mock("http-client/login", () => ({ isLoggedIn: mockIsLoggedIn }));
 vi.mock("http-client/mission", () => ({ getMissionHomepageItems: mockGetMissionHomepageItems }));
 
@@ -45,6 +50,8 @@ const createFakeSocket = () => ({
   connect: vi.fn(),
   disconnect: vi.fn(),
   removeAllListeners: vi.fn(),
+  // Socket.IO manager, which emits reconnect_attempt / reconnect_failed
+  io: { on: vi.fn(), off: vi.fn() },
   _handlers: {} as Record<string, (...args: unknown[]) => void>,
 });
 
@@ -71,7 +78,7 @@ beforeEach(() => {
     if (event === "getDebugInfo") return { visitors: {}, docListenerMissionIds: [] };
     return { status: "success", message: "Mission joined" };
   });
-  mockCreateClientSocket.mockReturnValue(inspectorSocket);
+  mockGetClientSocket.mockReturnValue(inspectorSocket);
   mockIo.mockReturnValue(dustSocket);
   mockIsLoggedIn.mockResolvedValue({ status: "success", data: { isSuperAdmin: true } });
   mockGetMissionHomepageItems.mockResolvedValue({ status: "success", data: [] });
@@ -122,7 +129,7 @@ const connectAndJoin = async () => {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("DustV1 admin monitor", () => {
-  it("disconnects the DUST socket on unmount, not just the inspector socket", async () => {
+  it("disconnects the DUST socket on unmount and keeps the shared app socket open", async () => {
     await renderPage();
     await connectAndJoin();
 
@@ -133,9 +140,23 @@ describe("DustV1 admin monitor", () => {
       root.unmount();
     });
 
-    expect(inspectorSocket.disconnect).toHaveBeenCalled();
+    expect(inspectorSocket.disconnect).not.toHaveBeenCalled();
     expect(dustSocket.removeAllListeners).toHaveBeenCalled();
     expect(dustSocket.disconnect).toHaveBeenCalled();
+  });
+
+  it("joins the inspector room on an already connected app socket and leaves it on unmount", async () => {
+    inspectorSocket.connected = true;
+    await renderPage();
+    expect(inspectorSocket.emit).toHaveBeenCalledWith("inspectorJoin");
+
+    await act(async () => {
+      root.unmount();
+    });
+
+    expect(inspectorSocket.emit).toHaveBeenCalledWith("inspectorLeave");
+    expect(inspectorSocket.off).toHaveBeenCalledWith("inspectorUpdate", expect.any(Function));
+    expect(inspectorSocket.disconnect).not.toHaveBeenCalled();
   });
 
   it("does not throw on unmount when no DUST socket was ever created", async () => {
@@ -145,7 +166,7 @@ describe("DustV1 admin monitor", () => {
       root.unmount();
     });
 
-    expect(inspectorSocket.disconnect).toHaveBeenCalled();
+    expect(inspectorSocket.disconnect).not.toHaveBeenCalled();
     expect(mockIo).not.toHaveBeenCalled();
   });
 

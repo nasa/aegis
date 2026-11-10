@@ -5,6 +5,7 @@ export const globalValues: GlobalValues = {
   },
   orm: null,
   socketInterval: null, // ensures only 1 interval is running
+  notificationBannerTimer: null,
   appVersion: null,
   isEmssApiEnabled: true,
   automergeRepo: null,
