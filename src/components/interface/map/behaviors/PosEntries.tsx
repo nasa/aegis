@@ -182,10 +182,7 @@ export function PosEntries(): null {
     return orderPosEntriesNewestFirst(filterPosEntries(posEntries, mapDisplayPos));
   }, [shouldShow, posEntries, mapDisplayPos]);
 
-  const latestByType = useMemo(
-    () => getLatestPosEntriesByType(filteredEntries),
-    [filteredEntries]
-  );
+  const latestByType = useMemo(() => getLatestPosEntriesByType(filteredEntries), [filteredEntries]);
 
   // Set of UUIDs that are "latest" for at least one posType
   const latestUuids = useMemo(() => {

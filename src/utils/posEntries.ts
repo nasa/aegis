@@ -138,7 +138,8 @@ export function validatePosEntryEditValues(
   if (radiusError) return radiusError;
   if (values.petSeconds === null) return "PET is required";
   if (!Number.isSafeInteger(values.petSeconds)) return "PET must be a whole number of seconds";
-  if (!isPlacedLocation(values.location)) return "Place the position on the map or enter coordinates";
+  if (!isPlacedLocation(values.location))
+    return "Place the position on the map or enter coordinates";
   return null;
 }
 

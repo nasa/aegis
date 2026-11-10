@@ -3,12 +3,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
-import {
-  thunkUICancelPosEntryInEdit,
-  thunkDocDeletePosEntryByUuid,
-} from "store/thunk/thunkRexPosEntry";
+import { thunkEditPosEntry, thunkDeletePosEntry } from "store/thunk/thunkRexPosEntry";
 import styles from "./map-menu-pos.module.css";
-import { setPosEntryInEdit, setSelectedPosEntryUuid } from "store/rex";
 
 export const PosKabobMenu: FunctionComponent<{
   posEntry: PosEntry;
@@ -32,13 +28,8 @@ export const PosKabobMenu: FunctionComponent<{
     }
   };
 
-  const handleEdit = async (posEntryUuid: string) => {
-    //cancel out anything else in edit before putting this one in edit
-    await dispatch(thunkUICancelPosEntryInEdit());
-    // Store a plain copy: the doc entry's nested arrays/objects are Automerge objects, and
-    // writing them back into the doc later (e.g. a new entry reusing posTypeUuids) throws.
-    dispatch(setPosEntryInEdit(JSON.parse(JSON.stringify(posEntry))));
-    dispatch(setSelectedPosEntryUuid(posEntryUuid));
+  const handleEdit = (posEntryUuid: string) => {
+    dispatch(thunkEditPosEntry({ posEntryUuid }));
   };
   return (
     <>
@@ -67,7 +58,7 @@ export const PosKabobMenu: FunctionComponent<{
             onClick={(e) => {
               if (window.confirm("Are you sure you want to delete this Crew Position?")) {
                 dispatch(
-                  thunkDocDeletePosEntryByUuid({
+                  thunkDeletePosEntry({
                     posEntryUuid: posEntry.uuid,
                   })
                 );
