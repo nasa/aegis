@@ -7,6 +7,7 @@ import {
   cancelValidatedFieldEdit,
   displayField,
 } from "./missionTestHelpers";
+import { acceptConfirmToast } from "../helpers";
 
 /**
  * Find the index of a template by exact name.
@@ -138,17 +139,11 @@ export async function actionTemplatesTest(page: Page): Promise<string> {
     startingNumTemplates + 3
   );
 
-  // Delete t1 (confirm dialog)
+  // Delete t1 (confirm toast)
   t1Index = await findTemplateIndexExactName(page, t1);
-  const dialogPromiseToSave = new Promise<void>((resolve) => {
-    page.once("dialog", async (dialog) => {
-      await dialog.accept();
-      resolve();
-    });
-  });
   await page.getByLabel("Template Menu", { exact: true }).nth(t1Index).click();
   await page.locator("dialog[open]").getByLabel("Delete", { exact: true }).click();
-  await dialogPromiseToSave;
+  await acceptConfirmToast(page);
   await page.waitForTimeout(500);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(
@@ -169,27 +164,15 @@ export async function actionTemplatesTest(page: Page): Promise<string> {
 
   // Tear down remaining test action templates
   t2Index = await findTemplateIndexExactName(page, t2Edited);
-  const dialogPromiseTeardownOne = new Promise<void>((resolve) => {
-    page.once("dialog", async (dialog) => {
-      await dialog.accept();
-      resolve();
-    });
-  });
   await page.getByLabel("Template Menu", { exact: true }).nth(t2Index).click();
   await page.locator("dialog[open]").getByLabel("Delete", { exact: true }).click();
-  await dialogPromiseTeardownOne;
+  await acceptConfirmToast(page);
   await page.waitForTimeout(500);
 
   t1DupInd = await findTemplateIndexIncludesString(page, t1Dup);
-  const dialogPromiseTeardownTwo = new Promise<void>((resolve) => {
-    page.once("dialog", async (dialog) => {
-      await dialog.accept();
-      resolve();
-    });
-  });
   await page.getByLabel("Template Menu", { exact: true }).nth(t1DupInd).click();
   await page.locator("dialog[open]").getByLabel("Delete", { exact: true }).click();
-  await dialogPromiseTeardownTwo;
+  await acceptConfirmToast(page);
   await page.waitForTimeout(500);
 
   await expect(page.getByLabel("templateList-item", { exact: true })).toHaveCount(

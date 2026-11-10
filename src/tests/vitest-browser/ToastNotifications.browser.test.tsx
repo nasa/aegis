@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { page } from "@vitest/browser/context";
+import { page } from "vitest/browser";
 import { ToastContainer } from "react-toastify";
 import { displayToast } from "components/toastNotifications";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";

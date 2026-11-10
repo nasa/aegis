@@ -6,7 +6,7 @@
 
 import type { Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
-import { waitForPageReady, minimizeRexMenu } from "../helpers";
+import { waitForPageReady, minimizeRexMenu, acceptConfirmToast } from "../helpers";
 
 const MISSION_URL = "http://localhost:4000/mission/22";
 
@@ -143,6 +143,7 @@ test.describe("Mission 22 — Asset tracking", () => {
 
     await folder.getByLabel("Folder actions").click();
     await page.getByRole("menuitem", { name: "Delete Folder" }).click();
+    await acceptConfirmToast(page);
     await expect(folder).toHaveCount(0);
   });
 });
