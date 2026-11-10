@@ -76,7 +76,7 @@ export const thunkStartPosEntryMapDirective = appCreateAsyncThunk<void>(
 
 /**
  * Open a new entry for the selected REX at its current PET, prefilled from the most recent
- * entry's types, source, radius, and color, and start placing it on the map.
+ * entry's types, source, radius, and color. Map placement starts from the editor.
  */
 export const thunkAddPosEntry = appCreateAsyncThunk<void>(
   "posEntry/add",
@@ -109,7 +109,6 @@ export const thunkAddPosEntry = appCreateAsyncThunk<void>(
         elevationPending: false,
       })
     );
-    await dispatch(thunkStartPosEntryMapDirective());
   }
 );
 
