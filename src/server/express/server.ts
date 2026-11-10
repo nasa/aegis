@@ -31,6 +31,7 @@ import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
 import { performance, PerformanceObserver } from "node:perf_hooks";
+import { startNewtonTraverseCache, stopNewtonTraverseCache } from "server/newton/traverseCache";
 
 // this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
@@ -376,6 +377,15 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
     watchTerrainCache(handle);
   });
   await loadRunningMissionDocuments(missionRepo);
+  await startNewtonTraverseCache().catch((err) =>
+    serverLogger.error(
+      {
+        logId: "server:startNewtonTraverseCache:failedToStartNewtonTraverseCache",
+        logValue: "Could not start the Newton traverse cache",
+      },
+      err instanceof Error ? err : new Error(String(err))
+    )
+  );
   server.listen(4001, () => {
     serverLogger.info({
       logId: "server:httpServerListen:serverListeningOnPort4001",
@@ -518,6 +528,8 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
         logValue: "HTTP server already closed (by Socket.IO)",
       });
     }
+
+    await stopNewtonTraverseCache();
 
     try {
       await closeRasterSamplingWorkerPool();
