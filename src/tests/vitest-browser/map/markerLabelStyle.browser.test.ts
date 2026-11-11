@@ -12,6 +12,7 @@ import Point from "ol/geom/Point";
 import type { Style } from "ol/style";
 import { Icon, Circle as CircleStyle } from "ol/style";
 import { createMarkerLabelStyle } from "components/interface/map/utils/styles/markerLabels";
+import { measureLabelText } from "components/interface/map/utils/labelLayout";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -212,5 +213,19 @@ describe("createMarkerLabelStyle", () => {
     // Bold glyphs are wider, so the box is wider; the height is unchanged
     expect(boldCanvas.width).toBeGreaterThan(plainCanvas.width);
     expect(boldCanvas.height).toBe(plainCanvas.height);
+  });
+
+  it("renders position labels in monospace with the measured layout width", () => {
+    const fn = createMarkerLabelStyle();
+    const widths = ["iiii", "WWWW"].map((name) => {
+      const style = asArray(fn(makeLabelFeature({ name, labelType: "pos" }), 1))[0];
+      const canvas = (style.getImage() as Icon).getImage(1) as HTMLCanvasElement;
+      const measured = measureLabelText(name, 14, "normal", "pos")!;
+      expect(canvas.width).toBe(
+        Math.round(Math.ceil(measured.width) * (window.devicePixelRatio || 1))
+      );
+      return canvas.width;
+    });
+    expect(widths[0]).toBe(widths[1]);
   });
 });

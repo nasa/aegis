@@ -223,6 +223,7 @@ beforeEach(() => {
   mockMissionDoc.pois = undefined;
   mockMissionDoc.actions = undefined;
   mockMissionDoc.assets = undefined;
+  mockMissionDoc.rexes = undefined;
   mockMissionDoc.actionSystemVersion = undefined;
   mockMissionDoc.actionDefinitions = undefined;
   mockMissionDoc.actionDefinitionConjunctions = undefined;
@@ -258,6 +259,78 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("MarkerLabels", () => {
+  function setupPositionLabels(isRunning: boolean, petSeconds = 3600) {
+    mockMissionDoc.rexes = {
+      [REX_UUID]: {
+        uuid: REX_UUID,
+        isRunning,
+        petRunning: false,
+        petValueAtStartStop: "+02:02:03",
+        posEntries: [
+          {
+            uuid: "pos-1",
+            location: { lat: 0, lng: 0 },
+            petSeconds,
+            posTypeUuids: ["ev1"],
+            posSourceUuid: "task",
+            createdAt: 1,
+          },
+        ],
+        posTypes: [{ uuid: "ev1", abbr: "EV1" }],
+        posSources: [{ uuid: "task", abbr: "T" }],
+      } as Rex,
+    };
+    store = makeStore({
+      interface: { ...interfaceSlice.getInitialState(), sectionSelectedLabel: "evas" },
+      rex: { ...rexSlice.getInitialState(), selectedRexUuid: REX_UUID },
+    } as PartialPreloadedState);
+    renderMarkerLabels();
+    flushSync(() => {
+      capturedSetters!.setSubmenuPos((previous) => ({
+        ...previous,
+        show: true,
+        showLatestLabels: true,
+        sourceUuids: [],
+      }));
+    });
+  }
+
+  it.each([
+    [7323, "00s ago"],
+    [7318, "05s ago"],
+    [7188, "02m15s ago"],
+    [3600, "1h02m03s ago"],
+    [7400, "00s ago"],
+  ])(
+    "shows a distinct position age during a running REX (placed at %s)",
+    async (petSeconds, age) => {
+      setupPositionLabels(true, petSeconds);
+      await expect
+        .poll(() => labelSource!.getFeatureById("pos-pos-1")!.get("name"))
+        .toBe(`${age} / EV1 (T)`);
+    }
+  );
+
+  it.each([3600, -60])("shows placement PET for a stopped REX (placed at %s)", (petSeconds) => {
+    setupPositionLabels(false, petSeconds);
+    const pet = petSeconds === 3600 ? "+01:00:00" : "-00:01:00";
+    expect(labelSource!.getFeatureById("pos-pos-1")!.get("name")).toBe(`${pet} / EV1 (T)`);
+  });
+
+  it("switches from age to placement PET when the selected REX stops", async () => {
+    setupPositionLabels(true);
+    await expect
+      .poll(() => labelSource!.getFeatureById("pos-pos-1")!.get("name"))
+      .toBe("1h02m03s ago / EV1 (T)");
+
+    mockMissionDoc.rexes = {
+      ...mockMissionDoc.rexes,
+      [REX_UUID]: { ...mockMissionDoc.rexes![REX_UUID], isRunning: false },
+    };
+    renderMarkerLabels();
+    expect(labelSource!.getFeatureById("pos-pos-1")!.get("name")).toBe("+01:00:00 / EV1 (T)");
+  });
+
   it("updates station and POI labels from shared folder visibility", () => {
     mockMissionDoc.stations = { [STATION_A_UUID]: makeStation(STATION_A_UUID, 10, 20) };
     mockMissionDoc.pois = { [POI_UUID]: makePoi(POI_UUID, 15, 25) };

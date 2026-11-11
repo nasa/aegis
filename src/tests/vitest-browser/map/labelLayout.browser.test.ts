@@ -22,6 +22,13 @@ describe("measureLabelText (browser)", () => {
     expect(long.width).toBeGreaterThan(short.width);
   });
 
+  it("measures position labels with equal character widths", () => {
+    expect(measureLabelText("iiii", 14, "normal", "pos")!.width).toBe(
+      measureLabelText("WWWW", 14, "normal", "pos")!.width
+    );
+    expect(measureLabelText("iiii", 14)!.width).toBeLessThan(measureLabelText("WWWW", 14)!.width);
+  });
+
   it("respects custom font sizes via the height formula", () => {
     expect(measureLabelText("X", 18)!.height).toBe(18 + 8);
     expect(measureLabelText("X", 24)!.height).toBe(24 + 8);
