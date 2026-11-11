@@ -259,13 +259,13 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("MarkerLabels", () => {
-  function setupPositionLabels(isRunning: boolean, petSeconds = 3600) {
+  function setupPositionLabels(isRunning: boolean, petSeconds = 3600, petTime = "+02:02:03") {
     mockMissionDoc.rexes = {
       [REX_UUID]: {
         uuid: REX_UUID,
         isRunning,
         petRunning: false,
-        petValueAtStartStop: "+02:02:03",
+        petValueAtStartStop: petTime,
         posEntries: [
           {
             uuid: "pos-1",
@@ -310,6 +310,17 @@ describe("MarkerLabels", () => {
         .toBe(`${age} / EV1 (T)`);
     }
   );
+
+  it.each([
+    ["+24:00:00", "24h00m00s ago"],
+    ["+49:04:02", "49h04m02s ago"],
+    ["+100:04:02", "100h04m02s ago"],
+  ])("keeps counting total hours in position ages at PET %s", async (petTime, age) => {
+    setupPositionLabels(true, 0, petTime);
+    await expect
+      .poll(() => labelSource!.getFeatureById("pos-pos-1")!.get("name"))
+      .toBe(`${age} / EV1 (T)`);
+  });
 
   it.each([3600, -60])("shows placement PET for a stopped REX (placed at %s)", (petSeconds) => {
     setupPositionLabels(false, petSeconds);
