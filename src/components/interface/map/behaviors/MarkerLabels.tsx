@@ -34,7 +34,7 @@ import { Translate } from "ol/interaction";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
-import { hhmmssFromSeconds, secondsFromhhmmss } from "utils/formatting";
+import { hhmmssFromSeconds, padZeros, secondsFromhhmmss } from "utils/formatting";
 import { getActionDisplayName } from "utils/component-helpers";
 import { getEgressStationUuid } from "operations/helpers/evaSequence";
 import { getVisibleMapAssets } from "utils/assets";
@@ -482,15 +482,19 @@ export function MarkerLabels(): null {
           .map((uuid) => posTypes.find((pt) => pt.uuid === uuid)?.abbr)
           .filter(Boolean);
         const sourceAbbr = posSources.find((ps) => ps.uuid === entry.posSourceUuid)?.abbr ?? "";
-        // Show age of this entry: how long ago it was placed relative to current PET.
-        // petSeconds on the entry is the absolute PET when it was recorded.
-        // committedPetTime stops advancing while a drag is in progress so
-        // this memo isn't rebuilt mid-drag (which would snap the label back).
-        const currentPetSeconds = committedPetTime
-          ? secondsFromhhmmss(committedPetTime)
-          : entry.petSeconds;
-        const ageSeconds = Math.max(0, currentPetSeconds - entry.petSeconds);
-        const labelText = `${hhmmssFromSeconds(ageSeconds)} / ${abbrs.join(",")} (${sourceAbbr})`;
+        let timeText = hhmmssFromSeconds(entry.petSeconds);
+        if (selectedRex.isRunning) {
+          // Freeze the PET-relative age during label drags to preserve the drag position.
+          const currentPetSeconds = committedPetTime
+            ? secondsFromhhmmss(committedPetTime)
+            : entry.petSeconds;
+          const ageSeconds = Math.max(0, Math.trunc(currentPetSeconds - entry.petSeconds));
+          const hours = Math.floor(ageSeconds / 3600);
+          const minutes = Math.floor((ageSeconds % 3600) / 60);
+          const seconds = ageSeconds % 60;
+          timeText = `${hours ? `${hours}h` : ""}${hours || minutes ? `${padZeros(minutes, 2)}m` : ""}${padZeros(seconds, 2)}s ago`;
+        }
+        const labelText = `${timeText} / ${abbrs.join(",")} (${sourceAbbr})`;
 
         infos.push({
           id: `pos-${entry.uuid}`,
@@ -711,7 +715,8 @@ export function MarkerLabels(): null {
       const measurement = measureLabelText(
         info.name,
         info.labelType === "asset" ? config.asset.labelFontSize : config.markerLabel.fontSize,
-        info.labelType === "asset" ? config.asset.labelFontWeight : "normal"
+        info.labelType === "asset" ? config.asset.labelFontWeight : "normal",
+        info.labelType
       );
       if (!measurement) continue;
 

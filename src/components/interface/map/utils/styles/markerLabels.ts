@@ -18,6 +18,7 @@ import type Feature from "ol/Feature";
 import Point from "ol/geom/Point";
 import { LineString } from "ol/geom";
 import { Style, Icon, Stroke, Fill, Circle as CircleStyle } from "ol/style";
+import { getMarkerLabelFont } from "../labelLayout";
 
 import type { ModeConfig } from "../modeConfig";
 
@@ -26,7 +27,7 @@ import type { ModeConfig } from "../modeConfig";
 // ---------------------------------------------------------------------------
 
 const DEFAULT_LABEL_FONT_SIZE = 14;
-const LABEL_FONT = `${DEFAULT_LABEL_FONT_SIZE}px sans-serif`;
+const LABEL_FONT = getMarkerLabelFont(DEFAULT_LABEL_FONT_SIZE, "station");
 const TEXT_PADDING_H = 6;
 const TEXT_PADDING_V = 4;
 const DOT_RADIUS = 3;
@@ -105,7 +106,7 @@ export function createMarkerLabelStyle(
     const isAsset = labelType === "asset";
     const fontPx = isAsset && asset ? asset.labelFontSize : fontSizePx;
     const fontWeight = isAsset && asset ? asset.labelFontWeight : "normal";
-    const fontSpec = `${fontWeight} ${fontPx}px sans-serif`;
+    const fontSpec = getMarkerLabelFont(fontPx, labelType, fontWeight);
     const boxColors =
       isAsset && asset ? { ...colors, text: asset.labelTextColor, bg: asset.labelBgColor } : colors;
 
