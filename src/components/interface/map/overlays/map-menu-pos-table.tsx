@@ -400,24 +400,27 @@ const PositionDetails: FunctionComponent<{
             updateColor={() => undefined}
           />
         </div>
-        <span className={assetStyles.fieldLabel}>Position</span>
+        <span className={assetStyles.fieldLabel}>
+          Position ({coordinateContext.usingLGRSCoordinates ? "LGRS" : "Lat/Lng"})
+        </span>
         <div className={posStyles.detailsPosition}>
           <span data-testid="position-details-coordinates">
             {entry.location
               ? formatCoordinateEntry(entry.location, coordinateContext)
               : "Not placed"}
           </span>
-          {entry.location && (
-            <div className={assetStyles.fieldNote}>
-              {coordinateContext.usingLGRSCoordinates && (
-                <span>{formatLatLng(entry.location)}</span>
-              )}
-              <span data-testid="position-details-elevation">
-                Elev (m) {entry.elevation != null ? entry.elevation.toFixed(1) : "—"}
-              </span>
-            </div>
-          )}
         </div>
+        {coordinateContext.usingLGRSCoordinates && entry.location && (
+          <span className={assetStyles.fieldLabel}>Lat/Lng</span>
+        )}
+        {entry.location && (
+          <div className={`${assetStyles.fieldNote} ${posStyles.detailsValue}`}>
+            {coordinateContext.usingLGRSCoordinates && <span>{formatLatLng(entry.location)}</span>}
+            <span data-testid="position-details-elevation">
+              Elev (m) {entry.elevation != null ? entry.elevation.toFixed(1) : "—"}
+            </span>
+          </div>
+        )}
         <PositionWalkback
           location={entry.location}
           evaUuid={rex.evaUuid}

@@ -40,7 +40,7 @@ export const PositionWalkback: FunctionComponent<{
           </span>
         </>
       )}
-      <span className={assetStyles.fieldLabel}>WB Dur (m)</span>
+      <span className={assetStyles.fieldLabel}>WB Dur (min)</span>
       <span data-testid={`${testIdPrefix}-walkback`}>
         {Number.isFinite(walkbackMins) ? walkbackMins : unavailableValue}
       </span>
