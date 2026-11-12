@@ -363,7 +363,9 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
           </div>
         )}
 
-        <span className={assetStyles.fieldLabel}>Position *</span>
+        <span className={assetStyles.fieldLabel}>
+          Position ({coordinateContext.usingLGRSCoordinates ? "LGRS" : "Lat/Lng"}) *
+        </span>
         <div className={assetStyles.fieldControls}>
           <InLineEditInput
             value={coordinateText}
@@ -411,6 +413,9 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
             />
           )}
         </div>
+        {coordinateContext.usingLGRSCoordinates && values.location && (
+          <span className={assetStyles.fieldLabel}>Lat/Lng</span>
+        )}
         {(values.location || inEdit.elevationPending) && (
           <div className={`${assetStyles.fieldNote} ${assetStyles.fieldValueColumn}`}>
             {coordinateContext.usingLGRSCoordinates && values.location && (
