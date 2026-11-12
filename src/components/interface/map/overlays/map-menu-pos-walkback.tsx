@@ -11,7 +11,8 @@ export const PositionWalkback: FunctionComponent<{
   location: AEGISPoint | null;
   evaUuid: string;
   testIdPrefix: string;
-}> = ({ location, evaUuid, testIdPrefix }) => {
+  showLanderDistance?: boolean;
+}> = ({ location, evaUuid, testIdPrefix, showLanderDistance = true }) => {
   const walkback = useMissionDocSelector(
     (m) => ({
       landerLocation: m.landerLocation,
@@ -31,13 +32,17 @@ export const PositionWalkback: FunctionComponent<{
 
   return (
     <div className={posStyles.pairedFields}>
-      <span className={assetStyles.fieldLabel}>Lander Dist.</span>
-      <span data-testid={`${testIdPrefix}-lander-distance`}>
-        {Number.isFinite(distanceToLander) ? `${distanceToLander.toFixed(2)} m` : unavailableValue}
-      </span>
-      <span className={assetStyles.fieldLabel}>WB Dur.</span>
+      {showLanderDistance && (
+        <>
+          <span className={assetStyles.fieldLabel}>Lander Dist (m)</span>
+          <span data-testid={`${testIdPrefix}-lander-distance`}>
+            {Number.isFinite(distanceToLander) ? Math.round(distanceToLander) : unavailableValue}
+          </span>
+        </>
+      )}
+      <span className={assetStyles.fieldLabel}>WB Dur (m)</span>
       <span data-testid={`${testIdPrefix}-walkback`}>
-        {Number.isFinite(walkbackMins) ? `${walkbackMins} min` : unavailableValue}
+        {Number.isFinite(walkbackMins) ? walkbackMins : unavailableValue}
       </span>
     </div>
   );

@@ -92,6 +92,7 @@ describe("Thunk Position Entry Tests", () => {
         posSourceUuid: rex.posSources.find((s) => s.name === "Task").uuid,
         uncertaintyMeters: 0,
         color: null,
+        notes: null,
       });
       expect(store.getState().rex.selectedPosEntryUuid).toBe(draft.uuid);
       // Nothing is written until Save.
@@ -147,6 +148,7 @@ describe("Thunk Position Entry Tests", () => {
           posTypeUuids: [rex.posTypes[0].uuid],
           uncertaintyMeters: 12,
           color: "#123456",
+          notes: "Near the boulder",
         })
       );
       await store.dispatch(thunkSetPosEntryEditLocation({ uuid, location: { lat: 2, lng: 3 } }));
@@ -166,6 +168,7 @@ describe("Thunk Position Entry Tests", () => {
         posTypeUuids: [rex.posTypes[0].uuid],
         uncertaintyMeters: 12,
         color: "#123456",
+        notes: "Near the boulder",
       });
       expect(inEdit()).toBeNull();
       expect(store.getState().rex.selectedPosEntryUuid).toBe(uuid);
@@ -210,6 +213,25 @@ describe("Thunk Position Entry Tests", () => {
       expect(entries()[0].updatedAt).toBeGreaterThanOrEqual(entry.updatedAt);
       // The row stays expanded after saving.
       expect(store.getState().rex.expandedPosEntryUuid).toBe(entry.uuid);
+    });
+
+    test("saves, cancels, and clears position notes through the draft", async () => {
+      const entry = seedEntry({ notes: "Original" });
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
+      store.dispatch(updatePosEntryInEditValues({ notes: "Unsaved" }));
+      expect(entries()[0].notes).toBe("Original");
+      await store.dispatch(thunkCancelPosEntryEdit());
+      expect(entries()[0].notes).toBe("Original");
+
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
+      store.dispatch(updatePosEntryInEditValues({ notes: "Near the boulder\nCheck terrain" }));
+      await store.dispatch(thunkSavePosEntryEdit()).unwrap();
+      expect(entries()[0].notes).toBe("Near the boulder\nCheck terrain");
+
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
+      store.dispatch(updatePosEntryInEditValues({ notes: null }));
+      await store.dispatch(thunkSavePosEntryEdit()).unwrap();
+      expect(entries()[0].notes).toBeNull();
     });
 
     test("moving an existing entry waits for its elevation", async () => {

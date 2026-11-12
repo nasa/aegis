@@ -10,6 +10,7 @@ import {
   Button,
   InLineEditInput,
   PathColorPickerMenu,
+  TextArea,
 } from "components/interface/form/globalFields";
 import {
   composeValidators,
@@ -29,6 +30,7 @@ import {
 import { parseAssetPetSeconds } from "utils/assets";
 import {
   POS_ENTRY_RADIUS_MAX_METERS,
+  POS_ENTRY_NOTES_MAX_LENGTH,
   validatePosEntryEditValues,
   validatePosEntryRadius,
 } from "utils/posEntries";
@@ -53,6 +55,7 @@ interface PositionEditorFieldText {
   radius: string;
   coordinates: string;
   pet: string;
+  notes: string;
 }
 
 const RADIUS_VALIDATORS = [
@@ -61,7 +64,18 @@ const RADIUS_VALIDATORS = [
   validators.maxValue(POS_ENTRY_RADIUS_MAX_METERS),
 ];
 const PET_VALIDATORS = [validators.mustBeHHMMSS];
+const NOTES_VALIDATORS = [validators.maxLength(POS_ENTRY_NOTES_MAX_LENGTH)];
 const GROW_INPUT_CONTAINER_STYLE: CSSProperties = { flex: "1 1 110px", minWidth: 0 };
+const NOTES_TEXT_AREA_STYLE: CSSProperties = {
+  height: "auto",
+  minHeight: 22,
+  boxSizing: "border-box",
+  lineHeight: 1.4,
+  fontFamily: "inherit",
+  overflowWrap: "anywhere",
+  overflowY: "auto",
+  resize: "both",
+};
 
 /** Segmented toggle buttons for pos types (multi-select) or pos sources (single-select). */
 const ToggleGroup: FunctionComponent<{
@@ -127,6 +141,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
     radius: String(values.uncertaintyMeters),
     coordinates: formattedLocation,
     pet: formattedPet,
+    notes: values.notes ?? "",
   }));
   const setText = (field: keyof PositionEditorFieldText, text: string) =>
     setFieldText((previous) => ({ ...previous, [field]: text }));
@@ -162,6 +177,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
     );
   }, [values.petSeconds, formattedPet]);
   const petError = validators.mustBeHHMMSS(petText);
+  const notesError = composeValidators(...NOTES_VALIDATORS)(fieldText.notes, {});
   const currentPetAvailable = petSecondsAt(rex, getAccurateNow().getTime()) !== null;
 
   // Valid typed coordinates count as placed before they are submitted; Save parses them first.
@@ -172,7 +188,13 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
   );
   const [saving, setSaving] = useState(false);
   const saveEnabled =
-    editable && !invalid && !petError && !coordinateValidationError && !radiusError && !saving;
+    editable &&
+    !invalid &&
+    !petError &&
+    !notesError &&
+    !coordinateValidationError &&
+    !radiusError &&
+    !saving;
 
   const submitCoordinates = () => {
     const text = coordinateText.trim();
@@ -240,7 +262,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
                 ? inEdit.elevationPending
                   ? "Waiting for elevation…"
                   : "Saving…"
-                : petError || coordinateValidationError || invalid || "Save"
+                : petError || notesError || coordinateValidationError || invalid || "Save"
             }
             className={`${assetStyles.iconOnlyButton} ${saveEnabled ? assetStyles.saveButton : assetStyles.saveButtonDisabled}`}
             enabled={saveEnabled}
@@ -395,11 +417,11 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
               <span>{formatLatLng(values.location)}</span>
             )}
             <span data-testid="position-editor-elevation">
-              Elev.{" "}
+              Elev (m){" "}
               {inEdit.elevationPending
                 ? "Fetching…"
                 : values.elevation !== null
-                  ? `${values.elevation.toFixed(1)} m`
+                  ? values.elevation.toFixed(1)
                   : "—"}
             </span>
           </div>
@@ -476,6 +498,26 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
           </div>
         )}
 
+        <span className={`${assetStyles.fieldLabel} ${assetStyles.notesLabel}`}>Notes</span>
+        <TextArea
+          value={fieldText.notes}
+          editing={editable}
+          debounceSubmit={false}
+          onSubmit={(notes) => dispatch(updatePosEntryInEditValues({ notes: notes || null }))}
+          fieldProps={{
+            name: "notes",
+            ariaLabel: "Position notes",
+            style: NOTES_TEXT_AREA_STYLE,
+            validators: NOTES_VALIDATORS,
+            inputProps: {
+              placeholder: "Optional",
+              maxLength: POS_ENTRY_NOTES_MAX_LENGTH,
+              "data-testid": "position-editor-notes",
+              rows: 3,
+            },
+            onValueChange: (text) => setText("notes", text),
+          }}
+        />
         {entry && (
           <div className={assetStyles.editorLastModified}>
             <span className={assetStyles.fieldLabel}>Last Edited:</span>
