@@ -209,7 +209,7 @@
   --dv-activegroup-hiddenpanel-tab-color: var(--grey4);
   --dv-inactivegroup-hiddenpanel-tab-color: var(--grey4);
 }
-/* The selected Rex Menu tab matches the Assets background; the rest of the tab bar is black. */
+/* Match the right-panel tabs, keeping text labels in place of icons. */
 .container
   :global(
     .dv-groupview-floating:has(
@@ -217,11 +217,14 @@
       [data-testid="assets-floating-panel"]
     )
   ) {
+  --dv-tabs-and-actions-container-height: 32px;
   --dv-tabs-and-actions-container-background-color: black;
   --dv-activegroup-visiblepanel-tab-background-color: var(--grey1);
   --dv-inactivegroup-visiblepanel-tab-background-color: var(--grey1);
   --dv-activegroup-hiddenpanel-tab-background-color: black;
   --dv-inactivegroup-hiddenpanel-tab-background-color: black;
+  --dv-activegroup-hiddenpanel-tab-color: var(--grey5);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--grey5);
 }
 
 .container
@@ -233,7 +236,33 @@
       .dv-tab
   ) {
   min-width: 80px;
-  box-shadow: inset -1px 0 var(--grey1);
+  border-top: 3px solid black;
+  border-radius: 4px 4px 0 0;
+}
+
+.container
+  :global(
+    .dv-groupview-floating:has(
+        [data-testid="positions-floating-panel"],
+        [data-testid="assets-floating-panel"]
+      )
+      .dv-tab:hover
+  ) {
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--grey1);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--grey1);
+
+  border-top-color: var(--grey1);
+}
+
+.container
+  :global(
+    .dv-groupview-floating:has(
+        [data-testid="positions-floating-panel"],
+        [data-testid="assets-floating-panel"]
+      )
+      .dv-tab.dv-active-tab
+  ) {
+  border-top-color: var(--grey4);
 }
 
 /* Dockview reserves label spacing for a close button even when that button is hidden. */
