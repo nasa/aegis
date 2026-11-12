@@ -102,6 +102,7 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
     posSourceUuid: "",
     uncertaintyMeters: 0,
     color: null,
+    notes: null,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

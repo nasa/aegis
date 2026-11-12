@@ -5,6 +5,7 @@ import {
   faCaretDown,
   faCaretRight,
   faEdit,
+  faNoteSticky,
   faTrashAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -18,6 +19,8 @@ import { PathColorPickerMenu } from "components/interface/form/globalFields";
 import { LastEditedNumeric } from "components/interface/_global-elements";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { setExpandedPosEntryUuid, setSelectedPosEntryUuid } from "store/rex";
 import { setHoverUuidsForPosEntry } from "store/hover";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
@@ -26,7 +29,7 @@ import { getLatestPosEntryUuids, orderPosEntriesNewestFirst } from "utils/posEnt
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { hhmmssFromSeconds } from "utils/formatting";
 
-const COLUMN_COUNT = 6;
+const COLUMN_COUNT = 8;
 
 type Props = {
   rex: Rex;
@@ -94,8 +97,16 @@ export const PositionTable: FunctionComponent<Props> = ({
           <col className={posStyles.colNumber} />
           <col className={posStyles.colPet} />
           <col className={posStyles.colTypes} />
-          <col className={assetStyles.colCoords} />
+          <col className={posStyles.colLanderDistance} />
+          <col
+            className={
+              coordinateContext.usingLGRSCoordinates || coordinateContext.serverGrid
+                ? assetStyles.colCoords
+                : posStyles.colLatLng
+            }
+          />
           <col className={posStyles.colSource} />
+          <col className={assetStyles.colNotes} />
           {canEdit && <col className={assetStyles.colActions} />}
         </colgroup>
         <thead>
@@ -103,8 +114,12 @@ export const PositionTable: FunctionComponent<Props> = ({
             <th>#</th>
             <th>PET</th>
             <th>Types</th>
+            <th data-tooltip-id="aegis-tooltip" data-tooltip-content="Lander Distance (m)">
+              Lndr
+            </th>
             <th>Coords</th>
-            <th>Src</th>
+            <th aria-label="Source" />
+            <th aria-label="Notes" />
             {canEdit && <th aria-label="Actions" />}
           </tr>
         </thead>
@@ -198,6 +213,11 @@ const PositionRow: FunctionComponent<{
   );
   const isHovered = useAppSelector((s) => s.hover.posEntryItemUuid === entry.uuid, refEqual);
   const rowRef = useRef<HTMLTableRowElement | null>(null);
+  const distanceToLander = useMissionDocSelector((m) =>
+    entry.location && m.landerLocation && m.planetRadius
+      ? getDistanceBetweenTwoCoordinates(entry.location, m.landerLocation, m.planetRadius)
+      : NaN
+  );
 
   useEffect(() => {
     if (isSelected) rowRef.current?.scrollIntoView?.({ block: "nearest" });
@@ -205,6 +225,7 @@ const PositionRow: FunctionComponent<{
 
   const source = rex.posSources?.find((s) => s.uuid === entry.posSourceUuid);
   const typeNames = getPosTypeNames(rex, entry);
+  const hasNotes = !!entry.notes?.trim();
 
   const rowClass = [
     assetStyles.assetRow,
@@ -265,13 +286,42 @@ const PositionRow: FunctionComponent<{
         <td data-tooltip-id="aegis-tooltip" data-tooltip-content={typeNames.join(", ")}>
           {typeNames.join(", ")}
         </td>
+        <td
+          data-testid={`position-lander-distance-${entry.uuid}`}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content="Lander Distance (m)"
+        >
+          {Number.isFinite(distanceToLander)
+            ? Math.round(distanceToLander)
+            : entry.location
+              ? "Not set"
+              : "-"}
+        </td>
         <td>
           {entry.location
-            ? formatCoordinateEntry(entry.location, { ...coordinateContext, dynamicLgrs: false })
+            ? formatCoordinateEntry(entry.location, { ...coordinateContext, dynamicLgrs: false }, 5)
             : "Not placed"}
         </td>
-        <td data-tooltip-id="aegis-tooltip" data-tooltip-content={source?.name}>
+        <td
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content={source ? `Source: ${source.name}(${source.abbr})` : undefined}
+        >
           {source?.abbr}
+        </td>
+        <td
+          className={assetStyles.notesCell}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content={hasNotes ? entry.notes : undefined}
+        >
+          {hasNotes && (
+            <span
+              className={`${assetStyles.notesIndicator} ${assetStyles.notesPresent}`}
+              role="img"
+              aria-label="Has notes"
+            >
+              <FontAwesomeIcon icon={faNoteSticky} />
+            </span>
+          )}
         </td>
         {canEdit && (
           <td>
@@ -316,13 +366,7 @@ const PositionRow: FunctionComponent<{
                 coordinateContext={coordinateContext}
               />
             ) : (
-              <PositionDetails
-                entry={entry}
-                rex={rex}
-                typeNames={typeNames}
-                sourceName={source?.name}
-                coordinateContext={coordinateContext}
-              />
+              <PositionDetails entry={entry} rex={rex} coordinateContext={coordinateContext} />
             )}
           </td>
         </tr>
@@ -335,24 +379,16 @@ const PositionRow: FunctionComponent<{
 const PositionDetails: FunctionComponent<{
   entry: PosEntry;
   rex: Rex;
-  typeNames: string[];
-  sourceName: string | undefined;
   coordinateContext: CoordinateEntryContext;
-}> = ({ entry, rex, typeNames, sourceName, coordinateContext }) => {
+}> = ({ entry, rex, coordinateContext }) => {
   return (
     <div
       className={`${assetStyles.editor} ${assetStyles.editorView}`}
       data-testid="position-details"
     >
-      <div className={assetStyles.editorForm}>
-        <div className={posStyles.pairedFields}>
-          <span className={assetStyles.fieldLabel}>Types</span>
-          <span data-testid="position-details-types">{typeNames.join(", ") || "—"}</span>
-          <span className={assetStyles.fieldLabel}>Source</span>
-          <span data-testid="position-details-source">{sourceName || "—"}</span>
-        </div>
+      <div className={posStyles.detailsForm}>
         <span className={assetStyles.fieldLabel}>Radius (m)</span>
-        <div className={assetStyles.fieldControls}>
+        <div className={`${assetStyles.fieldControls} ${posStyles.detailsValue}`}>
           <span data-testid="position-details-uncertainty">{entry.uncertaintyMeters ?? 0}</span>
           <span className={`${assetStyles.fieldLabel} ${assetStyles.inlineFieldLabel}`}>
             Radius color
@@ -365,24 +401,39 @@ const PositionDetails: FunctionComponent<{
           />
         </div>
         <span className={assetStyles.fieldLabel}>Position</span>
-        <span data-testid="position-details-coordinates">
-          {entry.location ? formatCoordinateEntry(entry.location, coordinateContext) : "Not placed"}
-        </span>
-        {entry.location && (
-          <div className={`${assetStyles.fieldNote} ${assetStyles.fieldValueColumn}`}>
-            {coordinateContext.usingLGRSCoordinates && <span>{formatLatLng(entry.location)}</span>}
-            <span data-testid="position-details-elevation">
-              Elev. {entry.elevation != null ? `${entry.elevation.toFixed(1)} m` : "—"}
-            </span>
-          </div>
-        )}
+        <div className={posStyles.detailsPosition}>
+          <span data-testid="position-details-coordinates">
+            {entry.location
+              ? formatCoordinateEntry(entry.location, coordinateContext)
+              : "Not placed"}
+          </span>
+          {entry.location && (
+            <div className={assetStyles.fieldNote}>
+              {coordinateContext.usingLGRSCoordinates && (
+                <span>{formatLatLng(entry.location)}</span>
+              )}
+              <span data-testid="position-details-elevation">
+                Elev (m) {entry.elevation != null ? entry.elevation.toFixed(1) : "—"}
+              </span>
+            </div>
+          )}
+        </div>
         <PositionWalkback
           location={entry.location}
           evaUuid={rex.evaUuid}
           testIdPrefix="position-details"
         />
         <span className={assetStyles.fieldLabel}>PET</span>
-        <span data-testid="position-details-pet">{hhmmssFromSeconds(entry.petSeconds)}</span>
+        <span className={posStyles.detailsValue} data-testid="position-details-pet">
+          {hhmmssFromSeconds(entry.petSeconds)}
+        </span>
+        <span className={`${assetStyles.fieldLabel} ${assetStyles.notesLabel}`}>Notes</span>
+        <div
+          className={`${assetStyles.viewNotes} ${posStyles.detailsValue}`}
+          data-testid="position-details-notes"
+        >
+          <div>{entry.notes || ""}</div>
+        </div>
         <div className={assetStyles.editorLastModified}>
           <span className={assetStyles.fieldLabel}>Last Edited:</span>
           <LastEditedNumeric

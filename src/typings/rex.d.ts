@@ -107,6 +107,8 @@ interface PosEntry {
   uncertaintyMeters: number;
   /** Radius fill color; null renders transparent. */
   color: string | null;
+  /** Optional on entries saved before notes were supported. */
+  notes?: string | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -117,7 +119,7 @@ interface PosEntry {
  */
 type PosEntryEditValues = Pick<
   PosEntry,
-  "elevation" | "posTypeUuids" | "uncertaintyMeters" | "color"
+  "elevation" | "posTypeUuids" | "uncertaintyMeters" | "color" | "notes"
 > & {
   location: AEGISPoint | null;
   petSeconds: number | null;

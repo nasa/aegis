@@ -11,15 +11,16 @@ const LAT_LNG_PATTERN = /^\s*([+-]?\d+(?:\.\d+)?)\s*[,\s]\s*([+-]?\d+(?:\.\d+)?)
 /** A "lat, lng" pair so far — only digits, sign, decimal point, and at most one separator. */
 const LAT_LNG_PARTIAL_PATTERN = /^\s*[+-]?\d*\.?\d*(?:\s*[,\s]\s*[+-]?\d*\.?\d*)?\s*$/;
 
-/** "lat, lng" with six decimals. */
-export function formatLatLng(location: AEGISPoint): string {
-  return `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+/** "lat, lng" with six decimals by default. */
+export function formatLatLng(location: AEGISPoint, decimalPlaces = 6): string {
+  return `${location.lat.toFixed(decimalPlaces)}, ${location.lng.toFixed(decimalPlaces)}`;
 }
 
 /** A location in the mission's configured presentation: its grid when it has one, else lat/lng. */
 export function formatCoordinateEntry(
   location: AEGISPoint | null,
-  context: CoordinateEntryContext
+  context: CoordinateEntryContext,
+  decimalPlaces = 6
 ): string {
   if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lng)) return "";
   if (context.usingLGRSCoordinates) {
@@ -33,7 +34,7 @@ export function formatCoordinateEntry(
     const name = findGlobalGridCoordsFromPoint(context.serverGrid, location, context.planetRadius);
     if (name && name !== "N/A") return name;
   }
-  return formatLatLng(location);
+  return formatLatLng(location, decimalPlaces);
 }
 
 /** The accepted coordinate syntax, shown as the field placeholder. */

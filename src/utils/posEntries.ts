@@ -4,6 +4,7 @@ import isEqual from "lodash/isEqual";
 import { DEFAULT_ASSET_RADIUS_COLOR, isPlacedLocation } from "utils/assets";
 
 export const POS_ENTRY_RADIUS_MAX_METERS = 1_000;
+export const POS_ENTRY_NOTES_MAX_LENGTH = 10_000;
 
 export function validatePosEntryRadius(radius: number): string | null {
   return !Number.isFinite(radius) || radius < 0 || radius > POS_ENTRY_RADIUS_MAX_METERS
@@ -84,6 +85,7 @@ export const POS_ENTRY_EDIT_FIELDS: readonly (keyof PosEntryEditValues)[] = [
   "posSourceUuid",
   "uncertaintyMeters",
   "color",
+  "notes",
 ];
 
 /** Detached copy of the editable fields of a position entry. */
@@ -96,6 +98,7 @@ export function getPosEntryEditValues(entry: PosEntry): PosEntryEditValues {
     posSourceUuid: entry.posSourceUuid ?? null,
     uncertaintyMeters: entry.uncertaintyMeters ?? 0,
     color: entry.color ?? null,
+    notes: entry.notes ?? null,
   };
 }
 
@@ -136,6 +139,8 @@ export function validatePosEntryEditValues(
   }
   const radiusError = validatePosEntryRadius(values.uncertaintyMeters);
   if (radiusError) return radiusError;
+  if ((values.notes?.length ?? 0) > POS_ENTRY_NOTES_MAX_LENGTH)
+    return `Notes must be ${POS_ENTRY_NOTES_MAX_LENGTH} characters or fewer`;
   if (values.petSeconds === null) return "PET is required";
   if (!Number.isSafeInteger(values.petSeconds)) return "PET must be a whole number of seconds";
   if (!isPlacedLocation(values.location))
@@ -167,6 +172,7 @@ export function applyPosEntryDraft(
     posSourceUuid: values.posSourceUuid ?? saved?.posSourceUuid ?? "",
     uncertaintyMeters: values.uncertaintyMeters,
     color: values.color,
+    notes: values.notes ?? null,
   };
   return saved
     ? entries.map((entry) => (entry.uuid === inEdit.uuid ? draft : entry))

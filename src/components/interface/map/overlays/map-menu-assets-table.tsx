@@ -541,15 +541,17 @@ const AssetRow: FunctionComponent<{
         <td
           className={styles.notesCell}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-content={hasNotes ? asset.notes : "No notes"}
+          data-tooltip-content={hasNotes ? asset.notes : undefined}
         >
-          <span
-            className={`${styles.notesIndicator} ${hasNotes ? styles.notesPresent : ""}`}
-            role="img"
-            aria-label={hasNotes ? "Has notes" : "No notes"}
-          >
-            <FontAwesomeIcon icon={faNoteSticky} />
-          </span>
+          {hasNotes && (
+            <span
+              className={`${styles.notesIndicator} ${styles.notesPresent}`}
+              role="img"
+              aria-label="Has notes"
+            >
+              <FontAwesomeIcon icon={faNoteSticky} />
+            </span>
+          )}
         </td>
         {canEdit && (
           <>

@@ -310,8 +310,8 @@ describe("MapPositionMenu", () => {
         })
       );
     });
-    expect(detail("lander-distance")).toBe("1000.00 m");
-    expect(detail("walkback")).toBe("30 min");
+    expect(detail("lander-distance")).toBe("1000");
+    expect(detail("walkback")).toBe("30");
 
     flushSync(() =>
       store.dispatch(
@@ -322,8 +322,8 @@ describe("MapPositionMenu", () => {
         })
       )
     );
-    expect(detail("lander-distance")).toBe("2000.00 m");
-    expect(detail("walkback")).toBe("60 min");
+    expect(detail("lander-distance")).toBe("2000");
+    expect(detail("walkback")).toBe("60");
     expect(mockMissionDoc.rexes![REX_UUID].posEntries).toEqual([]);
 
     // Missing lander information uses the same fallback as the saved-position view.
@@ -331,6 +331,36 @@ describe("MapPositionMenu", () => {
     renderMapPositionMenu(store);
     expect(detail("lander-distance")).toBe("Not set");
     expect(detail("walkback")).toBe("Not set");
+  });
+
+  it("updates notes in the draft without changing saved positions", () => {
+    const store = makeEditingStore();
+    renderMapPositionMenu(store);
+    const input = harness.container.querySelector<HTMLTextAreaElement>(
+      "[data-testid='position-editor-notes']"
+    )!;
+    for (const notes of ["Near the boulder\nCheck terrain", ""]) {
+      flushSync(() => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(
+          input,
+          notes
+        );
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      expect(store.getState().rex.posEntryInEdit!.values.notes).toBe(notes || null);
+      expect(mockMissionDoc.rexes![REX_UUID].posEntries).toEqual([]);
+    }
+  });
+
+  it("shows saved multiline notes in the details", () => {
+    const notes = "Near the boulder\nCheck terrain";
+    setRex({ posEntries: [{ ...makeEntry("e1", 100, [EV1.uuid]), notes }] });
+    const store = makeStore();
+    store.dispatch(rexSlice.actions.setExpandedPosEntryUuid("e1"));
+    renderMapPositionMenu(store);
+    expect(
+      harness.container.querySelector("[data-testid='position-details-notes']")!.textContent
+    ).toBe(notes);
   });
 
   it("opens an existing entry for editing from its row menu", () => {

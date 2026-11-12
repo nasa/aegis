@@ -104,6 +104,7 @@ export const thunkAddPosEntry = appCreateAsyncThunk<void>(
           posSourceUuid: getDefaultPosSourceUuid(rex, latest),
           uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
           color: latest?.color ?? null,
+          notes: null,
         },
         base: null,
         elevationPending: false,
