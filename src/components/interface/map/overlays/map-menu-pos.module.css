@@ -59,10 +59,14 @@
   bottom: 2px;
 }
 
-/* A running REX outlines the Positions tab without shifting its contents. */
+/* Reserve the frame outside the scrolling contents, including when execution is stopped. */
+.positionsMenu {
+  border: 2px solid transparent;
+  padding: 3px 3px 0;
+}
+
 .executing {
-  outline: 2px solid var(--rex);
-  outline-offset: -2px;
+  border-color: var(--rex);
 }
 
 .toolbarTitle {
@@ -124,8 +128,8 @@
   font-weight: 600;
 }
 
-.colNumber {
-  width: 34px;
+.colToggle {
+  width: 20px;
 }
 
 .colPet {
@@ -146,16 +150,6 @@
 
 .colSource {
   width: 24px;
-}
-
-.numberCell {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.entryNumber {
-  color: var(--grey4);
 }
 
 .groupRow td {

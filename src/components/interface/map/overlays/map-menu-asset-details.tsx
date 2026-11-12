@@ -7,6 +7,7 @@ import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { hhmmssFromSeconds } from "utils/formatting";
+import { getAssetColor } from "utils/assets";
 
 export const AssetPetSource: FunctionComponent<{ rexUuid: Asset["rexUuid"] }> = ({ rexUuid }) => {
   const source = useMissionDocSelector((m) => {
@@ -60,7 +61,7 @@ export const AssetDetails: FunctionComponent<{
           <div data-testid="asset-editor-color">
             <PathColorPickerMenu
               circular={true}
-              currentColor={asset.color}
+              currentColor={getAssetColor(asset)}
               editMode={false}
               updateColor={() => undefined}
             />

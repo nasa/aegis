@@ -78,7 +78,7 @@ function seedEntry(partial: Partial<PosEntry> = {}): PosEntry {
 
 describe("Thunk Position Entry Tests", () => {
   describe("thunkAddPosEntry", () => {
-    test("opens a draft at the REX's PET with Task as the default source", async () => {
+    test("opens a draft using the default color at the REX's PET with Task as the default source", async () => {
       await store.dispatch(thunkAddPosEntry());
 
       const draft = inEdit();
@@ -253,6 +253,28 @@ describe("Thunk Position Entry Tests", () => {
       await saving;
 
       expect(entries()[0]).toMatchObject({ location: { lat: 5, lng: 6 }, elevation: 25 });
+    });
+
+    test("discards a pending save if the REX stops while elevation is loading", async () => {
+      await store.dispatch(thunkAddPosEntry());
+      const uuid = inEdit().uuid;
+      store.dispatch(updatePosEntryInEditValues({ posTypeUuids: [rex.posTypes[0].uuid] }));
+      getMissionDocHandle().change((m) => {
+        m.demFilePath = "dem.tif";
+      });
+      const placing = store.dispatch(
+        thunkSetPosEntryEditLocation({ uuid, location: { lat: 5, lng: 6 } })
+      );
+      const saving = store.dispatch(thunkSavePosEntryEdit());
+      getMissionDocHandle().change((m) => {
+        m.rexes[rex.uuid].isRunning = false;
+      });
+      elevationCalls[0].resolve({ meta: { requestStatus: "fulfilled" }, payload: 25 });
+      await placing;
+
+      expect(await saving.unwrap()).toBe(false);
+      expect(inEdit()).toBeNull();
+      expect(entries()).toEqual([]);
     });
 
     test("discards the session when the edited entry was deleted", async () => {

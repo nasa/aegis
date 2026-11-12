@@ -1,5 +1,4 @@
 import type { FunctionComponent } from "react";
-import { useEffect } from "react";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 
 import assetStyles from "./map-menu-assets.module.css";
@@ -12,11 +11,7 @@ import { useAppDispatch } from "utils/useAppDispatch";
 import { deepEqual, refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
-import {
-  thunkAddPosEntry,
-  thunkCancelPosEntryEdit,
-  thunkEditPosEntry,
-} from "store/thunk/thunkRexPosEntry";
+import { thunkAddPosEntry, thunkEditPosEntry } from "store/thunk/thunkRexPosEntry";
 
 // Content of the "Positions" tab in the floating Rex Menu widget on the map.
 export const MapPositionMenu: FunctionComponent = () => {
@@ -40,15 +35,6 @@ export const MapPositionMenu: FunctionComponent = () => {
   const canMutate = canEdit && !!selectedRex?.isRunning;
   const sessionInRex = !!inEdit && inEdit.rexUuid === selectedRex?.uuid;
 
-  // Discard a session whose REX is no longer selected, or whose saved entry was deleted.
-  const sessionStale =
-    !!inEdit &&
-    (!sessionInRex ||
-      (!inEdit.isNew && !selectedRex?.posEntries?.some((entry) => entry.uuid === inEdit.uuid)));
-  useEffect(() => {
-    if (sessionStale) dispatch(thunkCancelPosEntryEdit());
-  }, [dispatch, sessionStale]);
-
   // The widget is available without a REX, e.g. during planning or with a deleted REX selected.
   if (!selectedRex) {
     return (
@@ -60,7 +46,7 @@ export const MapPositionMenu: FunctionComponent = () => {
 
   return (
     <div
-      className={`${assetStyles.assetsMenu} ${selectedRex.isRunning ? posStyles.executing : ""}`}
+      className={`${assetStyles.assetsMenu} ${posStyles.positionsMenu} ${selectedRex.isRunning ? posStyles.executing : ""}`}
       data-testid="positions-menu"
     >
       <div className={assetStyles.toolbar}>

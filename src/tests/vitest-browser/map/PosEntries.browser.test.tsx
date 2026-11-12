@@ -27,6 +27,7 @@ import { flushSync } from "react-dom";
 import type VectorLayer from "ol/layer/Vector";
 import type VectorSource from "ol/source/Vector";
 import type LineString from "ol/geom/LineString";
+import type Style from "ol/style/Style";
 
 import { CookiesProvider, Cookies } from "react-cookie";
 import { MapContext } from "components/interface/map/MapProvider";
@@ -301,6 +302,36 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("PosEntries", () => {
+  it.each(["editor", "dashboard"] as const)(
+    "uses default yellow for a null position radius color on the %s map",
+    (mode) => {
+      const entry = makePosEntry(
+        "e1",
+        10,
+        20,
+        [POSTYPE_A_UUID],
+        SOURCE_A_UUID,
+        "2026-01-01T00:00:00Z"
+      );
+      entry.uncertaintyMeters = 10;
+      const rex = makeRex({
+        posEntries: [entry],
+        posTypes: [makePosType(POSTYPE_A_UUID)],
+        posSources: [makePosSource(SOURCE_A_UUID)],
+      });
+      store = makeStore(preloaded({ rex }));
+      renderPosEntries(mode);
+      const layer = map
+        .getLayers()
+        .getArray()
+        .find((l) => l.getZIndex() === Z_INDEX.CIRCLES) as VectorLayer<VectorSource>;
+      const circle = layer.getSource()!.getFeatures()[0];
+      const style = layer.getStyleFunction()!(circle, 1) as Style;
+      expect(style.getFill()!.getColor()).toBe("rgba(196,154,0,0.3)");
+      expect(mockMissionDoc.rexes![REX_UUID].posEntries![0].color).toBeNull();
+    }
+  );
+
   it("adds marker + path VectorLayers at their z-indices", () => {
     store = makeStore();
     renderPosEntries();

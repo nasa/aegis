@@ -346,7 +346,7 @@ a cache key omits a varying input:
 - `assetRadius.ts` (`buildAssetRadiusStyleFunction`): asset and crew position radius circles,
   filled in `getAssetRadiusColor` / `getPosEntryRadiusColor` with no stroke; the selected item
   (`assetUuid` or `posEntryUuid` feature property) gets a white stroke instead of a marker outline.
-  Uncolored items use a transparent fill. Keyed by color + selection.
+  Null colors use default blue for assets and dark yellow for positions. Keyed by color + selection.
 - `posPath.ts`: style cache is **cleared wholesale when size > 500** (crude cap). Has its own
   duplicate `arrowCache`.
 - `gazetteerLabels.ts` (`createGazetteerLabelStyle(style, dataLayer)`): draggable data-layer

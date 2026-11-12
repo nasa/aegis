@@ -8,7 +8,7 @@ interface Asset {
   name: string;
   /** Emoji code point string from the emoji picker (e.g. "1F534"); null renders "2754" (❔). */
   icon: string | null;
-  /** Radius fill and emoji background color; null renders transparent. */
+  /** Radius fill and emoji background color; null uses the default blue. */
   color: string | null;
   /** Shared map visibility of this asset. */
   visible: boolean;

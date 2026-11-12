@@ -34,6 +34,7 @@ import {
   ASSET_NAME_MAX_LENGTH,
   ASSET_NOTES_MAX_LENGTH,
   DEFAULT_ASSET_ICON,
+  getAssetColor,
   getCurrentAssetPet,
   parseAssetPetSeconds,
 } from "utils/assets";
@@ -311,7 +312,7 @@ export const AssetEditor: FunctionComponent<AssetEditorProps> = ({
           <div data-testid="asset-editor-color">
             <PathColorPickerMenu
               circular={true}
-              currentColor={values.color}
+              currentColor={getAssetColor(values)}
               editMode={editable}
               updateColor={(color) => dispatch(updateAssetInEditValues({ color }))}
             />
@@ -320,13 +321,13 @@ export const AssetEditor: FunctionComponent<AssetEditorProps> = ({
             <Button
               onClick={() => dispatch(updateAssetInEditValues({ color: null }))}
               icon={faXmark}
-              label="Clear"
-              ariaLabel="Clear radius color"
+              label="Reset"
+              ariaLabel="Reset radius color"
               className={styles.editorButton}
               enabled={editable}
             />
           ) : (
-            <span className={styles.fieldNote}>None</span>
+            <span className={styles.fieldNote}>Default</span>
           )}
         </div>
 

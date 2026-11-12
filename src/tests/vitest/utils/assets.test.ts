@@ -135,9 +135,9 @@ describe("parseAssetPetSeconds", () => {
 });
 
 describe("defaults", () => {
-  test("radius color is the asset color, or transparent, only for a positive radius", () => {
+  test("radius color is the asset color, or default blue, only for a positive radius", () => {
     expect(getAssetRadiusColor({ color: "#ff0000", uncertaintyMeters: 5 })).toBe("#ff0000");
-    expect(getAssetRadiusColor({ color: null, uncertaintyMeters: 5 })).toBe("transparent");
+    expect(getAssetRadiusColor({ color: null, uncertaintyMeters: 5 })).toBe("#2878B5");
     expect(getAssetRadiusColor({ color: "#ff0000", uncertaintyMeters: 0 })).toBeNull();
   });
 });

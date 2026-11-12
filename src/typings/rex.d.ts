@@ -105,7 +105,7 @@ interface PosEntry {
   posSourceUuid: string;
   /** Uncertainty radius in meters; zero draws no radius circle. */
   uncertaintyMeters: number;
-  /** Radius fill color; null renders transparent. */
+  /** Radius fill color; null uses the default dark yellow. */
   color: string | null;
   /** Optional on entries saved before notes were supported. */
   notes?: string | null;

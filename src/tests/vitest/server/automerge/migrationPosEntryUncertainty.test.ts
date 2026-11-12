@@ -50,21 +50,24 @@ describe("add-pos-entry-uncertainty migration", () => {
     expect(Automerge.getHeads(doc)).toEqual(heads);
   });
 
-  it("keeps existing radius and color values and tolerates REXes without entries", async () => {
-    const entry = generateBlankPosEntry({ uncertaintyMeters: 12, color: "#ff0000" });
-    const mission = legacyMissionWithEntries([entry]);
-    const emptyRex = generateBlankRex({ evaUuid: "eva-2" });
-    mission.rexes[emptyRex.uuid] = emptyRex;
-    let doc = fromMission(mission);
-    await Migration20261109000000.migrate(
-      handleFor(
-        () => doc,
-        (next) => (doc = next)
-      ),
-      null
-    );
-    const rexWithEntry = Object.values(doc.rexes).find((rex) => rex.posEntries?.length);
-    expect(rexWithEntry.posEntries[0]).toEqual(entry);
-    expect(doc.rexes[emptyRex.uuid].posEntries).toBeNull();
-  });
+  it.each(["#ff0000", null])(
+    "keeps existing radius and color (%s) and tolerates REXes without entries",
+    async (color) => {
+      const entry = generateBlankPosEntry({ uncertaintyMeters: 12, color });
+      const mission = legacyMissionWithEntries([entry]);
+      const emptyRex = generateBlankRex({ evaUuid: "eva-2" });
+      mission.rexes[emptyRex.uuid] = emptyRex;
+      let doc = fromMission(mission);
+      await Migration20261109000000.migrate(
+        handleFor(
+          () => doc,
+          (next) => (doc = next)
+        ),
+        null
+      );
+      const rexWithEntry = Object.values(doc.rexes).find((rex) => rex.posEntries?.length);
+      expect(rexWithEntry.posEntries[0]).toEqual(entry);
+      expect(doc.rexes[emptyRex.uuid].posEntries).toBeNull();
+    }
+  );
 });

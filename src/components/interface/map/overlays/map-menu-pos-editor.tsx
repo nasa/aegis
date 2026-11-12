@@ -31,6 +31,7 @@ import { parseAssetPetSeconds } from "utils/assets";
 import {
   POS_ENTRY_RADIUS_MAX_METERS,
   POS_ENTRY_NOTES_MAX_LENGTH,
+  getPosEntryColor,
   validatePosEntryEditValues,
   validatePosEntryRadius,
 } from "utils/posEntries";
@@ -336,7 +337,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
           <div data-testid="position-editor-color">
             <PathColorPickerMenu
               circular={true}
-              currentColor={values.color}
+              currentColor={getPosEntryColor(values)}
               editMode={editable}
               updateColor={(color) => dispatch(updatePosEntryInEditValues({ color }))}
             />
@@ -345,13 +346,13 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
             <Button
               onClick={() => dispatch(updatePosEntryInEditValues({ color: null }))}
               icon={faXmark}
-              label="Clear"
-              ariaLabel="Clear radius color"
+              label="Reset"
+              ariaLabel="Reset radius color"
               className={assetStyles.editorButton}
               enabled={editable}
             />
           ) : (
-            <span className={assetStyles.fieldNote}>None</span>
+            <span className={assetStyles.fieldNote}>Default</span>
           )}
         </div>
         {radiusError && (
