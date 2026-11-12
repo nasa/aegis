@@ -166,6 +166,29 @@ describe("MapAssetsMenu", () => {
     );
   }
 
+  it.each([false, true])("shows default blue for a null asset color (editing: %s)", (editing) => {
+    const asset = generateBlankAsset({ name: "Drill", color: null });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    store = makeStore(true);
+    render();
+    if (editing) openDraft(asset, false);
+    else flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
+    const sample = () => q(`[data-testid='asset-editor-color'] .${formStyles.pathColorSample}`)!;
+    expect(sample().style.backgroundColor).toBe("rgb(40, 120, 181)");
+
+    if (editing) {
+      expect(store.getState().asset.inEdit!.values.color).toBeNull();
+      flushSync(() =>
+        store.dispatch(assetSlice.actions.updateAssetInEditValues({ color: "#ff0000" }))
+      );
+      expect(sample().style.backgroundColor).toBe("rgb(255, 0, 0)");
+      flushSync(() => q("[aria-label='Reset radius color']")!.click());
+      expect(store.getState().asset.inEdit!.values.color).toBeNull();
+      expect(sample().style.backgroundColor).toBe("rgb(40, 120, 181)");
+    }
+    expect(mockMissionDoc.assets![asset.uuid].color).toBeNull();
+  });
+
   function enterValue(input: HTMLInputElement | HTMLTextAreaElement, value: string) {
     const prototype =
       input instanceof HTMLTextAreaElement
@@ -641,7 +664,7 @@ describe("MapAssetsMenu", () => {
     expect(q(`[data-testid='asset-row-${zed.uuid}']`)?.textContent).toContain("Not placed");
   });
 
-  it.each([0, 5])("shows chosen or transparent emoji backgrounds at radius %s", (radius) => {
+  it.each([0, 5])("shows chosen or default blue emoji backgrounds at radius %s", (radius) => {
     const colored = generateBlankAsset({ color: "#ff0000", uncertaintyMeters: radius });
     const uncolored = generateBlankAsset({ color: null, uncertaintyMeters: radius });
     mockMissionDoc.assets = { [colored.uuid]: colored, [uncolored.uuid]: uncolored };
@@ -651,7 +674,7 @@ describe("MapAssetsMenu", () => {
     const coloredBackground = nameCell(colored.uuid).querySelector("div > span") as HTMLElement;
     const uncoloredBackground = nameCell(uncolored.uuid).querySelector("div > span") as HTMLElement;
     expect(coloredBackground.style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
-    expect(uncoloredBackground.style.backgroundColor).toBe("transparent");
+    expect(uncoloredBackground.style.backgroundColor).toBe("rgba(40, 120, 181, 0.5)");
     expect(getComputedStyle(nameCell(colored.uuid)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(coloredBackground).borderRadius).toBe("45%");
   });

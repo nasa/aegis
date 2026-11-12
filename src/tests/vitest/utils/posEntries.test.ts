@@ -38,9 +38,9 @@ describe("posEntries utils", () => {
     expect([...latest].sort()).toEqual(["both", "ev1-latest"]);
   });
 
-  it("draws no radius circle at zero radius and a clear one without a color", () => {
+  it("draws no radius circle at zero radius and a dark yellow one without a custom color", () => {
     expect(getPosEntryRadiusColor({ uncertaintyMeters: 0, color: "#ff0000" })).toBeNull();
-    expect(getPosEntryRadiusColor({ uncertaintyMeters: 5, color: null })).toBe("transparent");
+    expect(getPosEntryRadiusColor({ uncertaintyMeters: 5, color: null })).toBe("#C49A00");
     expect(getPosEntryRadiusColor({ uncertaintyMeters: 5, color: "#ff0000" })).toBe("#ff0000");
   });
 

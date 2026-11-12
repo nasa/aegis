@@ -1,7 +1,14 @@
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
 
-import { DEFAULT_ASSET_RADIUS_COLOR, isPlacedLocation } from "utils/assets";
+import { isPlacedLocation } from "utils/assets";
+
+/** Dark golden yellow used wherever a position has no custom color. */
+export const DEFAULT_POS_ENTRY_COLOR = "#C49A00";
+
+export function getPosEntryColor(entry: Pick<PosEntry, "color">): string {
+  return entry.color ?? DEFAULT_POS_ENTRY_COLOR;
+}
 
 export const POS_ENTRY_RADIUS_MAX_METERS = 1_000;
 export const POS_ENTRY_NOTES_MAX_LENGTH = 10_000;
@@ -16,7 +23,7 @@ export function validatePosEntryRadius(radius: number): string | null {
 export function getPosEntryRadiusColor(
   entry: Pick<PosEntry, "color" | "uncertaintyMeters">
 ): string | null {
-  return entry.uncertaintyMeters > 0 ? entry.color || DEFAULT_ASSET_RADIUS_COLOR : null;
+  return entry.uncertaintyMeters > 0 ? getPosEntryColor(entry) : null;
 }
 
 /**

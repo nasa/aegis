@@ -6,8 +6,12 @@ import { petSecondsAt, secondsFromhhmmss } from "utils/formatting";
 
 /** Emoji drawn for an asset with no icon (❔), matching stations. */
 export const DEFAULT_ASSET_ICON = "2754";
-/** Clear radius fill and label accent for an asset with no color. */
-export const DEFAULT_ASSET_RADIUS_COLOR = "transparent";
+/** Blue used wherever an asset has no custom color. */
+export const DEFAULT_ASSET_COLOR = "#2878B5";
+
+export function getAssetColor(asset: Pick<Asset, "color">): string {
+  return asset.color ?? DEFAULT_ASSET_COLOR;
+}
 
 // String limits use JavaScript/HTML UTF-16 length, matching the form controls.
 export const ASSET_NAME_MAX_LENGTH = 80;
@@ -15,13 +19,13 @@ export const ASSET_NOTES_MAX_LENGTH = 10_000;
 export const ASSET_RADIUS_MAX_METERS = 1_000;
 
 /**
- * Color of an asset's radius circle. Uncolored assets have a clear fill so their radius can
- * still be outlined while selected. Null when the radius is zero, so no circle is drawn.
+ * Color of an asset's radius circle, using the default blue without a custom color.
+ * Null when the radius is zero, so no circle is drawn.
  */
 export function getAssetRadiusColor(
   asset: Pick<Asset, "color" | "uncertaintyMeters">
 ): string | null {
-  return asset.uncertaintyMeters > 0 ? asset.color || DEFAULT_ASSET_RADIUS_COLOR : null;
+  return asset.uncertaintyMeters > 0 ? getAssetColor(asset) : null;
 }
 
 export const ASSET_EDIT_FIELDS: readonly (keyof AssetEditValues)[] = [

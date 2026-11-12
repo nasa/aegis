@@ -54,7 +54,7 @@ import {
   thunkMoveAssetToFolder,
   thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
-import { DEFAULT_ASSET_ICON, getAssetFolderUuidByItem } from "utils/assets";
+import { DEFAULT_ASSET_ICON, getAssetColor, getAssetFolderUuidByItem } from "utils/assets";
 import { formatCoordinateEntry } from "utils/coordinateEntry";
 import { AssetEditor } from "./map-menu-assets-editor";
 import { AssetDetails } from "./map-menu-asset-details";
@@ -523,7 +523,7 @@ const AssetRow: FunctionComponent<{
             <span
               ref={emojiRef}
               className={styles.emojiBackground}
-              style={{ backgroundColor: asset.color ? withAlpha(asset.color, 0.5) : "transparent" }}
+              style={{ backgroundColor: withAlpha(getAssetColor(asset), 0.5) }}
             >
               <EmojiRenderer
                 iconValue={asset.icon || DEFAULT_ASSET_ICON}

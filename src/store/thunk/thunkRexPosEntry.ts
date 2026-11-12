@@ -170,7 +170,7 @@ export const thunkSetPosEntryEditLocation = appCreateAsyncThunk<{
 
 /**
  * Save the open edit session in one document change. Throws when the values are invalid, and
- * cancels the session when its REX or entry was deleted underneath it.
+ * cancels the session when its REX stopped or its REX or entry was deleted underneath it.
  * @returns true when saved.
  */
 export const thunkSavePosEntryEdit = appCreateAsyncThunk<void, boolean>(
@@ -186,7 +186,7 @@ export const thunkSavePosEntryEdit = appCreateAsyncThunk<void, boolean>(
     if (!inEdit || inEdit.uuid !== uuid) return false;
     const missionDocHandle = getMissionDocHandle();
     const rex = missionDocHandle?.doc()?.rexes?.[inEdit.rexUuid];
-    if (!missionDocHandle || !rex) {
+    if (!missionDocHandle || !rex?.isRunning) {
       await dispatch(thunkCancelPosEntryEdit());
       return false;
     }

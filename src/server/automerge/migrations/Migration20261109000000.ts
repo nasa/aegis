@@ -1,6 +1,6 @@
 import type { AutomergeMigration } from "server/automerge/migrations/types";
 
-/** Add a zero uncertainty radius and no radius color to every crew position entry. */
+/** Add a zero uncertainty radius and no custom radius color to legacy crew position entries. */
 export const Migration20261109000000: AutomergeMigration = {
   version: 20261109000000,
   name: "add-pos-entry-uncertainty",

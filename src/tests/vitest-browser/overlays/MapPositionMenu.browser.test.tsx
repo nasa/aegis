@@ -10,6 +10,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { flushSync } from "react-dom";
 import { Provider } from "react-redux";
 import { MapPositionMenu } from "components/interface/map/overlays/map-menu-pos";
+import { usePosEntryEditSession } from "components/interface/map/hooks/usePosEntryEditSession";
 import { userSlice } from "store/user";
 import { rexSlice } from "store/rex";
 import { mapSlice } from "store/map";
@@ -36,10 +37,14 @@ const setLocation = vi.fn((args: { uuid: string; location: AEGISPoint | null }) 
   rexSlice.actions.setPosEntryInEditLocation({ ...args, elevationPending: false })
 );
 const savePosEntry = vi.fn(() => ({ type: "mock/savePosEntryEdit" }));
+const cancelPosEntry = vi.fn(() => (dispatch: (action: unknown) => void) => {
+  dispatch(rexSlice.actions.clearPosEntryInEdit({ keepExpanded: true }));
+  dispatch(mapSlice.actions.updateMapDirective(null));
+});
 vi.mock("store/thunk/thunkRexPosEntry", () => ({
   thunkAddPosEntry: () => addPosEntry(),
   thunkEditPosEntry: (args: { posEntryUuid: string }) => editPosEntry(args),
-  thunkCancelPosEntryEdit: () => ({ type: "mock/cancelPosEntryEdit" }),
+  thunkCancelPosEntryEdit: () => cancelPosEntry(),
   thunkCancelPosEntryMapDirective: () => ({ type: "mock/cancelPosEntryMapDirective" }),
   thunkStartPosEntryMapDirective: () => ({ type: "mock/startPosEntryMapDirective" }),
   thunkSetPosEntryEditLocation: (args: Parameters<typeof setLocation>[0]) => setLocation(args),
@@ -152,10 +157,15 @@ function typeField(testId: string, text: string) {
 
 let harness: ReactHarness;
 
-function renderMapPositionMenu(store: ReturnType<typeof makeStore>) {
+function PositionsSession({ showMenu }: { showMenu: boolean }) {
+  usePosEntryEditSession();
+  return showMenu ? <MapPositionMenu /> : null;
+}
+
+function renderMapPositionMenu(store: ReturnType<typeof makeStore>, showMenu = true) {
   harness.render(
     <Provider store={store}>
-      <MapPositionMenu />
+      <PositionsSession showMenu={showMenu} />
     </Provider>
   );
 }
@@ -204,7 +214,7 @@ describe("MapPositionMenu", () => {
     expect(harness.container.querySelector("[data-testid='positions-menu']")).not.toBeNull();
   });
 
-  it("pins each pos type's latest entry by PET and lists the rest newest first", () => {
+  it("pins each pos type's latest entry by PET and lists older positions newest first", () => {
     setRex({
       posEntries: [
         makeEntry("e1", 100, [EV1.uuid]),
@@ -216,24 +226,81 @@ describe("MapPositionMenu", () => {
     renderMapPositionMenu(makeStore());
 
     expect(rowUuids("position-group-latest")).toEqual(["e4", "e2"]);
-    expect(rowUuids("position-group-earlier")).toEqual(["e1", "e3"]);
-    // # counts up from the oldest PET.
+    expect(rowUuids("position-group-older")).toEqual(["e1", "e3"]);
     const e4Row = harness.container.querySelector("[data-testid='position-row-e4']")!;
-    expect(e4Row.querySelector("td")!.textContent).toBe("4");
+    expect(e4Row.querySelector("td")!.textContent).toBe("");
+    expect([...harness.container.querySelectorAll("th")].some((th) => th.textContent === "#")).toBe(
+      false
+    );
     expect(e4Row.textContent).toContain("+00:05:00");
     expect(e4Row.textContent).toContain("EV1");
   });
 
-  it("collapses the Earlier group", () => {
+  it("collapses Older positions while keeping the latest positions pinned", () => {
     setRex({ posEntries: [makeEntry("e1", 100, [EV1.uuid]), makeEntry("e2", 200, [EV1.uuid])] });
     renderMapPositionMenu(makeStore());
 
     const toggle = harness.container.querySelector<HTMLButtonElement>(
-      "[data-testid='position-group-earlier'] button"
+      "[data-testid='position-group-older'] button"
     )!;
-    expect(toggle.textContent).toBe("Earlier (1)");
+    expect(toggle.textContent).toBe("Older positions (1)");
     flushSync(() => toggle.click());
-    expect(rowUuids("position-group-earlier")).toEqual([]);
+    expect(rowUuids("position-group-older")).toEqual([]);
+    expect(rowUuids("position-group-latest")).toEqual(["e2"]);
+  });
+
+  it("omits Older positions when every entry is shown in Latest", () => {
+    setRex({ posEntries: [makeEntry("e1", 100, [EV1.uuid])] });
+    renderMapPositionMenu(makeStore());
+
+    expect(rowUuids("position-group-latest")).toEqual(["e1"]);
+    expect(harness.container.querySelector("[data-testid='position-group-older']")).toBeNull();
+  });
+
+  it.each([true, false])(
+    "discards an open position draft when its REX stops (new: %s)",
+    async (isNew) => {
+      const store = makeEditingStore();
+      const entry = makeEntry("draft", 100, [EV1.uuid]);
+      if (!isNew) {
+        setRex({ posEntries: [entry] });
+        const draft = store.getState().rex.posEntryInEdit!;
+        store.dispatch(
+          rexSlice.actions.setPosEntryInEdit({ ...draft, isNew: false, base: draft.values })
+        );
+      }
+      store.dispatch(
+        mapSlice.actions.updateMapDirective({
+          mapItemType: "posEntry",
+          uuid: "draft",
+          mapAction: "editMarker",
+        })
+      );
+      renderMapPositionMenu(store);
+      expect(cancelPosEntry).not.toHaveBeenCalled();
+
+      mockMissionDoc.rexes![REX_UUID].isRunning = false;
+      renderMapPositionMenu(store);
+
+      await vi.waitFor(() => expect(store.getState().rex.posEntryInEdit).toBeNull());
+      expect(cancelPosEntry).toHaveBeenCalledTimes(1);
+      expect(store.getState().map.mapDirective).toBeNull();
+      expect(harness.container.querySelector("[data-testid='position-editor']")).toBeNull();
+      expect(mockMissionDoc.rexes![REX_UUID].posEntries).toEqual(isNew ? [] : [entry]);
+    }
+  );
+
+  it("discards a draft on stop while the Positions tab is hidden", async () => {
+    const store = makeEditingStore();
+    renderMapPositionMenu(store);
+    renderMapPositionMenu(store, false);
+    expect(store.getState().rex.posEntryInEdit).not.toBeNull();
+
+    mockMissionDoc.rexes![REX_UUID].isRunning = false;
+    renderMapPositionMenu(store, false);
+
+    await vi.waitFor(() => expect(store.getState().rex.posEntryInEdit).toBeNull());
+    expect(cancelPosEntry).toHaveBeenCalledTimes(1);
   });
 
   it("adds a position only while the REX is running", () => {
@@ -351,6 +418,38 @@ describe("MapPositionMenu", () => {
       expect(mockMissionDoc.rexes![REX_UUID].posEntries).toEqual([]);
     }
   });
+
+  it.each([false, true])(
+    "shows default yellow for a null position color (editing: %s)",
+    (editing) => {
+      const store = makeEditingStore();
+      const entry = makeEntry("e1", 100, [EV1.uuid]);
+      if (!editing) {
+        setRex({ posEntries: [entry] });
+        store.dispatch(rexSlice.actions.clearPosEntryInEdit({ keepExpanded: true }));
+        store.dispatch(rexSlice.actions.setExpandedPosEntryUuid(entry.uuid));
+      }
+      renderMapPositionMenu(store);
+      const sample = () =>
+        harness.container.querySelector<HTMLElement>(`.${formStyles.pathColorSample}`)!;
+      expect(sample().style.backgroundColor).toBe("rgb(196, 154, 0)");
+
+      if (editing) {
+        expect(store.getState().rex.posEntryInEdit!.values.color).toBeNull();
+        flushSync(() =>
+          store.dispatch(rexSlice.actions.updatePosEntryInEditValues({ color: "#ff0000" }))
+        );
+        expect(sample().style.backgroundColor).toBe("rgb(255, 0, 0)");
+        flushSync(() =>
+          harness.container.querySelector<HTMLElement>("[aria-label='Reset radius color']")!.click()
+        );
+        expect(store.getState().rex.posEntryInEdit!.values.color).toBeNull();
+        expect(sample().style.backgroundColor).toBe("rgb(196, 154, 0)");
+      } else {
+        expect(mockMissionDoc.rexes![REX_UUID].posEntries![0].color).toBeNull();
+      }
+    }
+  );
 
   it("shows saved multiline notes in the details", () => {
     const notes = "Near the boulder\nCheck terrain";

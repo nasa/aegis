@@ -15,6 +15,7 @@ import { setRexMenuIsMinimized } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { usePosEntryEditSession } from "../hooks/usePosEntryEditSession";
 
 const REX_MENU_WIDTH = 420;
 const REX_MENU_HEIGHT = 360;
@@ -174,6 +175,7 @@ export const RexMenuHeaderActions: FunctionComponent<IDockviewHeaderActionsProps
 // them otherwise, toggles the group's visibility when minimized, and shows the Assets tab on
 // request (e.g. an asset marker click).
 export function useRexMenuDockviewPanel(api: DockviewApi | null): void {
+  usePosEntryEditSession();
   const showRexMenu = useMissionDocSelector((mission) => !!mission, refEqual) ?? false;
   const rexMenuIsMinimized = useAppSelector(
     (state) => state.interface.rexMenuIsMinimized,

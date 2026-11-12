@@ -156,7 +156,7 @@ describe("thunkAddAsset", () => {
     expect(inEdit().uuid).toBe(uuid);
   });
 
-  it("starts blank when the mission has no assets", async () => {
+  it("leaves color null to use the default when the mission has no assets", async () => {
     await store.dispatch(thunkAddAsset());
     expect(inEdit().values).toMatchObject({
       name: "",

@@ -25,7 +25,11 @@ import { setExpandedPosEntryUuid, setSelectedPosEntryUuid } from "store/rex";
 import { setHoverUuidsForPosEntry } from "store/hover";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
 import { thunkCancelPosEntryEdit, thunkDeletePosEntry } from "store/thunk/thunkRexPosEntry";
-import { getLatestPosEntryUuids, orderPosEntriesNewestFirst } from "utils/posEntries";
+import {
+  getLatestPosEntryUuids,
+  getPosEntryColor,
+  orderPosEntriesNewestFirst,
+} from "utils/posEntries";
 import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
 import { hhmmssFromSeconds } from "utils/formatting";
 
@@ -49,8 +53,8 @@ function getPosTypeNames(rex: Rex, entry: PosEntry): string[] {
     .map((type) => type.name);
 }
 
-// One table: each pos type's latest entry is pinned in the Latest group, every other entry is in
-// the collapsible Earlier group. Both are newest-first by PET; # counts up from the oldest.
+// Each pos type's latest entry is pinned above the collapsible list of older positions.
+// Both groups are newest-first by PET.
 export const PositionTable: FunctionComponent<Props> = ({
   rex,
   canEdit,
@@ -60,14 +64,13 @@ export const PositionTable: FunctionComponent<Props> = ({
   onEdit,
 }) => {
   const expandedUuid = useAppSelector((s) => s.rex.expandedPosEntryUuid, refEqual);
-  const [earlierOpen, setEarlierOpen] = useState(true);
+  const [olderPositionsOpen, setOlderPositionsOpen] = useState(true);
   const columnCount = canEdit ? COLUMN_COUNT : COLUMN_COUNT - 1;
 
   const ordered = orderPosEntriesNewestFirst(rex.posEntries ?? []);
   const latestUuids = getLatestPosEntryUuids(ordered);
   const latest = ordered.filter((entry) => latestUuids.has(entry.uuid));
-  const earlier = ordered.filter((entry) => !latestUuids.has(entry.uuid));
-  const numberByUuid = new Map(ordered.map((entry, index) => [entry.uuid, ordered.length - index]));
+  const older = ordered.filter((entry) => !latestUuids.has(entry.uuid));
   const editingUuid = inEdit && !inEdit.isNew ? inEdit.uuid : null;
 
   const renderRow = (entry: PosEntry) => {
@@ -76,7 +79,6 @@ export const PositionTable: FunctionComponent<Props> = ({
       <PositionRow
         key={entry.uuid}
         entry={entry}
-        number={numberByUuid.get(entry.uuid)}
         rex={rex}
         columnCount={columnCount}
         canEdit={canEdit}
@@ -94,7 +96,7 @@ export const PositionTable: FunctionComponent<Props> = ({
     <>
       <table className={assetStyles.assetTable} data-testid="position-table">
         <colgroup>
-          <col className={posStyles.colNumber} />
+          <col className={posStyles.colToggle} />
           <col className={posStyles.colPet} />
           <col className={posStyles.colTypes} />
           <col className={posStyles.colLanderDistance} />
@@ -111,7 +113,7 @@ export const PositionTable: FunctionComponent<Props> = ({
         </colgroup>
         <thead>
           <tr className={assetStyles.headerRow}>
-            <th>#</th>
+            <th aria-label="Expand position" />
             <th>PET</th>
             <th>Types</th>
             <th data-tooltip-id="aegis-tooltip" data-tooltip-content="Lander Distance (m)">
@@ -128,15 +130,15 @@ export const PositionTable: FunctionComponent<Props> = ({
             {latest.map(renderRow)}
           </PositionGroup>
         )}
-        {earlier.length > 0 && (
+        {older.length > 0 && (
           <PositionGroup
-            label={`Earlier (${earlier.length})`}
+            label={`Older positions (${older.length})`}
             columnCount={columnCount}
-            testId="position-group-earlier"
-            isOpen={earlierOpen || earlier.some((entry) => entry.uuid === editingUuid)}
-            onToggle={() => setEarlierOpen(!earlierOpen)}
+            testId="position-group-older"
+            isOpen={olderPositionsOpen || older.some((entry) => entry.uuid === editingUuid)}
+            onToggle={() => setOlderPositionsOpen(!olderPositionsOpen)}
           >
-            {earlier.map(renderRow)}
+            {older.map(renderRow)}
           </PositionGroup>
         )}
       </table>
@@ -168,7 +170,7 @@ const PositionGroup: FunctionComponent<{
             onClick={onToggle}
             aria-expanded={isOpen}
           >
-            <FontAwesomeIcon icon={isOpen ? faCaretDown : faCaretRight} />
+            <FontAwesomeIcon icon={isOpen ? faCaretDown : faCaretRight} size="lg" />
             {label}
           </button>
         ) : (
@@ -182,7 +184,6 @@ const PositionGroup: FunctionComponent<{
 
 const PositionRow: FunctionComponent<{
   entry: PosEntry;
-  number: number;
   rex: Rex;
   columnCount: number;
   canEdit: boolean;
@@ -194,7 +195,6 @@ const PositionRow: FunctionComponent<{
   onEdit: (posEntryUuid: string) => void;
 }> = ({
   entry,
-  number,
   rex,
   columnCount,
   canEdit,
@@ -259,28 +259,25 @@ const PositionRow: FunctionComponent<{
         }}
       >
         <td>
-          <div className={posStyles.numberCell}>
-            <button
-              type="button"
-              className={assetStyles.rowToggle}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isExpanded) {
-                  if (isEditing) dispatch(thunkCancelPosEntryEdit());
-                  dispatch(setExpandedPosEntryUuid(null));
-                  return;
-                }
-                cancelOtherEdit();
-                dispatch(setExpandedPosEntryUuid(entry.uuid));
-              }}
-              aria-label={isExpanded ? "Collapse position" : "Expand position"}
-              aria-expanded={isExpanded}
-              data-testid={`position-expand-${entry.uuid}`}
-            >
-              <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="lg" />
-            </button>
-            <span className={isSelected ? undefined : posStyles.entryNumber}>{number}</span>
-          </div>
+          <button
+            type="button"
+            className={assetStyles.rowToggle}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isExpanded) {
+                if (isEditing) dispatch(thunkCancelPosEntryEdit());
+                dispatch(setExpandedPosEntryUuid(null));
+                return;
+              }
+              cancelOtherEdit();
+              dispatch(setExpandedPosEntryUuid(entry.uuid));
+            }}
+            aria-label={isExpanded ? "Collapse position" : "Expand position"}
+            aria-expanded={isExpanded}
+            data-testid={`position-expand-${entry.uuid}`}
+          >
+            <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="lg" />
+          </button>
         </td>
         <td>{hhmmssFromSeconds(entry.petSeconds)}</td>
         <td data-tooltip-id="aegis-tooltip" data-tooltip-content={typeNames.join(", ")}>
@@ -395,7 +392,7 @@ const PositionDetails: FunctionComponent<{
           </span>
           <PathColorPickerMenu
             circular={true}
-            currentColor={entry.color ?? null}
+            currentColor={getPosEntryColor(entry)}
             editMode={false}
             updateColor={() => undefined}
           />
