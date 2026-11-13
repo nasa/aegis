@@ -250,6 +250,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             automergeMission.projBoundsMinY,
                             automergeMission.projBoundsMaxY
                           ),
+                          validators.mustBeLatitude,
                         ],
                       }}
                       fieldPropsLng={{
@@ -262,6 +263,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
                             automergeMission.projBoundsMinX,
                             automergeMission.projBoundsMaxX
                           ),
+                          validators.mustBeLongitude,
                         ],
                       }}
                       onSubmit={async (val: AEGISPoint) => {

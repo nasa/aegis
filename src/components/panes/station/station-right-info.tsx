@@ -590,6 +590,7 @@ const Info_Panel: FunctionComponent<{
                           partialMission.projBoundsMinY,
                           partialMission.projBoundsMaxY
                         ),
+                        validators.mustBeLatitude,
                       ],
                     }}
                     fieldPropsLng={{
@@ -602,6 +603,7 @@ const Info_Panel: FunctionComponent<{
                           partialMission.projBoundsMinX,
                           partialMission.projBoundsMaxX
                         ),
+                        validators.mustBeLongitude,
                       ],
                     }}
                     onSubmit={(val: AEGISPoint) => {
