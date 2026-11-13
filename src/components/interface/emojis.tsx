@@ -35,16 +35,6 @@ export const EmojiRenderer: FunctionComponent<{
       />
     );
   }
-  if (iconValue === "astronaut") {
-    return (
-      <img
-        src="/images/astronaut_outline.svg"
-        alt="Astronaut"
-        className={imageClassName}
-        style={imageStyle}
-      />
-    );
-  }
 
   // Handle standard Unicode emojis
   let emoji;
