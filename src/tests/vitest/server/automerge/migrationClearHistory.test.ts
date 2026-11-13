@@ -12,6 +12,7 @@ import { Migration20261022000000 } from "server/automerge/migrations/Migration20
 import { Migration20261022010000 } from "server/automerge/migrations/Migration20261022010000";
 import { Migration20261026000000 } from "server/automerge/migrations/Migration20261026000000";
 import { Migration20261028000000 } from "server/automerge/migrations/Migration20261028000000";
+import { Migration20261030000000 } from "server/automerge/migrations/Migration20261030000000";
 import { Migration20261102000000 } from "server/automerge/migrations/Migration20261102000000";
 import { Migration20261104000000 } from "server/automerge/migrations/Migration20261104000000";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
@@ -135,13 +136,14 @@ describe("clear Automerge document history", () => {
     const oldUrls = listings.map(({ automergeUrl }) => automergeUrl);
     const schemaMigrations = AUTOMERGE_MIGRATIONS.filter(
       ({ version }) =>
-        version >= Migration20261022000000.version && version <= Migration20261028000000.version
+        version >= Migration20261022000000.version && version <= Migration20261104000000.version
     );
     expect(schemaMigrations).toEqual([
       Migration20261022000000,
       Migration20261022010000,
       Migration20261026000000,
       Migration20261028000000,
+      Migration20261030000000,
       Migration20261102000000,
       Migration20261104000000,
     ]);
