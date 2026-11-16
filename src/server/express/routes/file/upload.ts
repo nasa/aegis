@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import multer from "multer";
 
-import { assertMissionFilePath, deleteFile, moveFile, renameFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
+import { assertMissionFilePath, deleteFile, moveFile, unzip } from "server/file/file"; // Assuming these functions are compatible with Express
 import { hasPerms } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
@@ -84,13 +84,13 @@ router.post("/", upload.single("uploadFile"), async (req: Request, res: Response
         await unzip(filename, req.body.path, req.body.subfolder); // unzip the file if necessary
         statusMessage = "File received and extracted";
       } else {
-        // move to subfolder
-        const destination = path.join(req.body.path, req.body.subfolder ?? "");
-        await moveFile(filename, destination);
-        if (!(await renameFile(destination, filename, req.file.originalname))) {
-          await deleteFile(path.join(destination, filename));
-          throw new Error("A file with that name already exists in the destination");
-        }
+        // move to subfolder under the original name, replacing any existing file
+        await moveFile(
+          filename,
+          req.body.path,
+          req.body.subfolder,
+          path.basename(req.file.originalname)
+        );
       }
       res.status(201).json(statusMessage);
     } else {

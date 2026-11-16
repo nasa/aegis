@@ -78,9 +78,6 @@ vi.mock("store/thunk/thunkRexPosEntry", () => ({
   thunkSetPosEntryEditLocation: vi.fn(() => ({
     type: "mock/thunkSetPosEntryEditLocation",
   })),
-  thunkUICancelPosEntryInEdit: vi.fn(() => ({
-    type: "mock/thunkUICancelPosEntryInEdit",
-  })),
 }));
 
 vi.mock("store/thunk/thunkTraverse", () => ({
@@ -189,33 +186,6 @@ describe("InteractionManager", () => {
 
     renderInteractionManager();
     expect(mapContainer.style.cursor).toBe("crosshair");
-  });
-
-  it.each([false, true])("Escape respects aria-modal=%s on floating controls", (modal) => {
-    store = makeStore({
-      map: {
-        ...mapSlice.getInitialState(),
-        mapDirective: { uuid: "poi-1", mapItemType: "poi", mapAction: "createMarker" },
-      },
-    } as PartialPreloadedState);
-    renderInteractionManager();
-    const dialog = document.createElement("div");
-    dialog.setAttribute("role", "dialog");
-    dialog.setAttribute("aria-modal", String(modal));
-    const button = document.createElement("button");
-    dialog.appendChild(button);
-    document.body.appendChild(dialog);
-    try {
-      flushSync(() =>
-        button.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
-      );
-      expect(store.getState().map.mapDirective).toEqual(
-        modal ? { uuid: "poi-1", mapItemType: "poi", mapAction: "createMarker" } : null
-      );
-      expect(mapContainer.style.cursor).toBe(modal ? "crosshair" : "");
-    } finally {
-      dialog.remove();
-    }
   });
 
   it("cancelCreateMarker clears the directive", () => {

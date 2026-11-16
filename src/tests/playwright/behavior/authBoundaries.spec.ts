@@ -1,14 +1,8 @@
 import { randomUUID } from "node:crypto";
 import * as bcrypt from "bcryptjs";
 import type { BrowserContext } from "@playwright/test";
-import { Repo, type AutomergeUrl } from "@automerge/automerge-repo";
 import DB from "../db";
 import { test, expect } from "../fixtures/behavioralTest";
-import { authenticatedAutomergeAdapter } from "../fixtures/authenticatedAutomerge";
-import {
-  expectDocumentOperationDenied,
-  expectAutomergeUpgradeDenied,
-} from "../fixtures/automergeAuthorizationProbe";
 import {
   enablePlanningEditMode,
   planningField,
@@ -53,26 +47,6 @@ async function login(context: BrowserContext, username: string): Promise<void> {
 
 test.use({ scenario: "execution" });
 
-test("Automerge upgrades reject anonymous and deleted-user sessions with a current epoch", async ({
-  browser,
-  baseURL,
-  mission,
-}) => {
-  const database = new DB();
-  const username = `Deleted socket user ${randomUUID()}`;
-  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
-  try {
-    await expectAutomergeUpgradeDenied(context.request, baseURL);
-    await createRoleUser(database, username, "editor", mission.id);
-    await login(context, username);
-    await database.executeQuery("DELETE FROM app_user_db WHERE username=$1", [username]);
-    await expectAutomergeUpgradeDenied(context.request, baseURL);
-  } finally {
-    await context.close();
-    await database.executeQuery("DELETE FROM app_user_db WHERE username=$1", [username]);
-  }
-});
-
 test("viewer can read fields, geometry and execution but UI and raw writes leave the mission unchanged", async ({
   browser,
   baseURL,
@@ -81,7 +55,6 @@ test("viewer can read fields, geometry and execution but UI and raw writes leave
   const database = new DB();
   const username = `Read only ${randomUUID()}`;
   let viewer: BrowserContext | undefined;
-  let repo: Repo | undefined;
   await createRoleUser(database, username, "viewer", mission.id);
 
   try {
@@ -129,40 +102,14 @@ test("viewer can read fields, geometry and execution but UI and raw writes leave
     });
     expect(write.status()).toBe(401);
     expect(await write.json()).toMatchObject({ status: "failure", message: "Unauthorized" });
-    await expectDocumentOperationDenied(viewer.request, baseURL, mission.docUrl, true);
-    const version: AppVersion = await (await viewer.request.get("/api/v1/version")).json();
-    const socketUrl = new URL("/api/automergeSocket/", baseURL);
-    socketUrl.protocol = "ws:";
-    socketUrl.searchParams.set("serverEpochUuid", version.serverEpochUuid);
-    const adapter = await authenticatedAutomergeAdapter(viewer.request, socketUrl.toString());
-    repo = new Repo({ network: [adapter] });
-    const handle = await repo.find<Mission>(mission.docUrl as AutomergeUrl, {
-      signal: AbortSignal.timeout(10000),
-    });
-    expect(handle.doc().name).toBe(mission.name);
-    const rejected = new Promise<number>((resolve, reject) => {
-      const timeout = setTimeout(
-        () => reject(new Error("Viewer sync write was not rejected")),
-        10000
-      );
-      adapter.socket.once("close", (code) => {
-        clearTimeout(timeout);
-        resolve(code);
-      });
-    });
-    handle.change((doc) => {
-      doc.description = "viewer attempted real sync";
-    });
-    expect(await rejected).toBe(1008);
     expect(await mission.read()).toEqual(before);
   } finally {
-    await repo?.shutdown();
     await viewer?.close();
     await database.executeQuery("DELETE FROM app_user_db WHERE username=$1", [username]);
   }
 });
 
-test("editor access stays on mission A across direct URLs, REST reads and writes, and known-document sockets", async ({
+test("editor access stays on mission A across direct URLs and REST reads and writes", async ({
   browser,
   baseURL,
   request,
@@ -206,8 +153,6 @@ test("editor access stays on mission A across direct URLs, REST reads and writes
       expect(response.status()).toBe(401);
       expect(await response.json()).toMatchObject({ status: "failure", message: "Unauthorized" });
     }
-    await expectDocumentOperationDenied(editor.request, baseURL, target.automergeUrl, false);
-    await expectDocumentOperationDenied(editor.request, baseURL, target.automergeUrl, true);
     expect(
       (await (await request.get(`/api/v1/missionDump?missionId=${target.missionId}`)).json()).data
         .missionData.mission
@@ -405,18 +350,6 @@ test("declared admin routes and field policies separate editor, admin, and super
     });
     expect(adminField.status()).toBe(200);
     expect((await mission.read()).actionSystemVersion).toBe(1);
-    await database.executeQuery("UPDATE app_user_db SET permission_list='[]' WHERE username=$1", [
-      users.admin,
-    ]);
-    const ungrantedAdmin = await admin.request.post("/api/v1/missionAutomerge/fields", {
-      data: { missionId: mission.id, fields: { description: "admin without mission grant" } },
-    });
-    expect(ungrantedAdmin.status()).toBe(401);
-    expect((await mission.read()).description).toBe("editor allowed field");
-    expect((await admin.request.get("/api/v1/environmentConfig")).status()).toBe(401);
-    expect((await admin.request.get("/api/v1/emss/enableEmssApi")).status()).toBe(401);
-    const adminUsers = await admin.request.get("/api/v1/appUsers");
-    expect(adminUsers.status()).toBe(401);
 
     const superUsers = await superAdmin.request.get("/api/v1/appUsers");
     expect(superUsers.status()).toBe(200);

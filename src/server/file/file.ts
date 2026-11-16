@@ -124,12 +124,14 @@ export async function unzip(
  * @param filename POSIX string representation of a file within the STATIC_DIR
  * @param destDir child directory of STATIC_DIR
  * @param subfolder optional subfolder within the destDir to move the file to. Ex. a UUID folder for layers
+ * @param destinationName optional file name at the destination. Replaces an existing file with that name
  * @returns returns true if successful. False otherwise. Logs messages to console
  */
 export async function moveFile(
   filename: string,
   destDir: string,
-  subfolder?: string
+  subfolder?: string,
+  destinationName: string = path.basename(filename)
 ): Promise<void> {
   const destination = resolveStaticPath(subfolder ? path.join(destDir, subfolder) : destDir);
 
@@ -138,11 +140,10 @@ export async function moveFile(
   }
 
   const srcPath = resolveStaticPath(filename);
+  assertSafeFileName(destinationName);
   const destPath = resolveStaticPath(
-    path.join(subfolder ? path.join(destDir, subfolder) : destDir, path.basename(filename))
+    path.join(subfolder ? path.join(destDir, subfolder) : destDir, destinationName)
   );
-  if (fs.existsSync(destPath))
-    throw new Error("A file with that name already exists in the destination");
 
   serverLogger.info({
     logId: "file:moveFile:movingFileToDestination",

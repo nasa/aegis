@@ -1,12 +1,7 @@
 import type { BrowserContext, Locator, Page } from "@playwright/test";
 import { test, expect } from "../fixtures/behavioralTest";
 import { seedFolder } from "../fixtures/entitySeeds";
-import {
-  confirmPlanningDelete,
-  enablePlanningEditMode,
-  openPlanningSection,
-  selectPlanningPoi,
-} from "./planningHelpers";
+import { enablePlanningEditMode, openPlanningSection } from "./planningHelpers";
 
 type BufferedUpdate = {
   message: string | Buffer;
@@ -86,10 +81,6 @@ async function openStations(page: Page) {
   await openPlanningSection(page, "station");
 }
 
-async function openPois(page: Page) {
-  await openPlanningSection(page, "poi");
-}
-
 async function release(buffer: ClientBuffer) {
   const updates = buffer.updates.splice(0);
   for (const update of updates) update.send(update.message);
@@ -99,114 +90,6 @@ async function releaseIncoming(buffer: ClientBuffer) {
   const messages = buffer.serverMessages.splice(0);
   for (const message of messages) message.send(message.message);
 }
-
-test("concurrent moves of one station converge to one folder membership without losing peers", async ({
-  page,
-  browser,
-  context,
-  baseURL,
-  mission,
-}) => {
-  const leftFolder = "30000000-0000-4000-8000-000000000081";
-  const rightFolder = "30000000-0000-4000-8000-000000000082";
-  const keeperFolder = "30000000-0000-4000-8000-000000000083";
-  await mission.change((doc) => {
-    doc.folders = {
-      [leftFolder]: seedFolder({ uuid: leftFolder, name: "Left folder", type: "station" }),
-      [rightFolder]: seedFolder({ uuid: rightFolder, name: "Right folder", type: "station" }),
-      [keeperFolder]: seedFolder({
-        uuid: keeperFolder,
-        name: "Keep folder",
-        type: "station",
-        items: [mission.ids.stationB],
-      }),
-    };
-  });
-  const initial = await mission.read();
-
-  const peerContext: BrowserContext = await browser.newContext({
-    storageState: await context.storageState(),
-    baseURL,
-    viewport: { width: 1960, height: 1080 },
-  });
-  const peer = await peerContext.newPage();
-  const remoteBuffer = bufferAutomergeUpdates(peer);
-  try {
-    await mission.open(page);
-    await mission.open(peer);
-    await openStations(page);
-    await openStations(peer);
-    await enablePlanningEditMode(page);
-    await enablePlanningEditMode(peer);
-
-    // Pause only document updates after both replicas have loaded the same initial graph.
-    remoteBuffer.hold = true;
-    remoteBuffer.holdIncoming = true;
-    await dragPointerTo(folderRow(page, "Alpha station"), folderByName(page, "Left folder"));
-    await expect.poll(async () => remoteBuffer.serverMessages.length).toBeGreaterThan(0);
-    await expect(
-      folderByName(peer, "Left folder").getByText("Alpha station", { exact: true })
-    ).toHaveCount(0);
-    await dragPointerTo(folderRow(peer, "Alpha station"), folderByName(peer, "Right folder"));
-    await expect(
-      folderByName(page, "Left folder").getByText("Alpha station", { exact: true })
-    ).toBeVisible();
-    await expect(
-      folderByName(peer, "Right folder").getByText("Alpha station", { exact: true })
-    ).toBeVisible();
-
-    remoteBuffer.hold = false;
-    await release(remoteBuffer);
-    remoteBuffer.holdIncoming = false;
-    await releaseIncoming(remoteBuffer);
-
-    await expect
-      .poll(async () => {
-        const doc = await mission.read();
-        return Object.values(doc.folders).flatMap((folder) =>
-          folder.items.filter((uuid) => uuid === mission.ids.stationA)
-        ).length;
-      })
-      .toBe(1);
-
-    const settled = await mission.read();
-    const leftMembership = settled.folders[leftFolder].items.includes(mission.ids.stationA);
-    const rightMembership = settled.folders[rightFolder].items.includes(mission.ids.stationA);
-    for (const client of [page, peer]) {
-      await expect(
-        folderByName(client, "Left folder").getByText("Alpha station", { exact: true })
-      ).toHaveCount(leftMembership ? 1 : 0);
-      await expect(
-        folderByName(client, "Right folder").getByText("Alpha station", { exact: true })
-      ).toHaveCount(rightMembership ? 1 : 0);
-    }
-
-    const membership = Object.values(settled.folders).flatMap((folder) =>
-      folder.items.filter((uuid) => uuid === mission.ids.stationA)
-    );
-    expect(membership).toHaveLength(1);
-    expect(settled.stations[mission.ids.stationA]).toEqual(initial.stations[mission.ids.stationA]);
-    expect(settled.stations[mission.ids.stationB]).toEqual(initial.stations[mission.ids.stationB]);
-    expect(settled.folders[keeperFolder].items).toEqual([mission.ids.stationB]);
-    for (const folder of Object.values(settled.folders)) {
-      expect(new Set(folder.items).size).toBe(folder.items.length);
-      for (const uuid of folder.items) expect(settled.stations[uuid]).toBeDefined();
-    }
-
-    await mission.open(peer);
-    await openStations(peer);
-    const reloaded = await mission.read();
-    expect(
-      reloaded.folders[leftFolder].items.concat(reloaded.folders[rightFolder].items)
-    ).toHaveLength(1);
-    expect(reloaded.folders[keeperFolder].items).toEqual([mission.ids.stationB]);
-    await expect(
-      folderByName(peer, "Keep folder").getByText("Bravo station", { exact: true })
-    ).toBeVisible();
-  } finally {
-    await peerContext.close();
-  }
-});
 
 test("a move racing with folder deletion leaves a valid station and no orphan membership", async ({
   page,
@@ -314,103 +197,6 @@ test("a move racing with folder deletion leaves a valid station and no orphan me
       } else {
         await expect(folderByName(client, "Racing folder")).toHaveCount(0);
       }
-    }
-  } finally {
-    await peerContext.close();
-  }
-});
-
-test("a POI deletion racing with a folder move converges without an orphan reference", async ({
-  page,
-  browser,
-  context,
-  baseURL,
-  mission,
-}) => {
-  const poiFolder = "30000000-0000-4000-8000-000000000086";
-  const keepFolder = "30000000-0000-4000-8000-000000000087";
-  await mission.change((doc) => {
-    doc.stations[mission.ids.stationA].poiUuids = [];
-    doc.actions[mission.ids.actionA].poiUuid = null;
-    doc.folders = {
-      [poiFolder]: seedFolder({ uuid: poiFolder, name: "POI folder", type: "poi" }),
-      [keepFolder]: seedFolder({
-        uuid: keepFolder,
-        name: "Unrelated folder",
-        type: "station",
-        items: [mission.ids.stationB],
-      }),
-    };
-  });
-  const initial = await mission.read();
-  const peerContext: BrowserContext = await browser.newContext({
-    storageState: await context.storageState(),
-    baseURL,
-    viewport: { width: 1960, height: 1080 },
-  });
-  const peer = await peerContext.newPage();
-  const remoteBuffer = bufferAutomergeUpdates(peer);
-  try {
-    await mission.open(page);
-    await mission.open(peer);
-    await openPois(page);
-    await openPois(peer);
-    await enablePlanningEditMode(page);
-    await enablePlanningEditMode(peer);
-
-    remoteBuffer.hold = true;
-    remoteBuffer.holdIncoming = true;
-    await dragPointerTo(
-      page
-        .getByLabel("poiList-item", { exact: true })
-        .filter({ hasText: "Reference POI" })
-        .locator("xpath=ancestor::div[contains(@class, 'draggableItem')]")
-        .first(),
-      folderByName(page, "POI folder")
-    );
-    await expect.poll(async () => remoteBuffer.serverMessages.length).toBeGreaterThan(0);
-    await expect(
-      folderByName(peer, "POI folder").getByText("Reference POI", { exact: true })
-    ).toHaveCount(0);
-
-    await selectPlanningPoi(peer, "Reference POI");
-    await confirmPlanningDelete(peer, "deletePoi");
-    await expect.poll(async () => remoteBuffer.updates.length).toBeGreaterThan(0);
-    remoteBuffer.hold = false;
-    await release(remoteBuffer);
-    remoteBuffer.holdIncoming = false;
-    await releaseIncoming(remoteBuffer);
-
-    await expect
-      .poll(async () => {
-        const doc = await mission.read();
-        return (
-          doc.pois[mission.ids.poiA] === undefined &&
-          Object.values(doc.folders).every((folder) => !folder.items.includes(mission.ids.poiA))
-        );
-      })
-      .toBe(true);
-
-    const settled = await mission.read();
-    expect(settled.pois[mission.ids.poiA]).toBeUndefined();
-    expect(settled.stations[mission.ids.stationA]).toEqual(initial.stations[mission.ids.stationA]);
-    expect(settled.stations[mission.ids.stationB]).toEqual(initial.stations[mission.ids.stationB]);
-    expect(settled.actions[mission.ids.actionA].poiUuid).toBeNull();
-    expect(settled.folders[keepFolder].items).toEqual([mission.ids.stationB]);
-    for (const folder of Object.values(settled.folders)) {
-      for (const uuid of folder.items) {
-        if (folder.type === "poi") expect(settled.pois[uuid]).toBeDefined();
-        if (folder.type === "station") expect(settled.stations[uuid]).toBeDefined();
-      }
-    }
-    for (const client of [page, peer]) {
-      await openStations(client);
-      await expect(
-        client.getByLabel("poiList-item", { exact: true }).filter({ hasText: "Reference POI" })
-      ).toHaveCount(0);
-      await expect(
-        folderByName(client, "Unrelated folder").getByText("Bravo station", { exact: true })
-      ).toHaveCount(1);
     }
   } finally {
     await peerContext.close();

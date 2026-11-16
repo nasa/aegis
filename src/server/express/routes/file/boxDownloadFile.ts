@@ -184,8 +184,6 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       }
 
       const destinationFile = resolveStaticPath(path.join(queryObj.path, metadata.name));
-      if (fs.existsSync(destinationFile))
-        throw new Error("A file with that name already exists in the destination");
       fs.renameSync(stagedDownloadFilePath, destinationFile);
     }
 

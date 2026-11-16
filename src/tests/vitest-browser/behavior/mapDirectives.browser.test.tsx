@@ -1,13 +1,11 @@
-import { commands, userEvent } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { exactText, isVisible } from "./browserAssertions";
 import { test as base, expect } from "./missionHarness";
 const test = base;
 import type { BrowserPage as Page } from "vitest/browser";
 import { readMapFeatures } from "./mapObserver";
-import { mapFeaturePixel, minimizeRexMenu } from "./mapInteractions";
 import {
   enablePlanningEditMode,
-  openPlanningField,
   planningEvaRow,
   selectPlanningEva,
   selectPlanningPoi,
@@ -154,44 +152,13 @@ async function exitDirective(
   target: MapDirectiveTestTarget,
   exit: MapDirectiveTestExit
 ): Promise<void> {
-  if (exit === "Escape") {
-    await userEvent.keyboard("{Escape}");
-  } else if (exit === "Edit off") {
+  if (exit === "Edit off") {
     await page.getByLabelText("globalEditToggle", { exact: true }).click();
   } else {
     await navigateAway(page, target);
   }
   await expect.poll(() => mapCursor()).toBe("");
 }
-
-test("Escape dismisses a field dialog before cancelling the POI marker edit and preserving its point", async ({
-  page,
-  mission,
-}) => {
-  const before = (await mission.read()).pois[mission.ids.poiA];
-  await mission.open();
-  await enablePlanningEditMode(page);
-  await selectPlanningPoi(page, "Reference POI");
-  await page.getByLabelText("info_panel", { exact: true }).click();
-  await page.getByLabelText("Edit on Map", { exact: true }).click();
-  await expect.poll(() => mapCursor()).toBe("crosshair");
-
-  const fieldDialog = await openPlanningField(page, "POI");
-  await userEvent.keyboard("{Escape}");
-  await expect.poll(() => fieldDialog.length).toBe(0);
-  await expect.poll(() => mapCursor()).toBe("crosshair");
-
-  await userEvent.keyboard("{Escape}");
-
-  await expect.poll(() => mapCursor()).toBe("");
-  await expect.poll(() => page.getByLabelText("Cancel", { exact: true }).length).toBe(0);
-  await expect.element(page.getByLabelText("Edit on Map", { exact: true })).toBeVisible();
-  expect((await mission.read()).pois[mission.ids.poiA]).toEqual(before);
-  await page.getByLabelText("station Section", { exact: true }).click();
-  await expect
-    .element(page.getByLabelText("leftPanelTitle", { exact: true }))
-    .toMatchTextContent("Stations");
-});
 
 test("turning Edit off exits a pending POI placement without creating a coordinate", async ({
   page,
@@ -220,18 +187,16 @@ test("turning Edit off exits a pending POI placement without creating a coordina
     .toMatchTextContent("Stations");
 });
 
-test("station location can be cancelled, cleared, and recreated from a known map pixel", async ({
+test("station location can be cancelled and recreated from a known map pixel", async ({
   page,
   mission,
 }) => {
-  const before = await mission.read();
-  const originalStation = before.stations[mission.ids.stationA];
+  const originalStation = (await mission.read()).stations[mission.ids.stationA];
   expect(originalStation.location).not.toBeNull();
   await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningStation(page, "Alpha station");
   await page.getByLabelText("info_panel", { exact: true }).click();
-  await expect.element(page.getByLabelText("Clear Location", { exact: true })).toBeVisible();
 
   const originalPixelCoordinates = projectedPoint(originalStation.location!);
   await expect
@@ -248,31 +213,12 @@ test("station location can be cancelled, cleared, and recreated from a known map
   await page.getByLabelText("Cancel", { exact: true }).click();
   expect((await mission.read()).stations[mission.ids.stationA]).toEqual(originalStation);
 
-  await page.getByLabelText("Clear Location", { exact: true }).click();
-  await expect
-    .poll(async () => (await mission.read()).stations[mission.ids.stationA].location)
-    .toBeNull();
-  const clearedDoc = await mission.read();
-  const cleared = clearedDoc.stations[mission.ids.stationA];
-  expect(cleared.elevation).toBeNull();
-  expect(cleared.walkbackPath).toBeNull();
-  expect(cleared.walkbackPathSegmentDistances).toBeNull();
-  expect(cleared).not.toHaveProperty("walkbackPathSegmentElevations");
-  expect(clearedDoc.traverses[mission.ids.traverseA].path).toEqual(
-    before.traverses[mission.ids.traverseA].path
-  );
-  await expect.poll(() => page.getByLabelText("Clear Location", { exact: true }).length).toBe(0);
-  await expect
-    .poll(async () =>
-      (await readMapFeatures()).find((feature) => feature.id === mission.ids.stationA)
-    )
-    .toBeUndefined();
-  await expect
-    .poll(async () =>
-      (await readMapFeatures()).find((feature) => feature.id === `walkback-${mission.ids.stationA}`)
-    )
-    .toBeUndefined();
-
+  await mission.change((doc) => {
+    doc.stations[mission.ids.stationA].location = null;
+    doc.stations[mission.ids.stationA].elevation = null;
+    doc.stations[mission.ids.stationA].walkbackPath = null;
+    doc.stations[mission.ids.stationA].walkbackPathSegmentDistances = null;
+  });
   await mission.open();
   await enablePlanningEditMode(page);
   await selectPlanningStation(page, "Alpha station");
@@ -309,50 +255,8 @@ test("station location can be cancelled, cleared, and recreated from a known map
   expect((await mission.read()).stations[mission.ids.stationA]).toEqual(recreated);
 });
 
-test("Escape restores a dragged traverse and removes the modify interaction", async ({
-  page,
-  mission,
-}) => {
-  const original = (await mission.read()).traverses[mission.ids.traverseA].path;
-  await mission.open();
-  await enablePlanningEditMode(page);
-  await selectPlanningEva(page, "Survey Alpha");
-  await planningEvaRow(page, "Survey Alpha").getByText("Alpha to Bravo", { exact: true }).click();
-  await page.getByLabelText("Edit Path on Map", { exact: true }).click();
-  await expect.element(page.getByLabelText("Cancel", { exact: true })).toBeVisible();
-  await expect.poll(() => mapCursor()).toBe("crosshair");
-
-  const vertex = await mapFeaturePixel(mission.ids.traverseA, "editor", 1);
-  await minimizeRexMenu(page);
-  await commands.mapPointer("move", vertex.x, vertex.y);
-  await commands.mapPointer("down");
-  await commands.mapPointer("move", vertex.x + 45, vertex.y - 35, 12);
-  await commands.mapPointer("up");
-  await expect
-    .poll(async () => (await mission.read()).traverses[mission.ids.traverseA].path)
-    .not.toEqual(original);
-  await userEvent.keyboard("{Escape}");
-
-  await expect.poll(() => mapCursor()).toBe("");
-  await expect.poll(() => page.getByLabelText("Cancel", { exact: true }).length).toBe(0);
-  await expect
-    .poll(async () => (await mission.read()).traverses[mission.ids.traverseA].path)
-    .toEqual(original);
-  await expect
-    .poll(
-      async () =>
-        (await readMapFeatures()).find((feature) => feature.id === mission.ids.traverseA)
-          ?.coordinates
-    )
-    .toHaveLength(original.length);
-  await selectPlanningPoi(page, "Reference POI");
-  await expect
-    .element(page.getBySelector('div[aria-label="POI"]'))
-    .toMatchTextContent(exactText("Reference POI"));
-});
-
 const planningDirectiveTargets = ["poi", "station", "action", "walkback", "traverse"] as const;
-const directiveExits = ["Escape", "Edit off", "navigation"] as const;
+const directiveExits = ["Edit off", "navigation"] as const;
 
 for (const target of planningDirectiveTargets) {
   for (const exit of directiveExits) {
@@ -376,36 +280,7 @@ for (const target of planningDirectiveTargets) {
 test.describe("execution position map directives", () => {
   const test = base.extend({ scenario: "execution" as BehavioralScenario });
 
-  test("Escape cancels an existing position edit without saving a map move", async ({
-    page,
-    mission,
-  }) => {
-    await mission.open();
-    await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
-    const menu = page.getByTestId("positions-menu");
-    await menu.getByText("All Positions", { exact: true }).click();
-    const row = menu.getBySelector("table").last().getByRole("row").filter({ hasText: "00:02:00" });
-    await row.getBySelector('svg[data-icon="ellipsis-vertical"]').click();
-    await page.getBySelector("dialog[open]").getByText("Edit", { exact: true }).click();
-    await menu.getByLabelText("Edit Pos.", { exact: true }).click();
-    await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
-    await expect.poll(() => mapCursor()).toBe("crosshair");
-    const before = await mission.read();
-
-    await userEvent.keyboard("{Escape}");
-
-    await expect.poll(() => mapCursor()).toBe("");
-    await expect.poll(() => menu.getByLabelText("Cancel Pos.", { exact: true }).length).toBe(0);
-    expect(await mission.read()).toEqual(before);
-    await expect
-      .poll(
-        async () =>
-          (await readMapFeatures()).find((feature) => feature.id === mission.ids.posB)?.geometryType
-      )
-      .toBe("Point");
-  });
-
-  for (const exit of directiveExits) {
+  for (const exit of ["Edit off"] as const) {
     test(`position edit exits cleanly through ${exit} without changing its saved position`, async ({
       page,
       mission,

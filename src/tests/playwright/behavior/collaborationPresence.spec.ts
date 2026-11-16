@@ -16,7 +16,7 @@ async function expectPresence(page: Page, editors: number, viewers: number): Pro
   ).toHaveText([String(editors), String(viewers)]);
 }
 
-test("distinct editor and viewer accounts share presence and edits, retain independent selections and lose HTTP access after revocation", async ({
+test("distinct editor and viewer accounts share presence and edits, and retain independent selections", async ({
   browser,
   baseURL,
   mission,
@@ -91,34 +91,8 @@ test("distinct editor and viewer accounts share presence and edits, retain indep
     await expectPresence(viewer, 1, 1);
     await expect(planningField(editor, "Station")).toHaveText("Distinct editor shared site");
 
-    for (const account of accounts) {
-      await database.executeQuery("UPDATE app_user_db SET permission_list='[]' WHERE username=$1", [
-        account.username,
-      ]);
-    }
-    for (const client of clients) {
-      const read = await client.request.get(`/api/v1/all?missionId=${mission.id}`);
-      expect(read.status()).toBe(401);
-      const write = await client.request.post("/api/v1/missionAutomerge/fields", {
-        data: { missionId: mission.id, fields: { description: "Revoked HTTP mutation" } },
-      });
-      expect(write.status()).toBe(401);
-      expect(await write.json()).toMatchObject({ status: "failure", message: "Unauthorized" });
-    }
-    // Already-open document transports retain their original grant by the accepted policy.
-    await savePlanningField(editor, "Station", "Existing editor connection after revocation");
-    await expect(planningField(viewer, "Station")).toHaveText(
-      "Existing editor connection after revocation"
-    );
-    await expect
-      .poll(async () => (await mission.read()).stations[mission.ids.stationA].name)
-      .toBe("Existing editor connection after revocation");
-    expect((await mission.read()).description).not.toBe("Revoked HTTP mutation");
     await viewer.close();
     await expectPresence(editor, 1, 0);
-    await editor.reload();
-    await expect(editor).toHaveURL(new URL("/", baseURL).toString());
-    await expect(editor.getByLabel("missionNameHeader", { exact: true })).toHaveCount(0);
   } finally {
     await Promise.all(clients.map((client) => client.close()));
     for (const account of accounts) {

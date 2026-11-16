@@ -54,7 +54,7 @@ export const populateStore = async (params: {
     throw new Error("Mission doc handle not found in repo");
   }
   await missionDocHandle.whenReady();
-  setMissionAutomergeDocHandle(missionDocHandle, Boolean(runAudit)); // Save handle and edit permission
+  setMissionAutomergeDocHandle(missionDocHandle); // Save doc handle to client global for future access
 
   // Get circle definitions from the mission automerge doc
   const mission = missionDocHandle.doc();

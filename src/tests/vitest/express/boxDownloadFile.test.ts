@@ -66,7 +66,7 @@ test("downloads to the mission root with a relative STATIC_DIR", async () => {
   expect(fs.readdirSync(missionDirectory)).toEqual(["download.txt"]);
 });
 
-test("a duplicate destination preserves its file and partial download", async () => {
+test("a duplicate destination is overwritten and its partial download is preserved", async () => {
   fs.writeFileSync(path.join(missionDirectory, "download.txt"), "existing");
   fs.writeFileSync(path.join(missionDirectory, "download.txt.part"), "existing partial");
 
@@ -74,8 +74,8 @@ test("a duplicate destination preserves its file and partial download", async ()
     .get("/")
     .query({ missionId: 1000, itemId: "file", path: "missionFiles/1000" });
 
-  expect(response.text).toContain('"status":"error"');
-  expect(fs.readFileSync(path.join(missionDirectory, "download.txt"), "utf8")).toBe("existing");
+  expect(response.text).toContain('"status":"success"');
+  expect(fs.readFileSync(path.join(missionDirectory, "download.txt"), "utf8")).toBe("download");
   expect(fs.readFileSync(path.join(missionDirectory, "download.txt.part"), "utf8")).toBe(
     "existing partial"
   );

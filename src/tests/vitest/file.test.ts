@@ -150,6 +150,21 @@ describe("File Functions", () => {
       expect(deletedFile).toBe(true);
     });
 
+    test("Move File: replaces an existing file with the destination name", async () => {
+      const destinationDirectory = path.join(staticTestDir, "moveOverwrite");
+      fs.mkdirSync(destinationDirectory, { recursive: true });
+      fs.writeFileSync(path.join(destinationDirectory, "upload.txt"), "existing");
+      fs.writeFileSync(path.join(staticTestDir, "staged-upload.txt"), "replacement");
+
+      await moveFile("vitestTest/staged-upload.txt", "vitestTest", "moveOverwrite", "upload.txt");
+
+      expect(fs.readFileSync(path.join(destinationDirectory, "upload.txt"), "utf8")).toBe(
+        "replacement"
+      );
+      expect(fs.existsSync(path.join(staticTestDir, "staged-upload.txt"))).toBe(false);
+      expect(fs.readdirSync(destinationDirectory)).toEqual(["upload.txt"]);
+    });
+
     test("Unzip File: Failure zip file doesn't exist", async () => {
       await expect(
         moveFile("testZipDoesNotExist.zip", "vitestTest", "testZipContentsDoesNotExist")

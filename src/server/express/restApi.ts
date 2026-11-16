@@ -1,4 +1,4 @@
-import type { Application, NextFunction, Request, Response } from "express";
+import type { Application } from "express";
 import express from "express";
 import cookieSession from "cookie-session";
 import cors from "cors";
@@ -6,7 +6,6 @@ import { globalValues } from "./global";
 import path from "node:path";
 import { fileURLToPath } from "url";
 import { RequestContext } from "@mikro-orm/postgresql";
-import { App_User_db } from "server/database/models/_allModels";
 
 import authRoutes from "./routes/auth";
 import allRoutes from "./routes/all";
@@ -68,14 +67,18 @@ app.use((_req, res, next) => {
 app.use(express.json({ limit: "40mb" }));
 app.use(cors());
 app.use(express.urlencoded({ limit: "40mb", extended: true }));
-export const sessionMiddleware = cookieSession({
-  name: "aegis-session",
-  keys: [process.env.SESSION_PASSWORD],
-  maxAge: 24 * 60 * 60 * 1000 * 365, // 1 year
-});
-app.use(sessionMiddleware);
+app.use(
+  cookieSession({
+    name: "aegis-session",
+    keys: [process.env.SESSION_PASSWORD],
+    maxAge: 24 * 60 * 60 * 1000 * 365, // 1 year
+  })
+);
 // static asset passthrough for dev. This path is relative to the esbuild output dir (.local/express/dist/api)
 app.use("/static", express.static(path.resolve(__dirname, "../../../..", process.env.STATIC_DIR)));
+
+// socket stuff
+app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
 
 // Mikro-ORM RequestContext should be last middleware before routes
 // <https://mikro-orm.io/docs/identity-map#request-context>
@@ -83,43 +86,6 @@ app.use("/static", express.static(path.resolve(__dirname, "../../../..", process
 app.use((_req, _res, next) => {
   RequestContext.create(globalValues.orm.em, next);
 });
-
-// Cookie sessions contain a user snapshot from login. Refresh its role and
-// mission grants from the database on each API request so revocations apply to
-// already-open sessions and deleted users lose access immediately.
-app.use("/api/v1", async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
-  const sessionUser = req.session?.appUser;
-  if (!sessionUser) {
-    next();
-    return;
-  }
-
-  try {
-    const persistedUser = await globalValues.orm.em.findOne(App_User_db, { id: sessionUser.id });
-    if (!persistedUser) {
-      req.session = null;
-      next();
-      return;
-    }
-
-    req.session.appUser = {
-      ...sessionUser,
-      username: persistedUser.username,
-      isAdmin: Boolean(persistedUser.isAdmin),
-      isSuperAdmin: Boolean(persistedUser.isSuperAdmin),
-      permissionList: persistedUser.permissionList ?? [],
-    };
-    next();
-  } catch {
-    // If identity cannot be verified, treat this request as unauthenticated.
-    req.session = null;
-    next();
-  }
-});
-
-// Socket-status reads also use session role checks, so mount them after refreshing
-// the persisted user snapshot above.
-app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);
 
 // get user info from launchpad
 app.get("/api/v1/user/current", (req, res) => {

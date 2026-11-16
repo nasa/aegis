@@ -1,21 +1,21 @@
 /**
- * InteractionManager â€” behavior component that maps `mapDirective` Redux state
+ * InteractionManager — behavior component that maps `mapDirective` Redux state
  * to OpenLayers interactions (Translate, Modify, click handlers).
  *
  * Replaces the Leaflet `handleMapDirective()` pattern with OL
  * interactions. Only one interaction is active at a time. The Redux dispatch
- * pattern is preserved â€” UI components still dispatch `updateMapDirective(...)`.
+ * pattern is preserved — UI components still dispatch `updateMapDirective(...)`.
  *
  * Supported directives:
- *   createMarker        â€” crosshair cursor, one-shot click â†’ save position
- *   cancelCreateMarker  â€” clear directive, reset cursor
- *   editMarker          â€” Translate interaction on target feature
- *   cancelEditMarker    â€” clear directive, reset cursor
- *   editPolyline        â€” Modify interaction on target feature (add/move/delete vertices)
- *   saveEditPolyline    â€” remove interaction, clear directive
- *   cancelEditPolyline  â€” restore the path captured in `map.originalPoints`
+ *   createMarker        — crosshair cursor, one-shot click → save position
+ *   cancelCreateMarker  — clear directive, reset cursor
+ *   editMarker          — Translate interaction on target feature
+ *   cancelEditMarker    — clear directive, reset cursor
+ *   editPolyline        — Modify interaction on target feature (add/move/delete vertices)
+ *   saveEditPolyline    — remove interaction, clear directive
+ *   cancelEditPolyline  — restore the path captured in `map.originalPoints`
  *
- * Returns null â€” headless behavior component.
+ * Returns null — headless behavior component.
  */
 
 import { useEffect, useRef } from "react";
@@ -42,10 +42,7 @@ import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { thunkDocUpdatePoiLocation } from "store/thunk/thunkPoi";
 import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
-import {
-  thunkSetPosEntryEditLocation,
-  thunkUICancelPosEntryInEdit,
-} from "store/thunk/thunkRexPosEntry";
+import { thunkSetPosEntryEditLocation } from "store/thunk/thunkRexPosEntry";
 import { thunkSetAssetEditLocation } from "store/thunk/thunkAsset";
 
 import { useMapContext } from "../MapProvider";
@@ -147,7 +144,7 @@ export function InteractionManager(): null {
     originalPointsRef.current = originalPoints;
   }, [originalPoints]);
 
-  // Selection/navigation context â€” used to auto-cancel an in-progress edit when
+  // Selection/navigation context — used to auto-cancel an in-progress edit when
   // the user navigates away (selects a different traverse, station, POI,
   // measurement, or switches section / bottom tab). See the watcher effect below.
   const sectionSelected = useAppSelector((s) => s.interface.sectionSelectedLabel, refEqual);
@@ -175,8 +172,8 @@ export function InteractionManager(): null {
 
   // Auto-cancel an in-progress edit when the user navigates away.
   // An active edit implies its target item is selected. If ANY selection
-  // (section, POI, station, EVA sequence item, measurement â€” or, for an asset
-  // map directive, only the selected asset) then changes, the user has moved on â€” so
+  // (section, POI, station, EVA sequence item, measurement — or, for an asset
+  // map directive, only the selected asset) then changes, the user has moved on — so
   // tear the edit down. This prevents a stale OL
   // Modify/Translate interaction from surviving a context switch (which lets the
   // user "drag when not in edit mode" and crashes when starting a new edit).
@@ -185,8 +182,8 @@ export function InteractionManager(): null {
   useEffect(() => {
     const isEditAction =
       mapDirective != null &&
-      (mapDirective.mapItemType === "posEntry" ||
-        mapDirective.mapAction === "editPolyline" ||
+      mapDirective.mapItemType !== "posEntry" &&
+      (mapDirective.mapAction === "editPolyline" ||
         mapDirective.mapAction === "editMarker" ||
         mapDirective.mapAction === "createMarker");
 
@@ -196,15 +193,11 @@ export function InteractionManager(): null {
     }
 
     if (selectionKeyAtEditStartRef.current === null) {
-      // Edit just became active â€” snapshot the current selection context.
+      // Edit just became active — snapshot the current selection context.
       selectionKeyAtEditStartRef.current = selectionKey;
     } else if (selectionKeyAtEditStartRef.current !== selectionKey) {
-      // Selection/navigation changed while editing â†’ cancel the edit.
-      if (mapDirective?.mapItemType === "posEntry") {
-        dispatch(thunkUICancelPosEntryInEdit());
-      } else {
-        dispatch(updateMapDirective(null));
-      }
+      // Selection/navigation changed while editing → cancel the edit.
+      dispatch(updateMapDirective(null));
     }
   }, [mapDirective, selectionKey, dispatch]);
 
@@ -216,33 +209,9 @@ export function InteractionManager(): null {
       return;
     }
 
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        target.closest(
-          'input, textarea, select, [contenteditable="true"], dialog[open], [role="dialog"]:not([aria-modal="false"])'
-        )
-      ) {
-        return;
-      }
-
-      if (mapDirective.mapItemType === "posEntry") {
-        dispatch(thunkUICancelPosEntryInEdit());
-      } else if (mapDirective.mapAction === "createMarker") {
-        dispatch(updateMapDirective({ ...mapDirective, mapAction: "cancelCreateMarker" }));
-      } else if (mapDirective.mapAction === "editMarker") {
-        dispatch(updateMapDirective({ ...mapDirective, mapAction: "cancelEditMarker" }));
-      } else if (mapDirective.mapAction === "editPolyline") {
-        dispatch(updateMapDirective({ ...mapDirective, mapAction: "cancelEditPolyline" }));
-      }
-    };
-    document.addEventListener("keydown", handleEscape);
-
     switch (mapDirective.mapAction) {
       // -----------------------------------------------------------------
-      // CREATE MARKER â€” crosshair + one-shot click
+      // CREATE MARKER — crosshair + one-shot click
       // -----------------------------------------------------------------
       case "createMarker": {
         if (el) el.style.cursor = "crosshair";
@@ -265,7 +234,7 @@ export function InteractionManager(): null {
       }
 
       // -----------------------------------------------------------------
-      // CANCEL CREATE â€” just clear
+      // CANCEL CREATE — just clear
       // -----------------------------------------------------------------
       case "cancelCreateMarker": {
         dispatch(updateMapDirective(null));
@@ -274,7 +243,7 @@ export function InteractionManager(): null {
       }
 
       // -----------------------------------------------------------------
-      // EDIT MARKER â€” Translate interaction on the target feature
+      // EDIT MARKER — Translate interaction on the target feature
       // -----------------------------------------------------------------
       case "editMarker": {
         const feature = findFeatureOnMap(map, mapDirective.uuid);
@@ -345,7 +314,7 @@ export function InteractionManager(): null {
       }
 
       // -----------------------------------------------------------------
-      // CANCEL EDIT MARKER â€” just clear
+      // CANCEL EDIT MARKER — just clear
       // -----------------------------------------------------------------
       case "cancelEditMarker": {
         dispatch(updateMapDirective(null));
@@ -354,7 +323,7 @@ export function InteractionManager(): null {
       }
 
       // -----------------------------------------------------------------
-      // EDIT POLYLINE â€” Modify interaction with throttled path saves
+      // EDIT POLYLINE — Modify interaction with throttled path saves
       // -----------------------------------------------------------------
       case "editPolyline": {
         if (el) el.style.cursor = "crosshair";
@@ -375,7 +344,7 @@ export function InteractionManager(): null {
         // Pin anchored endpoints. Traverse and walkback endpoints are locked to
         // their neighboring station/lander (they snap back there on save
         // regardless), so the endpoint nodes must be non-interactive: they can't
-        // be dragged, delete-clicked, or grabbed to add a node â€” only interior
+        // be dragged, delete-clicked, or grabbed to add a node — only interior
         // vertices move, and new nodes can still be inserted elsewhere on the
         // line. Measurements are free-form, so their endpoints stay movable.
         const pinsEndpoints =
@@ -451,7 +420,7 @@ export function InteractionManager(): null {
           }
         }, 100);
 
-        // Attach to geometry change â€” fires on every vertex move during drag.
+        // Attach to geometry change — fires on every vertex move during drag.
         // Safety net: even though the conditions above prevent grabbing an
         // anchored endpoint, re-pin it here if any change ever slips through
         // (e.g. when the endpoint pixel isn't resolvable), so the line never
@@ -521,7 +490,7 @@ export function InteractionManager(): null {
       }
 
       // -----------------------------------------------------------------
-      // SAVE EDIT POLYLINE â€” just clear (store already has latest path)
+      // SAVE EDIT POLYLINE — just clear (store already has latest path)
       // -----------------------------------------------------------------
       case "saveEditPolyline": {
         dispatch(updateMapDirective(null));
@@ -530,7 +499,7 @@ export function InteractionManager(): null {
       }
 
       // -----------------------------------------------------------------
-      // CANCEL EDIT POLYLINE â€” restore the path captured before the edit began
+      // CANCEL EDIT POLYLINE — restore the path captured before the edit began
       // -----------------------------------------------------------------
       case "cancelEditPolyline": {
         const originalPath = originalPointsRef.current;
@@ -542,13 +511,6 @@ export function InteractionManager(): null {
           } else if (mapDirective.mapItemType === "walkback") {
             dispatch(
               thunkDocUpdateWalkback({ stationUuid: mapDirective.uuid, path: originalPath })
-            );
-          } else if (mapDirective.mapItemType === "measurement") {
-            dispatch(
-              thunkUpdateMeasurementPath({
-                measurementUuid: mapDirective.uuid,
-                path: originalPath,
-              })
             );
           }
         }
@@ -563,7 +525,6 @@ export function InteractionManager(): null {
 
     // Effect cleanup: if the component unmounts or directive changes, clean up
     return () => {
-      document.removeEventListener("keydown", handleEscape);
       if (activeRef.current) {
         activeRef.current.cleanup();
         activeRef.current = null;

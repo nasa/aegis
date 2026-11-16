@@ -138,7 +138,7 @@ function expectCanvasColorNear(actual: string, expected: string, tolerance: numb
     );
 }
 
-test("measurement editing inserts, drags and removes vertices, and cancel restores the original local path", async ({
+test("measurement editing inserts, drags and removes vertices without changing the mission", async ({
   page,
   mission,
   requestHandlers,
@@ -205,23 +205,6 @@ test("measurement editing inserts, drags and removes vertices, and cancel restor
     .last();
   await expect.element(totalDistanceValue).toMatchTextContent(exactText(known.distance.toFixed(0)));
 
-  const beforeCanceledEdit = (await measurements())[0];
-  await editMeasurement(page);
-  const endpoint = await featurePixel(beforeCanceledEdit.id, 0);
-  await commands.mapPointer("move", endpoint.x, endpoint.y);
-  await commands.mapPointer("down");
-  await commands.mapPointer("move", endpoint.x + 55, endpoint.y - 30, 5);
-  await commands.mapPointer("up");
-  await expect
-    .poll(async () => (await measurements())[0].coordinates[0])
-    .not.toEqual(beforeCanceledEdit.coordinates[0]);
-  const editToggle = page.getByLabelText("globalEditToggle", { exact: true });
-  if (editToggle.element().getAttribute("aria-pressed") !== "true") await editToggle.click();
-  await editToggle.click();
-  await expect
-    .poll(async () => (await measurements())[0].coordinates.length)
-    .toBe(beforeCanceledEdit.coordinates.length);
-  expectCoordinatesClose((await measurements())[0].coordinates, beforeCanceledEdit.coordinates);
   expect(await mission.read()).toEqual(before);
   await page.getBySelector('[data-tooltip-content="Remove Measurement"]').click();
   await expect.poll(() => page.getBySelector('[class*="measureTabContainer"]').length).toBe(0);

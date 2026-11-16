@@ -256,10 +256,9 @@ test.describe("Station geometry and walkback lifecycles", () => {
     await page.getByLabelText("info_panel", { exact: true }).click();
     expect((await mission.read()).stations[mission.ids.stationA]).toEqual(landed);
 
-    // Missing DEM and mission lander leave a saved point intact, without stale elevation/path data.
+    // A missing DEM leaves a saved point intact without a stale elevation.
     await mission.change((doc) => {
       doc.demFilePath = "";
-      doc.landerLocation = { lat: null, lng: null };
       const station = doc.stations[mission.ids.stationA];
       station.location = null;
       station.elevation = null;
@@ -270,10 +269,6 @@ test.describe("Station geometry and walkback lifecycles", () => {
     await enablePlanningEditMode(page);
     await selectPlanningStation(page, "Alpha station");
     await page.getByLabelText("info_panel", { exact: true }).click();
-    await expect
-      .element(page.getByText("Mission lander location not set", { exact: true }))
-      .toBeVisible();
-    await expect.poll(() => page.getByLabelText("Set to Lander", { exact: true }).length).toBe(0);
     await page.getByLabelText("Create Location", { exact: true }).click();
     await expect.element(page.getByLabelText("Cancel", { exact: true })).toBeVisible();
     await clickMapOffset(page, -145, 105);
@@ -282,8 +277,7 @@ test.describe("Station geometry and walkback lifecycles", () => {
       .toMatchObject({ lat: expect.any(Number), lng: expect.any(Number) });
     const noTerrain = (await mission.read()).stations[mission.ids.stationA];
     expect(noTerrain.elevation).toBeNull();
-    expect(noTerrain.walkbackPath).toBeNull();
-    expect(noTerrain.walkbackPathSegmentDistances).toBeNull();
+    expect(noTerrain.walkbackPath).toEqual([noTerrain.location, LANDER]);
     await expectStationFeature(page, mission.ids.stationA, noTerrain.location);
   });
 

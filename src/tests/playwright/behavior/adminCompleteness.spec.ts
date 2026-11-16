@@ -178,7 +178,7 @@ test("Box SDK provider bytes survive permission and interrupted-stream failures 
   }
 });
 
-test("admin uploads show processing and duplicate errors and cannot operate on another mission path", async ({
+test("admin uploads show processing, replace same-name files and cannot operate on another mission path", async ({
   page,
   request,
   mission,
@@ -220,10 +220,13 @@ test("admin uploads show processing and duplicate errors and cannot operate on a
       buffer: Buffer.from("replacement"),
     });
     await page.getByRole("button", { name: "Submit", exact: true }).click();
-    await expect(page.getByText(/Upload Error\. Status 500/)).toBeVisible();
-    const uploaded = await request.get(`/static/${directory}/upload.txt`);
-    expect(uploaded.status()).toBe(200);
-    expect((await uploaded.body()).equals(Buffer.alloc(1024 * 1024, 4))).toBe(true);
+    // A second upload with the same name replaces the existing file.
+    await expect
+      .poll(async () =>
+        (await (await request.get(`/static/${directory}/upload.txt`)).body()).toString()
+      )
+      .toBe("replacement");
+    await expect(page.getByText(/Upload success\. Status 201/)).toBeVisible();
     expect(
       (
         await request.post(`/api/v1/file/upload?missionId=${mission.id}`, {

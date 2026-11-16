@@ -154,7 +154,7 @@ export function applyStationLocationUpdateStage(
   // Update station location and elevation
   station.location = cloneDeep(stage.newLocation);
   station.updatedAt = getAccurateNow().getTime();
-  if (stage.newLocation === null || stage.newElevation !== null) {
+  if (stage.newElevation !== null) {
     station.elevation = stage.newElevation;
   }
 

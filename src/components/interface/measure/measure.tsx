@@ -10,7 +10,7 @@ import { PathColorPickerMenu, Button } from "../form/globalFields";
 import { upsertMeasurementByField } from "store/measure";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
-import { setOriginalPoints, updateMapDirective } from "store/map";
+import { updateMapDirective } from "store/map";
 import throttle from "lodash/throttle";
 import isNil from "lodash/isNil";
 import { clearMapItemHover } from "store/hover";
@@ -181,7 +181,6 @@ const Measure: FunctionComponent = () => {
   }, [drawMeasurement]);
 
   const handlePathEdit = () => {
-    dispatch(setOriginalPoints(selectedMeasurement.path));
     dispatch(
       updateMapDirective({
         uuid: selectedMeasurement.uuid,

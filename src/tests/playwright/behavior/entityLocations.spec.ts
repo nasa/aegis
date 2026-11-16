@@ -237,7 +237,7 @@ async function openActionLocation(page: Page, name: string) {
 }
 
 test.describe("POI and action point location lifecycles", () => {
-  test("POI geometry changes resample the served DEM and persist cleared coordinates", async ({
+  test("POI geometry changes resample the served DEM and persist after reload", async ({
     page,
     mission,
     request,
@@ -325,26 +325,6 @@ test.describe("POI and action point location lifecycles", () => {
     );
     await expectDisplay(page, "Grid Coords:", movedGrid);
     await expectPointFeature(page, mission.ids.poiA, current.location);
-
-    await page.getByLabel("Clear Location", { exact: true }).click();
-    await expect
-      .poll(async () => (await mission.read()).pois[mission.ids.poiA].location)
-      .toBeNull();
-    const cleared = (await mission.read()).pois[mission.ids.poiA];
-    expect(cleared.elevation).toBeNull();
-    expect(cleared.name).toBe(originalPoi.name);
-    expect(cleared.description).toBe(originalPoi.description);
-    await expect(page.getByLabel("Create Location", { exact: true })).toBeVisible();
-    await expectDisplay(page, "Relative Elevation (m):", "Not set");
-    await expectDisplay(page, "Grid Coords:", "Not set");
-    await expectPointFeature(page, mission.ids.poiA, null);
-    await page.reload();
-    await selectPlanningPoi(page, "Reference POI");
-    await page.getByLabel("info_panel", { exact: true }).click();
-    expect((await mission.read()).pois[mission.ids.poiA]).toEqual(cleared);
-    await expectDisplay(page, "Relative Elevation (m):", "Not set");
-    await expectDisplay(page, "Grid Coords:", "Not set");
-    await expectPointFeature(page, mission.ids.poiA, null);
   });
 
   test("action geometry changes resample the served DEM, copy the station point and persist cleared coordinates", async ({

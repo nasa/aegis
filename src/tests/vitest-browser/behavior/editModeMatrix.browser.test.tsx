@@ -67,15 +67,6 @@ test("global Edit gates shared fields and menus across mission, entity, preset, 
   await expect.poll(() => page.getBySelector("dialog[open]").length).toBe(0);
   await expect.poll(() => page.getByText("Add", { exact: true }).length).toBe(0);
 
-  await openComparison(page);
-  await page.getByText("Campaigns…", { exact: true }).click();
-  const campaigns = page.getBySelector("dialog[open]");
-  const newCampaign = campaigns.getByText("New campaign", { exact: true });
-  await expect.element(newCampaign.getBySelector("..")).toHaveClass(/buttonDisabled/);
-  await newCampaign.click();
-  expect((await mission.read()).reportCampaigns ?? {}).toEqual({});
-  await campaigns.getByLabelText("Close campaigns", { exact: true }).click();
-
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   await page.getByLabelText("rex_positions_panel", { exact: true }).click();
   const originalPositionSources = (await mission.read()).rexes[mission.ids.rexB].posSources;
