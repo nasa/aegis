@@ -70,18 +70,18 @@ export function getLatestPosEntryUuids(entries: readonly PosEntry[]): Set<string
 }
 
 /** The most recently created entry, used to prefill a new one. */
-export function getMostRecentPosEntry(entries: readonly PosEntry[]): PosEntry | null {
-  let latest: PosEntry | null = null;
+export function getMostRecentlyCreatedPosEntry(entries: readonly PosEntry[]): PosEntry | null {
+  let mostRecentlyCreated: PosEntry | null = null;
   for (const entry of entries) {
     if (
-      !latest ||
-      entry.createdAt > latest.createdAt ||
-      (entry.createdAt === latest.createdAt && entry.uuid > latest.uuid)
+      !mostRecentlyCreated ||
+      entry.createdAt > mostRecentlyCreated.createdAt ||
+      (entry.createdAt === mostRecentlyCreated.createdAt && entry.uuid > mostRecentlyCreated.uuid)
     ) {
-      latest = entry;
+      mostRecentlyCreated = entry;
     }
   }
-  return latest;
+  return mostRecentlyCreated;
 }
 
 export const POS_ENTRY_EDIT_FIELDS: readonly (keyof PosEntryEditValues)[] = [

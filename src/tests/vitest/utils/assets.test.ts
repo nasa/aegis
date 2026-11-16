@@ -6,7 +6,6 @@ import {
   getAssetRadiusColor,
   getAssetHiddenReason,
   getCurrentAssetPet,
-  parseAssetPetSeconds,
   getChangedAssetFields,
   getVisibleMapAssets,
   isAssetVisibleOnMap,
@@ -110,27 +109,6 @@ describe("getCurrentAssetPet", () => {
       petSeconds: null,
       rexUuid: null,
     });
-  });
-});
-
-describe("parseAssetPetSeconds", () => {
-  test.each([
-    ["+00:00:00", 0],
-    ["12:34:56", 45296],
-    [" -01:02:03 ", -3723],
-    ["+100:00:00", 360000],
-    ["", null],
-    ["+01:60:00", null],
-    ["+01:00:60", null],
-    ["1:00", null],
-    ["nonsense", null],
-    ["current", null],
-    ["clear", null],
-    ["+01:00:00.5", null],
-    ["1e2:00:00", null],
-    ["+99999999999999999999:00:00", null],
-  ])("parses %s as %s", (text, expected) => {
-    expect(parseAssetPetSeconds(text)).toBe(expected);
   });
 });
 

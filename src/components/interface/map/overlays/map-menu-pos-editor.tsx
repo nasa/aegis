@@ -14,6 +14,7 @@ import {
 } from "components/interface/form/globalFields";
 import {
   composeValidators,
+  parsePetSeconds,
   validators,
   type Stringy,
 } from "components/interface/form/formValidators";
@@ -28,7 +29,6 @@ import {
   thunkSetPosEntryEditSource,
   thunkStartPosEntryMapDirective,
 } from "store/thunk/thunkRexPosEntry";
-import { parseAssetPetSeconds } from "utils/assets";
 import {
   POS_ENTRY_RADIUS_MAX_METERS,
   POS_ENTRY_NOTES_MAX_LENGTH,
@@ -49,7 +49,7 @@ interface PositionEditorProps {
   inEdit: PosEntryInEdit;
   rex: Rex;
   entry?: PosEntry;
-  canMutate: boolean;
+  canEditPositions: boolean;
   coordinateContext: CoordinateEntryContext;
 }
 
@@ -122,12 +122,11 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
   inEdit,
   rex,
   entry,
-  canMutate,
+  canEditPositions,
   coordinateContext,
 }) => {
   const dispatch = useAppDispatch();
   const values = inEdit.values;
-  const editable = canMutate;
   const mapAction = useAppSelector(
     (s) =>
       s.map.mapDirective?.mapItemType === "posEntry" && s.map.mapDirective.uuid === inEdit.uuid
@@ -173,7 +172,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
 
   useEffect(() => {
     setFieldText((previous) =>
-      parseAssetPetSeconds(previous.pet) === values.petSeconds
+      parsePetSeconds(previous.pet) === values.petSeconds
         ? previous
         : { ...previous, pet: formattedPet }
     );
@@ -190,7 +189,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
   );
   const [saving, setSaving] = useState(false);
   const saveEnabled =
-    editable &&
+    canEditPositions &&
     !invalid &&
     !petError &&
     !notesError &&
@@ -288,7 +287,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
               options={rex.posTypes ?? []}
               isSelected={(uuid) => values.posTypeUuids.includes(uuid)}
               onToggle={togglePosType}
-              enabled={editable}
+              enabled={canEditPositions}
               testId="position-editor-types"
             />
           </div>
@@ -300,24 +299,30 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
               options={rex.posSources ?? []}
               isSelected={(uuid) => values.posSourceUuid === uuid}
               onToggle={(posSourceUuid) => dispatch(thunkSetPosEntryEditSource({ posSourceUuid }))}
-              enabled={editable}
+              enabled={canEditPositions}
               testId="position-editor-source"
             />
           </div>
         </div>
 
-        <span className={assetStyles.fieldLabel}>Radius (m)</span>
+        <span
+          className={assetStyles.fieldLabel}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content="Radius of the uncertainty circle, in meters"
+        >
+          Uncert. (m)
+        </span>
         <div className={assetStyles.fieldControls}>
           <InLineEditInput
             value={radiusText}
-            editing={editable}
+            editing={canEditPositions}
             debounceSubmit={false}
             onSubmit={(text) =>
               dispatch(updatePosEntryInEditValues({ uncertaintyMeters: Number(text) }))
             }
             fieldProps={{
               name: "radius",
-              ariaLabel: "Radius in meters",
+              ariaLabel: "Uncertainty radius in meters",
               className: assetStyles.numberInput,
               validators: RADIUS_VALIDATORS,
               inputProps: {
@@ -339,7 +344,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
             <PathColorPickerMenu
               circular={true}
               currentColor={getPosEntryColor(values)}
-              editMode={editable}
+              editMode={canEditPositions}
               updateColor={(color) => dispatch(updatePosEntryInEditValues({ color }))}
             />
           </div>
@@ -350,7 +355,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
               label="Reset"
               ariaLabel="Reset radius color"
               className={assetStyles.editorButton}
-              enabled={editable}
+              enabled={canEditPositions}
             />
           ) : (
             <span className={assetStyles.fieldNote}>Default</span>
@@ -371,7 +376,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
         <div className={assetStyles.fieldControls}>
           <InLineEditInput
             value={coordinateText}
-            editing={editable}
+            editing={canEditPositions}
             debounceSubmit={false}
             styleContainer={GROW_INPUT_CONTAINER_STYLE}
             fieldProps={{
@@ -411,7 +416,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
               label={values.location ? "Edit Pos." : "Place on Map"}
               className={assetStyles.editorButton}
               iconStyle={{ marginRight: 2 }}
-              enabled={editable}
+              enabled={canEditPositions}
             />
           )}
         </div>
@@ -460,10 +465,10 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
         <div className={assetStyles.petControls}>
           <InLineEditInput
             value={petText}
-            editing={editable}
+            editing={canEditPositions}
             debounceSubmit={false}
             onSubmit={(text) =>
-              dispatch(updatePosEntryInEditValues({ petSeconds: parseAssetPetSeconds(text) }))
+              dispatch(updatePosEntryInEditValues({ petSeconds: parsePetSeconds(text) }))
             }
             fieldProps={{
               name: "pet",
@@ -485,7 +490,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
           <Button
             label="Set to current PET"
             className={assetStyles.editorButton}
-            enabled={editable && currentPetAvailable}
+            enabled={canEditPositions && currentPetAvailable}
             toolTip={currentPetAvailable ? undefined : "This REX has no valid PET"}
             onClick={() => {
               const petSeconds = petSecondsAt(rex, getAccurateNow().getTime());
@@ -508,7 +513,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
         <span className={`${assetStyles.fieldLabel} ${assetStyles.notesLabel}`}>Notes</span>
         <TextArea
           value={fieldText.notes}
-          editing={editable}
+          editing={canEditPositions}
           debounceSubmit={false}
           onSubmit={(notes) => dispatch(updatePosEntryInEditValues({ notes: notes || null }))}
           fieldProps={{

@@ -61,22 +61,28 @@ test.describe("Mission 22 — Asset tracking", () => {
     await expect(assetRow).toBeVisible();
     await expect(assetRow).not.toContainText("Not placed");
     await expect(assetRow.getByLabel("Collapse asset", { exact: true })).toBeVisible();
-    await expect(editor.getByLabel("Radius in meters", { exact: true })).toHaveText("15");
+    await expect(editor.getByLabel("Uncertainty radius in meters", { exact: true })).toHaveText(
+      "15"
+    );
     await expect(editor.getByLabel("Asset coordinates", { exact: true })).toHaveText(coordinates);
     await expect(editor.getByLabel("assetEditToggle", { exact: true })).toBeHidden();
 
     await assetRow.getByRole("button", { name: "Asset actions", exact: true }).click();
     await page.getByRole("menuitem", { name: "Edit Asset", exact: true }).click();
     await expect(editor.getByLabel("Asset name", { exact: true })).toHaveValue(assetName);
-    await editor.getByLabel("Radius in meters", { exact: true }).fill("99");
+    await editor.getByLabel("Uncertainty radius in meters", { exact: true }).fill("99");
     await editor.getByLabel("Cancel", { exact: true }).click();
-    await expect(editor.getByLabel("Radius in meters", { exact: true })).toHaveText("15");
+    await expect(editor.getByLabel("Uncertainty radius in meters", { exact: true })).toHaveText(
+      "15"
+    );
     await assetRow.getByRole("button", { name: "Asset actions", exact: true }).click();
     await page.getByRole("menuitem", { name: "Edit Asset", exact: true }).click();
-    await editor.getByLabel("Radius in meters", { exact: true }).fill("20");
+    await editor.getByLabel("Uncertainty radius in meters", { exact: true }).fill("20");
     await editor.getByLabel("Save", { exact: true }).click();
     await expect(editor).toBeVisible();
-    await expect(editor.getByLabel("Radius in meters", { exact: true })).toHaveText("20");
+    await expect(editor.getByLabel("Uncertainty radius in meters", { exact: true })).toHaveText(
+      "20"
+    );
     await expect(editor.getByLabel("Save", { exact: true })).toBeHidden();
     await assetRow.getByLabel("Collapse asset", { exact: true }).click();
 
@@ -88,7 +94,9 @@ test.describe("Mission 22 — Asset tracking", () => {
     await openAssetsTab(page);
     await expect(assetRow).toBeVisible();
     await assetRow.getByLabel("Expand asset", { exact: true }).click();
-    await expect(editor.getByLabel("Radius in meters", { exact: true })).toHaveText("20");
+    await expect(editor.getByLabel("Uncertainty radius in meters", { exact: true })).toHaveText(
+      "20"
+    );
     await assetRow.getByLabel("Collapse asset", { exact: true }).click();
 
     await page.getByTestId("assets-map-menu").getByLabel("Folder", { exact: true }).click();

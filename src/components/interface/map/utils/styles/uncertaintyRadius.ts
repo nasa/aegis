@@ -3,17 +3,17 @@ import { Fill, Stroke, Style } from "ol/style";
 
 import { withAlpha } from "../layers/layerFactory";
 
-/** Fill opacity of an asset's radius circle. */
-export const ASSET_RADIUS_FILL_ALPHA = 0.3;
+/** Fill opacity of an uncertainty radius circle. */
+export const UNCERTAINTY_RADIUS_FILL_ALPHA = 0.3;
 
 /**
  * Asset and crew position radius circles: a fill in the feature's `color` with no stroke, plus a
  * white stroke while the item (its `uuidProperty` property) is selected. Cache key: color +
  * selection.
  */
-export function buildAssetRadiusStyleFunction(
+export function buildUncertaintyRadiusStyleFunction(
   selectedUuid: string | null,
-  uuidProperty: "assetUuid" | "posEntryUuid" = "assetUuid"
+  uuidProperty: "assetUuid" | "posEntryUuid"
 ): (feature: FeatureLike) => Style {
   const cache = new Map<string, Style>();
 
@@ -26,7 +26,7 @@ export function buildAssetRadiusStyleFunction(
     if (cached) return cached;
 
     const style = new Style({
-      fill: new Fill({ color: withAlpha(color, ASSET_RADIUS_FILL_ALPHA) }),
+      fill: new Fill({ color: withAlpha(color, UNCERTAINTY_RADIUS_FILL_ALPHA) }),
       stroke: isSelected ? new Stroke({ color: "#ffffff", width: 2 }) : undefined,
       zIndex: isSelected ? 1 : 0,
     });

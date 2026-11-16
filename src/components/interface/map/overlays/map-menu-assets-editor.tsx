@@ -14,6 +14,7 @@ import {
 } from "components/interface/form/globalFields";
 import {
   composeValidators,
+  parsePetSeconds,
   validators,
   type Stringy,
 } from "components/interface/form/formValidators";
@@ -36,7 +37,6 @@ import {
   DEFAULT_ASSET_ICON,
   getAssetColor,
   getCurrentAssetPet,
-  parseAssetPetSeconds,
 } from "utils/assets";
 import {
   formatCoordinateEntry,
@@ -134,7 +134,7 @@ export const AssetEditor: FunctionComponent<AssetEditorProps> = ({
   }, [values.uncertaintyMeters]);
   useEffect(() => {
     setFieldText((previous) =>
-      parseAssetPetSeconds(previous.pet) === values.petSeconds
+      parsePetSeconds(previous.pet) === values.petSeconds
         ? previous
         : { ...previous, pet: formattedPet }
     );
@@ -284,7 +284,13 @@ export const AssetEditor: FunctionComponent<AssetEditorProps> = ({
             />
           </PickerPopover>
         )}
-        <span className={styles.fieldLabel}>Radius (m)</span>
+        <span
+          className={styles.fieldLabel}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content="Radius of the uncertainty circle, in meters"
+        >
+          Uncert. (m)
+        </span>
         <div className={styles.fieldControls}>
           <InLineEditInput
             value={fieldText.radius}
@@ -295,7 +301,7 @@ export const AssetEditor: FunctionComponent<AssetEditorProps> = ({
             }
             fieldProps={{
               name: "radius",
-              ariaLabel: "Radius in meters",
+              ariaLabel: "Uncertainty radius in meters",
               className: styles.numberInput,
               validators: RADIUS_VALIDATORS,
               inputProps: {
@@ -419,7 +425,7 @@ export const AssetEditor: FunctionComponent<AssetEditorProps> = ({
             editing={editable}
             debounceSubmit={false}
             onSubmit={(text) =>
-              dispatch(updateAssetInEditValues({ petSeconds: parseAssetPetSeconds(text) }))
+              dispatch(updateAssetInEditValues({ petSeconds: parsePetSeconds(text) }))
             }
             fieldProps={{
               name: "pet",

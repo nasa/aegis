@@ -38,9 +38,9 @@ const COLUMN_COUNT = 8;
 type Props = {
   rex: Rex;
   /** Mission edit permission; controls whether the actions column renders. */
-  canEdit: boolean;
+  hasEditPermission: boolean;
   /** Edit permission on a running REX. */
-  canMutate: boolean;
+  canEditPositions: boolean;
   inEdit: PosEntryInEdit | null;
   coordinateContext: CoordinateEntryContext;
   onEdit: (posEntryUuid: string) => void;
@@ -57,15 +57,15 @@ function getPosTypeNames(rex: Rex, entry: PosEntry): string[] {
 // Both groups are newest-first by PET.
 export const PositionTable: FunctionComponent<Props> = ({
   rex,
-  canEdit,
-  canMutate,
+  hasEditPermission,
+  canEditPositions,
   inEdit,
   coordinateContext,
   onEdit,
 }) => {
   const expandedUuid = useAppSelector((s) => s.rex.expandedPosEntryUuid, refEqual);
   const [olderPositionsOpen, setOlderPositionsOpen] = useState(true);
-  const columnCount = canEdit ? COLUMN_COUNT : COLUMN_COUNT - 1;
+  const columnCount = hasEditPermission ? COLUMN_COUNT : COLUMN_COUNT - 1;
 
   const ordered = orderPosEntriesNewestFirst(rex.posEntries ?? []);
   const latestUuids = getLatestPosEntryUuids(ordered);
@@ -81,8 +81,8 @@ export const PositionTable: FunctionComponent<Props> = ({
         entry={entry}
         rex={rex}
         columnCount={columnCount}
-        canEdit={canEdit}
-        canMutate={canMutate}
+        hasEditPermission={hasEditPermission}
+        canEditPositions={canEditPositions}
         isExpanded={expandedUuid === entry.uuid || isEditing}
         isEditing={isEditing}
         inEdit={isEditing ? inEdit : null}
@@ -109,7 +109,7 @@ export const PositionTable: FunctionComponent<Props> = ({
           />
           <col className={posStyles.colSource} />
           <col className={assetStyles.colNotes} />
-          {canEdit && <col className={assetStyles.colActions} />}
+          {hasEditPermission && <col className={assetStyles.colActions} />}
         </colgroup>
         <thead>
           <tr className={assetStyles.headerRow}>
@@ -122,7 +122,7 @@ export const PositionTable: FunctionComponent<Props> = ({
             <th>Coords</th>
             <th aria-label="Source" />
             <th aria-label="Notes" />
-            {canEdit && <th aria-label="Actions" />}
+            {hasEditPermission && <th aria-label="Actions" />}
           </tr>
         </thead>
         {latest.length > 0 && (
@@ -144,7 +144,7 @@ export const PositionTable: FunctionComponent<Props> = ({
       </table>
       {ordered.length === 0 && (
         <div className={assetStyles.emptyState} data-testid="position-table-empty">
-          {canMutate ? "No positions yet. Click Position to add one." : "No positions yet."}
+          {canEditPositions ? "No positions yet. Click Position to add one." : "No positions yet."}
         </div>
       )}
     </>
@@ -186,8 +186,8 @@ const PositionRow: FunctionComponent<{
   entry: PosEntry;
   rex: Rex;
   columnCount: number;
-  canEdit: boolean;
-  canMutate: boolean;
+  hasEditPermission: boolean;
+  canEditPositions: boolean;
   isExpanded: boolean;
   isEditing: boolean;
   inEdit: PosEntryInEdit | null;
@@ -197,8 +197,8 @@ const PositionRow: FunctionComponent<{
   entry,
   rex,
   columnCount,
-  canEdit,
-  canMutate,
+  hasEditPermission,
+  canEditPositions,
   isExpanded,
   isEditing,
   inEdit,
@@ -320,9 +320,9 @@ const PositionRow: FunctionComponent<{
             </span>
           )}
         </td>
-        {canEdit && (
+        {hasEditPermission && (
           <td>
-            {canMutate && (
+            {canEditPositions && (
               <RowMenu
                 label="Position actions"
                 items={[
@@ -359,7 +359,7 @@ const PositionRow: FunctionComponent<{
                 inEdit={inEdit}
                 rex={rex}
                 entry={entry}
-                canMutate={canMutate}
+                canEditPositions={canEditPositions}
                 coordinateContext={coordinateContext}
               />
             ) : (
@@ -384,7 +384,13 @@ const PositionDetails: FunctionComponent<{
       data-testid="position-details"
     >
       <div className={posStyles.detailsForm}>
-        <span className={assetStyles.fieldLabel}>Radius (m)</span>
+        <span
+          className={assetStyles.fieldLabel}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content="Radius of the uncertainty circle, in meters"
+        >
+          Uncert. (m)
+        </span>
         <div className={`${assetStyles.fieldControls} ${posStyles.detailsValue}`}>
           <span data-testid="position-details-uncertainty">{entry.uncertaintyMeters ?? 0}</span>
           <span className={`${assetStyles.fieldLabel} ${assetStyles.inlineFieldLabel}`}>

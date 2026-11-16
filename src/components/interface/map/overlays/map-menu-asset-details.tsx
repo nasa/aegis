@@ -52,10 +52,16 @@ export const AssetDetails: FunctionComponent<{
   return (
     <div className={`${styles.editor} ${styles.editorView}`} data-testid="asset-editor">
       <div className={styles.editorForm}>
-        <span className={styles.fieldLabel}>Radius (m)</span>
+        <span
+          className={styles.fieldLabel}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content="Radius of the uncertainty circle, in meters"
+        >
+          Uncert. (m)
+        </span>
         <div className={styles.fieldControls}>
           <div data-testid="asset-editor-uncertainty">
-            <span aria-label="Radius in meters">{asset.uncertaintyMeters}</span>
+            <span aria-label="Uncertainty radius in meters">{asset.uncertaintyMeters}</span>
           </div>
           <span className={`${styles.fieldLabel} ${styles.inlineFieldLabel}`}>Radius color</span>
           <div data-testid="asset-editor-color">

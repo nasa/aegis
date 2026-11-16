@@ -343,7 +343,7 @@ a cache key omits a varying input:
   `color|weight|selectedWeight|isSelected`) + `arrowCache` for chevron SVG data-URIs. Selected
   "glow" only pushed when `selectedWeight > 0` (dashboard/minimap set it to 0 = no emphasis).
   Measurement style hardcodes label colors and ignores stale segment arrays while editing.
-- `assetRadius.ts` (`buildAssetRadiusStyleFunction`): asset and crew position radius circles,
+- `uncertaintyRadius.ts` (`buildUncertaintyRadiusStyleFunction`): asset and crew position radius circles,
   filled in `getAssetRadiusColor` / `getPosEntryRadiusColor` with no stroke; the selected item
   (`assetUuid` or `posEntryUuid` feature property) gets a white stroke instead of a marker outline.
   Null colors use default blue for assets and dark yellow for positions. Keyed by color + selection.

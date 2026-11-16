@@ -22,7 +22,7 @@ import {
 } from "operations/apply/apply-rex";
 import {
   getChangedPosEntryFields,
-  getMostRecentPosEntry,
+  getMostRecentlyCreatedPosEntry,
   getPosEntryEditValues,
   validatePosEntryEditValues,
 } from "utils/posEntries";
@@ -32,10 +32,11 @@ import { thunkFetchPointElevation } from "./thunkTerrainProfile";
 // Elevation fetches still in flight, keyed by pos entry uuid. Save waits for them to settle.
 const pendingElevationFetches = new Map<string, Promise<void>>();
 
-/** The source a new entry starts with: the latest entry's, else "Task", else the first. */
-function getDefaultPosSourceUuid(rex: Rex, latest: PosEntry | null): string | null {
+/** Use the most recently created entry's source, else "Task", else the first source. */
+function getDefaultPosSourceUuid(rex: Rex, mostRecentlyCreated: PosEntry | null): string | null {
   const sources = rex.posSources ?? [];
-  if (latest && sources.some((s) => s.uuid === latest.posSourceUuid)) return latest.posSourceUuid;
+  if (mostRecentlyCreated && sources.some((s) => s.uuid === mostRecentlyCreated.posSourceUuid))
+    return mostRecentlyCreated.posSourceUuid;
   return (sources.find((s) => s.name === "Task") ?? sources[0])?.uuid ?? null;
 }
 
@@ -44,15 +45,15 @@ function getPosEntrySourceDefaults(
   rex: Rex,
   posSourceUuid: string | null
 ): Pick<PosEntryEditValues, "posTypeUuids" | "uncertaintyMeters" | "color"> {
-  const latest = getMostRecentPosEntry(
+  const mostRecentlyCreated = getMostRecentlyCreatedPosEntry(
     (rex.posEntries ?? []).filter((entry) => entry.posSourceUuid === posSourceUuid)
   );
   return {
-    posTypeUuids: (latest?.posTypeUuids ?? []).filter((typeUuid) =>
+    posTypeUuids: (mostRecentlyCreated?.posTypeUuids ?? []).filter((typeUuid) =>
       rex.posTypes?.some((type) => type.uuid === typeUuid)
     ),
-    uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
-    color: latest?.color ?? null,
+    uncertaintyMeters: mostRecentlyCreated?.uncertaintyMeters ?? 0,
+    color: mostRecentlyCreated?.color ?? null,
   };
 }
 
@@ -104,8 +105,8 @@ export const thunkAddPosEntry = appCreateAsyncThunk<void>(
     const rex = rexUuid ? getMissionDocHandle()?.doc()?.rexes?.[rexUuid] : null;
     if (!rex) return;
     if (getState().rex.posEntryInEdit) await dispatch(thunkCancelPosEntryEdit());
-    const latest = getMostRecentPosEntry(rex.posEntries ?? []);
-    const posSourceUuid = getDefaultPosSourceUuid(rex, latest);
+    const mostRecentlyCreated = getMostRecentlyCreatedPosEntry(rex.posEntries ?? []);
+    const posSourceUuid = getDefaultPosSourceUuid(rex, mostRecentlyCreated);
     const uuid = uuidv4();
     dispatch(setSelectedPosEntryUuid(uuid));
     dispatch(

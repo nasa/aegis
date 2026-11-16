@@ -5,7 +5,7 @@ import type { StoreType } from "store";
 import { setAssetInEditPet, updateAssetInEditValues } from "store/asset";
 import { updateMapDirective } from "store/map";
 import {
-  getMostRecentAsset,
+  getMostRecentlyCreatedAsset,
   thunkCancelAssetEdit,
   thunkDeleteAsset,
   thunkMoveAssetToFolder,
@@ -88,13 +88,13 @@ describe("asset save boundaries", () => {
   });
 });
 
-describe("getMostRecentAsset", () => {
+describe("getMostRecentlyCreatedAsset", () => {
   it("picks the highest createdAt, with uuid as tie-breaker", () => {
     const a = generateBlankAsset({ uuid: "a", createdAt: 5 });
     const b = generateBlankAsset({ uuid: "b", createdAt: 5 });
     const c = generateBlankAsset({ uuid: "c", createdAt: 1 });
-    expect(getMostRecentAsset([a, c, b])?.uuid).toBe("b");
-    expect(getMostRecentAsset([])).toBeNull();
+    expect(getMostRecentlyCreatedAsset([a, c, b])?.uuid).toBe("b");
+    expect(getMostRecentlyCreatedAsset([])).toBeNull();
   });
 });
 

@@ -36,18 +36,18 @@ import { getAccurateNow } from "utils/formatting";
 const pendingElevationFetches = new Map<string, Promise<void>>();
 
 /** The most recently created asset (`createdAt`, uuid tie-breaker), or null. */
-export function getMostRecentAsset(assets: Asset[]): Asset | null {
-  let latest: Asset | null = null;
+export function getMostRecentlyCreatedAsset(assets: Asset[]): Asset | null {
+  let mostRecentlyCreated: Asset | null = null;
   for (const asset of assets) {
     if (
-      !latest ||
-      asset.createdAt > latest.createdAt ||
-      (asset.createdAt === latest.createdAt && asset.uuid > latest.uuid)
+      !mostRecentlyCreated ||
+      asset.createdAt > mostRecentlyCreated.createdAt ||
+      (asset.createdAt === mostRecentlyCreated.createdAt && asset.uuid > mostRecentlyCreated.uuid)
     ) {
-      latest = asset;
+      mostRecentlyCreated = asset;
     }
   }
-  return latest;
+  return mostRecentlyCreated;
 }
 
 /** End an active or scheduled asset map directive without touching the in-edit session. */
@@ -69,7 +69,7 @@ export const thunkAddAsset = appCreateAsyncThunk<void>(
     const mission = getMissionDocHandle()?.doc();
     if (!mission) return;
     if (getState().asset.inEdit) await dispatch(thunkCancelAssetEdit());
-    const latest = getMostRecentAsset(Object.values(mission.assets ?? {}));
+    const mostRecentlyCreated = getMostRecentlyCreatedAsset(Object.values(mission.assets ?? {}));
     const uuid = uuidv4();
     dispatch(setSelectedAssetUuid(uuid));
     dispatch(
@@ -79,10 +79,10 @@ export const thunkAddAsset = appCreateAsyncThunk<void>(
         values: {
           name: "",
           icon: null,
-          color: latest?.color ?? null,
+          color: mostRecentlyCreated?.color ?? null,
           location: null,
           elevation: null,
-          uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
+          uncertaintyMeters: mostRecentlyCreated?.uncertaintyMeters ?? 0,
           notes: null,
           ...getCurrentAssetPet(mission, getAccurateNow().getTime()),
         },

@@ -63,7 +63,7 @@ import { useMapPosEntries } from "../hooks/useMapPosEntries";
 import { reconcileFeatures, type FeatureDescriptor } from "../utils/featureReconciler";
 import { buildPosPathStyleFunction } from "../utils/styles/posPath";
 import { buildPosMarkerStyleFunction, type PosMarkerIcon } from "../utils/styles/posMarker";
-import { buildAssetRadiusStyleFunction } from "../utils/styles/assetRadius";
+import { buildUncertaintyRadiusStyleFunction } from "../utils/styles/uncertaintyRadius";
 import { Z_INDEX } from "../utils/zIndex";
 
 // ---------------------------------------------------------------------------
@@ -340,7 +340,7 @@ export function PosEntries(): null {
 
   useEffect(() => {
     radiusLayerRef.current?.setStyle(
-      buildAssetRadiusStyleFunction(selectedPosEntryUuid ?? null, "posEntryUuid")
+      buildUncertaintyRadiusStyleFunction(selectedPosEntryUuid ?? null, "posEntryUuid")
     );
   }, [selectedPosEntryUuid, map]);
 
