@@ -25,6 +25,7 @@ import {
   thunkCancelPosEntryMapDirective,
   thunkSavePosEntryEdit,
   thunkSetPosEntryEditLocation,
+  thunkSetPosEntryEditSource,
   thunkStartPosEntryMapDirective,
 } from "store/thunk/thunkRexPosEntry";
 import { parseAssetPetSeconds } from "utils/assets";
@@ -298,7 +299,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
               label="Position source"
               options={rex.posSources ?? []}
               isSelected={(uuid) => values.posSourceUuid === uuid}
-              onToggle={(uuid) => dispatch(updatePosEntryInEditValues({ posSourceUuid: uuid }))}
+              onToggle={(posSourceUuid) => dispatch(thunkSetPosEntryEditSource({ posSourceUuid }))}
               enabled={editable}
               testId="position-editor-source"
             />

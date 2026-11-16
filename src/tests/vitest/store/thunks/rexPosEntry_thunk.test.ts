@@ -12,6 +12,7 @@ import {
   thunkEditPosEntry,
   thunkSavePosEntryEdit,
   thunkSetPosEntryEditLocation,
+  thunkSetPosEntryEditSource,
   thunkStartPosEntryMapDirective,
 } from "store/thunk/thunkRexPosEntry";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
@@ -100,7 +101,7 @@ describe("Thunk Position Entry Tests", () => {
       expect(entries()).toEqual([]);
     });
 
-    test("prefills types, source, radius, and color from the most recently created entry", async () => {
+    test("prefills types, radius, and color from the most recently created entry of the default source", async () => {
       seedEntry({ createdAt: 1, uncertaintyMeters: 3, color: "#00ff00" });
       const latest = seedEntry({
         createdAt: 2,
@@ -117,6 +118,25 @@ describe("Thunk Position Entry Tests", () => {
         posSourceUuid: latest.posSourceUuid,
         uncertaintyMeters: 25,
         color: "#ff0000",
+      });
+    });
+
+    test("uses the fallback source's defaults when the most recently created entry's source was deleted", async () => {
+      const taskSource = rex.posSources.find((source) => source.name === "Task");
+      seedEntry({
+        createdAt: 1,
+        posSourceUuid: taskSource.uuid,
+        uncertaintyMeters: 7,
+        color: "#00ff00",
+      });
+      seedEntry({ createdAt: 2, posSourceUuid: "deleted-source", uncertaintyMeters: 99 });
+
+      await store.dispatch(thunkAddPosEntry());
+
+      expect(inEdit().values).toMatchObject({
+        posSourceUuid: taskSource.uuid,
+        uncertaintyMeters: 7,
+        color: "#00ff00",
       });
     });
 
@@ -137,6 +157,80 @@ describe("Thunk Position Entry Tests", () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+  });
+
+  describe("thunkSetPosEntryEditSource", () => {
+    test("loads the selected source's most recently created defaults and preserves placement, PET, and notes", async () => {
+      const sourceUuid = rex.posSources[0].uuid;
+      seedEntry({ createdAt: 1, petSeconds: 900, uncertaintyMeters: 3 });
+      seedEntry({
+        createdAt: 2,
+        petSeconds: 10,
+        posTypeUuids: [rex.posTypes[1].uuid, "deleted-type"],
+        uncertaintyMeters: 25,
+        color: "#ff0000",
+      });
+      seedEntry({
+        createdAt: 3,
+        posSourceUuid: rex.posSources[2].uuid,
+        uncertaintyMeters: 99,
+        color: "#0000ff",
+      });
+      await store.dispatch(thunkAddPosEntry());
+      await store.dispatch(
+        thunkSetPosEntryEditLocation({ uuid: inEdit().uuid, location: { lat: 2, lng: 3 } })
+      );
+      store.dispatch(updatePosEntryInEditValues({ petSeconds: 123, notes: "Near the boulder" }));
+
+      await store.dispatch(thunkSetPosEntryEditSource({ posSourceUuid: sourceUuid }));
+
+      expect(inEdit().values).toMatchObject({
+        posSourceUuid: sourceUuid,
+        posTypeUuids: [rex.posTypes[1].uuid],
+        uncertaintyMeters: 25,
+        color: "#ff0000",
+        location: { lat: 2, lng: 3 },
+        petSeconds: 123,
+        notes: "Near the boulder",
+      });
+      expect(entries()).toHaveLength(3);
+    });
+
+    test("uses empty defaults for a source with no entries", async () => {
+      seedEntry({ uncertaintyMeters: 25, color: "#ff0000" });
+      await store.dispatch(thunkAddPosEntry());
+
+      await store.dispatch(thunkSetPosEntryEditSource({ posSourceUuid: rex.posSources[1].uuid }));
+
+      expect(inEdit().values).toMatchObject({
+        posSourceUuid: rex.posSources[1].uuid,
+        posTypeUuids: [],
+        uncertaintyMeters: 0,
+        color: null,
+      });
+    });
+
+    test("keeps custom draft values when the selected source is clicked again", async () => {
+      await store.dispatch(thunkAddPosEntry());
+      store.dispatch(updatePosEntryInEditValues({ uncertaintyMeters: 12, color: "#123456" }));
+      const values = inEdit().values;
+
+      await store.dispatch(thunkSetPosEntryEditSource({ posSourceUuid: values.posSourceUuid }));
+
+      expect(inEdit().values).toEqual(values);
+    });
+
+    test("changes only the source when editing a saved entry", async () => {
+      const saved = seedEntry({ uncertaintyMeters: 12, color: "#123456" });
+      seedEntry({ posSourceUuid: rex.posSources[1].uuid, uncertaintyMeters: 99 });
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: saved.uuid }));
+      const values = inEdit().values;
+
+      await store.dispatch(thunkSetPosEntryEditSource({ posSourceUuid: rex.posSources[1].uuid }));
+
+      expect(inEdit().values).toEqual({ ...values, posSourceUuid: rex.posSources[1].uuid });
+      expect(entries()[0]).toEqual(saved);
     });
   });
 

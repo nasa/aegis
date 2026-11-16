@@ -8,6 +8,7 @@ import {
   setPosEntryInEditElevation,
   setPosEntryInEditLocation,
   setSelectedPosEntryUuid,
+  updatePosEntryInEditValues,
 } from "store/rex";
 import { setHoverUuidsForPosEntry } from "store/hover";
 import { updateMapDirective } from "store/map";
@@ -36,6 +37,23 @@ function getDefaultPosSourceUuid(rex: Rex, latest: PosEntry | null): string | nu
   const sources = rex.posSources ?? [];
   if (latest && sources.some((s) => s.uuid === latest.posSourceUuid)) return latest.posSourceUuid;
   return (sources.find((s) => s.name === "Task") ?? sources[0])?.uuid ?? null;
+}
+
+/** Prefill a new position from the most recently created entry of its source. */
+function getPosEntrySourceDefaults(
+  rex: Rex,
+  posSourceUuid: string | null
+): Pick<PosEntryEditValues, "posTypeUuids" | "uncertaintyMeters" | "color"> {
+  const latest = getMostRecentPosEntry(
+    (rex.posEntries ?? []).filter((entry) => entry.posSourceUuid === posSourceUuid)
+  );
+  return {
+    posTypeUuids: (latest?.posTypeUuids ?? []).filter((typeUuid) =>
+      rex.posTypes?.some((type) => type.uuid === typeUuid)
+    ),
+    uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
+    color: latest?.color ?? null,
+  };
 }
 
 /** End an active or scheduled position map directive without touching the in-edit session. */
@@ -75,8 +93,8 @@ export const thunkStartPosEntryMapDirective = appCreateAsyncThunk<void>(
 );
 
 /**
- * Open a new entry for the selected REX at its current PET, prefilled from the most recent
- * entry's types, source, radius, and color. Map placement starts from the editor.
+ * Open a new entry for the selected REX at its current PET, prefilling types, radius, and color
+ * from the most recently created entry of its source. Map placement starts from the editor.
  */
 export const thunkAddPosEntry = appCreateAsyncThunk<void>(
   "posEntry/add",
@@ -87,6 +105,7 @@ export const thunkAddPosEntry = appCreateAsyncThunk<void>(
     if (!rex) return;
     if (getState().rex.posEntryInEdit) await dispatch(thunkCancelPosEntryEdit());
     const latest = getMostRecentPosEntry(rex.posEntries ?? []);
+    const posSourceUuid = getDefaultPosSourceUuid(rex, latest);
     const uuid = uuidv4();
     dispatch(setSelectedPosEntryUuid(uuid));
     dispatch(
@@ -98,16 +117,29 @@ export const thunkAddPosEntry = appCreateAsyncThunk<void>(
           location: null,
           elevation: null,
           petSeconds: petSecondsAt(rex, getAccurateNow().getTime()),
-          posTypeUuids: (latest?.posTypeUuids ?? []).filter((typeUuid) =>
-            rex.posTypes?.some((type) => type.uuid === typeUuid)
-          ),
-          posSourceUuid: getDefaultPosSourceUuid(rex, latest),
-          uncertaintyMeters: latest?.uncertaintyMeters ?? 0,
-          color: latest?.color ?? null,
+          posSourceUuid,
+          ...getPosEntrySourceDefaults(rex, posSourceUuid),
           notes: null,
         },
         base: null,
         elevationPending: false,
+      })
+    );
+  }
+);
+
+/** Selecting a source for a new position loads that source's defaults. */
+export const thunkSetPosEntryEditSource = appCreateAsyncThunk<{ posSourceUuid: string }>(
+  "posEntry/setEditSource",
+  async ({ posSourceUuid }, { dispatch, getState }) => {
+    const inEdit = getState().rex.posEntryInEdit;
+    if (!inEdit || inEdit.values.posSourceUuid === posSourceUuid) return;
+    const rex = getMissionDocHandle()?.doc()?.rexes?.[inEdit.rexUuid];
+    if (!rex?.posSources?.some((source) => source.uuid === posSourceUuid)) return;
+    dispatch(
+      updatePosEntryInEditValues({
+        posSourceUuid,
+        ...(inEdit.isNew ? getPosEntrySourceDefaults(rex, posSourceUuid) : {}),
       })
     );
   }

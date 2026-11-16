@@ -48,6 +48,8 @@ vi.mock("store/thunk/thunkRexPosEntry", () => ({
   thunkCancelPosEntryMapDirective: () => ({ type: "mock/cancelPosEntryMapDirective" }),
   thunkStartPosEntryMapDirective: () => ({ type: "mock/startPosEntryMapDirective" }),
   thunkSetPosEntryEditLocation: (args: Parameters<typeof setLocation>[0]) => setLocation(args),
+  thunkSetPosEntryEditSource: (args: { posSourceUuid: string }) =>
+    rexSlice.actions.updatePosEntryInEditValues(args),
   thunkSavePosEntryEdit: () => savePosEntry(),
   thunkDeletePosEntry: () => ({ type: "mock/deletePosEntry" }),
 }));
