@@ -180,6 +180,31 @@ const Mission: React.FunctionComponent = () => {
                         />
                       </div>
                     </div>
+                    <div id="missionDiv">
+                      <div className={adminStyles.editDiv}>
+                        <InLineEditInput
+                          value={automergeMission.missionRequestedBy}
+                          editing={true}
+                          fieldProps={{
+                            name: "requestedBy",
+                            ariaLabel: "Mission Requested By *",
+                            style: { width: "100%" },
+                            validators: [validators.required, validators.maxLength(50)],
+                            label: {
+                              label: "Mission Requested By",
+                              className: adminStyles.editLabel,
+                            },
+                          }}
+                          onSubmit={(value) => {
+                            changeAutomergeMission((m: Mission) => {
+                              m.missionRequestedBy = value || "";
+                            });
+                          }}
+                          key={`${automergeMission.id}-missionRequestedBy`}
+                          debounceSubmit={false}
+                        />
+                      </div>
+                    </div>
                     <div id="bannerDiv">
                       <div className={adminStyles.editDiv}>
                         <InLineEditInput
