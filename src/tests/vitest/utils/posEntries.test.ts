@@ -97,6 +97,49 @@ describe("posEntries utils", () => {
       });
     });
 
+    it("shows a remote move while previewing local notes", () => {
+      const session = draft({
+        values: { ...getPosEntryEditValues(saved), notes: "Local notes" },
+      });
+      const remote = { ...saved, location: { lat: 5, lng: 6 }, elevation: 12, petSeconds: 30 };
+      const [drawn] = applyPosEntryDraft([remote], session, "rex");
+      expect(drawn).toMatchObject({
+        location: remote.location,
+        elevation: 12,
+        petSeconds: 30,
+        notes: "Local notes",
+      });
+      expect(getChangedPosEntryFields(session.base, session.values)).toEqual({
+        notes: "Local notes",
+      });
+    });
+
+    it("keeps a local move and its elevation while showing remote metadata", () => {
+      const session = draft({
+        values: { ...getPosEntryEditValues(saved), location: { lat: 3, lng: 4 }, elevation: null },
+        elevationPending: true,
+      });
+      const remote = { ...saved, elevation: 15, color: "#00ff00", uncertaintyMeters: 25 };
+      const [drawn] = applyPosEntryDraft([remote], session, "rex");
+      expect(drawn).toMatchObject({
+        location: { lat: 3, lng: 4 },
+        elevation: null,
+        color: "#00ff00",
+        uncertaintyMeters: 25,
+      });
+    });
+
+    it("uses the current saved PET and source while those draft fields are blank", () => {
+      const session = draft({
+        values: { ...getPosEntryEditValues(saved), petSeconds: null, posSourceUuid: null },
+      });
+      const remote = { ...saved, petSeconds: 45, posSourceUuid: "remote-source" };
+      expect(applyPosEntryDraft([remote], session, "rex")[0]).toMatchObject({
+        petSeconds: 45,
+        posSourceUuid: "remote-source",
+      });
+    });
+
     it("appends a new draft and ignores a draft for another REX", () => {
       expect(applyPosEntryDraft([saved], draft({ uuid: "new", isNew: true }), "rex")).toHaveLength(
         2

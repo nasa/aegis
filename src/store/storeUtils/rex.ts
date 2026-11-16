@@ -63,7 +63,7 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     petRunning: false,
     evaUuid: partialRex.evaUuid,
     isRunning: false,
-    posEntries: null,
+    posEntries: [],
     posTypes: [posTypeEv1, posTypeEv2, posTypeCart],
     posSources: [posSourceCrew, posSourceTask, posSourceScience],
     stationEntries: null,

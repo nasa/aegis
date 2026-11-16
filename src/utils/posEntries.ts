@@ -156,8 +156,8 @@ export function validatePosEntryEditValues(
 }
 
 /**
- * The REX's entries as drawn on the map, with the open edit session replacing its saved entry
- * under the same uuid (or appended, for a new entry). Draft gaps fall back to the saved values.
+ * The REX's entries as drawn on the map. Existing entries overlay locally changed fields on the
+ * current saved values; new drafts are appended under their own uuid.
  */
 export function applyPosEntryDraft(
   entries: readonly PosEntry[],
@@ -167,6 +167,16 @@ export function applyPosEntryDraft(
   if (!inEdit || inEdit.rexUuid !== rexUuid) return [...entries];
   const saved = entries.find((entry) => entry.uuid === inEdit.uuid);
   if (!saved && !inEdit.isNew) return [...entries];
+  if (saved && !inEdit.isNew) {
+    const changes = getChangedPosEntryFields(inEdit.base, inEdit.values);
+    const draft: PosEntry = {
+      ...saved,
+      ...changes,
+      petSeconds: changes.petSeconds ?? saved.petSeconds,
+      posSourceUuid: changes.posSourceUuid ?? saved.posSourceUuid,
+    };
+    return entries.map((entry) => (entry.uuid === inEdit.uuid ? draft : entry));
+  }
   const values = inEdit.values;
   const draft: PosEntry = {
     uuid: inEdit.uuid,

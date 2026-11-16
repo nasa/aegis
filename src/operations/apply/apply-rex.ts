@@ -320,10 +320,9 @@ export function applyCreatePosEntry(
   const rex = m.rexes[rexUuid];
   if (!rex) return;
   if (rex.posEntries?.some((entry) => entry.uuid === posEntry.uuid)) return;
-  // Reassign the whole array: a push/splice is not picked up by the Maestro socket. JSON
-  // detaches the existing entries from the Automerge proxy before they are written back.
-  const existingPosEntries: PosEntry[] = JSON.parse(JSON.stringify(rex.posEntries ?? []));
-  rex.posEntries = [...existingPosEntries, cloneDeep(posEntry)];
+  // Preserve list and entry identities so independent clients' changes merge.
+  if (!rex.posEntries) rex.posEntries = [];
+  rex.posEntries.push(cloneDeep(posEntry));
   rex.updatedAt = getAccurateNow().getTime();
 }
 
@@ -356,8 +355,8 @@ export function applyDeletePosEntry(
 ): void {
   const rex = m.rexes[rexUuid];
   if (!rex?.posEntries) return;
-  // Reassign the whole array for the Maestro socket, detached through JSON (see applyCreatePosEntry).
-  const existingPosEntries: PosEntry[] = JSON.parse(JSON.stringify(rex.posEntries));
-  rex.posEntries = existingPosEntries.filter((entry) => entry.uuid !== posEntryUuid);
+  const index = rex.posEntries.findIndex((entry) => entry.uuid === posEntryUuid);
+  if (index < 0) return;
+  rex.posEntries.splice(index, 1);
   rex.updatedAt = getAccurateNow().getTime();
 }

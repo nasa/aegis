@@ -1,3 +1,4 @@
+import * as Automerge from "@automerge/automerge";
 import { createCustomTestStore } from "../../fixtures/store";
 import {
   thunkDocCreateRex,
@@ -392,7 +393,7 @@ describe("Thunk Rex Tests", () => {
       expect(entries[0].location).toEqual({ lat: 1, lng: 2 });
     });
 
-    it("appends to existing pos entries rather than replacing them", async () => {
+    it("preserves concurrent edits to existing positions when appending initial entries", async () => {
       const landerStation = generateLanderXgressStation({
         xgressType: "egress",
         name: "Egress",
@@ -413,12 +414,18 @@ describe("Thunk Rex Tests", () => {
         m.rexes[rex.uuid] = rex;
       });
 
+      const remote = Automerge.change(Automerge.clone(getMission()), (m) => {
+        m.rexes[rex.uuid].posEntries[0].notes = "Remote notes";
+      });
       const store = createCustomTestStore({});
       await store.dispatch(thunkDocCreateInitialPosEntries({ rexUuid: rex.uuid }));
 
-      const entries = getMission().rexes[rex.uuid].posEntries;
+      const entries = Automerge.merge(Automerge.clone(getMission()), remote).rexes[rex.uuid]
+        .posEntries;
       expect(entries.length).toBe(1 + rex.posSources.length);
       expect(entries[0].uuid).toBe(preExisting.uuid);
+      expect(entries[0].notes).toBe("Remote notes");
+      expect(getMission().rexes[rex.uuid].updatedAt).toBe(rex.updatedAt);
     });
   });
 });

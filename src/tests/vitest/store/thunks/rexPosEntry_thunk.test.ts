@@ -17,6 +17,7 @@ import {
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import { applyUpdatePosEntry } from "operations/apply/apply-rex";
 
 type ElevationResult = { meta: { requestStatus: string }; payload?: number };
 const elevationCalls: { point: AEGISPoint; resolve: (r: ElevationResult) => void }[] = [];
@@ -232,6 +233,25 @@ describe("Thunk Position Entry Tests", () => {
       store.dispatch(updatePosEntryInEditValues({ notes: null }));
       await store.dispatch(thunkSavePosEntryEdit()).unwrap();
       expect(entries()[0].notes).toBeNull();
+    });
+
+    test("saving local notes preserves a location received while the editor was open", async () => {
+      const entry = seedEntry();
+      await store.dispatch(thunkEditPosEntry({ posEntryUuid: entry.uuid }));
+      store.dispatch(updatePosEntryInEditValues({ notes: "Local notes" }));
+      getMissionDocHandle().change((m) =>
+        applyUpdatePosEntry(m, {
+          rexUuid: rex.uuid,
+          posEntryUuid: entry.uuid,
+          changes: { location: { lat: 5, lng: 6 }, elevation: 12 },
+        })
+      );
+      await store.dispatch(thunkSavePosEntryEdit()).unwrap();
+      expect(entries()[0]).toMatchObject({
+        notes: "Local notes",
+        location: { lat: 5, lng: 6 },
+        elevation: 12,
+      });
     });
 
     test("moving an existing entry waits for its elevation", async () => {
