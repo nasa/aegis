@@ -588,6 +588,10 @@ export const ValidatedInputField: FunctionComponent<{
       <dialog
         ref={dialogRef}
         className={formStyles.dialog}
+        onCancel={() => {
+          // Escape behaves like Cancel
+          formApiRef.current?.change(fieldProps.name, initialValueRef.current);
+        }}
         onMouseDown={(e) => {
           // Close if mousedown happens on backdrop (clicking outside dialog content)
           // This prevents closing when user drags text selection from inside to outside
@@ -801,6 +805,10 @@ export const ValidatedTextArea: FunctionComponent<{
       <dialog
         ref={dialogRef}
         className={formStyles.dialog}
+        onCancel={() => {
+          // Escape behaves like Cancel
+          formApiRef.current?.change(fieldProps.name, initialValueRef.current);
+        }}
         onMouseDown={(e) => {
           // Close if mousedown happens on backdrop (clicking outside dialog content)
           // This prevents closing when user drags text selection from inside to outside
@@ -981,6 +989,17 @@ export const ValidatedLatLngField: FunctionComponent<{
       <dialog
         ref={dialogRef}
         className={formStyles.dialog}
+        onCancel={() => {
+          // Escape behaves like Cancel
+          formApiRef.current?.change(
+            fieldPropsLat.name,
+            initialValueRef.current?.lat?.toString() ?? ""
+          );
+          formApiRef.current?.change(
+            fieldPropsLng.name,
+            initialValueRef.current?.lng?.toString() ?? ""
+          );
+        }}
         onMouseDown={(e) => {
           // Close if mousedown happens on backdrop (clicking outside dialog content)
           // This prevents closing when user drags text selection from inside to outside
