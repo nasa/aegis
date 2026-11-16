@@ -169,3 +169,31 @@ body {
 .react-checkbox-tree label {
   display: none;
 }
+
+/* --- react-toastify overrides --- */
+@keyframes instant-show {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.no-anim {
+  animation: instant-show 0ms;
+}
+
+.Toastify__toast {
+  background-color: #ffffff;
+  color: #202020;
+  padding: 12px 16px;
+  min-height: auto;
+  flex-direction: column;
+}
+
+.Toastify__toast-body {
+  padding: 0;
+  margin: 0;
+  align-items: flex-start;
+}

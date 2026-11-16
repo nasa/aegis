@@ -17,7 +17,7 @@ import { VersionGatedNetworkAdapter } from "client/automerge-network-adapter";
 
 import "./styles/globals.css";
 import "./styles/fonts.css";
-import { ToastContainer } from "react-toastify";
+import { cssTransition, ToastContainer } from "react-toastify";
 import { CookiesProvider } from "react-cookie";
 import { setupFetchFns } from "packages/fetchFns";
 import { getCurrentUser } from "packages/getCurrentUser";
@@ -126,6 +126,12 @@ window.addEventListener("online", () => {
   store.dispatch(setBrowserConnectionStatus("connected"));
 });
 
+const NoAnimation = cssTransition({
+  enter: "no-anim",
+  exit: "no-anim",
+  collapse: false,
+});
+
 const root = createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
@@ -136,7 +142,7 @@ root.render(
             <BrowserRouter>
               <App launchpadUser={user} />
             </BrowserRouter>
-            <ToastContainer autoClose={false} position="top-center" />
+            <ToastContainer autoClose={false} position="top-center" transition={NoAnimation} />
           </CookiesProvider>
         </Provider>
       </RepoContext.Provider>
