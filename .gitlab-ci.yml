@@ -6,10 +6,20 @@ default:
   # Default node image unless a job specifies its own.
   # Declared here rather than in run-on-commits.gitlab-ci.yml so it applies to
   # scheduled pipelines too (they do not include that file).
-  image: "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:24.22.1-alpine"
+  image: "${CI_DEPENDENCY_PROXY_GROUP_IMAGE_PREFIX}/node:26.13.0-alpine"
 
 variables:
   HOME: "/tmp" # required for openshift for now
+
+.npm-toolchain:
+  before_script:
+    # OpenShift jobs run as a random non-root UID.
+    - export NPM_CONFIG_PREFIX=/tmp/npm-global
+    - export PATH="${NPM_CONFIG_PREFIX}/bin:${PATH}"
+    - npm install --global npm@12.2.1
+    - hash -r
+    - node --version
+    - npm --version
 
 # These includes do not define the order of the pipeline. That is determined by
 # the `needs` value for each job

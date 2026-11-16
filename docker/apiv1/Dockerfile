@@ -1,6 +1,6 @@
 # When building via Buildah in CI, the dependency proxy caches images from Docker Hub.
 # For local builds, Docker pulls directly from Docker Hub
-FROM node:24.22.1-alpine AS base
+FROM node:26.13.0-alpine AS base
 
 # Set the working directory. It will create if doesn't exist
 WORKDIR /app
@@ -15,6 +15,8 @@ ENV GIT_COMMIT=$GIT_COMMIT
 COPY .npmrc* .
 COPY package*.json .
 COPY emss-fallback/check-installed.mjs ./emss-fallback/
+
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
 
 # # # # # # # #
 # BUILD image #
