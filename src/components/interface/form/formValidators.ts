@@ -1,4 +1,5 @@
 import type { FieldValidator } from "final-form";
+import { secondsFromhhmmss } from "utils/formatting";
 
 export type Stringy = string | string[] | number;
 
@@ -120,6 +121,14 @@ const mustBeHHMMSS = (value: Stringy): string | undefined => {
   }
   return undefined;
 };
+
+/** Parse signed or unsigned HH:MM:SS, allowing hours beyond 99. Blank/invalid input returns null. */
+export function parsePetSeconds(text: string): number | null {
+  const trimmed = text.trim();
+  if (!trimmed || mustBeHHMMSS(trimmed)) return null;
+  const seconds = secondsFromhhmmss(/^[+-]/.test(trimmed) ? trimmed : `+${trimmed}`);
+  return Number.isSafeInteger(seconds) ? seconds : null;
+}
 
 const mustBeYYYYMMDD = (value: Stringy): string | undefined => {
   if (!value) return undefined;

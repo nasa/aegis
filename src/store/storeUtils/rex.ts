@@ -63,7 +63,7 @@ export const generateBlankRex = (partialRex?: Partial<Rex> & { evaUuid: string }
     petRunning: false,
     evaUuid: partialRex.evaUuid,
     isRunning: false,
-    posEntries: null,
+    posEntries: [],
     posTypes: [posTypeEv1, posTypeEv2, posTypeCart],
     posSources: [posSourceCrew, posSourceTask, posSourceScience],
     stationEntries: null,
@@ -100,6 +100,9 @@ export const generateBlankPosEntry = (partialPosEntry?: Partial<PosEntry>): PosE
     petSeconds: 0,
     posTypeUuids: [],
     posSourceUuid: "",
+    uncertaintyMeters: 0,
+    color: null,
+    notes: null,
     createdAt: getAccurateNow().getTime(),
     updatedAt: getAccurateNow().getTime(),
   };

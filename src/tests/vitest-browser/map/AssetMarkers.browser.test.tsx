@@ -251,23 +251,23 @@ describe("asset map behaviors", () => {
   });
 
   it.each(["editor", "dashboard"] as const)(
-    "keeps an uncolored asset's radius fill transparent on the %s map",
+    "uses default blue for a null asset radius color on the %s map",
     (mode) => {
       const asset = placed({ uncertaintyMeters: 12, color: null });
       mockMissionDoc.assets = { [asset.uuid]: asset };
       render(mode);
-      expect(radiusStyle(radiusCircles()[0]).getFill()!.getColor()).toBe("transparent");
+      expect(radiusStyle(radiusCircles()[0]).getFill()!.getColor()).toBe("rgba(40,120,181,0.3)");
       expect(radiusStyle(radiusCircles()[0]).getStroke()).toBeNull();
     }
   );
 
-  it("strokes the selected asset's radius circle while keeping its fill transparent", () => {
+  it("strokes the selected asset's radius circle while keeping its default blue fill", () => {
     const asset = placed({ uncertaintyMeters: 12 });
     mockMissionDoc.assets = { [asset.uuid]: asset };
     render();
     expect(radiusStyle(radiusCircles()[0]).getStroke()).toBeNull();
     flushSync(() => store.dispatch(setSelectedAssetUuid(asset.uuid)));
-    expect(radiusStyle(radiusCircles()[0]).getFill()!.getColor()).toBe("transparent");
+    expect(radiusStyle(radiusCircles()[0]).getFill()!.getColor()).toBe("rgba(40,120,181,0.3)");
     expect(radiusStyle(radiusCircles()[0]).getStroke()!.getColor()).toBe("#ffffff");
   });
 

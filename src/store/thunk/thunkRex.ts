@@ -14,7 +14,6 @@ import { setStationCircleUIStates } from "store/station";
 import {
   applyCreateRexStage,
   applyDeleteRexStage,
-  applyUpdateRexByField,
   applyUpsertRexEntryItem,
 } from "operations/apply/apply-rex";
 import { stageCreateRex, stageDeleteRex } from "operations/stage/stage-rex";
@@ -268,6 +267,7 @@ export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<{ rexUuid: st
 
     // Step 1: Build the new pos entries from the running REX's pos sources and types.
     const rex = doc.rexes?.[rexUuid];
+    if (!rex) return;
     const rexEva = doc.evas?.[rex.evaUuid];
     const egressStation = doc.stations?.[getEgressStationUuid(rexEva?.sequence)];
 
@@ -280,24 +280,21 @@ export const thunkDocCreateInitialPosEntries = appCreateAsyncThunk<{ rexUuid: st
         petSeconds: 0,
         posTypeUuids: rex.posTypes.map((posType) => posType.uuid),
         posSourceUuid: posSource.uuid,
+        uncertaintyMeters: 0,
+        color: null,
         createdAt: getAccurateNow().getTime(),
         updatedAt: getAccurateNow().getTime(),
       };
       newPosEntries.push(newPosEntry);
     }
 
-    const existingPosEntries = cloneDeep(rex.posEntries ?? []);
-    const mergedPosEntries = [...existingPosEntries, ...newPosEntries];
-
-    // Step 2: Apply the merged pos entries to the running REX.
-    missionDocHandle.change((m: Mission) =>
-      applyUpdateRexByField(m, {
-        rexUuid: rex.uuid,
-        fieldName: "posEntries",
-        value: mergedPosEntries,
-        preserveUpdatedAt: true,
-      })
-    );
+    // Step 2: Append to the shared list, preserving existing entries' CRDT identities.
+    missionDocHandle.change((m: Mission) => {
+      const targetRex = m.rexes[rexUuid];
+      if (!targetRex) return;
+      if (!targetRex.posEntries) targetRex.posEntries = [];
+      targetRex.posEntries.push(...cloneDeep(newPosEntries));
+    });
 
     // No Step 3: this thunk has no UI side-effects of its own.
   }

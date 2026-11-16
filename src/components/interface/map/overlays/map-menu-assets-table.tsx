@@ -54,7 +54,7 @@ import {
   thunkMoveAssetToFolder,
   thunkToggleAssetVisible,
 } from "store/thunk/thunkAsset";
-import { DEFAULT_ASSET_ICON, getAssetFolderUuidByItem } from "utils/assets";
+import { DEFAULT_ASSET_ICON, getAssetColor, getAssetFolderUuidByItem } from "utils/assets";
 import { formatCoordinateEntry } from "utils/coordinateEntry";
 import { AssetEditor } from "./map-menu-assets-editor";
 import { AssetDetails } from "./map-menu-asset-details";
@@ -523,7 +523,7 @@ const AssetRow: FunctionComponent<{
             <span
               ref={emojiRef}
               className={styles.emojiBackground}
-              style={{ backgroundColor: asset.color ? withAlpha(asset.color, 0.5) : "transparent" }}
+              style={{ backgroundColor: withAlpha(getAssetColor(asset), 0.5) }}
             >
               <EmojiRenderer
                 iconValue={asset.icon || DEFAULT_ASSET_ICON}
@@ -541,15 +541,17 @@ const AssetRow: FunctionComponent<{
         <td
           className={styles.notesCell}
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-content={hasNotes ? asset.notes : "No notes"}
+          data-tooltip-content={hasNotes ? asset.notes : undefined}
         >
-          <span
-            className={`${styles.notesIndicator} ${hasNotes ? styles.notesPresent : ""}`}
-            role="img"
-            aria-label={hasNotes ? "Has notes" : "No notes"}
-          >
-            <FontAwesomeIcon icon={faNoteSticky} />
-          </span>
+          {hasNotes && (
+            <span
+              className={`${styles.notesIndicator} ${styles.notesPresent}`}
+              role="img"
+              aria-label="Has notes"
+            >
+              <FontAwesomeIcon icon={faNoteSticky} />
+            </span>
+          )}
         </td>
         {canEdit && (
           <>
@@ -629,7 +631,7 @@ const AssetRow: FunctionComponent<{
 };
 
 // Kebab menu opened with a normal click; it never relies on right-click or a native menu.
-const RowMenu: FunctionComponent<{
+export const RowMenu: FunctionComponent<{
   label: string;
   items: { icon: IconDefinition; label: string; onClick: () => void }[];
 }> = ({ label, items }) => {

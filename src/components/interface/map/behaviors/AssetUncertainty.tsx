@@ -24,7 +24,7 @@ import { getAssetRadiusColor } from "utils/assets";
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
-import { buildAssetRadiusStyleFunction } from "../utils/styles/assetRadius";
+import { buildUncertaintyRadiusStyleFunction } from "../utils/styles/uncertaintyRadius";
 import { Z_INDEX } from "../utils/zIndex";
 import { useVisibleMapAssets } from "./AssetMarkers";
 
@@ -74,7 +74,7 @@ export function AssetUncertainty(): null {
 
   useEffect(() => {
     if (!showAssets) return;
-    layerRef.current?.setStyle(buildAssetRadiusStyleFunction(selectedAssetUuid));
+    layerRef.current?.setStyle(buildUncertaintyRadiusStyleFunction(selectedAssetUuid, "assetUuid"));
   }, [selectedAssetUuid, map, showAssets]);
 
   return null;
