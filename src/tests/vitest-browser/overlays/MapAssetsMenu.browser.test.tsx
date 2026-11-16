@@ -166,6 +166,29 @@ describe("MapAssetsMenu", () => {
     );
   }
 
+  it.each([false, true])("shows default blue for a null asset color (editing: %s)", (editing) => {
+    const asset = generateBlankAsset({ name: "Drill", color: null });
+    mockMissionDoc.assets = { [asset.uuid]: asset };
+    store = makeStore(true);
+    render();
+    if (editing) openDraft(asset, false);
+    else flushSync(() => q(`[data-testid='asset-expand-${asset.uuid}']`)!.click());
+    const sample = () => q(`[data-testid='asset-editor-color'] .${formStyles.pathColorSample}`)!;
+    expect(sample().style.backgroundColor).toBe("rgb(40, 120, 181)");
+
+    if (editing) {
+      expect(store.getState().asset.inEdit!.values.color).toBeNull();
+      flushSync(() =>
+        store.dispatch(assetSlice.actions.updateAssetInEditValues({ color: "#ff0000" }))
+      );
+      expect(sample().style.backgroundColor).toBe("rgb(255, 0, 0)");
+      flushSync(() => q("[aria-label='Reset radius color']")!.click());
+      expect(store.getState().asset.inEdit!.values.color).toBeNull();
+      expect(sample().style.backgroundColor).toBe("rgb(40, 120, 181)");
+    }
+    expect(mockMissionDoc.assets![asset.uuid].color).toBeNull();
+  });
+
   function enterValue(input: HTMLInputElement | HTMLTextAreaElement, value: string) {
     const prototype =
       input instanceof HTMLTextAreaElement
@@ -296,7 +319,7 @@ describe("MapAssetsMenu", () => {
     const editor = q("[data-testid='asset-editor']")!;
     expect(editor.scrollHeight).toBeLessThanOrEqual(editor.clientHeight);
     expect(q("[data-testid='assets-map-menu']")!.scrollWidth).toBeLessThanOrEqual(420);
-    expect(byText("Radius (m)")).toBeDefined();
+    expect(byText("Uncert. (m)")).toBeDefined();
   });
 
   it("ends the table at the last folder without a trailing empty strip", () => {
@@ -424,7 +447,7 @@ describe("MapAssetsMenu", () => {
         ["Asset name", "n".repeat(ASSET_NAME_MAX_LENGTH + 1), "n".repeat(ASSET_NAME_MAX_LENGTH)],
         ["Asset notes", "x".repeat(ASSET_NOTES_MAX_LENGTH + 1), "x".repeat(ASSET_NOTES_MAX_LENGTH)],
         [
-          "Radius in meters",
+          "Uncertainty radius in meters",
           String(ASSET_RADIUS_MAX_METERS + 0.01),
           String(ASSET_RADIUS_MAX_METERS),
         ],
@@ -437,7 +460,7 @@ describe("MapAssetsMenu", () => {
         expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).toBe("true");
         flushSync(() => q("[aria-label='Save']")!.click());
         expect(saveAsset).not.toHaveBeenCalled();
-        if (label === "Radius in meters")
+        if (label === "Uncertainty radius in meters")
           expect(store.getState().asset.inEdit?.values.uncertaintyMeters).toBe(0);
         enterValue(input, validValue);
         expect(q("[aria-label='Save']")?.getAttribute("aria-disabled")).not.toBe("true");
@@ -641,7 +664,7 @@ describe("MapAssetsMenu", () => {
     expect(q(`[data-testid='asset-row-${zed.uuid}']`)?.textContent).toContain("Not placed");
   });
 
-  it.each([0, 5])("shows chosen or transparent emoji backgrounds at radius %s", (radius) => {
+  it.each([0, 5])("shows chosen or default blue emoji backgrounds at radius %s", (radius) => {
     const colored = generateBlankAsset({ color: "#ff0000", uncertaintyMeters: radius });
     const uncolored = generateBlankAsset({ color: null, uncertaintyMeters: radius });
     mockMissionDoc.assets = { [colored.uuid]: colored, [uncolored.uuid]: uncolored };
@@ -651,7 +674,7 @@ describe("MapAssetsMenu", () => {
     const coloredBackground = nameCell(colored.uuid).querySelector("div > span") as HTMLElement;
     const uncoloredBackground = nameCell(uncolored.uuid).querySelector("div > span") as HTMLElement;
     expect(coloredBackground.style.backgroundColor).toBe("rgba(255, 0, 0, 0.5)");
-    expect(uncoloredBackground.style.backgroundColor).toBe("transparent");
+    expect(uncoloredBackground.style.backgroundColor).toBe("rgba(40, 120, 181, 0.5)");
     expect(getComputedStyle(nameCell(colored.uuid)).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     expect(getComputedStyle(coloredBackground).borderRadius).toBe("45%");
   });
@@ -728,7 +751,7 @@ describe("MapAssetsMenu", () => {
       store = makeStore(true);
       render();
       openDraft(asset, creating);
-      const radius = q("input[aria-label='Radius in meters']") as HTMLInputElement;
+      const radius = q("input[aria-label='Uncertainty radius in meters']") as HTMLInputElement;
       enterValue(radius, "abc12x.5");
       expect(radius.value).toBe("12.5");
       expect(store.getState().asset.inEdit?.values.uncertaintyMeters).toBe(12.5);
@@ -875,7 +898,7 @@ describe("MapAssetsMenu", () => {
     expect(q("[data-testid='asset-editor']")?.textContent).toContain("Edit Asset");
     expect(q("dialog[open]")).toBeNull();
     enterValue(q("input[aria-label='Asset name']") as HTMLInputElement, "Renamed drill");
-    enterValue(q("input[aria-label='Radius in meters']") as HTMLInputElement, "20");
+    enterValue(q("input[aria-label='Uncertainty radius in meters']") as HTMLInputElement, "20");
     enterValue(q("textarea[aria-label='Asset notes']") as HTMLTextAreaElement, "Draft note");
     expect(store.getState().asset.inEdit?.values).toMatchObject({
       name: "Renamed drill",
@@ -890,7 +913,9 @@ describe("MapAssetsMenu", () => {
     expect(q("div[aria-label='Asset notes']")?.textContent).toBe("Saved note");
     openDraft(asset, false);
     expect((q("input[aria-label='Asset name']") as HTMLInputElement).value).toBe("Drill");
-    expect((q("input[aria-label='Radius in meters']") as HTMLInputElement).value).toBe("0");
+    expect((q("input[aria-label='Uncertainty radius in meters']") as HTMLInputElement).value).toBe(
+      "0"
+    );
     enterValue(q("input[aria-label='Asset name']") as HTMLInputElement, "Saved drill");
     flushSync(() => q("[aria-label='Save']")!.click());
     expect(saveAsset).toHaveBeenCalledExactlyOnceWith(undefined);
@@ -998,7 +1023,7 @@ describe("MapAssetsMenu", () => {
       input.dispatchEvent(new Event("input", { bubbles: true }));
     };
     if (creating) {
-      const radius = q("[aria-label='Radius in meters']") as HTMLInputElement;
+      const radius = q("[aria-label='Uncertainty radius in meters']") as HTMLInputElement;
       radius.focus();
       clearInput(radius);
       await vi.waitFor(() =>

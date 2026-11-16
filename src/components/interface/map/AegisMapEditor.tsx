@@ -8,6 +8,7 @@
 import { useEffect } from "react";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkCancelAssetEdit } from "store/thunk/thunkAsset";
+import { thunkCancelPosEntryEdit } from "store/thunk/thunkRexPosEntry";
 
 import { AegisMap } from "./AegisMap";
 import { FeatureSourcesProvider } from "./FeatureSourcesProvider";
@@ -40,6 +41,7 @@ export function AegisMapEditor({ className }: AegisMapEditorProps): JSX.Element 
   useEffect(() => {
     return () => {
       dispatch(thunkCancelAssetEdit());
+      dispatch(thunkCancelPosEntryEdit());
     };
   }, [dispatch]);
 

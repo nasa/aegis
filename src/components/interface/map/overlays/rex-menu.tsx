@@ -15,13 +15,14 @@ import { setRexMenuIsMinimized } from "store/interface";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { usePosEntryEditSession } from "../hooks/usePosEntryEditSession";
 
 const REX_MENU_WIDTH = 420;
 const REX_MENU_HEIGHT = 360;
 // The widget cannot be dragged/resized smaller than this (enforced in CSS on the floating
 // resize container, see missionDockviewLayout.module.css).
 const REX_MENU_MIN_WIDTH = 325;
-const REX_MENU_MIN_HEIGHT = 318;
+const REX_MENU_MIN_HEIGHT = 165;
 const REX_MENU_TOP_OFFSET = 10;
 const REX_MENU_RIGHT_OFFSET = 10;
 // Panels that live in the floating Rex Menu widget (Positions + Assets tabs). Their tabs cannot
@@ -174,6 +175,7 @@ export const RexMenuHeaderActions: FunctionComponent<IDockviewHeaderActionsProps
 // them otherwise, toggles the group's visibility when minimized, and shows the Assets tab on
 // request (e.g. an asset marker click).
 export function useRexMenuDockviewPanel(api: DockviewApi | null): void {
+  usePosEntryEditSession();
   const showRexMenu = useMissionDocSelector((mission) => !!mission, refEqual) ?? false;
   const rexMenuIsMinimized = useAppSelector(
     (state) => state.interface.rexMenuIsMinimized,

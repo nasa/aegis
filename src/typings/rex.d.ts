@@ -103,8 +103,39 @@ interface PosEntry {
   petSeconds: number;
   posTypeUuids: string[];
   posSourceUuid: string;
+  /** Uncertainty radius in meters; zero draws no radius circle. */
+  uncertaintyMeters: number;
+  /** Radius fill color; null uses the default dark yellow. */
+  color: string | null;
+  /** Optional on entries saved before notes were supported. */
+  notes?: string | null;
   createdAt: number;
   updatedAt: number;
+}
+
+/**
+ * The position entry fields edited in the position editor. Location, PET, and source may be
+ * null in a draft; Save requires all three.
+ */
+type PosEntryEditValues = Pick<
+  PosEntry,
+  "elevation" | "posTypeUuids" | "uncertaintyMeters" | "color" | "notes"
+> & {
+  location: AEGISPoint | null;
+  petSeconds: number | null;
+  posSourceUuid: string | null;
+};
+
+/** Unsaved Add or Edit session for a position entry of one REX, including the map preview. */
+interface PosEntryInEdit {
+  uuid: string;
+  rexUuid: string;
+  isNew: boolean;
+  values: PosEntryEditValues;
+  /** Baseline used to save only changed fields. Null for a new entry. */
+  base: PosEntryEditValues | null;
+  /** True while an elevation fetch for `values.location` is in flight. */
+  elevationPending: boolean;
 }
 
 interface PosType {
