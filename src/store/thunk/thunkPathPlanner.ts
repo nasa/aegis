@@ -19,9 +19,12 @@ import {
 } from "store/pathPlanner";
 import { isRetryableStatus } from "utils/fetch-with-timeout";
 import { getAccurateNow } from "utils/formatting";
-import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { newtonInputSignature, planetFromRadius } from "utils/newtonInputs";
-import { pathPlanErrorFromResponse, pathPlanErrorFromRow } from "utils/pathPlanner";
+import {
+  pathLengthMeters,
+  pathPlanErrorFromResponse,
+  pathPlanErrorFromRow,
+} from "utils/pathPlanner";
 
 import appCreateAsyncThunk from "./thunkUtil";
 
@@ -95,7 +98,7 @@ function planSignature(
 ): { signature: string; waypoints: AEGISPoint[] } | null {
   const planet = planetFromRadius(mission?.planetRadius);
   if (!planet) return null;
-  const waypoints = [plan.start, plan.goal];
+  const waypoints = plan.points;
   return { signature: newtonInputSignature(planet, waypoints, plan.params), waypoints };
 }
 
@@ -159,12 +162,7 @@ export const thunkRunPathPlanRequest = appCreateAsyncThunk<{ uuid: string }>(
           );
           return;
         }
-        const distance = getDistanceBetweenTwoCoordinates(
-          plan.start,
-          plan.goal,
-          mission.planetRadius
-        );
-        if (!(distance >= NEWTON_TOOL_MIN_DISTANCE_M)) {
+        if (!(pathLengthMeters(plan.points, mission.planetRadius) >= NEWTON_TOOL_MIN_DISTANCE_M)) {
           dispatch(pathPlanIdle(uuid));
           continue;
         }
@@ -239,34 +237,31 @@ export const thunkAddPathPlan = appCreateAsyncThunk<void>(
         uuid,
         createdAt: getAccurateNow().toISOString(),
         color: PLAN_COLORS[count % PLAN_COLORS.length],
-        start: path[0],
-        goal: path[path.length - 1],
+        points: [path[0], path[path.length - 1]],
         pointsTouched: false,
         params: { slopeLimit: NEWTON_DEFAULT_SLOPE_LIMIT },
-        request: { status: "idle", inputSignature: null, row: null, error: null },
+        request: { status: "idle", inputSignature: null, row: null, pathRow: null, error: null },
       })
     );
     dispatch(setSelectedPathPlanUuid(uuid));
   }
 );
 
-/** Called on every drag tick and on `modifyend`; only the debounce sends requests. */
+const samePoints = (a: readonly AEGISPoint[], b: readonly AEGISPoint[]) =>
+  a.length === b.length && a.every((point, i) => point.lat === b[i].lat && point.lng === b[i].lng);
+
+/**
+ * Called on every drag tick and on `modifyend` with the whole line: start, midpoints, goal.
+ * Only the debounce sends requests.
+ */
 export const thunkUpdatePathPlanPoints = appCreateAsyncThunk<{
   uuid: string;
   path: AEGISPoint[];
 }>("pathPlanner/updatePoints", async ({ uuid, path }, { dispatch, getState }) => {
   const plan = findPlan(getState(), uuid);
-  if (!plan || path.length < 2) return;
-  const start = path[0];
-  const goal = path[path.length - 1];
-  if (
-    start.lat === plan.start.lat &&
-    start.lng === plan.start.lng &&
-    goal.lat === plan.goal.lat &&
-    goal.lng === plan.goal.lng
-  )
-    return;
-  dispatch(setPathPlanInputs({ uuid, start, goal }));
+  if (!plan || path.length < 2 || samePoints(plan.points, path)) return;
+  const points = path.map((point) => ({ lat: point.lat, lng: point.lng }));
+  dispatch(setPathPlanInputs({ uuid, points }));
   schedulePathPlanRequest(dispatch, uuid);
 });
 

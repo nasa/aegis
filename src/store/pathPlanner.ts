@@ -35,17 +35,17 @@ export const pathPlannerSlice = createSlice({
       action: {
         payload: {
           uuid: string;
-          start?: AEGISPoint;
-          goal?: AEGISPoint;
+          points?: AEGISPoint[];
           params?: NewtonTraverseParams;
         };
       }
     ) => {
       const plan = findPlan(state, action.payload.uuid);
       if (!plan) return;
-      if (action.payload.start) plan.start = action.payload.start;
-      if (action.payload.goal) plan.goal = action.payload.goal;
-      if (action.payload.start || action.payload.goal) plan.pointsTouched = true;
+      if (action.payload.points) {
+        plan.points = action.payload.points;
+        plan.pointsTouched = true;
+      }
       if (action.payload.params) plan.params = action.payload.params;
       plan.request.status = plan.pointsTouched ? "debouncing" : "idle";
       plan.request.inputSignature = null;
@@ -54,7 +54,13 @@ export const pathPlannerSlice = createSlice({
     pathPlanIdle: (state, action: { payload: string }) => {
       const plan = findPlan(state, action.payload);
       if (!plan) return;
-      plan.request = { status: "idle", inputSignature: null, row: null, error: null };
+      plan.request = {
+        status: "idle",
+        inputSignature: null,
+        row: null,
+        pathRow: plan.request.pathRow,
+        error: null,
+      };
     },
     pathPlanRequestStarted: (
       state,
@@ -76,6 +82,7 @@ export const pathPlannerSlice = createSlice({
       if (!plan || plan.request.inputSignature !== inputSignature) return;
       if (row.inputSignature !== inputSignature) return;
       plan.request.row = row;
+      if (row.status === "succeeded" && (row.path?.length ?? 0) >= 2) plan.request.pathRow = row;
       const finished =
         row.status === "succeeded" || row.status === "failed" || row.status === "cancelled";
       plan.request.status = finished ? "ready" : "pending";

@@ -28,7 +28,7 @@ import type { Coordinate } from "ol/coordinate";
 import { Point, LineString } from "ol/geom";
 import { Translate, Modify } from "ol/interaction";
 import { Collection } from "ol";
-import { singleClick, primaryAction, never } from "ol/events/condition";
+import { singleClick, primaryAction } from "ol/events/condition";
 import { Style, Circle as CircleStyle, Fill, Stroke } from "ol/style";
 import throttle from "lodash/throttle";
 
@@ -349,7 +349,7 @@ export function InteractionManager(): null {
         // regardless), so the endpoint nodes must be non-interactive: they can't
         // be dragged, delete-clicked, or grabbed to add a node — only interior
         // vertices move, and new nodes can still be inserted elsewhere on the
-        // line. Measurements are free-form, so their endpoints stay movable.
+        // line. Measurements and path plans are free-form, so their endpoints stay movable.
         const pinsEndpoints =
           mapDirective.mapItemType === "traverse" || mapDirective.mapItemType === "walkback";
         let pinnedFirst: Coordinate | null = null;
@@ -380,22 +380,16 @@ export function InteractionManager(): null {
           return false;
         };
 
-        // A path plan is always exactly a start and a goal: no inserted or deleted vertices.
-        const fixedVertexCount = mapDirective.mapItemType === "pathPlan";
-
         const modify = new Modify({
           features: new Collection([feature]),
-          ...(fixedVertexCount ? { insertVertexCondition: never } : {}),
           // Block starting a drag/insert on an anchored endpoint vertex.
           condition: pinsEndpoints
             ? (evt) => primaryAction(evt) && !nearPinnedEndpoint(evt)
             : primaryAction,
           // Block delete-clicking an anchored endpoint vertex.
-          deleteCondition: fixedVertexCount
-            ? never
-            : pinsEndpoints
-              ? (evt) => singleClick(evt) && !nearPinnedEndpoint(evt)
-              : singleClick,
+          deleteCondition: pinsEndpoints
+            ? (evt) => singleClick(evt) && !nearPinnedEndpoint(evt)
+            : singleClick,
           // Hide the drag-anchor overlay on anchored endpoints so they don't
           // look draggable.
           style: pinsEndpoints
