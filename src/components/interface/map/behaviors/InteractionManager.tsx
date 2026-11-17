@@ -11,7 +11,8 @@
  *   cancelCreateMarker  — clear directive, reset cursor
  *   editMarker          — Translate interaction on target feature
  *   cancelEditMarker    — clear directive, reset cursor
- *   editPolyline        — Modify interaction on target feature (add/move/delete vertices)
+ *   editPolyline        — Modify interaction on target feature (add/move/delete vertices;
+ *                         path plans only move their two points)
  *   saveEditPolyline    — remove interaction, clear directive
  *   cancelEditPolyline  — restore the path captured in `map.originalPoints`
  *
@@ -27,7 +28,7 @@ import type { Coordinate } from "ol/coordinate";
 import { Point, LineString } from "ol/geom";
 import { Translate, Modify } from "ol/interaction";
 import { Collection } from "ol";
-import { singleClick, primaryAction } from "ol/events/condition";
+import { singleClick, primaryAction, never } from "ol/events/condition";
 import { Style, Circle as CircleStyle, Fill, Stroke } from "ol/style";
 import throttle from "lodash/throttle";
 
@@ -37,6 +38,7 @@ import { updateMapDirective } from "store/map";
 import { thunkDocUpdateTraverse } from "store/thunk/thunkTraverse";
 import { thunkDocUpdateWalkback } from "store/thunk/thunkStation";
 import { thunkUpdateMeasurementPath } from "store/thunk/thunkMeasurement";
+import { thunkUpdatePathPlanPoints } from "store/thunk/thunkPathPlanner";
 
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
@@ -160,11 +162,12 @@ export function InteractionManager(): null {
     refEqual
   );
   const selectedAssetUuid = useAppSelector((s) => s.asset.selectedAssetUuid, refEqual);
+  const selectedPathPlanUuid = useAppSelector((s) => s.pathPlanner.selectedPlanUuid, refEqual);
   // Asset map directives are section-agnostic: only selecting another asset ends them.
   const selectionKey =
     mapDirective?.mapItemType === "asset"
       ? `asset|${selectedAssetUuid}`
-      : `${sectionSelected}|${bottomSectionSelected}|${selectedPoiUuid}|${selectedStationUuid}|${selectedSeqItemUuid}|${selectedMeasurementUuid}`;
+      : `${sectionSelected}|${bottomSectionSelected}|${selectedPoiUuid}|${selectedStationUuid}|${selectedSeqItemUuid}|${selectedMeasurementUuid}|${selectedPathPlanUuid}`;
   const selectionKeyAtEditStartRef = useRef<string | null>(null);
 
   // Track the active interaction so we can clean up on directive change
@@ -377,16 +380,22 @@ export function InteractionManager(): null {
           return false;
         };
 
+        // A path plan is always exactly a start and a goal: no inserted or deleted vertices.
+        const fixedVertexCount = mapDirective.mapItemType === "pathPlan";
+
         const modify = new Modify({
           features: new Collection([feature]),
+          ...(fixedVertexCount ? { insertVertexCondition: never } : {}),
           // Block starting a drag/insert on an anchored endpoint vertex.
           condition: pinsEndpoints
             ? (evt) => primaryAction(evt) && !nearPinnedEndpoint(evt)
             : primaryAction,
           // Block delete-clicking an anchored endpoint vertex.
-          deleteCondition: pinsEndpoints
-            ? (evt) => singleClick(evt) && !nearPinnedEndpoint(evt)
-            : singleClick,
+          deleteCondition: fixedVertexCount
+            ? never
+            : pinsEndpoints
+              ? (evt) => singleClick(evt) && !nearPinnedEndpoint(evt)
+              : singleClick,
           // Hide the drag-anchor overlay on anchored endpoints so they don't
           // look draggable.
           style: pinsEndpoints
@@ -417,6 +426,8 @@ export function InteractionManager(): null {
             );
           } else if (mapDirective.mapItemType === "measurement") {
             dispatch(thunkUpdateMeasurementPath({ path, measurementUuid: mapDirective.uuid }));
+          } else if (mapDirective.mapItemType === "pathPlan") {
+            dispatch(thunkUpdatePathPlanPoints({ path, uuid: mapDirective.uuid }));
           }
         }, 100);
 
@@ -471,6 +482,8 @@ export function InteractionManager(): null {
             await dispatch(
               thunkUpdateMeasurementPath({ path, measurementUuid: mapDirective.uuid })
             );
+          } else if (mapDirective.mapItemType === "pathPlan") {
+            dispatch(thunkUpdatePathPlanPoints({ path, uuid: mapDirective.uuid }));
           }
         };
 

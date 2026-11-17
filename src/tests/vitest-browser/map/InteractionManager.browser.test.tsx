@@ -22,6 +22,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { assetSlice } from "store/asset";
+import { pathPlannerSlice } from "store/pathPlanner";
 import Map from "ol/Map";
 import View from "ol/View";
 import VectorLayer from "ol/layer/Vector";
@@ -111,6 +112,7 @@ function makeStore(preloadedState: PartialPreloadedState = {}) {
       eva: evaSlice.reducer,
       measure: measureSlice.reducer,
       asset: assetSlice.reducer,
+      pathPlanner: pathPlannerSlice.reducer,
     },
     preloadedState,
   });

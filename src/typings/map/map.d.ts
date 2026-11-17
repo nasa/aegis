@@ -22,7 +22,7 @@ type MapAction =
   | "delete";
 
 type MapMarkerType = "poi" | "station" | "lander" | "hover" | "action" | "posEntry" | "asset";
-type MapPolylineType = "traverse" | "walkback" | "hover" | "posPath" | "measurement";
+type MapPolylineType = "traverse" | "walkback" | "hover" | "posPath" | "measurement" | "pathPlan";
 type MapCircleType = "stationCircle" | "landerCircle";
 
 type MapItemType = `${MapMarkerType | MapPolylineType | MapCircleType}`;

@@ -24,9 +24,11 @@ import {
   faChevronLeft,
   faChevronRight,
   faChevronUp,
+  faRoute,
   faRuler,
 } from "@fortawesome/free-solid-svg-icons";
 import Measure from "./measure/measure";
+import PathPlanner from "./pathPlanner/path-planner";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import FontFaceObserver from "fontfaceobserver";
 import { setSelectedStationUuid } from "store/station";
@@ -97,7 +99,13 @@ export const BottomControlPanel: FunctionComponent = () => {
       {bottomPanelOpen && (
         <div className={styles.activeComponentBottom}>
           <BottomGutter />
-          {selectedBottomNavItem === "timeline" ? <NavTimeline /> : <Measure />}
+          {selectedBottomNavItem === "timeline" ? (
+            <NavTimeline />
+          ) : selectedBottomNavItem === "pathPlanner" ? (
+            <PathPlanner />
+          ) : (
+            <Measure />
+          )}
         </div>
       )}
     </>
@@ -220,11 +228,14 @@ const BottomGutter: FunctionComponent = () => {
   const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
   let timelineIconContainerStyle = styles.iconContainer;
   let measureIconContainerStyle = styles.iconContainer;
+  let pathPlannerIconContainerStyle = styles.iconContainer;
   if (bottomPanelOpen) {
     timelineIconContainerStyle =
       selectedBottomNavItem === "timeline" ? styles.iconContainerSelected : styles.iconContainer;
     measureIconContainerStyle =
       selectedBottomNavItem === "measure" ? styles.iconContainerSelected : styles.iconContainer;
+    pathPlannerIconContainerStyle =
+      selectedBottomNavItem === "pathPlanner" ? styles.iconContainerSelected : styles.iconContainer;
   }
 
   return (
@@ -255,6 +266,20 @@ const BottomGutter: FunctionComponent = () => {
           }}
         >
           <FontAwesomeIcon icon={faRuler} size="lg" />
+        </div>
+      </div>
+      <div className={pathPlannerIconContainerStyle}>
+        <div
+          className={styles.icon}
+          style={{ color: "var(--grey5)" }}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content={"Newton Path Planner"}
+          onClick={() => {
+            if (!bottomPanelOpen) dispatch(setBottomPanelIsOpen(true));
+            dispatch(setBottomSectionSelected("pathPlanner"));
+          }}
+        >
+          <FontAwesomeIcon icon={faRoute} size="lg" />
         </div>
       </div>
     </div>

@@ -76,7 +76,7 @@ interface STMViewExpandedItem {
 
 type InterfaceSection =
   "mission" | "preset" | "poi" | "station" | "evas" | "stmViewer" | "stmRules" | "reports";
-type BottomInterfaceSection = "timeline" | "measure";
+type BottomInterfaceSection = "timeline" | "measure" | "pathPlanner";
 type SlopeColorMode = "standard" | "colorblind";
 interface InterfaceState {
   sectionSelectedLabel: InterfaceSection;
@@ -254,6 +254,7 @@ interface WholeStoreState {
   rex: RexState;
   measure: MeasureState;
   asset: AssetState;
+  pathPlanner: PathPlannerState;
 }
 
 type ReportItem = {
