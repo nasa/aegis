@@ -18,6 +18,7 @@ import { initialState as interfaceInitialState } from "store/interface";
 import { initialState as connectionInitialState } from "store/connection";
 import { initialState as measureInitialState } from "store/measure";
 import { initialState as assetInitialState } from "store/asset";
+import { initialState as pathPlannerInitialState } from "store/pathPlanner";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import {
@@ -72,6 +73,7 @@ export const createTestStoreWithAutomergeMission = (): StoreType => {
     rex: { ...rexInitialState },
     measure: { ...measureInitialState },
     asset: { ...assetInitialState },
+    pathPlanner: { ...pathPlannerInitialState },
   };
 
   return configureStore({

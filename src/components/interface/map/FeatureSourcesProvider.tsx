@@ -34,6 +34,7 @@ export interface FeatureSourcesContextValue {
   actionSource: VectorSource;
   walkbackSource: VectorSource;
   measurementSource: VectorSource;
+  pathPlannerSource: VectorSource;
   highlightSource: VectorSource;
   labelSource: VectorSource;
 }
@@ -72,6 +73,7 @@ export function FeatureSourcesProvider({ children }: FeatureSourcesProviderProps
       actionSource: new VectorSource(),
       walkbackSource: new VectorSource(),
       measurementSource: new VectorSource(),
+      pathPlannerSource: new VectorSource(),
       highlightSource: new VectorSource(),
       labelSource: new VectorSource(),
     }),

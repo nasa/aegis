@@ -1,0 +1,78 @@
+.leftColumn {
+  row-gap: 4px;
+}
+
+.slopeLimit {
+  display: flex;
+  flex-direction: column;
+  row-gap: 2px;
+  margin: 0 0 0 4px;
+  padding: 4px;
+  background-color: var(--grey2);
+  border-radius: var(--panelRadius);
+  color: var(--grey5);
+  font-size: 0.8rem;
+}
+
+.slopeLimitInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2px 4px;
+  color: var(--grey6);
+  background-color: var(--grey1);
+  border: 1px solid var(--grey3);
+  border-radius: var(--radius);
+}
+
+.slopeLimitInvalid {
+  border-color: var(--error);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
+  padding: 8px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  color: var(--grey6);
+}
+
+.status {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  column-gap: 8px;
+  font-weight: bold;
+}
+
+.statusError {
+  color: var(--error);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  row-gap: 2px;
+}
+
+.summaryRow {
+  display: flex;
+  flex-direction: row;
+  column-gap: 8px;
+}
+
+.summaryTitle {
+  flex: 0 0 120px;
+  color: var(--grey5);
+}
+
+.pointValues {
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  color: var(--grey5);
+}

@@ -55,6 +55,7 @@ describe("FeatureSourcesProvider", () => {
       "actionSource",
       "walkbackSource",
       "measurementSource",
+      "pathPlannerSource",
       "highlightSource",
       "labelSource",
     ];

@@ -22,6 +22,7 @@ import { ActionMarkers } from "./behaviors/ActionMarkers";
 import { TraverseLines } from "./behaviors/TraverseLines";
 import { WalkbackLines } from "./behaviors/WalkbackLines";
 import { MeasurementLines } from "./behaviors/MeasurementLines";
+import { PathPlannerLines } from "./behaviors/PathPlannerLines";
 import { InteractionManager } from "./behaviors/InteractionManager";
 import { PosEntries } from "./behaviors/PosEntries";
 import { HoverHighlight } from "./behaviors/HoverHighlight";
@@ -55,6 +56,7 @@ export function AegisMapEditor({ className }: AegisMapEditorProps): JSX.Element 
         <TraverseLines />
         <WalkbackLines />
         <MeasurementLines />
+        <PathPlannerLines />
         <StationMarkers />
         <PoiMarkers />
         <AssetMarkers />

@@ -7,6 +7,7 @@ import { thunkSetBottomPanelIsOpenIfAuto, thunkSetRightPanelIsOpenIfAuto } from 
 import { thunkSelectEVASequenceItem } from "./crossThunk";
 import { setSelectedPosEntryUuid } from "store/rex";
 import { setSelectedMeasurementUuid } from "store/measure";
+import { setSelectedPathPlanUuid } from "store/pathPlanner";
 import { setSelectedEvaSequenceItemUuid } from "store/eva";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import { thunkJumpToAsset } from "./thunkAsset";
@@ -163,5 +164,9 @@ export const thunkPolylineOnClick = appCreateAsyncThunk<{
     dispatch(thunkSetBottomPanelIsOpenIfAuto(true));
     dispatch(setBottomSectionSelected("measure"));
     dispatch(setSelectedMeasurementUuid(polylineUuid));
+  } else if (mapItemType === "pathPlan") {
+    dispatch(thunkSetBottomPanelIsOpenIfAuto(true));
+    dispatch(setBottomSectionSelected("pathPlanner"));
+    dispatch(setSelectedPathPlanUuid(polylineUuid));
   }
 });
