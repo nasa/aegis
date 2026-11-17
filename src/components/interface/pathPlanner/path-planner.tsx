@@ -1,4 +1,4 @@
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import measureStyles from "../measure/measure.module.css";
@@ -17,10 +17,9 @@ import {
   thunkRetryPathPlan,
   thunkUpdatePathPlanParams,
 } from "store/thunk/thunkPathPlanner";
-import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { formatLatLng } from "utils/coordinateEntry";
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
-import { isPathPlanRowCurrent } from "utils/pathPlanner";
+import { isPathPlanRowCurrent, pathLengthMeters, pathPlanPointName } from "utils/pathPlanner";
 
 /** The panel's status line for a plan. */
 export function pathPlanStatusLabel(plan: PathPlan): string {
@@ -29,8 +28,8 @@ export function pathPlanStatusLabel(plan: PathPlan): string {
   switch (status) {
     case "idle":
       return plan.pointsTouched
-        ? "Move the start and goal apart"
-        : "Drag S or G on the map to plan a path";
+        ? "Move the points apart"
+        : "Edit the points on the map to plan a path";
     case "debouncing":
       return "Waiting…";
     case "pending":
@@ -103,13 +102,14 @@ const PathPlanPoint: FunctionComponent<{
   point: AEGISPoint;
   dynamicLgrs: boolean;
 }> = ({ label, point, dynamicLgrs }) => {
+  const testId = `path-plan-point-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const lgrs = formatLgrsFromLatLon(
     point,
     LGRS_DISPLAY_PRECISION_METERS,
     dynamicLgrs ? "full" : "condensed"
   );
   return (
-    <div className={styles.summaryRow} data-testid={`path-plan-point-${label.toLowerCase()}`}>
+    <div className={styles.summaryRow} data-testid={testId}>
       <span className={styles.summaryTitle}>{label}</span>
       <span className={styles.pointValues}>
         <span>{formatLatLng(point)}</span>
@@ -119,61 +119,71 @@ const PathPlanPoint: FunctionComponent<{
   );
 };
 
+const SummaryRow: FunctionComponent<{
+  title: string;
+  testId?: string;
+  children: ReactNode;
+}> = ({ title, testId, children }) => (
+  <div className={styles.summaryRow} data-testid={testId}>
+    <span className={styles.summaryTitle}>{title}</span>
+    <span>{children}</span>
+  </div>
+);
+
+/** The plan's points on the left; the shown path's details on the right. */
 const PathPlanSummary: FunctionComponent<{ plan: PathPlan }> = ({ plan }) => {
   const planetRadius = useMissionDocSelector((mission) => mission.planetRadius, refEqual);
   const dynamicLgrs = useMissionDocSelector(
     (mission) => mission.gridRenderMode === "dynamic-lgrs",
     refEqual
   );
-  const straightMeters = getDistanceBetweenTwoCoordinates(plan.start, plan.goal, planetRadius) ?? 0;
-  const row = plan.request.row;
-  const current = isPathPlanRowCurrent(plan, planetRadius);
-  const pathMeters =
-    current && row?.status === "succeeded" && row.segmentDistances
-      ? row.segmentDistances.reduce((sum, meters) => sum + meters, 0)
-      : null;
-
-  // The slope limit Newton used for the path shown, which may be older than the field.
-  const pathSlopeLimit = row ? (row.params?.slopeLimit ?? NEWTON_DEFAULT_SLOPE_LIMIT) : null;
+  const straightMeters = pathLengthMeters(plan.points, planetRadius);
+  // The path on the map: the newest one found, which may be for older points.
+  const pathRow = plan.request.pathRow;
+  const current = !!pathRow && isPathPlanRowCurrent(plan, planetRadius, pathRow);
+  const pathMeters = pathRow?.segmentDistances
+    ? pathRow.segmentDistances.reduce((sum, meters) => sum + meters, 0)
+    : null;
+  const pathStraightMeters = pathRow ? pathLengthMeters(pathRow.waypoints, planetRadius) : null;
+  const older = pathRow && !current ? " (older path)" : "";
 
   return (
     <div className={styles.summary} data-testid="path-plan-summary">
-      <PathPlanPoint label="Start" point={plan.start} dynamicLgrs={dynamicLgrs} />
-      <PathPlanPoint label="Goal" point={plan.goal} dynamicLgrs={dynamicLgrs} />
-      <div className={styles.summaryRow}>
-        <span className={styles.summaryTitle}>Straight line</span>
-        <span>{formatMeters(straightMeters)}</span>
+      <div className={styles.summaryColumn} data-testid="path-plan-points">
+        {plan.points.map((point, index) => (
+          <PathPlanPoint
+            key={index}
+            label={pathPlanPointName(index, plan.points.length)}
+            point={point}
+            dynamicLgrs={dynamicLgrs}
+          />
+        ))}
       </div>
-      <div className={styles.summaryRow}>
-        <span className={styles.summaryTitle}>A* path</span>
-        <span>{pathMeters == null ? "—" : formatMeters(pathMeters)}</span>
+      <div className={styles.summaryColumn} data-testid="path-plan-details">
+        <SummaryRow title="Straight line">{formatMeters(straightMeters)}</SummaryRow>
+        <SummaryRow title="A* path" testId="path-plan-length">
+          {pathMeters == null ? "—" : `${formatMeters(pathMeters)}${older}`}
+        </SummaryRow>
+        {pathMeters != null && (
+          <SummaryRow title="Difference">
+            {formatLengthDifference(pathMeters, pathStraightMeters)}
+            {older}
+          </SummaryRow>
+        )}
+        {pathRow && (
+          <SummaryRow title="Path slope limit" testId="path-plan-slope-limit">
+            {pathRow.params?.slopeLimit ?? NEWTON_DEFAULT_SLOPE_LIMIT}°{older}
+          </SummaryRow>
+        )}
+        {pathRow?.mapInfo?.length ? (
+          <SummaryRow title="Slope map">
+            {pathRow.mapInfo.map((info) => info.name).join(", ")}
+          </SummaryRow>
+        ) : null}
+        {pathRow?.runtimeMs != null && (
+          <SummaryRow title="Planning time">{(pathRow.runtimeMs / 1000).toFixed(1)} s</SummaryRow>
+        )}
       </div>
-      {pathSlopeLimit != null && (
-        <div className={styles.summaryRow} data-testid="path-plan-slope-limit">
-          <span className={styles.summaryTitle}>Path slope limit</span>
-          <span>
-            {pathSlopeLimit}°{current ? "" : " (older path)"}
-          </span>
-        </div>
-      )}
-      {pathMeters != null && (
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryTitle}>Difference</span>
-          <span>{formatLengthDifference(pathMeters, straightMeters)}</span>
-        </div>
-      )}
-      {current && row?.mapInfo?.length ? (
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryTitle}>Slope map</span>
-          <span>{row.mapInfo.map((info) => info.name).join(", ")}</span>
-        </div>
-      ) : null}
-      {current && row?.runtimeMs != null && (
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryTitle}>Planning time</span>
-          <span>{(row.runtimeMs / 1000).toFixed(1)} s</span>
-        </div>
-      )}
     </div>
   );
 };

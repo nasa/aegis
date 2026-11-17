@@ -1,9 +1,11 @@
 /**
  * PathPlannerLines — behavior component for Newton Path Planner plans (editor only).
  *
- * Draws the selected plan's straight start–goal line in the Measure style with S/G pins
- * (id = plan uuid; the feature `editPolyline` modifies) and, once Newton answers, its A*
- * path (id `newton-${uuid}`), dimmed while the path is for older points. Clicking either
+ * Draws the selected plan's straight line through its start, midpoints and goal in the
+ * Measure style, with S/G pins and midpoint markers (id = plan uuid; the feature
+ * `editPolyline` modifies) and, once Newton answers, its A*
+ * path (id `newton-${uuid}`). The last path found stays, greyed out, while newer points are
+ * planned, until a new path replaces it. Clicking either
  * selects the plan.
  *
  * Returns null — headless behavior component.
@@ -91,7 +93,7 @@ export function PathPlannerLines(): null {
       return {
         id: plan.uuid,
         // While editing, Modify owns the geometry; setting it would detach the drag.
-        geometry: editing ? null : new LineString([toMapCoord(plan.start), toMapCoord(plan.goal)]),
+        geometry: editing ? null : new LineString(plan.points.map((point) => toMapCoord(point))),
         // Stable values only: a prop change fires feature.changed() and detaches a drag.
         // Blocked points are withheld while editing; the style ignores the stale value then.
         properties: {
@@ -108,15 +110,17 @@ export function PathPlannerLines(): null {
   }, [plansToShow, pathPlannerSource, toMapCoord, editingUuid]);
 
   useEffect(() => {
-    const withPaths = plansToShow.filter((plan) => (plan.request.row?.path?.length ?? 0) >= 2);
+    const withPaths = plansToShow.filter((plan) => (plan.request.pathRow?.path?.length ?? 0) >= 2);
     const mapper = (plan: PathPlan): FeatureDescriptor => ({
       id: `${NEWTON_PATH_FEATURE_PREFIX}${plan.uuid}`,
-      geometry: new LineString(plan.request.row.path.map((point) => toMapCoord(point))),
+      geometry: new LineString(plan.request.pathRow.path.map((point) => toMapCoord(point))),
       properties: {
         color: plan.color,
         mapItemType: "pathPlan",
         planUuid: plan.uuid,
-        current: plan.request.status === "ready" && isPathPlanRowCurrent(plan, planetRadius),
+        current:
+          plan.request.status === "ready" &&
+          isPathPlanRowCurrent(plan, planetRadius, plan.request.pathRow),
       },
     });
     reconcileFeatures(newtonSource, withPaths, mapper);
@@ -152,10 +156,13 @@ export function PathPlannerLines(): null {
         });
         lineStyleCache.set(color, lineStyle);
       }
+      const vertexCount =
+        (feature.getGeometry() as LineString | undefined)?.getCoordinates().length ?? 0;
       return [
         ...lineStyle(feature, resolution),
         ...pathPlanPinStyles(
           color,
+          vertexCount,
           feature.get("editing") ? "" : ((feature.get("blockedWaypoints") as string) ?? "")
         ),
       ];

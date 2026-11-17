@@ -64,14 +64,14 @@ function makePlan(uuid: string, withPath: "current" | "stale" | "none" = "none")
     uuid,
     createdAt: "2026-11-02T00:00:00Z",
     color: "#ff8c42",
-    start: START,
-    goal: GOAL,
+    points: [START, GOAL],
     pointsTouched: withPath !== "none",
     params: {},
     request: {
       status: withPath === "current" ? "ready" : "debouncing",
       inputSignature: withPath === "current" ? signature : null,
       row,
+      pathRow: row,
       error: null,
     },
   };
@@ -175,11 +175,69 @@ describe("PathPlannerLines", () => {
 
     flushSync(() => {
       store.dispatch(
-        pathPlannerSlice.actions.setPathPlanInputs({ uuid: "a", goal: { lat: 7, lng: 9 } })
+        pathPlannerSlice.actions.setPathPlanInputs({
+          uuid: "a",
+          points: [START, { lat: 7, lng: 9 }],
+        })
       );
     });
     [path] = newtonSource().getFeatures();
     expect(path.get("current")).toBe(false);
+  });
+
+  it("keeps the old path, greyed out, while new points are planned or fail", () => {
+    store = makeStore([makePlan("a", "current")], "a");
+    render();
+    const moved = { lat: 7, lng: 9 };
+    const newSignature = newtonInputSignature("moon", [START, moved], {});
+    const { actions } = pathPlannerSlice;
+    flushSync(() => {
+      store.dispatch(actions.setPathPlanInputs({ uuid: "a", points: [START, moved] }));
+      store.dispatch(actions.pathPlanRequestStarted({ uuid: "a", inputSignature: newSignature }));
+      // Newton has queued the new request, with no path yet.
+      store.dispatch(
+        actions.pathPlanRowReceived({
+          uuid: "a",
+          inputSignature: newSignature,
+          row: { inputSignature: newSignature, status: "queued", path: null } as NewtonTraverseRow,
+        })
+      );
+    });
+    let [path] = newtonSource().getFeatures();
+    expect(path.get("current")).toBe(false);
+    expect((path.getGeometry() as LineString).getCoordinates()).toHaveLength(3);
+
+    // A failed plan for the new points leaves the old path in place.
+    flushSync(() => {
+      store.dispatch(
+        actions.pathPlanRowReceived({
+          uuid: "a",
+          inputSignature: newSignature,
+          row: { inputSignature: newSignature, status: "failed", path: null } as NewtonTraverseRow,
+        })
+      );
+    });
+    [path] = newtonSource().getFeatures();
+    expect(path.get("current")).toBe(false);
+
+    // The new path replaces it.
+    flushSync(() => {
+      store.dispatch(actions.pathPlanRequestStarted({ uuid: "a", inputSignature: newSignature }));
+      store.dispatch(
+        actions.pathPlanRowReceived({
+          uuid: "a",
+          inputSignature: newSignature,
+          row: {
+            inputSignature: newSignature,
+            status: "succeeded",
+            path: [START, moved],
+          } as NewtonTraverseRow,
+        })
+      );
+    });
+    [path] = newtonSource().getFeatures();
+    expect(path.get("current")).toBe(true);
+    expect((path.getGeometry() as LineString).getCoordinates()).toHaveLength(2);
   });
 
   it("keeps Modify's geometry while the plan is being edited", () => {
@@ -198,7 +256,10 @@ describe("PathPlannerLines", () => {
     const geometry = feature.getGeometry();
     flushSync(() => {
       store.dispatch(
-        pathPlannerSlice.actions.setPathPlanInputs({ uuid: "a", goal: { lat: 7, lng: 9 } })
+        pathPlannerSlice.actions.setPathPlanInputs({
+          uuid: "a",
+          points: [START, { lat: 7, lng: 9 }],
+        })
       );
     });
     expect(pathPlannerSource!.getFeatureById("a").getGeometry()).toBe(geometry);

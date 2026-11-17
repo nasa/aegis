@@ -97,8 +97,7 @@ describe("Newton Path Planner thunks", () => {
     await store.dispatch(thunkAddPathPlan());
 
     const plan = onlyPlan(store);
-    expect(plan.start).toEqual(START);
-    expect(plan.goal).toEqual(INITIAL_GOAL);
+    expect(plan.points).toEqual([START, INITIAL_GOAL]);
     expect(plan.pointsTouched).toBe(false);
     expect(plan.params).toEqual({ slopeLimit: 20 });
     expect(plan.request.status).toBe("idle");
@@ -120,7 +119,7 @@ describe("Newton Path Planner thunks", () => {
 
     const plan = onlyPlan(store);
     expect(plan.pointsTouched).toBe(true);
-    expect(plan.goal).toEqual(GOAL);
+    expect(plan.points).toEqual([START, GOAL]);
     expect(plan.request.status).toBe("debouncing");
 
     await vi.advanceTimersByTimeAsync(NEWTON_TOOL_DEBOUNCE_MS - 1);
@@ -160,6 +159,38 @@ describe("Newton Path Planner thunks", () => {
     await store.dispatch(thunkFlushPathPlan({ uuid: onlyPlan(store).uuid }));
     await vi.advanceTimersByTimeAsync(NEWTON_TOOL_DEBOUNCE_MS);
     expect(postNewtonTraverse).not.toHaveBeenCalled();
+  });
+
+  test("sends the start, every midpoint and the goal, in order", async () => {
+    answerWith("succeeded");
+    const store = storeWithPoints();
+    await store.dispatch(thunkAddPathPlan());
+    const { uuid } = onlyPlan(store);
+    const mids = [
+      { lat: 1.002, lng: 2.003 },
+      { lat: 0.998, lng: 2.006 },
+    ];
+    await store.dispatch(thunkUpdatePathPlanPoints({ uuid, path: [START, ...mids, GOAL] }));
+    expect(onlyPlan(store).points).toEqual([START, ...mids, GOAL]);
+    await vi.advanceTimersByTimeAsync(NEWTON_TOOL_DEBOUNCE_MS);
+
+    expect(postNewtonTraverse).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(postNewtonTraverse).mock.calls[0][0].waypoints).toEqual([
+      START,
+      ...mids,
+      GOAL,
+    ]);
+    expect(onlyPlan(store).request.status).toBe("ready");
+
+    // Deleting a midpoint plans again with the remaining points.
+    await store.dispatch(thunkUpdatePathPlanPoints({ uuid, path: [START, mids[1], GOAL] }));
+    await vi.advanceTimersByTimeAsync(NEWTON_TOOL_DEBOUNCE_MS);
+    expect(postNewtonTraverse).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(postNewtonTraverse).mock.calls[1][0].waypoints).toEqual([
+      START,
+      mids[1],
+      GOAL,
+    ]);
   });
 
   test("dragging restarts the debounce and sends only the final points", async () => {
@@ -233,6 +264,34 @@ describe("Newton Path Planner thunks", () => {
     const plan = onlyPlan(store);
     expect(plan.request.status).toBe("debouncing");
     expect(plan.request.row.inputSignature).toBe(signatureFor(START, GOAL));
+  });
+
+  test("keeps the last path found until a newer path replaces it", async () => {
+    answerWith("succeeded");
+    const store = storeWithPoints();
+    const uuid = await addTouchedPlan(store);
+    await vi.advanceTimersByTimeAsync(NEWTON_TOOL_DEBOUNCE_MS);
+    const first = onlyPlan(store).request.pathRow;
+    expect(first.inputSignature).toBe(signatureFor(START, GOAL));
+
+    // New points: queued, then failed. The first path stays throughout.
+    const blocked = { lat: 1, lng: 2.03 };
+    answerWith("pending");
+    await store.dispatch(thunkUpdatePathPlanPoints({ uuid, path: [START, blocked] }));
+    await vi.advanceTimersByTimeAsync(NEWTON_TOOL_DEBOUNCE_MS);
+    expect(onlyPlan(store).request.status).toBe("pending");
+    expect(onlyPlan(store).request.pathRow).toEqual(first);
+    answerWith("failed", { error: { code: "no_path", message: "x", details: [] } });
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(onlyPlan(store).request.error.message).toBe("No route between start and goal");
+    expect(onlyPlan(store).request.pathRow).toEqual(first);
+
+    // Points that plan: the new path replaces the old one.
+    const reachable = { lat: 1, lng: 2.02 };
+    answerWith("succeeded");
+    await store.dispatch(thunkUpdatePathPlanPoints({ uuid, path: [START, reachable] }));
+    await vi.advanceTimersByTimeAsync(NEWTON_TOOL_DEBOUNCE_MS);
+    expect(onlyPlan(store).request.pathRow.inputSignature).toBe(signatureFor(START, reachable));
   });
 
   test("a Newton failure becomes a readable error with the blocked point", async () => {

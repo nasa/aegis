@@ -1,5 +1,6 @@
 /**
- * Newton Path Planner: browser-only plans of a Newton A* path between two points. Plans live
+ * Newton Path Planner: browser-only plans of a Newton A* path through a start, any midpoints
+ * and a goal. Plans live
  * in Redux for the tab's lifetime and are never written to Automerge, cookies or storage.
  */
 
@@ -15,7 +16,7 @@ type PathPlanRequestStatus = "idle" | "debouncing" | "pending" | "ready" | "erro
 type PathPlanError = {
   message: string;
   retryable: boolean;
-  /** Start (0) or goal (1) when Newton reports that point as not traversable. */
+  /** Indices into `PathPlan.points` that Newton reports as not traversable. */
   blockedWaypoints: number[];
 };
 
@@ -25,6 +26,11 @@ type PathPlanRequest = {
   inputSignature: string | null;
   /** Latest row from the server; may be unfinished or for older points. */
   row: NewtonTraverseRow | null;
+  /**
+   * Latest row that found a path. Kept, drawn greyed out, while newer points are planned or
+   * fail, until a newer path replaces it.
+   */
+  pathRow: NewtonTraverseRow | null;
   error: PathPlanError | null;
 };
 
@@ -32,9 +38,9 @@ interface PathPlan {
   uuid: string;
   createdAt: string;
   color: string;
-  start: AEGISPoint;
-  goal: AEGISPoint;
-  /** False until the user moves S or G; the starting points are never sent to Newton. */
+  /** Start, any midpoints, goal (at least two); all are sent to Newton as waypoints. */
+  points: AEGISPoint[];
+  /** False until the user edits the points; the starting points are never sent to Newton. */
   pointsTouched: boolean;
   params: NewtonTraverseParams;
   request: PathPlanRequest;

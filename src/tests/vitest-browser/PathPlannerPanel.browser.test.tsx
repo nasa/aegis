@@ -1,5 +1,5 @@
 /**
- * Browser-mode tests for the Newton Path Planner panel: start/goal coordinates, the slope
+ * Browser-mode tests for the Newton Path Planner panel: start/midpoint/goal coordinates, the slope
  * limit field's default, the slope limit of the path shown, and Finished sending at once.
  */
 
@@ -78,6 +78,8 @@ beforeEach(async () => {
     } as NewtonTraverseRow,
   }));
   harness = createReactHarness();
+  // The bottom panel's width on a typical screen.
+  harness.container.style.width = "1200px";
   store = makeStore();
   await store.dispatch(thunkAddPathPlan());
   harness.render(
@@ -112,6 +114,39 @@ describe("PathPlanner panel", () => {
     expect(textOf("path-plan-point-start")).toMatch(/^Start-89\.500000, 10\.000000LGRS /);
   });
 
+  it("shows the points on the left and the path details beside them", async () => {
+    await store.dispatch(thunkUpdatePathPlanPoints({ uuid: plan().uuid, path: [START, GOAL] }));
+    await vi.waitFor(() => expect(plan().request.status).toBe("debouncing"));
+    const points = harness.container.querySelector('[data-testid="path-plan-points"]');
+    const details = harness.container.querySelector('[data-testid="path-plan-details"]');
+    expect(points.querySelector('[data-testid="path-plan-point-goal"]')).not.toBeNull();
+    expect(details.textContent).toMatch(/^Straight line/);
+    const pointsBox = points.getBoundingClientRect();
+    const detailsBox = details.getBoundingClientRect();
+    expect(detailsBox.left).toBeGreaterThanOrEqual(pointsBox.right);
+    expect(detailsBox.top).toBe(pointsBox.top);
+  });
+
+  it("lists each midpoint between the start and goal", async () => {
+    const mid = { lat: -89.505, lng: 10.1 };
+    await store.dispatch(
+      thunkUpdatePathPlanPoints({ uuid: plan().uuid, path: [START, mid, GOAL] })
+    );
+    await vi.waitFor(() => {
+      expect(textOf("path-plan-point-midpoint-1")).toMatch(
+        /^Midpoint 1-89\.505000, 10\.100000LGRS /
+      );
+    });
+    const labels = [...harness.container.querySelectorAll('[data-testid^="path-plan-point-"]')].map(
+      (row) => row.getAttribute("data-testid")
+    );
+    expect(labels).toEqual([
+      "path-plan-point-start",
+      "path-plan-point-midpoint-1",
+      "path-plan-point-goal",
+    ]);
+  });
+
   it("Finished sends the new points at once, then shows the path's slope limit", async () => {
     const { uuid } = plan();
     store.dispatch(
@@ -137,6 +172,7 @@ describe("PathPlanner panel", () => {
     await vi.waitFor(() =>
       expect(textOf("path-plan-slope-limit")).toBe("Path slope limit20° (older path)")
     );
+    expect(textOf("path-plan-length")).toBe("A* path1,200 m (older path)");
   });
 
   it("an emptied slope limit field goes back to the default", async () => {

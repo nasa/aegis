@@ -1,7 +1,8 @@
 /**
  * Browser-mode drag test for Newton Path Planner points: mounts `PathPlannerLines` and
  * `InteractionManager` with the real path-planner thunks and drags the goal pin with real
- * pointer events, as a user would in Edit Points on Map.
+ * pointer events, as a user would in Edit Points on Map, and adds a midpoint by dragging the
+ * line.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -53,11 +54,13 @@ const PLAN: PathPlan = {
   createdAt: "2026-11-02T00:00:00Z",
   color: "#ff8c42",
   // Map coords [-100, 0] and [100, 0]: 100 px either side of the centre at resolution 1.
-  start: { lat: 0, lng: -0.1 },
-  goal: { lat: 0, lng: 0.1 },
+  points: [
+    { lat: 0, lng: -0.1 },
+    { lat: 0, lng: 0.1 },
+  ],
   pointsTouched: false,
   params: {},
-  request: { status: "idle", inputSignature: null, row: null, error: null },
+  request: { status: "idle", inputSignature: null, row: null, pathRow: null, error: null },
 };
 
 type PartialPreloadedState = Parameters<typeof configureStore>[0]["preloadedState"];
@@ -157,9 +160,33 @@ describe("Newton Path Planner point editing", () => {
 
     const plan = store.getState().pathPlanner.plans[0];
     expect(plan.pointsTouched).toBe(true);
-    expect(plan.start).toEqual(PLAN.start);
-    expect(plan.goal.lng).toBeCloseTo(0.1, 6);
-    expect(plan.goal.lat).toBeCloseTo(0.05, 6);
+    expect(plan.points).toHaveLength(2);
+    expect(plan.points[0]).toEqual(PLAN.points[0]);
+    expect(plan.points[1].lng).toBeCloseTo(0.1, 6);
+    expect(plan.points[1].lat).toBeCloseTo(0.05, 6);
     expect(store.getState().map.mapDirective?.mapAction).toBe("editPolyline");
+  });
+
+  it("dragging the middle of the line adds a midpoint, as in Measure", async () => {
+    flushSync(() => {
+      store.dispatch(
+        updateMapDirective({ uuid: PLAN.uuid, mapItemType: "pathPlan", mapAction: "editPolyline" })
+      );
+    });
+    map.renderSync();
+
+    // The line runs from pixel (100, 150) to (300, 150); grab it at the middle.
+    pointer("pointermove", 200, 150, 0);
+    pointer("pointerdown", 200, 150, 1);
+    for (let step = 1; step <= 5; step++) pointer("pointermove", 200, 150 - step * 10, 1);
+    pointer("pointerup", 200, 100, 0);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const { points } = store.getState().pathPlanner.plans[0];
+    expect(points).toHaveLength(3);
+    expect(points[0]).toEqual(PLAN.points[0]);
+    expect(points[2]).toEqual(PLAN.points[1]);
+    expect(points[1].lng).toBeCloseTo(0, 6);
+    expect(points[1].lat).toBeCloseTo(0.05, 6);
   });
 });
