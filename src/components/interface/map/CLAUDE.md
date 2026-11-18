@@ -291,6 +291,11 @@ non-interactive — the edited item is manipulated only by `InteractionManager`.
   projected metres (embedded `crs` member first, whole-document coordinate bounds as the
   fallback). A malformed document or an unrecognized projected CRS **fails the load** rather
   than being reinterpreted as `EPSG:4326`.
+- **GeoJSON load failures are not retried on render.** OL's failure callback re-renders the
+  layer, so the loader leaves the failed extent marked as loaded. A 4xx response, malformed
+  JSON, or an unrecognized projection fails once and stays empty until the layer is rebuilt.
+  Network errors and 5xx/408/429 responses free the extent after a backoff (2 s doubling to
+  60 s, reset on success) so the next render refetches.
 - **Draggable data-layer labels.** Two flavours, both styled by `utils/styles/gazetteerLabels.ts`
   and both marked with the layer property `movableLabels`:
   - _Gazetteer/nomenclature_ — matched by sublayer name (`isGazetteerSublayer`) or by

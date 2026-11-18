@@ -149,7 +149,9 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 - **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, grids, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse/folder/preset/STM is **not** handled via REST — those operations go through Automerge. The `layer` and `sublayer` routes are kept for the GIS pipeline (`register.py`) and the admin layers page; they read and write the mission Automerge doc on the server.
 - **Elevation sampling** runs natively in the API through `src/server/raster/` and
   `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
-  there is no separate GDAL/Python runtime service.
+  there is no separate GDAL/Python runtime service. A configured DEM missing from disk (`ENOENT`,
+  carried back from the raster worker as the error `code`) returns 404 "Mission DEM file not
+  found", which the client's terrain profile sync treats as permanent and does not retry.
 - **Terrain profile cache** — committed traverse and station walkback profiles are cached in the
   `terrain_profile_cache_db` table, keyed by `(mission_id, entity_uuid)`. `entity_uuid` is the
   traverse or station uuid, sent by the client as `entityUuid` on terrain profile requests.
@@ -189,6 +191,10 @@ A browser tab left open across a server restart holds in-memory Automerge state 
 ### Notification Banners
 
 Super admins manage banner messages at `/admin/notificationBanners`. Banners are stored in `notification_banner_db` and served by `/api/v1/notificationBanner` (`src/server/express/routes/notificationBanner.ts`). Each banner has a message, an `enabled` switch, an optional UTC start/end window, a scope (application-wide, or a list of missions shown on `/mission/:id`), a `#RRGGBB` background, and a `#RRGGBB` text color (the admin page only offers white or black). `NotificationBannerBar` (`src/components/page/notificationBannerBar.tsx`) is mounted once in `App.tsx` above the routes, so every page shows it except the dashboard (`/dashboard/:id`), where it renders nothing for any scope; routed pages fill the remaining height, so full-height pages must use `height: 100%`, not `100vh`. On any change, and at each start/end time (one server timer, `globalValues.notificationBannerTimer`), the server emits `bannersChanged` on the default namespace and clients refetch `GET /active` over REST. Users can dismiss a banner until they refresh the page. Full details: `docs/notification-banners.md`.
+
+### Lander Location Updates
+
+Change the lander location only through `thunkDocUpdateLanderLocation` (`src/store/thunk/thunkMission.ts`), which the mission preferences pane and the map lander marker use. In one change, it moves the lander, every lander egress/ingress station (`isLanderXgress`), the walkback end of every placed station, and the lander end of every egress/ingress traverse that touches a lander station, in the as-planned and every REX scope. It skips the update when the location is unchanged. If the elevation lookup fails, it still writes the move and sets `landerElevationMeters` and the lander station elevations to `null`. Once stations are placed (`missionHasLanderDependentEntities` in `src/store/storeUtils/mission.ts`), the admin mission page disables its lander latitude, longitude, elevation, and Calculate controls, and the server `missionAutomerge/fields` route rejects lander changes. Before that, the admin page edits them directly.
 
 ### Data Flow
 

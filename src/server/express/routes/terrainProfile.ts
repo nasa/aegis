@@ -160,7 +160,16 @@ export async function sampleMissionTerrainProfile(
   };
 }
 
+/** A configured DEM that is missing from disk fails the same way on every retry. */
+const isMissingRasterFile = (error: unknown): boolean =>
+  (error as NodeJS.ErrnoException)?.code === "ENOENT";
+
+/** Hide the server's absolute raster path from clients. */
+const rasterErrorMessage = (error: unknown): string =>
+  isMissingRasterFile(error) ? "Mission DEM file not found" : asError(error).message;
+
 const rasterErrorStatus = (error: unknown): number => {
+  if (isMissingRasterFile(error)) return 404;
   if (error instanceof RasterSamplingWorkerPoolSupersededError) return 409;
   if (error instanceof RasterSamplingWorkerPoolUnavailableError) return 503;
   return /must|invalid|limit|configured|contain/i.test(asError(error).message) ? 400 : 500;
@@ -215,7 +224,7 @@ async function sampleMissionTerrainProfiles(
       } catch (error) {
         results[index] = {
           status: "error",
-          message: asError(error).message,
+          message: rasterErrorMessage(error),
           httpStatus: rasterErrorStatus(error),
         };
       }
@@ -277,7 +286,7 @@ const respondWithRasterRouteError = (
   missionId: number | undefined,
   error: unknown
 ): void => {
-  const message = asError(error).message;
+  const message = rasterErrorMessage(error);
 
   if (error instanceof RasterSamplingWorkerPoolSupersededError) {
     res.status(409).json({ status: "error", message });
@@ -287,7 +296,12 @@ const respondWithRasterRouteError = (
   const responseStatus = rasterErrorStatus(error);
   serverLogger.apiRoute({
     logId: "api-route:terrain-profile:POST:terrainProfileSamplingFailed",
-    logLevel: responseStatus === 400 ? "notice" : responseStatus === 503 ? "warning" : "error",
+    logLevel:
+      responseStatus === 400 || responseStatus === 404
+        ? "notice"
+        : responseStatus === 503
+          ? "warning"
+          : "error",
     httpMethod: "POST",
     responseStatus,
     routeName,

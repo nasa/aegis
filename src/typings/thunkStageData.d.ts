@@ -240,6 +240,7 @@ type WalkbackUpdateStageData = {
  */
 type LanderLocationUpdateStageData = {
   newLocation: AEGISPoint;
+  /** Null when the elevation lookup failed. */
   newElevation: number | null;
   walkbackUpdates: WalkbackUpdateStageData[];
   traverseUpdates: TraverseUpdateStageData[];

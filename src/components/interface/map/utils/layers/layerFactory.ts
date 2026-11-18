@@ -52,6 +52,10 @@ const POINT_SYMBOL_RADIUS = 6;
 /** Draws nothing. Returned where OL needs a Style but the feature has nothing to render. */
 const EMPTY_STYLE = new Style({});
 
+/** Backoff for GeoJSON loads that failed with a network error or a transient HTTP status. */
+const GEOJSON_RETRY_BASE_MS = 2_000;
+const GEOJSON_RETRY_MAX_MS = 60_000;
+
 // ---------------------------------------------------------------------------
 // Input types
 // ---------------------------------------------------------------------------
@@ -273,43 +277,75 @@ function createVectorLayer(input: LayerFactoryInput): VectorImageLayer | VectorL
  * replaces a hardcoded `dataProjection: "EPSG:4326"`, which mis-renders the small set
  * of legacy GeoJSON files that carry raw projected meter coordinates (see
  * `docs/MS3_20260812_VECTOR_IMPORT_AUDIT.md`).
+ *
+ * A missing file (4xx), malformed JSON, or an unrecognized projection fails once and is
+ * not retried. Network errors and 5xx/408/429 responses are retried with a backoff
+ * (2 s doubling to 60 s), reset by the next successful load.
  */
 function buildGeoJSONLoader(
   url: string,
   projCode: string,
   onFeaturesLoaded?: (features: Feature<Geometry>[]) => void
 ): FeatureLoader {
+  let failedAttempts = 0;
+  let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
   return function (this: VectorSource, extent, _resolution, _projection, success, failure) {
-    // OL's own failure path doesn't drop the extent it just marked as loading, so a
-    // failed load would never be retried without this.
-    const fail = () => {
-      this.removeLoadedExtent(extent);
+    // OL marks the extent as loaded before calling the loader, and its failure callback
+    // re-renders the layer. Leaving the extent marked stops that render from fetching the
+    // file again; a transient failure frees the extent after a backoff delay instead.
+    const fail = (retryable: boolean) => {
       failure?.();
+      if (!retryable) return;
+      const delay = Math.min(GEOJSON_RETRY_MAX_MS, GEOJSON_RETRY_BASE_MS * 2 ** failedAttempts++);
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => {
+        retryTimer = undefined;
+        this.removeLoadedExtent(extent);
+        this.changed();
+      }, delay);
     };
 
     fetch(url)
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
-      })
-      .then((json) => {
-        let dataProjection: string;
-        try {
-          dataProjection = resolveGeoJSONDataProjection(json, projCode);
-        } catch (error) {
-          console.error(`[layerFactory] ${url}:`, error);
-          fail();
-          return;
+      .then(
+        (response) => {
+          if (!response.ok) {
+            const retryable = response.status >= 500 || [408, 429].includes(response.status);
+            console.error(`[layerFactory] Failed to load GeoJSON ${url}: HTTP ${response.status}`);
+            fail(retryable);
+            return;
+          }
+          return response.json().then(
+            (json) => {
+              let dataProjection: string;
+              try {
+                dataProjection = resolveGeoJSONDataProjection(json, projCode);
+              } catch (error) {
+                console.error(`[layerFactory] ${url}:`, error);
+                fail(false);
+                return;
+              }
+              const format = new GeoJSON({ dataProjection, featureProjection: projCode });
+              const features = format.readFeatures(json) as Feature<Geometry>[];
+              onFeaturesLoaded?.(features);
+              this.addFeatures(features);
+              failedAttempts = 0;
+              success?.(features);
+            },
+            (error) => {
+              console.error(`[layerFactory] Failed to parse GeoJSON ${url}:`, error);
+              fail(false);
+            }
+          );
+        },
+        (error) => {
+          console.error(`[layerFactory] Failed to load GeoJSON ${url}:`, error);
+          fail(true);
         }
-        const format = new GeoJSON({ dataProjection, featureProjection: projCode });
-        const features = format.readFeatures(json) as Feature<Geometry>[];
-        onFeaturesLoaded?.(features);
-        this.addFeatures(features);
-        success?.(features);
-      })
+      )
       .catch((error) => {
         console.error(`[layerFactory] Failed to load GeoJSON ${url}:`, error);
-        fail();
+        fail(false);
       });
   };
 }

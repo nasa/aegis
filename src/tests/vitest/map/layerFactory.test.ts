@@ -7,7 +7,8 @@
  * and `properties` (name / uuid / sublayerType). No real DOM/canvas required.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { get as getProjection } from "ol/proj";
 import TileLayer from "ol/layer/Tile";
 import VectorTileLayer from "ol/layer/VectorTile";
 import WebGLTileLayer from "ol/layer/WebGLTile";
@@ -330,6 +331,107 @@ describe("createOlLayer", () => {
       ) as VectorImageLayer;
       const url = layer.getSource()!.getUrl() as string;
       expect(url).toBe("https://example.com/contours.geojson");
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // createOlLayer — GeoJSON load failures
+  // ---------------------------------------------------------------------------
+
+  describe("GeoJSON load failures", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    });
+
+    const loadVectorSource = (layer: ReturnType<typeof createOlLayer>) => {
+      const source = (layer as VectorImageLayer).getSource()!;
+      // The map renderer calls loadFeatures on every frame; strategy "all" ignores the extent.
+      const renderFrame = () =>
+        source.loadFeatures([0, 0, 1, 1], 1, getProjection(LUNAR_PROJ_CODE)!);
+      return { source, renderFrame };
+    };
+    const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const makeVectorLayer = () =>
+      createOlLayer(
+        makeInput({
+          sublayer: makeSublayerToDraw({ type: "vector", path: "missing.geojson" }),
+        })
+      );
+
+    it("does not refetch a missing file on later renders", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const fetchStub = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue(new Response("not found", { status: 404 }));
+      const { renderFrame } = loadVectorSource(makeVectorLayer());
+
+      renderFrame();
+      await flushPromises();
+      renderFrame();
+      renderFrame();
+      await flushPromises();
+
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not refetch a file whose JSON cannot be parsed", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const fetchStub = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue(new Response("not json", { status: 200 }));
+      const { renderFrame } = loadVectorSource(makeVectorLayer());
+
+      renderFrame();
+      await flushPromises();
+      renderFrame();
+      await flushPromises();
+
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries a server error only after the backoff delay, doubling each time", async () => {
+      vi.useFakeTimers();
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const fetchStub = vi
+        .spyOn(globalThis, "fetch")
+        .mockImplementation(async () => new Response("busy", { status: 503 }));
+      const { renderFrame } = loadVectorSource(makeVectorLayer());
+
+      renderFrame();
+      await vi.advanceTimersByTimeAsync(0);
+      renderFrame();
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      renderFrame();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchStub).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      renderFrame();
+      expect(fetchStub).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(2_000);
+      renderFrame();
+      expect(fetchStub).toHaveBeenCalledTimes(3);
+    });
+
+    it("retries a network error after the backoff delay", async () => {
+      vi.useFakeTimers();
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const fetchStub = vi
+        .spyOn(globalThis, "fetch")
+        .mockRejectedValue(new TypeError("Failed to fetch"));
+      const { renderFrame } = loadVectorSource(makeVectorLayer());
+
+      renderFrame();
+      await vi.advanceTimersByTimeAsync(0);
+      renderFrame();
+      expect(fetchStub).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      renderFrame();
+      expect(fetchStub).toHaveBeenCalledTimes(2);
     });
   });
 
