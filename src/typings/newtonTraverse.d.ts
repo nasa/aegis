@@ -1,17 +1,16 @@
 /**
- * Newton A* paths as AEGIS serves them (`/api/v1/newton/...`). One row per distinct
- * request (planet, rounded waypoints, method, parameters), shared by every mission and
- * caller. The planet comes from the mission named in `?missionId=`.
+ * Newton A* paths as AEGIS serves them (`/api/v1/newton/...`). AEGIS keeps no Newton state:
+ * a client posts its request, keeps the `traverseId`, and polls Newton's job by id. The
+ * planet comes from the mission named in `?missionId=`.
  */
 
 /**
- * - `queued`: waiting for a free Newton slot, or for a retry after Newton was unavailable.
- * - `submitting`: AEGIS is posting it to Newton.
- * - `pending` / `in_progress`: Newton has the job.
+ * Newton's job status.
+ * - `pending`: accepted, possibly waiting for a free planning slot on Newton.
+ * - `in_progress`: planning.
  * - `succeeded` / `failed` / `cancelled`: finished.
  */
-type NewtonTraverseStatus =
-  "queued" | "submitting" | "pending" | "in_progress" | "succeeded" | "failed" | "cancelled";
+type NewtonTraverseStatus = Newton.WorkStatus;
 
 /** Planning parameters. An omitted or null value uses Newton's default. */
 type NewtonTraverseParams = {
@@ -23,19 +22,30 @@ type NewtonTraversePostData = {
   /** Start, any intermediate points, goal. */
   waypoints: AEGISPoint[];
   params?: NewtonTraverseParams;
-  /** Adds Newton's raw path (`rawPath`) to this entry. */
-  raw?: boolean;
 };
 
 type NewtonTraverseBatchPostData = {
   traverses: NewtonTraversePostData[];
 };
 
-/** Newton's error model. On a `queued` row it describes the last failed submission. */
+/** Newton's error model. */
 type NewtonTraverseError = {
   code: string;
   message: string;
   details: Record<string, unknown>[];
+};
+
+/**
+ * Newton accepted the request. `cached` and `deduplicated` ids are shared with other
+ * callers, so never cancel them.
+ */
+type NewtonTraverseSubmission = {
+  traverseId: string;
+  /** `newtonInputSignature` of the request as sent. */
+  inputSignature: string;
+  /** Newton's `request_hash`. Compare only `v1:` values. */
+  requestHash: string | null;
+  reuse: NewtonTraverseReuse;
 };
 
 type NewtonTraverseMapInfo = {
@@ -45,15 +55,15 @@ type NewtonTraverseMapInfo = {
   resolution: [number, number];
 };
 
-type NewtonTraverseRow = {
-  uuid: string;
-  /** `newtonInputSignature` of the request; compare it to decide whether the row applies. */
-  inputSignature: string;
+/** A Newton job as AEGIS serves it. */
+type NewtonTraverseResult = {
+  traverseId: string;
   status: NewtonTraverseStatus;
-  /** The request's waypoints, rounded to 1e-7°. */
+  /** A cancel was accepted; the job may still be stopping. */
+  cancelRequested: boolean;
+  /** The waypoints Newton was given. */
   waypoints: AEGISPoint[];
   params: NewtonTraverseParams;
-  /** Newton's `request_hash`. Compare only `v1:` values. */
   requestHash: string | null;
   /** Douglas–Peucker at half the slope map's resolution, ends snapped to the waypoints. */
   path: AEGISPoint[] | null;
@@ -65,21 +75,25 @@ type NewtonTraverseRow = {
   mapInfo: NewtonTraverseMapInfo[] | null;
   runtimeMs: number | null;
   error: NewtonTraverseError | null;
-  createdAt: string;
-  updatedAt: string;
 };
 
 /**
- * One answer per request. A Newton failure (`no_path`, …) is a `success` carrying a
- * `failed` row; `httpStatus` is set only on errors.
+ * One answer per entry, in order. A rejected request carries Newton's `error`; a Newton
+ * failure (`no_path`, …) is a `success` carrying a `failed` result. `httpStatus` is set only
+ * on errors: `400` rejected, `404` unknown id (post again), `503` Newton unavailable (retry).
  */
-type NewtonTraverseResponse = WrappedResponse<NewtonTraverseRow> & { httpStatus?: number };
+type NewtonEntryResponse<T> = WrappedResponse<T> & {
+  httpStatus?: number;
+  error?: NewtonTraverseError;
+};
+
+type NewtonTraverseSubmitResponse = NewtonEntryResponse<NewtonTraverseSubmission>;
+
+type NewtonTraverseResultResponse = NewtonEntryResponse<NewtonTraverseResult>;
 
 type NewtonHealthReport = {
   enabled: boolean;
   /** Newton's `/health`, or null when it couldn't be reached. */
   newton: Newton.Health | null;
   newtonError: string | null;
-  maxInFlight: number;
-  counts: Partial<Record<NewtonTraverseStatus, number>>;
 };
