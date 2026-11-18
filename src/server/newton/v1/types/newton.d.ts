@@ -57,6 +57,15 @@ declare namespace Newton {
     terrain_hits: number;
     terrain_misses: number;
     evictions: number;
+    duplicate_slope_reads?: number;
+    duplicate_terrain_builds?: number;
+  }
+
+  /** Traverses planning now, out of `limit` (`0` = no limit); `waiting` are `pending`. */
+  interface TraverseSlots {
+    limit: number;
+    running: number;
+    waiting: number;
   }
 
   interface Health {
@@ -64,6 +73,8 @@ declare namespace Newton {
     sha: string;
     map_count: number;
     terrain_cache?: TerrainCacheStats;
+    running_jobs?: number;
+    traverse_slots?: TraverseSlots;
   }
 
   /** The subset of Newton's `TraverseProblem` that AEGIS sends. */
@@ -82,8 +93,18 @@ declare namespace Newton {
     deduplicated?: boolean;
   }
 
+  /** The problem as Newton stored it: every field present, unset ones `null`. */
+  interface StoredTraverseProblem {
+    planet: Planet;
+    waypoints: LonLat[];
+    method?: string | null;
+    slope_limit?: number | null;
+    slope_buffer_m?: number | null;
+    [field: string]: unknown;
+  }
+
   interface Traverse {
-    traverse_problem: Record<string, unknown>;
+    traverse_problem: StoredTraverseProblem;
     method: string;
     request_hash?: string | null;
     effective_problem?: Record<string, unknown> | null;

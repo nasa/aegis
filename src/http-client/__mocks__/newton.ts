@@ -6,27 +6,35 @@ export const newtonPollDelayMs = vi.fn(
 );
 
 export const isNewtonTraverseFinished = vi.fn(
-  (row: Pick<NewtonTraverseRow, "status">): boolean =>
-    row.status === "succeeded" || row.status === "failed" || row.status === "cancelled"
+  (result: Pick<NewtonTraverseResult, "status">): boolean =>
+    result.status === "succeeded" || result.status === "failed" || result.status === "cancelled"
 );
+
+const notConfigured = {
+  status: "error" as const,
+  message: "Newton is not configured",
+  httpStatus: 503,
+};
 
 export const postNewtonTraverses = vi.fn(
   async (_missionId: number, traverses: NewtonTraversePostData[]) =>
-    traverses.map((): NewtonTraverseResponse => ({
-      status: "error",
-      message: "Newton is not configured",
-      httpStatus: 503,
-    }))
+    traverses.map((): NewtonTraverseSubmitResponse => notConfigured)
 );
 
-export const postNewtonTraverse = vi.fn(async (): Promise<NewtonTraverseResponse> => ({
-  status: "error",
-  message: "Newton is not configured",
-  httpStatus: 503,
-}));
+export const getNewtonTraverses = vi.fn(async (_missionId: number, traverseIds: string[]) =>
+  traverseIds.map((): NewtonTraverseResultResponse => notConfigured)
+);
+
+export const deleteNewtonTraverse = vi.fn(
+  async (): Promise<NewtonEntryResponse<{ status: NewtonTraverseStatus | null }>> => ({
+    status: "success",
+    message: "Nothing to cancel",
+    data: { status: null },
+  })
+);
 
 export const getNewtonHealth = vi.fn(async (): Promise<WrappedResponse<NewtonHealthReport>> => ({
   status: "success",
   message: "Newton health",
-  data: { enabled: false, newton: null, newtonError: null, maxInFlight: 1, counts: {} },
+  data: { enabled: false, newton: null, newtonError: null },
 }));
