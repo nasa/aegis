@@ -747,7 +747,11 @@ const RightActionBody: FunctionComponent<{
                         fieldProps={{
                           name: "Lat",
                           ariaLabel: "Latitude",
-                          validators: [validators.mustBeNumber, validators.required],
+                          validators: [
+                            validators.mustBeNumber,
+                            validators.required,
+                            validators.mustBeLatitude,
+                          ],
                         }}
                         styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                         onSubmit={(val: string) => {
@@ -783,7 +787,11 @@ const RightActionBody: FunctionComponent<{
                         fieldProps={{
                           name: "Lng",
                           ariaLabel: "Longitude",
-                          validators: [validators.mustBeNumber, validators.required],
+                          validators: [
+                            validators.mustBeNumber,
+                            validators.required,
+                            validators.mustBeLongitude,
+                          ],
                         }}
                         styleContainer={{ fontSize: "0.8rem", fontWeight: 400 }}
                         onSubmit={(val: string) => {
