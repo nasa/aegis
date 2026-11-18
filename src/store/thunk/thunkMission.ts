@@ -16,7 +16,7 @@ export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
   if (!mission) return;
   const locationRevision = ++latestIssuedLanderLocationRevision;
 
-  // Claiming the revision first also cancels any in-flight move to a different location.
+  // Do not update if the location hasn't changed
   const currentLocation = mission.landerLocation;
   if (
     currentLocation?.lat === location.lat &&
