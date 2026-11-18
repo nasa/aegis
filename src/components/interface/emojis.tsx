@@ -80,6 +80,12 @@ export const EmojiPicker: FunctionComponent<{
           keywords: ["station", "location", "marker", "artemis"],
           skins: [{ src: "/images/station.svg" }],
         },
+        {
+          id: "astronaut",
+          name: "Astronaut",
+          keywords: ["astro", "astronaut"],
+          skins: [{ src: "/images/astronaut_outline.svg" }],
+        },
       ],
     },
     // Add more custom emoji categories here as needed

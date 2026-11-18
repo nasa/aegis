@@ -69,6 +69,7 @@ interface Mission {
   createdAt: number;
   updatedAt: number;
   archivedAt: number | null;
+  missionRequestedBy: string;
 }
 
 type ActionDefinitionType = "verbs" | "nouns" | "adjectives";

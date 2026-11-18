@@ -5,6 +5,8 @@ export function getCustomEmoji(iconValue: string): { src: string; alt: string } 
       return { src: "/images/station.svg", alt: "Station" };
     case "landerIcon":
       return { src: "/images/lander.svg", alt: "Lander" };
+    case "astronaut":
+      return { src: "/images/astronaut_outline.svg", alt: "Astronaut" };
     default:
       return undefined;
   }

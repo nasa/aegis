@@ -13,7 +13,7 @@ const sharedOptions = {
   sourcemap: true,
   format: "esm",
   platform: "node",
-  target: "node22",
+  target: "node26",
   banner: {
     js: "import { createRequire as _importRequire } from 'module'; const require = _importRequire(import.meta.url);",
   },

@@ -2,6 +2,12 @@ import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import type * as SocketsDustEmitters from "server/dust/v1/sockets-dust-emitters";
+import type * as AutomergeRepo from "@automerge/automerge-repo";
+import {
+  applyCreatePosEntry,
+  applyDeletePosEntry,
+  applyUpdatePosEntry,
+} from "operations/apply/apply-rex";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +99,8 @@ const buildPosEntry = (overrides?: Partial<PosEntry>): PosEntry => ({
   petSeconds: 60,
   posTypeUuids: [posType1.uuid],
   posSourceUuid: posSourceCrew.uuid,
+  uncertaintyMeters: 0,
+  color: null,
   createdAt: 1000,
   updatedAt: 1000,
   ...overrides,
@@ -536,6 +544,71 @@ describe("addDustDocListenerForMission", () => {
     expect(mockGetAutomergeDocListing).toHaveBeenCalledWith([MISSION_ID]);
     expect(mockDocHandle.on).toHaveBeenCalledWith("change", expect.any(Function));
     expect(globalValues.dustV1.docListeners.has(MISSION_ID)).toBe(true);
+  });
+
+  it("broadcasts list additions, field edits, and deletions from a real Automerge handle", async () => {
+    const { Repo } = await vi.importActual<typeof AutomergeRepo>("@automerge/automerge-repo");
+    const repo = new Repo();
+    const previousRepo = globalValues.automergeRepo;
+    const ns = connectDustVisitor();
+    const existing = buildPosEntry();
+    const added = buildPosEntry({ uuid: "added-position" });
+    const rex = runningRexWithPosEntries([existing]);
+    const handle = repo.create<Mission>(
+      buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [rex] })
+    );
+    globalValues.automergeRepo = repo;
+    mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: handle.url }]);
+    try {
+      await addDustDocListenerForMission(MISSION_ID);
+      handle.change((m) => applyCreatePosEntry(m, { rexUuid: rex.uuid, posEntry: added }));
+      await vi.waitFor(() => {
+        expect(ns._emit).toHaveBeenLastCalledWith(
+          "posEntriesUpdate",
+          expect.objectContaining({
+            posEntries: [
+              expect.objectContaining({ uuid: existing.uuid }),
+              expect.objectContaining({ uuid: added.uuid }),
+            ],
+          })
+        );
+      });
+      ns._emit.mockClear();
+      handle.change((m) =>
+        applyUpdatePosEntry(m, {
+          rexUuid: rex.uuid,
+          posEntryUuid: existing.uuid,
+          changes: { location: { lat: 5, lng: 6 } },
+        })
+      );
+      await vi.waitFor(() => {
+        expect(ns._emit).toHaveBeenLastCalledWith(
+          "posEntriesUpdate",
+          expect.objectContaining({
+            posEntries: [
+              expect.objectContaining({ uuid: existing.uuid, latlng: { lat: 5, lng: 6 } }),
+              expect.objectContaining({ uuid: added.uuid }),
+            ],
+          })
+        );
+      });
+      ns._emit.mockClear();
+      handle.change((m) =>
+        applyDeletePosEntry(m, { rexUuid: rex.uuid, posEntryUuid: existing.uuid })
+      );
+      await vi.waitFor(() => {
+        expect(ns._emit).toHaveBeenLastCalledWith(
+          "posEntriesUpdate",
+          expect.objectContaining({
+            posEntries: [expect.objectContaining({ uuid: added.uuid })],
+          })
+        );
+      });
+    } finally {
+      cleanupDust(MISSION_ID);
+      globalValues.automergeRepo = previousRepo;
+      await repo.shutdown();
+    }
   });
 
   it("stores the DocHandle in globalValues.dustV1.docHandles keyed by missionId", async () => {

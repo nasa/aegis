@@ -137,17 +137,26 @@ function getMeasureCtx(): CanvasRenderingContext2D | null {
   return _measureCtx;
 }
 
+export function getMarkerLabelFont(
+  fontSizePx: number,
+  labelType: string,
+  fontWeight = "normal"
+): string {
+  return `${fontWeight} ${fontSizePx}px ${labelType === "pos" ? "monospace" : "sans-serif"}`;
+}
+
 /**
  * Measure the pixel dimensions of a label text string.
  */
 export function measureLabelText(
   name: string,
   fontSizePx = 14,
-  fontWeight: string = "normal"
+  fontWeight: string = "normal",
+  labelType = "station"
 ): { width: number; height: number } | null {
   const ctx = getMeasureCtx();
   if (!ctx) return null;
-  ctx.font = `${fontWeight} ${fontSizePx}px sans-serif`;
+  ctx.font = getMarkerLabelFont(fontSizePx, labelType, fontWeight);
   const metrics = ctx.measureText(name);
   return { width: metrics.width + 12, height: fontSizePx + 8 }; // padding included
 }

@@ -1,0 +1,454 @@
+import type { FunctionComponent, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  faBan,
+  faCaretDown,
+  faCaretRight,
+  faEdit,
+  faNoteSticky,
+  faTrashAlt,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
+import assetStyles from "./map-menu-assets.module.css";
+import posStyles from "./map-menu-pos.module.css";
+import { RowMenu } from "./map-menu-assets-table";
+import { PositionEditor } from "./map-menu-pos-editor";
+import { PositionWalkback } from "./map-menu-pos-walkback";
+import { PathColorPickerMenu } from "components/interface/form/globalFields";
+import { LastEditedNumeric } from "components/interface/_global-elements";
+import { useAppDispatch } from "utils/useAppDispatch";
+import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { useMissionDocSelector } from "utils/useDocSelector";
+import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
+import { setExpandedPosEntryUuid, setSelectedPosEntryUuid } from "store/rex";
+import { setHoverUuidsForPosEntry } from "store/hover";
+import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
+import { thunkCancelPosEntryEdit, thunkDeletePosEntry } from "store/thunk/thunkRexPosEntry";
+import {
+  getLatestPosEntryUuids,
+  getPosEntryColor,
+  orderPosEntriesNewestFirst,
+} from "utils/posEntries";
+import { formatCoordinateEntry, formatLatLng } from "utils/coordinateEntry";
+import { hhmmssFromSeconds } from "utils/formatting";
+
+const COLUMN_COUNT = 8;
+
+type Props = {
+  rex: Rex;
+  /** Mission edit permission; controls whether the actions column renders. */
+  hasEditPermission: boolean;
+  /** Edit permission on a running REX. */
+  canEditPositions: boolean;
+  inEdit: PosEntryInEdit | null;
+  coordinateContext: CoordinateEntryContext;
+  onEdit: (posEntryUuid: string) => void;
+};
+
+/** Names of an entry's pos types in the REX's pos-type order (EV1, EV2, Cart, …). */
+function getPosTypeNames(rex: Rex, entry: PosEntry): string[] {
+  return (rex.posTypes ?? [])
+    .filter((type) => entry.posTypeUuids?.includes(type.uuid))
+    .map((type) => type.name);
+}
+
+// Each pos type's latest entry is pinned above the collapsible list of older positions.
+// Both groups are newest-first by PET.
+export const PositionTable: FunctionComponent<Props> = ({
+  rex,
+  hasEditPermission,
+  canEditPositions,
+  inEdit,
+  coordinateContext,
+  onEdit,
+}) => {
+  const expandedUuid = useAppSelector((s) => s.rex.expandedPosEntryUuid, refEqual);
+  const [olderPositionsOpen, setOlderPositionsOpen] = useState(true);
+  const columnCount = hasEditPermission ? COLUMN_COUNT : COLUMN_COUNT - 1;
+
+  const ordered = orderPosEntriesNewestFirst(rex.posEntries ?? []);
+  const latestUuids = getLatestPosEntryUuids(ordered);
+  const latest = ordered.filter((entry) => latestUuids.has(entry.uuid));
+  const older = ordered.filter((entry) => !latestUuids.has(entry.uuid));
+  const editingUuid = inEdit && !inEdit.isNew ? inEdit.uuid : null;
+
+  const renderRow = (entry: PosEntry) => {
+    const isEditing = editingUuid === entry.uuid;
+    return (
+      <PositionRow
+        key={entry.uuid}
+        entry={entry}
+        rex={rex}
+        columnCount={columnCount}
+        hasEditPermission={hasEditPermission}
+        canEditPositions={canEditPositions}
+        isExpanded={expandedUuid === entry.uuid || isEditing}
+        isEditing={isEditing}
+        inEdit={isEditing ? inEdit : null}
+        coordinateContext={coordinateContext}
+        onEdit={onEdit}
+      />
+    );
+  };
+
+  return (
+    <>
+      <table className={assetStyles.assetTable} data-testid="position-table">
+        <colgroup>
+          <col className={posStyles.colToggle} />
+          <col className={posStyles.colPet} />
+          <col className={posStyles.colTypes} />
+          <col className={posStyles.colLanderDistance} />
+          <col
+            className={
+              coordinateContext.usingLGRSCoordinates || coordinateContext.serverGrid
+                ? assetStyles.colCoords
+                : posStyles.colLatLng
+            }
+          />
+          <col className={posStyles.colSource} />
+          <col className={assetStyles.colNotes} />
+          {hasEditPermission && <col className={assetStyles.colActions} />}
+        </colgroup>
+        <thead>
+          <tr className={assetStyles.headerRow}>
+            <th aria-label="Expand position" />
+            <th>PET</th>
+            <th>Types</th>
+            <th data-tooltip-id="aegis-tooltip" data-tooltip-content="Lander Distance (m)">
+              Lndr
+            </th>
+            <th>Coords</th>
+            <th aria-label="Source" />
+            <th aria-label="Notes" />
+            {hasEditPermission && <th aria-label="Actions" />}
+          </tr>
+        </thead>
+        {latest.length > 0 && (
+          <PositionGroup label="Latest" columnCount={columnCount} testId="position-group-latest">
+            {latest.map(renderRow)}
+          </PositionGroup>
+        )}
+        {older.length > 0 && (
+          <PositionGroup
+            label={`Older positions (${older.length})`}
+            columnCount={columnCount}
+            testId="position-group-older"
+            isOpen={olderPositionsOpen || older.some((entry) => entry.uuid === editingUuid)}
+            onToggle={() => setOlderPositionsOpen(!olderPositionsOpen)}
+          >
+            {older.map(renderRow)}
+          </PositionGroup>
+        )}
+      </table>
+      {ordered.length === 0 && (
+        <div className={assetStyles.emptyState} data-testid="position-table-empty">
+          {canEditPositions ? "No positions yet. Click Position to add one." : "No positions yet."}
+        </div>
+      )}
+    </>
+  );
+};
+
+const PositionGroup: FunctionComponent<{
+  label: string;
+  columnCount: number;
+  testId: string;
+  /** Collapsible when given a toggle; always open otherwise. */
+  isOpen?: boolean;
+  onToggle?: () => void;
+  children: ReactNode;
+}> = ({ label, columnCount, testId, isOpen = true, onToggle, children }) => (
+  <tbody className={assetStyles.rootGroup} data-testid={testId}>
+    <tr className={posStyles.groupRow}>
+      <td colSpan={columnCount}>
+        {onToggle ? (
+          <button
+            type="button"
+            className={posStyles.groupToggle}
+            onClick={onToggle}
+            aria-expanded={isOpen}
+          >
+            <FontAwesomeIcon icon={isOpen ? faCaretDown : faCaretRight} size="lg" />
+            {label}
+          </button>
+        ) : (
+          label
+        )}
+      </td>
+    </tr>
+    {isOpen && children}
+  </tbody>
+);
+
+const PositionRow: FunctionComponent<{
+  entry: PosEntry;
+  rex: Rex;
+  columnCount: number;
+  hasEditPermission: boolean;
+  canEditPositions: boolean;
+  isExpanded: boolean;
+  isEditing: boolean;
+  inEdit: PosEntryInEdit | null;
+  coordinateContext: CoordinateEntryContext;
+  onEdit: (posEntryUuid: string) => void;
+}> = ({
+  entry,
+  rex,
+  columnCount,
+  hasEditPermission,
+  canEditPositions,
+  isExpanded,
+  isEditing,
+  inEdit,
+  coordinateContext,
+  onEdit,
+}) => {
+  const dispatch = useAppDispatch();
+  const isSelected = useAppSelector((s) => s.rex.selectedPosEntryUuid === entry.uuid, refEqual);
+  const hasOtherEdit = useAppSelector(
+    (s) => !!s.rex.posEntryInEdit && s.rex.posEntryInEdit.uuid !== entry.uuid,
+    refEqual
+  );
+  const isHovered = useAppSelector((s) => s.hover.posEntryItemUuid === entry.uuid, refEqual);
+  const rowRef = useRef<HTMLTableRowElement | null>(null);
+  const distanceToLander = useMissionDocSelector((m) =>
+    entry.location && m.landerLocation && m.planetRadius
+      ? getDistanceBetweenTwoCoordinates(entry.location, m.landerLocation, m.planetRadius)
+      : NaN
+  );
+
+  useEffect(() => {
+    if (isSelected) rowRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [isSelected]);
+
+  const source = rex.posSources?.find((s) => s.uuid === entry.posSourceUuid);
+  const typeNames = getPosTypeNames(rex, entry);
+  const hasNotes = !!entry.notes?.trim();
+
+  const rowClass = [
+    assetStyles.assetRow,
+    isSelected ? assetStyles.assetRowSelected : isHovered ? assetStyles.assetRowHover : "",
+    isExpanded ? assetStyles.assetRowExpanded : "",
+  ].join(" ");
+
+  const cancelOtherEdit = () => {
+    if (!hasOtherEdit) return;
+    dispatch(thunkCancelPosEntryEdit());
+    dispatch(setExpandedPosEntryUuid(null));
+  };
+
+  return (
+    <>
+      <tr
+        ref={rowRef}
+        className={rowClass}
+        data-testid={`position-row-${entry.uuid}`}
+        aria-selected={isSelected}
+        onMouseEnter={() => dispatch(setHoverUuidsForPosEntry(entry.uuid))}
+        onMouseLeave={() => dispatch(setHoverUuidsForPosEntry(null))}
+        onClick={() => {
+          if (isSelected) {
+            if (!isEditing) dispatch(setSelectedPosEntryUuid(null));
+            return;
+          }
+          cancelOtherEdit();
+          dispatch(setSelectedPosEntryUuid(entry.uuid));
+          dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: null }));
+        }}
+      >
+        <td>
+          <button
+            type="button"
+            className={assetStyles.rowToggle}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isExpanded) {
+                if (isEditing) dispatch(thunkCancelPosEntryEdit());
+                dispatch(setExpandedPosEntryUuid(null));
+                return;
+              }
+              cancelOtherEdit();
+              dispatch(setExpandedPosEntryUuid(entry.uuid));
+            }}
+            aria-label={isExpanded ? "Collapse position" : "Expand position"}
+            aria-expanded={isExpanded}
+            data-testid={`position-expand-${entry.uuid}`}
+          >
+            <FontAwesomeIcon icon={isExpanded ? faCaretDown : faCaretRight} size="lg" />
+          </button>
+        </td>
+        <td>{hhmmssFromSeconds(entry.petSeconds)}</td>
+        <td data-tooltip-id="aegis-tooltip" data-tooltip-content={typeNames.join(", ")}>
+          {typeNames.join(", ")}
+        </td>
+        <td
+          data-testid={`position-lander-distance-${entry.uuid}`}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content="Lander Distance (m)"
+        >
+          {Number.isFinite(distanceToLander)
+            ? Math.round(distanceToLander)
+            : entry.location
+              ? "Not set"
+              : "-"}
+        </td>
+        <td>
+          {entry.location
+            ? formatCoordinateEntry(entry.location, { ...coordinateContext, dynamicLgrs: false }, 5)
+            : "Not placed"}
+        </td>
+        <td
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content={source ? `Source: ${source.name}(${source.abbr})` : undefined}
+        >
+          {source?.abbr}
+        </td>
+        <td
+          className={assetStyles.notesCell}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content={hasNotes ? entry.notes : undefined}
+        >
+          {hasNotes && (
+            <span
+              className={`${assetStyles.notesIndicator} ${assetStyles.notesPresent}`}
+              role="img"
+              aria-label="Has notes"
+            >
+              <FontAwesomeIcon icon={faNoteSticky} />
+            </span>
+          )}
+        </td>
+        {hasEditPermission && (
+          <td>
+            {canEditPositions && (
+              <RowMenu
+                label="Position actions"
+                items={[
+                  {
+                    icon: isEditing ? faBan : faEdit,
+                    label: isEditing ? "Cancel Edit" : "Edit Position",
+                    onClick: () =>
+                      isEditing ? dispatch(thunkCancelPosEntryEdit()) : onEdit(entry.uuid),
+                  },
+                  {
+                    icon: faTrashAlt,
+                    label: "Delete Position",
+                    onClick: () => {
+                      if (window.confirm("Are you sure you want to delete this Crew Position?")) {
+                        dispatch(thunkDeletePosEntry({ posEntryUuid: entry.uuid }));
+                      }
+                    },
+                  },
+                ]}
+              />
+            )}
+          </td>
+        )}
+      </tr>
+      {isExpanded && (
+        <tr
+          className={assetStyles.assetDetailRow}
+          data-testid={`position-detail-row-${entry.uuid}`}
+        >
+          <td colSpan={columnCount} className={assetStyles.assetDetailCell}>
+            {isEditing ? (
+              <PositionEditor
+                key={inEdit.uuid}
+                inEdit={inEdit}
+                rex={rex}
+                entry={entry}
+                canEditPositions={canEditPositions}
+                coordinateContext={coordinateContext}
+              />
+            ) : (
+              <PositionDetails entry={entry} rex={rex} coordinateContext={coordinateContext} />
+            )}
+          </td>
+        </tr>
+      )}
+    </>
+  );
+};
+
+/** Live saved values shown when the entry has no open edit session. */
+const PositionDetails: FunctionComponent<{
+  entry: PosEntry;
+  rex: Rex;
+  coordinateContext: CoordinateEntryContext;
+}> = ({ entry, rex, coordinateContext }) => {
+  return (
+    <div
+      className={`${assetStyles.editor} ${assetStyles.editorView}`}
+      data-testid="position-details"
+    >
+      <div className={posStyles.detailsForm}>
+        <span
+          className={assetStyles.fieldLabel}
+          data-tooltip-id="aegis-tooltip"
+          data-tooltip-content="Radius of the uncertainty circle, in meters"
+        >
+          Uncert. (m)
+        </span>
+        <div className={`${assetStyles.fieldControls} ${posStyles.detailsValue}`}>
+          <span data-testid="position-details-uncertainty">{entry.uncertaintyMeters ?? 0}</span>
+          <span className={`${assetStyles.fieldLabel} ${assetStyles.inlineFieldLabel}`}>
+            Radius color
+          </span>
+          <PathColorPickerMenu
+            circular={true}
+            currentColor={getPosEntryColor(entry)}
+            editMode={false}
+            updateColor={() => undefined}
+          />
+        </div>
+        <span className={assetStyles.fieldLabel}>
+          Position ({coordinateContext.usingLGRSCoordinates ? "LGRS" : "Lat/Lng"})
+        </span>
+        <div className={posStyles.detailsPosition}>
+          <span data-testid="position-details-coordinates">
+            {entry.location
+              ? formatCoordinateEntry(entry.location, coordinateContext)
+              : "Not placed"}
+          </span>
+        </div>
+        {coordinateContext.usingLGRSCoordinates && entry.location && (
+          <span className={assetStyles.fieldLabel}>Lat/Lng</span>
+        )}
+        {entry.location && (
+          <div className={`${assetStyles.fieldNote} ${posStyles.detailsValue}`}>
+            {coordinateContext.usingLGRSCoordinates && <span>{formatLatLng(entry.location)}</span>}
+            <span data-testid="position-details-elevation">
+              Elev (m) {entry.elevation != null ? entry.elevation.toFixed(1) : "—"}
+            </span>
+          </div>
+        )}
+        <PositionWalkback
+          location={entry.location}
+          evaUuid={rex.evaUuid}
+          testIdPrefix="position-details"
+        />
+        <span className={assetStyles.fieldLabel}>PET</span>
+        <span className={posStyles.detailsValue} data-testid="position-details-pet">
+          {hhmmssFromSeconds(entry.petSeconds)}
+        </span>
+        <span className={`${assetStyles.fieldLabel} ${assetStyles.notesLabel}`}>Notes</span>
+        <div
+          className={`${assetStyles.viewNotes} ${posStyles.detailsValue}`}
+          data-testid="position-details-notes"
+        >
+          <div>{entry.notes || ""}</div>
+        </div>
+        <div className={assetStyles.editorLastModified}>
+          <span className={assetStyles.fieldLabel}>Last Edited:</span>
+          <LastEditedNumeric
+            updatedAt={entry.updatedAt}
+            createdAt={entry.createdAt}
+            info={[["Position UUID", entry.uuid]]}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
