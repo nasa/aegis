@@ -1,3 +1,4 @@
+import * as Automerge from "@automerge/automerge";
 import type { StoreType } from "store";
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { createTestStoreWithAutomergeMission } from "tests/vitest/fixtures/store";
@@ -160,11 +161,11 @@ describe("Thunk Mission Tests", () => {
 
     it("skips the update when the location is unchanged", async () => {
       const unchangedLocation = { ...getMission().landerLocation };
-      const headsBefore = getMissionDocHandle().heads();
+      const headsBefore = Automerge.getHeads(getMission());
 
       await store.dispatch(thunkDocUpdateLanderLocation({ location: unchangedLocation }));
 
-      expect(getMissionDocHandle().heads()).toEqual(headsBefore);
+      expect(Automerge.getHeads(getMission())).toEqual(headsBefore);
       expect(mockThunkFetchPointElevationFactory).not.toHaveBeenCalled();
     });
 

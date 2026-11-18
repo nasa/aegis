@@ -149,7 +149,9 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 - **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, grids, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse/folder/preset/STM is **not** handled via REST — those operations go through Automerge. The `layer` and `sublayer` routes are kept for the GIS pipeline (`register.py`) and the admin layers page; they read and write the mission Automerge doc on the server.
 - **Elevation sampling** runs natively in the API through `src/server/raster/` and
   `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
-  there is no separate GDAL/Python runtime service.
+  there is no separate GDAL/Python runtime service. A configured DEM missing from disk (`ENOENT`,
+  carried back from the raster worker as the error `code`) returns 404 "Mission DEM file not
+  found", which the client's terrain profile sync treats as permanent and does not retry.
 - **Terrain profile cache** — committed traverse and station walkback profiles are cached in the
   `terrain_profile_cache_db` table, keyed by `(mission_id, entity_uuid)`. `entity_uuid` is the
   traverse or station uuid, sent by the client as `entityUuid` on terrain profile requests.

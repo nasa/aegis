@@ -443,6 +443,50 @@ it("samples drag previews without the database cache under a separate coalescing
   );
 });
 
+describe("missing DEM file", () => {
+  const missingDemError = () =>
+    Object.assign(
+      new Error(
+        "ENOENT: no such file or directory, open '/srv/static/missionFiles/42/Data/trusted.tif'"
+      ),
+      { code: "ENOENT" }
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.hasPerms.mockReturnValue(true);
+    mocks.getAutomergeMissionHandle.mockResolvedValue({
+      isDeleted: () => false,
+      doc: () => ({ demFilePath: "Data/trusted.tif", demResolution: 5 }),
+    });
+    mocks.readTerrainProfileInWorker.mockRejectedValue(missingDemError());
+  });
+
+  it("answers a single request with a non-retryable 404 without the server path", async () => {
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile?missionId=42")
+      .send({ ...validBody, entityUuid: undefined, getElevationOnly: true });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ status: "error", message: "Mission DEM file not found" });
+    expect(mocks.apiRoute).toHaveBeenCalledWith(
+      expect.objectContaining({ logLevel: "notice", responseStatus: 404 })
+    );
+  });
+
+  it("marks each batch profile 404 so clients stop retrying", async () => {
+    const response = await supertest(app)
+      .post("/api/v1/terrain-profile/batch?missionId=42")
+      .send({ profiles: [validBody, { ...validBody, entityUuid: "traverse_def-456" }] });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual([
+      { status: "error", message: "Mission DEM file not found", httpStatus: 404 },
+      { status: "error", message: "Mission DEM file not found", httpStatus: 404 },
+    ]);
+  });
+});
+
 it("maps validation errors to 400 regardless of message case", async () => {
   const { cachedTerrainProfile } = await import("server/terrain/terrainProfileCache");
   mocks.hasPerms.mockReturnValue(true);

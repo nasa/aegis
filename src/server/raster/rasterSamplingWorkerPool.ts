@@ -28,6 +28,8 @@ type SerializedWorkerError = {
   name: string;
   message: string;
   stack?: string;
+  /** Node system error code, such as `ENOENT` when the raster file does not exist. */
+  code?: string;
 };
 
 export type RasterSamplingWorkerResponse =
@@ -497,9 +499,10 @@ export class RasterSamplingWorkerPool {
   }
 
   private deserializeError(error: SerializedWorkerError): Error {
-    const result = new Error(error.message);
+    const result: NodeJS.ErrnoException = new Error(error.message);
     result.name = error.name;
     result.stack = error.stack;
+    if (error.code) result.code = error.code;
     return result;
   }
 }
