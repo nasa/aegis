@@ -155,9 +155,6 @@ export declare namespace AegisSlice {
     stationUuid?: string;
     traverseUuid?: string;
     enabled: boolean;
-    markerId?: string | null;
-    containerId?: string | null;
-    secondaryContainerId?: string | null;
   };
 
   type AegisActionsRequest = {

@@ -933,53 +933,6 @@ describe("opUpdateMdau() — rexes", () => {
     expect(updated.maestroActivityProperties?.[station.uuid]?.color).toBe("#ff0000");
   });
 
-  it("saves marker and container IDs from Maestro on the REX action entry", () => {
-    const { handle, action, rex } = buildRexMission();
-    handle.change((m) => {
-      m.rexes[rex.uuid].actionEntries = {
-        [action.uuid]: {
-          rexStatus: "pending",
-          mass: 12,
-          markerId: "OLD-M",
-          containerId: "OLD-C",
-          secondaryContainerId: "OLD-C2",
-        },
-      };
-    });
-
-    const mdauRex: MDAU.MdauRex = {
-      uuid: rex.uuid,
-      petStartStopTimestamp: null,
-      petValueAtStartStop: "+00:00:00",
-      petRunning: false,
-      isRunning: true,
-      maestroControlled: true,
-      executeEditMode: "unrestricted",
-      updatedAt: Date.now() + 5000,
-      maestroActivityProperties: {},
-      stationEntries: {},
-      traverseEntries: {},
-      actionEntries: {
-        [action.uuid]: {
-          rexStatus: "complete",
-          markerId: "M-001",
-          containerId: "C-001",
-          secondaryContainerId: "C-002",
-        },
-      },
-    };
-
-    runMdau(handle, { aegisRexes: { [rex.uuid]: mdauRex } });
-
-    expect(handle.doc().rexes[rex.uuid].actionEntries?.[action.uuid]).toEqual({
-      rexStatus: "complete",
-      mass: 12,
-      markerId: "M-001",
-      containerId: "C-001",
-      secondaryContainerId: "C-002",
-    });
-  });
-
   it("stops other running rexes when a rex starts", () => {
     const { handle, rex } = buildRexMission();
 
