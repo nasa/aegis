@@ -48,6 +48,7 @@ const handleMessage = async (request: RasterSamplingWorkerMessage): Promise<void
     // Error instances are not guaranteed to preserve custom fields through structured cloning,
     // so send the stable diagnostic fields explicitly and reconstruct the error in the pool.
     const workerError = asError(error);
+    const code = (workerError as NodeJS.ErrnoException).code;
     response = {
       id: request.id,
       status: "error",
@@ -55,6 +56,7 @@ const handleMessage = async (request: RasterSamplingWorkerMessage): Promise<void
         name: workerError.name,
         message: workerError.message,
         stack: workerError.stack,
+        ...(typeof code === "string" ? { code } : {}),
       },
     };
   }

@@ -7,7 +7,7 @@ import { globalValues } from "../global";
 import type { DocHandle, AutomergeUrl, DocumentId } from "@automerge/automerge-repo/slim";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
-import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankMission, missionHasLanderDependentEntities } from "store/storeUtils/mission";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
@@ -376,15 +376,6 @@ router.delete("/", async (req: Request, res: Response): Promise<void> => {
 });
 
 export default router;
-
-/**
- * Check if a mission has any stations placed with walkbacks to lander.
- */
-export function missionHasLanderDependentEntities(mission: Mission): boolean {
-  return Object.values(mission.stations ?? {}).some(
-    (station) => station.location != null || (station.walkbackPath?.length ?? 0) > 0
-  );
-}
 
 /**
  * Get the automerge document handle for a single mission.

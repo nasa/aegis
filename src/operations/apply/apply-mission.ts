@@ -80,9 +80,8 @@ export function applyLanderLocationUpdateStage(
 ): void {
   // 1. Update mission-level lander fields
   m.landerLocation = cloneDeep(stage.newLocation);
-  if (stage.newElevation !== null) {
-    m.landerElevationMeters = stage.newElevation;
-  }
+  // A failed elevation lookup writes null so the old location's elevation is not kept.
+  m.landerElevationMeters = stage.newElevation;
   m.updatedAt = getAccurateNow().getTime();
 
   // 2. Update each station's walkback
@@ -98,7 +97,7 @@ export function applyLanderLocationUpdateStage(
     const station = m.stations?.[stationUuid];
     if (!station) continue;
     station.location = cloneDeep(stage.newLocation);
-    if (stage.newElevation !== null) station.elevation = stage.newElevation;
+    station.elevation = stage.newElevation;
     station.updatedAt = getAccurateNow().getTime();
   }
 

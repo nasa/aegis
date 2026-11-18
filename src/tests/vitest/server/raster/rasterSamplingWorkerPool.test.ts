@@ -385,6 +385,25 @@ describe("RasterSamplingWorkerPool", () => {
     await pool.close();
   });
 
+  it("preserves the system error code from a failed worker job", async () => {
+    const worker = new FakeWorker();
+    const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
+
+    const resultPromise = pool.runTerrain(descriptor, path, [2]);
+    worker.ready();
+    worker.emit("message", {
+      id: worker.requests[0].id,
+      status: "error",
+      error: { name: "Error", message: "ENOENT: no such file or directory", code: "ENOENT" },
+    } satisfies RasterSamplingWorkerResponse);
+
+    await expect(resultPromise).rejects.toMatchObject({
+      message: "ENOENT: no such file or directory",
+      code: "ENOENT",
+    });
+    await pool.close();
+  });
+
   it("passes elevation-only sampling through to the worker", async () => {
     const worker = new FakeWorker();
     const pool = new RasterSamplingWorkerPool({ size: 1, workerFactory: () => worker });
