@@ -190,6 +190,10 @@ A browser tab left open across a server restart holds in-memory Automerge state 
 
 Super admins manage banner messages at `/admin/notificationBanners`. Banners are stored in `notification_banner_db` and served by `/api/v1/notificationBanner` (`src/server/express/routes/notificationBanner.ts`). Each banner has a message, an `enabled` switch, an optional UTC start/end window, a scope (application-wide, or a list of missions shown on `/mission/:id`), a `#RRGGBB` background, and a `#RRGGBB` text color (the admin page only offers white or black). `NotificationBannerBar` (`src/components/page/notificationBannerBar.tsx`) is mounted once in `App.tsx` above the routes, so every page shows it except the dashboard (`/dashboard/:id`), where it renders nothing for any scope; routed pages fill the remaining height, so full-height pages must use `height: 100%`, not `100vh`. On any change, and at each start/end time (one server timer, `globalValues.notificationBannerTimer`), the server emits `bannersChanged` on the default namespace and clients refetch `GET /active` over REST. Users can dismiss a banner until they refresh the page. Full details: `docs/notification-banners.md`.
 
+### Lander Location Updates
+
+Change the lander location only through `thunkDocUpdateLanderLocation` (`src/store/thunk/thunkMission.ts`), which the mission preferences pane and the map lander marker use. In one change, it moves the lander, every lander egress/ingress station (`isLanderXgress`), the walkback end of every placed station, and the lander end of every egress/ingress traverse that touches a lander station, in the as-planned and every REX scope. It skips the update when the location is unchanged. If the elevation lookup fails, it still writes the move and sets `landerElevationMeters` and the lander station elevations to `null`. Once stations are placed (`missionHasLanderDependentEntities` in `src/store/storeUtils/mission.ts`), the admin mission page disables its lander latitude, longitude, elevation, and Calculate controls, and the server `missionAutomerge/fields` route rejects lander changes. Before that, the admin page edits them directly.
+
 ### Data Flow
 
 ```

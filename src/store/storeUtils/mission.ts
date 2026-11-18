@@ -252,3 +252,12 @@ export const generateBlankMissionPriority = (
   };
   return { ...defaultNewMissionPriority, ...partialMissionPriority };
 };
+
+/**
+ * Check if a mission has any stations placed with walkbacks to lander.
+ */
+export function missionHasLanderDependentEntities(mission: Mission): boolean {
+  return Object.values(mission.stations ?? {}).some(
+    (station) => station.location != null || (station.walkbackPath?.length ?? 0) > 0
+  );
+}

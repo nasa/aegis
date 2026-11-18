@@ -16,6 +16,20 @@ export const thunkDocUpdateLanderLocation = appCreateAsyncThunk<{
   if (!mission) return;
   const locationRevision = ++latestIssuedLanderLocationRevision;
 
+  // Claiming the revision first also cancels any in-flight move to a different location.
+  const currentLocation = mission.landerLocation;
+  if (
+    currentLocation?.lat === location.lat &&
+    currentLocation?.lng === location.lng &&
+    currentLocation?.alt === location.alt
+  ) {
+    clientLogger.debug({
+      logId: "thunk-mission:thunkDocUpdateLanderLocation:unchangedLocationSkippingUpdate",
+      logValue: "thunkDocUpdateLanderLocation: location unchanged, skipping update",
+    });
+    return;
+  }
+
   // Step 1: Fetch all elevations in parallel and build the full stage.
   // No .change() calls happen here — stageLanderLocationUpdate only reads the
   // doc and dispatches read-only terrain-profile calls.

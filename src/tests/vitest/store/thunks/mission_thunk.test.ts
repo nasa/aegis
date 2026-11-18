@@ -136,6 +136,38 @@ describe("Thunk Mission Tests", () => {
       expect(getMission().landerElevationMeters).toBe(4321);
     });
 
+    it("writes null elevations but still moves everything when elevation lookup fails", async () => {
+      // Give the lander and its stations a stale elevation from the old location.
+      getMissionDocHandle().change((m: Mission) => {
+        m.landerElevationMeters = 1234;
+        for (const s of Object.values(m.stations)) {
+          if (s.isLanderXgress) s.elevation = 1234;
+        }
+      });
+      const newLanderLoc: AEGISPoint = { lat: 7.7, lng: 6.6 };
+
+      await store.dispatch(thunkDocUpdateLanderLocation({ location: newLanderLoc }));
+
+      expect(getMission().landerLocation).toEqual(newLanderLoc);
+      expect(getMission().landerElevationMeters).toBeNull();
+      const landerStations = Object.values(getMission().stations).filter((s) => s.isLanderXgress);
+      expect(landerStations.length).toBeGreaterThan(0);
+      for (const s of landerStations) {
+        expect(s.location).toEqual(newLanderLoc);
+        expect(s.elevation).toBeNull();
+      }
+    });
+
+    it("skips the update when the location is unchanged", async () => {
+      const unchangedLocation = { ...getMission().landerLocation };
+      const headsBefore = getMissionDocHandle().heads();
+
+      await store.dispatch(thunkDocUpdateLanderLocation({ location: unchangedLocation }));
+
+      expect(getMissionDocHandle().heads()).toEqual(headsBefore);
+      expect(mockThunkFetchPointElevationFactory).not.toHaveBeenCalled();
+    });
+
     it("skips stations that have no location set", async () => {
       // Clear locations on all stations
       const missionDocHandle = getMissionDocHandle();

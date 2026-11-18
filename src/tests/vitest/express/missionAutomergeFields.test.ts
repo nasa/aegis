@@ -1,6 +1,5 @@
-import { missionHasLanderDependentEntities } from "server/express/routes/missionAutomerge";
 import { generateBlankEVA } from "store/storeUtils/eva";
-import { generateBlankMission } from "store/storeUtils/mission";
+import { generateBlankMission, missionHasLanderDependentEntities } from "store/storeUtils/mission";
 import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 

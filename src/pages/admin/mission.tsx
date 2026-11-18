@@ -18,6 +18,7 @@ import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
 import { getLgrsCompatibility } from "utils/lgrs/compatibility";
 import { getGridRenderMode } from "utils/mapping/grid";
+import { missionHasLanderDependentEntities } from "store/storeUtils/mission";
 
 type RouteParams = {
   id: string;
@@ -88,6 +89,10 @@ const Mission: React.FunctionComponent = () => {
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
   const dynamicLgrsCompatibility = automergeMission ? getLgrsCompatibility(automergeMission) : null;
   const dynamicLgrsCompatible = dynamicLgrsCompatibility?.compatible ?? false;
+  // Changing the lander here would not move stations, walkbacks, or traverses with it.
+  const landerFieldsLocked = automergeMission
+    ? missionHasLanderDependentEntities(automergeMission)
+    : false;
 
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
@@ -311,6 +316,13 @@ const Mission: React.FunctionComponent = () => {
                         </span>
                       </div>
                     </div>
+                    {landerFieldsLocked && (
+                      <p className={adminCommon.formHint}>
+                        Stations have been placed, so the lander location is read-only here. To
+                        update the lander location, use the mission preferences in the main
+                        application. The lander elevation is recalculated automatically there.
+                      </p>
+                    )}
                     <div id="landerLatDiv">
                       <div className={adminStyles.editDiv}>
                         <InLineEditInput
@@ -325,6 +337,7 @@ const Mission: React.FunctionComponent = () => {
                               label: "Lander Location Latitude *",
                               className: adminStyles.editLabel,
                             },
+                            inputProps: { disabled: landerFieldsLocked },
                           }}
                           onSubmit={(value) => {
                             changeAutomergeMission((m: Mission) => {
@@ -350,6 +363,7 @@ const Mission: React.FunctionComponent = () => {
                               label: "Lander Location Longitude *",
                               className: adminStyles.editLabel,
                             },
+                            inputProps: { disabled: landerFieldsLocked },
                           }}
                           onSubmit={(value) => {
                             changeAutomergeMission((m: Mission) => {
@@ -375,6 +389,7 @@ const Mission: React.FunctionComponent = () => {
                               label: "Lander Location Elevation",
                               className: adminStyles.editLabel,
                             },
+                            inputProps: { disabled: landerFieldsLocked },
                           }}
                           onSubmit={(value) => {
                             changeAutomergeMission((m: Mission) => {
@@ -387,7 +402,7 @@ const Mission: React.FunctionComponent = () => {
                         <button
                           className={adminCommon.button}
                           type="button"
-                          disabled={!!elevationStatus.pending}
+                          disabled={landerFieldsLocked || !!elevationStatus.pending}
                           onClick={() =>
                             elevationStatus.run(
                               "Calculating lander elevation...",
