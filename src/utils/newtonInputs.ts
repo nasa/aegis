@@ -32,7 +32,7 @@ export function planetFromRadius(planetRadius: number | null | undefined): Newto
 
 /**
  * The canonical form of a Newton request: fixed key order, waypoints as rounded
- * `[lon, lat]`, omitted parameters left out. The server keys rows by its SHA-256.
+ * `[lon, lat]`, omitted parameters left out.
  */
 export function canonicalNewtonRequest(problem: Newton.TraverseProblem): string {
   const canonical: Record<string, unknown> = {
@@ -45,7 +45,7 @@ export function canonicalNewtonRequest(problem: Newton.TraverseProblem): string 
   return JSON.stringify(canonical);
 }
 
-/** The `inputSignature` of the row the server returns for these inputs. */
+/** The `inputSignature` the server returns when these inputs are submitted. */
 export function newtonInputSignature(
   planet: Newton.Planet,
   waypoints: Pick<AEGISPoint, "lat" | "lng">[],

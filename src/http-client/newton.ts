@@ -1,16 +1,18 @@
 import { clientFetchWithTimeout } from "utils/fetch-with-timeout";
 
-/** A batch can wait on several sequential Newton submits (~65 s timeout each). */
+/** A batch can wait on several Newton calls (~65 s timeout each), four at a time. */
 const NEWTON_BATCH_TIMEOUT_MS = 120_000;
 
-/** Poll intervals while a row is unfinished: 2, 4, 8, then every 10 s. */
+/** Poll intervals while a job is unfinished: 2, 4, 8, then every 10 s. */
 export const NEWTON_POLL_BACKOFF_MS = [2_000, 4_000, 8_000, 10_000] as const;
 
 export const newtonPollDelayMs = (attempt: number): number =>
   NEWTON_POLL_BACKOFF_MS[Math.min(Math.max(0, attempt), NEWTON_POLL_BACKOFF_MS.length - 1)];
 
-export const isNewtonTraverseFinished = (row: Pick<NewtonTraverseRow, "status">): boolean =>
-  row.status === "succeeded" || row.status === "failed" || row.status === "cancelled";
+export const isNewtonTraverseFinished = (result: Pick<NewtonTraverseResult, "status">): boolean =>
+  result.status === "succeeded" || result.status === "failed" || result.status === "cancelled";
+
+type LoadTestOptions = { serverURL?: string; cookies?: string };
 
 async function errorMessage(response: globalThis.Response): Promise<string> {
   let message = `${response.status} ${response.statusText}`;
@@ -23,53 +25,76 @@ async function errorMessage(response: globalThis.Response): Promise<string> {
   return message;
 }
 
-/**
- * Requests (or reuses) Newton paths in one call; each result has its own error status.
- * Poll an unfinished row by sending the same request again.
- */
-export async function postNewtonTraverses(
-  missionId: number,
-  traverses: NewtonTraversePostData[],
-  loadTestOptions?: { serverURL?: string; cookies?: string }
-): Promise<NewtonTraverseResponse[]> {
-  const response = await clientFetchWithTimeout(
-    `${loadTestOptions?.serverURL ?? ""}/api/v1/newton/traverses/batch?missionId=${missionId}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(loadTestOptions?.cookies ? { Cookie: loadTestOptions.cookies } : {}),
-      },
-      body: JSON.stringify({ traverses } satisfies NewtonTraverseBatchPostData),
-    },
-    NEWTON_BATCH_TIMEOUT_MS
-  );
+/** Calls a batch route and returns one entry per item, in order. */
+async function batch<T>(
+  url: string,
+  init: RequestInit,
+  count: number
+): Promise<NewtonEntryResponse<T>[]> {
+  const response = await clientFetchWithTimeout(url, init, NEWTON_BATCH_TIMEOUT_MS);
   if (response.status !== 200) {
     const message = await errorMessage(response);
-    return traverses.map(() => ({ status: "error", message, httpStatus: response.status }));
+    return Array.from({ length: count }, () => ({
+      status: "error" as const,
+      message,
+      httpStatus: response.status,
+    }));
   }
-  const body = (await response.json()) as WrappedResponse<NewtonTraverseResponse[]>;
-  if (
-    body.status !== "success" ||
-    !Array.isArray(body.data) ||
-    body.data.length !== traverses.length
-  )
+  const body = (await response.json()) as WrappedResponse<NewtonEntryResponse<T>[]>;
+  if (body.status !== "success" || !Array.isArray(body.data) || body.data.length !== count)
     throw new Error("Invalid Newton traverse batch response");
   return body.data;
 }
 
-/** Requests (or reuses) the Newton path through `waypoints`. */
-export async function postNewtonTraverse({
-  missionId,
-  ...postData
-}: NewtonTraversePostData & { missionId: number }): Promise<NewtonTraverseResponse> {
-  const response = await clientFetchWithTimeout(
-    `/api/v1/newton/traverses?missionId=${missionId}`,
+const cookieHeader = (options?: LoadTestOptions): Record<string, string> =>
+  options?.cookies ? { Cookie: options.cookies } : {};
+
+/**
+ * Submits each request to Newton. Keep each entry's `traverseId` and poll it with
+ * `getNewtonTraverses`; a repeated request comes back at once as `cached`.
+ */
+export function postNewtonTraverses(
+  missionId: number,
+  traverses: NewtonTraversePostData[],
+  loadTestOptions?: LoadTestOptions
+): Promise<NewtonTraverseSubmitResponse[]> {
+  return batch(
+    `${loadTestOptions?.serverURL ?? ""}/api/v1/newton/traverses?missionId=${missionId}`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(postData satisfies NewtonTraversePostData),
+      headers: { "Content-Type": "application/json", ...cookieHeader(loadTestOptions) },
+      body: JSON.stringify({ traverses } satisfies NewtonTraverseBatchPostData),
     },
+    traverses.length
+  );
+}
+
+/** Newton's jobs by id. An entry with `httpStatus: 404` means the job is gone: post again. */
+export function getNewtonTraverses(
+  missionId: number,
+  traverseIds: string[],
+  { raw = false, ...loadTestOptions }: LoadTestOptions & { raw?: boolean } = {}
+): Promise<NewtonTraverseResultResponse[]> {
+  const query = new URLSearchParams({ missionId: String(missionId), ids: traverseIds.join(",") });
+  if (raw) query.set("raw", "1");
+  return batch(
+    `${loadTestOptions.serverURL ?? ""}/api/v1/newton/traverses?${query.toString()}`,
+    { method: "GET", headers: cookieHeader(loadTestOptions) },
+    traverseIds.length
+  );
+}
+
+/**
+ * Cancels a Newton job. Only cancel ids whose submission was `reuse: "new"`; the others are
+ * shared with other callers. A job that already finished counts as cancelled.
+ */
+export async function deleteNewtonTraverse(
+  missionId: number,
+  traverseId: string
+): Promise<NewtonEntryResponse<{ status: NewtonTraverseStatus | null }>> {
+  const response = await clientFetchWithTimeout(
+    `/api/v1/newton/traverses/${encodeURIComponent(traverseId)}?missionId=${missionId}`,
+    { method: "DELETE" },
     NEWTON_BATCH_TIMEOUT_MS
   );
   if (response.status !== 200) {
@@ -79,7 +104,7 @@ export async function postNewtonTraverse({
       httpStatus: response.status,
     };
   }
-  return (await response.json()) as WrappedResponse<NewtonTraverseRow>;
+  return (await response.json()) as NewtonEntryResponse<{ status: NewtonTraverseStatus | null }>;
 }
 
 export async function getNewtonHealth(): Promise<WrappedResponse<NewtonHealthReport>> {

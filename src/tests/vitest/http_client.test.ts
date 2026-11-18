@@ -7,7 +7,7 @@ import {
   getTerrainProfile,
   getTerrainProfiles,
 } from "http-client/terrainProfile";
-import { postNewtonTraverse, postNewtonTraverses } from "http-client/newton";
+import { deleteNewtonTraverse, getNewtonTraverses, postNewtonTraverses } from "http-client/newton";
 import { deleteLayers, upsertLayers } from "http-client/layer";
 import { deleteSublayers, upsertSublayers } from "http-client/sublayer";
 import { generateBlankLayer } from "store/storeUtils/layer";
@@ -260,16 +260,17 @@ describe("Newton traverse client", () => {
       { lat: 1, lng: 1 },
     ],
   };
+  const ID = "0b8a0c2e-6c51-4f7e-9a59-6d7f3f2d1c11";
 
   test("posts a batch for the mission and returns per-entry results", async () => {
-    const results: NewtonTraverseResponse[] = [
-      { status: "success", message: "ok", data: { uuid: "a" } as NewtonTraverseRow },
+    const results: NewtonTraverseSubmitResponse[] = [
+      { status: "success", message: "ok", data: { traverseId: ID } as NewtonTraverseSubmission },
       { status: "error", message: "bad", httpStatus: 400 },
     ];
     mockFetchResponse({ status: "success", data: results });
     await expect(postNewtonTraverses(42, [traverse, traverse])).resolves.toEqual(results);
     expect(global.fetch).toHaveBeenCalledWith(
-      "/api/v1/newton/traverses/batch?missionId=42",
+      "/api/v1/newton/traverses?missionId=42",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ traverses: [traverse, traverse] }),
@@ -294,24 +295,37 @@ describe("Newton traverse client", () => {
     );
   });
 
-  test("posts a single request without the mission in the body", async () => {
-    mockFetchResponse({ status: "success", message: "ok", data: { uuid: "a" } });
-    await postNewtonTraverse({ missionId: 42, ...traverse, raw: true });
-    expect(global.fetch).toHaveBeenCalledWith(
-      "/api/v1/newton/traverses?missionId=42",
-      expect.objectContaining({ body: JSON.stringify({ ...traverse, raw: true }) })
+  test("gets jobs by id, with raw only when asked", async () => {
+    mockFetchResponse({ status: "success", data: [{ status: "success" }, { status: "success" }] });
+    await getNewtonTraverses(42, [ID, ID]);
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      `/api/v1/newton/traverses?missionId=42&ids=${ID}%2C${ID}`,
+      expect.objectContaining({ method: "GET" })
+    );
+    mockFetchResponse({ status: "success", data: [{ status: "success" }] });
+    await getNewtonTraverses(42, [ID], { raw: true });
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      `/api/v1/newton/traverses?missionId=42&ids=${ID}&raw=1`,
+      expect.anything()
     );
   });
 
-  test("returns the HTTP status of a failed single request", async () => {
+  test("deletes a job and returns the HTTP status of a failure", async () => {
+    mockFetchResponse({ status: "success", message: "ok", data: { status: "cancelled" } });
+    await deleteNewtonTraverse(42, ID);
+    expect(global.fetch).toHaveBeenCalledWith(
+      `/api/v1/newton/traverses/${ID}?missionId=42`,
+      expect.objectContaining({ method: "DELETE" })
+    );
+
     global.fetch = vi.fn().mockResolvedValue({
       status: 503,
       statusText: "Service Unavailable",
-      json: async () => ({ message: "Newton is not configured" }),
+      json: async () => ({ message: "Newton is unavailable" }),
     });
-    await expect(postNewtonTraverse({ missionId: 42, ...traverse })).resolves.toEqual({
+    await expect(deleteNewtonTraverse(42, ID)).resolves.toEqual({
       status: "error",
-      message: "Newton is not configured",
+      message: "Newton is unavailable",
       httpStatus: 503,
     });
   });
