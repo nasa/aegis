@@ -17,6 +17,7 @@ import {
   newtonProbePoint,
 } from "server/newton/v1/http-newton";
 import { buildTraverseProblem, isComparableHash } from "server/newton/v1/convert";
+import { toNewtonTraverseResult } from "server/newton/traverses";
 
 const live = process.env.NEWTON_LIVE === "1";
 const START: AEGISPoint = { lat: -84.223397, lng: 33.5021945 };
@@ -61,6 +62,11 @@ describe.skipIf(!live)("Newton live smoke test", () => {
     if (traverse.kind === "ok") {
       expect(traverse.data.path?.coordinates.length).toBeGreaterThan(2);
       expect(traverse.data.request_hash).toBe(posted.data.requestHash);
+      const result = toNewtonTraverseResult(posted.data.traverseId, traverse.data);
+      expect(result).toMatchObject({ status: "succeeded", error: null });
+      expect(result.waypoints).toHaveLength(2);
+      expect(result.path[0]).toEqual(result.waypoints[0]);
+      expect(result.path.length).toBeLessThan(traverse.data.path.coordinates.length);
     }
   });
 });
