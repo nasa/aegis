@@ -1,5 +1,6 @@
 .toastContainer {
-  width: 100%;
+  width: fit-content;
+  max-width: 400px;
 }
 
 .toastBackdrop {
@@ -33,6 +34,7 @@
   line-height: 1.25rem;
   color: #202020;
   text-align: center;
+  white-space: pre-line;
 }
 
 .toastActions {

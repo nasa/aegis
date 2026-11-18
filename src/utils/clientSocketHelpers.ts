@@ -194,7 +194,7 @@ export const attachSocketListeners = (
   };
 
   // Incoming AEGIS version number
-  const handleVersion = (serverAppVersion: AppVersion) => {
+  const handleVersion = async (serverAppVersion: AppVersion) => {
     // The version check page compares versions itself. Prevents a loop of redirects when already on the version check page.
     const isOnVersionCheckPage =
       typeof window !== "undefined" && window.location.pathname === "/versionCheck";
@@ -206,7 +206,7 @@ export const attachSocketListeners = (
           serverAppVersion.serverEpochUuid)
     ) {
       if (connectionStoreRef.current.clientAppVersion?.version) {
-        displayToast({
+        await displayToast({
           message: `AEGIS has been updated or restarted. You will be redirected to a version check page. \nCurrent version: ${connectionStoreRef.current.clientAppVersion.version}/${connectionStoreRef.current.clientAppVersion.gitCommit}/${connectionStoreRef.current.clientAppVersion.serverEpochUuid}\nNew version: ${serverAppVersion.version}/${serverAppVersion.gitCommit}/${serverAppVersion.serverEpochUuid} `,
         });
 

@@ -15,6 +15,7 @@ import bannerStyles from "components/page/notificationBannerBar.module.css";
 import adminCommon from "./adminCommon.module.css";
 import styles from "./notificationBanners.module.css";
 import { getBannerTimeError } from "utils/notificationBannerValidation";
+import { displayToast } from "components/toastNotifications";
 
 const MAX_MESSAGE_LENGTH = 500;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -202,8 +203,12 @@ const BannerCard: FunctionComponent<{
       onSaved(res.data);
     });
 
-  const handleDelete = () => {
-    if (!window.confirm("Delete this notification banner?")) return;
+  const handleDelete = async () => {
+    const confirmDelete = await displayToast({
+      message: "Delete this notification banner?",
+      toastType: "confirm",
+    });
+    if (!confirmDelete) return;
     action.run("Deleting banner...", async () => {
       if (banner.id === null) throw new Error("Banner has no id.");
       const res = await deleteNotificationBanner(banner.id);

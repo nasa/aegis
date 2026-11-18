@@ -59,6 +59,7 @@ import { formatCoordinateEntry } from "utils/coordinateEntry";
 import { AssetEditor } from "./map-menu-assets-editor";
 import { AssetDetails } from "./map-menu-asset-details";
 import { withAlpha } from "../utils/layers/layerFactory";
+import { displayToast } from "components/toastNotifications";
 
 const ROOT_DROP_ID = "asset-root";
 const COLUMN_COUNT = 5;
@@ -592,12 +593,12 @@ const AssetRow: FunctionComponent<{
                     {
                       icon: faTrashAlt,
                       label: "Delete Asset",
-                      onClick: () => {
-                        if (
-                          window.confirm(
-                            `Are you sure you want to delete the asset "${asset.name}"?`
-                          )
-                        ) {
+                      onClick: async () => {
+                        const confirmDelete = await displayToast({
+                          message: `Are you sure you want to delete the asset "${asset.name}"?`,
+                          toastType: "confirm",
+                        });
+                        if (confirmDelete) {
                           dispatch(thunkDeleteAsset({ assetUuid: asset.uuid }));
                         }
                       },
