@@ -519,6 +519,59 @@ describe("buildAegisSliceForMaestro", () => {
 
     expect(result.fetchedAegisActions[actionInSubscribed.uuid].missionPriorityUuid).toBeNull();
   });
+
+  it("sends the REX action entry's marker and container IDs on the action", async () => {
+    const rexWithEntries = generateBlankRex({
+      name: "Vitest Rex With Entries",
+      evaUuid: evaSubscribed.uuid,
+    });
+    rexWithEntries.actionEntries = {
+      [actionInSubscribed.uuid]: {
+        rexStatus: "complete",
+        markerId: "M-001",
+        containerId: "C-001",
+        secondaryContainerId: "C-002",
+      },
+    };
+
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionInSubscribed],
+      rexes: [rexWithEntries],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    const sentAction = result.fetchedAegisActions[actionInSubscribed.uuid];
+    expect(sentAction.markerId).toBe("M-001");
+    expect(sentAction.containerId).toBe("C-001");
+    expect(sentAction.secondaryContainerId).toBe("C-002");
+  });
+
+  it("sends null marker and container IDs for an action with no REX action entry", async () => {
+    globalValues.maestroV2.evaSubscriptions.set(MISSION_ID, [evaSubscribed.uuid]);
+
+    const mockCoreData = buildMockCoreData({
+      evas: [evaSubscribed],
+      stations: [stationA],
+      traverses: [traverseA],
+      actions: [actionInSubscribed],
+      rexes: [rexForSubscribed],
+    });
+    mockGetAutomergeMissions.mockResolvedValue([mockCoreData]);
+
+    const result = await buildAegisSliceForMaestro(MISSION_ID);
+
+    const sentAction = result.fetchedAegisActions[actionInSubscribed.uuid];
+    expect(sentAction.markerId).toBeNull();
+    expect(sentAction.containerId).toBeNull();
+    expect(sentAction.secondaryContainerId).toBeNull();
+  });
 });
 
 describe("buildAegisSliceForMaestro — docHandle path", () => {
