@@ -3,6 +3,7 @@ import {
   faBarcode,
   faCircle,
   faClock,
+  faHexagonNodes,
   faIcons,
   faListOl,
   faLocationDot,
@@ -13,6 +14,7 @@ import {
   faWeightHanging,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LastEditedNumeric, SubpanelHeading } from "components/interface/_global-elements";
 import { Button } from "components/interface/form/globalFields";
 import {
@@ -95,6 +97,11 @@ const RightActionBody: FunctionComponent<{
     const rex = mission.rexes[rexUuid];
     if (!rex?.actionEntries || !rex.actionEntries[action.uuid]) return null;
     return rex.actionEntries[action.uuid];
+  }, deepEqual);
+
+  const actionRexMaestroControlled = useMissionDocSelector((mission) => {
+    if (!rexUuid || !mission?.rexes) return false;
+    return mission.rexes[rexUuid]?.maestroControlled ?? false;
   }, deepEqual);
 
   const actionGridCoordinates = useAppSelector((state) => {
@@ -468,6 +475,15 @@ const RightActionBody: FunctionComponent<{
           <div className={paneStyles.panelSectionTitle} style={{ marginBottom: "8px" }}>
             <SubpanelHeading icon={faBarcode}>Sample Collection IDs</SubpanelHeading>
           </div>
+          {actionRexMaestroControlled && (
+            <div className={paneStyles.maestroIcon}>
+              <FontAwesomeIcon
+                icon={faHexagonNodes}
+                data-tooltip-id="aegis-tooltip"
+                data-tooltip-content="Fields in this section are Maestro controlled"
+              />
+            </div>
+          )}
         </div>
         <div className={paneStyles.panelSectionRow}>
           <div className={paneStyles.panelSection2Column}>
@@ -480,7 +496,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.markerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && rexEditCapabilities.sampleIds}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "markerId",
                         ariaLabel: "Sample Marker ID",
@@ -508,7 +529,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.containerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && rexEditCapabilities.sampleIds}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "containerId",
                         ariaLabel: "Container ID",
@@ -536,7 +562,12 @@ const RightActionBody: FunctionComponent<{
                   <div className={paneStyles.inputFieldValue}>
                     <ValidatedInputField
                       value={actionRexEntry?.secondaryContainerId?.toString()}
-                      editMode={!isNull(rexUuid) && allowRexEdit && rexEditCapabilities.sampleIds}
+                      editMode={
+                        !isNull(rexUuid) &&
+                        allowRexEdit &&
+                        !actionRexMaestroControlled &&
+                        rexEditCapabilities.sampleIds
+                      }
                       fieldProps={{
                         name: "secondaryContainerId",
                         ariaLabel: "Secondary Container ID",

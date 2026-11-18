@@ -57,7 +57,7 @@ export const buildAegisSliceForMaestro = async (
   const formattedEvas = formatEvasForMaestro(subscribedEvas, missionId);
   const formattedStations = formatStationsForMaestro(subscribedStations, missionId, lookups);
   const formattedTraverses = formatTraversesForMaestro(subscribedTraverses, mission, lookups);
-  const formattedActions = formatActionsForMaestro(subscribedActions, mission, lookups);
+  const formattedActions = formatActionsForMaestro(subscribedActions, mission);
 
   return {
     aegisMissions: { [missionId]: formattedMission },
@@ -97,8 +97,6 @@ interface LookupMaps {
   /** Maps station/traverse UUID → actions for that parent, for efficient per-station/traverse lookups. */
   actionsByStationUuid: Map<string, Action[]>;
   actionsByTraverseUuid: Map<string, Action[]>;
-  /** Maps action UUID → its REX action entry. REX actions have their own uuids, so at most one REX holds each entry. */
-  actionEntryByActionUuid: Map<string, ActionEntry>;
 }
 
 // We only need to build maps for relationships that aren't directly available on Mission
@@ -130,20 +128,7 @@ const buildLookupMaps = (mission: Mission): LookupMaps => {
     }
   }
 
-  const actionEntryByActionUuid = new Map<string, ActionEntry>();
-  for (const rex of Object.values(mission.rexes)) {
-    for (const [actionUuid, actionEntry] of Object.entries(rex.actionEntries ?? {})) {
-      actionEntryByActionUuid.set(actionUuid, actionEntry);
-    }
-  }
-
-  return {
-    evaBySequenceUuid,
-    rexByEvaUuid,
-    actionsByStationUuid,
-    actionsByTraverseUuid,
-    actionEntryByActionUuid,
-  };
+  return { evaBySequenceUuid, rexByEvaUuid, actionsByStationUuid, actionsByTraverseUuid };
 };
 
 const formatEvasForMaestro = (evas: Eva[], missionId: number): AegisSlice.AegisEva[] => {
@@ -215,13 +200,8 @@ const formatTraversesForMaestro = (
   });
 };
 
-const formatActionsForMaestro = (
-  actions: Action[],
-  mission: Mission,
-  lookups: LookupMaps
-): AegisSlice.AegisAction[] => {
+const formatActionsForMaestro = (actions: Action[], mission: Mission): AegisSlice.AegisAction[] => {
   return actions.map((action) => {
-    const actionEntry = lookups.actionEntryByActionUuid.get(action.uuid);
     const actionStation = action.stationUuid ? mission.stations[action.stationUuid] : undefined;
     const actionTraverse = action.traverseUuid ? mission.traverses[action.traverseUuid] : undefined;
 
@@ -250,9 +230,6 @@ const formatActionsForMaestro = (
       stationUuid: actionStation?.uuid,
       traverseUuid: actionTraverse?.uuid,
       enabled: action.enabled,
-      markerId: actionEntry?.markerId ?? null,
-      containerId: actionEntry?.containerId ?? null,
-      secondaryContainerId: actionEntry?.secondaryContainerId ?? null,
     };
   });
 };
