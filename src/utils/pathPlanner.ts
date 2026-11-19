@@ -1,16 +1,16 @@
-/** Newton Path Planner helpers: row matching and user-facing failure messages. */
+/** Newton Path Planner helpers: result matching and user-facing failure messages. */
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
 import { newtonInputSignature, planetFromRadius } from "utils/newtonInputs";
 
-/** Is `row` (by default the plan's latest row) for the plan's current points and params? */
-export function isPathPlanRowCurrent(
+/** Is `result` (by default the plan's latest) for the plan's current points and params? */
+export function isPathPlanResultCurrent(
   plan: Pick<PathPlan, "points" | "params" | "request">,
   planetRadius: number | null | undefined,
-  row: NewtonTraverseRow | null = plan.request.row
+  result: PathPlanResult | null = plan.request.result
 ): boolean {
   const planet = planetFromRadius(planetRadius);
-  if (!planet || !row) return false;
-  return row.inputSignature === newtonInputSignature(planet, plan.points, plan.params);
+  if (!planet || !result) return false;
+  return result.inputSignature === newtonInputSignature(planet, plan.points, plan.params);
 }
 
 /** Great-circle length of the line through `points`. */
@@ -54,13 +54,15 @@ function blockedLegs(error: NewtonTraverseError): number[] {
     .filter((index): index is number => Number.isInteger(index) && (index as number) >= 0);
 }
 
-/** The message for a finished Newton row that has no path, or null if it succeeded. */
-export function pathPlanErrorFromRow(row: NewtonTraverseRow): PathPlanError | null {
-  if (row.status === "succeeded") return null;
-  if (row.status === "cancelled")
+/** The message for a finished Newton job that has no path, or null if it succeeded. */
+export function pathPlanErrorFromResult(
+  result: Pick<NewtonTraverseResult, "status" | "error" | "waypoints">
+): PathPlanError | null {
+  if (result.status === "succeeded") return null;
+  if (result.status === "cancelled")
     return { message: "Newton cancelled the request", retryable: true, blockedWaypoints: [] };
-  const error = row.error;
-  const count = row.waypoints?.length ?? 2;
+  const error = result.error;
+  const count = result.waypoints?.length ?? 2;
   const name = (index: number) => pathPlanPointName(index, count);
   switch (error?.code) {
     case "no_slope_map":
@@ -84,8 +86,6 @@ export function pathPlanErrorFromRow(row: NewtonTraverseRow): PathPlanError | nu
             : "start and goal";
       return { message: `No route between ${where}`, retryable: false, blockedWaypoints: [] };
     }
-    case "timeout":
-      return { message: "Newton took too long", retryable: true, blockedWaypoints: [] };
     default:
       return {
         message: error?.message ? `Newton failed: ${error.message}` : "Newton failed",
@@ -95,8 +95,8 @@ export function pathPlanErrorFromRow(row: NewtonTraverseRow): PathPlanError | nu
   }
 }
 
-/** The message for a request that didn't return a row. */
-export function pathPlanErrorFromResponse(response: NewtonTraverseResponse): PathPlanError {
+/** The message for a request that AEGIS or Newton refused, or that couldn't reach them. */
+export function pathPlanErrorFromResponse(response: NewtonEntryResponse<unknown>): PathPlanError {
   const status = response.httpStatus;
   if (status === 401) {
     return {

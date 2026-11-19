@@ -52,14 +52,15 @@ const MID = { lat: 6, lng: 6.5 };
 
 function makePlan(uuid: string, withPath: "current" | "stale" | "none" = "none"): PathPlan {
   const signature = newtonInputSignature("moon", [START, GOAL], {});
-  const row =
+  const result =
     withPath === "none"
       ? null
       : ({
+          traverseId: "t1",
           inputSignature: withPath === "current" ? signature : "older",
           status: "succeeded",
           path: [START, MID, GOAL],
-        } as NewtonTraverseRow);
+        } as PathPlanResult);
   return {
     uuid,
     createdAt: "2026-11-02T00:00:00Z",
@@ -70,8 +71,9 @@ function makePlan(uuid: string, withPath: "current" | "stale" | "none" = "none")
     request: {
       status: withPath === "current" ? "ready" : "debouncing",
       inputSignature: withPath === "current" ? signature : null,
-      row,
-      pathRow: row,
+      traverseId: withPath === "current" ? "t1" : null,
+      result,
+      pathResult: result,
       error: null,
     },
   };
@@ -194,12 +196,19 @@ describe("PathPlannerLines", () => {
     flushSync(() => {
       store.dispatch(actions.setPathPlanInputs({ uuid: "a", points: [START, moved] }));
       store.dispatch(actions.pathPlanRequestStarted({ uuid: "a", inputSignature: newSignature }));
-      // Newton has queued the new request, with no path yet.
       store.dispatch(
-        actions.pathPlanRowReceived({
+        actions.pathPlanSubmitted({ uuid: "a", inputSignature: newSignature, traverseId: "t2" })
+      );
+      // Newton's job for the new points is waiting for a slot, with no path yet.
+      store.dispatch(
+        actions.pathPlanResultReceived({
           uuid: "a",
-          inputSignature: newSignature,
-          row: { inputSignature: newSignature, status: "queued", path: null } as NewtonTraverseRow,
+          result: {
+            traverseId: "t2",
+            inputSignature: newSignature,
+            status: "pending",
+            path: null,
+          } as PathPlanResult,
         })
       );
     });
@@ -210,10 +219,14 @@ describe("PathPlannerLines", () => {
     // A failed plan for the new points leaves the old path in place.
     flushSync(() => {
       store.dispatch(
-        actions.pathPlanRowReceived({
+        actions.pathPlanResultReceived({
           uuid: "a",
-          inputSignature: newSignature,
-          row: { inputSignature: newSignature, status: "failed", path: null } as NewtonTraverseRow,
+          result: {
+            traverseId: "t2",
+            inputSignature: newSignature,
+            status: "failed",
+            path: null,
+          } as PathPlanResult,
         })
       );
     });
@@ -224,14 +237,17 @@ describe("PathPlannerLines", () => {
     flushSync(() => {
       store.dispatch(actions.pathPlanRequestStarted({ uuid: "a", inputSignature: newSignature }));
       store.dispatch(
-        actions.pathPlanRowReceived({
+        actions.pathPlanSubmitted({ uuid: "a", inputSignature: newSignature, traverseId: "t3" })
+      );
+      store.dispatch(
+        actions.pathPlanResultReceived({
           uuid: "a",
-          inputSignature: newSignature,
-          row: {
+          result: {
+            traverseId: "t3",
             inputSignature: newSignature,
             status: "succeeded",
             path: [START, moved],
-          } as NewtonTraverseRow,
+          } as PathPlanResult,
         })
       );
     });

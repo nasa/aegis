@@ -2,9 +2,11 @@ import { v4 as uuidv4 } from "uuid";
 
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import {
+  deleteNewtonTraverse,
+  getNewtonTraverses,
   isNewtonTraverseFinished,
   newtonPollDelayMs,
-  postNewtonTraverse,
+  postNewtonTraverses,
 } from "http-client/newton";
 import { updateMapDirective } from "store/map";
 import {
@@ -12,18 +14,20 @@ import {
   pathPlanIdle,
   pathPlanRequestFailed,
   pathPlanRequestStarted,
-  pathPlanRowReceived,
+  pathPlanResultReceived,
+  pathPlanSubmitted,
   removePathPlan,
   setPathPlanInputs,
   setSelectedPathPlanUuid,
 } from "store/pathPlanner";
 import { isRetryableStatus } from "utils/fetch-with-timeout";
 import { getAccurateNow } from "utils/formatting";
+import { clientLogger } from "utils/logging/clientLogger";
 import { newtonInputSignature, planetFromRadius } from "utils/newtonInputs";
 import {
   pathLengthMeters,
   pathPlanErrorFromResponse,
-  pathPlanErrorFromRow,
+  pathPlanErrorFromResult,
 } from "utils/pathPlanner";
 
 import appCreateAsyncThunk from "./thunkUtil";
@@ -43,8 +47,19 @@ const MAX_RETRIES = 3;
 
 const PLAN_COLORS = ["#ff8c42", "#4ecdc4", "#c77dff", "#f9c74f", "#43aa8b", "#f94144"];
 
+/** The Newton job a plan last submitted. */
+type SubmittedJob = {
+  missionId: number;
+  traverseId: string;
+  /** Only `new` jobs are ours to cancel; the others are shared with other callers. */
+  reuse: NewtonTraverseReuse;
+  /** Last status seen, or null before the first poll. */
+  status: NewtonTraverseStatus | null;
+};
+
 type PlanRuntime = {
   debounce?: ReturnType<typeof setTimeout>;
+  job?: SubmittedJob;
   inFlight: boolean;
   /** Inputs changed while a request was in flight; request again when it settles. */
   dirty: boolean;
@@ -78,12 +93,60 @@ const wait = (runtime: PlanRuntime, ms: number) =>
     runtime.wake = done;
   });
 
-/** Stops every pending request loop and timer; called when the store is reset. */
+const entryOf = <T>(entries: NewtonEntryResponse<T>[]): NewtonEntryResponse<T> => entries[0];
+
+const failedEntry = (reason: unknown): NewtonEntryResponse<never> => ({
+  status: "error",
+  message: reason instanceof Error ? reason.message : String(reason),
+});
+
+/** Cancels `job` if this tab started it and it hasn't finished. Never waits or throws. */
+function cancelIfOurs(job: SubmittedJob | undefined): void {
+  if (!job || job.reuse !== "new") return;
+  if (job.status && isNewtonTraverseFinished({ status: job.status })) return;
+  deleteNewtonTraverse(job.missionId, job.traverseId)
+    .then((response) => {
+      if (response.status === "success") return;
+      clientLogger.warning({
+        logId: "pathPlanner:cancelIfOurs:cancelRefused",
+        logValue: `Newton didn't cancel ${job.traverseId}: ${response.message}`,
+      });
+    })
+    .catch((reason) =>
+      clientLogger.warning({
+        logId: "pathPlanner:cancelIfOurs:cancelFailed",
+        logValue: `Couldn't cancel ${job.traverseId}: ${reason instanceof Error ? reason.message : String(reason)}`,
+      })
+    );
+}
+
+/** Makes `submission` the plan's job and cancels the job it replaces. */
+function adoptJob(runtime: PlanRuntime, missionId: number, submission: NewtonTraverseSubmission) {
+  const previous = runtime.job;
+  if (previous?.traverseId === submission.traverseId) return; // the same job, still ours
+  runtime.job = {
+    missionId,
+    traverseId: submission.traverseId,
+    reuse: submission.reuse,
+    status: null,
+  };
+  cancelIfOurs(previous);
+}
+
+/** The plan no longer wants its job: cancel it if it's ours and still running. */
+function dropJob(runtime: PlanRuntime | undefined): void {
+  if (!runtime) return;
+  cancelIfOurs(runtime.job);
+  runtime.job = undefined;
+}
+
+/** Stops every request loop and timer, and cancels unfinished jobs; called on store reset. */
 export function stopPathPlanner(): void {
   generation++;
   for (const runtime of runtimes.values()) {
     clearTimeout(runtime.debounce);
     runtime.wake?.();
+    dropJob(runtime);
   }
   runtimes.clear();
 }
@@ -117,8 +180,10 @@ function schedulePathPlanRequest(dispatch: AppDispatch, uuid: string): void {
 }
 
 /**
- * Requests the plan's path and polls until the row finishes. At most one runs per plan; a
- * change while it runs marks the plan dirty and it runs again for the latest inputs.
+ * Submits the plan's inputs to Newton, then polls the job until it finishes. At most one runs
+ * per plan; a change while it runs marks the plan dirty and it runs again for the latest
+ * inputs. A new submission cancels the plan's previous job if this tab started it and it is
+ * unfinished.
  */
 export const thunkRunPathPlanRequest = appCreateAsyncThunk<{ uuid: string }>(
   "pathPlanner/runRequest",
@@ -163,44 +228,77 @@ export const thunkRunPathPlanRequest = appCreateAsyncThunk<{ uuid: string }>(
           return;
         }
         if (!(pathLengthMeters(plan.points, mission.planetRadius) >= NEWTON_TOOL_MIN_DISTANCE_M)) {
+          dropJob(runtime);
           dispatch(pathPlanIdle(uuid));
           continue;
         }
 
         const { signature, waypoints } = planned;
+        const missionId = mission.id;
         dispatch(pathPlanRequestStarted({ uuid, inputSignature: signature }));
+        let traverseId: string | null = null;
         let polls = 0;
         let retries = 0;
-        while (stillWanted(signature) && !runtime.dirty) {
-          let response: NewtonTraverseResponse;
-          try {
-            response = await postNewtonTraverse({
-              missionId: mission.id,
-              waypoints,
-              params: plan.params,
-            });
-          } catch (reason) {
-            response = {
-              status: "error",
-              message: reason instanceof Error ? reason.message : String(reason),
-            };
+        const retryOrFail = async (response: NewtonEntryResponse<unknown>): Promise<boolean> => {
+          if (isRetryableStatus(response.httpStatus) && retries < MAX_RETRIES) {
+            await wait(runtime, Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** retries++));
+            return true;
           }
-          if (!stillWanted(signature) || runtime.dirty) break;
+          const error = pathPlanErrorFromResponse(response);
+          dispatch(pathPlanRequestFailed({ uuid, inputSignature: signature, error }));
+          return false;
+        };
 
+        while (stillWanted(signature) && !runtime.dirty) {
+          if (!traverseId) {
+            const response = await postNewtonTraverses(missionId, [
+              { waypoints, params: plan.params },
+            ]).then(entryOf, failedEntry);
+            if (response.status === "success" && response.data) {
+              // Adopt it even if the inputs changed meanwhile, so the next submission cancels it.
+              adoptJob(runtime, missionId, response.data);
+              const gone =
+                runGeneration !== generation ||
+                getMissionDocHandle() !== handle ||
+                !findPlan(getState(), uuid);
+              if (gone) dropJob(runtime);
+            }
+            if (!stillWanted(signature) || runtime.dirty) break;
+            if (response.status !== "success" || !response.data) {
+              if (await retryOrFail(response)) continue;
+              dropJob(runtime);
+              break;
+            }
+            traverseId = response.data.traverseId;
+            dispatch(pathPlanSubmitted({ uuid, inputSignature: signature, traverseId }));
+            continue;
+          }
+
+          const response = await getNewtonTraverses(missionId, [traverseId]).then(
+            entryOf,
+            failedEntry
+          );
+          if (!stillWanted(signature) || runtime.dirty) break;
           if (response.status !== "success" || !response.data) {
-            const error = pathPlanErrorFromResponse(response);
-            if (isRetryableStatus(response.httpStatus) && retries < MAX_RETRIES) {
-              await wait(runtime, Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** retries++));
+            if (response.httpStatus === 404 && retries < MAX_RETRIES) {
+              // Newton no longer has the job: submit again.
+              retries++;
+              runtime.job = undefined;
+              traverseId = null;
               continue;
             }
-            dispatch(pathPlanRequestFailed({ uuid, inputSignature: signature, error }));
+            if (await retryOrFail(response)) continue;
             break;
           }
 
           retries = 0;
-          dispatch(pathPlanRowReceived({ uuid, inputSignature: signature, row: response.data }));
-          if (isNewtonTraverseFinished(response.data)) {
-            const error = pathPlanErrorFromRow(response.data);
+          const result = response.data;
+          if (runtime.job?.traverseId === traverseId) runtime.job.status = result.status;
+          dispatch(
+            pathPlanResultReceived({ uuid, result: { ...result, inputSignature: signature } })
+          );
+          if (isNewtonTraverseFinished(result)) {
+            const error = pathPlanErrorFromResult(result);
             if (error) dispatch(pathPlanRequestFailed({ uuid, inputSignature: signature, error }));
             break;
           }
@@ -240,7 +338,14 @@ export const thunkAddPathPlan = appCreateAsyncThunk<void>(
         points: [path[0], path[path.length - 1]],
         pointsTouched: false,
         params: { slopeLimit: NEWTON_DEFAULT_SLOPE_LIMIT },
-        request: { status: "idle", inputSignature: null, row: null, pathRow: null, error: null },
+        request: {
+          status: "idle",
+          inputSignature: null,
+          traverseId: null,
+          result: null,
+          pathResult: null,
+          error: null,
+        },
       })
     );
     dispatch(setSelectedPathPlanUuid(uuid));
@@ -318,6 +423,7 @@ export const thunkRemovePathPlan = appCreateAsyncThunk<{ uuid: string }>(
     if (runtime) {
       clearTimeout(runtime.debounce);
       runtime.wake?.();
+      dropJob(runtime);
     }
     runtimes.delete(uuid);
     dispatch(removePathPlan(uuid));

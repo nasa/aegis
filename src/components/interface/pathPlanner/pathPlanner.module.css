@@ -50,6 +50,29 @@
   color: var(--error);
 }
 
+.spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--grey3);
+  border-top-color: var(--grey6);
+  border-radius: 50%;
+  animation: path-plan-spin 800ms linear infinite;
+}
+
+@keyframes path-plan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
 .summary {
   display: flex;
   flex-flow: row wrap;

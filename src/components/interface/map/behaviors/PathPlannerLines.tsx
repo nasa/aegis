@@ -22,7 +22,7 @@ import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { thunkPolylineOnClick } from "store/thunk/thunkMap";
-import { isPathPlanRowCurrent } from "utils/pathPlanner";
+import { isPathPlanResultCurrent } from "utils/pathPlanner";
 import { getDistanceBetweenTwoCoordinates, getSegmentBearing } from "utils/mapping/geoMath";
 
 import { useMapContext } from "../MapProvider";
@@ -110,17 +110,19 @@ export function PathPlannerLines(): null {
   }, [plansToShow, pathPlannerSource, toMapCoord, editingUuid]);
 
   useEffect(() => {
-    const withPaths = plansToShow.filter((plan) => (plan.request.pathRow?.path?.length ?? 0) >= 2);
+    const withPaths = plansToShow.filter(
+      (plan) => (plan.request.pathResult?.path?.length ?? 0) >= 2
+    );
     const mapper = (plan: PathPlan): FeatureDescriptor => ({
       id: `${NEWTON_PATH_FEATURE_PREFIX}${plan.uuid}`,
-      geometry: new LineString(plan.request.pathRow.path.map((point) => toMapCoord(point))),
+      geometry: new LineString(plan.request.pathResult.path.map((point) => toMapCoord(point))),
       properties: {
         color: plan.color,
         mapItemType: "pathPlan",
         planUuid: plan.uuid,
         current:
           plan.request.status === "ready" &&
-          isPathPlanRowCurrent(plan, planetRadius, plan.request.pathRow),
+          isPathPlanResultCurrent(plan, planetRadius, plan.request.pathResult),
       },
     });
     reconcileFeatures(newtonSource, withPaths, mapper);

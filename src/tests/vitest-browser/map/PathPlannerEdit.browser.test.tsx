@@ -60,7 +60,14 @@ const PLAN: PathPlan = {
   ],
   pointsTouched: false,
   params: {},
-  request: { status: "idle", inputSignature: null, row: null, pathRow: null, error: null },
+  request: {
+    status: "idle",
+    inputSignature: null,
+    traverseId: null,
+    result: null,
+    pathResult: null,
+    error: null,
+  },
 };
 
 type PartialPreloadedState = Parameters<typeof configureStore>[0]["preloadedState"];

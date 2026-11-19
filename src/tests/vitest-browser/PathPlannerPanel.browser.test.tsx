@@ -15,6 +15,7 @@ import {
   NEWTON_TOOL_DEBOUNCE_MS,
   stopPathPlanner,
   thunkAddPathPlan,
+  thunkFlushPathPlan,
   thunkUpdatePathPlanPoints,
 } from "store/thunk/thunkPathPlanner";
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
@@ -35,15 +36,29 @@ const missionHandle = { doc: () => mission };
 vi.mock("client/automergeDocHandles", () => ({
   getMissionDocHandle: () => missionHandle,
 }));
-const { postNewtonTraverse } = vi.hoisted(() => ({
-  postNewtonTraverse: vi.fn<(data: NewtonTraversePostData) => Promise<NewtonTraverseResponse>>(),
+const newton = vi.hoisted(() => ({
+  postNewtonTraverses:
+    vi.fn<
+      (
+        missionId: number,
+        traverses: NewtonTraversePostData[]
+      ) => Promise<NewtonTraverseSubmitResponse[]>
+    >(),
+  getNewtonTraverses:
+    vi.fn<(missionId: number, ids: string[]) => Promise<NewtonTraverseResultResponse[]>>(),
+  deleteNewtonTraverse: vi.fn(async () => ({ status: "success" as const, message: "ok" })),
+  /** What Newton's job reports when polled. */
+  jobStatus: "succeeded" as NewtonTraverseStatus,
 }));
 vi.mock("http-client/newton", () => ({
-  postNewtonTraverse,
+  postNewtonTraverses: newton.postNewtonTraverses,
+  getNewtonTraverses: newton.getNewtonTraverses,
+  deleteNewtonTraverse: newton.deleteNewtonTraverse,
   newtonPollDelayMs: () => 2_000,
-  isNewtonTraverseFinished: (row: NewtonTraverseRow) =>
-    row.status === "succeeded" || row.status === "failed" || row.status === "cancelled",
+  isNewtonTraverseFinished: ({ status }: Pick<NewtonTraverseResult, "status">) =>
+    status === "succeeded" || status === "failed" || status === "cancelled",
 }));
+const { postNewtonTraverses } = newton;
 
 const START = { lat: -89.5, lng: 10 };
 const GOAL = { lat: -89.51, lng: 10.2 };
@@ -64,19 +79,42 @@ let store: ReturnType<typeof makeStore>;
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  vi.mocked(postNewtonTraverse).mockImplementation(async ({ waypoints, params }) => ({
-    status: "success",
-    message: "ok",
-    data: {
-      uuid: "row-1",
-      inputSignature: newtonInputSignature("moon", waypoints, params ?? {}),
-      status: "succeeded",
-      waypoints,
-      params,
-      path: waypoints,
-      segmentDistances: [1200],
-    } as NewtonTraverseRow,
-  }));
+  newton.jobStatus = "succeeded";
+  const sent = new Map<string, NewtonTraversePostData>();
+  newton.postNewtonTraverses.mockImplementation(async (_missionId, traverses) =>
+    traverses.map(({ waypoints, params }) => {
+      const traverseId = `t${sent.size + 1}`;
+      sent.set(traverseId, { waypoints, params });
+      return {
+        status: "success",
+        message: "ok",
+        data: {
+          traverseId,
+          inputSignature: newtonInputSignature("moon", waypoints, params ?? {}),
+          requestHash: null as string | null,
+          reuse: "new",
+        },
+      };
+    })
+  );
+  newton.getNewtonTraverses.mockImplementation(async (_missionId, ids) =>
+    ids.map((traverseId) => {
+      const { waypoints, params } = sent.get(traverseId);
+      const succeeded = newton.jobStatus === "succeeded";
+      return {
+        status: "success",
+        message: "ok",
+        data: {
+          traverseId,
+          status: newton.jobStatus,
+          waypoints,
+          params,
+          path: succeeded ? waypoints : null,
+          segmentDistances: succeeded ? [1200] : null,
+        } as NewtonTraverseResult,
+      };
+    })
+  );
   harness = createReactHarness();
   // The bottom panel's width on a typical screen.
   harness.container.style.width = "1200px";
@@ -157,9 +195,9 @@ describe("PathPlanner panel", () => {
 
     const sentAt = Date.now();
     await page.getByText("Finished", { exact: true }).click();
-    await vi.waitFor(() => expect(postNewtonTraverse).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(postNewtonTraverses).toHaveBeenCalledTimes(1));
     expect(Date.now() - sentAt).toBeLessThan(NEWTON_TOOL_DEBOUNCE_MS);
-    expect(vi.mocked(postNewtonTraverse).mock.calls[0][0].waypoints[1]).toEqual(GOAL);
+    expect(postNewtonTraverses.mock.calls[0][1][0].waypoints[1]).toEqual(GOAL);
     await vi.waitFor(() => expect(plan().request.status).toBe("ready"));
 
     await vi.waitFor(() => expect(textOf("path-plan-slope-limit")).toBe("Path slope limit20°"));
@@ -173,6 +211,39 @@ describe("PathPlanner panel", () => {
       expect(textOf("path-plan-slope-limit")).toBe("Path slope limit20° (older path)")
     );
     expect(textOf("path-plan-length")).toBe("A* path1,200 m (older path)");
+  });
+
+  it.each([
+    ["pending", "Waiting for Newton…"],
+    ["in_progress", "Planning…"],
+  ] as const)("shows a spinner while Newton's job is %s", async (jobStatus, label) => {
+    newton.jobStatus = jobStatus;
+    const { uuid } = plan();
+    await store.dispatch(thunkUpdatePathPlanPoints({ uuid, path: [START, GOAL] }));
+    // Not awaited: the request keeps polling until the job finishes.
+    store.dispatch(thunkFlushPathPlan({ uuid }));
+    await vi.waitFor(() => expect(textOf("path-plan-status")).toBe(label));
+    const spinner = harness.container.querySelector('[data-testid="path-plan-spinner"]');
+    expect(spinner).not.toBeNull();
+    expect(getComputedStyle(spinner).animationName).not.toBe("none");
+
+    newton.jobStatus = "succeeded";
+    await vi.waitFor(() => expect(textOf("path-plan-status")).toBe("Ready"), { timeout: 5_000 });
+    expect(harness.container.querySelector('[data-testid="path-plan-spinner"]')).toBeNull();
+  });
+
+  it("shows no spinner while debouncing or failed", async () => {
+    const { uuid } = plan();
+    await store.dispatch(thunkUpdatePathPlanPoints({ uuid, path: [START, GOAL] }));
+    await vi.waitFor(() => expect(textOf("path-plan-status")).toBe("Waiting…"));
+    expect(harness.container.querySelector('[data-testid="path-plan-spinner"]')).toBeNull();
+
+    newton.postNewtonTraverses.mockResolvedValueOnce([
+      { status: "error", message: "Outside the map", httpStatus: 400 },
+    ]);
+    await store.dispatch(thunkFlushPathPlan({ uuid }));
+    await vi.waitFor(() => expect(textOf("path-plan-status")).toBe("Outside the map"));
+    expect(harness.container.querySelector('[data-testid="path-plan-spinner"]')).toBeNull();
   });
 
   it("an emptied slope limit field goes back to the default", async () => {
