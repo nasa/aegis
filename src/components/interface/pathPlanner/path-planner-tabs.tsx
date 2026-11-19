@@ -1,7 +1,7 @@
 import type { FunctionComponent } from "react";
 import sortBy from "lodash/sortBy";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faRoute, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faDiamondTurnRight, faPlus, faXmark } from "@fortawesome/free-solid-svg-icons";
 
 import measureStyles from "../measure/measure.module.css";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -71,7 +71,7 @@ const PathPlannerTab: FunctionComponent<{ uuid: string; color: string }> = ({ uu
         dispatch(setSelectedPathPlanUuid(selectedPlanUuid === uuid ? null : uuid));
       }}
     >
-      <FontAwesomeIcon icon={faRoute} size="sm" />
+      <FontAwesomeIcon icon={faDiamondTurnRight} size="sm" />
       <div className={measureStyles.measureTabColorCircle} style={{ backgroundColor: color }}></div>
       <div
         className={measureStyles.measureTabRemove}

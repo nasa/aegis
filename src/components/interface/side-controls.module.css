@@ -35,6 +35,28 @@
   background-color: var(--grey1);
 }
 
+.iconContainerDisabled {
+  position: relative;
+  border-bottom-left-radius: 3px;
+  border-top-left-radius: 3px;
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* Marks an experimental tool, in the icon's lower right corner. */
+.experimentalBadge {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  padding: 2px;
+  border-radius: 50%;
+  background-color: var(--grey0);
+  color: var(--reports);
+  pointer-events: none;
+}
+
 .icon {
   position: relative;
   width: 40px;

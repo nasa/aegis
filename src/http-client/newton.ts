@@ -107,6 +107,22 @@ export async function deleteNewtonTraverse(
   return (await response.json()) as NewtonEntryResponse<{ status: NewtonTraverseStatus | null }>;
 }
 
+/** Whether Newton has a slope map over the mission's area. */
+export async function getNewtonCoverage(
+  missionId: number
+): Promise<WrappedResponse<NewtonCoverage>> {
+  const response = await clientFetchWithTimeout(
+    `/api/v1/newton/coverage?missionId=${missionId}`,
+    undefined,
+    NEWTON_BATCH_TIMEOUT_MS
+  );
+  try {
+    return (await response.json()) as WrappedResponse<NewtonCoverage>;
+  } catch {
+    return { status: "error", message: `${response.status} ${response.statusText}` };
+  }
+}
+
 export async function getNewtonHealth(): Promise<WrappedResponse<NewtonHealthReport>> {
   const response = await clientFetchWithTimeout("/api/v1/newton/health", undefined, 30_000);
   try {

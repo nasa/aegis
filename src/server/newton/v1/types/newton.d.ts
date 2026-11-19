@@ -45,6 +45,11 @@ declare namespace Newton {
     extent: [number, number, number, number];
     resolution: [number, number];
     description?: string;
+    /**
+     * Extent probes only: about how much of the extent lies inside this map (0–1). Not used:
+     * Newton's sampling misses maps much smaller than the extent.
+     */
+    fraction?: number | null;
   }
 
   interface TerrainCacheStats {
@@ -124,6 +129,12 @@ declare namespace Newton {
   interface MapsResponse {
     maps: MapInfo[];
     next_cursor?: string | null;
+    /**
+     * Extent probes only: about how much of the extent lies inside any slope map of the
+     * planet, whatever `type` was asked for. Not used: it is sampled on a 20 × 20 grid, so a
+     * map smaller than one cell can overlap and still give `0`.
+     */
+    slope_fraction?: number;
   }
 }
 

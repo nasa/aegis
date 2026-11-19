@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   cancelNewtonTraverse: vi.fn(),
   isNewtonEnabled: vi.fn(),
   newtonHealth: vi.fn(),
+  getNewtonCoverage: vi.fn(),
 }));
 
 vi.mock("utils/permissions", () => ({
@@ -30,6 +31,7 @@ vi.mock("server/newton/traverses", async (importOriginal) => ({
   isNewtonEnabled: mocks.isNewtonEnabled,
 }));
 vi.mock("server/newton/v1/http-newton", () => ({ newtonHealth: mocks.newtonHealth }));
+vi.mock("server/newton/coverage", () => ({ getNewtonCoverage: mocks.getNewtonCoverage }));
 
 import express from "express";
 import supertest from "supertest";
@@ -295,6 +297,57 @@ describe("DELETE /traverses/:traverseId", () => {
     mocks.hasPerms.mockReturnValue(false);
     expect((await supertest(app).delete(deleteUrl(ID))).status).toBe(401);
     expect(mocks.cancelNewtonTraverse).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /coverage", () => {
+  const COVERAGE = "/api/v1/newton/coverage?missionId=7";
+  const covered: NewtonCoverage = {
+    supported: true,
+    reason: "covered",
+    planet: "moon",
+    probedBy: "dem_extent",
+    maps: [{ name: "ms3_slope", resolution: [1, 1] }],
+  };
+
+  it("returns the mission's coverage", async () => {
+    mocks.getNewtonCoverage.mockResolvedValue({ kind: "ok", coverage: covered });
+    const response = await supertest(app).get(COVERAGE);
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual(covered);
+    expect(mocks.getNewtonCoverage).toHaveBeenCalledWith(7, { planetRadius }, "moon");
+  });
+
+  it("is unsupported, with a 200, when Newton isn't configured", async () => {
+    mocks.isNewtonEnabled.mockReturnValue(false);
+    const response = await supertest(app).get(COVERAGE);
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({ supported: false, reason: "disabled" });
+    expect(mocks.getNewtonCoverage).not.toHaveBeenCalled();
+  });
+
+  it("is unsupported, with a 200, for a planet Newton doesn't know", async () => {
+    planetRadius = 3_389_500;
+    const response = await supertest(app).get(COVERAGE);
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({
+      supported: false,
+      reason: "unsupported_planet",
+      planet: null,
+    });
+  });
+
+  it("is 503 when Newton is unavailable", async () => {
+    mocks.getNewtonCoverage.mockResolvedValue({ kind: "unavailable", message: "down" });
+    const response = await supertest(app).get(COVERAGE);
+    expect(response.status).toBe(503);
+  });
+
+  it("needs view permission on the mission", async () => {
+    mocks.hasPerms.mockReturnValue(false);
+    const response = await supertest(app).get(COVERAGE);
+    expect(response.status).toBe(401);
+    expect(mocks.getNewtonCoverage).not.toHaveBeenCalled();
   });
 });
 

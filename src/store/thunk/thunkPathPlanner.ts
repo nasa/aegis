@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getMissionDocHandle } from "client/automergeDocHandles";
 import {
   deleteNewtonTraverse,
+  getNewtonCoverage,
   getNewtonTraverses,
   isNewtonTraverseFinished,
   newtonPollDelayMs,
@@ -11,6 +12,8 @@ import {
 import { updateMapDirective } from "store/map";
 import {
   addPathPlan,
+  coverageCheckStarted,
+  coverageReceived,
   pathPlanIdle,
   pathPlanRequestFailed,
   pathPlanRequestStarted,
@@ -308,6 +311,58 @@ export const thunkRunPathPlanRequest = appCreateAsyncThunk<{ uuid: string }>(
     } finally {
       if (runGeneration === generation) runtime.inFlight = false;
     }
+  }
+);
+
+/** The inputs Newton coverage depends on; a change means checking again. */
+export const newtonCoverageKey = (
+  mission: Pick<Mission, "id" | "demFilePath" | "planetRadius" | "landerLocation">
+): string =>
+  JSON.stringify([
+    mission.id,
+    mission.demFilePath ?? "",
+    mission.planetRadius ?? null,
+    mission.landerLocation?.lat ?? null,
+    mission.landerLocation?.lng ?? null,
+  ]);
+
+/** How often to check again that Newton still answers, and to retry once it hasn't. */
+export const NEWTON_COVERAGE_RECHECK_MS = 60_000;
+export const NEWTON_COVERAGE_RETRY_MS = 15_000;
+
+let coverageCheckInFlight = false;
+
+/**
+ * Checks Newton coverage for the mission, unless this key is already checked or checking.
+ * `recheck` asks again for a key that has an answer, keeping that answer until the new one.
+ */
+export const thunkCheckNewtonCoverage = appCreateAsyncThunk<{
+  missionId: number;
+  key: string;
+  recheck?: boolean;
+}>(
+  "pathPlanner/checkCoverage",
+  async ({ missionId, key, recheck = false }, { dispatch, getState }) => {
+    const current = getState().pathPlanner.coverage;
+    const answered = current.key === key && current.status !== "idle";
+    if (answered && current.status === "checking") return;
+    if (answered && current.status === "ready" && !recheck) return;
+    if (answered && coverageCheckInFlight) return;
+    if (!answered) dispatch(coverageCheckStarted(key));
+    coverageCheckInFlight = true;
+    let coverage: NewtonCoverage | null = null;
+    try {
+      const response = await getNewtonCoverage(missionId);
+      if (response.status === "success" && response.data) coverage = response.data;
+    } catch (error) {
+      clientLogger.warning({
+        logId: "pathPlanner:thunkCheckNewtonCoverage:coverageCheckFailed",
+        logValue: `Newton coverage check failed for mission ${missionId}: ${error instanceof Error ? error.message : String(error)}`,
+      });
+    } finally {
+      coverageCheckInFlight = false;
+    }
+    dispatch(coverageReceived({ key, coverage }));
   }
 );
 

@@ -194,7 +194,7 @@ export function newtonListMaps(
 
 /** `GET /traverses/maps/probe` for a point: the maps that cover it. */
 export function newtonProbePoint(
-  query: { planet: Newton.Planet; lon: number; lat: number },
+  query: { planet: Newton.Planet; lon: number; lat: number; type?: Newton.MapType },
   options: NewtonClientOptions = newtonOptionsFromEnv()
 ): Promise<NewtonResult<Newton.MapsResponse>> {
   const params = new URLSearchParams({
@@ -202,6 +202,29 @@ export function newtonProbePoint(
     lon: String(query.lon),
     lat: String(query.lat),
   });
+  if (query.type) params.set("type", query.type);
+  return request(options, "GET", `/traverses/maps/probe?${params.toString()}`, isMapsResponse);
+}
+
+/**
+ * `GET /traverses/maps/probe` for an extent: the maps that cover any part of it. `crs` may
+ * be a code, WKT or a proj4 string.
+ */
+export function newtonProbeExtent(
+  query: {
+    planet: Newton.Planet;
+    extent: [number, number, number, number];
+    crs: string;
+    type?: Newton.MapType;
+  },
+  options: NewtonClientOptions = newtonOptionsFromEnv()
+): Promise<NewtonResult<Newton.MapsResponse>> {
+  const params = new URLSearchParams({
+    planet: query.planet,
+    extent: query.extent.join(","),
+    crs: query.crs,
+  });
+  if (query.type) params.set("type", query.type);
   return request(options, "GET", `/traverses/maps/probe?${params.toString()}`, isMapsResponse);
 }
 

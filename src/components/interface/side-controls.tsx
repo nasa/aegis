@@ -1,7 +1,7 @@
 import isNil from "lodash/isNil";
 import styles from "./side-controls.module.css";
 import type { FunctionComponent } from "react";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useAppSelector, refEqual, deepEqual } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -24,12 +24,20 @@ import {
   faChevronLeft,
   faChevronRight,
   faChevronUp,
-  faRoute,
+  faDiamondTurnRight,
+  faFlask,
   faRuler,
 } from "@fortawesome/free-solid-svg-icons";
 import Measure from "./measure/measure";
 import PathPlanner from "./pathPlanner/path-planner";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
+import {
+  NEWTON_COVERAGE_RECHECK_MS,
+  NEWTON_COVERAGE_RETRY_MS,
+  newtonCoverageKey,
+  thunkCheckNewtonCoverage,
+} from "store/thunk/thunkPathPlanner";
+import { newtonCoverageTooltip } from "utils/pathPlanner";
 import FontFaceObserver from "fontfaceobserver";
 import { setSelectedStationUuid } from "store/station";
 import { selectAsPlannedStations } from "store/selectors";
@@ -85,6 +93,16 @@ export const BottomControlPanel: FunctionComponent = () => {
     await font.load();
   })();
 
+  const pathPlanner = useNewtonCoverage();
+
+  // Leave the Path Planner once Newton says the mission isn't covered. An open tool stays
+  // open while Newton is down; its plans show their own errors.
+  useEffect(() => {
+    if (selectedBottomNavItem === "pathPlanner" && pathPlanner.unsupported) {
+      dispatch(setBottomSectionSelected("timeline"));
+    }
+  }, [selectedBottomNavItem, pathPlanner.unsupported, dispatch]);
+
   useEffect(() => {
     if (!autoBottomPanelOpen) return;
     if (selectedEvaUuid) {
@@ -102,7 +120,9 @@ export const BottomControlPanel: FunctionComponent = () => {
           {selectedBottomNavItem === "timeline" ? (
             <NavTimeline />
           ) : selectedBottomNavItem === "pathPlanner" ? (
-            <PathPlanner />
+            pathPlanner.unsupported ? null : (
+              <PathPlanner />
+            )
           ) : (
             <Measure />
           )}
@@ -219,6 +239,50 @@ export const RightDrawerTab: FunctionComponent = () => {
   );
 };
 
+/**
+ * Checks Newton coverage for the open mission once per mission and DEM. The Path Planner is
+ * available only once Newton reports a slope map over the mission's area.
+ */
+function useNewtonCoverage(): {
+  available: boolean;
+  /** Newton answered that it can't plan for this mission. */
+  unsupported: boolean;
+  retry: () => void;
+  tooltip: string;
+} {
+  const dispatch = useAppDispatch();
+  const missionId = useMissionDocSelector((m) => m.id, refEqual);
+  const key = useMissionDocSelector((m) => (m.id ? newtonCoverageKey(m) : null), refEqual);
+  const coverage = useAppSelector((state) => state.pathPlanner.coverage, deepEqual);
+
+  const check = useCallback(() => {
+    if (missionId && key) dispatch(thunkCheckNewtonCoverage({ missionId, key }));
+  }, [dispatch, missionId, key]);
+  useEffect(check, [check]);
+
+  const current = !!key && coverage.key === key;
+  const answer = current ? coverage.status : null;
+  // Check again in the background so the button follows Newton going down and coming back.
+  useEffect(() => {
+    if (!missionId || !key || (answer !== "ready" && answer !== "error")) return undefined;
+    const delay = answer === "error" ? NEWTON_COVERAGE_RETRY_MS : NEWTON_COVERAGE_RECHECK_MS;
+    const timer = setInterval(
+      () => dispatch(thunkCheckNewtonCoverage({ missionId, key, recheck: true })),
+      delay
+    );
+    return () => clearInterval(timer);
+  }, [dispatch, missionId, key, answer]);
+
+  const available = answer === "ready" && !!coverage.coverage?.supported;
+  return {
+    available,
+    unsupported: answer === "ready" && !coverage.coverage?.supported,
+    // A click on the greyed-out button retries a failed check at once.
+    retry: check,
+    tooltip: newtonCoverageTooltip(current ? coverage : null),
+  };
+}
+
 const BottomGutter: FunctionComponent = () => {
   const dispatch = useAppDispatch();
   const selectedBottomNavItem = useAppSelector(
@@ -226,6 +290,7 @@ const BottomGutter: FunctionComponent = () => {
     refEqual
   );
   const bottomPanelOpen = useAppSelector((state) => state.interface.bottomPanelIsOpen, refEqual);
+  const pathPlanner = useNewtonCoverage();
   let timelineIconContainerStyle = styles.iconContainer;
   let measureIconContainerStyle = styles.iconContainer;
   let pathPlannerIconContainerStyle = styles.iconContainer;
@@ -237,6 +302,7 @@ const BottomGutter: FunctionComponent = () => {
     pathPlannerIconContainerStyle =
       selectedBottomNavItem === "pathPlanner" ? styles.iconContainerSelected : styles.iconContainer;
   }
+  if (!pathPlanner.available) pathPlannerIconContainerStyle = styles.iconContainerDisabled;
 
   return (
     <div className={styles.bottomGutter}>
@@ -272,14 +338,27 @@ const BottomGutter: FunctionComponent = () => {
         <div
           className={styles.icon}
           style={{ color: "var(--grey5)" }}
+          role="button"
+          aria-label="Newton Path Planner"
+          aria-disabled={!pathPlanner.available}
+          data-testid="path-planner-gutter-button"
           data-tooltip-id="aegis-tooltip"
-          data-tooltip-content={"Newton Path Planner"}
+          data-tooltip-content={pathPlanner.tooltip}
           onClick={() => {
+            if (!pathPlanner.available) {
+              pathPlanner.retry();
+              return;
+            }
             if (!bottomPanelOpen) dispatch(setBottomPanelIsOpen(true));
             dispatch(setBottomSectionSelected("pathPlanner"));
           }}
         >
-          <FontAwesomeIcon icon={faRoute} size="lg" />
+          <FontAwesomeIcon icon={faDiamondTurnRight} size="lg" />
+          <FontAwesomeIcon
+            className={styles.experimentalBadge}
+            icon={faFlask}
+            data-testid="path-planner-experimental-badge"
+          />
         </div>
       </div>
     </div>

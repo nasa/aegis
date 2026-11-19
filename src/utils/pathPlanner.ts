@@ -114,3 +114,33 @@ export function pathPlanErrorFromResponse(response: NewtonEntryResponse<unknown>
   }
   return { message: "Newton unavailable, try again", retryable: true, blockedWaypoints: [] };
 }
+
+/** The Path Planner button's tooltip. */
+export function newtonCoverageTooltip(coverage: PathPlannerCoverage | null): string {
+  const title = "Newton Path Planner (experimental)";
+  const supported = coverage?.status === "ready" && !!coverage.coverage?.supported;
+  return supported ? title : `${title}: ${newtonCoverageMessage(coverage)}`;
+}
+
+/** Why the Newton Path Planner is unavailable, for its greyed-out button. */
+export function newtonCoverageMessage(coverage: PathPlannerCoverage | null): string {
+  if (!coverage || coverage.status === "idle" || coverage.status === "checking") {
+    return "checking Newton coverage…";
+  }
+  if (coverage.status === "error" || !coverage.coverage) {
+    return "Newton is not available";
+  }
+  switch (coverage.coverage.reason) {
+    case "covered":
+      return "available";
+    case "no_slope_map":
+      return "Newton has no slope map for this mission's area";
+    case "unsupported_planet":
+      return "Newton doesn't support this mission's planet";
+    case "no_area":
+      return "this mission has no DEM or lander location to check";
+    case "disabled":
+      return "Newton is not configured";
+  }
+  return "unavailable";
+}

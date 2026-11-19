@@ -4,6 +4,7 @@ import express from "express";
 import { asError } from "@emss/utils";
 
 import { buildTraverseProblem } from "server/newton/v1/convert";
+import { getNewtonCoverage } from "server/newton/coverage";
 import { newtonHealth } from "server/newton/v1/http-newton";
 import {
   NEWTON_BATCH_CONCURRENCY,
@@ -124,14 +125,14 @@ function answerError(
 }
 
 /**
- * Validates the mission and the caller's `view` permission on it, then reads the mission's
- * planet. Answers and returns null when the request can't go ahead.
+ * Validates the mission and the caller's `view` permission on it, then loads the mission.
+ * Answers and returns null when the request can't go ahead.
  */
-async function missionPlanet(
+async function viewableMission(
   req: Request,
   res: Response,
   routeName: string
-): Promise<{ missionId: number; planet: Newton.Planet } | null> {
+): Promise<{ missionId: number; mission: Mission } | null> {
   const httpMethod = req.method as HttpMethod;
   const missionId = missionIdFromRequest(req);
   if (!missionId) {
@@ -167,10 +168,6 @@ async function missionPlanet(
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return null;
   }
-  if (!isNewtonEnabled()) {
-    res.status(503).json({ status: "error", message: "Newton is not configured" });
-    return null;
-  }
   const handle = await getAutomergeMissionHandle(missionId);
   if (!handle) {
     serverLogger.apiRoute({
@@ -186,7 +183,23 @@ async function missionPlanet(
     res.status(404).json({ status: "failure", message: `Mission ${missionId} not found` });
     return null;
   }
-  const planet = planetFromRadius(handle.doc()?.planetRadius);
+  return { missionId, mission: handle.doc() };
+}
+
+/** `viewableMission`, then checks Newton is configured and supports the mission's planet. */
+async function missionPlanet(
+  req: Request,
+  res: Response,
+  routeName: string
+): Promise<{ missionId: number; planet: Newton.Planet } | null> {
+  if (!isNewtonEnabled()) {
+    res.status(503).json({ status: "error", message: "Newton is not configured" });
+    return null;
+  }
+  const found = await viewableMission(req, res, routeName);
+  if (!found) return null;
+  const { missionId, mission } = found;
+  const planet = planetFromRadius(mission?.planetRadius);
   if (!planet) {
     res
       .status(400)
@@ -289,6 +302,48 @@ router.delete("/traverses/:traverseId", async (req: Request, res: Response): Pro
     }
     const result = await cancelNewtonTraverse(traverseId);
     res.status(result.status === "success" ? 200 : (result.httpStatus ?? 503)).json(result);
+  } catch (error) {
+    answerError(req, res, routeName, error, missionId);
+  }
+});
+
+/**
+ * Whether Newton has a slope map over the mission's area. "No" answers are `200` with
+ * `supported: false`; a Newton outage is `503`.
+ */
+router.get("/coverage", async (req: Request, res: Response): Promise<void> => {
+  const routeName = "newton/coverage";
+  let missionId: number;
+  try {
+    const found = await viewableMission(req, res, routeName);
+    if (!found) return;
+    missionId = found.missionId;
+    const planet = planetFromRadius(found.mission?.planetRadius);
+    const unsupported = (reason: NewtonCoverageReason): NewtonCoverage => ({
+      supported: false,
+      reason,
+      planet,
+      probedBy: null,
+      maps: [],
+    });
+    const answer = (data: NewtonCoverage) => {
+      res.status(200).json({ status: "success", message: "Newton coverage", data });
+    };
+    if (!isNewtonEnabled()) {
+      answer(unsupported("disabled"));
+      return;
+    }
+    if (!planet) {
+      answer(unsupported("unsupported_planet"));
+      return;
+    }
+    const result = await getNewtonCoverage(missionId, found.mission, planet);
+    if (result.kind === "unavailable") {
+      res.status(503).json({ status: "error", message: "Newton is unavailable" });
+      logRouteError(req, routeName, 503, new Error(result.message), missionId);
+      return;
+    }
+    answer(result.coverage);
   } catch (error) {
     answerError(req, res, routeName, error, missionId);
   }
