@@ -7,8 +7,8 @@
 /**
  * - `idle`: nothing to request (the points haven't been moved yet, or are too close together).
  * - `debouncing`: waiting for the points to settle.
- * - `pending`: a request or poll for the current points is in flight.
- * - `ready`: the row for the current points has finished (succeeded or failed).
+ * - `pending`: submitting the current points, or polling Newton's job for them.
+ * - `ready`: Newton's job for the current points has finished (succeeded or failed).
  * - `error`: the request itself failed.
  */
 type PathPlanRequestStatus = "idle" | "debouncing" | "pending" | "ready" | "error";
@@ -20,17 +20,22 @@ type PathPlanError = {
   blockedWaypoints: number[];
 };
 
+/** A Newton job's result, tagged with the `newtonInputSignature` it was submitted for. */
+type PathPlanResult = NewtonTraverseResult & { inputSignature: string };
+
 type PathPlanRequest = {
   status: PathPlanRequestStatus;
   /** `newtonInputSignature` of the points and params the request is for. */
   inputSignature: string | null;
-  /** Latest row from the server; may be unfinished or for older points. */
-  row: NewtonTraverseRow | null;
+  /** Newton's job for `inputSignature`, once submitted. */
+  traverseId: string | null;
+  /** Latest result; may be unfinished or for older points. */
+  result: PathPlanResult | null;
   /**
-   * Latest row that found a path. Kept, drawn greyed out, while newer points are planned or
-   * fail, until a newer path replaces it.
+   * Latest result that found a path. Kept, drawn greyed out, while newer points are planned
+   * or fail, until a newer path replaces it.
    */
-  pathRow: NewtonTraverseRow | null;
+  pathResult: PathPlanResult | null;
   error: PathPlanError | null;
 };
 

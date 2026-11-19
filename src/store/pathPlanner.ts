@@ -27,7 +27,7 @@ export const pathPlannerSlice = createSlice({
       if (plan) plan.color = action.payload.color;
     },
     /**
-     * New points or params; the old row stays so it can be drawn as stale. Planning waits
+     * New points or params; the old result stays so it can be drawn as stale. Planning waits
      * (`idle`) until the user has moved a point.
      */
     setPathPlanInputs: (
@@ -49,6 +49,7 @@ export const pathPlannerSlice = createSlice({
       if (action.payload.params) plan.params = action.payload.params;
       plan.request.status = plan.pointsTouched ? "debouncing" : "idle";
       plan.request.inputSignature = null;
+      plan.request.traverseId = null;
       plan.request.error = null;
     },
     pathPlanIdle: (state, action: { payload: string }) => {
@@ -57,8 +58,9 @@ export const pathPlannerSlice = createSlice({
       plan.request = {
         status: "idle",
         inputSignature: null,
-        row: null,
-        pathRow: plan.request.pathRow,
+        traverseId: null,
+        result: null,
+        pathResult: plan.request.pathResult,
         error: null,
       };
     },
@@ -70,21 +72,33 @@ export const pathPlannerSlice = createSlice({
       if (!plan) return;
       plan.request.status = "pending";
       plan.request.inputSignature = action.payload.inputSignature;
+      plan.request.traverseId = null;
       plan.request.error = null;
     },
-    /** Ignored unless it is for the request now in progress, like `terrainProfileReceived`. */
-    pathPlanRowReceived: (
+    pathPlanSubmitted: (
       state,
-      action: { payload: { uuid: string; inputSignature: string; row: NewtonTraverseRow } }
+      action: { payload: { uuid: string; inputSignature: string; traverseId: string } }
     ) => {
       const plan = findPlan(state, action.payload.uuid);
-      const { inputSignature, row } = action.payload;
-      if (!plan || plan.request.inputSignature !== inputSignature) return;
-      if (row.inputSignature !== inputSignature) return;
-      plan.request.row = row;
-      if (row.status === "succeeded" && (row.path?.length ?? 0) >= 2) plan.request.pathRow = row;
+      if (!plan || plan.request.inputSignature !== action.payload.inputSignature) return;
+      plan.request.traverseId = action.payload.traverseId;
+    },
+    /** Ignored unless it is for the request now in progress, like `terrainProfileReceived`. */
+    pathPlanResultReceived: (
+      state,
+      action: { payload: { uuid: string; result: PathPlanResult } }
+    ) => {
+      const plan = findPlan(state, action.payload.uuid);
+      const { result } = action.payload;
+      if (!plan || plan.request.inputSignature !== result.inputSignature) return;
+      if (plan.request.traverseId !== result.traverseId) return;
+      plan.request.result = result;
+      if (result.status === "succeeded" && (result.path?.length ?? 0) >= 2)
+        plan.request.pathResult = result;
       const finished =
-        row.status === "succeeded" || row.status === "failed" || row.status === "cancelled";
+        result.status === "succeeded" ||
+        result.status === "failed" ||
+        result.status === "cancelled";
       plan.request.status = finished ? "ready" : "pending";
     },
     pathPlanRequestFailed: (
@@ -111,7 +125,8 @@ export const {
   setPathPlanInputs,
   pathPlanIdle,
   pathPlanRequestStarted,
-  pathPlanRowReceived,
+  pathPlanSubmitted,
+  pathPlanResultReceived,
   pathPlanRequestFailed,
   obliterateState,
 } = pathPlannerSlice.actions;

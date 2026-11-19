@@ -19,11 +19,15 @@ import {
 } from "store/thunk/thunkPathPlanner";
 import { formatLatLng } from "utils/coordinateEntry";
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
-import { isPathPlanRowCurrent, pathLengthMeters, pathPlanPointName } from "utils/pathPlanner";
+import { isPathPlanResultCurrent, pathLengthMeters, pathPlanPointName } from "utils/pathPlanner";
+
+/** Is the plan waiting on AEGIS or Newton (shows a spinner)? */
+export const isPathPlanBusy = (plan: PathPlan): boolean =>
+  !plan.request.error && plan.request.status === "pending";
 
 /** The panel's status line for a plan. */
 export function pathPlanStatusLabel(plan: PathPlan): string {
-  const { status, row, error } = plan.request;
+  const { status, traverseId, result, error } = plan.request;
   if (error) return error.message;
   switch (status) {
     case "idle":
@@ -32,8 +36,12 @@ export function pathPlanStatusLabel(plan: PathPlan): string {
         : "Edit the points on the map to plan a path";
     case "debouncing":
       return "Waiting…";
-    case "pending":
-      return row?.status === "queued" || row?.status === "submitting" ? "Queued" : "Planning…";
+    case "pending": {
+      if (!traverseId) return "Sending to Newton…";
+      const job = result?.traverseId === traverseId ? result : null;
+      if (job?.status === "in_progress") return "Planning…";
+      return "Waiting for Newton…";
+    }
     case "ready":
       return "Ready";
     default:
@@ -139,13 +147,13 @@ const PathPlanSummary: FunctionComponent<{ plan: PathPlan }> = ({ plan }) => {
   );
   const straightMeters = pathLengthMeters(plan.points, planetRadius);
   // The path on the map: the newest one found, which may be for older points.
-  const pathRow = plan.request.pathRow;
-  const current = !!pathRow && isPathPlanRowCurrent(plan, planetRadius, pathRow);
-  const pathMeters = pathRow?.segmentDistances
-    ? pathRow.segmentDistances.reduce((sum, meters) => sum + meters, 0)
+  const shown = plan.request.pathResult;
+  const current = !!shown && isPathPlanResultCurrent(plan, planetRadius, shown);
+  const pathMeters = shown?.segmentDistances
+    ? shown.segmentDistances.reduce((sum, meters) => sum + meters, 0)
     : null;
-  const pathStraightMeters = pathRow ? pathLengthMeters(pathRow.waypoints, planetRadius) : null;
-  const older = pathRow && !current ? " (older path)" : "";
+  const pathStraightMeters = shown ? pathLengthMeters(shown.waypoints, planetRadius) : null;
+  const older = shown && !current ? " (older path)" : "";
 
   return (
     <div className={styles.summary} data-testid="path-plan-summary">
@@ -170,18 +178,18 @@ const PathPlanSummary: FunctionComponent<{ plan: PathPlan }> = ({ plan }) => {
             {older}
           </SummaryRow>
         )}
-        {pathRow && (
+        {shown && (
           <SummaryRow title="Path slope limit" testId="path-plan-slope-limit">
-            {pathRow.params?.slopeLimit ?? NEWTON_DEFAULT_SLOPE_LIMIT}°{older}
+            {shown.params?.slopeLimit ?? NEWTON_DEFAULT_SLOPE_LIMIT}°{older}
           </SummaryRow>
         )}
-        {pathRow?.mapInfo?.length ? (
+        {shown?.mapInfo?.length ? (
           <SummaryRow title="Slope map">
-            {pathRow.mapInfo.map((info) => info.name).join(", ")}
+            {shown.mapInfo.map((info) => info.name).join(", ")}
           </SummaryRow>
         ) : null}
-        {pathRow?.runtimeMs != null && (
-          <SummaryRow title="Planning time">{(pathRow.runtimeMs / 1000).toFixed(1)} s</SummaryRow>
+        {shown?.runtimeMs != null && (
+          <SummaryRow title="Planning time">{(shown.runtimeMs / 1000).toFixed(1)} s</SummaryRow>
         )}
       </div>
     </div>
@@ -265,6 +273,13 @@ const PathPlanner: FunctionComponent = () => {
                   role="status"
                   data-testid="path-plan-status"
                 >
+                  {isPathPlanBusy(plan) && (
+                    <span
+                      className={styles.spinner}
+                      aria-hidden="true"
+                      data-testid="path-plan-spinner"
+                    />
+                  )}
                   <span>{status}</span>
                   {failed && plan.request.error.retryable && (
                     <Button

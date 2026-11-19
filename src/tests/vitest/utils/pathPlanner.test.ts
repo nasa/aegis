@@ -1,9 +1,9 @@
 import {
-  isPathPlanRowCurrent,
+  isPathPlanResultCurrent,
   pathLengthMeters,
   pathPlanPointName,
   pathPlanErrorFromResponse,
-  pathPlanErrorFromRow,
+  pathPlanErrorFromResult,
 } from "utils/pathPlanner";
 import { newtonInputSignature } from "utils/newtonInputs";
 
@@ -15,19 +15,18 @@ const failedRow = (
   error: NewtonTraverseError,
   status: NewtonTraverseStatus = "failed",
   waypoints: AEGISPoint[] = [start, goal]
-) => ({ status, error, waypoints }) as NewtonTraverseRow;
+) => ({ status, error, waypoints });
 
-describe("pathPlanErrorFromRow", () => {
+describe("pathPlanErrorFromResult", () => {
   test("succeeded rows have no error", () => {
-    expect(pathPlanErrorFromRow({ status: "succeeded" } as NewtonTraverseRow)).toBeNull();
+    expect(pathPlanErrorFromResult({ status: "succeeded", error: null, waypoints: [] })).toBeNull();
   });
 
   test.each([
     ["no_slope_map", "Outside Newton coverage", false],
     ["no_path", "No route between start and goal", false],
-    ["timeout", "Newton took too long", true],
   ])("%s", (code, message, retryable) => {
-    expect(pathPlanErrorFromRow(failedRow({ code, message: "x", details: [] }))).toEqual({
+    expect(pathPlanErrorFromResult(failedRow({ code, message: "x", details: [] }))).toEqual({
       message,
       retryable,
       blockedWaypoints: [],
@@ -35,7 +34,7 @@ describe("pathPlanErrorFromRow", () => {
   });
 
   test("names each blocked point", () => {
-    const error = pathPlanErrorFromRow(
+    const error = pathPlanErrorFromResult(
       failedRow({
         code: "waypoint_not_traversable",
         message: "x",
@@ -47,7 +46,7 @@ describe("pathPlanErrorFromRow", () => {
   });
 
   test("names blocked midpoints by their position in the request", () => {
-    const error = pathPlanErrorFromRow(
+    const error = pathPlanErrorFromResult(
       failedRow(
         {
           code: "waypoint_not_traversable",
@@ -64,7 +63,7 @@ describe("pathPlanErrorFromRow", () => {
 
   test("names the leg with no route when there are midpoints", () => {
     const noPath = (details: Record<string, unknown>[]) =>
-      pathPlanErrorFromRow(
+      pathPlanErrorFromResult(
         failedRow({ code: "no_path", message: "x", details }, "failed", [start, mid, goal])
       ).message;
     expect(noPath([{ from_waypoint: 1, to_waypoint: 2 }])).toBe(
@@ -73,9 +72,16 @@ describe("pathPlanErrorFromRow", () => {
     expect(noPath([])).toBe("No route between the points");
   });
 
+  test("a cancelled job can be retried", () => {
+    expect(pathPlanErrorFromResult(failedRow(null, "cancelled"))).toMatchObject({
+      message: "Newton cancelled the request",
+      retryable: true,
+    });
+  });
+
   test("unknown codes include Newton's message", () => {
     expect(
-      pathPlanErrorFromRow(failedRow({ code: "internal", message: "boom", details: [] })).message
+      pathPlanErrorFromResult(failedRow({ code: "internal", message: "boom", details: [] })).message
     ).toBe("Newton failed: boom");
   });
 });
@@ -111,26 +117,27 @@ describe("point names and lengths", () => {
   });
 });
 
-describe("isPathPlanRowCurrent", () => {
+describe("isPathPlanResultCurrent", () => {
   const signature = newtonInputSignature("moon", [start, goal], {});
-  const plan = (rowSignature: string | null, params: NewtonTraverseParams = {}) => {
+  const plan = (resultSignature: string | null, params: NewtonTraverseParams = {}) => {
     const request: PathPlanRequest = {
       status: "ready",
       inputSignature: signature,
+      traverseId: "t1",
       error: null,
-      row: rowSignature ? ({ inputSignature: rowSignature } as NewtonTraverseRow) : null,
-      pathRow: null,
+      result: resultSignature ? ({ inputSignature: resultSignature } as PathPlanResult) : null,
+      pathResult: null,
     };
     return { points: [start, goal], params, request };
   };
 
-  test("matches the row's signature to the plan's inputs", () => {
-    expect(isPathPlanRowCurrent(plan(signature), 1737400)).toBe(true);
-    expect(isPathPlanRowCurrent(plan(signature, { slopeLimit: 10 }), 1737400)).toBe(false);
-    expect(isPathPlanRowCurrent(plan(null), 1737400)).toBe(false);
-    expect(isPathPlanRowCurrent(plan(signature), 3389500)).toBe(false);
-    expect(isPathPlanRowCurrent({ ...plan(signature), points: [start, mid, goal] }, 1737400)).toBe(
-      false
-    );
+  test("matches the result's signature to the plan's inputs", () => {
+    expect(isPathPlanResultCurrent(plan(signature), 1737400)).toBe(true);
+    expect(isPathPlanResultCurrent(plan(signature, { slopeLimit: 10 }), 1737400)).toBe(false);
+    expect(isPathPlanResultCurrent(plan(null), 1737400)).toBe(false);
+    expect(isPathPlanResultCurrent(plan(signature), 3389500)).toBe(false);
+    expect(
+      isPathPlanResultCurrent({ ...plan(signature), points: [start, mid, goal] }, 1737400)
+    ).toBe(false);
   });
 });
