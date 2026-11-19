@@ -4,12 +4,19 @@ import { v4 as uuidv4 } from "uuid";
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 // vi.hoisted ensures these are available when vi.mock factories run (hoisted to top)
-const { mockAddDustDocListenerForMission, mockBuildDustEverything, mockGetAutomergeDocListing } =
-  vi.hoisted(() => ({
-    mockAddDustDocListenerForMission: vi.fn().mockResolvedValue(undefined),
-    mockBuildDustEverything: vi.fn().mockResolvedValue([]),
-    mockGetAutomergeDocListing: vi.fn(),
-  }));
+const {
+  mockAddDustDocListenerForMission,
+  mockBuildDustEverything,
+  mockGetAutomergeDocListing,
+  mockGetRexEvasForDust,
+  mockGetPosEntriesForDust,
+} = vi.hoisted(() => ({
+  mockAddDustDocListenerForMission: vi.fn().mockResolvedValue(undefined),
+  mockBuildDustEverything: vi.fn().mockResolvedValue([]),
+  mockGetAutomergeDocListing: vi.fn(),
+  mockGetRexEvasForDust: vi.fn(),
+  mockGetPosEntriesForDust: vi.fn(),
+}));
 
 // Mock addDustDocListenerForMission to avoid DB calls from automerge doc listing
 vi.mock("server/dust/v1/sockets-dust-emitters", async () => {
@@ -18,6 +25,8 @@ vi.mock("server/dust/v1/sockets-dust-emitters", async () => {
     ...actual,
     addDustDocListenerForMission: mockAddDustDocListenerForMission,
     getEverythingForDust: mockBuildDustEverything,
+    getRexEvasForDust: mockGetRexEvasForDust,
+    getPosEntriesForDust: mockGetPosEntriesForDust,
   };
 });
 
@@ -571,6 +580,100 @@ describe("dust namespace socket handlers", () => {
 
       expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
       expect(callback).toHaveBeenCalledWith(expect.objectContaining({ status: "success" }));
+    });
+  });
+
+  // ─── getRexEvas / getPosEntries ────────────────────────────────────────────
+
+  describe("getRexEvas", () => {
+    it("calls back with every rex EVA on the mission", async () => {
+      const data = [
+        { evaName: "Vitest EVA", evaUuid: "eva-1", rexName: "Vitest Rex", rexUuid: "rex-1" },
+      ];
+      mockGetRexEvasForDust.mockResolvedValue(data);
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getRexEvas"](MISSION_ID, callback);
+
+      expect(mockGetRexEvasForDust).toHaveBeenCalledWith(MISSION_ID);
+      expect(callback).toHaveBeenCalledWith({
+        status: "success",
+        message: "Rex EVAs retrieved",
+        data,
+      });
+    });
+
+    it("returns an error for an invalid missionId", async () => {
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getRexEvas"](NaN, callback);
+
+      expect(callback).toHaveBeenCalledWith({ status: "error", message: expect.any(String) });
+      expect(mockGetRexEvasForDust).not.toHaveBeenCalled();
+    });
+
+    it("returns an error when the mission cannot be loaded", async () => {
+      const { serverLogger } = await import("utils/logging/serverLogger");
+      vi.spyOn(serverLogger, "error").mockImplementation(() => {});
+      mockGetRexEvasForDust.mockRejectedValue(new Error("Mission 9999 not found"));
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getRexEvas"](MISSION_ID, callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("not found"),
+      });
+    });
+  });
+
+  describe("getPosEntries", () => {
+    it("calls back with the payload for the requested rex", async () => {
+      const data: DustPosEntriesUpdate = {
+        missionId: MISSION_ID,
+        missionName: "Vitest Mission",
+        rexUuid: "rex-1",
+        rexName: "Vitest Rex",
+        evaUuid: "eva-1",
+        evaName: "Vitest EVA",
+        posEntries: [],
+      };
+      mockGetPosEntriesForDust.mockResolvedValue(data);
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getPosEntries"](MISSION_ID, "rex-1", callback);
+
+      expect(mockGetPosEntriesForDust).toHaveBeenCalledWith(MISSION_ID, "rex-1");
+      expect(callback).toHaveBeenCalledWith({
+        status: "success",
+        message: "Pos entries retrieved",
+        data,
+      });
+    });
+
+    it("returns an error when the rex is not on the mission", async () => {
+      mockGetPosEntriesForDust.mockResolvedValue(null);
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getPosEntries"](MISSION_ID, "missing-rex", callback);
+
+      expect(callback).toHaveBeenCalledWith({
+        status: "error",
+        message: expect.stringContaining("not found"),
+      });
+    });
+
+    it.each([
+      [NaN, "rex-1"],
+      [MISSION_ID, ""],
+      [MISSION_ID, undefined],
+    ])("returns an error for missionId %s and rexUuid %s", async (missionId, rexUuid) => {
+      const callback = vi.fn();
+
+      await mockSocket._handlers["getPosEntries"](missionId, rexUuid, callback);
+
+      expect(callback).toHaveBeenCalledWith({ status: "error", message: expect.any(String) });
+      expect(mockGetPosEntriesForDust).not.toHaveBeenCalled();
     });
   });
 

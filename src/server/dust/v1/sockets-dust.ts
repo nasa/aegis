@@ -14,6 +14,8 @@ import { dustTokenIsValid, emssTokenIsValid } from "utils/permissions";
 import {
   addDustDocListenerForMission,
   getEverythingForDust,
+  getPosEntriesForDust,
+  getRexEvasForDust,
   cleanupDust,
 } from "./sockets-dust-emitters";
 import type {
@@ -143,6 +145,68 @@ export const setupDustNamespace = (
           error instanceof Error ? error : new Error(String(error))
         );
         callback({ status: "error", message: `Error getting everything ${error}` });
+      }
+    });
+
+    // Every rex on the mission with its EVA
+    socket.on("getRexEvas", async (missionId: number, callback) => {
+      if (!missionId || isNaN(missionId)) {
+        serverLogger.warning({
+          logId: "socket-dust-v1:getRexEvas:rejectedInvalidMissionId",
+          logValue: `getRexEvas - invalid missionId ${missionId}`,
+        });
+        callback({ status: "error", message: `Invalid missionId ${missionId}` });
+        return;
+      }
+
+      try {
+        const data = await getRexEvasForDust(missionId);
+        callback({ status: "success", message: "Rex EVAs retrieved", data });
+      } catch (error) {
+        serverLogger.error(
+          {
+            logId: "socket-dust-v1:getRexEvas:failedToListRexEvasForMission",
+            logValue: `getRexEvas - Error listing rex EVAs for mission ${missionId}`,
+          },
+          error instanceof Error ? error : new Error(String(error))
+        );
+        callback({ status: "error", message: `Error getting rex EVAs ${error}` });
+      }
+    });
+
+    // Current posEntries for a single rex
+    socket.on("getPosEntries", async (missionId: number, rexUuid: string, callback) => {
+      if (!missionId || isNaN(missionId) || !rexUuid || typeof rexUuid !== "string") {
+        serverLogger.warning({
+          logId: "socket-dust-v1:getPosEntries:rejectedInvalidMissionIdOrRexUuid",
+          logValue: `getPosEntries - invalid missionId ${missionId} or rexUuid ${rexUuid}`,
+        });
+        callback({
+          status: "error",
+          message: `Invalid missionId ${missionId} or rexUuid ${rexUuid}`,
+        });
+        return;
+      }
+
+      try {
+        const data = await getPosEntriesForDust(missionId, rexUuid);
+        if (!data) {
+          callback({
+            status: "error",
+            message: `Rex ${rexUuid} not found on mission ${missionId}`,
+          });
+          return;
+        }
+        callback({ status: "success", message: "Pos entries retrieved", data });
+      } catch (error) {
+        serverLogger.error(
+          {
+            logId: "socket-dust-v1:getPosEntries:failedToBuildPosEntriesForRex",
+            logValue: `getPosEntries - Error getting pos entries for rex ${rexUuid} on mission ${missionId}`,
+          },
+          error instanceof Error ? error : new Error(String(error))
+        );
+        callback({ status: "error", message: `Error getting pos entries ${error}` });
       }
     });
 

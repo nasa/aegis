@@ -23,6 +23,8 @@ import {
   onDustChangeListener,
   addDustDocListenerForMission,
   getEverythingForDust,
+  getPosEntriesForDust,
+  getRexEvasForDust,
   cleanupDust,
 } from "server/dust/v1/sockets-dust-emitters";
 import { getDustSocketRoomName } from "server/dust/v1/sockets-dust";
@@ -500,6 +502,85 @@ describe("getEverythingForDust", () => {
     } as never);
 
     await expect(getEverythingForDust(MISSION_ID)).rejects.toThrow("is unavailable");
+  });
+});
+
+// ─── getRexEvasForDust / getPosEntriesForDust ─────────────────────────────────
+
+describe("getRexEvasForDust", () => {
+  it("lists every rex with its as-planned EVA name and its own EVA uuid", async () => {
+    const runningRex = runningRexWithPosEntries([buildPosEntry()]);
+    globalValues.dustV1.docHandles.set(MISSION_ID, {
+      doc: vi
+        .fn()
+        .mockReturnValue(buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [runningRex] })),
+    } as never);
+
+    await expect(getRexEvasForDust(MISSION_ID)).resolves.toEqual([
+      {
+        evaName: "Vitest As-Planned EVA",
+        evaUuid: rexEva.uuid,
+        rexName: "Vitest Running Rex",
+        rexUuid: runningRex.uuid,
+      },
+    ]);
+  });
+
+  it("loads the mission document when the mission has not been joined", async () => {
+    const runningRex = runningRexWithPosEntries([]);
+    mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge:vitest" }]);
+    const handle = {
+      whenReady: vi.fn().mockResolvedValue(undefined),
+      doc: vi
+        .fn()
+        .mockReturnValue(buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [runningRex] })),
+    };
+    globalValues.automergeRepo = { find: vi.fn().mockResolvedValue(handle) } as never;
+
+    const data = await getRexEvasForDust(MISSION_ID);
+
+    expect(mockGetAutomergeDocListing).toHaveBeenCalledWith([MISSION_ID]);
+    expect(data).toHaveLength(1);
+    expect(globalValues.dustV1.docHandles.has(MISSION_ID)).toBe(false);
+  });
+
+  it("rejects when the mission does not exist", async () => {
+    mockGetAutomergeDocListing.mockResolvedValue([]);
+
+    await expect(getRexEvasForDust(MISSION_ID)).rejects.toThrow("not found");
+  });
+});
+
+describe("getPosEntriesForDust", () => {
+  it("returns the payload for only the requested rex", async () => {
+    const runningRex = runningRexWithPosEntries([buildPosEntry()]);
+    const otherRex = generateBlankRex({ name: "Vitest Other Rex", evaUuid: rexEva.uuid });
+    globalValues.dustV1.docHandles.set(MISSION_ID, {
+      doc: vi
+        .fn()
+        .mockReturnValue(
+          buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [runningRex, otherRex] })
+        ),
+    } as never);
+
+    const payload = await getPosEntriesForDust(MISSION_ID, runningRex.uuid);
+
+    expect(payload).toEqual(
+      expect.objectContaining({
+        missionId: MISSION_ID,
+        rexUuid: runningRex.uuid,
+        evaName: "Vitest As-Planned EVA",
+        posEntries: [expect.objectContaining({ uuid: "pos-entry-1", posTypes: ["EV1"] })],
+      })
+    );
+  });
+
+  it("returns null when the rex is not on the mission", async () => {
+    globalValues.dustV1.docHandles.set(MISSION_ID, {
+      doc: vi.fn().mockReturnValue(buildMockMission({ evas: [asPlannedEva] })),
+    } as never);
+
+    await expect(getPosEntriesForDust(MISSION_ID, "missing-rex")).resolves.toBeNull();
   });
 });
 

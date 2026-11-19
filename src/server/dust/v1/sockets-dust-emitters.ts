@@ -4,7 +4,7 @@ import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { getDustSocketRoomName } from "./sockets-dust";
-import type { DustPosEntriesUpdate, DustReadablePosEntry } from "./types/socketioDust";
+import type { DustPosEntriesUpdate, DustReadablePosEntry, DustRexEva } from "./types/socketioDust";
 import { getAutomergeDocListing } from "server/express/routes/docListing";
 
 type DustMissionSnapshot = {
@@ -147,6 +147,53 @@ export const getEverythingForDust = async (missionId: number): Promise<DustPosEn
   return Object.values(mission.rexes ?? {}).map((rex) =>
     buildDustPosEntriesUpdate(missionId, mission, rex)
   );
+};
+
+/**
+ * Resolves a mission document without requiring a prior `missionJoin`. Reuses the
+ * handle cached by `missionJoin` when there is one.
+ */
+const findMissionForDust = async (missionId: number): Promise<Mission> => {
+  let missionDocHandle = globalValues.dustV1.docHandles.get(missionId);
+  if (!missionDocHandle) {
+    const listing = (await getAutomergeDocListing([missionId]))[0];
+    if (!listing) throw new Error(`Mission ${missionId} not found`);
+    missionDocHandle = await globalValues.automergeRepo.find<Mission>(
+      listing.automergeUrl as DocumentId
+    );
+    await missionDocHandle.whenReady();
+  }
+  const mission = missionDocHandle.doc();
+  if (!mission) throw new Error(`Automerge document for mission ${missionId} is unavailable`);
+  return mission;
+};
+
+/**
+ * Lists every rex on a mission with the EVA it belongs to.
+ */
+export const getRexEvasForDust = async (missionId: number): Promise<DustRexEva[]> => {
+  const mission = await findMissionForDust(missionId);
+  return Object.values(mission.rexes ?? {}).map((rex) => {
+    const { evaUuid, evaName, rexName, rexUuid } = buildDustPosEntriesUpdate(
+      missionId,
+      mission,
+      rex
+    );
+    return { evaName, evaUuid, rexName, rexUuid };
+  });
+};
+
+/**
+ * Builds the current posEntries payload for a single rex. Returns null when the
+ * mission has no rex with that uuid.
+ */
+export const getPosEntriesForDust = async (
+  missionId: number,
+  rexUuid: string
+): Promise<DustPosEntriesUpdate | null> => {
+  const mission = await findMissionForDust(missionId);
+  const rex = mission.rexes?.[rexUuid];
+  return rex ? buildDustPosEntriesUpdate(missionId, mission, rex) : null;
 };
 
 /**

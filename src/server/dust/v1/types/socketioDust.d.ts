@@ -42,7 +42,44 @@ export interface DustClientToServerEvents {
     ) => void
   ) => void;
 
+  /** Lists every REX on the mission with its EVA. Does not require `missionJoin`. */
+  getRexEvas: (
+    missionId: number,
+    callback: (
+      response:
+        | { status: "success"; message: string; data: DustRexEva[] }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
+
+  /**
+   * Returns the current crew positions for a single REX, in the same shape as a
+   * `posEntriesUpdate` payload. Does not require `missionJoin`.
+   */
+  getPosEntries: (
+    missionId: number,
+    rexUuid: string,
+    callback: (
+      response:
+        | { status: "success"; message: string; data: DustPosEntriesUpdate }
+        | { status: "error"; message: string }
+    ) => void
+  ) => void;
+
   getDebugInfo: (callback: (data: DustDebugInfo) => void) => void;
+}
+
+/** One entry in the `GET /api/v1/dust/v1/getMissions` response. */
+export interface DustMissionListItem {
+  missionId: number;
+  missionName: string;
+}
+
+export interface DustRexEva {
+  evaName: string; // name of the as-planned EVA the REX was created from
+  evaUuid: string; // uuid of the REX's own EVA copy
+  rexName: string;
+  rexUuid: string;
 }
 
 /**

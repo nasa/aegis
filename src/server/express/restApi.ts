@@ -26,6 +26,7 @@ import getMissionsV2 from "../maestro/v2/routes/getMissions";
 import readableEvaRoutesV2 from "../maestro/v2/routes/eva";
 import readableMissionRoutesV2 from "../maestro/v2/routes/mission";
 import docCreateV2 from "../maestro/v2/routes/docCreate";
+import getMissionsDustV1 from "../dust/v1/routes/getMissions";
 
 import enableEmssApi from "./routes/emss/enableEmssApi";
 
@@ -146,6 +147,9 @@ app.use("/api/v1/maestro/v2/mission", readableMissionRoutesV2);
 app.use("/api/v1/maestro/v2/getRexesByEva", rexByEvaV2);
 app.use("/api/v1/maestro/v2/getMissions", getMissionsV2);
 app.use("/api/v1/maestro/v2/doc/create", docCreateV2);
+
+// DUST v1
+app.use("/api/v1/dust/v1/getMissions", getMissionsDustV1);
 
 // external endpoints used by other stakeholders
 app.use("/api/v1/external/dust", dustRoute);
