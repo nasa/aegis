@@ -29,7 +29,6 @@ import { getAutomergeMissionHandle } from "./missionAutomerge";
 
 const router = express.Router();
 const ENTITY_UUID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
-const SLOW_TERRAIN_PROFILE_REQUEST_LOG_THRESHOLD_MS = 2_000;
 type TerrainCacheStatus = "hit" | "miss" | "bypass";
 const samplesForDistance = (distance: number, resolutionMeters: number): number =>
   Math.max(2, Math.ceil(distance / resolutionMeters) + 1);
@@ -303,24 +302,6 @@ const respondWithRasterRouteError = (
 router.post(["/", "/batch"], async (req: Request, res: Response): Promise<void> => {
   const routeName = req.path === "/batch" ? "terrain-profile/batch" : "terrain-profile";
   const missionId = missionIdFromRequest(req);
-  const requestStartedAt = performance.now();
-  res.on("finish", () => {
-    const durationMs = performance.now() - requestStartedAt;
-    if (durationMs < SLOW_TERRAIN_PROFILE_REQUEST_LOG_THRESHOLD_MS) return;
-    serverLogger.apiRoute({
-      logId: "api-route:terrain-profile:POST:slowTerrainProfileRequest",
-      logLevel: "notice",
-      httpMethod: "POST",
-      responseStatus: res.statusCode,
-      routeName,
-      appUsername: req.session?.appUser?.username,
-      missionId,
-      message:
-        req.path === "/batch"
-          ? `took ${Math.round(durationMs)} ms for ${(req.body as TerrainProfileBatchPostData)?.profiles?.length} profiles`
-          : `took ${Math.round(durationMs)} ms (preview=${(req.body as TerrainProfilePostData)?.preview === true})`,
-    });
-  });
   if (!missionId) {
     serverLogger.apiRoute({
       logId: "api-route:terrain-profile:POST:rejectedInvalidMissionId",

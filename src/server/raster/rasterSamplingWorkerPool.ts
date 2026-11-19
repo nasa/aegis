@@ -125,8 +125,6 @@ const RESPAWN_MAX_DELAY_MS = 5_000;
 // deploy that repairs the worker entry point recover without restarting the API, while keeping
 // retries rare enough to stay cheap.
 const UNAVAILABLE_RETRY_AFTER_MS = 60_000;
-// Jobs that wait in the queue or run at least this long are logged.
-const SLOW_JOB_LOG_THRESHOLD_MS = 2_000;
 
 /**
  * Runs CPU-heavy raster profile sampling outside the API event loop.
@@ -392,33 +390,12 @@ export class RasterSamplingWorkerPool {
     }
     if (slot.timeout) clearTimeout(slot.timeout);
     const completedAt = performance.now();
-    const queueDurationMs = (slot.startedAt ?? completedAt) - job.queuedAt;
-    const executionDurationMs = completedAt - (slot.startedAt ?? completedAt);
-    if (
-      queueDurationMs >= SLOW_JOB_LOG_THRESHOLD_MS ||
-      executionDurationMs >= SLOW_JOB_LOG_THRESHOLD_MS
-    ) {
-      // Sampling runs off the main thread, so this shows backlog rather than a blocked API.
-      serverLogger.notice({
-        logId: "raster:rasterSamplingWorkerPool:slowTerrainProfileSamplingJob",
-        logValue: `Terrain profile job waited ${Math.round(queueDurationMs)} ms and ran ${Math.round(executionDurationMs)} ms`,
-        workerId: slot.workerId,
-        queueDurationMs: Math.round(queueDurationMs),
-        executionDurationMs: Math.round(executionDurationMs),
-        sampleCount: job.request.samplesPerSegment.reduce((sum, count) => sum + count, 0),
-        getElevationOnly: job.request.getElevationOnly,
-        coalescingKey: job.coalescingKey,
-        queuedJobs: this.queue.length,
-        busyWorkers: this.workers.filter((workerSlot) => workerSlot.job).length,
-        succeeded: response.status === "success",
-      });
-    }
     if (response.status === "success") {
       job.resolve({
         ...response.result,
         workerId: slot.workerId,
-        queueDurationMs,
-        executionDurationMs,
+        queueDurationMs: (slot.startedAt ?? completedAt) - job.queuedAt,
+        executionDurationMs: completedAt - (slot.startedAt ?? completedAt),
       });
     } else {
       job.reject(this.deserializeError(response.error));
