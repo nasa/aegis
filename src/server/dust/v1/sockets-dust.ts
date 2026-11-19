@@ -58,11 +58,23 @@ export const setupDustNamespace = (
 
   // ── Connection handler ────────────────────────────────────────────────────
   dustNamespace.on("connection", (socket: DustSocket) => {
+    // Track the visitor from connection so query-only clients are visible too
+    globalValues.dustV1.visitorData[socket.id] = {
+      socketId: socket.id,
+      name: "unknown",
+      connectedAt: Date.now(),
+      missionIds: [],
+    };
+    emitInspectorUpdate();
+
     socket.on("missionJoin", async (missionId: number, dustVisitor: DustVisitor, callback) => {
+      const visitor = globalValues.dustV1.visitorData[socket.id];
+      if (dustVisitor?.name) visitor.name = dustVisitor.name;
+
       if (!missionId || isNaN(missionId)) {
         serverLogger.warning({
           logId: "socket-dust-v1:missionJoin:rejectedInvalidMissionId",
-          dustName: dustVisitor?.name || "unknown",
+          dustName: visitor.name,
           logValue: `missionJoin - invalid missionId ${missionId}`,
         });
         callback?.({ status: "error", message: `Invalid missionId ${missionId}` });
@@ -71,36 +83,22 @@ export const setupDustNamespace = (
 
       const roomName = getDustSocketRoomName(missionId);
       socket.join(roomName);
-
-      // Add this dust visitor to the server's global under the mission room
-      if (!globalValues.dustV1.visitorData[missionId]) {
-        globalValues.dustV1.visitorData[missionId] = [];
-      }
-      const dustVisitors = globalValues.dustV1.visitorData[missionId];
-      // Set this visitor's information on the server's global
-      // Remove this socket from tracking list if it exists and push the new one
-      remove(dustVisitors, (item) => {
-        return item.socketId === socket.id;
-      });
-      dustVisitor.socketId = socket.id;
-      dustVisitors.push(dustVisitor);
+      if (!visitor.missionIds.includes(missionId)) visitor.missionIds.push(missionId);
 
       // Attach automerge listener for this mission if not already attached
-      // The listener will be removed when the last dust visitor for this mission disconnects
+      // The listener will be removed when the last dust visitor for this mission leaves
       try {
         await addDustDocListenerForMission(missionId);
       } catch (error) {
         // Setup failed — undo the join so the client isn't left in a room that
         // will never emit, and so a retry starts from a clean slate.
-        removeDustVisitor(socket.id, missionId);
+        removeDustVisitorFromMission(socket.id, missionId);
         socket.leave(roomName);
-        globalValues.socketio
-          .to("inspector")
-          .emit("inspectorUpdate", globalValues.serverSocketStatus);
+        emitInspectorUpdate();
         serverLogger.error(
           {
             logId: "socket-dust-v1:missionJoin:failedToAttachDocListenerJoinRolledBack",
-            dustName: dustVisitor?.name || "unknown",
+            dustName: visitor.name,
             logValue: `missionJoin - failed to attach doc listener for mission ${missionId}`,
           },
           error instanceof Error ? error : new Error(String(error))
@@ -112,11 +110,7 @@ export const setupDustNamespace = (
         return;
       }
 
-      // Update the inspector room on the default namespace
-      globalValues.socketio
-        .to("inspector")
-        .emit("inspectorUpdate", globalValues.serverSocketStatus);
-
+      emitInspectorUpdate();
       callback?.({ status: "success", message: `Joined mission ${missionId}` });
     });
 
@@ -216,32 +210,47 @@ export const setupDustNamespace = (
     });
 
     socket.on("disconnect", () => {
-      // Remove this socket from any dust mission rooms they happened to be in
-      for (const missionId in globalValues.dustV1.visitorData) {
-        removeDustVisitor(socket.id, +missionId);
-      }
-
-      // Update the inspector room on the default namespace
-      globalValues.socketio
-        .to("inspector")
-        .emit("inspectorUpdate", globalValues.serverSocketStatus);
+      removeDustVisitor(socket.id);
+      emitInspectorUpdate();
     });
   });
 };
 
-/**
- * Removes a socket from a mission's visitor list
- * Cleans up the dust state once the last visitor is gone.
- */
-export const removeDustVisitor = (socketId: string, missionId: number): void => {
-  const visitors = globalValues.dustV1.visitorData[missionId];
-  if (!visitors) return;
+// Update the inspector room on the default namespace
+const emitInspectorUpdate = (): void => {
+  globalValues.socketio?.to("inspector").emit("inspectorUpdate", globalValues.serverSocketStatus);
+};
 
-  const removed = remove(visitors, (item) => item.socketId === socketId);
-  // If we removed the last visitor and the room is now empty, delete the key and cleanup
-  if (removed.length > 0 && visitors.length === 0) {
-    delete globalValues.dustV1.visitorData[missionId];
+/** Whether any connected DUST visitor has joined the mission. */
+export const hasDustVisitorsForMission = (missionId: number): boolean =>
+  Object.values(globalValues.dustV1.visitorData).some((visitor) =>
+    visitor.missionIds.includes(missionId)
+  );
+
+/**
+ * Removes a mission from a visitor's joined missions.
+ * Cleans up the dust state for the mission once no visitor has it joined.
+ */
+export const removeDustVisitorFromMission = (socketId: string, missionId: number): void => {
+  const visitor = globalValues.dustV1.visitorData[socketId];
+  if (!visitor) return;
+
+  const removed = remove(visitor.missionIds, (id) => id === missionId);
+  if (removed.length > 0 && !hasDustVisitorsForMission(missionId)) {
     cleanupDust(missionId);
+  }
+};
+
+/**
+ * Stops tracking a visitor and cleans up every mission it was the last visitor of.
+ */
+export const removeDustVisitor = (socketId: string): void => {
+  const visitor = globalValues.dustV1.visitorData[socketId];
+  if (!visitor) return;
+
+  delete globalValues.dustV1.visitorData[socketId];
+  for (const missionId of visitor.missionIds) {
+    if (!hasDustVisitorsForMission(missionId)) cleanupDust(missionId);
   }
 };
 
@@ -251,14 +260,12 @@ export const removeDustVisitor = (socketId: string, missionId: number): void => 
  */
 export const buildDebugInfo = (): DustDebugInfo => {
   const slice = globalValues.dustV1;
-  const visitors: { [missionId: string]: DustVisitorDebugEntry[] } = {};
-  for (const missionId in slice.visitorData) {
-    visitors[missionId] = (slice.visitorData[missionId] ?? []).map((v) => ({
-      socketId: v.socketId,
-      name: v.name,
-      connectedAt: v.connectedAt,
-    }));
-  }
+  const visitors: DustVisitorDebugEntry[] = Object.values(slice.visitorData).map((v) => ({
+    socketId: v.socketId,
+    name: v.name,
+    connectedAt: v.connectedAt,
+    missionIds: [...v.missionIds],
+  }));
   const docListenerMissionIds = Array.from(slice.docListeners.keys());
   return { visitors, docListenerMissionIds };
 };

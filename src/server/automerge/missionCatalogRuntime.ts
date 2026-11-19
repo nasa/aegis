@@ -62,7 +62,9 @@ export function startMissionCatalogRuntime(
         (visitor) => visitor.missionId === mission.id
       ) ||
       (globalValues.maestroV2.visitorData[mission.id]?.length ?? 0) > 0 ||
-      (globalValues.dustV1.visitorData[mission.id]?.length ?? 0) > 0 ||
+      Object.values(globalValues.dustV1.visitorData).some((visitor) =>
+        visitor.missionIds.includes(mission.id)
+      ) ||
       [
         ...globalValues.maestroV2.docHandles.values(),
         ...globalValues.dustV1.docHandles.values(),

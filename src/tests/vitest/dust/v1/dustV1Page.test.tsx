@@ -75,7 +75,7 @@ beforeEach(() => {
   inspectorSocket = withCapturedHandlers(createFakeSocket());
   dustSocket = withCapturedHandlers(createFakeSocket());
   dustSocket.emitWithAck.mockImplementation(async (event) => {
-    if (event === "getDebugInfo") return { visitors: {}, docListenerMissionIds: [] };
+    if (event === "getDebugInfo") return { visitors: [], docListenerMissionIds: [] };
     return { status: "success", message: "Mission joined" };
   });
   mockGetClientSocket.mockReturnValue(inspectorSocket);

@@ -109,7 +109,7 @@ export interface DustPosEntriesUpdate {
 }
 
 export interface DustDebugInfo {
-  visitors: { [missionId: string]: DustVisitorDebugEntry[] };
+  visitors: DustVisitorDebugEntry[];
   docListenerMissionIds: number[];
 }
 
@@ -117,11 +117,20 @@ export interface DustVisitorDebugEntry {
   socketId: string;
   name: string;
   connectedAt: number;
+  missionIds: number[];
 }
 
-// sent by the DUST client when joining and stored in server's globalValues
+// sent by the DUST client in missionJoin
 export interface DustVisitor {
-  socketId: string; // identifier for managing the list on server global
+  socketId: string; // ignored by the server, which uses the socket's own id
   name: string; // name of the DUST server
-  connectedAt: number; // timestamp when DUST joined
+  connectedAt: number; // ignored by the server, which records the connection time
+}
+
+// a connected DUST socket, tracked in server's globalValues from connection until disconnect
+export interface DustVisitorData {
+  socketId: string;
+  name: string; // "unknown" until the first missionJoin supplies it
+  connectedAt: number; // timestamp when the socket connected
+  missionIds: number[]; // missions joined with missionJoin
 }

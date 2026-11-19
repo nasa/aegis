@@ -56,9 +56,12 @@ const connectDustVisitor = (missionId = MISSION_ID) => {
   ns._rooms.set(getDustSocketRoomName(missionId), new Set(["socket1"]));
   ns.sockets.set("socket1", {});
   globalValues.dustV1.socketio = ns as never;
-  globalValues.dustV1.visitorData[missionId] = [
-    { socketId: "socket1", name: "Vitest Dust", connectedAt: Date.now() },
-  ];
+  globalValues.dustV1.visitorData.socket1 = {
+    socketId: "socket1",
+    name: "Vitest Dust",
+    connectedAt: Date.now(),
+    missionIds: [missionId],
+  };
   return ns;
 };
 
@@ -606,9 +609,12 @@ describe("addDustDocListenerForMission", () => {
     } as never;
     mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://test-url" }]);
     // A visitor must be present or setup intentionally abandons itself.
-    globalValues.dustV1.visitorData[MISSION_ID] = [
-      { socketId: "socket1", name: "Vitest Dust", connectedAt: Date.now() },
-    ];
+    globalValues.dustV1.visitorData.socket1 = {
+      socketId: "socket1",
+      name: "Vitest Dust",
+      connectedAt: Date.now(),
+      missionIds: [MISSION_ID],
+    };
   });
 
   it("returns early when mission already has a listener", async () => {
@@ -816,7 +822,7 @@ describe("addDustDocListenerForMission", () => {
     await vi.waitFor(() => expect(find).toHaveBeenCalled());
 
     // Simulate the disconnect handler running while setup is awaiting.
-    delete globalValues.dustV1.visitorData[MISSION_ID];
+    delete globalValues.dustV1.visitorData.socket1;
     cleanupDust(MISSION_ID);
 
     resolveFind(mockDocHandle);

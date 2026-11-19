@@ -3,7 +3,7 @@ import type { DocHandle, DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
-import { getDustSocketRoomName } from "./sockets-dust";
+import { getDustSocketRoomName, hasDustVisitorsForMission } from "./sockets-dust";
 import type { DustPosEntriesUpdate, DustReadablePosEntry, DustRexEva } from "./types/socketioDust";
 import { getAutomergeDocListing } from "server/express/routes/docListing";
 
@@ -229,7 +229,7 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
 
     // The last visitor may have disconnected while the lookups above were awaiting.
     // Installing now would orphan the listener.
-    if (!((globalValues.dustV1.visitorData[missionId]?.length ?? 0) > 0)) {
+    if (!hasDustVisitorsForMission(missionId)) {
       discardDustSetupState(missionId);
       serverLogger.debug({
         logId:

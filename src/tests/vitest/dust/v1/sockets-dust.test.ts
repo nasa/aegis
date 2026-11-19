@@ -48,7 +48,9 @@ vi.mock("server/express/routes/docListing", () => ({
 import {
   getDustSocketRoomName,
   getMissionIdFromDustSocketRoomName,
+  hasDustVisitorsForMission,
   removeDustVisitor,
+  removeDustVisitorFromMission,
 } from "server/dust/v1/sockets-dust";
 import { dustTokenIsValid, emssTokenIsValid } from "utils/permissions";
 import type { DustPosEntriesUpdate, DustVisitor } from "server/dust/v1/types/socketioDust";
@@ -116,40 +118,76 @@ describe("getMissionIdFromDustSocketRoomName", () => {
   });
 });
 
+const trackVisitor = (socketId: string, missionIds: number[]) => {
+  globalValues.dustV1.visitorData[socketId] = {
+    socketId,
+    name: `Vitest Dust ${socketId}`,
+    connectedAt: Date.now(),
+    missionIds,
+  };
+};
+
 describe("removeDustVisitor", () => {
-  it("does nothing when the mission has no visitors tracked", () => {
-    expect(() => removeDustVisitor("socket-unknown", MISSION_ID)).not.toThrow();
-    expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+  it("does nothing when the socket is not tracked", () => {
+    expect(() => removeDustVisitor("socket-unknown")).not.toThrow();
   });
 
-  it("removes the mission entry and cleans up when the last visitor leaves", () => {
+  it("stops tracking the visitor and cleans up missions no one else joined", () => {
     const removeListenerFn = vi.fn();
     globalValues.dustV1.docListeners.set(MISSION_ID, removeListenerFn);
-    globalValues.dustV1.visitorData[MISSION_ID] = [
-      { socketId: "socket-a", name: "Vitest Dust", connectedAt: Date.now() },
-    ];
+    trackVisitor("socket-a", [MISSION_ID]);
 
-    removeDustVisitor("socket-a", MISSION_ID);
+    removeDustVisitor("socket-a");
 
-    expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+    expect(globalValues.dustV1.visitorData["socket-a"]).toBeUndefined();
     expect(removeListenerFn).toHaveBeenCalled();
   });
 
-  it("keeps the mission entry and listener when other visitors remain", () => {
+  it("keeps the listener when another visitor has joined the mission", () => {
     const removeListenerFn = vi.fn();
     globalValues.dustV1.docListeners.set(MISSION_ID, removeListenerFn);
-    globalValues.dustV1.visitorData[MISSION_ID] = [
-      { socketId: "socket-a", name: "Vitest Dust A", connectedAt: Date.now() },
-      { socketId: "socket-b", name: "Vitest Dust B", connectedAt: Date.now() },
-    ];
+    trackVisitor("socket-a", [MISSION_ID]);
+    trackVisitor("socket-b", [MISSION_ID]);
 
-    removeDustVisitor("socket-a", MISSION_ID);
+    removeDustVisitor("socket-a");
 
-    expect(globalValues.dustV1.visitorData[MISSION_ID]).toHaveLength(1);
+    expect(Object.keys(globalValues.dustV1.visitorData)).toEqual(["socket-b"]);
     expect(removeListenerFn).not.toHaveBeenCalled();
   });
 });
 
+describe("removeDustVisitorFromMission", () => {
+  it("leaves the visitor tracked and cleans up when it was the last one in the mission", () => {
+    const removeListenerFn = vi.fn();
+    globalValues.dustV1.docListeners.set(MISSION_ID, removeListenerFn);
+    trackVisitor("socket-a", [MISSION_ID, 1234]);
+
+    removeDustVisitorFromMission("socket-a", MISSION_ID);
+
+    expect(globalValues.dustV1.visitorData["socket-a"].missionIds).toEqual([1234]);
+    expect(removeListenerFn).toHaveBeenCalled();
+  });
+
+  it("does not clean up a mission the visitor had not joined", () => {
+    const removeListenerFn = vi.fn();
+    globalValues.dustV1.docListeners.set(MISSION_ID, removeListenerFn);
+    trackVisitor("socket-a", []);
+
+    removeDustVisitorFromMission("socket-a", MISSION_ID);
+
+    expect(removeListenerFn).not.toHaveBeenCalled();
+  });
+});
+
+describe("hasDustVisitorsForMission", () => {
+  it("is true only when a tracked visitor has joined the mission", () => {
+    trackVisitor("socket-a", []);
+    expect(hasDustVisitorsForMission(MISSION_ID)).toBe(false);
+
+    trackVisitor("socket-b", [MISSION_ID]);
+    expect(hasDustVisitorsForMission(MISSION_ID)).toBe(true);
+  });
+});
 // ─── setupDustNamespace socket handlers ──────────────────────────────────────
 
 describe("dust namespace socket handlers", () => {
@@ -212,23 +250,38 @@ describe("dust namespace socket handlers", () => {
     connectionHandler(mockSocket);
   });
 
-  describe("missionJoin", () => {
-    it("joins the correct room and tracks the visitor", () => {
-      const visitor: DustVisitor = {
+  describe("connection", () => {
+    it("tracks the visitor as soon as it connects, before any missionJoin", () => {
+      expect(globalValues.dustV1.visitorData[mockSocket.id]).toEqual({
         socketId: mockSocket.id,
+        name: "unknown",
+        connectedAt: expect.any(Number),
+        missionIds: [],
+      });
+    });
+  });
+
+  describe("missionJoin", () => {
+    it("joins the correct room and records the mission and name on the visitor", () => {
+      const connectedAt = globalValues.dustV1.visitorData[mockSocket.id].connectedAt;
+      const visitor: DustVisitor = {
+        socketId: "client-supplied-id",
         name: "Vitest TestDust",
-        connectedAt: Date.now(),
+        connectedAt: 0,
       };
 
       mockSocket._handlers["missionJoin"](MISSION_ID, visitor);
 
       expect(mockSocket.join).toHaveBeenCalledWith(getDustSocketRoomName(MISSION_ID));
-      const visitors = globalValues.dustV1.visitorData[MISSION_ID];
-      expect(visitors).toHaveLength(1);
-      expect(visitors[0].socketId).toBe(mockSocket.id);
+      expect(globalValues.dustV1.visitorData[mockSocket.id]).toEqual({
+        socketId: mockSocket.id,
+        name: "Vitest TestDust",
+        connectedAt,
+        missionIds: [MISSION_ID],
+      });
     });
 
-    it("replaces existing visitor with same socketId on rejoin", () => {
+    it("does not duplicate the mission on rejoin and updates the name", () => {
       const visitor: DustVisitor = {
         socketId: mockSocket.id,
         name: "Vitest TestDust",
@@ -241,9 +294,25 @@ describe("dust namespace socket handlers", () => {
         name: "Vitest TestDust Updated",
       });
 
-      const visitors = globalValues.dustV1.visitorData[MISSION_ID];
-      expect(visitors).toHaveLength(1);
-      expect(visitors[0].name).toBe("Vitest TestDust Updated");
+      const tracked = globalValues.dustV1.visitorData[mockSocket.id];
+      expect(tracked.missionIds).toEqual([MISSION_ID]);
+      expect(tracked.name).toBe("Vitest TestDust Updated");
+    });
+
+    it("records several joined missions on one visitor", () => {
+      const visitor: DustVisitor = {
+        socketId: mockSocket.id,
+        name: "Vitest TestDust",
+        connectedAt: Date.now(),
+      };
+
+      mockSocket._handlers["missionJoin"](MISSION_ID, visitor);
+      mockSocket._handlers["missionJoin"](MISSION_ID + 1, visitor);
+
+      expect(globalValues.dustV1.visitorData[mockSocket.id].missionIds).toEqual([
+        MISSION_ID,
+        MISSION_ID + 1,
+      ]);
     });
 
     it("does nothing when missionId is invalid", () => {
@@ -331,7 +400,8 @@ describe("dust namespace socket handlers", () => {
         message: expect.any(String),
       });
       expect(mockSocket.leave).toHaveBeenCalledWith(getDustSocketRoomName(MISSION_ID));
-      expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+      // The visitor stays tracked as connected, without the failed mission
+      expect(globalValues.dustV1.visitorData[mockSocket.id].missionIds).toEqual([]);
     });
 
     it("succeeds on a retry after a failed setup attempt", async () => {
@@ -356,7 +426,7 @@ describe("dust namespace socket handlers", () => {
         status: "success",
         message: expect.any(String),
       });
-      expect(globalValues.dustV1.visitorData[MISSION_ID]).toHaveLength(1);
+      expect(globalValues.dustV1.visitorData[mockSocket.id].missionIds).toEqual([MISSION_ID]);
     });
 
     it("emits inspectorUpdate after the visitor joins", async () => {
@@ -386,15 +456,15 @@ describe("dust namespace socket handlers", () => {
       };
       mockSocket._handlers["missionJoin"](MISSION_ID, visitor);
 
-      // Verify visitor is tracked
-      expect(globalValues.dustV1.visitorData[MISSION_ID]).toHaveLength(1);
-
-      // Disconnect
       mockSocket._handlers["disconnect"]();
 
-      // Entry is deleted (not left as empty array) so subsequent disconnects
-      // don't re-trigger cleanupDust on a stale empty entry.
-      expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+      expect(globalValues.dustV1.visitorData[mockSocket.id]).toBeUndefined();
+    });
+
+    it("removes a visitor that never joined a mission", () => {
+      mockSocket._handlers["disconnect"]();
+
+      expect(globalValues.dustV1.visitorData[mockSocket.id]).toBeUndefined();
     });
 
     it("calls cleanupDust when the room becomes empty on disconnect", () => {
@@ -425,13 +495,8 @@ describe("dust namespace socket handlers", () => {
       };
       mockSocket._handlers["missionJoin"](MISSION_ID, visitor);
 
-      // Add a second visitor manually so the room is not empty after disconnect
-      const otherVisitor: DustVisitor = {
-        socketId: "other-socket-id",
-        name: "Vitest OtherDust",
-        connectedAt: Date.now(),
-      };
-      globalValues.dustV1.visitorData[MISSION_ID].push(otherVisitor);
+      // Add a second visitor manually so the mission still has a visitor after disconnect
+      trackVisitor("other-socket-id", [MISSION_ID]);
 
       // Simulate a doc listener
       const removeListenerFn = vi.fn();
@@ -441,8 +506,7 @@ describe("dust namespace socket handlers", () => {
       mockSocket._handlers["disconnect"]();
 
       expect(removeListenerFn).not.toHaveBeenCalled();
-      expect(globalValues.dustV1.visitorData[MISSION_ID]).toHaveLength(1);
-      expect(globalValues.dustV1.visitorData[MISSION_ID][0].socketId).toBe("other-socket-id");
+      expect(Object.keys(globalValues.dustV1.visitorData)).toEqual(["other-socket-id"]);
     });
 
     it("emits inspectorUpdate after disconnect", () => {
@@ -578,7 +642,7 @@ describe("dust namespace socket handlers", () => {
 
       await mockSocket._handlers["getEverything"](MISSION_ID, callback);
 
-      expect(globalValues.dustV1.visitorData[MISSION_ID]).toBeUndefined();
+      expect(globalValues.dustV1.visitorData[mockSocket.id].missionIds).toEqual([]);
       expect(callback).toHaveBeenCalledWith(expect.objectContaining({ status: "success" }));
     });
   });
@@ -693,25 +757,31 @@ describe("dust namespace socket handlers", () => {
       mockSocket._handlers["getDebugInfo"](callback);
 
       expect(callback).toHaveBeenCalledWith({
-        visitors: {
-          [MISSION_ID]: [
-            {
-              socketId: mockSocket.id,
-              name: "Vitest TestDust",
-              connectedAt: visitor.connectedAt,
-            },
-          ],
-        },
+        visitors: [
+          {
+            socketId: mockSocket.id,
+            name: "Vitest TestDust",
+            connectedAt: globalValues.dustV1.visitorData[mockSocket.id].connectedAt,
+            missionIds: [MISSION_ID],
+          },
+        ],
         docListenerMissionIds: [MISSION_ID],
       });
     });
 
-    it("returns empty visitors and docListenerMissionIds when nothing is tracked", () => {
+    it("lists a connected visitor that has not joined a mission", () => {
       const callback = vi.fn();
       mockSocket._handlers["getDebugInfo"](callback);
 
       expect(callback).toHaveBeenCalledWith({
-        visitors: {},
+        visitors: [
+          {
+            socketId: mockSocket.id,
+            name: "unknown",
+            connectedAt: expect.any(Number),
+            missionIds: [],
+          },
+        ],
         docListenerMissionIds: [],
       });
     });

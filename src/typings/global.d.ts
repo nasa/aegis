@@ -5,6 +5,7 @@ type MaestroServerToClientEventsV2 =
   import("server/maestro/v2/types/socketioMaestro").MaestroServerToClientEvents;
 
 type DustVisitorV1 = import("server/dust/v1/types/socketioDust").DustVisitor;
+type DustVisitorDataV1 = import("server/dust/v1/types/socketioDust").DustVisitorData;
 type DustClientToServerEventsV1 =
   import("server/dust/v1/types/socketioDust").DustClientToServerEvents;
 type DustServerToClientEventsV1 =
@@ -61,7 +62,8 @@ type GlobalValues = {
     evaSubscriptions: Map<number, string[]>; // key is missionId, value is array of eva uuids subscribed to
   };
   dustV1: {
-    visitorData: { [missionId: string]: DustVisitorV1[] };
+    /** Every connected DUST socket, keyed by socket id. */
+    visitorData: { [socketId: string]: DustVisitorDataV1 };
     socketio: Namespace<
       DustClientToServerEventsV1,
       DustServerToClientEventsV1,

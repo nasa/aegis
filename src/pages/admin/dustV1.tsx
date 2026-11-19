@@ -299,7 +299,7 @@ const DustV1: React.FunctionComponent = () => {
           <div className={adminCommon.details}>
             {!debugInfo && action.pending ? (
               <AsyncStatus pending="Loading visitor information..." />
-            ) : !debugInfo?.visitors || Object.keys(debugInfo.visitors).length === 0 ? (
+            ) : !debugInfo?.visitors?.length ? (
               <div className={adminCommon.emptyState}>
                 {isDustConnected
                   ? "No DUST visitors connected."
@@ -505,36 +505,36 @@ const PrintDustVisitors: FunctionComponent<{
   visitors: DustDebugInfo["visitors"];
   missionNames: Map<number, string>;
 }> = ({ visitors, missionNames }) => {
-  const rows = Object.entries(visitors)
-    .sort(([a], [b]) => Number(a) - Number(b))
-    .flatMap(([missionId, visitorList]) => {
-      const missionIdNum = Number(missionId);
-      const missionLabel = missionNames.get(missionIdNum) ?? `Mission ${missionId}`;
-      return (visitorList ?? []).map((visitor) => ({ missionLabel, visitor }));
-    });
-
-  if (!rows.length)
+  if (!visitors.length)
     return <div className={adminCommon.emptyState}>No DUST visitors connected.</div>;
 
   return (
     <table className={adminCommon.table}>
       <thead>
         <tr>
-          <th>Mission</th>
+          <th>Joined Missions</th>
           <th>Name</th>
           <th>Socket ID</th>
           <th>Connected At</th>
         </tr>
       </thead>
       <tbody>
-        {rows.map(({ missionLabel, visitor }) => (
-          <tr key={visitor.socketId || "undefined"}>
-            <td>{missionLabel}</td>
-            <td>{visitor.name}</td>
-            <td>{visitor.socketId}</td>
-            <td>{new Date(visitor.connectedAt).toUTCString()}</td>
-          </tr>
-        ))}
+        {[...visitors]
+          .sort((a, b) => a.connectedAt - b.connectedAt)
+          .map((visitor) => (
+            <tr key={visitor.socketId || "undefined"}>
+              <td>
+                {visitor.missionIds.length
+                  ? visitor.missionIds
+                      .map((id) => missionNames.get(id) ?? `Mission ${id}`)
+                      .join(", ")
+                  : "None"}
+              </td>
+              <td>{visitor.name}</td>
+              <td>{visitor.socketId}</td>
+              <td>{new Date(visitor.connectedAt).toUTCString()}</td>
+            </tr>
+          ))}
       </tbody>
     </table>
   );
