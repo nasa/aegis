@@ -16,6 +16,18 @@ const notConfigured = {
   httpStatus: 503,
 };
 
+export const getNewtonCoverage = vi.fn(async (): Promise<WrappedResponse<NewtonCoverage>> => ({
+  status: "success",
+  message: "Newton coverage",
+  data: {
+    supported: false,
+    reason: "disabled",
+    planet: null,
+    probedBy: null,
+    maps: [],
+  },
+}));
+
 export const postNewtonTraverses = vi.fn(
   async (_missionId: number, traverses: NewtonTraversePostData[]) =>
     traverses.map((): NewtonTraverseSubmitResponse => notConfigured)

@@ -1,12 +1,19 @@
 vi.mock("http-client/newton");
-import { deleteNewtonTraverse, getNewtonTraverses, postNewtonTraverses } from "http-client/newton";
+import {
+  deleteNewtonTraverse,
+  getNewtonCoverage,
+  getNewtonTraverses,
+  postNewtonTraverses,
+} from "http-client/newton";
 import { createCustomTestStore } from "../../fixtures/store";
 import { initialState as pathPlannerInitialState } from "store/pathPlanner";
 import { initialState as mapInitialState } from "store/map";
 import {
   NEWTON_DEFAULT_SLOPE_LIMIT,
   NEWTON_TOOL_DEBOUNCE_MS,
+  newtonCoverageKey,
   stopPathPlanner,
+  thunkCheckNewtonCoverage,
   thunkAddPathPlan,
   thunkFlushPathPlan,
   thunkRemovePathPlan,
@@ -587,5 +594,99 @@ describe("Newton Path Planner thunks", () => {
     expect(store.getState().pathPlanner.selectedPlanUuid).toBe(second.uuid);
     await vi.advanceTimersByTimeAsync(NEWTON_TOOL_DEBOUNCE_MS);
     expect(postNewtonTraverses).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Newton coverage", () => {
+  const covered: NewtonCoverage = {
+    supported: true,
+    reason: "covered",
+    planet: "moon",
+    probedBy: "dem_extent",
+    maps: [{ name: "ms3_slope", resolution: [1, 1] }],
+  };
+  const key = newtonCoverageKey({
+    id: 50,
+    demFilePath: "Data/dem.tif",
+    planetRadius: 1_737_400,
+    landerLocation: START,
+  });
+
+  it("checks once per mission and DEM", async () => {
+    vi.mocked(getNewtonCoverage).mockResolvedValue({
+      status: "success",
+      message: "ok",
+      data: covered,
+    });
+    const store = storeWithPoints();
+    await store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key }));
+    await store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key }));
+    expect(getNewtonCoverage).toHaveBeenCalledTimes(1);
+    expect(store.getState().pathPlanner.coverage).toEqual({
+      key,
+      status: "ready",
+      coverage: covered,
+    });
+
+    const otherDem = newtonCoverageKey({
+      id: 50,
+      demFilePath: "Data/other.tif",
+      planetRadius: 1_737_400,
+      landerLocation: START,
+    });
+    await store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key: otherDem }));
+    expect(getNewtonCoverage).toHaveBeenCalledTimes(2);
+  });
+
+  it("records a failed check, and checks again when asked", async () => {
+    vi.mocked(getNewtonCoverage).mockRejectedValueOnce(new Error("offline"));
+    const store = storeWithPoints();
+    await store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key }));
+    expect(store.getState().pathPlanner.coverage).toMatchObject({ status: "error" });
+
+    vi.mocked(getNewtonCoverage).mockResolvedValueOnce({
+      status: "success",
+      message: "ok",
+      data: covered,
+    });
+    await store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key }));
+    expect(store.getState().pathPlanner.coverage).toMatchObject({ status: "ready" });
+  });
+
+  it("keeps the answer while it checks again, and greys out once Newton stops answering", async () => {
+    vi.mocked(getNewtonCoverage).mockResolvedValueOnce({
+      status: "success",
+      message: "ok",
+      data: covered,
+    });
+    const store = storeWithPoints();
+    await store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key }));
+
+    let answer: (value: WrappedResponse<NewtonCoverage>) => void;
+    vi.mocked(getNewtonCoverage).mockImplementationOnce(
+      () => new Promise((resolve) => (answer = resolve))
+    );
+    const pending = store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key, recheck: true }));
+    expect(store.getState().pathPlanner.coverage).toMatchObject({ status: "ready" });
+    // A second recheck while one is in flight doesn't ask again.
+    await store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key, recheck: true }));
+    expect(getNewtonCoverage).toHaveBeenCalledTimes(2);
+
+    answer({ status: "error", message: "Newton is unavailable" });
+    await pending;
+    expect(store.getState().pathPlanner.coverage).toEqual({ key, status: "error", coverage: null });
+  });
+
+  it("drops an answer for a mission that is no longer open", async () => {
+    let answer: (value: WrappedResponse<NewtonCoverage>) => void;
+    vi.mocked(getNewtonCoverage).mockImplementationOnce(
+      () => new Promise((resolve) => (answer = resolve))
+    );
+    const store = storeWithPoints();
+    const pending = store.dispatch(thunkCheckNewtonCoverage({ missionId: 50, key }));
+    await store.dispatch(thunkObliterateMissionSpecificData());
+    answer({ status: "success", message: "ok", data: covered });
+    await pending;
+    expect(store.getState().pathPlanner.coverage).toEqual(pathPlannerInitialState.coverage);
   });
 });

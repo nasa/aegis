@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 export const initialState: PathPlannerState = {
   plans: [],
   selectedPlanUuid: null,
+  coverage: { key: null, status: "idle", coverage: null },
 };
 
 const findPlan = (state: PathPlannerState, uuid: string) =>
@@ -110,6 +111,17 @@ export const pathPlannerSlice = createSlice({
       plan.request.status = "error";
       plan.request.error = action.payload.error;
     },
+    coverageCheckStarted: (state, action: { payload: string }) => {
+      state.coverage = { key: action.payload, status: "checking", coverage: null };
+    },
+    coverageReceived: (
+      state,
+      action: { payload: { key: string; coverage: NewtonCoverage | null } }
+    ) => {
+      if (state.coverage.key !== action.payload.key) return;
+      state.coverage.status = action.payload.coverage ? "ready" : "error";
+      state.coverage.coverage = action.payload.coverage;
+    },
     obliterateState: (state) => {
       //eslint-disable-next-line
       state = Object.assign(state, initialState);
@@ -128,5 +140,7 @@ export const {
   pathPlanSubmitted,
   pathPlanResultReceived,
   pathPlanRequestFailed,
+  coverageCheckStarted,
+  coverageReceived,
   obliterateState,
 } = pathPlannerSlice.actions;

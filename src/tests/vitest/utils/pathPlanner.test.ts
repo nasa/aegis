@@ -1,5 +1,7 @@
 import {
   isPathPlanResultCurrent,
+  newtonCoverageMessage,
+  newtonCoverageTooltip,
   pathLengthMeters,
   pathPlanPointName,
   pathPlanErrorFromResponse,
@@ -139,5 +141,61 @@ describe("isPathPlanResultCurrent", () => {
     expect(
       isPathPlanResultCurrent({ ...plan(signature), points: [start, mid, goal] }, 1737400)
     ).toBe(false);
+  });
+});
+
+describe("newtonCoverageMessage", () => {
+  const ready = (reason: NewtonCoverageReason): PathPlannerCoverage => ({
+    key: "k",
+    status: "ready",
+    coverage: {
+      supported: reason === "covered",
+      reason,
+      planet: "moon",
+      probedBy: null,
+      maps: [],
+    },
+  });
+
+  test.each([
+    [null, "checking Newton coverage…"],
+    [
+      { key: "k", status: "checking", coverage: null } as PathPlannerCoverage,
+      "checking Newton coverage…",
+    ],
+    [
+      { key: "k", status: "error", coverage: null } as PathPlannerCoverage,
+      "Newton is not available",
+    ],
+    [ready("no_slope_map"), "Newton has no slope map for this mission's area"],
+    [ready("unsupported_planet"), "Newton doesn't support this mission's planet"],
+    [ready("no_area"), "this mission has no DEM or lander location to check"],
+    [ready("disabled"), "Newton is not configured"],
+  ])("%#", (coverage, message) => {
+    expect(newtonCoverageMessage(coverage)).toBe(message);
+  });
+});
+
+describe("newtonCoverageTooltip", () => {
+  const covered: PathPlannerCoverage = {
+    key: "k",
+    status: "ready",
+    coverage: {
+      supported: true,
+      reason: "covered",
+      planet: "moon",
+      probedBy: "dem_extent",
+      maps: [],
+    },
+  };
+
+  test("names the tool alone when Newton covers the area", () => {
+    expect(newtonCoverageTooltip(covered)).toBe("Newton Path Planner (experimental)");
+  });
+
+  test("names why the tool is unavailable", () => {
+    expect(newtonCoverageTooltip(null)).toBe(
+      "Newton Path Planner (experimental): checking Newton coverage…"
+    );
   });
 });

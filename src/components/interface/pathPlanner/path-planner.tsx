@@ -293,7 +293,7 @@ const PathPlanner: FunctionComponent = () => {
               </>
             ) : (
               <div className={styles.empty}>
-                Add a plan with + to see Newton&apos;s A* path between two points.
+                Add a plan with + to see Newton&apos;s A* path along 2 or more waypoints.
               </div>
             )}
           </div>

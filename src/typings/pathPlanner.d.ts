@@ -51,7 +51,16 @@ interface PathPlan {
   request: PathPlanRequest;
 }
 
+/** Newton coverage for the open mission, checked once per mission and DEM. */
+type PathPlannerCoverage = {
+  /** `newtonCoverageKey` of the mission the check is for. */
+  key: string | null;
+  status: "idle" | "checking" | "ready" | "error";
+  coverage: NewtonCoverage | null;
+};
+
 interface PathPlannerState {
   plans: PathPlan[];
   selectedPlanUuid: string | null;
+  coverage: PathPlannerCoverage;
 }

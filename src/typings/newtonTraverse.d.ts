@@ -97,3 +97,23 @@ type NewtonHealthReport = {
   newton: Newton.Health | null;
   newtonError: string | null;
 };
+
+/** Why the Newton Path Planner is or isn't available for a mission. */
+type NewtonCoverageReason =
+  "covered" | "no_slope_map" | "unsupported_planet" | "no_area" | "disabled";
+
+/** Whether Newton has a slope map over any part of a mission's area. */
+type NewtonCoverage = {
+  supported: boolean;
+  reason: NewtonCoverageReason;
+  planet: Newton.Planet | null;
+  /** How the mission's area was described to Newton. */
+  probedBy: "dem_extent" | "lander" | null;
+  /** The slope maps that overlap the mission's area. */
+  maps: { name: string; resolution: [number, number] }[];
+};
+
+/** The area of a mission sent to Newton's probe. */
+type NewtonProbeRegion =
+  | { kind: "extent"; extent: [number, number, number, number]; crs: string }
+  | { kind: "point"; lon: number; lat: number };
