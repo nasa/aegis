@@ -242,10 +242,7 @@ export const processEvaDataFromStore = ({
       );
       EVASequenceItemForTimeline.traverse.subdividedPath = newTraverse;
 
-      const durationIsManual = !isNotNumber(traverse.duration);
-
       // Loop through new subdivided traverse
-      let calculatedDuration = 0;
       for (let i = 0; i < newTraverse.length; i++) {
         if (partialMission.landerLocation) {
           // Calculate distance from lander. Track max distance
@@ -259,7 +256,7 @@ export const processEvaDataFromStore = ({
           EVASequenceItemForTimeline.traverse.subdividedDistFromLanderMeters.push(landerDistance);
         }
 
-        // Calculate duration. distance is in m, rate is in km/h, duration is in minutes
+        // Calculate distances between graph samples.
         if (i !== newTraverse.length - 1) {
           const distanceSegment = getDistanceBetweenTwoCoordinates(
             newTraverse[i],
@@ -267,29 +264,15 @@ export const processEvaDataFromStore = ({
             partialMission.planetRadius
           );
           EVASequenceItemForTimeline.traverse.subdividedDistMeters.push(distanceSegment);
-          if (!durationIsManual) {
-            const duration = isNaN(traverseRate)
-              ? 0
-              : (distanceSegment / (+traverseRate * 1000)) * 60;
-            calculatedDuration += duration;
-          }
         }
       }
 
-      if (durationIsManual) {
-        // Assign total duration for the traverse and add it to the eva total duration
-        EVASequenceItemForTimeline.totalDurationMins = traverse.duration;
-        storeRef.current.evaLengthCalculatedMins += traverse.duration;
-      } else {
-        // Add traverse action durations onto the total duration for the traverse
-        // note: this is the "dwell time"
-        const actionDurationMins = calculatedFields?.totalDwellTime;
-        const calcTraversePlusActionDuration = Math.ceil(calculatedDuration) + actionDurationMins;
-
-        // Assign total duration for the traverse and add it to the eva total duration
-        EVASequenceItemForTimeline.totalDurationMins = calcTraversePlusActionDuration;
-        storeRef.current.evaLengthCalculatedMins += calcTraversePlusActionDuration;
-      }
+      // Use the traverse's movement estimate so graph sampling does not affect sequence timing.
+      const duration = isNotNumber(traverse.duration)
+        ? Math.ceil(calculatedFields.movementDurationMinutes) + calculatedFields.totalDwellTime
+        : traverse.duration;
+      EVASequenceItemForTimeline.totalDurationMins = duration;
+      storeRef.current.evaLengthCalculatedMins += duration;
     }
     storeRef.current.sequenceItems.push(EVASequenceItemForTimeline);
   }

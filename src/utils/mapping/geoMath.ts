@@ -25,7 +25,7 @@ export function getDistanceBetweenTwoCoordinates(
       Math.cos(deg2rad(point2.lat)) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
   return radius * c; // Distance in R units
 }
 
@@ -414,7 +414,7 @@ export function addPointsAtMeters(
 
     const distance = getDistanceBetweenTwoCoordinates(path[i], path[i + 1], radius);
     const nNeeded = Math.floor(distance / meters);
-    if (nNeeded === 0) continue;
+    if (!Number.isFinite(nNeeded) || nNeeded <= 0) continue;
     const interpolatedPoints = greatCircleInterpolate(path[i], path[i + 1], nNeeded);
     // const interpolatedPoints = linearInterpolate(path[i], path[i + 1], nNeeded);
     newPath.push(...interpolatedPoints);
@@ -441,15 +441,15 @@ export function greatCircleInterpolate(
   const startLonRad = deg2rad(start[1]);
   const endLatRad = deg2rad(end[0]);
   const endLonRad = deg2rad(end[1]);
-  const d = Math.acos(
-    Math.sin(startLatRad) * Math.sin(endLatRad) +
-      Math.cos(startLatRad) * Math.cos(endLatRad) * Math.cos(endLonRad - startLonRad)
-  ); // Angular distance
+  // Haversine distance on the unit sphere retains precision for nearly coincident points.
+  const d = getDistanceBetweenTwoCoordinates(startPoint, endPoint, 1);
+  if (d === 0) return Array.from({ length: n }, () => ({ ...startPoint }));
+  const sinD = Math.sin(d);
 
   for (let i = 1; i <= n; i++) {
     const f = i / (n + 1);
-    const A = Math.sin((1 - f) * d) / Math.sin(d);
-    const B = Math.sin(f * d) / Math.sin(d);
+    const A = Math.sin((1 - f) * d) / sinD;
+    const B = Math.sin(f * d) / sinD;
     const x =
       A * Math.cos(startLatRad) * Math.cos(startLonRad) +
       B * Math.cos(endLatRad) * Math.cos(endLonRad);
