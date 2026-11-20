@@ -11,7 +11,8 @@ import {
 } from "utils/lgrs/crs";
 import { formatLgrsLabel } from "utils/lgrs/format";
 import { getLtmFalseNorthing } from "utils/lgrs/grid/clip";
-import { coarsenForMinimap, createLgrsRenderPlan, LGRS_RENDER_CAPS } from "utils/lgrs/grid/plan";
+import { createLgrsRenderPlan, LGRS_RENDER_CAPS } from "utils/lgrs/grid/plan";
+import { fileGridStride, GRID_INTERVALS_METERS } from "utils/mapping/gridSpacing";
 import { getLgrsMapAdapter } from "utils/lgrs/mapAdapter";
 import { unprojectToLatLon } from "utils/lgrs/projection";
 
@@ -340,6 +341,18 @@ describe.each(VIEWPORTS)("createLgrsRenderPlan: $name", (viewport) => {
 });
 
 describe("createLgrsRenderPlan caps and tiers", () => {
+  test("auto zoom levels use standard line and label intervals", () => {
+    const spacings = [0.1, 0.3, 1, 5, 20, 60].map((resolution) => {
+      const { plan } = buildPlan({ ...VIEWPORTS[0], resolution });
+      expect(GRID_INTERVALS_METERS).toContain(plan.lineSpacing);
+      expect(GRID_INTERVALS_METERS).toContain(plan.labelSpacing);
+      expect(plan.labelSpacing % plan.lineSpacing).toBe(0);
+      return plan.lineSpacing;
+    });
+    expect(spacings).toEqual([...spacings].sort((a, b) => a - b));
+    expect(new Set(spacings)).toEqual(new Set(GRID_INTERVALS_METERS));
+  });
+
   test.each([179.9, -179.9])("wraps zone-tier seams and labels at longitude %s", (lon) => {
     const { plan } = buildPlan({
       name: "wrapped zone framework",
@@ -436,7 +449,7 @@ describe("createLgrsRenderPlan caps and tiers", () => {
     expect(degenerate.tier).toBe("none");
   });
 
-  test("a minimap coarsens the inherited spacing per region to ≥ 3 px", () => {
+  test("a minimap coarsens to the first standard interval with room for the lines", () => {
     // A 300 × 300 px minimap over the Apollo 14 site.
     const adapter = adapterFor("mercator");
     adapter.latLonToMap(-3.6, -17.5, out);
@@ -453,19 +466,19 @@ describe("createLgrsRenderPlan caps and tiers", () => {
       inheritedSpacing: { line: 10, label: 20 },
     });
     expect(plan.capped).toBe(false);
-    expect(plan.lineSpacing).toBe(40);
+    expect(plan.lineSpacing).toBe(100);
     const mpp = metersPerPixel(adapter, getLtmCrsId(21, "S"), out[0], out[1], resolution);
     expect(plan.lineSpacing / mpp).toBeGreaterThanOrEqual(3);
-    expect(plan.lineSpacing / 2 / mpp).toBeLessThan(3);
+    expect(10 / mpp).toBeLessThan(3);
     expect(plan.labels).toEqual([]);
   });
 });
 
-describe("coarsenForMinimap", () => {
-  test("doubles until lines are at least 3 px apart", () => {
-    expect(coarsenForMinimap(10, 1)).toBe(10);
-    expect(coarsenForMinimap(10, 4)).toBe(20);
-    expect(coarsenForMinimap(10, 40)).toBe(160);
-    expect(coarsenForMinimap(10, NaN)).toBe(10);
+describe("file grid spacing", () => {
+  test("chooses whole lattice strides at standard distances", () => {
+    expect(fileGridStride(10, 30)).toBe(10);
+    expect(fileGridStride(9.98, 10)).toBe(1);
+    expect(fileGridStride(25, 80)).toBe(4);
+    expect(fileGridStride(10, 250, 10)).toBe(100);
   });
 });

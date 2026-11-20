@@ -44,6 +44,7 @@ import {
   type DashboardBoundsContextValue,
 } from "components/interface/map/DashboardBoundsProvider";
 import { Grid } from "components/interface/map/behaviors/Grid";
+import { GRID_INTERVAL_PROPERTY } from "components/interface/map/utils/mapScale";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice } from "store/preset";
 import { interfaceSlice } from "store/interface";
@@ -582,6 +583,19 @@ describe("Grid", () => {
     expect(labelLayer.getSource()!.getFeatures().length).toBeGreaterThan(0);
   });
 
+  it("skips grid labels wider than their cells", () => {
+    mockGrid.current = makeGrid(3, 3);
+    const longLabel = "Long grid label".repeat(10);
+    mockGrid.current.coordinates[1][1].name = longLabel;
+    store = makeStore(visibleGridState());
+    map.getView().setResolution(200);
+
+    renderGrid();
+
+    expect(labelTexts().length).toBeGreaterThan(0);
+    expect(labelTexts()).not.toContain(longLabel);
+  });
+
   it("label source is empty in minimap mode (gridLabelsEnabled=false)", () => {
     mockGrid.current = makeGrid(3, 3);
     store = makeStore({
@@ -606,11 +620,17 @@ describe("Grid", () => {
     mockGrid.current = makeGrid(3, 3);
     mockBaseSpacing.current = 10;
     store = makeStore(visibleGridState());
+    map.getView().setResolution(0.2);
 
     renderGridInBounds("dashboard");
 
     // 3×3 grid over the whole viewport → stride 1 → spacing == base spacing.
     await expect.poll(() => bounds.ctx?.gridSpacing).toEqual({ line: 10, label: 10 });
+    expect(map.get(GRID_INTERVAL_PROPERTY)).toBe(10);
+
+    map.getView().setResolution(2);
+    await expect.poll(() => map.get(GRID_INTERVAL_PROPERTY)).toBe(100);
+    await expect.poll(() => bounds.ctx?.gridSpacing).toEqual({ line: 100, label: 100 });
   });
 
   it("minimap draws the dashboard's spacing instead of its own", async () => {
@@ -735,14 +755,14 @@ describe("Grid dynamic LGRS", () => {
     expect(lineFeatureCount()).toBe(own.lines.length);
 
     const { flushSync } = await import("react-dom");
-    flushSync(() => bounds.ctx!.setGridSpacing({ line: 100, label: 100 }));
+    flushSync(() => bounds.ctx!.setGridSpacing({ line: 1000, label: 1000 }));
     renderGridInBounds("minimap");
 
     const inherited = planForView({
       labelsVisible: false,
-      inheritedSpacing: { line: 100, label: 100 },
+      inheritedSpacing: { line: 1000, label: 1000 },
     });
-    expect(inherited.lineSpacing).toBe(100);
+    expect(inherited.lineSpacing).toBe(1000);
     expect(lineFeatureCount()).toBe(inherited.lines.length);
     expect(inherited.lines.length).toBeLessThan(own.lines.length);
   });

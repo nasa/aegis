@@ -35,6 +35,7 @@ export interface MapContextValue {
   map: Map;
   /** Which map variant this is */
   mode: MapMode;
+  planetRadius?: number;
 }
 
 /**
@@ -90,6 +91,7 @@ export function MapProvider({
       projBoundsMaxY: doc.projBoundsMaxY,
       landerLocation: doc.landerLocation,
       initialZoom: doc.initialZoom,
+      planetRadius: doc.planetRadius,
     }),
     deepEqual
   );
@@ -198,5 +200,11 @@ export function MapProvider({
 
   if (!mapInstance) return null;
 
-  return <MapContext.Provider value={{ map: mapInstance, mode }}>{children}</MapContext.Provider>;
+  return (
+    <MapContext.Provider
+      value={{ map: mapInstance, mode, planetRadius: projConfigRaw?.planetRadius }}
+    >
+      {children}
+    </MapContext.Provider>
+  );
 }

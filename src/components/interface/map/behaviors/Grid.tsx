@@ -5,10 +5,8 @@
  * (`createLgrsRenderPlan`, any lunar map projection) as OL features on dedicated VectorLayers.
  * Grid density adapts to the visible portion (zoom level) to avoid rendering thousands of lines.
  *
- * Density is decided by the dashboard: the dashboard map publishes the spacing it
- * drew to `DashboardBoundsProvider` and the minimap redraws at that same
- * ground spacing, so the bounds box on the minimap contains as many grid lines
- * as the dashboard shows. The editor map is unaffected (no provider).
+ * The dashboard publishes its spacing to `DashboardBoundsProvider`. The minimap
+ * inherits that spacing and coarsens it as needed for legibility.
  *
  * Returns null — headless behavior component.
  */
@@ -24,9 +22,16 @@ import { unByKey } from "ol/Observable";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getGridBaseSpacingMeters } from "utils/mapping/grid";
+import {
+  fileGridStride,
+  gridCellWidth,
+  GRID_LABEL_MIN_PX,
+  MINIMAP_MIN_LINE_PX,
+  nominalGridInterval,
+} from "utils/mapping/gridSpacing";
 import { adjustGridIndex, findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 import { getLgrsCompatibility } from "utils/lgrs/compatibility";
-import { coarsenForMinimap, createLgrsRenderPlan } from "utils/lgrs/grid/plan";
+import { createLgrsRenderPlan } from "utils/lgrs/grid/plan";
 import { getLgrsMapAdapter } from "utils/lgrs/mapAdapter";
 
 import { useMapContext } from "../MapProvider";
@@ -38,11 +43,13 @@ import {
 import { MODE_CONFIGS } from "../utils/modeConfig";
 import { useCoordConverters } from "../hooks/useCoordConverters";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
-import { createGridLabelStyleFn, createGridLineStyles } from "../utils/styles/grid";
+import { createGridLabelStyleFn, createGridLineStyles, gridLabelFits } from "../utils/styles/grid";
+import {
+  getGroundMetersPerPixel,
+  GRID_INTERVAL_PROPERTY,
+  type DrawnGridInterval,
+} from "../utils/mapScale";
 import { Z_INDEX } from "../utils/zIndex";
-
-// Hide labels once adjacent labels would be closer than this many screen pixels.
-const LABEL_MIN_PX = 60;
 
 export function Grid(): null {
   const { map, mode } = useMapContext();
@@ -100,6 +107,7 @@ export function Grid(): null {
     const labelLayer = new VectorLayer({
       source: labelSource,
       zIndex: Z_INDEX.GRID_LABELS,
+      declutter: "mission-grid-labels",
     });
 
     map.addLayer(lineLayer);
@@ -110,6 +118,7 @@ export function Grid(): null {
     return () => {
       map.removeLayer(lineLayer);
       map.removeLayer(labelLayer);
+      map.set(GRID_INTERVAL_PROPERTY, null);
       lineLayerRef.current = null;
       labelLayerRef.current = null;
     };
@@ -121,8 +130,7 @@ export function Grid(): null {
     const labelLayer = labelLayerRef.current;
     if (!lineLayer || !labelLayer) return;
 
-    /** Draws the grid; returns the spacing it used, or null when nothing was drawn. */
-    const drawGrid = (): GridSpacingMeters | null => {
+    const drawGrid = (): GridSpacingMeters | "lgrs-zones" | null => {
       const lineSource = lineLayer.getSource()!;
       const labelSource = labelLayer.getSource()!;
       lineSource.clear();
@@ -130,8 +138,10 @@ export function Grid(): null {
       if (!mapGridControl?.visible || resolvedGrid.kind === "none") return null;
 
       const lineStyles = createGridLineStyles(mapGridControl.style);
-      const extent = map.getView().calculateExtent(map.getSize());
-      const resolution = map.getView().getResolution() ?? 0;
+      const view = map.getView();
+      const resolution = view.getResolution();
+      if (!resolution || !view.getCenter()) return null;
+      const extent = view.calculateExtent(map.getSize());
       const labelsEnabled = !!mapGridControl.labelsVisible && config.grid.labelsEnabled;
 
       if (resolvedGrid.kind === "dynamic-lgrs") {
@@ -143,6 +153,7 @@ export function Grid(): null {
           gridSpacingMode,
           gridLabelInterval,
           labelsVisible: labelsEnabled,
+          labelFits: (text, cellPixels) => gridLabelFits(labelStyle(text, false), cellPixels),
           inheritedSpacing,
         });
 
@@ -158,13 +169,16 @@ export function Grid(): null {
         });
         lineSource.addFeatures(lineFeatures);
         labelSource.addFeatures(labelFeatures);
-        return plan.tier === "box" ? { line: plan.lineSpacing, label: plan.labelSpacing } : null;
+        if (plan.tier === "zone") return lineFeatures.length ? "lgrs-zones" : null;
+        if (!plan.lines.some((line) => line.kind === "grid")) return null;
+        return { line: plan.lineSpacing, label: plan.labelSpacing };
       }
 
       if (!planetRadius) return null;
       const gridCoordinates = resolvedGrid.grid.coordinates;
       const numRows = gridCoordinates.length;
-      const numCols = gridCoordinates[0].length;
+      const numCols = gridCoordinates[0]?.length;
+      if (!numCols) return null;
 
       // Compute visible bounds in AEGISPoint space
       const topLeft = toAegisPoint([extent[0], extent[3]]);
@@ -179,55 +193,33 @@ export function Grid(): null {
       const baseSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
 
       const basePointsShown =
-        (endGridIdx.row - startGridIdx.row) * (endGridIdx.col - startGridIdx.col);
+        (Math.abs(endGridIdx.row - startGridIdx.row) + 1) *
+        (Math.abs(endGridIdx.col - startGridIdx.col) + 1);
+      const metersPerPixel = getGroundMetersPerPixel(view, planetRadius) || 0;
+      const lineMinimum = inheritedSpacing
+        ? Math.max(inheritedSpacing.line, MINIMAP_MIN_LINE_PX * metersPerPixel)
+        : gridSpacingMode === "auto"
+          ? Math.max(
+              (Math.sqrt(basePointsShown) / 10) * baseSpacing,
+              labelsEnabled ? GRID_LABEL_MIN_PX * metersPerPixel : 0
+            )
+          : gridSpacingMode;
+      const inheritedStride =
+        inheritedSpacing && baseSpacing > 0
+          ? Math.max(1, Math.round(inheritedSpacing.line / baseSpacing))
+          : 1;
+      const lineZoomLevel =
+        baseSpacing > 0 ? fileGridStride(baseSpacing, lineMinimum, inheritedStride) : 1;
 
-      // --- Line stride ---
-      // The minimap mirrors the dashboard's ground spacing. Otherwise fixed mode
-      // draws every Nth grid line at a fixed ground spacing, independent of zoom,
-      // and auto mode targets ~100 visible cells at any zoom.
-      let lineZoomLevel: number;
-      if (inheritedSpacing && baseSpacing > 0) {
-        const spacing = coarsenForMinimap(inheritedSpacing.line, resolution);
-        lineZoomLevel = Math.max(1, Math.round(spacing / baseSpacing));
-      } else if (gridSpacingMode !== "auto" && baseSpacing > 0) {
-        lineZoomLevel = Math.max(1, Math.round(gridSpacingMode / baseSpacing));
-      } else {
-        lineZoomLevel = Math.max(1, Math.ceil(Math.sqrt(basePointsShown / 100)));
-      }
-
-      // --- Label stride + overlap cutoff ---
-      // Labels are always placed on a multiple of the line stride so they sit on
-      // drawn lines. The auto label interval hides labels when they would overlap
-      // (the "zoom-out cutoff"); a fixed label interval is always shown.
-      let labelZoomLevel: number;
-      let hideLabels = false;
-      if (inheritedSpacing && baseSpacing > 0) {
-        const rawLabelStride = Math.max(1, Math.round(inheritedSpacing.label / baseSpacing));
-        labelZoomLevel = Math.max(
-          lineZoomLevel,
-          Math.ceil(rawLabelStride / lineZoomLevel) * lineZoomLevel
-        );
-      } else if (gridSpacingMode === "auto") {
-        // Adaptive labels target ~25 visible.
-        const rawLabelInterval = Math.ceil(Math.sqrt(basePointsShown / 25));
-        labelZoomLevel = Math.ceil(rawLabelInterval / lineZoomLevel) * lineZoomLevel;
-      } else if (gridLabelInterval === "auto") {
-        // A label on every drawn line, hidden once they would overlap.
-        labelZoomLevel = lineZoomLevel;
-        if (baseSpacing > 0 && resolution > 0) {
-          const pxSpacing = (labelZoomLevel * baseSpacing) / resolution;
-          if (pxSpacing < LABEL_MIN_PX) hideLabels = true;
-        }
-      } else if (baseSpacing > 0) {
-        // Fixed label interval, aligned up to a multiple of the line stride.
-        const rawLabelStride = Math.max(1, Math.round(gridLabelInterval / baseSpacing));
-        labelZoomLevel = Math.max(
-          lineZoomLevel,
-          Math.ceil(rawLabelStride / lineZoomLevel) * lineZoomLevel
-        );
-      } else {
-        labelZoomLevel = lineZoomLevel;
-      }
+      const labelMinimum =
+        inheritedSpacing?.label ??
+        (gridSpacingMode === "auto"
+          ? (Math.sqrt(basePointsShown) / 5) * baseSpacing
+          : gridLabelInterval === "auto"
+            ? lineZoomLevel * baseSpacing
+            : gridLabelInterval);
+      const labelZoomLevel =
+        baseSpacing > 0 ? fileGridStride(baseSpacing, labelMinimum, lineZoomLevel) : lineZoomLevel;
 
       const spacing: GridSpacingMeters | null =
         baseSpacing > 0
@@ -236,6 +228,8 @@ export function Grid(): null {
 
       const startIndex = adjustGridIndex(startGridIdx, numRows, numCols, lineZoomLevel, true);
       const endIndex = adjustGridIndex(endGridIdx, numRows, numCols, lineZoomLevel, false);
+      const lineStart = adjustGridIndex(startGridIdx, numRows, numCols, 1, true);
+      const lineEnd = adjustGridIndex(endGridIdx, numRows, numCols, 1, false);
 
       const labelStartIndex = adjustGridIndex(startGridIdx, numRows, numCols, labelZoomLevel, true);
       const labelEndIndex = adjustGridIndex(endGridIdx, numRows, numCols, labelZoomLevel, false);
@@ -244,10 +238,8 @@ export function Grid(): null {
       // Horizontal lines (rows)
       for (let i = endIndex.row; i >= startIndex.row; i -= lineZoomLevel) {
         if (i < 0 || i >= numRows) continue;
-        const startCol = Math.max(0, startIndex.col);
-        const endCol = Math.min(numCols - 1, endIndex.col);
-        const p1 = gridCoordinates[i][startCol].coordinates;
-        const p2 = gridCoordinates[i][endCol].coordinates;
+        const p1 = gridCoordinates[i][lineStart.col]?.coordinates;
+        const p2 = gridCoordinates[i][lineEnd.col]?.coordinates;
         if (!p1 || !p2) continue;
 
         const coords = [toMapCoord(p1), toMapCoord(p2)];
@@ -259,10 +251,8 @@ export function Grid(): null {
       // Vertical lines (columns)
       for (let i = startIndex.col; i <= endIndex.col; i += lineZoomLevel) {
         if (i < 0 || i >= numCols) continue;
-        const startRow = Math.max(0, startIndex.row);
-        const endRow = Math.min(numRows - 1, endIndex.row);
-        const p1 = gridCoordinates[startRow][i].coordinates;
-        const p2 = gridCoordinates[endRow][i].coordinates;
+        const p1 = gridCoordinates[lineStart.row]?.[i]?.coordinates;
+        const p2 = gridCoordinates[lineEnd.row]?.[i]?.coordinates;
         if (!p1 || !p2) continue;
 
         const coords = [toMapCoord(p1), toMapCoord(p2)];
@@ -272,7 +262,8 @@ export function Grid(): null {
       }
 
       // --- Labels ---
-      if (!labelsEnabled || hideLabels) return spacing;
+      if (lineSource.isEmpty()) return null;
+      if (!labelsEnabled) return spacing;
 
       for (let i = labelEndIndex.row; i >= labelStartIndex.row; i -= labelZoomLevel) {
         for (let j = labelStartIndex.col; j <= labelEndIndex.col; j += labelZoomLevel) {
@@ -282,8 +273,21 @@ export function Grid(): null {
           if (!point.name) continue;
 
           const coord = toMapCoord(point.coordinates);
+          const style = labelStyle(point.name, false);
+          const rowNeighbor =
+            gridCoordinates[i + lineZoomLevel]?.[j] ?? gridCoordinates[i - lineZoomLevel]?.[j];
+          const colNeighbor =
+            gridCoordinates[i][j + lineZoomLevel] ?? gridCoordinates[i][j - lineZoomLevel];
+          if (!rowNeighbor?.coordinates || !colNeighbor?.coordinates) continue;
+          const cellPixels =
+            gridCellWidth(
+              coord,
+              toMapCoord(rowNeighbor.coordinates),
+              toMapCoord(colNeighbor.coordinates)
+            ) / resolution;
+          if (!gridLabelFits(style, cellPixels)) continue;
           const labelFeature = new Feature(new Point(coord));
-          labelFeature.setStyle(labelStyle(point.name, false));
+          labelFeature.setStyle(style);
           labelSource.addFeature(labelFeature);
         }
       }
@@ -294,8 +298,11 @@ export function Grid(): null {
     // Note the separate statement: `publishSpacing?.(drawGrid())` would skip the
     // draw entirely on maps that don't publish.
     const spacing = drawGrid();
+    const interval: DrawnGridInterval =
+      spacing === "lgrs-zones" ? spacing : spacing && nominalGridInterval(spacing.line);
+    map.set(GRID_INTERVAL_PROPERTY, interval);
     // The dashboard publishes what it drew so the minimap can mirror it.
-    publishSpacing?.(spacing);
+    publishSpacing?.(spacing === "lgrs-zones" ? null : spacing);
   }, [
     map,
     mapGridControl,
@@ -334,6 +341,7 @@ export function Grid(): null {
       view.on("change:center", scheduleRebuild),
       view.on("change:resolution", scheduleRebuild),
       map.on("moveend", finalRebuild),
+      map.on("change:size", scheduleRebuild),
     ];
 
     return () => {

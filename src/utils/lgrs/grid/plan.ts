@@ -13,6 +13,13 @@ import {
 import { formatLgrsLabel } from "../format";
 import { projectLatLon, unprojectToLatLon } from "../projection";
 import {
+  GRID_INTERVALS_METERS,
+  GRID_LABEL_MIN_PX,
+  MINIMAP_MIN_LINE_PX,
+  gridCellWidth,
+  standardGridInterval,
+} from "utils/mapping/gridSpacing";
+import {
   clipGridLineToRegion,
   clipRunToExtent,
   densifyCurve,
@@ -29,21 +36,18 @@ import {
  */
 
 /** Finest auto spacing and the lattice the auto spacing is a multiple of. */
-export const LGRS_GRID_BASE_SPACING_METERS = 10;
+export const LGRS_GRID_BASE_SPACING_METERS = GRID_INTERVALS_METERS[0];
 export const LGRS_RENDER_CAPS: LgrsRenderCaps = {
   maxVertices: 2000,
   maxLines: 600,
   maxLabels: 400,
 };
-/** Inherited minimap spacing doubles until adjacent lines are at least this far apart. */
-export const MINIMAP_MIN_LINE_PX = 3;
-
-const LINE_CELL_TARGET = 100;
-const LABEL_TARGET = 25;
-const LABEL_MIN_PX = 60;
-const MAX_BOX_SPACING_METERS = 25000;
+const LINE_CELL_TARGET = 400;
+const AUTO_MIN_LINE_PX = 24;
+// Wide examples of the ACC text at each box precision, for selecting a legible auto interval.
+const BOX_LABEL_EXAMPLES = ["W88 W88", "W8 W8", "W W", "45WWW"];
+const MAX_BOX_SPACING_METERS = GRID_INTERVALS_METERS[3];
 const MAX_BOX_REGIONS = 12;
-const FALLBACK_SPACINGS = [10, 100, 1000, 25000];
 const LABEL_PRECISIONS: readonly LgrsPrecision[] = [25000, 1000, 100, 10, 1];
 const TOLERANCE_PX = 0.5;
 const JUMP_PX = 64;
@@ -52,18 +56,10 @@ const RING_STEPS = 16;
 const LATTICE_STEPS = 8;
 const BOX_PADDING = 0.02;
 const MAX_LABEL_NODE_FACTOR = 8;
-const MAX_LABEL_SCALE = 2 ** 20;
 const ZONE_LABEL_MIN_PX = 48;
 const ZONE_TOLERANCE_RETRIES = 3;
 const BAND_DEGREES = 8;
 const POLAR_LABEL_LATITUDE = 85;
-
-/** Doubles `spacing` until adjacent lines are ≥ `MINIMAP_MIN_LINE_PX` apart at `unitsPerPixel`. */
-export function coarsenForMinimap(spacing: number, unitsPerPixel: number): number {
-  if (!(spacing > 0) || !(unitsPerPixel > 0) || !Number.isFinite(unitsPerPixel)) return spacing;
-  const factor = (MINIMAP_MIN_LINE_PX * unitsPerPixel) / spacing;
-  return factor <= 1 ? spacing : spacing * 2 ** Math.ceil(Math.log2(factor));
-}
 
 const scratch = new Float64Array(2);
 const scratchLatLon = new Float64Array(2);
@@ -303,7 +299,7 @@ function getMetersPerPixel(ctx: LgrsPlanContext, region: LgrsRegionView): number
   const dx = Math.hypot(scratch[0] - e, scratch[1] - n);
   if (!adapter.mapToLgrs(centreX, centreY + resolution, region.crs, scratch)) return NaN;
   const dy = Math.hypot(scratch[0] - e, scratch[1] - n);
-  return Math.sqrt(dx * dy);
+  return Math.max(dx, dy);
 }
 
 /** Project into the horizontal world containing the view centre before clipping. */
@@ -337,41 +333,47 @@ function regionToMap(
 
 // * SPACING ──────────────────────────────────────────────────────────
 
-/** Today's density heuristic (≈100 line cells, ≈25 labels on the 10 m lattice). */
 function chooseSpacing(
   options: LgrsRenderOptions,
   cells: number,
   metersPerPixel: number,
   lineOverride: number | null
 ): LgrsSpacingChoice {
-  let spacingMode = options.gridSpacingMode;
-  let labelInterval = options.gridLabelInterval;
   const inherited = options.inheritedSpacing;
-  if (inherited && inherited.line > 0) {
-    spacingMode = coarsenForMinimap(inherited.line, metersPerPixel);
-    labelInterval = Math.max(spacingMode, inherited.label);
-  }
+  const autoMinimum = Math.max(
+    Math.sqrt(cells / LINE_CELL_TARGET) * LGRS_GRID_BASE_SPACING_METERS,
+    (options.labelsVisible ? AUTO_MIN_LINE_PX : 0) * metersPerPixel
+  );
+  const inheritedMinimum = inherited
+    ? Math.max(inherited.line, MINIMAP_MIN_LINE_PX * metersPerPixel)
+    : 0;
   const line =
     lineOverride ??
-    (spacingMode === "auto"
-      ? Math.max(
-          LGRS_GRID_BASE_SPACING_METERS,
-          Math.ceil(Math.sqrt(cells / LINE_CELL_TARGET)) * LGRS_GRID_BASE_SPACING_METERS
-        )
-      : spacingMode);
+    (inherited
+      ? standardGridInterval(inheritedMinimum, inherited.line)
+      : options.gridSpacingMode === "auto"
+        ? (GRID_INTERVALS_METERS.find(
+            (interval, index) =>
+              interval >= autoMinimum &&
+              (!options.labelsVisible ||
+                !options.labelFits ||
+                options.labelFits(BOX_LABEL_EXAMPLES[index], interval / metersPerPixel))
+          ) ?? Infinity)
+        : options.gridSpacingMode);
 
-  let label = line;
-  let hideLabels = !options.labelsVisible;
-  if (spacingMode === "auto") {
-    const target = Math.ceil(Math.sqrt(cells / LABEL_TARGET)) * LGRS_GRID_BASE_SPACING_METERS;
-    label = Math.ceil(target / line) * line;
-  } else if (labelInterval === "auto") {
-    const pixelSpacing = line / metersPerPixel;
-    hideLabels = hideLabels || !Number.isFinite(pixelSpacing) || pixelSpacing < LABEL_MIN_PX;
-  } else {
-    label = Math.max(line, Math.ceil(labelInterval / line) * line);
-  }
-  return { line, label, hideLabels };
+  const requestedLabel =
+    inherited?.label ??
+    (options.gridSpacingMode === "auto" || options.gridLabelInterval === "auto"
+      ? line
+      : options.gridLabelInterval);
+  const label = requestedLabel <= line ? line : standardGridInterval(requestedLabel, line);
+  const hideLabels =
+    !options.labelsVisible ||
+    !Number.isFinite(label) ||
+    (options.gridSpacingMode !== "auto" &&
+      options.gridLabelInterval === "auto" &&
+      line < GRID_LABEL_MIN_PX * metersPerPixel);
+  return { line, label: Number.isFinite(label) ? label : line, hideLabels };
 }
 
 // * LINES ────────────────────────────────────────────────────────────
@@ -567,6 +569,7 @@ function emitRegionLabels(
   ctx: LgrsPlanContext,
   region: LgrsRegionView,
   spacing: number,
+  lineSpacing: number,
   out: LgrsRenderLabel[]
 ): boolean {
   const [minE, minN, maxE, maxN] = region.affine ? region.view : region.lines;
@@ -582,10 +585,15 @@ function emitRegionLabels(
       if (!label) continue;
       if (!regionToMap(ctx, region, easting, northing, scratch)) continue;
       if (!region.affine && !isInExtent(scratch[0], scratch[1], ctx.extent)) continue;
+      const coordinate: [number, number] = [scratch[0], scratch[1]];
+      if (ctx.options.labelFits) {
+        const cellPixels = getCellPixels(ctx, region, coordinate, easting, northing, lineSpacing);
+        if (!ctx.options.labelFits(label.text, cellPixels)) continue;
+      }
       out.push({
         crs: region.crs,
         node: [easting, northing],
-        coordinate: [scratch[0], scratch[1]],
+        coordinate,
         text: label.text,
         label,
         centered: false,
@@ -594,6 +602,21 @@ function emitRegionLabels(
     }
   }
   return true;
+}
+
+function getCellPixels(
+  ctx: LgrsPlanContext,
+  region: LgrsRegionView,
+  coordinate: [number, number],
+  easting: number,
+  northing: number,
+  spacing: number
+): number {
+  if (region.affine) return spacing / Math.abs(region.affine.scale) / ctx.resolution;
+  if (!regionToMap(ctx, region, easting + spacing, northing, scratch)) return 0;
+  const row = [scratch[0], scratch[1]];
+  if (!regionToMap(ctx, region, easting, northing + spacing, scratch)) return 0;
+  return gridCellWidth(coordinate, row, [scratch[0], scratch[1]]) / ctx.resolution;
 }
 
 /** Accepts a zone-tier label unless one is already within `ZONE_LABEL_MIN_PX`. */
@@ -685,7 +708,7 @@ function buildZonePlan(ctx: LgrsPlanContext): LgrsRenderPlan {
 function buildBox(
   ctx: LgrsPlanContext,
   regions: LgrsRegionView[],
-  spacings: LgrsSpacingChoice[]
+  spacing: LgrsSpacingChoice
 ): LgrsBoxResult {
   const lines: LgrsRenderLine[] = [];
   let labels: LgrsRenderLabel[] = [];
@@ -695,7 +718,8 @@ function buildBox(
     status: "lines",
     lines,
     labels,
-    labelScale: 1,
+    labelSpacing: spacing.label,
+    labelsCapped: false,
     regions: [],
     vertexCount,
   });
@@ -705,7 +729,7 @@ function buildBox(
     const added = emitRegionLines(
       ctx,
       regions[index],
-      spacings[index].line,
+      spacing.line,
       lines,
       ctx.caps.maxVertices - vertexCount
     );
@@ -716,24 +740,37 @@ function buildBox(
   vertexCount += emitFramework(ctx, false, TOLERANCE_PX * ctx.resolution, lines);
   if (vertexCount > ctx.caps.maxVertices || lines.length > ctx.caps.maxLines) return failed();
 
-  // Labels over the cap double their spacing; the lines are kept.
-  let labelScale = 1;
+  let labelSpacing = spacing.label;
+  let labelsCapped = false;
   let used = lineRegions;
-  for (; labelScale <= MAX_LABEL_SCALE; labelScale *= 2) {
+  while (!spacing.hideLabels) {
     labels = [];
     used = new Set(lineRegions);
     let fits = true;
     for (let index = 0; index < regions.length && fits; index++) {
-      if (spacings[index].hideLabels) continue;
       const before = labels.length;
-      const spacing = spacings[index].label * labelScale;
-      fits = emitRegionLabels(ctx, regions[index], spacing, labels);
+      fits = emitRegionLabels(ctx, regions[index], labelSpacing, spacing.line, labels);
       if (labels.length > before) used.add(regions[index].crs);
     }
     if (fits) break;
+    labelsCapped = true;
+    const next = standardGridInterval(labelSpacing + 1, spacing.line);
+    if (!Number.isFinite(next)) {
+      labels = [];
+      used = lineRegions;
+      break;
+    }
+    labelSpacing = next;
   }
-  if (labelScale > MAX_LABEL_SCALE) labels = [];
-  return { status: "ok", lines, labels, labelScale, regions: [...used], vertexCount };
+  return {
+    status: "ok",
+    lines,
+    labels,
+    labelSpacing,
+    labelsCapped,
+    regions: [...used],
+    vertexCount,
+  };
 }
 
 /** Builds the dynamic LGRS grid for the map view (plan §6.3). */
@@ -779,36 +816,33 @@ export function createLgrsRenderPlan(options: LgrsRenderOptions): LgrsRenderPlan
   if (!centre) return buildZonePlan(ctx);
   // The centre region sets the density for every region so it stays uniform across seams.
   const cells = getVisibleBaseCellCount(centre);
-  const centreMpp = getMetersPerPixel(ctx, centre);
-  const regionMpp = options.inheritedSpacing
-    ? regions.map((region) => getMetersPerPixel(ctx, region))
-    : null;
+  const spacingRegions = options.inheritedSpacing ? regions : [centre];
+  const metersPerPixel = Math.max(
+    0,
+    ...spacingRegions.map((region) => getMetersPerPixel(ctx, region)).filter(Number.isFinite)
+  );
 
   let lineOverride: number | null = null;
   for (;;) {
     const override = lineOverride;
-    const centreChoice = chooseSpacing(options, cells, centreMpp, override);
+    const centreChoice = chooseSpacing(options, cells, metersPerPixel, override);
     if (centreChoice.line > MAX_BOX_SPACING_METERS) {
       const zone = buildZonePlan(ctx);
       return { ...zone, capped: zone.capped || override !== null };
     }
-    const spacings = regions.map((region, index) =>
-      regionMpp ? chooseSpacing(options, cells, regionMpp[index], override) : centreChoice
-    );
-    const result = buildBox(ctx, regions, spacings);
+    const result = buildBox(ctx, regions, centreChoice);
     if (result.status === "ok") {
       return {
         tier: "box",
         lineSpacing: centreChoice.line,
-        labelSpacing: centreChoice.label * result.labelScale,
-        capped: override !== null || result.labelScale > 1,
+        labelSpacing: result.labelSpacing,
+        capped: override !== null || result.labelsCapped,
         regions: result.regions,
         lines: result.lines,
         labels: result.labels,
         vertexCount: result.vertexCount,
       };
     }
-    const coarsest = Math.max(...spacings.map((spacing) => spacing.line));
-    lineOverride = FALLBACK_SPACINGS.find((spacing) => spacing > coarsest) ?? Infinity;
+    lineOverride = standardGridInterval(centreChoice.line + 1);
   }
 }

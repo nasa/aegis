@@ -21,16 +21,11 @@ import { getLgrsMapAdapter, getLgrsMapProjection } from "utils/lgrs/mapAdapter";
 import { useMapContext } from "../MapProvider";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { MODE_CONFIGS } from "../utils/modeConfig";
+import styles from "./mapOverlays.module.css";
 
 interface MouseCoordinateDisplayProps {
   className?: string;
 }
-
-const READOUT_STYLE = {
-  fontSize: "0.8em",
-  border: "1px solid var(--grey3, #666)",
-  padding: "5px",
-};
 
 export function MouseCoordinateDisplay({
   className,
@@ -107,8 +102,22 @@ export function MouseCoordinateDisplay({
 
   return (
     <div className={className}>
-      {readout && <div style={{ ...READOUT_STYLE, width: "150px" }}>{readout.latLng}</div>}
-      {readout?.grid && <div style={{ ...READOUT_STYLE, minWidth: "150px" }}>{readout.grid}</div>}
+      {readout && (
+        <div
+          className={`${styles.mapReadoutRow} ${styles.mapReadoutText}`}
+          style={{ width: "150px" }}
+        >
+          {readout.latLng}
+        </div>
+      )}
+      {readout?.grid && (
+        <div
+          className={`${styles.mapReadoutRow} ${styles.mapReadoutText}`}
+          style={{ minWidth: "150px" }}
+        >
+          {readout.grid}
+        </div>
+      )}
     </div>
   );
 }
