@@ -3,7 +3,7 @@
  *
  * Mounts the ScaleBar against a hand-rolled OL Map (via MapContext directly,
  * bypassing the full MapProvider which needs an Automerge mission doc). The
- * scale bar derives its width from ground resolution and shares a readout with the grid interval.
+ * scale bar derives its width from ground resolution and sits below the grid interval.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -83,71 +83,96 @@ describe("ScaleBar", () => {
     expect(el).not.toBeNull();
     expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 1 km");
     expect(parseFloat(scaleGraphic().style.width)).toBeCloseTo(100);
-    expect(scaleGraphic().children[1].children).toHaveLength(4);
+    expect(scaleGraphic().children[1].children).toHaveLength(2);
     const labelStyle = getComputedStyle(scaleGraphic().firstElementChild!);
     expect(parseFloat(labelStyle.fontSize)).toBeCloseTo(
       parseFloat(getComputedStyle(scaleGraphic()).fontSize) * 0.8
     );
-    expect(labelStyle.fontWeight).toBe("400");
+    const endpointStyle = getComputedStyle(scaleGraphic().querySelector("span")!);
+    expect(endpointStyle.fontWeight).toBe("600");
+    expect(endpointStyle.color).toBe("rgb(255, 255, 255)");
+    expect(endpointStyle.webkitTextStrokeWidth).toBe("2px");
+    const bar = scaleGraphic().lastElementChild!;
+    expect(getComputedStyle(bar).backgroundColor).toBe("rgb(255, 255, 255)");
+    expect(getComputedStyle(bar.children[1]).backgroundColor).toBe("rgb(17, 17, 17)");
   });
 
-  it("centers the endpoint numbers above the bar and the unit below it", async () => {
-    map.getView().setResolution(2); // 2 m/px → 200m target → label in m
-    await renderScaleBar();
-    expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 200 m");
-    const [labels, bar, unit] = Array.from(scaleGraphic().children);
-    const [start, end] = Array.from(labels.children);
-    const bounds = bar.getBoundingClientRect();
-    const centerX = (element: Element) => {
-      const { left, width } = element.getBoundingClientRect();
-      return left + width / 2;
-    };
-    expect(start.textContent).toBe("0");
-    expect(end.textContent).toBe("200");
-    expect(centerX(start)).toBeCloseTo(bounds.left, 1);
-    expect(centerX(end)).toBeCloseTo(bounds.right, 1);
-    expect(labels.getBoundingClientRect().bottom).toBeLessThan(bounds.top);
-    expect(unit.textContent).toBe("meters");
-    expect(getComputedStyle(unit).textAlign).toBe("center");
-    expect(unit.getBoundingClientRect().top).toBeGreaterThan(bounds.bottom);
-  });
+  it.each([
+    { resolution: 0.54, step: 10, divisions: 5, symbol: "m" }, // formerly displayed 80 m
+    { resolution: 0.7, step: 20, divisions: 5, symbol: "m" },
+    { resolution: 1.5, step: 50, divisions: 4, symbol: "m" },
+    { resolution: 7, step: 0.2, divisions: 5, symbol: "km" },
+    { resolution: 50, step: 1, divisions: 5, symbol: "km" },
+    { resolution: 0.068, step: 1, divisions: 10, symbol: "m" },
+  ])(
+    "centers labels at all the breaks with $divisions segments of $step $symbol",
+    async ({ resolution, step, divisions, symbol }) => {
+      map.getView().setResolution(resolution);
+      await renderScaleBar();
+      const [labels, bar] = Array.from(scaleGraphic().children);
+      const values = Array.from(labels.children, (label) => label.firstElementChild!);
+      const unit = labels.lastElementChild!.lastElementChild!;
+      const numbers = new Intl.NumberFormat();
+      const expected = Array.from({ length: divisions + 1 }, (_, index) =>
+        numbers.format(index * step)
+      );
+      expect(scaleGraphic().getAttribute("aria-label")).toBe(
+        `Map scale ${expected.at(-1)} ${symbol}`
+      );
+      expect(bar.children).toHaveLength(divisions);
+      expect(values.map((label) => label.textContent)).toEqual(expected);
 
-  it("uses 'km' unit when the rounded distance is >= 1000 m", async () => {
-    map.getView().setResolution(50); // 50 m/px * 100 = 5000 m → km
-    await renderScaleBar();
-    expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 5 km");
-    expect(scaleGraphic().lastElementChild?.textContent).toBe("kilometers");
-  });
+      const bounds = bar.getBoundingClientRect();
+      expect(bounds.width).toBeCloseTo(
+        (step * divisions * (symbol === "km" ? 1000 : 1)) / resolution,
+        1
+      );
+      const breaks = Array.from(bar.children, (segment) => segment.getBoundingClientRect().left);
+      breaks.push(bounds.right);
+      const labelBounds = values.map((value) => value.getBoundingClientRect());
+      for (const [index, labelBoundsAtTick] of labelBounds.entries()) {
+        const { left, width } = labelBoundsAtTick;
+        expect(left + width / 2).toBeCloseTo(breaks[index], 1);
+        if (index > 0) expect(left - labelBounds[index - 1].right).toBeGreaterThan(2);
+      }
+      expect(unit.textContent).toBe(` ${symbol}`);
+      expect(unit.getBoundingClientRect().left).toBeCloseTo(labelBounds.at(-1)!.right, 1);
+      expect(labels.getBoundingClientRect().bottom).toBeLessThan(bounds.top);
+    }
+  );
 
   it("updates the label and width when the view resolution changes (moveend)", async () => {
     await renderScaleBar();
     const width1 = scaleGraphic().style.width;
 
     flushSync(() => {
-      map.getView().setResolution(500); // very zoomed out → km label
+      map.getView().setResolution(600); // very zoomed out → km label
       map.dispatchEvent("moveend");
     });
 
     expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 50 km");
-    expect(parseFloat(scaleGraphic().style.width)).toBeCloseTo(parseFloat(width1));
+    expect(parseFloat(scaleGraphic().style.width)).toBeCloseTo(50000 / 600);
+    expect(scaleGraphic().style.width).not.toBe(width1);
   });
 
-  it("rounds resolutions to 'nice' values (1, 2, 5, 10, ...)", async () => {
-    map.getView().setResolution(7);
+  it("uses fewer segments when longer labels need more room at low zoom", async () => {
+    map.getView().setResolution(12360);
     await renderScaleBar();
-    expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 500 m");
-    expect(scaleGraphic().children[1].children).toHaveLength(5);
+    const label = new Intl.NumberFormat().format(1000);
+    expect(scaleGraphic().getAttribute("aria-label")).toBe(`Map scale ${label} km`);
+    expect(scaleGraphic().children[1].children).toHaveLength(2);
+    expect(parseFloat(scaleGraphic().style.width)).toBeCloseTo(1000000 / 12360);
   });
 
   it("accounts for both the mission radius and Mercator distortion", async () => {
     map.getView().setCenter(fromLonLat([0, 60]));
     await renderScaleBar(1737400);
 
-    expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 100 m");
-    expect(parseFloat(scaleGraphic().style.width)).toBeCloseTo(100 / ((5 * 1737400) / 6378137));
+    expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 200 m");
+    expect(parseFloat(scaleGraphic().style.width)).toBeCloseTo(200 / ((5 * 1737400) / 6378137));
   });
 
-  it("shows the grid interval and scale bar in one box with a divider", async () => {
+  it("shows the grid interval in its own box above the scale bar", async () => {
     map.set(GRID_INTERVAL_PROPERTY, 100);
     const renderOverlays = (showScaleBar: boolean) => {
       harness.render(
@@ -157,32 +182,37 @@ describe("ScaleBar", () => {
       );
     };
     renderOverlays(true);
-    await expect.poll(() => scaleGraphic()?.getAttribute("aria-label")).toBe("Map scale 1 km");
+    await expect.poll(() => scaleGraphic()?.getAttribute("aria-label")).toMatch(/^Map scale /);
     const bar = scaleGraphic();
-    const scaleRow = bar.parentElement!;
-    const intervalRow = scaleRow.previousElementSibling!;
-    const readout = scaleRow.parentElement!;
+    const intervalRow = bar.previousElementSibling!;
+    const readout = bar.parentElement!;
     const scaleWidth = bar.getBoundingClientRect().width;
-    expect(intervalRow.textContent).toBe("Grid 100m");
+    const intervalBounds = intervalRow.getBoundingClientRect();
+    expect(intervalRow.textContent).toBe("Grid 100 m");
     expect(readout.children).toHaveLength(2);
-    expect(getComputedStyle(readout).backgroundColor).toBe("rgb(66, 70, 83)");
-    expect(getComputedStyle(intervalRow).borderBottomWidth).toBe("1px");
-    expect(getComputedStyle(scaleRow).borderTopWidth).toBe("0px");
+    expect(getComputedStyle(intervalRow).backgroundColor).toBe("rgb(66, 70, 83)");
+    expect(getComputedStyle(readout).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    expect(getComputedStyle(readout).pointerEvents).toBe("none");
+    expect(intervalBounds.bottom).toBeLessThan(bar.getBoundingClientRect().top);
 
     flushSync(() => {
-      map.getView().setResolution(8.3);
+      map.getView().setResolution(12.5);
       map.dispatchEvent("moveend");
     });
     expect(bar.getBoundingClientRect().width).toBeLessThan(scaleWidth);
-    expect(scaleRow.getBoundingClientRect().width).toBe(intervalRow.getBoundingClientRect().width);
-    expect(intervalRow.textContent).toBe("Grid 100m");
+    expect(intervalRow.getBoundingClientRect().width).toBe(intervalBounds.width);
+    expect(intervalRow.textContent).toBe("Grid 100 m");
 
+    flushSync(() => map.set(GRID_INTERVAL_PROPERTY, null));
+    expect(readout.children).toHaveLength(1);
+    expect(readout.firstElementChild).toBe(bar);
+
+    flushSync(() => map.set(GRID_INTERVAL_PROPERTY, "lgrs-zones"));
     renderOverlays(false);
     expect(scaleGraphic()).toBeNull();
-    flushSync(() => map.set(GRID_INTERVAL_PROPERTY, "lgrs-zones"));
-    expect(intervalRow.textContent).toBe("LGRS zones");
+    expect(readout.textContent).toBe("LGRS zones");
     flushSync(() => map.set(GRID_INTERVAL_PROPERTY, null));
-    expect(harness.container.contains(intervalRow)).toBe(false);
+    expect(readout.children).toHaveLength(0);
     expect(getComputedStyle(readout).display).toBe("none");
   });
 

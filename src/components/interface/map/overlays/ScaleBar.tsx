@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useMapContext } from "../MapProvider";
-import { getGroundMetersPerPixel, getMapDistanceLabel } from "../utils/mapScale";
+import { getGroundMetersPerPixel, getScaleBarLayout } from "../utils/mapScale";
 import overlayStyles from "./mapOverlays.module.css";
 import styles from "./ScaleBar.module.css";
 
@@ -31,36 +31,34 @@ export function ScaleBar({ className }: { className?: string }): JSX.Element | n
     };
   }, [map, planetRadius]);
 
-  if (!Number.isFinite(metersPerPixel) || metersPerPixel <= 0) return null;
-
-  // Successive 1–2–5 distances keep the bar between 60 and 150 pixels wide.
-  const target = 60 * metersPerPixel;
-  const magnitude = 10 ** Math.floor(Math.log10(target));
-  const step = [1, 2, 5, 10].find((value) => value * magnitude >= target)!;
-  const distance = step * magnitude;
-  const divisions = step === 5 ? 5 : 4;
-  const { value, symbol, unitName } = getMapDistanceLabel(distance);
+  const layout = getScaleBarLayout(metersPerPixel);
+  if (!layout) return null;
+  const { width, ticks, symbol } = layout;
+  const divisions = ticks.length - 1;
 
   return (
-    <div className={`${overlayStyles.mapReadoutRow} ${className ?? ""}`}>
+    <div
+      className={`${styles.graphic} ${className ?? ""}`}
+      role="img"
+      aria-label={`Map scale ${ticks[divisions]} ${symbol}`}
+      style={{ width }}
+    >
       <div
-        className={styles.graphic}
-        role="img"
-        aria-label={`Map scale ${value} ${symbol}`}
-        style={{ width: distance / metersPerPixel }}
+        className={`${overlayStyles.mapReadoutText} ${styles.labels}`}
+        aria-hidden="true"
+        style={{ gridTemplateColumns: `repeat(${divisions}, minmax(0, 1fr)) 0` }}
       >
-        <div className={`${overlayStyles.mapReadoutText} ${styles.labels}`} aria-hidden="true">
-          <span>0</span>
-          <span>{value}</span>
-        </div>
-        <div className={styles.bar} aria-hidden="true">
-          {Array.from({ length: divisions }, (_, index) => (
-            <span key={index} className={styles.segment} />
-          ))}
-        </div>
-        <div className={`${overlayStyles.mapReadoutText} ${styles.unit}`} aria-hidden="true">
-          {unitName}
-        </div>
+        {ticks.map((value, index) => (
+          <span key={value} className={styles.tick}>
+            <span>{value}</span>
+            {index === divisions && <span className={styles.unit}> {symbol}</span>}
+          </span>
+        ))}
+      </div>
+      <div className={styles.bar} aria-hidden="true">
+        {Array.from({ length: divisions }, (_, index) => (
+          <span key={index} className={styles.segment} />
+        ))}
       </div>
     </div>
   );
