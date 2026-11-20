@@ -26,7 +26,18 @@ const router = express.Router();
 
 router.get("/dems", async (req: Request, res: Response): Promise<void> => {
   const missionId = Number(req.query.missionId);
+  const routeName = "missionAutomerge/dems";
+  const appUsername = req.session?.appUser?.username;
   if (!Number.isSafeInteger(missionId) || missionId <= 0) {
+    serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/dems:GET:rejectedInvalidMissionId",
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName,
+      appUsername,
+      message: "Invalid mission ID",
+    });
     res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -38,17 +49,60 @@ router.get("/dems", async (req: Request, res: Response): Promise<void> => {
       emssToken: req.headers["emss-token"] as string,
     })
   ) {
+    serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/dems:GET:unauthorizedRequestMissingEditPermission",
+      logLevel: "warning",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName,
+      appUsername,
+      missionId,
+      message: "Unauthorized",
+    });
     res.status(401).json({ status: "failure", message: "Unauthorized" });
     return;
   }
   try {
     if (!(await getAutomergeMissionHandle(missionId))) {
+      serverLogger.apiRoute({
+        logId: "api-route:missionAutomerge/dems:GET:missionDocumentNotFound",
+        logLevel: "notice",
+        httpMethod: "GET",
+        responseStatus: 404,
+        routeName,
+        appUsername,
+        missionId,
+        message: "Mission not found",
+      });
       res.status(404).json({ status: "failure", message: "Mission not found" });
       return;
     }
-    res.json({ status: "success", data: await listMissionDems(missionId) });
+    const dems = await listMissionDems(missionId);
+    serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/dems:GET:listedMissionDems",
+      logLevel: "info",
+      httpMethod: "GET",
+      responseStatus: 200,
+      routeName,
+      appUsername,
+      missionId,
+      message: "Listed mission DEM files",
+    });
+    res.json({ status: "success", data: dems });
   } catch (error) {
-    res.status(500).json({ status: "error", message: asError(error).message });
+    const cause = asError(error);
+    serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/dems:GET:failedToListMissionDems",
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName,
+      appUsername,
+      missionId,
+      message: "Could not list mission DEM files",
+      error: cause,
+    });
+    res.status(500).json({ status: "error", message: cause.message });
   }
 });
 
@@ -300,9 +354,18 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
           ? (await readMissionDem(missionId, fields.demFilePath)).resolution
           : null;
       } catch (error) {
-        res
-          .status(400)
-          .json({ status: "error", message: `Invalid DEM: ${asError(error).message}` });
+        const cause = asError(error);
+        serverLogger.apiRoute({
+          logId: "api-route:missionAutomerge/fields:POST:rejectedInvalidMissionDem",
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 400,
+          routeName: "missionAutomerge/fields",
+          appUsername: req.session?.appUser?.username,
+          missionId,
+          message: `Invalid DEM: ${cause.message}`,
+        });
+        res.status(400).json({ status: "error", message: `Invalid DEM: ${cause.message}` });
         return;
       }
     }

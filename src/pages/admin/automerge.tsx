@@ -6,7 +6,7 @@ import { isLoggedIn } from "http-client/login";
 import { useDocHandle, useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/automerge-repo";
 import { applyChange, diff } from "deep-diff";
-import { suggestGridSystemId } from "components/interface/map/utils/planetScale";
+import { PLANETS } from "utils/planets";
 import { validateMission } from "utils/validateSchemaClient";
 import TransferStationData from "./automerge-transfer-station";
 import adminCommon from "./adminCommon.module.css";
@@ -188,15 +188,27 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
                       return;
                     }
 
-                    const radius =
-                      "planetRadius" in imported && typeof imported.planetRadius === "number"
-                        ? imported.planetRadius
-                        : null;
-                    const newVersion = {
-                      gridSystem: suggestGridSystemId(radius),
+                    const newVersion: Record<string, unknown> = {
                       earthGridLabelScheme: "lunar-acc",
                       ...imported,
                     };
+                    if (!("planet" in newVersion) && "planetRadius" in newVersion) {
+                      const radius = newVersion.planetRadius;
+                      newVersion.planet =
+                        radius === null || radius === 0
+                          ? "moon"
+                          : Object.entries(PLANETS).find(
+                              ([, body]) =>
+                                typeof radius === "number" && Math.abs(body.radius - radius) < 10000
+                            )?.[0];
+                    }
+                    delete newVersion.planetRadius;
+                    delete newVersion.gridSystem;
+                    delete newVersion.gridRenderMode;
+                    delete newVersion.usingLGRSCoordinates;
+                    if (newVersion.planet === "moon" || newVersion.planet === "mars") {
+                      newVersion.serverFileGrid = null;
+                    }
                     const results = await validateMission(newVersion);
                     if (results.length > 0) {
                       setImportExportStatus("Invalid mission. See console log for schema errors");

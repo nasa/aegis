@@ -6,23 +6,33 @@ import { Migration20261110000000 } from "server/automerge/migrations/Migration20
 import { generateBlankMission } from "store/storeUtils/mission";
 import { currentMissionValidator, missionValidator } from "utils/validateSchemaServer";
 
-type LegacyMission = Omit<Mission, "gridSystem" | "earthGridLabelScheme"> &
-  Partial<Pick<Mission, "gridSystem" | "earthGridLabelScheme">>;
+type LegacyGridMission = Omit<Mission, "planet"> & {
+  planetRadius: number | null;
+  gridSystem?: MissionGridSystemId;
+  earthGridLabelScheme?: GridLabelScheme;
+  usingLGRSCoordinates: boolean;
+  gridRenderMode: "server-file" | "dynamic-lgrs";
+};
 
-const legacyMission = (planetRadius: number | null): LegacyMission => {
-  const mission: LegacyMission = generateBlankMission({ planetRadius });
-  delete mission.gridSystem;
+const legacyMission = (planetRadius: number | null): LegacyGridMission => {
+  const mission = {
+    ...generateBlankMission(),
+    planetRadius,
+    usingLGRSCoordinates: false,
+    gridRenderMode: "server-file" as const,
+  };
+  delete (mission as Partial<Mission>).planet;
   delete mission.earthGridLabelScheme;
   return mission;
 };
 
-const migrate = async (mission: LegacyMission): Promise<LegacyMission> => {
+const migrate = async (mission: LegacyGridMission): Promise<LegacyGridMission> => {
   let doc = Automerge.from({ ...mission });
   const handle = {
-    change: (callback: (m: LegacyMission) => void) => {
+    change: (callback: (m: LegacyGridMission) => void) => {
       doc = Automerge.change(doc, callback);
     },
-  } as DocHandle<Mission>;
+  } as unknown as DocHandle<Mission>;
   await Migration20261110000000.migrate(handle, null);
   return Automerge.toJS(doc);
 };
@@ -46,15 +56,15 @@ describe("mission grid system migration", () => {
     const before = legacyMission(radius);
     const after = await migrate(before);
     expect(after).toEqual({ ...before, gridSystem, earthGridLabelScheme: "lunar-acc" });
-    expect(currentMissionValidator(after)).toBe(true);
+    expect(missionValidator(after)).toBe(true);
   });
 
   it("keeps fields that are already set", async () => {
-    const before = generateBlankMission({
-      planetRadius: 6378137,
-      gridSystem: "moon-m2025",
-      earthGridLabelScheme: "mgrs",
-    });
+    const before = {
+      ...legacyMission(6378137),
+      gridSystem: "moon-m2025" as const,
+      earthGridLabelScheme: "mgrs" as const,
+    };
     expect(await migrate(before)).toEqual(before);
 
     const partial = legacyMission(1737400);
@@ -67,7 +77,7 @@ describe("mission grid system migration", () => {
     expect(await migrate(once)).toEqual(once);
   });
 
-  it("accepts missing grid settings only during history compaction", () => {
+  it("accepts the legacy mission during history compaction", () => {
     const before = legacyMission(6371000);
     expect(currentMissionValidator(before)).toBe(false);
     expect(missionValidator(before)).toBe(true);

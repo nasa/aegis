@@ -61,9 +61,6 @@ const Main: React.FunctionComponent = () => {
       name: mission.name,
       serverFileGrid: mission.serverFileGrid,
       planet: mission.planet,
-      landerLocation: mission.landerLocation,
-      projIsCustom: mission.projIsCustom,
-      projProj4String: mission.projProj4String,
     }),
     deepEqual
   );

@@ -60,8 +60,8 @@ function recalculateMissionDistances(mission: LegacyMission): void {
   }
 }
 
-export const Migration20261107000000: AutomergeMigration = {
-  version: 20261107000000,
+export const Migration20261119000000: AutomergeMigration = {
+  version: 20261119000000,
   name: "configure-mission-planet-and-grid",
   migrate: async (docHandle) => {
     docHandle.change((mission: LegacyMission) => {
