@@ -153,21 +153,26 @@ test.describe("Execution creation and view state", () => {
 
 test.describe("PET manual edit boundaries", () => {
   for (const valueCase of [
-    { title: "positive", typed: "+12:34:56", saved: "+12:34:56", seconds: 45_296 },
-    { title: "negative", typed: "-12:34:56", saved: "-12:34:56", seconds: -45_296 },
-    { title: "zero", typed: "+00:00:00", saved: "+00:00:00", seconds: 0 },
-    { title: "maximum two-digit hour", typed: "+99:59:59", saved: "+99:59:59", seconds: 359_999 },
+    { title: "positive", typed: "+12:34:56", saved: "+12:34:56", age: "12h32m56s ago" },
+    { title: "negative", typed: "-12:34:56", saved: "-12:34:56", age: "00s ago" },
+    { title: "zero", typed: "+00:00:00", saved: "+00:00:00", age: "00s ago" },
+    {
+      title: "maximum two-digit hour",
+      typed: "+99:59:59",
+      saved: "+99:59:59",
+      age: "99h57m59s ago",
+    },
     {
       title: "minute and second values at 59",
       typed: "+00:59:59",
       saved: "+00:59:59",
-      seconds: 3_599,
+      age: "57m59s ago",
     },
     {
       title: "typing filters non-time characters",
       typed: "+a01:02:03",
       saved: "+01:02:03",
-      seconds: 3_723,
+      age: "1h00m03s ago",
     },
   ]) {
     test(`accepts ${valueCase.title} PET according to the field's format and numeric semantics`, async ({
@@ -187,7 +192,7 @@ test.describe("PET manual edit boundaries", () => {
       await expect
         .element(page.getByTestId("header-pet-clock"))
         .toMatchTextContent(exactText(valueCase.saved));
-      await expectPositionAge(mission.ids.posB, petAge(Math.max(0, valueCase.seconds - 120)));
+      await expectPositionAge(mission.ids.posB, valueCase.age);
       await expect
         .poll(async () => (await mission.read()).rexes[mission.ids.rexB].petValueAtStartStop)
         .toBe(valueCase.saved);
@@ -199,7 +204,7 @@ test.describe("PET manual edit boundaries", () => {
       await mission.open();
       await openRexInfo(page, "Survey Bravo", mission.ids.rexEvaB);
       await expect.element(page.getByTestId("rex-pet-clock")).toMatchTextContent(valueCase.saved);
-      await expectPositionAge(mission.ids.posB, petAge(Math.max(0, valueCase.seconds - 120)));
+      await expectPositionAge(mission.ids.posB, valueCase.age);
       expect((await mission.read()).rexes[mission.ids.rexA]).toEqual(untouchedRex);
     });
   }
@@ -252,7 +257,7 @@ test.describe("PET manual edit boundaries", () => {
       await expect
         .element(page.getByTestId("rex-pet-clock"))
         .toMatchTextContent(before.rexes[mission.ids.rexB].petValueAtStartStop);
-      await expectPositionAge(mission.ids.posB, "+00:03:00");
+      await expectPositionAge(mission.ids.posB, "03m00s ago");
       await mission.open();
       await openRexInfo(page, "Survey Bravo", mission.ids.rexEvaB);
       await expect
@@ -261,16 +266,3 @@ test.describe("PET manual edit boundaries", () => {
     });
   }
 });
-
-function petAge(seconds: number): string {
-  const sign = seconds < 0 ? "-" : "+";
-  const absolute = Math.abs(seconds);
-  const hours = Math.floor(absolute / 3600)
-    .toString()
-    .padStart(2, "0");
-  const minutes = Math.floor((absolute % 3600) / 60)
-    .toString()
-    .padStart(2, "0");
-  const remainder = (absolute % 60).toString().padStart(2, "0");
-  return `${sign}${hours}:${minutes}:${remainder}`;
-}

@@ -18,6 +18,10 @@ test("mission asset options preserve source bytes and roll back an interrupted a
   await writeFile(path.join(source, "Data", assetName), bytes);
   const before = await mission.read();
   await page.goto(`/admin/mission_duplicate/${mission.id}`);
+  await expect(page.getByRole("button", { name: "Duplicate Mission", exact: true })).toBeDisabled();
+  const requester = page.getByRole("textbox", { name: "Mission Requested By *" });
+  await requester.fill("Surface Operations");
+  await requester.press("Tab");
   await page.getByLabel("Copy mission assets", { exact: true }).uncheck();
   let response = page.waitForResponse("**/api/v1/missionDup");
   await page.getByRole("button", { name: "Duplicate Mission", exact: true }).click();
@@ -34,6 +38,7 @@ test("mission asset options preserve source bytes and roll back an interrupted a
       evas: before.evas,
       stations: before.stations,
       id: copied.data,
+      missionRequestedBy: "Surface Operations",
     });
     await page.getByLabel("Copy mission assets", { exact: true }).check();
     await symlink(

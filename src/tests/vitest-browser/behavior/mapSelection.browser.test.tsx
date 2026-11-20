@@ -281,8 +281,7 @@ test.describe("execution position selection", () => {
     await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
     const before = await mission.read();
     const menu = page.getByTestId("positions-menu");
-    await menu.getByText("All Positions", { exact: true }).click();
-    const row = menu.getBySelector("table").last().getByRole("row").filter({ hasText: "00:02:00" });
+    const row = menu.getByTestId("position-table").getByRole("row").filter({ hasText: "00:02:00" });
     await expect.element(row).toBeVisible();
     await row.hover();
     await expect

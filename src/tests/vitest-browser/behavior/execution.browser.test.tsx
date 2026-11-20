@@ -47,9 +47,9 @@ async function expectPet(page: Page, pet: string): Promise<void> {
   await expect.element(page.getByTestId("rex-pet-clock")).toMatchTextContent(pet);
 }
 
-async function expectPositionAge(
+async function expectPositionTime(
   positionUuid: string,
-  expectedAge: string,
+  expectedTime: string,
   mode: MapMode = "editor"
 ): Promise<void> {
   await expect
@@ -59,7 +59,7 @@ async function expectPositionAge(
       );
       return feature?.name.split(" / ")[0] ?? null;
     })
-    .toBe(expectedAge);
+    .toBe(expectedTime);
 }
 function controlClock(): void {
   sessionStorage.setItem("timeOffsetMs", "0");
@@ -86,7 +86,7 @@ async function editPet(page: Page, value: string): Promise<Locator> {
 
 test.describe("Execution time ownership", () => {
   for (const otherExecutionRunning of [false, true]) {
-    test(`stopped execution keeps its historical position age with ${otherExecutionRunning ? "another execution running" : "no execution running"}`, async ({
+    test(`stopped execution shows its recorded position PET with ${otherExecutionRunning ? "another execution running" : "no execution running"}`, async ({
       page,
       mission,
     }) => {
@@ -97,7 +97,7 @@ test.describe("Execution time ownership", () => {
       await openExecutionInformation(page, "Survey Alpha", mission.ids.rexEvaA, "Stopped Alpha");
 
       await expectPet(page, "+02:10:05");
-      await expectPositionAge(mission.ids.posA, "+00:15:00");
+      await expectPositionTime(mission.ids.posA, "+01:55:05");
       if (otherExecutionRunning) {
         await expect
           .element(page.getByTestId("header-pet-clock"))
@@ -109,7 +109,7 @@ test.describe("Execution time ownership", () => {
       await mission.open();
       await openExecutionInformation(page, "Survey Alpha", mission.ids.rexEvaA, "Stopped Alpha");
       await expectPet(page, "+02:10:05");
-      await expectPositionAge(mission.ids.posA, "+00:15:00");
+      await expectPositionTime(mission.ids.posA, "+01:55:05");
     });
   }
 
@@ -119,11 +119,11 @@ test.describe("Execution time ownership", () => {
   }) => {
     await mission.open();
     await openExecutionInformation(page, "Survey Alpha", mission.ids.rexEvaA, "Stopped Alpha");
-    await expectPositionAge(mission.ids.posA, "+00:15:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
 
     await openExecutionInformation(page, "Survey Bravo", mission.ids.rexEvaB, "Active Bravo");
     await expectPet(page, "+00:05:00");
-    await expectPositionAge(mission.ids.posB, "+00:03:00");
+    await expectPositionTime(mission.ids.posB, "03m00s ago");
     await expect
       .poll(async () =>
         (await readMapFeatures()).filter(
@@ -134,7 +134,7 @@ test.describe("Execution time ownership", () => {
 
     await openExecutionInformation(page, "Survey Alpha", mission.ids.rexEvaA, "Stopped Alpha");
     await expectPet(page, "+02:10:05");
-    await expectPositionAge(mission.ids.posA, "+00:15:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
   });
 
   test("switching from historical execution to its plan removes execution position labels", async ({
@@ -143,7 +143,7 @@ test.describe("Execution time ownership", () => {
   }) => {
     await mission.open();
     await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
-    await expectPositionAge(mission.ids.posA, "+00:15:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
 
     await selectExecution(page, "Survey Alpha", mission.ids.evaA);
     await expect
@@ -163,12 +163,12 @@ test.describe("Execution time ownership", () => {
     await mission.open();
     await openExecutionInformation(page, "Survey Bravo", mission.ids.rexEvaB, "Active Bravo");
     await expectPet(page, "+00:05:00");
-    await expectPositionAge(mission.ids.posB, "+00:03:00");
+    await expectPositionTime(mission.ids.posB, "03m00s ago");
 
     await advanceClock(120_000);
     await observePetTickWindow();
     await expectPet(page, "+00:05:00");
-    await expectPositionAge(mission.ids.posB, "+00:03:00");
+    await expectPositionTime(mission.ids.posB, "03m00s ago");
     await expect
       .element(page.getByTestId("header-pet-clock"))
       .toMatchTextContent(exactText("+00:05:00"));
@@ -185,7 +185,7 @@ test.describe("Execution time ownership", () => {
     await controlClock();
     await mission.open();
     await openExecutionInformation(page, "Survey Alpha", mission.ids.rexEvaA, "Stopped Alpha");
-    await expectPositionAge(mission.ids.posA, "+00:15:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
 
     const headerPet = await page.getByTestId("header-pet-clock").element().textContent;
     await advanceClock(60_000);
@@ -193,7 +193,7 @@ test.describe("Execution time ownership", () => {
       .element(page.getByTestId("header-pet-clock"))
       .not.toMatchTextContent(exactText(headerPet ?? ""));
     await expectPet(page, "+02:10:05");
-    await expectPositionAge(mission.ids.posA, "+00:15:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
   });
 });
 
@@ -216,12 +216,12 @@ test.describe("Execution lifecycle", () => {
       await openExecutionInformation(page, "Survey Bravo", mission.ids.rexEvaB, "Active Bravo");
       await enableEditing(page);
       await expectPet(page, boundary.initial);
-      await expectPositionAge(mission.ids.posB, "+00:00:05");
+      await expectPositionTime(mission.ids.posB, "05s ago");
 
       await page.getByRole("button", { name: "Start PET timer", exact: true }).click();
       await advanceClock(10_000);
       await expectPet(page, boundary.expected);
-      await expectPositionAge(mission.ids.posB, "+00:00:15");
+      await expectPositionTime(mission.ids.posB, "15s ago");
       await expect
         .element(page.getByTestId("header-pet-clock"))
         .toMatchTextContent(exactText(boundary.expected));
@@ -244,7 +244,7 @@ test.describe("Execution lifecycle", () => {
       .toBeVisible();
     await advanceClock(10_000);
     await expectPet(page, "+00:05:10");
-    await expectPositionAge(mission.ids.posB, "+00:03:10");
+    await expectPositionTime(mission.ids.posB, "03m10s ago");
 
     await page.getByRole("button", { name: "Pause PET timer", exact: true }).click();
     await expect
@@ -253,7 +253,7 @@ test.describe("Execution lifecycle", () => {
     await advanceClock(60_000);
     await observePetTickWindow();
     await expectPet(page, "+00:05:10");
-    await expectPositionAge(mission.ids.posB, "+00:03:10");
+    await expectPositionTime(mission.ids.posB, "03m10s ago");
 
     await page.getByRole("button", { name: "Start PET timer", exact: true }).click();
     await advanceClock(5000);
@@ -266,7 +266,7 @@ test.describe("Execution lifecycle", () => {
     await mission.open();
     await openExecutionInformation(page, "Survey Bravo", mission.ids.rexEvaB, "Active Bravo");
     await expectPet(page, "+00:05:15");
-    await expectPositionAge(mission.ids.posB, "+00:03:15");
+    await expectPositionTime(mission.ids.posB, "03m15s ago");
   });
 
   test("another executing REX prevents starting the historical execution", async ({
@@ -314,7 +314,7 @@ test.describe("Execution lifecycle", () => {
 });
 
 test.describe("PET value editing", () => {
-  test("saving a nonzero historical PET updates its position age and survives remount", async ({
+  test("saving a nonzero historical PET preserves the recorded position PET and survives remount", async ({
     page,
     mission,
   }) => {
@@ -325,7 +325,7 @@ test.describe("PET value editing", () => {
     await dialog.getByText("Save", { exact: true }).click();
     await expect.poll(() => dialog.length).toBe(0);
     await expectPet(page, "+02:20:05");
-    await expectPositionAge(mission.ids.posA, "+00:25:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
     await expect
       .poll(async () => (await mission.read()).rexes[mission.ids.rexA].petValueAtStartStop)
       .toBe("+02:20:05");
@@ -333,7 +333,7 @@ test.describe("PET value editing", () => {
     await mission.open();
     await openExecutionInformation(page, "Survey Alpha", mission.ids.rexEvaA, "Stopped Alpha");
     await expectPet(page, "+02:20:05");
-    await expectPositionAge(mission.ids.posA, "+00:25:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
   });
 
   test("Cancel preserves historical PET and labels in the document and after remount", async ({
@@ -347,13 +347,13 @@ test.describe("PET value editing", () => {
     await dialog.getByText("Cancel", { exact: true }).click();
     await expect.poll(() => dialog.length).toBe(0);
     await expectPet(page, "+02:10:05");
-    await expectPositionAge(mission.ids.posA, "+00:15:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
     expect((await mission.read()).rexes[mission.ids.rexA].petValueAtStartStop).toBe("+02:10:05");
 
     await mission.open();
     await openExecutionInformation(page, "Survey Alpha", mission.ids.rexEvaA, "Stopped Alpha");
     await expectPet(page, "+02:10:05");
-    await expectPositionAge(mission.ids.posA, "+00:15:00");
+    await expectPositionTime(mission.ids.posA, "+01:55:05");
   });
 
   for (const invalidPet of ["12:3", ""]) {
@@ -375,7 +375,7 @@ test.describe("PET value editing", () => {
       expect((await mission.read()).rexes[mission.ids.rexA].petValueAtStartStop).toBe("+02:10:05");
       await dialog.getByText("Cancel", { exact: true }).click();
       await expectPet(page, "+02:10:05");
-      await expectPositionAge(mission.ids.posA, "+00:15:00");
+      await expectPositionTime(mission.ids.posA, "+01:55:05");
     });
   }
 
@@ -392,7 +392,7 @@ test.describe("PET value editing", () => {
       expect(confirmation).toHaveBeenCalledWith("Are you sure you want to reset the PET timer?");
       const expected = acceptReset ? "+00:00:00" : "+00:05:00";
       await expectPet(page, expected);
-      await expectPositionAge(mission.ids.posB, acceptReset ? "+00:00:00" : "+00:03:00");
+      await expectPositionTime(mission.ids.posB, acceptReset ? "00s ago" : "03m00s ago");
       await expect
         .poll(async () => (await mission.read()).rexes[mission.ids.rexB].petValueAtStartStop)
         .toBe(expected);
@@ -400,7 +400,7 @@ test.describe("PET value editing", () => {
       await mission.open();
       await openExecutionInformation(page, "Survey Bravo", mission.ids.rexEvaB, "Active Bravo");
       await expectPet(page, expected);
-      await expectPositionAge(mission.ids.posB, acceptReset ? "+00:00:00" : "+00:03:00");
+      await expectPositionTime(mission.ids.posB, acceptReset ? "00s ago" : "03m00s ago");
     });
   }
 });

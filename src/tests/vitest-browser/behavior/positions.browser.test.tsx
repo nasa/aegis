@@ -41,10 +41,7 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
   await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
-  await menu.getByText("All Positions", { exact: true }).click();
-  await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   // The application defaults to Task/Crew sources; these cases also use Rover.
-  // Move the position menu away from the visibility launcher using its drag handle.
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   const allSources = visibility
@@ -59,9 +56,7 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
 
 function positionRow(page: Page, pet: string): Locator {
   return page
-    .getByTestId("positions-menu")
-    .getBySelector("table")
-    .last()
+    .getByTestId("position-table")
     .getByRole("row")
     .filter({ has: page.getByRole("cell", { name: pet, exact: true }) });
 }
@@ -73,17 +68,17 @@ function positionRowWithSource(page: Page, pet: string, source: string): Locator
 }
 
 async function positionAction(page: Page, pet: string, action: string): Promise<void> {
-  await positionRow(page, pet).getBySelector('svg[data-icon="ellipsis-vertical"]').click();
-  await page.getBySelector("dialog[open]").getByText(action, { exact: true }).click();
+  await positionRow(page, pet).getByLabelText("Position actions", { exact: true }).click();
+  await page.getByRole("menuitem", { name: action, exact: true }).click();
 }
 
 async function rowAction(row: Locator, page: Page, action: string): Promise<void> {
-  await row.getBySelector('svg[data-icon="ellipsis-vertical"]').click();
-  await page.getBySelector("dialog[open]").getByText(action, { exact: true }).click();
+  await row.getByLabelText("Position actions", { exact: true }).click();
+  await page.getByRole("menuitem", { name: action, exact: true }).click();
 }
 
 function choice(menu: Locator, name: string): Locator {
-  return menu.getBySelector(`[data-tooltip-content="${name}"]`);
+  return menu.getByRole("button", { name, exact: true });
 }
 
 function projected(point: AEGISPoint): number[] {
@@ -137,15 +132,17 @@ async function createPosition(
   location: AEGISPoint,
   source: string
 ): Promise<void> {
-  // New Pos requires at least one type already selected before placement starts.
-  await choice(menu, "EV1").click();
-  await menu.getByLabelText("New Pos.", { exact: true }).click();
-  await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
-  await choice(menu, "EV2").click();
-  await choice(menu, "EV1").click();
+  await menu.getByLabelText("Position", { exact: true }).click();
   await choice(menu, source).click();
+  for (const name of ["EV1", "EV2"]) {
+    const type = choice(menu, name);
+    if (type.element().getAttribute("aria-pressed") !== String(name === "EV2")) await type.click();
+  }
+  await menu.getByLabelText("Place on Map", { exact: true }).click();
+  await expect.element(menu.getByTestId("position-editor-map-directive-hint")).toBeVisible();
   await placePosition(page, location);
-  await expect.poll(() => menu.getByLabelText("Cancel Pos.", { exact: true }).length).toBe(0);
+  await expect.poll(() => menu.getByTestId("position-editor-map-directive-hint").length).toBe(0);
+  await menu.getByLabelText("Save", { exact: true }).click();
 }
 
 async function withMapVisibility(
@@ -205,9 +202,8 @@ test.describe("Execution position contracts", () => {
       await expect
         .element(page.getByTestId("header-pet-clock"))
         .toMatchTextContent(exactText("+00:05:00"));
-      await choice(menu, "EV1").click();
-      await menu.getByLabelText("New Pos.", { exact: true }).click();
-      await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
+      await menu.getByLabelText("Position", { exact: true }).click();
+      await expect.element(menu.getByTestId("position-editor")).toBeVisible();
       expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual(
         before.rexes[mission.ids.rexB].posEntries
       );
@@ -217,12 +213,21 @@ test.describe("Execution position contracts", () => {
         .element(page.getByTestId("header-pet-clock"))
         .toMatchTextContent(exactText(ticking ? "+00:06:30" : "+00:05:00"));
       // Changes made after New Pos belong to the draft; PET remains the captured value.
-      await choice(menu, "EV2").click();
-      await choice(menu, "EV1").click();
       await choice(menu, "Rover").click();
+      await choice(menu, "EV2").click();
+      await menu.getByTestId("position-editor-uncertainty").fill("35");
+      await menu.getByTestId("position-editor-notes").fill("Survey waypoint");
+      await menu.getByLabelText("Place on Map", { exact: true }).click();
+      await expect.element(menu.getByTestId("position-editor-map-directive-hint")).toBeVisible();
       const location = { lat: -0.0006, lng: 0.001 };
       await placePosition(page, location);
-      await expect.poll(() => menu.getByLabelText("Cancel Pos.", { exact: true }).length).toBe(0);
+      await expect
+        .poll(() => menu.getByTestId("position-editor-map-directive-hint").length)
+        .toBe(0);
+      expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual(
+        before.rexes[mission.ids.rexB].posEntries
+      );
+      await menu.getByLabelText("Save", { exact: true }).click();
       await expect
         .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries.length)
         .toBe(2);
@@ -235,7 +240,9 @@ test.describe("Execution position contracts", () => {
         petSeconds: 300,
         posTypeUuids: [SECOND_TYPE],
         posSourceUuid: SECOND_SOURCE,
-        createdAt: Date.parse(BEHAVIORAL_NOW),
+        uncertaintyMeters: 35,
+        notes: "Survey waypoint",
+        createdAt: Date.parse(BEHAVIORAL_NOW) + 90_000,
         updatedAt: Date.parse(BEHAVIORAL_NOW) + 90_000,
       });
       expect(after.rexes[mission.ids.rexB].posEntries[0]).toEqual(
@@ -265,15 +272,16 @@ test.describe("Execution position contracts", () => {
     await arrangePositionChoices(mission);
     const before = await mission.read();
     const menu = await openPositions(page, mission);
-    // With no marker types selected, New Pos cannot begin a placement.
-    await menu.getByLabelText("New Pos.", { exact: true }).click();
-    await expect.poll(() => menu.getByLabelText("Cancel Pos.", { exact: true }).length).toBe(0);
-    await choice(menu, "EV2").click();
+    await menu.getByLabelText("Position", { exact: true }).click();
     await choice(menu, "Rover").click();
-    await menu.getByLabelText("New Pos.", { exact: true }).click();
-    await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
-    await menu.getByLabelText("Cancel Pos.", { exact: true }).click();
-    await expect.element(menu.getByLabelText("New Pos.", { exact: true })).toBeVisible();
+    await expect
+      .element(menu.getByLabelText("Save", { exact: true }))
+      .toHaveAttribute("aria-disabled", "true");
+    await choice(menu, "EV2").click();
+    await menu.getByLabelText("Place on Map", { exact: true }).click();
+    await expect.element(menu.getByTestId("position-editor-map-directive-hint")).toBeVisible();
+    await menu.getByLabelText("Cancel", { exact: true }).click();
+    await expect.poll(() => menu.getByTestId("position-editor").length).toBe(0);
     await placePosition(page, { lat: -0.0006, lng: 0.001 });
     expect(await mission.read()).toEqual(before);
     await expect.poll(() => positionRow(page, "+00:02:00").length).toBe(1);
@@ -322,7 +330,7 @@ test.describe("Execution position contracts", () => {
         ),
       ]);
     vi.spyOn(window, "confirm").mockReturnValueOnce(false);
-    await positionAction(page, "+00:02:00", "Delete Entry");
+    await positionAction(page, "+00:02:00", "Delete Position");
     await expect.element(positionRow(page, "+00:02:00")).toBeVisible();
     expect(await mission.read()).toEqual(before);
 
@@ -331,7 +339,7 @@ test.describe("Execution position contracts", () => {
 
       return true;
     });
-    await positionAction(page, "+00:02:00", "Delete Entry");
+    await positionAction(page, "+00:02:00", "Delete Position");
     await expect
       .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries)
       .toEqual([earlier, other]);
@@ -504,7 +512,7 @@ test.describe("Execution position contracts", () => {
       older,
       newer,
     ]);
-    await expect.poll(() => menu.getByLabelText("Cancel Pos.", { exact: true }).length).toBe(0);
+    await expect.poll(() => menu.getByTestId("position-editor").length).toBe(0);
   });
 
   test("position sources enforce the count and usage guards and persist renames and surviving-source entries", async ({
@@ -612,13 +620,13 @@ test.describe("Execution position contracts", () => {
 
     const positionsMenu = await openPositions(page, mission);
     vi.spyOn(window, "confirm").mockReturnValueOnce(true);
-    await rowAction(positionRowWithSource(page, "+00:02:00", "C"), page, "Delete Entry");
+    await rowAction(positionRowWithSource(page, "+00:02:00", "C"), page, "Delete Position");
     vi.spyOn(window, "confirm").mockReturnValueOnce(true);
-    await rowAction(positionRowWithSource(page, "+00:05:00", "F"), page, "Delete Entry");
+    await rowAction(positionRowWithSource(page, "+00:05:00", "F"), page, "Delete Position");
     await expect
       .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries)
       .toEqual([]);
-    await expect.element(positionsMenu.getByLabelText("New Pos.", { exact: true })).toBeVisible();
+    await expect.element(positionsMenu.getByLabelText("Position", { exact: true })).toBeVisible();
 
     await mission.open();
     await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
@@ -679,7 +687,7 @@ test.describe("Execution position contracts", () => {
   });
 });
 
-test("moving an existing position commits coordinates only while Save and Cancel control metadata drafts", async ({
+test("Cancel discards staged geometry and metadata, and Save persists them together", async ({
   page,
   mission,
 }) => {
@@ -688,73 +696,37 @@ test("moving an existing position commits coordinates only while Save and Cancel
   const before = await mission.read();
   const original = before.rexes[mission.ids.rexB].posEntries[0];
   const menu = await openPositions(page, mission);
-  await positionAction(page, "+00:02:00", "Edit");
-  await choice(menu, "EV2").click();
-  await choice(menu, "EV1").click();
-  await choice(menu, "Rover").click();
-  await menu.getByLabelText("Edit Pos.", { exact: true }).click();
-  await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
-  expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual([original]);
-  vi.setSystemTime(new Date(Date.parse(BEHAVIORAL_NOW) + 60_000));
   const location = { lat: -0.0006, lng: 0.001 };
-  await placePosition(page, location);
-  await expect
-    .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries[0])
-    .toEqual({
+  for (const action of ["Cancel", "Save"]) {
+    await positionAction(page, "+00:02:00", "Edit Position");
+    await choice(menu, "EV2").click();
+    await choice(menu, "Rover").click();
+    await menu.getByLabelText("Edit Pos.", { exact: true }).click();
+    await expect.element(menu.getByTestId("position-editor-map-directive-hint")).toBeVisible();
+    await placePosition(page, location);
+    await expect.poll(() => menu.getByTestId("position-editor-map-directive-hint").length).toBe(0);
+    expect(await mission.read()).toEqual(before);
+    vi.setSystemTime(new Date(Date.parse(BEHAVIORAL_NOW) + 120_000));
+    await menu.getByLabelText(action, { exact: true }).click();
+    await expect.poll(() => menu.getByTestId("position-editor").length).toBe(0);
+    if (action === "Cancel") expect(await mission.read()).toEqual(before);
+  }
+  const saved = await mission.read();
+  expect(saved.rexes[mission.ids.rexB].posEntries).toEqual([
+    {
       ...original,
       location: { lat: expect.closeTo(location.lat, 7), lng: expect.closeTo(location.lng, 7) },
-      updatedAt: Date.parse(BEHAVIORAL_NOW) + 60_000,
-    });
-  for (const client of [page]) {
-    await expectPositionMarker(client, original.uuid, location);
-    await expect.element(positionRow(client, "+00:02:00")).toMatchTextContent("EV1");
-    await expect
-      .element(positionRow(client, "+00:02:00").getByRole("cell", { name: "C", exact: true }))
-      .toBeVisible();
-  }
-  const moved = (await mission.read()).rexes[mission.ids.rexB].posEntries[0];
-
-  // Reopen the saved record: map finish discarded the earlier metadata draft.
-  await positionAction(page, "+00:02:00", "Edit");
-  await expect.element(choice(menu, "EV1")).toHaveClass(/toggleSelected/);
-  await expect.element(choice(menu, "EV2")).not.toHaveClass(/toggleSelected/);
-  await choice(menu, "EV2").click();
-  await choice(menu, "Rover").click();
-  await menu.getBySelector('[data-tooltip-content="Cancel Edit"]').click();
-  expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual([moved]);
-
-  await positionAction(page, "+00:02:00", "Edit");
-  await choice(menu, "EV2").click();
-  await choice(menu, "Rover").click();
-  vi.setSystemTime(new Date(Date.parse(BEHAVIORAL_NOW) + 120_000));
-  await menu.getBySelector('[data-tooltip-content^="Save Position Markers"]').click();
-  await expect
-    .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries[0])
-    .toEqual({
-      ...moved,
+      elevation: null,
       posTypeUuids: [mission.ids.posType, SECOND_TYPE],
       posSourceUuid: SECOND_SOURCE,
       updatedAt: Date.parse(BEHAVIORAL_NOW) + 120_000,
-    });
-  await expect.element(positionRow(page, "+00:02:00")).toMatchTextContent("EV1, EV2");
-  await expect
-    .element(positionRow(page, "+00:02:00").getByRole("cell", { name: "R", exact: true }))
-    .toBeVisible();
-  const saved = await mission.read();
-
-  await positionAction(page, "+00:02:00", "Edit");
-  await choice(menu, "EV2").click();
-  await choice(menu, "Crew").click();
-  await menu.getByLabelText("Edit Pos.", { exact: true }).click();
-  await menu.getByLabelText("Cancel Pos.", { exact: true }).click();
-  await placePosition(page, { lat: 0, lng: 0.0015 });
-  expect(await mission.read()).toEqual(saved);
+    },
+  ]);
   expect(saved.rexes[mission.ids.rexA]).toEqual(before.rexes[mission.ids.rexA]);
   expect(saved.evas).toEqual(before.evas);
-  for (const client of [page]) {
-    await openPositions(page, mission);
-    await expectPositionMarker(client, original.uuid, location);
-    await expect.element(positionRow(client, "+00:02:00")).toMatchTextContent("EV1, EV2");
-  }
+  await openPositions(page, mission);
+  await expectPositionMarker(page, original.uuid, location);
+  await expect.element(positionRow(page, "+00:02:00")).toMatchTextContent("EV1, EV2");
+  await expect.element(positionRowWithSource(page, "+00:02:00", "R")).toBeVisible();
   expect(await mission.read()).toEqual(saved);
 });

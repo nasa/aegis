@@ -19,8 +19,6 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
   await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
-  await menu.getByText("All Positions", { exact: true }).click();
-  await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   await visibility
@@ -131,7 +129,7 @@ test("historical source filters use that REX's own PET and do not leak into acti
   await expect
     .poll(() => visiblePositionIds(page, [mission.ids.posB, ROVER_B]))
     .toEqual([mission.ids.posB, ROVER_B].sort());
-  await expect.poll(() => labelFor(page, ROVER_B)).toBe("+00:01:00 / 2 (R)");
+  await expect.poll(() => labelFor(page, ROVER_B)).toBe("01m00s ago / 2 (R)");
 
   await setSourceFilter(page, "All");
   await selectExecution(page, "Survey Alpha", mission.ids.rexEvaA);
@@ -143,9 +141,9 @@ test("historical source filters use that REX's own PET and do not leak into acti
   await expect
     .poll(() => visiblePositionIds(page, [mission.ids.posA, OLDER_A, NEWER_A, ROVER_B]))
     .toEqual([mission.ids.posA, OLDER_A, NEWER_A].sort());
-  await expect.poll(() => labelFor(page, mission.ids.posA)).toBe("+00:15:00 / 1 (C)");
-  await expect.poll(() => labelFor(page, OLDER_A)).toBe("+00:16:40 / 2 (R)");
-  await expect.poll(() => labelFor(page, NEWER_A)).toBe("+00:00:00 / 2 (R)");
+  await expect.poll(() => labelFor(page, mission.ids.posA)).toBe("+01:55:05 / 1 (C)");
+  await expect.poll(() => labelFor(page, OLDER_A)).toBe("+01:53:25 / 2 (R)");
+  await expect.poll(() => labelFor(page, NEWER_A)).toBe("+02:10:05 / 2 (R)");
   const historicalPath = async () =>
     (await readMapFeatures())
       .filter((feature) => feature.id === `posPath-${SECOND_TYPE}` && feature.visible)
@@ -162,15 +160,15 @@ test("historical source filters use that REX's own PET and do not leak into acti
   await expect
     .poll(() => visiblePositionIds(page, [mission.ids.posA, OLDER_A, NEWER_A]))
     .toEqual([mission.ids.posA]);
-  await expect.poll(() => labelFor(page, mission.ids.posA)).toBe("+00:15:00 / 1 (C)");
+  await expect.poll(() => labelFor(page, mission.ids.posA)).toBe("+01:55:05 / 1 (C)");
   await expect.poll(() => labelFor(page, OLDER_A)).toBeUndefined();
   await expect.poll(historicalPath).toEqual([]);
   await setSourceFilter(page, "Rover");
   await expect
     .poll(() => visiblePositionIds(page, [mission.ids.posA, OLDER_A, NEWER_A]))
     .toEqual([OLDER_A, NEWER_A].sort());
-  await expect.poll(() => labelFor(page, OLDER_A)).toBe("+00:16:40 / 2 (R)");
-  await expect.poll(() => labelFor(page, NEWER_A)).toBe("+00:00:00 / 2 (R)");
+  await expect.poll(() => labelFor(page, OLDER_A)).toBe("+01:53:25 / 2 (R)");
+  await expect.poll(() => labelFor(page, NEWER_A)).toBe("+02:10:05 / 2 (R)");
   await expect
     .poll(historicalPath)
     .toEqual([

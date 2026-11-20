@@ -93,15 +93,13 @@ test("peer marker-type edits preserve disabled follow choices and deleting the l
   await page.getByText("Select Items to Follow", { exact: true }).click();
   expect((await dashboardView(page)).center).toEqual(fixed.center);
   const positions = peer.getByTestId("positions-menu");
-  await positions.getByText("All Positions", { exact: true }).click();
   const position = positions
-    .locator("table")
-    .last()
+    .getByTestId("position-table")
     .getByRole("row")
     .filter({ has: peer.getByRole("cell", { name: "+00:02:00", exact: true }) });
-  await position.locator('svg[data-icon="ellipsis-vertical"]').click();
+  await position.getByLabel("Position actions", { exact: true }).click();
   peer.once("dialog", (dialog) => dialog.accept());
-  await peer.locator("dialog[open]").getByText("Delete Entry", { exact: true }).click();
+  await peer.getByRole("menuitem", { name: "Delete Position", exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries)
     .toEqual([]);

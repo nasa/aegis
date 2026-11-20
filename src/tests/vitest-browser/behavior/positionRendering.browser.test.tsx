@@ -23,8 +23,6 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
   await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
-  await menu.getByText("All Positions", { exact: true }).click();
-  await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   for (const section of ["Sources", "Markers", "Labels", "Paths"]) {
@@ -196,7 +194,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
         .map((feature) => feature.name)
         .sort()
     )
-    .toEqual(["+00:01:00 / 2 (R)", "+00:03:00 / 1 (C)", "+00:04:00 / 2 (R)"].sort());
+    .toEqual(["01m00s ago / 2 (R)", "03m00s ago / 1 (C)", "04m00s ago / 2 (R)"].sort());
 
   await setMapChoice(page, "Markers", "Latest");
   await expect
@@ -267,7 +265,7 @@ test("marker types, source paths and PET ages remain scoped to active, historica
         .map((feature) => feature.name)
         .sort()
     )
-    .toEqual(["+00:01:45 / 2 (R)", "+00:15:00 / 1 (C)", "+00:30:05 / 2 (R)"].sort());
+    .toEqual(["+02:08:20 / 2 (R)", "+01:55:05 / 1 (C)", "+01:40:00 / 2 (R)"].sort());
   const historicalPath = (await positionFeatures()).find(
     (feature) => feature.id === `posPath-${SECOND_TYPE}`
   );

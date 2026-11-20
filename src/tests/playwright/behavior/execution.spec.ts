@@ -41,10 +41,10 @@ async function expectPet(page: Page, pet: string): Promise<void> {
   await expect(page.getByTestId("rex-pet-clock")).toContainText(pet);
 }
 
-async function expectPositionAge(
+async function expectPositionTime(
   page: Page,
   positionUuid: string,
-  expectedAge: string,
+  expectedTime: string,
   mode: MapMode = "editor"
 ): Promise<void> {
   await expect
@@ -54,7 +54,7 @@ async function expectPositionAge(
       );
       return feature?.name.split(" / ")[0] ?? null;
     })
-    .toBe(expectedAge);
+    .toBe(expectedTime);
 }
 
 async function controlClock(page: Page): Promise<void> {
@@ -117,7 +117,7 @@ test.describe("Execution lifecycle", () => {
     await advanceClock(page, 60_000);
     await observePetTickWindow(page);
     await expectPet(page, "+00:05:20");
-    await expectPositionAge(page, mission.ids.posB, "+00:03:20");
+    await expectPositionTime(page, mission.ids.posB, "+00:02:00");
     await expect(
       dashboard.getByText("No EVA is currently running.", { exact: true })
     ).toBeVisible();
@@ -149,8 +149,8 @@ test.describe("Execution lifecycle", () => {
     await expect(dashboard.getByTestId("dashboard-pet-clock")).toHaveText("+02:10:05");
     await expect(dashboard.getByText("Stopped Alpha", { exact: true })).toBeVisible();
     await expect(dashboard.locator(".ol-viewport")).toHaveCount(2);
-    await expectPositionAge(dashboard, mission.ids.posA, "+00:15:00", "dashboard");
-    await expectPositionAge(page, mission.ids.posA, "+00:15:00");
+    await expectPositionTime(dashboard, mission.ids.posA, "15m00s ago", "dashboard");
+    await expectPositionTime(page, mission.ids.posA, "15m00s ago");
     await expect
       .poll(async () => (await mission.read()).rexes[mission.ids.rexA].isRunning)
       .toBe(true);

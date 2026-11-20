@@ -103,14 +103,12 @@ async function startDirective(page: Page, mission: BrowserMission, target: MapDi
     case "position": {
       await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
       const menu = page.getByTestId("positions-menu");
-      await menu.getByText("All Positions", { exact: true }).click();
       const row = menu
-        .getBySelector("table")
-        .last()
+        .getByTestId("position-table")
         .getByRole("row")
         .filter({ hasText: "00:02:00" });
-      await row.getBySelector('svg[data-icon="ellipsis-vertical"]').click();
-      await page.getBySelector("dialog[open]").getByText("Edit", { exact: true }).click();
+      await row.getByLabelText("Position actions", { exact: true }).click();
+      await page.getByRole("menuitem", { name: "Edit Position", exact: true }).click();
       await menu.getByLabelText("Edit Pos.", { exact: true }).click();
       break;
     }

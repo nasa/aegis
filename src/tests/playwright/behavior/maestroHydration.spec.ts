@@ -117,11 +117,8 @@ function waitForNoDataAll(milliseconds = 700): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-const refUuid = (uuid: string): string => uuid.replace("10000000", "20000000");
-
 type IsolatedEntityIds = {
   ids: { [key in keyof typeof MISSION_IDS]: string };
-  refs: { [key in keyof typeof MISSION_IDS]: string };
 };
 
 async function isolateMissionIdentity(mission: BehavioralMission): Promise<IsolatedEntityIds> {
@@ -164,10 +161,7 @@ async function isolateMissionIdentity(mission: BehavioralMission): Promise<Isola
   const ids = Object.fromEntries(
     Object.entries(MISSION_IDS).map(([key, uuid]) => [key, uuidMap.get(uuid) ?? uuid])
   ) as IsolatedEntityIds["ids"];
-  const refs = Object.fromEntries(
-    Object.entries(MISSION_IDS).map(([key, uuid]) => [key, refMap.get(refUuid(uuid)) ?? ""])
-  ) as IsolatedEntityIds["refs"];
-  return { ids, refs };
+  return { ids };
 }
 
 test("Maestro auth, subscription hydration, UUID maps, unsubscribe, and leave gating", async ({
@@ -177,7 +171,7 @@ test("Maestro auth, subscription hydration, UUID maps, unsubscribe, and leave ga
 }) => {
   const emssToken = process.env.EMSS_TOKEN;
   expect(emssToken, "Load the local EMSS token for the Maestro integration test").toBeTruthy();
-  const { ids, refs } = await isolateMissionIdentity(mission);
+  const { ids } = await isolateMissionIdentity(mission);
   const versionResponse = await request.get("/api/v1/version");
   expect(versionResponse.ok()).toBe(true);
   const appVersion = (await versionResponse.json()) as AppVersion;
@@ -233,51 +227,18 @@ test("Maestro auth, subscription hydration, UUID maps, unsubscribe, and leave ga
         ].sort((a, b) => a.uuid.localeCompare(b.uuid)),
       });
 
-    const refMapResponse = await request.get("/api/v1/maestro/v2/getRefUuidMap", {
-      headers: { "emss-token": emssToken as string },
-    });
-    expect(refMapResponse.status()).toBe(200);
-    const refMapBody = (await refMapResponse.json()) as WrappedResponse<
-      Record<
-        number,
-        {
-          evas: Record<string, string>;
-          stations: Record<string, string>;
-          traverses: Record<string, string>;
-          actions: Record<string, string>;
-        }
-      >
-    >;
-    expect(refMapBody.status).toBe("success");
-    expect(refMapBody.data[mission.id]).toEqual({
-      evas: {
-        [refs.evaA]: ids.evaA,
-        [refs.evaB]: ids.evaB,
-      },
-      stations: {
-        [refs.egressA]: ids.egressA,
-        [refs.stationA]: ids.stationA,
-        [refs.stationB]: ids.stationB,
-        [refs.ingressA]: ids.ingressA,
-        [refs.egressB]: ids.egressB,
-        [refs.ingressB]: ids.ingressB,
-      },
-      traverses: {
-        [refs.traverseOutbound]: ids.traverseOutbound,
-        [refs.traverseA]: ids.traverseA,
-        [refs.traverseReturn]: ids.traverseReturn,
-        [refs.traverseB]: ids.traverseB,
-        [refs.traverseBReturn]: ids.traverseBReturn,
-      },
-      actions: { [refs.actionA]: ids.actionA },
-    });
+    const missingMission = await request.get(
+      "/api/v1/maestro/v2/getRexesByEva?evaUuid=" + ids.evaA,
+      { headers: { "emss-token": emssToken as string } }
+    );
+    expect(missingMission.status()).toBe(400);
 
     for (const [evaUuid, rexUuid, rexName, isRunning] of [
       [ids.evaA, ids.rexA, "Stopped Alpha", false],
       [ids.evaB, ids.rexB, "Active Bravo", true],
     ] as const) {
       const rexesResponse = await request.get(
-        `/api/v1/maestro/v2/getRexesByEva?evaUuid=${evaUuid}`,
+        `/api/v1/maestro/v2/getRexesByEva?missionId=${mission.id}&evaUuid=${evaUuid}`,
         { headers: { "emss-token": emssToken as string } }
       );
       expect(rexesResponse.status()).toBe(200);

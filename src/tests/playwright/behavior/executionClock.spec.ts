@@ -178,7 +178,10 @@ async function displayedPositionAge(page: Page, positionUuid: string): Promise<n
         (item) => item.id === `pos-${positionUuid}` && item.visible && item.labelType === "pos"
       )!
     );
-  return parseSignedHms(feature.name.split(" / ")[0]);
+  const label = feature.name.split(" / ")[0];
+  const age = /^(?:(\d+)h)?(?:(\d{2})m)?(\d{2})s ago$/.exec(label);
+  expect(age, label).not.toBeNull();
+  return Number(age![1] ?? 0) * 3600 + Number(age![2] ?? 0) * 60 + Number(age![3]);
 }
 
 test("Maestro 100 percent crew completion is accepted over real Maestro socket while retaining stored status", async ({

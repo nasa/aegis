@@ -56,6 +56,7 @@ test("admin creates, edits, cancels destructive actions, and deletes only its ch
     await expect(page).toHaveURL(new RegExp(`/admin/mission/${targetId}/`));
 
     await page.getByLabel("Mission Name *", { exact: true }).fill(targetName);
+    await page.getByLabel("Mission Requested By *", { exact: true }).fill("Planning team");
     await page.getByLabel("Mission Description", { exact: true }).fill(editedDescription);
     await expect
       .poll(async () => {
@@ -77,6 +78,7 @@ test("admin creates, edits, cancels destructive actions, and deletes only its ch
       id: targetId,
       name: editedName,
       description: editedDescription,
+      missionRequestedBy: "Planning team",
     });
 
     await expect

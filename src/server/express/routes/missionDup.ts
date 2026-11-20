@@ -94,7 +94,12 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
 
   try {
     const newMissionId: number | null = await upsertDatabaseRetry(() =>
-      duplicateMission(parsedMissionId, missionRequestedBy, writeProgress, req.body.copyAssets !== false)
+      duplicateMission(
+        parsedMissionId,
+        missionRequestedBy,
+        writeProgress,
+        req.body.copyAssets !== false
+      )
     );
 
     // Check response

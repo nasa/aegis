@@ -18,6 +18,28 @@ async function readDump(request: APIRequestContext, missionId: number) {
   return body.data.missionData.mission as Mission;
 }
 
+test("admin lander coordinates and elevation lock while stations depend on them", async ({
+  page,
+  mission,
+}) => {
+  await page.goto(`/admin/mission/${mission.id}/${mission.docUrl}`);
+  const fields = [
+    "Lander Location Latitude",
+    "Lander Location Longitude",
+    "Lander Location Elevation",
+  ];
+  for (const field of fields) await expect(page.getByLabel(field, { exact: true })).toBeDisabled();
+  await expect(page.getByText(/lander location is read-only here/)).toBeVisible();
+  await mission.change((doc) => {
+    for (const station of Object.values(doc.stations)) {
+      station.location = null;
+      station.walkbackPath = null;
+    }
+  });
+  for (const field of fields) await expect(page.getByLabel(field, { exact: true })).toBeEnabled();
+  await expect(page.getByText(/lander location is read-only here/)).toHaveCount(0);
+});
+
 test("duplicating a mission gives it a new document identity and preserves its graph and source", async ({
   page,
   request,
@@ -43,6 +65,10 @@ test("duplicating a mission gives it a new document identity and preserves its g
   expect(uploadedAsset.status()).toBe(201);
 
   await page.goto(`/admin/mission_duplicate/${mission.id}`);
+  await expect(page.getByRole("button", { name: "Duplicate Mission", exact: true })).toBeDisabled();
+  const requester = page.getByRole("textbox", { name: "Mission Requested By *" });
+  await requester.fill("Surface Operations");
+  await requester.press("Tab");
   await expect(page.getByRole("heading", { name: "Duplicate Mission", exact: true })).toBeVisible();
   await expect(page.getByText(sourceBefore.name, { exact: true })).toBeVisible();
   const duplicateResponse = page.waitForResponse(
@@ -62,6 +88,7 @@ test("duplicating a mission gives it a new document identity and preserves its g
     const copiedMission = await readDump(request, duplicateId);
     expect(copiedMission).toMatchObject({
       id: duplicateId,
+      missionRequestedBy: "Surface Operations",
       name: `${sourceBefore.name} - Copy`,
       evas: sourceBefore.evas,
       stations: sourceBefore.stations,
@@ -116,6 +143,12 @@ test("mission duplication reports a missing-source failure without creating a pa
     });
     expect(renamed.ok()).toBe(true);
     await page.goto(`/admin/mission_duplicate/${listing.missionId}`);
+    await expect(
+      page.getByRole("button", { name: "Duplicate Mission", exact: true })
+    ).toBeDisabled();
+    const requester = page.getByRole("textbox", { name: "Mission Requested By *" });
+    await requester.fill("Surface Operations");
+    await requester.press("Tab");
     await expect(
       page.getByRole("heading", { name: "Duplicate Mission", exact: true })
     ).toBeVisible();

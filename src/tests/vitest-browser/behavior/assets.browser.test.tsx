@@ -83,11 +83,11 @@ test("asset placement and Save/Cancel use one mission record across EVA switches
   const row = page.getByTestId(`asset-row-${asset.uuid}`);
   await expect.element(row).toBeVisible();
   await editAsset(row, page);
-  await editor.getByLabelText("Radius in meters", { exact: true }).fill("99");
+  await editor.getByLabelText("Uncertainty radius in meters", { exact: true }).fill("99");
   await editor.getByLabelText("Cancel", { exact: true }).click();
   expect((await mission.read()).assets[asset.uuid]).toEqual(asset);
   await editAsset(row, page);
-  await editor.getByLabelText("Radius in meters", { exact: true }).fill("20");
+  await editor.getByLabelText("Uncertainty radius in meters", { exact: true }).fill("20");
   await editor.getByLabelText("Save", { exact: true }).click();
   await expect
     .poll(async () => (await mission.read()).assets[asset.uuid].uncertaintyMeters)
@@ -102,7 +102,7 @@ test("asset placement and Save/Cancel use one mission record across EVA switches
   await openAssets(page);
   await row.getByLabelText("Expand asset", { exact: true }).click();
   await expect
-    .element(editor.getByLabelText("Radius in meters", { exact: true }))
+    .element(editor.getByLabelText("Uncertainty radius in meters", { exact: true }))
     .toHaveTextContent("20");
   expect((await mission.read()).assets[asset.uuid]).toEqual(saved);
 });

@@ -42,10 +42,7 @@ async function openPositions(page: Page, mission: BehavioralMission): Promise<Lo
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
   await expect(menu).toContainText("Survey Bravo - Active Bravo");
-  await menu.getByText("All Positions", { exact: true }).click();
-  await expect(menu.locator("table")).toHaveCount(2);
   // The application defaults to Task/Crew sources; these cases also use Rover.
-  // Move the position menu away from the visibility launcher using its drag handle.
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   const allSources = visibility
@@ -60,9 +57,7 @@ async function openPositions(page: Page, mission: BehavioralMission): Promise<Lo
 
 function positionRow(page: Page, pet: string): Locator {
   return page
-    .getByTestId("positions-menu")
-    .locator("table")
-    .last()
+    .getByTestId("position-table")
     .getByRole("row")
     .filter({ has: page.getByRole("cell", { name: pet, exact: true }) });
 }
@@ -74,17 +69,17 @@ function positionRowWithSource(page: Page, pet: string, source: string): Locator
 }
 
 async function positionAction(page: Page, pet: string, action: string): Promise<void> {
-  await positionRow(page, pet).locator('svg[data-icon="ellipsis-vertical"]').click();
-  await page.locator("dialog[open]").getByText(action, { exact: true }).click();
+  await positionRow(page, pet).getByLabel("Position actions", { exact: true }).click();
+  await page.getByRole("menuitem", { name: action, exact: true }).click();
 }
 
 async function rowAction(row: Locator, page: Page, action: string): Promise<void> {
-  await row.locator('svg[data-icon="ellipsis-vertical"]').click();
-  await page.locator("dialog[open]").getByText(action, { exact: true }).click();
+  await row.getByLabel("Position actions", { exact: true }).click();
+  await page.getByRole("menuitem", { name: action, exact: true }).click();
 }
 
 function choice(menu: Locator, name: string): Locator {
-  return menu.locator(`[data-tooltip-content="${name}"]`);
+  return menu.getByRole("button", { name, exact: true });
 }
 
 function projected(point: AEGISPoint): number[] {
@@ -139,15 +134,17 @@ async function createPosition(
   location: AEGISPoint,
   source: string
 ): Promise<void> {
-  // New Pos requires at least one type already selected before placement starts.
-  await choice(menu, "EV1").click();
-  await menu.getByLabel("New Pos.", { exact: true }).click();
-  await expect(menu.getByLabel("Cancel Pos.", { exact: true })).toBeVisible();
-  await choice(menu, "EV2").click();
-  await choice(menu, "EV1").click();
+  await menu.getByLabel("Position", { exact: true }).click();
   await choice(menu, source).click();
+  for (const name of ["EV1", "EV2"]) {
+    const type = choice(menu, name);
+    if ((await type.getAttribute("aria-pressed")) !== String(name === "EV2")) await type.click();
+  }
+  await menu.getByLabel("Place on Map", { exact: true }).click();
+  await expect(menu.getByTestId("position-editor-map-directive-hint")).toBeVisible();
   await placePosition(page, location);
-  await expect(menu.getByLabel("Cancel Pos.", { exact: true })).toHaveCount(0);
+  await expect(menu.getByTestId("position-editor-map-directive-hint")).toHaveCount(0);
+  await menu.getByLabel("Save", { exact: true }).click();
 }
 
 async function withPositionPeer(
@@ -186,49 +183,31 @@ test.describe("Execution position contracts", () => {
     const peer = await context.newPage();
     await installMapObserver(peer);
     await openPositions(peer, mission);
-    await positionAction(page, "+00:02:00", "Edit");
+    await positionAction(page, "+00:02:00", "Edit Position");
     await choice(menu, "EV2").click();
-    await choice(menu, "EV1").click();
     await choice(menu, "Rover").click();
     await menu.getByLabel("Edit Pos.", { exact: true }).click();
-    await expect(menu.getByLabel("Cancel Pos.", { exact: true })).toBeVisible();
-    expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual([original]);
-    await page.clock.setFixedTime(new Date(Date.parse(BEHAVIORAL_NOW) + 60_000));
+    await expect(menu.getByTestId("position-editor-map-directive-hint")).toBeVisible();
     const location = { lat: -0.0006, lng: 0.001 };
     await placePosition(page, location);
-    await expect
-      .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries[0])
-      .toEqual({
-        ...original,
-        location: { lat: expect.closeTo(location.lat, 7), lng: expect.closeTo(location.lng, 7) },
-        updatedAt: Date.parse(BEHAVIORAL_NOW) + 60_000,
-      });
-    for (const client of [page, peer]) {
-      await expectPositionMarker(client, original.uuid, location);
-      await expect(positionRow(client, "+00:02:00")).toContainText("EV1");
-      await expect(
-        positionRow(client, "+00:02:00").getByRole("cell", { name: "C", exact: true })
-      ).toBeVisible();
-    }
-    const moved = (await mission.read()).rexes[mission.ids.rexB].posEntries[0];
-
-    await positionAction(page, "+00:02:00", "Edit");
-    await choice(menu, "EV2").click();
-    await choice(menu, "Rover").click();
+    await expect(menu.getByTestId("position-editor-map-directive-hint")).toHaveCount(0);
+    expect((await mission.read()).rexes[mission.ids.rexB].posEntries).toEqual([original]);
+    await expectPositionMarker(peer, original.uuid, original.location);
     await page.clock.setFixedTime(new Date(Date.parse(BEHAVIORAL_NOW) + 120_000));
-    await menu.locator('[data-tooltip-content^="Save Position Markers"]').click();
+    await menu.getByLabel("Save", { exact: true }).click();
     await expect
       .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries[0])
-      .toEqual({
-        ...moved,
+      .toMatchObject({
+        uuid: original.uuid,
+        location: { lat: expect.closeTo(location.lat, 7), lng: expect.closeTo(location.lng, 7) },
         posTypeUuids: [mission.ids.posType, SECOND_TYPE],
         posSourceUuid: SECOND_SOURCE,
         updatedAt: Date.parse(BEHAVIORAL_NOW) + 120_000,
       });
-    await expect(positionRow(peer, "+00:02:00")).toContainText("EV1, EV2");
-    await expect(
-      positionRow(peer, "+00:02:00").getByRole("cell", { name: "R", exact: true })
-    ).toBeVisible();
+    for (const client of [page, peer]) {
+      await expectPositionMarker(client, original.uuid, location);
+      await expect(positionRowWithSource(client, "+00:02:00", "R")).toContainText("EV1, EV2");
+    }
     const saved = await mission.read();
 
     for (const client of [page, peer]) {
@@ -283,10 +262,10 @@ test.describe("Execution position contracts", () => {
       await expect(positionRowWithSource(peer, "+00:05:00", "C")).toBeVisible();
 
       // The connected client changes the original entry and removes the peer's entry.
-      await positionAction(page, "+00:02:00", "Edit");
+      await positionAction(page, "+00:02:00", "Edit Position");
       await choice(menu, "EV2").click();
       await choice(menu, "Rover").click();
-      await menu.locator('[data-tooltip-content^="Save Position Markers"]').click();
+      await menu.getByLabel("Save", { exact: true }).click();
       await expect
         .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries[0])
         .toMatchObject({
@@ -306,7 +285,7 @@ test.describe("Execution position contracts", () => {
         posSourceUuid: SECOND_SOURCE,
       });
       page.once("dialog", (dialog) => dialog.accept());
-      await rowAction(positionRowWithSource(page, "+00:05:00", "C"), page, "Delete Entry");
+      await rowAction(positionRowWithSource(page, "+00:05:00", "C"), page, "Delete Position");
       await expect
         .poll(async () => (await mission.read()).rexes[mission.ids.rexB].posEntries.length)
         .toBe(2);
@@ -335,82 +314,35 @@ test.describe("Execution position contracts", () => {
       ].posEntries.find((entry) => entry.uuid === mission.ids.posB)!;
 
       // Both clients edit the same surviving entry from the same committed state.
-      await rowAction(positionRowWithSource(page, "+00:05:00", "R"), page, "Edit");
-      await rowAction(positionRowWithSource(peer, "+00:05:00", "R"), peer, "Edit");
+      await rowAction(positionRowWithSource(page, "+00:05:00", "R"), page, "Edit Position");
+      await rowAction(positionRowWithSource(peer, "+00:05:00", "R"), peer, "Edit Position");
       await choice(menu, "EV1").click();
       await choice(peerMenu, "Crew").click();
       await Promise.all([
-        menu.locator('[data-tooltip-content^="Save Position Markers"]').click(),
-        peerMenu.locator('[data-tooltip-content^="Save Position Markers"]').click(),
+        menu.getByLabel("Save", { exact: true }).click(),
+        peerMenu.getByLabel("Save", { exact: true }).click(),
       ]);
-      const targetPayload = (entry: PosEntry) => ({
-        uuid: entry.uuid,
-        location: entry.location,
-        petSeconds: entry.petSeconds,
-        createdAt: entry.createdAt,
-        posTypeUuids: entry.posTypeUuids,
-        posSourceUuid: entry.posSourceUuid,
-      });
-      const mainCandidate = {
-        uuid: mainEntry!.uuid,
-        location: mainEntry!.location,
-        petSeconds: mainEntry!.petSeconds,
-        createdAt: mainEntry!.createdAt,
-        posTypeUuids: [SECOND_TYPE, mission.ids.posType],
-        posSourceUuid: SECOND_SOURCE,
-      };
-      const peerCandidate = {
-        ...targetPayload(mainEntry!),
-        posTypeUuids: [SECOND_TYPE],
-        posSourceUuid: mission.ids.posSource,
-      };
       const retainedIds = [mission.ids.posB, mainEntry!.uuid].sort();
       await expect
         .poll(async () =>
-          (await mission.read()).rexes[mission.ids.rexB].posEntries.map((e) => e.uuid).sort()
+          (await mission.read()).rexes[mission.ids.rexB].posEntries.find(
+            (entry) => entry.uuid === mainEntry!.uuid
+          )
         )
-        .toEqual(retainedIds);
-      await expect
-        .poll(async () => {
-          const rex = (await mission.read()).rexes[mission.ids.rexB];
-          const entry = rex.posEntries.find((candidate) => candidate.uuid === mainEntry!.uuid);
-          if (
-            !entry ||
-            ![mainCandidate, peerCandidate].some(
-              (candidate) => JSON.stringify(targetPayload(entry)) === JSON.stringify(candidate)
-            )
-          ) {
-            return false;
-          }
-          const sourceAbbr = rex.posSources.find(
-            (source) => source.uuid === entry.posSourceUuid
-          )?.abbr;
-          const typeNames = entry.posTypeUuids
-            .map((uuid) => rex.posTypes.find((type) => type.uuid === uuid)?.name)
-            .join(", ");
-          if (!sourceAbbr || !typeNames) return false;
-          for (const client of [page, peer]) {
-            const row = await positionRowWithSource(client, "+00:05:00", sourceAbbr)
-              .innerText()
-              .catch(() => "");
-            if (!row.includes(sourceAbbr) || !row.includes(typeNames)) return false;
-          }
-          return true;
-        })
-        .toBe(true);
-      const concurrentEntries = (await mission.read()).rexes[mission.ids.rexB].posEntries;
-      expect(concurrentEntries.map((entry) => entry.uuid).sort()).toEqual(retainedIds);
-      const changedOriginal = concurrentEntries.find((entry) => entry.uuid === mission.ids.posB)!;
-      expect(changedOriginal).toEqual(originalBeforeConcurrentSaves);
-      const convergedEntry = concurrentEntries.find((entry) => entry.uuid === mainEntry!.uuid)!;
-      expect([mainCandidate, peerCandidate]).toContainEqual(targetPayload(convergedEntry));
+        .toMatchObject({
+          location: mainEntry!.location,
+          petSeconds: mainEntry!.petSeconds,
+          createdAt: mainEntry!.createdAt,
+          posTypeUuids: [SECOND_TYPE, mission.ids.posType],
+          posSourceUuid: mission.ids.posSource,
+        });
       const convergedRex = (await mission.read()).rexes[mission.ids.rexB];
-      const convergedSourceAbbr = convergedRex.posSources.find(
-        (source) => source.uuid === convergedEntry.posSourceUuid
-      )!.abbr;
-      const convergedTypeNames = convergedEntry.posTypeUuids
-        .map((uuid) => convergedRex.posTypes.find((type) => type.uuid === uuid)?.name)
-        .join(", ");
+      const concurrentEntries = convergedRex.posEntries;
+      expect(concurrentEntries.map((entry) => entry.uuid).sort()).toEqual(retainedIds);
+      expect(concurrentEntries.find((entry) => entry.uuid === mission.ids.posB)).toEqual(
+        originalBeforeConcurrentSaves
+      );
+      const convergedEntry = concurrentEntries.find((entry) => entry.uuid === mainEntry!.uuid)!;
       for (const entry of concurrentEntries) {
         expect(entry.posTypeUuids.length).toBeGreaterThan(0);
         for (const typeUuid of entry.posTypeUuids) {
@@ -419,17 +351,15 @@ test.describe("Execution position contracts", () => {
         expect(convergedRex.posSources.map((source) => source.uuid)).toContain(entry.posSourceUuid);
       }
       for (const client of [page, peer]) {
-        await expect(positionRowWithSource(client, "+00:05:00", convergedSourceAbbr)).toContainText(
-          convergedTypeNames
-        );
+        await expect(positionRowWithSource(client, "+00:05:00", "C")).toContainText("EV1, EV2");
       }
 
       peer.once("dialog", (dialog) => dialog.accept());
-      await rowAction(positionRow(peer, "+00:02:00"), peer, "Delete Entry");
+      await rowAction(positionRow(peer, "+00:02:00"), peer, "Delete Position");
       await expect(positionRow(page, "+00:02:00")).toHaveCount(0);
       const finalRex = (await mission.read()).rexes[mission.ids.rexB];
       expect(finalRex.posEntries).toHaveLength(1);
-      expect(targetPayload(finalRex.posEntries[0])).toEqual(targetPayload(convergedEntry));
+      expect(finalRex.posEntries[0]).toEqual(convergedEntry);
       for (const entry of finalRex.posEntries) {
         for (const typeUuid of entry.posTypeUuids) {
           expect(finalRex.posTypes.map((type) => type.uuid)).toContain(typeUuid);
@@ -442,12 +372,10 @@ test.describe("Execution position contracts", () => {
       await mission.open(peer);
       await openPositions(peer, mission);
       for (const client of [page, peer]) {
-        await expect(positionRowWithSource(client, "+00:05:00", convergedSourceAbbr)).toContainText(
-          convergedTypeNames
-        );
+        await expect(positionRowWithSource(client, "+00:05:00", "C")).toContainText("EV1, EV2");
       }
       const afterReload = (await mission.read()).rexes[mission.ids.rexB].posEntries[0];
-      expect(targetPayload(afterReload)).toEqual(targetPayload(convergedEntry));
+      expect(afterReload).toEqual(convergedEntry);
       await expectPositionMarker(page, mainEntry!.uuid, mainLocation);
       await expectPositionMarker(peer, mainEntry!.uuid, mainLocation);
     });

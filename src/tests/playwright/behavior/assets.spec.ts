@@ -54,6 +54,8 @@ test("saving a stale asset editor preserves another client's changes to untouche
       location: { lat: 0, lng: 0 },
     });
   await expect(peer.getByTestId("asset-row-shared-cache")).toContainText("Renamed by first client");
-  await expect(peerEditor.getByLabel("Radius in meters", { exact: true })).toHaveText("40");
-  await expect(editor.getByLabel("Radius in meters", { exact: true })).toHaveText("40");
+  await expect(peerEditor.getByLabel("Uncertainty radius in meters", { exact: true })).toHaveText(
+    "40"
+  );
+  await expect(editor.getByLabel("Uncertainty radius in meters", { exact: true })).toHaveText("40");
 });

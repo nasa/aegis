@@ -64,8 +64,6 @@ async function openPositions(page: Page, mission: BrowserMission): Promise<Locat
   await selectExecution(page, "Survey Bravo", mission.ids.rexEvaB);
   const menu = page.getByTestId("positions-menu");
   await expect.element(menu).toMatchTextContent("Survey Bravo - Active Bravo");
-  await menu.getByText("All Positions", { exact: true }).click();
-  await expect.poll(() => menu.getBySelector("table").length).toBe(2);
   await page.getByTestId("map-menu-launcher").click();
   const visibility = page.getByTestId("map-menu-floating-panel");
   const sourceRow = visibility
@@ -81,17 +79,19 @@ async function createPositionWithBeacon(
   menu: Locator,
   point: AEGISPoint
 ): Promise<void> {
-  await choice(menu, "EV1").click();
-  await menu.getByLabelText("New Pos.", { exact: true }).click();
-  await expect.element(menu.getByLabelText("Cancel Pos.", { exact: true })).toBeVisible();
+  await menu.getByLabelText("Position", { exact: true }).click();
   await choice(menu, "Beacon").click();
   await choice(menu, "EV1").click();
+  await choice(menu, "Tool").click();
+  await menu.getByLabelText("Place on Map", { exact: true }).click();
+  await expect.element(menu.getByTestId("position-editor-map-directive-hint")).toBeVisible();
   await placePosition(page, point);
-  await expect.poll(() => menu.getByLabelText("Cancel Pos.", { exact: true }).length).toBe(0);
+  await expect.poll(() => menu.getByTestId("position-editor-map-directive-hint").length).toBe(0);
+  await menu.getByLabelText("Save", { exact: true }).click();
 }
 
 function choice(menu: Locator, name: string): Locator {
-  return menu.getBySelector(`[data-tooltip-content="${name}"]`);
+  return menu.getByRole("button", { name, exact: true });
 }
 
 function projected(point: AEGISPoint): number[] {
@@ -200,6 +200,21 @@ test("position types create, rename, reorder, style, guard used deletion and upd
       (type) => type.uuid === SECOND_TYPE
     )
   ).toMatchObject({ name: "Tool", abbr: "T", icon: "1f680" });
+
+  await toolRow.getBySelector('[class*="propertyIconDisplay"]').click();
+  await emojiSearch.fill("Astronaut");
+  await iconDialog.getByRole("button", { name: ":astronaut:", exact: true }).click();
+  await expect
+    .element(toolRow.getByRole("img", { name: "Astronaut" }))
+    .toHaveAttribute("src", "/images/astronaut_outline.svg");
+  await expect
+    .poll(
+      async () =>
+        (await mission.read()).rexes[mission.ids.rexB].posTypes.find(
+          (type) => type.uuid === SECOND_TYPE
+        )?.icon
+    )
+    .toBe("astronaut");
 
   const typeOrder = async () =>
     (await mission.read()).rexes[mission.ids.rexB].posTypes.map((t) => t.uuid);

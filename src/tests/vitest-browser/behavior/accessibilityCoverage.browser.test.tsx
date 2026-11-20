@@ -162,7 +162,7 @@ executionTest(
     await expect
       .element(page.getBySelector('[data-map-mode="minimap"] .ol-viewport'))
       .toBeVisible();
-    await expectMapLabel("+00:03:00 / 1 (C)", "dashboard");
+    await expectMapLabel("03m00s ago / 1 (C)", "dashboard");
     const owners = await (() =>
       window.__aegisMaps
         .filter(

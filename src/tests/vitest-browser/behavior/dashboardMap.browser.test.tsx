@@ -87,7 +87,7 @@ test.describe("Dashboard and minimap display contracts", () => {
       .element(page.getByTestId("dashboard-pet-clock"))
       .toMatchTextContent(exactText("+00:05:00"));
     await expect.poll(stationIds).toEqual([mission.ids.rexStationB]);
-    await expectMapLabel("+00:03:00 / 1 (C)", "dashboard");
+    await expectMapLabel("03m00s ago / 1 (C)", "dashboard");
     await expect
       .poll(async () =>
         (await readMapFeatures("dashboard"))
@@ -101,6 +101,6 @@ test.describe("Dashboard and minimap display contracts", () => {
       .element(page.getByTestId("dashboard-pet-clock"))
       .toMatchTextContent(exactText("+00:05:00"));
     await expect.poll(stationIds).toEqual([mission.ids.rexStationB]);
-    await expectMapLabel("+00:03:00 / 1 (C)", "dashboard");
+    await expectMapLabel("03m00s ago / 1 (C)", "dashboard");
   });
 });

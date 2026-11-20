@@ -30,4 +30,23 @@ test("terrain HTTP validation rejects missing DEM, invalid coordinates and over-
   });
   expect(overLimit.status()).toBe(400);
   expect((await overLimit.json()).message).toContain("sample limit");
+  await mission.change((doc) => {
+    doc.demFilePath = "unavailable-survey.tif";
+  });
+  const profile = { path: profilePath, pathSegmentDistances: [100], getElevationOnly: true };
+  const missingFile = await request.post(`/api/v1/terrain-profile?missionId=${mission.id}`, {
+    data: profile,
+  });
+  expect(missingFile.status()).toBe(404);
+  expect(await missingFile.json()).toEqual({
+    status: "error",
+    message: "Mission DEM file not found",
+  });
+  const batch = await request.post(`/api/v1/terrain-profile/batch?missionId=${mission.id}`, {
+    data: { profiles: [profile] },
+  });
+  expect(batch.status()).toBe(200);
+  expect((await batch.json()).data).toEqual([
+    { status: "error", message: "Mission DEM file not found", httpStatus: 404 },
+  ]);
 });
