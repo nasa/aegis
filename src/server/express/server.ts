@@ -30,9 +30,196 @@ import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapt
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
+import { performance, PerformanceObserver } from "node:perf_hooks";
 
 // this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
 initializeBase64Wasm(automergeWasmBase64);
+
+// ==========================================================================
+// Main-thread stall diagnostics
+// ==========================================================================
+
+// Socket.IO and the Automerge websocket both drop every client after roughly 5–10 s without a
+// heartbeat, so any synchronous work of that length on the main thread disconnects everyone.
+// These diagnostics record what ran on the main thread just before such a stall.
+const MAIN_THREAD_STALL_CHECK_INTERVAL_MS = 250;
+const MAIN_THREAD_STALL_WARNING_MS = 1_000;
+const SLOW_AUTOMERGE_OPERATION_NOTICE_MS = 250;
+const SLOW_AUTOMERGE_OPERATION_WARNING_MS = 1_000;
+const SLOW_GARBAGE_COLLECTION_WARNING_MS = 500;
+// Operations at least this long are kept so a stall log can list what preceded it.
+const RECENT_OPERATION_MINIMUM_MS = 50;
+const RECENT_OPERATION_WINDOW_MS = 30_000;
+const RECENT_OPERATION_MAXIMUM_ENTRIES = 200;
+const DIAGNOSTICS_REPORT_INTERVAL_MS = 60_000;
+const AUTOMERGE_MAIN_THREAD_TIME_NOTICE_MS_PER_REPORT = 2_000;
+const MAX_SLOW_AUTOMERGE_OPERATION_LOGS_PER_REPORT = 30;
+
+let slowAutomergeOperationLogsThisReport = 0;
+let slowAutomergeOperationLogsSuppressedThisReport = 0;
+
+const recentSlowMainThreadOperations: MainThreadOperationTiming[] = [];
+let automergeOperationTotalsThisReport = new Map<string, AutomergeOperationTypeTotals>();
+
+const recordRecentSlowMainThreadOperation = (operation: MainThreadOperationTiming): void => {
+  if (operation.durationMs < RECENT_OPERATION_MINIMUM_MS) return;
+  recentSlowMainThreadOperations.push(operation);
+  const oldestKeptEndedAt = performance.now() - RECENT_OPERATION_WINDOW_MS;
+  while (
+    recentSlowMainThreadOperations.length > RECENT_OPERATION_MAXIMUM_ENTRIES ||
+    (recentSlowMainThreadOperations[0] &&
+      recentSlowMainThreadOperations[0].endedAt < oldestKeptEndedAt)
+  )
+    recentSlowMainThreadOperations.shift();
+};
+
+const missionIdForDocument = (repo: Repo, documentId: string | undefined): number | undefined => {
+  if (!documentId) return undefined;
+  try {
+    return (repo.handles[documentId as keyof Repo["handles"]]?.doc() as Mission | undefined)?.id;
+  } catch {
+    return undefined;
+  }
+};
+
+function startMainThreadStallDiagnostics(repo: Repo): void {
+  repo.on("doc-metrics", (event) => {
+    if (!("durationMillis" in event)) return;
+    const peerId =
+      "forPeer" in event ? event.forPeer : "fromPeer" in event ? event.fromPeer : undefined;
+    const typeTotals = automergeOperationTotalsThisReport.get(event.type) ?? {
+      count: 0,
+      totalMs: 0,
+      maxMs: 0,
+    };
+    typeTotals.count += 1;
+    typeTotals.totalMs += event.durationMillis;
+    typeTotals.maxMs = Math.max(typeTotals.maxMs, event.durationMillis);
+    automergeOperationTotalsThisReport.set(event.type, typeTotals);
+    recordRecentSlowMainThreadOperation({
+      type: event.type,
+      durationMs: event.durationMillis,
+      endedAt: performance.now(),
+      documentId: event.documentId,
+      peerId,
+    });
+
+    if (event.durationMillis < SLOW_AUTOMERGE_OPERATION_NOTICE_MS) return;
+    // Many peers can sync slowly at once after a mass reconnect; the per-minute summary still
+    // counts every operation, so individual logs are capped.
+    if (slowAutomergeOperationLogsThisReport >= MAX_SLOW_AUTOMERGE_OPERATION_LOGS_PER_REPORT) {
+      slowAutomergeOperationLogsSuppressedThisReport += 1;
+      return;
+    }
+    slowAutomergeOperationLogsThisReport += 1;
+    const loggable = {
+      logValue: `Automerge ${event.type} took ${Math.round(event.durationMillis)} ms on the main thread`,
+      automergeOperation: event.type,
+      durationMs: Math.round(event.durationMillis),
+      documentId: event.documentId,
+      missionId: missionIdForDocument(repo, event.documentId),
+      peerId,
+      numOps: "numOps" in event ? event.numOps : undefined,
+      numChanges: "numChanges" in event ? event.numChanges : undefined,
+      connectedAutomergePeers: repo.peers.length,
+    };
+    if (event.durationMillis >= SLOW_AUTOMERGE_OPERATION_WARNING_MS)
+      serverLogger.warning({
+        logId: "server:automergeDocMetrics:automergeOperationBlockedMainThreadForOverOneSecond",
+        ...loggable,
+      });
+    else
+      serverLogger.notice({
+        logId: "server:automergeDocMetrics:slowAutomergeOperationOnMainThread",
+        ...loggable,
+      });
+  });
+
+  const garbageCollectionObserver = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      recordRecentSlowMainThreadOperation({
+        type: "garbage-collection",
+        durationMs: entry.duration,
+        endedAt: entry.startTime + entry.duration,
+      });
+      if (entry.duration >= SLOW_GARBAGE_COLLECTION_WARNING_MS)
+        serverLogger.warning({
+          logId: "server:garbageCollectionObserver:longGarbageCollectionPauseOnMainThread",
+          logValue: `Garbage collection paused the main thread for ${Math.round(entry.duration)} ms`,
+          durationMs: Math.round(entry.duration),
+          heapUsedBytes: process.memoryUsage().heapUsed,
+          rssBytes: process.memoryUsage.rss(),
+        });
+    }
+  });
+  garbageCollectionObserver.observe({ entryTypes: ["gc"] });
+
+  // A timer that fires late measures how long the main thread was blocked. It reports after the
+  // stall ends, by which point the operation that caused it has already recorded its duration.
+  let previousStallCheckAt = performance.now();
+  setInterval(() => {
+    const now = performance.now();
+    const stallMs = now - previousStallCheckAt - MAIN_THREAD_STALL_CHECK_INTERVAL_MS;
+    previousStallCheckAt = now;
+    if (stallMs < MAIN_THREAD_STALL_WARNING_MS) return;
+    const stallStartedAt = now - stallMs - MAIN_THREAD_STALL_CHECK_INTERVAL_MS;
+    const operationsBeforeStall = recentSlowMainThreadOperations
+      .filter((operation) => operation.endedAt >= stallStartedAt - 5_000)
+      .sort((left, right) => right.durationMs - left.durationMs)
+      .slice(0, 10)
+      .map((operation) => ({
+        type: operation.type,
+        durationMs: Math.round(operation.durationMs),
+        secondsBeforeStallEnded: Math.round((now - operation.endedAt) / 100) / 10,
+        missionId: missionIdForDocument(repo, operation.documentId),
+        peerId: operation.peerId,
+      }));
+    const memory = process.memoryUsage();
+    serverLogger.warning({
+      logId: "server:mainThreadStallMonitor:mainThreadBlockedLongEnoughToRiskDroppingSockets",
+      logValue: `Main thread was blocked for about ${Math.round(stallMs)} ms`,
+      stallMs: Math.round(stallMs),
+      stallStartedAtIso: new Date(Date.now() - (now - stallStartedAt)).toISOString(),
+      slowestOperationsBeforeStall: JSON.stringify(operationsBeforeStall),
+      connectedAutomergePeers: repo.peers.length,
+      connectedSocketIoClients: globalValues.socketio?.engine.clientsCount,
+      loadedDocuments: Object.keys(repo.handles).length,
+      heapUsedBytes: memory.heapUsed,
+      rssBytes: memory.rss,
+    });
+  }, MAIN_THREAD_STALL_CHECK_INTERVAL_MS).unref();
+
+  setInterval(() => {
+    const automergeMainThreadMs = [...automergeOperationTotalsThisReport.values()].reduce(
+      (sum, totals) => sum + totals.totalMs,
+      0
+    );
+    if (automergeMainThreadMs >= AUTOMERGE_MAIN_THREAD_TIME_NOTICE_MS_PER_REPORT)
+      serverLogger.notice({
+        logId: "server:automergeDocMetrics:automergeUsedSignificantMainThreadTimeInOneMinute",
+        logValue: `Automerge used ${Math.round(automergeMainThreadMs)} ms of main-thread time in the last minute`,
+        automergeMainThreadMs: Math.round(automergeMainThreadMs),
+        operationTotals: JSON.stringify(
+          Object.fromEntries(
+            [...automergeOperationTotalsThisReport.entries()].map(([type, totals]) => [
+              type,
+              {
+                count: totals.count,
+                totalMs: Math.round(totals.totalMs),
+                maxMs: Math.round(totals.maxMs),
+              },
+            ])
+          )
+        ),
+        connectedAutomergePeers: repo.peers.length,
+        slowAutomergeOperationLogsSuppressed: slowAutomergeOperationLogsSuppressedThisReport,
+      });
+
+    automergeOperationTotalsThisReport = new Map();
+    slowAutomergeOperationLogsThisReport = 0;
+    slowAutomergeOperationLogsSuppressedThisReport = 0;
+  }, DIAGNOSTICS_REPORT_INTERVAL_MS).unref();
+}
 
 // Wrap in async IIFE to handle top-level await
 (async () => {
@@ -175,6 +362,8 @@ initializeBase64Wasm(automergeWasmBase64);
     sharePolicy: async () => false,
   });
   globalValues.automergeRepo = missionRepo;
+  // Start before documents load so slow loads during startup are also recorded.
+  startMainThreadStallDiagnostics(missionRepo);
 
   // Observe storage loads before catalog population and running missions load documents.
   const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
