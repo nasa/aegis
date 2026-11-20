@@ -19,12 +19,12 @@ export function MapDistanceOverlays({ showScaleBar }: { showScaleBar: boolean })
     (): DrawnGridInterval => map.get(GRID_INTERVAL_PROPERTY) ?? null
   );
   return (
-    <div className={`${styles.mapReadout} ${styles.mapDistanceDisplay}`}>
+    <div className={styles.mapDistanceDisplay}>
       {interval !== null && (
         <div
-          className={`${styles.mapReadoutRow} ${styles.mapReadoutText} ${styles.gridIntervalDisplay}`}
+          className={`${styles.mapReadout} ${styles.mapReadoutText} ${styles.gridIntervalDisplay}`}
         >
-          {interval === "lgrs-zones" ? "LGRS zones" : `Grid ${formatMapDistance(interval, "")}`}
+          {interval === "lgrs-zones" ? "LGRS zones" : `Grid ${formatMapDistance(interval)}`}
         </div>
       )}
       {showScaleBar && <ScaleBar />}

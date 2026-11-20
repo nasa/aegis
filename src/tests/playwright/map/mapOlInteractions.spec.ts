@@ -87,8 +87,7 @@ test.describe("Mission 22 — Page Load & Rendering", () => {
 
   test("scale bar is visible by default in editor mode", async ({ page }) => {
     await openMissionMap(page);
-    // ScaleBar renders text like "100 m" or "1 km" inside an aria-labelled element.
-    const scaleBar = page.getByLabel("scaleBar", { exact: true });
+    const scaleBar = page.getByRole("img", { name: /^Map scale / });
     await expect(scaleBar).toBeVisible({ timeout: 5000 });
   });
 
@@ -192,7 +191,7 @@ test.describe("Mission 22 — Eyeball Menu", () => {
     await openMissionMap(page);
 
     // Scale bar should be visible by default
-    const scaleBar = page.getByLabel("scaleBar", { exact: true });
+    const scaleBar = page.getByRole("img", { name: /^Map scale / });
     await expect(scaleBar).toBeVisible({ timeout: 5000 });
 
     // Open eyeball menu and toggle Scale Bar off
@@ -225,7 +224,7 @@ test.describe("Mission 22 — Eyeball Menu", () => {
     await eyeIcon.click();
 
     // Scale bar should reappear
-    const scaleBar = page.getByLabel("scaleBar", { exact: true });
+    const scaleBar = page.getByRole("img", { name: /^Map scale / });
     await expect(scaleBar).toBeVisible({ timeout: 5000 });
   });
 
@@ -678,7 +677,7 @@ test.describe("Mission 22 — Map Display Integration", () => {
 
     const scaleText = async (): Promise<string | null> =>
       page
-        .getByLabel("scaleBar", { exact: true })
+        .getByRole("img", { name: /^Map scale / })
         .textContent()
         .catch((): null => null);
 

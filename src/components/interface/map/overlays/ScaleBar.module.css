@@ -1,38 +1,51 @@
 .graphic {
-  margin-inline: 14px;
+  margin-inline: 8px;
 }
 
 .labels {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 2px;
+  display: grid;
+  margin-bottom: 3px;
+  color: #ffffff;
   white-space: nowrap;
 }
 
-.labels > :first-child {
+.tick {
+  position: relative;
+  justify-self: start;
+  width: max-content;
+  font-weight: 600;
+  -webkit-text-stroke: 2px #111111;
+  paint-order: stroke fill;
   transform: translateX(-50%);
 }
 
-.labels > :last-child {
-  transform: translateX(50%);
-}
-
 .unit {
-  margin-top: 2px;
-  text-align: center;
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 100%;
+  white-space: pre;
 }
 
 .bar {
+  position: relative;
   display: flex;
   box-sizing: border-box;
   height: 5px;
-  border: 1px solid currentcolor;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 1px #111111;
+}
+
+.bar::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #ffffff;
+  content: "";
 }
 
 .segment {
   flex: 1;
 }
 
-.segment:nth-child(odd) {
-  background: currentcolor;
+.segment:nth-child(even) {
+  background-color: #111111;
 }
