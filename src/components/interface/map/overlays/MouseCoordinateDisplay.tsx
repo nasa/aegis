@@ -135,9 +135,13 @@ export function MouseCoordinateDisplay({
 
   return (
     <div className={className}>
-      {readout && <div className={styles.mouseReadout}>{readout.latLng}</div>}
+      {readout && (
+        <div className={`${styles.mapReadoutRow} ${styles.mouseReadout}`}>{readout.latLng}</div>
+      )}
       {readout?.grid && (
-        <div className={`${styles.mouseReadout} ${styles.mouseGridReadout}`}>
+        <div
+          className={`${styles.mapReadoutRow} ${styles.mouseReadout} ${styles.mouseGridReadout}`}
+        >
           <span>{readout.grid}</span>
           {readout.schemeTag && (
             <span

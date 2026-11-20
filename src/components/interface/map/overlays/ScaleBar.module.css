@@ -1,0 +1,38 @@
+.graphic {
+  margin-inline: 14px;
+}
+
+.labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.labels > :first-child {
+  transform: translateX(-50%);
+}
+
+.labels > :last-child {
+  transform: translateX(50%);
+}
+
+.unit {
+  margin-top: 2px;
+  text-align: center;
+}
+
+.bar {
+  display: flex;
+  box-sizing: border-box;
+  height: 5px;
+  border: 1px solid currentcolor;
+}
+
+.segment {
+  flex: 1;
+}
+
+.segment:nth-child(odd) {
+  background: currentcolor;
+}

@@ -138,12 +138,6 @@ export interface ModeConfig {
 
   // GIS data sublayer labels
   dataLayer: DataLayerConfig;
-
-  // Scale bar
-  scaleBar: {
-    /** Font size (px) for the scale-bar label text. */
-    fontSize: number;
-  };
 }
 
 /** Astronaut SVG used for "EV*" POS markers and the timeline astronaut, in every mode. */
@@ -225,9 +219,6 @@ const EDITOR_CONFIG: ModeConfig = {
     gazetteerFontSize: 13,
     featureFontSize: 12,
   },
-  scaleBar: {
-    fontSize: 13,
-  },
 };
 
 const DASHBOARD_CONFIG: ModeConfig = {
@@ -302,9 +293,6 @@ const DASHBOARD_CONFIG: ModeConfig = {
     gazetteerFontSize: 20,
     featureFontSize: 18,
   },
-  scaleBar: {
-    fontSize: 18,
-  },
 };
 
 const MINIMAP_CONFIG: ModeConfig = {
@@ -378,9 +366,6 @@ const MINIMAP_CONFIG: ModeConfig = {
     labelsEnabled: false,
     gazetteerFontSize: 11,
     featureFontSize: 11,
-  },
-  scaleBar: {
-    fontSize: 18,
   },
 };
 

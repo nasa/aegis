@@ -47,7 +47,10 @@ import {
   type DashboardBoundsContextValue,
 } from "components/interface/map/DashboardBoundsProvider";
 import { Grid } from "components/interface/map/behaviors/Grid";
+import { GRID_INTERVAL_PROPERTY } from "components/interface/map/utils/mapScale";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
+import { MODE_CONFIGS } from "components/interface/map/utils/modeConfig";
+import { createGridLabelStyleFn, gridLabelFits } from "components/interface/map/utils/styles/grid";
 import { presetSlice } from "store/preset";
 import { interfaceSlice } from "store/interface";
 import { formatLgrsFromLatLon } from "utils/lgrs/display";
@@ -401,8 +404,16 @@ function missionBinding(): LgrsGridBinding {
 }
 
 /** The plan Grid should have drawn for the current view. */
-function planForView(overrides: Partial<LgrsRenderOptions> = {}): LgrsRenderPlan {
+/** The plan `Grid` draws for the current view in `mode`, including its label fit check. */
+function planForView(
+  overrides: Partial<LgrsRenderOptions> = {},
+  mode: "editor" | "dashboard" | "minimap" = "editor"
+): LgrsRenderPlan {
   const extent = map.getView().calculateExtent(map.getSize());
+  const labelStyle = createGridLabelStyleFn(
+    makeGridControl(true, true).style,
+    MODE_CONFIGS[mode].grid.labelFontSize
+  );
   return createLgrsRenderPlan({
     binding: missionBinding(),
     extent: [extent[0], extent[1], extent[2], extent[3]],
@@ -410,6 +421,7 @@ function planForView(overrides: Partial<LgrsRenderOptions> = {}): LgrsRenderPlan
     gridSpacingMode: "auto",
     gridLabelInterval: "auto",
     labelsVisible: true,
+    labelFits: (text, cellPixels) => gridLabelFits(labelStyle(text, false), cellPixels),
     ...overrides,
   });
 }
@@ -603,6 +615,19 @@ describe("Grid", () => {
     expect(labelLayer.getSource()!.getFeatures().length).toBeGreaterThan(0);
   });
 
+  it("skips grid labels wider than their cells", () => {
+    mockGrid.current = makeGrid(3, 3);
+    const longLabel = "Long grid label".repeat(10);
+    mockGrid.current.coordinates[1][1].name = longLabel;
+    store = makeStore(visibleGridState());
+    map.getView().setResolution(200);
+
+    renderGrid();
+
+    expect(labelTexts().length).toBeGreaterThan(0);
+    expect(labelTexts()).not.toContain(longLabel);
+  });
+
   it("label source is empty in minimap mode (gridLabelsEnabled=false)", () => {
     mockGrid.current = makeGrid(3, 3);
     store = makeStore({
@@ -627,11 +652,17 @@ describe("Grid", () => {
     mockGrid.current = makeGrid(3, 3);
     mockBaseSpacing.current = 10;
     store = makeStore(visibleGridState());
+    map.getView().setResolution(0.2);
 
     renderGridInBounds("dashboard");
 
     // 3×3 grid over the whole viewport → stride 1 → spacing == base spacing.
     await expect.poll(() => bounds.ctx?.gridSpacing).toEqual({ line: 10, label: 10 });
+    expect(map.get(GRID_INTERVAL_PROPERTY)).toBe(10);
+
+    map.getView().setResolution(2);
+    await expect.poll(() => map.get(GRID_INTERVAL_PROPERTY)).toBe(100);
+    await expect.poll(() => bounds.ctx?.gridSpacing).toEqual({ line: 100, label: 100 });
   });
 
   it("minimap draws the dashboard's spacing instead of its own", async () => {
@@ -756,14 +787,14 @@ describe("Grid dynamic LGRS", () => {
     expect(lineFeatureCount()).toBe(own.lines.length);
 
     const { flushSync } = await import("react-dom");
-    flushSync(() => bounds.ctx!.setGridSpacing({ line: 100, label: 100 }));
+    flushSync(() => bounds.ctx!.setGridSpacing({ line: 1000, label: 1000 }));
     renderGridInBounds("minimap");
 
     const inherited = planForView({
       labelsVisible: false,
-      inheritedSpacing: { line: 100, label: 100 },
+      inheritedSpacing: { line: 1000, label: 1000 },
     });
-    expect(inherited.lineSpacing).toBe(100);
+    expect(inherited.lineSpacing).toBe(1000);
     expect(lineFeatureCount()).toBe(inherited.lines.length);
     expect(inherited.lines.length).toBeLessThan(own.lines.length);
   });
@@ -902,7 +933,7 @@ describe("Grid dynamic Earth grid", () => {
   });
 
   it("runs lines continuously across the Iceland 64° N band boundary", () => {
-    setEarthView("mercator", 64, -16.5, 5);
+    setEarthView("mercator", 64, -16.5, 2);
     renderGrid();
 
     const plan = planForView();
@@ -998,7 +1029,7 @@ describe("Grid dynamic Earth grid", () => {
     setEarthView("mercator", 29.5593, -95.09, 10, "mgrs");
     renderGridInBounds("dashboard");
 
-    const plan = planForView();
+    const plan = planForView({}, "dashboard");
     await expect
       .poll(() => bounds.ctx?.gridSpacing)
       .toEqual({
@@ -1014,20 +1045,20 @@ describe("Grid dynamic Earth grid", () => {
     const own = planForView({ labelsVisible: false });
     const inherited = planForView({
       labelsVisible: false,
-      inheritedSpacing: { line: 1000, label: 1000 },
+      inheritedSpacing: { line: 100, label: 100 },
     });
-    expect(inherited.lines.length).toBeLessThan(own.lines.length);
+    expect(inherited.lines.length).toBeGreaterThan(own.lines.length);
     expect(lineFeatureCount()).toBe(own.lines.length);
 
     const { flushSync } = await import("react-dom");
     flushSync(() =>
-      bounds.ctx!.setGridSpacing({ line: 1000, label: 1000, systemKey: "earth-wgs84/mgrs" })
+      bounds.ctx!.setGridSpacing({ line: 100, label: 100, systemKey: "earth-wgs84/mgrs" })
     );
     renderGridInBounds("minimap");
     expect(lineFeatureCount()).toBe(own.lines.length);
 
     flushSync(() =>
-      bounds.ctx!.setGridSpacing({ line: 1000, label: 1000, systemKey: "earth-wgs84/lunar-acc" })
+      bounds.ctx!.setGridSpacing({ line: 100, label: 100, systemKey: "earth-wgs84/lunar-acc" })
     );
     renderGridInBounds("minimap");
     expect(lineFeatureCount()).toBe(inherited.lines.length);

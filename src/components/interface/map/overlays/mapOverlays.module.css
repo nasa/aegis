@@ -77,33 +77,52 @@
   display: none;
 }
 
-.mapScaleDisplay {
+.mapDistanceDisplay {
   position: absolute;
-  bottom: 10px;
+  bottom: 15px;
   left: 10px;
-  color: var(--grey0);
-  font-weight: 600;
-  text-align: center;
   z-index: 100;
-  border-radius: var(--radius);
-  background-color: var(--grey5);
+  pointer-events: none;
+}
+
+.mapDistanceDisplay:empty {
+  display: none;
+}
+
+.mapReadout {
+  border: 2px solid rgb(0 0 0 / 20%);
+  border-radius: var(--radius, 3px);
+  color: var(--grey5, #e0e0e0);
+  background-color: var(--grey2, #424653);
+}
+
+.mapReadoutText {
+  font-size: 0.8em;
+  font-weight: 400;
+}
+
+.mapReadoutRow {
+  padding: 5px;
+  border: 1px solid var(--grey3, #616574);
+}
+
+.mapReadoutRow + .mapReadoutRow {
+  border-top: 0;
+}
+
+.gridIntervalDisplay {
+  white-space: nowrap;
 }
 
 .mapPositionDisplay {
   position: absolute;
-  bottom: 10px;
+  bottom: 15px;
   right: 10px;
   z-index: 100;
-  border: 2px solid rgb(0 0 0 / 20%);
-
-  border-radius: var(--radius);
-  background-color: var(--grey2);
 }
 
 /* One line of the mouse readout. Monospace, so the box keeps its size as the digits change. */
 .mouseReadout {
-  padding: 5px;
-  border: 1px solid var(--grey3, #666666);
   font-family: "Roboto Mono", monospace;
   font-size: 0.8em;
   white-space: nowrap;

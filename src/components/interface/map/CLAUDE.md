@@ -443,7 +443,7 @@ for the timeline astronaut renders above all vector layers regardless.
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
 branching on mode. Sections: `map`, `lander`, `station`, `asset` (markers + label styling),
 `circle`,
-`traverse`, `markerLabel`, `pos`, `grid`, `dataLayer`, `scaleBar`. Notable flags that gate behavior:
+`traverse`, `markerLabel`, `pos`, `grid`, `dataLayer`. Notable flags that gate behavior:
 
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
 - dashboard: larger icons and label fonts throughout, `tooltipOpacity 0.65`, `hoverable: false`
@@ -452,10 +452,8 @@ branching on mode. Sections: `map`, `lander`, `station`, `asset` (markers + labe
   `grid.labelsEnabled: false`, `dataLayer.labelsEnabled: false`, `asset.show: false` (no asset
   markers or uncertainty circles).
 
-**Every** on-map font size is a mode-config number — `circle.labelFontSize`,
-`traverse.bearing/distanceLabelFontSize`, `markerLabel.fontSize`, `asset.fontSize`,
-`grid.labelFontSize`, `scaleBar.fontSize`, and `dataLayer.gazetteer/featureFontSize`. Don't hardcode
-a `px` size in a style file; add it here instead.
+Canvas labels use mode-specific font sizes. The scale bar and coordinate readout share
+`mapReadoutText` in `mapOverlays.module.css`.
 
 `dataLayer` (`DataLayerConfig`) is the one section consumed outside the behavior components:
 `layerFactory` takes it on `LayerFactoryInput` and as the 2nd arg of `buildVectorStyleFn`, and
@@ -583,8 +581,9 @@ Overlay gotchas:
   position, so the string and tag never disagree (the pointer is usually over the menu then).
   The readout is Roboto Mono so the box doesn't resize as the digits change; the scheme tag is
   pinned to the right edge.
-- `ScaleBar` assumes resolution == meters/pixel — only exact for a metric projected CRS;
-  approximate on EPSG:3857 away from the equator. Updates on `moveend` only.
+- `ScaleBar` measures ground resolution at the view centre using the projection and mission
+  radius and updates while the view moves. `MapDistanceOverlays` shows the rendered grid interval
+  in a row above the bar.
 
 ---
 
@@ -618,10 +617,12 @@ Overlay gotchas:
 > line + label spacing it used (in projection metres) to `DashboardBoundsProvider`; the minimap
 > `Grid` uses that spacing in place of its own auto/fixed calculation, so the bounds box contains
 > as many grid lines as the dashboard shows. The editor map has no provider and is unaffected.
-> One safety valve: because the minimap is far more zoomed out, the inherited spacing is doubled
-> until adjacent lines are ≥ `MINIMAP_MIN_LINE_PX` (3px) apart — doubling keeps the drawn lines a
-> subset of the dashboard's. Both paths (dynamic-LGRS and server-file grid) implement this; the
-> dynamic-LGRS plan applies the coarsening per region via `inheritedSpacing`.
+> When the minimap needs more room, it coarsens to a compatible interval with at least 3 pixels
+> between lines. This keeps the minimap lines aligned with the dashboard grid. Dynamic grids use
+> the grid system's box spacings: 10 m, 100 m, 1 km, and 25 km for LGRS/ACC, and 10 m to 100 km
+> for MGRS. `Grid` passes `labelFits`, so auto spacing skips intervals whose labels would not fit
+> a cell and labels that do not fit their cell are omitted. Server-file grids use whole index
+> strides so their lines and labels stay on the uploaded lattice.
 
 ---
 
