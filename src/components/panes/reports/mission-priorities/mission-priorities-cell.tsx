@@ -10,6 +10,7 @@ import {
   groupCampaignPriorityMatchesByMemberEva,
   groupPriorityMatchesBySequenceItem,
 } from "utils/missionPriorityReport";
+import { formatReportColumnLabel } from "utils/evaReportColumns";
 import { BaseCell } from "../shared/report-cell";
 import { useReportId } from "../reports-context";
 
@@ -45,13 +46,6 @@ export const PRIORITY_STATUS_LABEL: { [status in MissionPriorityCellStatus]: str
   disabledOnly: "disabled only",
   none: "no active actions",
 };
-
-const formatColumnDisplayLabel = (column: EvaReportColumn): string =>
-  column.isRex
-    ? `REX: ${column.label}`
-    : column.campaignUuid
-      ? `${column.groupLabel}: ${column.label}`
-      : column.label;
 
 /**
  * All cells for one (priority row × column): a single summary cell when collapsed,
@@ -214,7 +208,7 @@ const SummaryCell: FunctionComponent<{
     [showDiff, mission, baselineCoverage, effectiveCoverage]
   );
 
-  const columnDisplay = formatColumnDisplayLabel(column);
+  const columnDisplay = formatReportColumnLabel(column);
   let content: React.ReactNode;
   let statusClass = "";
   let tooltip: string;

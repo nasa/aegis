@@ -211,7 +211,7 @@
 
 .executions {
   list-style: none;
-  padding: 0;
+  padding: 0 0 0 12px;
   margin: 0;
 }
 
@@ -226,6 +226,11 @@
 
 .execution .actionLink {
   font-size: 0.95em;
+}
+
+.rexName {
+  min-width: 0;
+  font-weight: 500;
 }
 
 .executedName {

@@ -9,7 +9,11 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./report-grid.module.css";
-import { STM_COVERAGE_ORPHAN_GROUP_KEY, groupCoverageColumns } from "utils/evaReportColumns";
+import {
+  STM_COVERAGE_ORPHAN_GROUP_KEY,
+  formatReportColumnLabel,
+  groupCoverageColumns,
+} from "utils/evaReportColumns";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { reportSetColumnsHidden } from "store/report";
 import { useReportId } from "../reports-context";
@@ -63,6 +67,8 @@ const ColumnGroup: FunctionComponent<{
   const groupColumnKeys = group.columns.map((column) => column.key);
   const visibleCount = groupColumnKeys.filter((key) => !hiddenColumnKeys.includes(key)).length;
   const hasChildren = group.columns.length > 1;
+  const onlyRex = !hasChildren && group.columns[0]?.isRex ? group.columns[0] : undefined;
+  const groupLabel = onlyRex ? formatReportColumnLabel(onlyRex) : group.groupLabel;
 
   return (
     <div className={styles.columnVisibilityGroup}>
@@ -71,7 +77,7 @@ const ColumnGroup: FunctionComponent<{
           id={checkboxId}
           columnKeys={groupColumnKeys}
           hiddenColumnKeys={hiddenColumnKeys}
-          label={`Show ${group.groupLabel}`}
+          label={`Show ${groupLabel}`}
         />
         {hasChildren ? (
           <button
@@ -89,25 +95,32 @@ const ColumnGroup: FunctionComponent<{
           </button>
         ) : (
           <label className={styles.columnVisibilityGroupLabel} htmlFor={checkboxId}>
-            {group.groupLabel}
+            {groupLabel}
           </label>
         )}
       </div>
       {hasChildren && isOpen && (
         <div className={styles.columnVisibilityChildren}>
           {group.columns.map((column) => (
-            <label key={column.key} className={styles.columnVisibilityChildRow}>
+            <label
+              key={column.key}
+              className={`${styles.columnVisibilityChildRow} ${column.isRex ? styles.columnVisibilityRex : ""}`}
+            >
               <ColumnVisibilityCheckbox
                 columnKeys={[column.key]}
                 hiddenColumnKeys={hiddenColumnKeys}
-                label={`Show ${column.isRex ? "REX: " : ""}${column.label}`}
+                label={`Show ${formatReportColumnLabel(column)}`}
               />
-              <span className={styles.columnVisibilityKind}>
-                {column.isRex || column.kind === "campaignExecuted" ? "Executed" : "Planned"}
-              </span>
-              <span>
-                {column.label === group.groupLabel ? (column.isRex ? "REX" : "EVA") : column.label}
-              </span>
+              {column.campaignUuid ? (
+                <span>{column.label}</span>
+              ) : (
+                <>
+                  <span className={styles.columnVisibilityKind}>
+                    {column.isRex ? "REX" : "As Planned"}
+                  </span>
+                  <span>{column.label}</span>
+                </>
+              )}
             </label>
           ))}
         </div>

@@ -2,6 +2,7 @@ import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 import styles from "../shared/report-grid.module.css";
 import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
+import { formatReportColumnLabel } from "utils/evaReportColumns";
 import { BaseCell, NumericDiff, numericDiffClass } from "../shared/report-cell";
 
 const REPORT_ID: ColumnReportId = "comparison";
@@ -68,16 +69,17 @@ const SummaryCell: FunctionComponent<{ column: EvaReportColumn; row: EvaComparis
   const baselineValue = baselineKey ? (metricsByColumnKey[baselineKey]?.[row.id] ?? null) : null;
   const isBaseline = column.key === baselineKey;
   const showDiff = diffMode && !isBaseline && value != null && baselineValue != null;
+  const columnLabel = formatReportColumnLabel(column);
 
   const { content, className, tooltip } = useMemo(() => {
     if (value == null) {
-      return { content: "", className: styles.cellNone, tooltip: `${row.label}: n/a` };
+      return { content: "", className: styles.cellNone, tooltip: `${columnLabel}: n/a` };
     }
     if (!showDiff || baselineValue == null) {
       return {
         content: formatNumber(row, value),
         className: "",
-        tooltip: `${column.label}: ${formatNumber(row, value)}${row.unit ? ` ${row.unit}` : ""}`,
+        tooltip: `${columnLabel}: ${formatNumber(row, value)}${row.unit ? ` ${row.unit}` : ""}`,
       };
     }
     const delta = value - baselineValue;
@@ -86,12 +88,12 @@ const SummaryCell: FunctionComponent<{ column: EvaReportColumn; row: EvaComparis
       className: numericDiffClass(delta),
       tooltip:
         delta === 0
-          ? `${column.label}: same as baseline`
-          : `${column.label}: ${delta > 0 ? "+" : "−"}${formatNumber(row, Math.abs(delta))}${
+          ? `${columnLabel}: same as baseline`
+          : `${columnLabel}: ${delta > 0 ? "+" : "−"}${formatNumber(row, Math.abs(delta))}${
               row.unit ? ` ${row.unit}` : ""
             } vs baseline`,
     };
-  }, [value, baselineValue, showDiff, row, column.label]);
+  }, [value, baselineValue, showDiff, row, columnLabel]);
 
   return (
     <BaseCell cellKey={column.key} rowId={row.id} className={className} tooltip={tooltip}>

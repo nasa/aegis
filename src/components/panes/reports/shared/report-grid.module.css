@@ -241,6 +241,10 @@
   font-size: 11px;
 }
 
+.columnVisibilityRex {
+  padding-inline-start: 20px;
+}
+
 .columnVisibilityChildRow:hover,
 .columnVisibilityClose:hover,
 .columnVisibilityActions button:hover {
@@ -356,6 +360,10 @@
   /* After rotation, continuation lines start 12px above the first line. */
   padding: 20px 0 8px;
   text-indent: -12px;
+}
+
+[data-executed="true"] > .rotatedLabel {
+  margin-bottom: 12px;
 }
 
 .columnHeaderIcons {

@@ -208,7 +208,7 @@ describe("Reports navigation and grid", () => {
     expect(headers[0].textContent).toContain("EVA 0 (Total)");
     expect(headers[1].textContent).toContain("Station 1");
     const rowCells = harness.container.querySelector(`.${gridStyles.tableRowCells}`)!;
-    expect(rowCells.children[1].getAttribute("data-tooltip-html")).toContain("EVA 0:");
+    expect(rowCells.children[1].getAttribute("data-tooltip-content")).toContain("EVA 0:");
     expect(rowCells.children[2].textContent).toBe("1");
     expect(rowCells.children[2].getBoundingClientRect().left).toBeGreaterThan(
       rowCells.children[1].getBoundingClientRect().left

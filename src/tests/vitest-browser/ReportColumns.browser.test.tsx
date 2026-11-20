@@ -12,6 +12,8 @@ import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowse
 import "styles/globals.css";
 
 const longName = "EVA 3 - P5, S5, S7 Replan (As Executed)";
+const rexName = "South ridge rehearsal with the updated traverse";
+const secondRexName = "South ridge drill";
 const columns: EvaReportColumn[] = [
   {
     key: "eva",
@@ -27,7 +29,16 @@ const columns: EvaReportColumn[] = [
     kind: "rex",
     evaUuid: "eva",
     isRex: true,
-    label: longName,
+    label: rexName,
+    groupKey: "eva",
+    groupLabel: longName,
+  },
+  {
+    key: "secondRex",
+    kind: "rex",
+    evaUuid: "eva",
+    isRex: true,
+    label: secondRexName,
     groupKey: "eva",
     groupLabel: longName,
   },
@@ -90,7 +101,7 @@ afterEach(() => harness.unmount());
 describe("Report column controls", () => {
   it("filters groups, applies bulk selection only to matches, and restores focus on Escape", async () => {
     await page.getByRole("button", { name: /^View/ }).click();
-    await page.getByRole("searchbox").fill("Traverse");
+    await page.getByRole("searchbox").fill("Traverse Practice");
     await page.getByRole("button", { name: "Hide matches" }).click();
     expect(store.getState().report.comparison.hiddenColumns).toEqual(["other"]);
     expect(store.getState().report.stmCoverage.hiddenColumns).toEqual([]);
@@ -101,8 +112,17 @@ describe("Report column controls", () => {
 
   it("retains individual execution selection and indicates a partially selected family", async () => {
     await page.getByRole("button", { name: /^View/ }).click();
+    await page.getByRole("searchbox").fill("South ridge drill");
     await page.getByRole("button", { name: `Expand ${longName}` }).click();
-    await page.getByRole("checkbox", { name: `Show REX: ${longName}`, exact: true }).click();
+    await expect.element(page.getByText("As Planned", { exact: true })).toBeVisible();
+    await expect.element(page.getByText(rexName, { exact: true })).toBeVisible();
+    await expect.element(page.getByText(secondRexName, { exact: true })).toBeVisible();
+    const planned = page.getByText("As Planned", { exact: true }).element();
+    const rexKind = page.getByText("REX", { exact: true }).elements()[0];
+    expect(rexKind.getBoundingClientRect().left).toBeGreaterThan(
+      planned.getBoundingClientRect().left
+    );
+    await page.getByRole("checkbox", { name: `Show REX: ${rexName}`, exact: true }).click();
     expect(store.getState().report.comparison.hiddenColumns).toEqual(["rex"]);
     const groupCheckbox = document.querySelector<HTMLInputElement>(
       `input[aria-label="Show ${longName}"]`
@@ -117,7 +137,14 @@ describe("Report column controls", () => {
       ...harness.container.querySelectorAll<HTMLElement>(`.${styles.rotatedLabel}`),
     ];
     expect(labels()[0].textContent).toBe(longName);
-    expect(labels()[1].textContent).toBe(`REX: ${longName}`);
+    expect(labels()[1].textContent).toBe(`REX: ${rexName}`);
+    expect(labels()[2].textContent).toBe(`REX: ${secondRexName}`);
+    expect(labels()[1].getBoundingClientRect().bottom).toBeLessThan(
+      labels()[0].getBoundingClientRect().bottom
+    );
+    expect(getComputedStyle(labels()[1].parentElement!).backgroundColor).toBe(
+      getComputedStyle(labels()[3].parentElement!).backgroundColor
+    );
     const assertFits = () => {
       for (const label of labels()) {
         expect(label.scrollHeight).toBeLessThanOrEqual(label.clientHeight + 1);
@@ -173,7 +200,7 @@ describe("Report column controls", () => {
         </Provider>
       );
       const station = harness.container.querySelector<HTMLElement>(`.${styles.stationHeaderCell}`)!;
-      expect(station.dataset.tooltipHtml).toBe(name);
+      expect(station.dataset.tooltipContent).toBe(name);
       expect(station.getBoundingClientRect().width).toBe(stationWidth);
       expect(
         harness.container.querySelector(`.${styles.columnGroup}`)!.getBoundingClientRect().width

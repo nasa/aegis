@@ -10,6 +10,7 @@ import {
 } from "store/report";
 import { Button, Checkbox, Dropdown } from "components/interface/form/globalFields";
 import { faCodeCompare } from "@fortawesome/free-solid-svg-icons";
+import { formatReportColumnLabel } from "utils/evaReportColumns";
 import ReportCampaignsDialog from "./report-campaigns-dialog";
 import ReportColumnPanel from "./report-column-panel";
 import { useReportId } from "../reports-context";
@@ -21,7 +22,7 @@ const REX_STATUS_FILTER_OPTIONS: { value: RexStatusFilter; label: string }[] = [
 ];
 
 /** Non-breaking indent for REX entries nested under their as-planned EVA. */
-const REX_OPTION_INDENT = "   ";
+const REX_OPTION_INDENT = "\u00a0\u00a0\u00a0";
 
 /**
  * The shared controls row for the column-family reports: baseline dropdown,
@@ -80,11 +81,7 @@ const ReportControls: FunctionComponent<{
             .filter((column) => !hiddenColumns.includes(column.key))
             .map((column) => (
               <option key={column.key} value={column.key}>
-                {column.isRex
-                  ? `${REX_OPTION_INDENT}${column.label}`
-                  : column.campaignUuid
-                    ? `${column.groupLabel}: ${column.label}`
-                    : column.label}
+                {`${column.isRex ? REX_OPTION_INDENT : ""}${formatReportColumnLabel(column)}`}
               </option>
             ))}
         </Dropdown>

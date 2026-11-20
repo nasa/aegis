@@ -33,7 +33,7 @@ export const BaseCell: FunctionComponent<{
         dispatch(reportSetHoveredLeftItem({ reportId, item: rowId }));
       }}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={tooltip}
+      data-tooltip-content={tooltip}
     >
       {children}
     </div>

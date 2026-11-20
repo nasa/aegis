@@ -11,7 +11,11 @@ import {
   reportToggleDrilldownChangesOnly,
 } from "store/report";
 import { diffRuleActions } from "utils/stmEvaCoverage";
-import { actionBelongsToCampaignMember } from "utils/evaReportColumns";
+import {
+  actionBelongsToCampaignMember,
+  formatReportColumnLabel,
+  getCampaignMemberItems,
+} from "utils/evaReportColumns";
 import { Checkbox } from "components/interface/form/globalFields";
 import ReportSidePanel from "../shared/report-side-panel";
 import { selectStmRules } from "store/selectors";
@@ -82,8 +86,10 @@ const EvaStmCoverageDrilldown: FunctionComponent = () => {
     ? mission?.stations?.[cellSelection.stationUuid]?.name
     : cellSelection.traverseUuid
       ? mission?.traverses?.[cellSelection.traverseUuid]?.name
-      : cellSelection.evaUuid
-        ? mission?.evas?.[cellSelection.evaUuid]?.name
+      : cellSelection.evaUuid && mission
+        ? getCampaignMemberItems(mission, column).find(
+            (item) => item.uuid === cellSelection.evaUuid
+          )?.name
         : null;
 
   const matchesScope = (action: Action | undefined): boolean => {
@@ -107,9 +113,7 @@ const EvaStmCoverageDrilldown: FunctionComponent = () => {
       onWidthChange={(width) => dispatch(reportSetDrilldownWidth({ reportId: REPORT_ID, width }))}
       onClose={() => dispatch(reportSetCellSelection({ reportId: REPORT_ID, selection: null }))}
       title={level3?.name}
-      subtitle={`${column.isRex ? `REX: ${column.label}` : column.label}${
-        scopeLabel ? ` — ${scopeLabel}` : ""
-      }`}
+      subtitle={`${formatReportColumnLabel(column)}${scopeLabel ? ` — ${scopeLabel}` : ""}`}
     >
       {diffActive && (
         <Checkbox

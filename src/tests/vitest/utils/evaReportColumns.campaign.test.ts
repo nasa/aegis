@@ -100,11 +100,14 @@ describe("campaign report columns", () => {
     ]);
   });
 
-  test("labels REX columns with the matching as-planned EVA name, not the REX event name", () => {
+  test("keeps REX names and EVA group names separate", () => {
     const { mission } = buildCampaignFixture();
     const rexColumns = getEvaColumns(mission).filter((column) => column.kind === "rex");
 
-    expect(rexColumns.map(({ label }) => label)).toEqual(["Alpha", "Bravo"]);
+    expect(rexColumns.map(({ label, groupLabel }) => [label, groupLabel])).toEqual([
+      ["Alpha execution", "Alpha"],
+      ["Bravo execution", "Bravo"],
+    ]);
   });
 
   test("concatenates member actions and applies the REX status filter per execution", () => {
@@ -156,7 +159,9 @@ describe("campaign report columns", () => {
           ).length
       );
       expect(memberItems.map(({ name }) => name)).toEqual(
-        column.kind === "campaignExecuted" ? ["REX: Alpha", "REX: Bravo"] : ["Alpha", "Bravo"]
+        column.kind === "campaignExecuted"
+          ? ["REX: Alpha execution", "REX: Bravo execution"]
+          : ["Alpha", "Bravo"]
       );
       expect(perMemberCounts).toEqual([1, 1]);
       expect(perMemberCounts.reduce((sum, count) => sum + count, 0)).toBe(actions.length);

@@ -263,7 +263,7 @@ describe("MissionPrioritiesPage UI transitions", () => {
     expect(grid.textContent).toContain("−1");
 
     const rexCell = grid.querySelector(
-      '[data-tooltip-html^="REX: EVA Alpha: 0 added, 1 removed"]'
+      '[data-tooltip-content^="REX: Run 1: 0 added, 1 removed"]'
     ) as HTMLElement;
     await act(async () => {
       rexCell.click();
