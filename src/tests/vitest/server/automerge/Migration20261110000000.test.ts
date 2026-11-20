@@ -1,34 +1,37 @@
 import * as Automerge from "@automerge/automerge";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
-import { Migration20261104000000 } from "server/automerge/migrations/Migration20261104000000";
-import { Migration20261106000000 } from "server/automerge/migrations/Migration20261106000000";
+import { Migration20261109000000 } from "server/automerge/migrations/Migration20261109000000";
+import { Migration20261110000000 } from "server/automerge/migrations/Migration20261110000000";
 import { generateBlankMission } from "store/storeUtils/mission";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator, missionValidator } from "utils/validateSchemaServer";
 
-const legacyMission = (planetRadius: number | null): Mission => {
-  const mission = generateBlankMission({ planetRadius });
+type LegacyMission = Omit<Mission, "gridSystem" | "earthGridLabelScheme"> &
+  Partial<Pick<Mission, "gridSystem" | "earthGridLabelScheme">>;
+
+const legacyMission = (planetRadius: number | null): LegacyMission => {
+  const mission: LegacyMission = generateBlankMission({ planetRadius });
   delete mission.gridSystem;
   delete mission.earthGridLabelScheme;
   return mission;
 };
 
-const migrate = async (mission: Mission): Promise<Mission> => {
+const migrate = async (mission: LegacyMission): Promise<LegacyMission> => {
   let doc = Automerge.from({ ...mission });
   const handle = {
-    change: (callback: (m: Mission) => void) => {
+    change: (callback: (m: LegacyMission) => void) => {
       doc = Automerge.change(doc, callback);
     },
   } as DocHandle<Mission>;
-  await Migration20261106000000.migrate(handle, null);
+  await Migration20261110000000.migrate(handle, null);
   return Automerge.toJS(doc);
 };
 
 describe("mission grid system migration", () => {
-  it("is registered after the mission-requested-by migration", () => {
-    const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261106000000);
+  it("is registered after the position uncertainty migration", () => {
+    const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261110000000);
     expect(index).toBeGreaterThan(0);
-    expect(AUTOMERGE_MIGRATIONS[index - 1]).toBe(Migration20261104000000);
+    expect(AUTOMERGE_MIGRATIONS[index - 1]).toBe(Migration20261109000000);
   });
 
   it.each([
@@ -43,7 +46,7 @@ describe("mission grid system migration", () => {
     const before = legacyMission(radius);
     const after = await migrate(before);
     expect(after).toEqual({ ...before, gridSystem, earthGridLabelScheme: "lunar-acc" });
-    expect(missionValidator(after)).toBe(true);
+    expect(currentMissionValidator(after)).toBe(true);
   });
 
   it("keeps fields that are already set", async () => {
@@ -64,7 +67,9 @@ describe("mission grid system migration", () => {
     expect(await migrate(once)).toEqual(once);
   });
 
-  it("accepts documents from before the migration", () => {
-    expect(missionValidator(legacyMission(6371000))).toBe(true);
+  it("accepts missing grid settings only during history compaction", () => {
+    const before = legacyMission(6371000);
+    expect(currentMissionValidator(before)).toBe(false);
+    expect(missionValidator(before)).toBe(true);
   });
 });

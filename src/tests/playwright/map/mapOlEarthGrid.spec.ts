@@ -10,7 +10,7 @@
 
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
-import { toggleEditMode, waitForPageReady } from "../helpers";
+import { minimizeRexMenu, toggleEditMode, waitForPageReady } from "../helpers";
 
 const JSC = { lat: 29.5593, lng: -95.09 };
 
@@ -128,6 +128,7 @@ test.describe("Earth mission — UTM grid in ACC and MGRS", () => {
       const mapPanel = page.getByTestId("mission-panel-map");
       const viewport = mapPanel.locator(".ol-viewport").first();
       await viewport.waitFor({ state: "visible", timeout: 15000 });
+      await minimizeRexMenu(page);
       let loads = 0;
       page.on("load", () => loads++);
 

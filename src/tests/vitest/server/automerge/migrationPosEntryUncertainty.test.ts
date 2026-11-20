@@ -4,7 +4,7 @@ import { Migration20261109000000 } from "server/automerge/migrations/Migration20
 import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankPosEntry, generateBlankRex } from "store/storeUtils/rex";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator } from "utils/validateSchemaServer";
 import { applyCreatePosEntry } from "operations/apply/apply-rex";
 
 type MissionDoc = Automerge.Doc<Mission>;
@@ -24,10 +24,10 @@ function legacyMissionWithEntries(entries: Partial<PosEntry>[]): Partial<Mission
 }
 
 describe("add-pos-entry-uncertainty migration", () => {
-  it("is registered after the mission grid system migration", () => {
+  it("is registered after the mission-requested-by migration", () => {
     const index = AUTOMERGE_MIGRATIONS.indexOf(Migration20261109000000);
     expect(index).toBeGreaterThan(0);
-    expect(AUTOMERGE_MIGRATIONS[index - 1].version).toBe(20261106000000);
+    expect(AUTOMERGE_MIGRATIONS[index - 1].version).toBe(20261104000000);
   });
 
   it("adds a zero radius and null color, validates, and is idempotent", async () => {
@@ -35,7 +35,7 @@ describe("add-pos-entry-uncertainty migration", () => {
     delete legacyEntry.uncertaintyMeters;
     delete legacyEntry.color;
     let doc = fromMission(legacyMissionWithEntries([legacyEntry]));
-    expect(missionValidator(Automerge.toJS(doc))).toBe(false);
+    expect(currentMissionValidator(Automerge.toJS(doc))).toBe(false);
     const handle = handleFor(
       () => doc,
       (next) => (doc = next)
@@ -45,7 +45,7 @@ describe("add-pos-entry-uncertainty migration", () => {
     const entry = Object.values(doc.rexes)[0].posEntries[0];
     expect(entry.uncertaintyMeters).toBe(0);
     expect(entry.color).toBeNull();
-    expect(missionValidator(Automerge.toJS(doc))).toBe(true);
+    expect(currentMissionValidator(Automerge.toJS(doc))).toBe(true);
     const heads = Automerge.getHeads(doc);
     await Migration20261109000000.migrate(handle, null);
     expect(Automerge.getHeads(doc)).toEqual(heads);
@@ -86,7 +86,7 @@ describe("add-pos-entry-uncertainty migration", () => {
     await Migration20261109000000.migrate(handle, null);
     expect(doc.rexes[rex.uuid].posEntries).toEqual([]);
     expect(doc.rexes[missing.uuid].posEntries).toEqual([]);
-    expect(missionValidator(Automerge.toJS(doc))).toBe(true);
+    expect(currentMissionValidator(Automerge.toJS(doc))).toBe(true);
     const heads = Automerge.getHeads(doc);
     await Migration20261109000000.migrate(handle, null);
     expect(Automerge.getHeads(doc)).toEqual(heads);

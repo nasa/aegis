@@ -14,7 +14,18 @@ const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });
 // Add schemas below that you want to compile and then validate on
 
 const missionSchema = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, "mission.json"), "utf8"));
-export const missionValidator = ajv.compile<Mission>(missionSchema);
+export const currentMissionValidator = ajv.compile<Mission>(missionSchema);
+
+// The history-compaction migration validates legacy documents before the grid backfill.
+const gridSettings = ["gridSystem", "earthGridLabelScheme"] as const;
+type GridSetting = (typeof gridSettings)[number];
+type LegacyMission = Omit<Mission, GridSetting> & Partial<Pick<Mission, GridSetting>>;
+export const missionValidator = ajv.compile<LegacyMission>({
+  ...missionSchema,
+  required: missionSchema.required.filter((field: string) =>
+    gridSettings.every((setting) => setting !== field)
+  ),
+});
 
 // Maegistro V2 for sendMDAU
 const mdauSchema = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, "mdau.json"), "utf8"));

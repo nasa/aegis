@@ -4,10 +4,10 @@
  * Guards the static "Apollo 14" demo seed data against schema drift. The seed
  * mission is hand-authored (see `apollo14SeedData.ts`), so it can silently fall
  * out of sync with the `Mission` type. These tests catch that by validating the
- * built mission against `missionValidator` (compiled from the generated
+ * built mission against `currentMissionValidator` (compiled from the generated
  * `.local/schemas/mission.json`) and by checking internal referential integrity.
  */
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator } from "utils/validateSchemaServer";
 import { selectAsPlannedStations } from "store/selectors";
 import {
   apollo14Layers,
@@ -23,11 +23,11 @@ describe("Apollo 14 seed data", () => {
   describe("buildApollo14Mission()", () => {
     it("passes the generated Mission JSON schema (drift guard)", () => {
       const mission = buildApollo14Mission();
-      const valid = missionValidator(structuredClone(mission));
+      const valid = currentMissionValidator(structuredClone(mission));
       expect(
         valid,
-        `Seed mission failed missionValidator - seed is out of date from the Mission schema:\n${JSON.stringify(
-          missionValidator.errors,
+        `Seed mission failed currentMissionValidator - seed is out of date from the Mission schema:\n${JSON.stringify(
+          currentMissionValidator.errors,
           null,
           2
         )}`

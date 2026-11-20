@@ -4,7 +4,7 @@ import { Migration20261030000000 } from "server/automerge/migrations/Migration20
 import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
 import { generateBlankAsset } from "store/storeUtils/asset";
 import { generateBlankMission } from "store/storeUtils/mission";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator } from "utils/validateSchemaServer";
 
 type MissionDoc = Automerge.Doc<Mission>;
 
@@ -27,7 +27,7 @@ describe("add-mission-assets migration", () => {
     const legacy = generateBlankMission() as Partial<Mission>;
     delete legacy.assets;
     let doc = fromMission(legacy);
-    expect(missionValidator(Automerge.toJS(doc))).toBe(false);
+    expect(currentMissionValidator(Automerge.toJS(doc))).toBe(false);
     const handle = handleFor(
       () => doc,
       (next) => (doc = next)
@@ -35,7 +35,7 @@ describe("add-mission-assets migration", () => {
 
     await Migration20261030000000.migrate(handle, null);
     expect(doc.assets).toEqual({});
-    expect(missionValidator(Automerge.toJS(doc))).toBe(true);
+    expect(currentMissionValidator(Automerge.toJS(doc))).toBe(true);
     const heads = Automerge.getHeads(doc);
     await Migration20261030000000.migrate(handle, null);
     expect(Automerge.getHeads(doc)).toEqual(heads);

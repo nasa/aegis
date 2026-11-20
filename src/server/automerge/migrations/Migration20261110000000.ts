@@ -14,8 +14,8 @@ const EARTH_SCALE_MIN_RADIUS_M = 4_000_000;
  * Backfill the mission grid system from the planet radius, and the Earth label scheme with
  * lunar ACC. Fields that are already set are kept.
  */
-export const Migration20261106000000: AutomergeMigration = {
-  version: 20261106000000,
+export const Migration20261110000000: AutomergeMigration = {
+  version: 20261110000000,
   name: "add-mission-grid-system",
   migrate: async (docHandle) => {
     docHandle.change((doc) => {

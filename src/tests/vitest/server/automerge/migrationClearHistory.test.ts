@@ -15,7 +15,8 @@ import { Migration20261028000000 } from "server/automerge/migrations/Migration20
 import { Migration20261030000000 } from "server/automerge/migrations/Migration20261030000000";
 import { Migration20261102000000 } from "server/automerge/migrations/Migration20261102000000";
 import { Migration20261104000000 } from "server/automerge/migrations/Migration20261104000000";
-import { Migration20261106000000 } from "server/automerge/migrations/Migration20261106000000";
+import { Migration20261109000000 } from "server/automerge/migrations/Migration20261109000000";
+import { Migration20261110000000 } from "server/automerge/migrations/Migration20261110000000";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -132,15 +133,16 @@ describe("clear Automerge document history", () => {
       for (const source of mission.rexes.rex.posSources) {
         delete (source as Partial<PosSource>).pathColor;
       }
-      // Fields added after this migration must not fail its schema validation.
-      delete mission.gridSystem;
-      delete mission.earthGridLabelScheme;
+      const legacyGridSettings: Partial<Pick<Mission, "gridSystem" | "earthGridLabelScheme">> =
+        mission;
+      delete legacyGridSettings.gridSystem;
+      delete legacyGridSettings.earthGridLabelScheme;
     });
     const listings = [first.listing, second.listing];
     const oldUrls = listings.map(({ automergeUrl }) => automergeUrl);
     const schemaMigrations = AUTOMERGE_MIGRATIONS.filter(
       ({ version }) =>
-        version >= Migration20261022000000.version && version <= Migration20261106000000.version
+        version >= Migration20261022000000.version && version <= Migration20261110000000.version
     );
     expect(schemaMigrations).toEqual([
       Migration20261022000000,
@@ -150,7 +152,8 @@ describe("clear Automerge document history", () => {
       Migration20261030000000,
       Migration20261102000000,
       Migration20261104000000,
-      Migration20261106000000,
+      Migration20261109000000,
+      Migration20261110000000,
     ]);
     globalValues.automergeRepo = repo;
 
@@ -160,7 +163,7 @@ describe("clear Automerge document history", () => {
       [
         ...schemaMigrations,
         {
-          version: 20261107000000,
+          version: Migration20261110000000.version + 1,
           name: "edit-replacement",
           migrate: async (handle, { docListing }) => {
             expect(handle.url).toBe(docListing.automergeUrl);

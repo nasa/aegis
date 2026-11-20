@@ -6,8 +6,8 @@ import { isLoggedIn } from "http-client/login";
 import { useDocHandle, useDocument } from "@automerge/automerge-repo-react-hooks";
 import type { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/automerge-repo";
 import { applyChange, diff } from "deep-diff";
-import type { ErrorObject } from "ajv";
-import Ajv from "ajv";
+import { suggestGridSystemId } from "components/interface/map/utils/planetScale";
+import { validateMission } from "utils/validateSchemaClient";
 import TransferStationData from "./automerge-transfer-station";
 import adminCommon from "./adminCommon.module.css";
 
@@ -60,23 +60,6 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
     };
     runLoad("Checking admin access...", isLoggedInAsync);
   }, [navigate, runLoad]);
-
-  // grab the schema from the server via an api endpoint and use it to validate
-  const validateMission = async (missionToValidate: unknown): Promise<ErrorObject[]> => {
-    const schemaRes = await fetch(`/api/v1/mission/schema`);
-    if (schemaRes.status !== 200) {
-      throw new Error(`Error retrieving schema: ${schemaRes.status}`);
-    }
-    const schema = (await schemaRes.json()).data;
-
-    const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });
-    const validate = ajv.compile(schema);
-    const valid = validate(missionToValidate);
-    if (!valid) {
-      return validate.errors || [];
-    }
-    return [];
-  };
 
   return (
     <main className={adminCommon.page}>
@@ -195,20 +178,32 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
                 className={adminCommon.buttonDanger}
                 onClick={() =>
                   action.run("Validating and importing mission...", async () => {
-                    const newVersion: unknown = JSON.parse(jsonField);
-                    if (typeof newVersion !== "object" || newVersion === null) {
+                    const imported: unknown = JSON.parse(jsonField);
+                    if (
+                      typeof imported !== "object" ||
+                      imported === null ||
+                      Array.isArray(imported)
+                    ) {
                       setImportExportStatus("Invalid JSON object");
                       return;
                     }
 
-                    const results = await validateMission(automergeMission);
+                    const radius =
+                      "planetRadius" in imported && typeof imported.planetRadius === "number"
+                        ? imported.planetRadius
+                        : null;
+                    const newVersion = {
+                      gridSystem: suggestGridSystemId(radius),
+                      earthGridLabelScheme: "lunar-acc",
+                      ...imported,
+                    };
+                    const results = await validateMission(newVersion);
                     if (results.length > 0) {
                       setImportExportStatus("Invalid mission. See console log for schema errors");
                       console.log(results);
                       return;
                     }
 
-                    // everything looks ok. Set new values in automerge doc with the new version
                     const differences = diff(automergeMission, newVersion);
                     if (differences) {
                       const changeFn: ChangeFn<Mission> = (m: Mission) => {
