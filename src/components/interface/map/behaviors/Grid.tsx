@@ -1,6 +1,6 @@
 import { getPlanetRadius } from "utils/planets";
 /**
- * Grid â€” behavior component that draws the mission grid lines and labels.
+ * Draws the mission grid lines and labels.
  *
  * Draws either the server-file grid (a loaded coordinate lattice) or the dynamic grid of the
  * mission's grid system (`createLgrsRenderPlan`: lunar LGRS, or Earth UTM/UPS in ACC or MGRS
@@ -12,7 +12,7 @@ import { getPlanetRadius } from "utils/planets";
  * ground spacing, so the bounds box on the minimap contains as many grid lines
  * as the dashboard shows. The editor map is unaffected (no provider).
  *
- * Returns null â€” headless behavior component.
+ * This headless behavior returns null.
  */
 
 import { useEffect, useRef, useCallback, useMemo } from "react";
@@ -54,7 +54,7 @@ export function Grid(): null {
   const { gridSpacingMode, gridLabelInterval } = useMapMenuContext();
   const resolvedGrid = useResolvedMissionGrid();
 
-  // Dashboardâ†”minimap grid-density channel. Absent on the editor map.
+  // Grid spacing shared by the dashboard and minimap.
   const dashboardBounds = useOptionalDashboardBoundsContext();
   const publishSpacing = mode === "dashboard" ? dashboardBounds?.setGridSpacing : undefined;
   const inheritedSpacing = mode === "minimap" ? (dashboardBounds?.gridSpacing ?? null) : null;
@@ -190,7 +190,7 @@ export function Grid(): null {
       if (!startGridIdx || !endGridIdx) return null;
 
       // Base spacing (metres between adjacent grid lines), derived from the grid
-      // geometry â€” the single source of truth (see getGridBaseSpacingMeters).
+      // geometry (see getGridBaseSpacingMeters).
       const baseSpacing = getGridBaseSpacingMeters(resolvedGrid.grid, planetRadius);
 
       const basePointsShown =

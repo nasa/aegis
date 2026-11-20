@@ -1,4 +1,3 @@
-import { missionHasLanderDependentEntities } from "store/storeUtils/mission";
 import { PLANETS, supportsUploadedGrid } from "utils/planets";
 import { getMissionDems } from "http-client/mission";
 import { getElevationSinglePoint } from "http-client/terrainProfile";
@@ -6,7 +5,7 @@ import { isKnownElevation } from "utils/elevation";
 import { applyMissionPlanet } from "operations/apply/apply-mission";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Link, useParams } from "react-router";
 import adminStyles from "components/admin/admin.module.css";
@@ -23,6 +22,7 @@ import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
 
 import { getMissionDefaultLabelScheme, getMissionGridSystem } from "utils/lgrs/system";
+import { missionHasLanderDependentEntities } from "store/storeUtils/mission";
 
 type RouteParams = {
   id: string;
@@ -32,15 +32,46 @@ type RouteParams = {
 const formatDemResolution = (resolution: number | null): string =>
   resolution == null ? "unknown" : Number(resolution.toPrecision(10)).toString();
 
+const getElevationInputs = (mission: Mission) => ({
+  missionId: mission.id,
+  lat: mission.landerLocation?.lat,
+  lng: mission.landerLocation?.lng,
+  demFilePath: mission.demFilePath,
+  demResolution: mission.demResolution,
+});
+
+function canCalculateElevation({
+  missionId,
+  demFilePath,
+  lat,
+  lng,
+}: ReturnType<typeof getElevationInputs>) {
+  return (
+    !!missionId &&
+    !!demFilePath &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lng) <= 180
+  );
+}
+
+function setLanderElevation(mission: Mission, elevation: number | null) {
+  mission.landerElevationMeters = elevation;
+  for (const station of Object.values(mission.stations ?? {})) {
+    if (station.isLanderXgress) station.elevation = elevation;
+  }
+}
+
 const Mission: React.FunctionComponent = () => {
   const maestroStatus = useAsyncStatus();
   const demStatus = useAsyncStatus();
   const elevationStatus = useAsyncStatus();
-  const [elevationAttempt, setElevationAttempt] = useState(0);
   const { run: runElevationTask, clearError: clearElevationError } = elevationStatus;
   const { run: runDemTask } = demStatus;
   const [dems, setDems] = useState<MissionDem[]>([]);
-  const [dataFiles, setDataFiles] = useState<GISfile[]>([]);
+  const demRequest = useRef(0);
+  const elevationRequest = useRef<AbortController>(null);
   const params = useParams<RouteParams>();
   // Access the automerge mission document via the useDocument hook instead of the
   // useMissionDocSelector (to read) and useDocHandle (to write). This is because for this
@@ -52,27 +83,30 @@ const Mission: React.FunctionComponent = () => {
   const missionId = automergeMission?.id;
   const refreshDems = useCallback(() => {
     if (!missionId) return;
+    const request = ++demRequest.current;
     return runDemTask("Reading DEM files...", async () => {
-      setDems(await getMissionDems(missionId));
+      try {
+        const files = await getMissionDems(missionId);
+        if (request === demRequest.current) setDems(files);
+      } catch (error) {
+        if (request === demRequest.current) throw error;
+      }
     });
   }, [missionId, runDemTask]);
 
-  useEffect(() => {
-    refreshDems();
-  }, [refreshDems, dataFiles]);
+  useEffect(
+    () => () => {
+      demRequest.current++;
+      elevationRequest.current?.abort();
+    },
+    [missionId, changeMissionDoc]
+  );
 
   // wrapper to also update the updatedAt field when any change is made
   const changeAutomergeMission = useCallback(
     (updateFn: (m: Mission) => void) => {
       changeMissionDoc((m: Mission) => {
-        const previousInputs = JSON.stringify([m.landerLocation, m.demFilePath, m.demResolution]);
         updateFn(m);
-        if (JSON.stringify([m.landerLocation, m.demFilePath, m.demResolution]) !== previousInputs) {
-          m.landerElevationMeters = null;
-          for (const station of Object.values(m.stations ?? {})) {
-            if (station.isLanderXgress) station.elevation = null;
-          }
-        }
         if (!supportsUploadedGrid(m)) m.serverFileGrid = null;
         m.updatedAt = new Date().getTime();
       });
@@ -80,68 +114,57 @@ const Mission: React.FunctionComponent = () => {
     [changeMissionDoc]
   );
 
-  const landerLat = automergeMission?.landerLocation?.lat;
-  const landerLng = automergeMission?.landerLocation?.lng;
-  const demFilePath = automergeMission?.demFilePath;
-  const demResolution = automergeMission?.demResolution;
-  const landerElevation = automergeMission?.landerElevationMeters;
-  useEffect(() => {
+  function calculateElevation(inputs: ReturnType<typeof getElevationInputs>) {
+    elevationRequest.current?.abort();
     clearElevationError();
-    if (
-      !missionId ||
-      !demFilePath ||
-      !Number.isFinite(landerLat) ||
-      !Number.isFinite(landerLng) ||
-      Math.abs(landerLat) > 90 ||
-      Math.abs(landerLng) > 180 ||
-      isKnownElevation(landerElevation)
-    )
-      return;
-    let cancelled = false;
+    if (!canCalculateElevation(inputs)) return;
+    const { missionId, lat, lng, demFilePath, demResolution } = inputs;
+    const request = new AbortController();
+    elevationRequest.current = request;
     runElevationTask("Calculating lander elevation...", async () => {
       try {
         const response = await getElevationSinglePoint({
           missionId,
-          point: { lat: landerLat, lng: landerLng },
+          point: { lat, lng },
           expectedDem: { demFilePath, demResolution },
         });
-        if (cancelled) return;
+        if (request.signal.aborted) return;
         if (response.status !== "success" || !isKnownElevation(response.data))
           throw new Error(response.message || "The DEM has no elevation at this location");
         changeMissionDoc((m) => {
           if (
-            m.id !== missionId ||
-            m.demFilePath !== demFilePath ||
-            m.demResolution !== demResolution ||
-            m.landerLocation?.lat !== landerLat ||
-            m.landerLocation?.lng !== landerLng
-          )
-            return;
-          m.landerElevationMeters = response.data;
-          for (const station of Object.values(m.stations ?? {})) {
-            if (station.isLanderXgress) station.elevation = response.data;
+            shallowEqual(inputs, getElevationInputs(m)) &&
+            !isKnownElevation(m.landerElevationMeters)
+          ) {
+            setLanderElevation(m, response.data);
           }
         });
       } catch (error) {
-        if (!cancelled) throw error;
+        if (!request.signal.aborted) throw error;
       }
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    missionId,
-    params.automergeUrl,
-    landerLat,
-    landerLng,
-    demFilePath,
-    demResolution,
-    landerElevation,
-    elevationAttempt,
-    changeMissionDoc,
-    runElevationTask,
-    clearElevationError,
-  ]);
+  }
+
+  function updateElevationInputs(update: (mission: Mission) => void) {
+    let inputs: ReturnType<typeof getElevationInputs>;
+    changeAutomergeMission((mission) => {
+      const previous = getElevationInputs(mission);
+      update(mission);
+      const next = getElevationInputs(mission);
+      if (shallowEqual(previous, next)) return;
+      inputs = next;
+      setLanderElevation(mission, null);
+    });
+    if (inputs) calculateElevation(inputs);
+  }
+
+  function updateLanderCoordinate(axis: "lat" | "lng", value: string) {
+    updateElevationInputs((mission) => {
+      if (!missionHasLanderDependentEntities(mission)) {
+        mission.landerLocation[axis] = value ? +value : null;
+      }
+    });
+  }
 
   useEffect(() => {
     //put missionId in sessionStorage
@@ -156,9 +179,11 @@ const Mission: React.FunctionComponent = () => {
   const [maestroError, setMaestroError] = useState<string | null>(null);
   const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
-  const landerFieldsLocked = automergeMission != null && missionHasLanderDependentEntities(automergeMission);
   const grid = automergeMission ? getMissionGridSystem(automergeMission) : null;
   const isEarthGrid = automergeMission?.planet === "earth";
+  const elevationInputs = automergeMission && getElevationInputs(automergeMission);
+  const landerFieldsLocked =
+    automergeMission != null && missionHasLanderDependentEntities(automergeMission);
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
     setMaestroError(null);
@@ -396,11 +421,7 @@ const Mission: React.FunctionComponent = () => {
                             },
                             inputProps: { disabled: landerFieldsLocked },
                           }}
-                          onSubmit={(value) => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.landerLocation.lat = value ? +value : null;
-                            });
-                          }}
+                          onSubmit={(value) => updateLanderCoordinate("lat", value)}
                           key={`${automergeMission.id}-landerLocation.lat`}
                           debounceSubmit={false}
                         />
@@ -422,11 +443,7 @@ const Mission: React.FunctionComponent = () => {
                             },
                             inputProps: { disabled: landerFieldsLocked },
                           }}
-                          onSubmit={(value) => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.landerLocation.lng = value ? +value : null;
-                            });
-                          }}
+                          onSubmit={(value) => updateLanderCoordinate("lng", value)}
                           key={`${automergeMission.id}-landerLocation.lng`}
                           debounceSubmit={false}
                         />
@@ -438,22 +455,23 @@ const Mission: React.FunctionComponent = () => {
                         {automergeMission.landerElevationMeters?.toFixed(0) ?? "Unknown"}
                       </output>
                       <AsyncStatus {...elevationStatus} />
-                      {elevationStatus.error && (
-                        <button
-                          type="button"
-                          className={adminCommon.button}
-                          onClick={() => setElevationAttempt((attempt) => attempt + 1)}
-                        >
-                          Retry elevation
-                        </button>
-                      )}
+                      {!isKnownElevation(automergeMission.landerElevationMeters) &&
+                        canCalculateElevation(elevationInputs) && (
+                          <button
+                            type="button"
+                            className={adminCommon.button}
+                            disabled={!!elevationStatus.pending}
+                            onClick={() => calculateElevation(elevationInputs)}
+                          >
+                            {elevationStatus.error ? "Retry elevation" : "Calculate elevation"}
+                          </button>
+                        )}
                       <p className={adminCommon.formHint}>
                         {!automergeMission.demFilePath
                           ? "Add a DEM below to determine the lander elevation automatically."
-                          : automergeMission.landerLocation.lat == null ||
-                              automergeMission.landerLocation.lng == null
-                            ? "Set the lander latitude and longitude to calculate elevation from the DEM."
-                            : "Elevation is calculated automatically from the DEM. If unavailable, check that the DEM covers the lander location."}
+                          : canCalculateElevation(elevationInputs)
+                            ? "Changing the DEM or lander coordinates recalculates elevation. If a sample is unavailable, check that the DEM covers the lander location."
+                            : "Set a valid lander latitude and longitude to calculate elevation from the DEM."}
                       </p>
                     </div>
                   </div>
@@ -647,10 +665,9 @@ const Mission: React.FunctionComponent = () => {
                         const demFilePath = event.target.value;
                         const dem = dems.find((item) => item.filePath === demFilePath);
                         if (demFilePath && (!dem || dem.error)) return;
-                        changeAutomergeMission((m) => {
+                        updateElevationInputs((m) => {
                           m.demFilePath = demFilePath;
                           m.demResolution = dem?.resolution ?? null;
-                          m.landerElevationMeters = null;
                         });
                       }}
                     >
@@ -858,7 +875,7 @@ const Mission: React.FunctionComponent = () => {
                         missionId={automergeMission.id}
                         path={`missionFiles/${automergeMission.id}/Data`}
                         zipOnly={false}
-                        setFileList={setDataFiles}
+                        setFileList={refreshDems}
                       />
                     ) : (
                       <div className={adminCommon.emptyState}>

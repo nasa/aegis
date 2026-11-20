@@ -1,13 +1,11 @@
 import * as Automerge from "@automerge/automerge";
 import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { AUTOMERGE_MIGRATIONS, getPendingAutomergeMigrations } from "server/automerge/migrations";
-import { Migration20261106000000 as selectGrid } from "server/automerge/migrations/Migration20261106000000";
-import { Migration20261107000000 as configureMission } from "server/automerge/migrations/Migration20261107000000";
+import { Migration20261110000000 as selectGrid } from "server/automerge/migrations/Migration20261110000000";
+import { Migration20261119000000 as configureMission } from "server/automerge/migrations/Migration20261119000000";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { getMissionGridSystemId } from "utils/lgrs/system";
 import { currentMissionValidator } from "utils/validateSchemaServer";
-
-vi.unmock("utils/validateSchemaServer");
 
 test.each([
   ["earth", 6371000, "earth-wgs84"],
@@ -57,6 +55,9 @@ test.each([
 );
 
 test("runs the combined mission migration when the inherited grid migration is already recorded", () => {
+  const index = AUTOMERGE_MIGRATIONS.indexOf(configureMission);
+  expect(index).toBeGreaterThan(0);
+  expect(AUTOMERGE_MIGRATIONS[index - 1]).toBe(selectGrid);
   const pending = getPendingAutomergeMigrations(
     AUTOMERGE_MIGRATIONS,
     AUTOMERGE_MIGRATIONS.filter((migration) => migration !== configureMission)

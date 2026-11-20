@@ -17,6 +17,7 @@ import { Migration20261102000000 } from "server/automerge/migrations/Migration20
 import { Migration20261104000000 } from "server/automerge/migrations/Migration20261104000000";
 import { Migration20261109000000 } from "server/automerge/migrations/Migration20261109000000";
 import { Migration20261110000000 } from "server/automerge/migrations/Migration20261110000000";
+import { Migration20261119000000 } from "server/automerge/migrations/Migration20261119000000";
 import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
@@ -133,16 +134,26 @@ describe("clear Automerge document history", () => {
       for (const source of mission.rexes.rex.posSources) {
         delete (source as Partial<PosSource>).pathColor;
       }
-      const legacyGridSettings: Partial<Pick<Mission, "gridSystem" | "earthGridLabelScheme">> =
-        mission;
-      delete legacyGridSettings.gridSystem;
-      delete legacyGridSettings.earthGridLabelScheme;
     });
+    for (const { handle } of [first, second]) {
+      handle.change((mission) => {
+        const legacy: Partial<Mission> & {
+          planetRadius?: number;
+          usingLGRSCoordinates?: boolean;
+          gridRenderMode?: "server-file";
+        } = mission;
+        legacy.planetRadius = 1737400;
+        legacy.usingLGRSCoordinates = false;
+        legacy.gridRenderMode = "server-file";
+        delete legacy.planet;
+        delete legacy.earthGridLabelScheme;
+      });
+    }
     const listings = [first.listing, second.listing];
     const oldUrls = listings.map(({ automergeUrl }) => automergeUrl);
     const schemaMigrations = AUTOMERGE_MIGRATIONS.filter(
       ({ version }) =>
-        version >= Migration20261022000000.version && version <= Migration20261110000000.version
+        version >= Migration20261022000000.version && version <= Migration20261119000000.version
     );
     expect(schemaMigrations).toEqual([
       Migration20261022000000,
@@ -154,6 +165,7 @@ describe("clear Automerge document history", () => {
       Migration20261104000000,
       Migration20261109000000,
       Migration20261110000000,
+      Migration20261119000000,
     ]);
     globalValues.automergeRepo = repo;
 
@@ -163,7 +175,7 @@ describe("clear Automerge document history", () => {
       [
         ...schemaMigrations,
         {
-          version: Migration20261110000000.version + 1,
+          version: Migration20261119000000.version + 1,
           name: "edit-replacement",
           migrate: async (handle, { docListing }) => {
             expect(handle.url).toBe(docListing.automergeUrl);
@@ -179,14 +191,13 @@ describe("clear Automerge document history", () => {
 
     expect(Object.keys(repo.handles)).toEqual([]);
     const reader = makeRepo();
-    // The replacement, then the edit; the first mission also has its grid system backfill.
-    for (const [listing, changes] of [
-      [first.listing, 3],
-      [second.listing, 2],
-    ] as const) {
+    for (const listing of listings) {
       const reloaded = await reader.find<Mission>(listing.automergeUrl as AutomergeUrl);
       expect(reloaded.doc().description).toBe("Edited after replacement");
-      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(changes);
+      expect(reloaded.doc()).toMatchObject({ planet: "moon", earthGridLabelScheme: "lunar-acc" });
+      expect(reloaded.doc()).not.toHaveProperty("gridSystem");
+      // The replacement, grid backfill, planet initialization, and later edit.
+      expect(Automerge.getHistory(reloaded.doc())).toHaveLength(4);
     }
     const mission = (await reader.find<Mission>(first.listing.automergeUrl as AutomergeUrl)).doc();
     expect(mission.evas.eva.sunEarthFromDate).toBe(true);
@@ -197,8 +208,6 @@ describe("clear Automerge document history", () => {
       "#009CE0",
       "#68BC00",
     ]);
-    expect(mission.gridSystem).toBe("moon-m2025");
-    expect(mission.earthGridLabelScheme).toBe("lunar-acc");
     await vi.waitFor(async () => {
       expect(await storage.loadRange([first.handle.documentId])).toEqual([]);
       expect(await storage.loadRange([second.handle.documentId])).toEqual([]);

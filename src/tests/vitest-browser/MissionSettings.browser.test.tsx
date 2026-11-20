@@ -1,5 +1,5 @@
 import { page } from "vitest/browser";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { MemoryRouter, Routes, Route } from "react-router";
 import { Provider } from "react-redux";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
@@ -15,7 +15,14 @@ import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowse
 vi.mock("@automerge/automerge-repo-react-hooks", () => ({ useDocument: vi.fn() }));
 vi.mock("http-client/mission", () => ({ getMissionDems: vi.fn() }));
 vi.mock("http-client/terrainProfile", () => ({ getElevationSinglePoint: vi.fn() }));
-vi.mock("components/admin/fileManager", () => ({ default: () => <div>Mission files</div> }));
+vi.mock("components/admin/fileManager", () => ({
+  default: function FileManager({ setFileList }: { setFileList: (files: GISfile[]) => void }) {
+    useEffect(() => {
+      setFileList([]);
+    }, [setFileList]);
+    return <button onClick={() => setFileList([])}>Refresh mission file listing</button>;
+  },
+}));
 vi.mock("components/admin/gridUpload", () => ({ default: () => <div>Server File Grid</div> }));
 vi.mock("components/admin/projection", () => ({ default: (): null => null }));
 
@@ -148,6 +155,28 @@ test("selecting a DEM samples the existing endpoint and updates lander stations,
   expect(getElevationSinglePoint).toHaveBeenCalledTimes(1);
 });
 
+test("opening the admin page leaves unknown elevation untouched until requested", async () => {
+  mission.demFilePath = "Data/nested/elevation.tif";
+  vi.mocked(getElevationSinglePoint).mockResolvedValue({
+    status: "success",
+    message: "Sampled",
+    data: 123,
+  });
+  render();
+  const calculate = page.getByRole("button", { name: "Calculate elevation" });
+  await expect.element(calculate).toBeVisible();
+  await expect
+    .element(page.getByRole("option", { name: "nested/elevation.tif - 0.5 m/pixel" }))
+    .toBeInTheDocument();
+  expect(changeMission).not.toHaveBeenCalled();
+  expect(getElevationSinglePoint).not.toHaveBeenCalled();
+  await calculate.click();
+  await expect
+    .element(page.getByLabelText("Lander Elevation", { exact: true }))
+    .toHaveTextContent("123");
+  expect(changeMission).toHaveBeenCalledTimes(1);
+});
+
 test("changing admin coordinates discards an older elevation response", async () => {
   mission.demFilePath = "Data/nested/elevation.tif";
   let finishOld: (response: WrappedResponse<number>) => void;
@@ -160,6 +189,7 @@ test("changing admin coordinates discards an older elevation response", async ()
     )
     .mockResolvedValue({ status: "success", message: "Sampled", data: -35 });
   render();
+  await page.getByRole("button", { name: "Calculate elevation" }).click();
   await vi.waitFor(() => expect(getElevationSinglePoint).toHaveBeenCalledTimes(1));
   await page.getByLabelText("Lander Location Latitude", { exact: true }).fill("-86");
   await expect
@@ -187,6 +217,7 @@ test("clearing a DEM while sampling prevents the late result from restoring elev
   await expect
     .element(page.getByRole("option", { name: "nested/elevation.tif - 0.5 m/pixel" }))
     .toBeInTheDocument();
+  await page.getByRole("button", { name: "Calculate elevation" }).click();
   await page.getByLabelText("DEM file", { exact: true }).selectOptions("");
   finish({ status: "success", message: "Old DEM", data: 999 });
   await Promise.resolve();
@@ -197,6 +228,7 @@ test("sampling failures stay unknown and show an error without retrying unrelate
   mission.demFilePath = "Data/nested/elevation.tif";
   vi.mocked(getElevationSinglePoint).mockRejectedValueOnce(new Error("DEM is unavailable"));
   render();
+  await page.getByRole("button", { name: "Calculate elevation" }).click();
   await expect
     .element(page.getByRole("alert"))
     .toHaveTextContent("Calculating lander elevation: DEM is unavailable");
@@ -217,16 +249,19 @@ test("sampling failures stay unknown and show an error without retrying unrelate
     .toHaveTextContent("123");
 });
 
-test("shows list failures and can refresh after files are uploaded", async () => {
+test("lists DEMs once on load, shows failures, and refreshes after file changes", async () => {
   vi.mocked(getMissionDems).mockRejectedValueOnce(new Error("Could not list Data files"));
   render();
   await expect
     .element(page.getByRole("alert"))
     .toHaveTextContent("Reading DEM files: Could not list Data files");
+  expect(getMissionDems).toHaveBeenCalledTimes(1);
   await page.getByRole("button", { name: "Refresh DEM files" }).click();
   await expect
     .element(page.getByRole("option", { name: "nested/elevation.tif - 0.5 m/pixel" }))
     .toBeInTheDocument();
+  await page.getByRole("button", { name: "Refresh mission file listing" }).click();
+  expect(getMissionDems).toHaveBeenCalledTimes(3);
 });
 
 test("unknown lander elevation encourages adding a DEM, and elevation cannot be typed", () => {
