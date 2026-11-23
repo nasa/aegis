@@ -50,9 +50,10 @@ describe("apply-mission-actionTemplate", () => {
     it("updates mission updatedAt", () => {
       const missionDocHandle = getMissionDocHandle();
       const before = missionDocHandle.doc().updatedAt;
-      vi.spyOn(Date.prototype, "getTime").mockReturnValueOnce(before + 10);
+      const getTime = vi.spyOn(Date.prototype, "getTime").mockReturnValue(before + 10);
 
       withMissionChange((m) => applyCreateActionTemplate(m));
+      getTime.mockRestore();
 
       expect(missionDocHandle.doc().updatedAt).toBeGreaterThan(before);
     });

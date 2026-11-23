@@ -5,7 +5,7 @@ import { Doc_Listing_db } from "server/database/models/_allModels";
 import DocListingFactory from "../../../fixtures/entityFactories/DocListingFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
-import { createMockAutomergeRepo } from "../../../helpers/mockAutomergeRepo";
+import { createMockHistoryRepo } from "../../../helpers/mockHistoryRepo";
 import { seedMissionCatalog } from "../../../helpers/seedMissionCatalog";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
@@ -101,7 +101,7 @@ beforeAll(async () => {
 
   // Hook the mock automerge repo up so `getAutomergeMissions` reads our test
   // mission docs.
-  globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
+  globalValues.historyRepo = createMockHistoryRepo(testMissionsPartial);
   await seedMissionCatalog(testAutomergeDocListings);
 });
 

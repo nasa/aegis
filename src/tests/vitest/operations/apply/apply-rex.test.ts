@@ -1,4 +1,3 @@
-import * as Automerge from "@automerge/automerge";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import {
   applyUpsertRex,
@@ -26,6 +25,7 @@ import {
 } from "store/storeUtils/rex";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { v4 as uuidv4 } from "uuid";
+import { mergeConcurrentChanges } from "../../helpers/concurrentChanges";
 
 const getMission = (): Mission => getMissionDocHandle().doc();
 
@@ -36,41 +36,35 @@ describe("position entry collaboration", () => {
       evaUuid: "eva",
       ...(entries ? { posEntries: entries } : {}),
     });
-    return Automerge.from({ ...generateBlankMission({ rexes: { rex } }) });
+    return generateBlankMission({ rexes: { rex } });
   };
 
   it("preserves simultaneous first additions from different sources", () => {
     const initial = createMission();
     const entryA = generateBlankPosEntry({ posSourceUuid: "crew" });
     const entryB = generateBlankPosEntry({ posSourceUuid: "task" });
-    const docA = Automerge.change(Automerge.clone(initial), (m) =>
-      applyCreatePosEntry(m, { rexUuid: "rex", posEntry: entryA })
-    );
-    const docB = Automerge.change(Automerge.clone(initial), (m) =>
-      applyCreatePosEntry(m, { rexUuid: "rex", posEntry: entryB })
-    );
-    const merged = Automerge.merge(docA, docB);
+    const addA = (m: Mission) => applyCreatePosEntry(m, { rexUuid: "rex", posEntry: entryA });
+    const addB = (m: Mission) => applyCreatePosEntry(m, { rexUuid: "rex", posEntry: entryB });
+    const merged = mergeConcurrentChanges(initial, addA, addB);
     expect(merged.rexes.rex.posEntries.map((entry) => entry.uuid).sort()).toEqual(
       [entryA.uuid, entryB.uuid].sort()
     );
-    expect(Automerge.toJS(Automerge.merge(docB, docA))).toEqual(Automerge.toJS(merged));
   });
 
   it("preserves an existing entry's concurrent edit when adding a position", () => {
     const existing = generateBlankPosEntry();
     const added = generateBlankPosEntry();
     const initial = createMission([existing]);
-    const docA = Automerge.change(Automerge.clone(initial), (m) =>
-      applyCreatePosEntry(m, { rexUuid: "rex", posEntry: added })
-    );
-    const docB = Automerge.change(Automerge.clone(initial), (m) =>
-      applyUpdatePosEntry(m, {
-        rexUuid: "rex",
-        posEntryUuid: existing.uuid,
-        changes: { notes: "Remote notes" },
-      })
-    );
-    const entries = Automerge.merge(docA, docB).rexes.rex.posEntries;
+    const entries = mergeConcurrentChanges(
+      initial,
+      (m) => applyCreatePosEntry(m, { rexUuid: "rex", posEntry: added }),
+      (m) =>
+        applyUpdatePosEntry(m, {
+          rexUuid: "rex",
+          posEntryUuid: existing.uuid,
+          changes: { notes: "Remote notes" },
+        })
+    ).rexes.rex.posEntries;
     expect(entries).toHaveLength(2);
     expect(entries.find((entry) => entry.uuid === existing.uuid).notes).toBe("Remote notes");
   });
@@ -79,30 +73,29 @@ describe("position entry collaboration", () => {
     const existing = generateBlankPosEntry();
     const added = generateBlankPosEntry();
     const initial = createMission([existing]);
-    const docA = Automerge.change(Automerge.clone(initial), (m) =>
-      applyDeletePosEntry(m, { rexUuid: "rex", posEntryUuid: existing.uuid })
+    const merged = mergeConcurrentChanges(
+      initial,
+      (m) => applyDeletePosEntry(m, { rexUuid: "rex", posEntryUuid: existing.uuid }),
+      (m) => applyCreatePosEntry(m, { rexUuid: "rex", posEntry: added })
     );
-    const docB = Automerge.change(Automerge.clone(initial), (m) =>
-      applyCreatePosEntry(m, { rexUuid: "rex", posEntry: added })
-    );
-    expect(Automerge.merge(docA, docB).rexes.rex.posEntries).toEqual([added]);
+    expect(merged.rexes.rex.posEntries).toEqual([added]);
   });
 
   it("preserves an edit to a different entry during deletion", () => {
     const deleted = generateBlankPosEntry();
     const kept = generateBlankPosEntry();
     const initial = createMission([deleted, kept]);
-    const docA = Automerge.change(Automerge.clone(initial), (m) =>
-      applyDeletePosEntry(m, { rexUuid: "rex", posEntryUuid: deleted.uuid })
+    const merged = mergeConcurrentChanges(
+      initial,
+      (m) => applyDeletePosEntry(m, { rexUuid: "rex", posEntryUuid: deleted.uuid }),
+      (m) =>
+        applyUpdatePosEntry(m, {
+          rexUuid: "rex",
+          posEntryUuid: kept.uuid,
+          changes: { notes: "Keep this edit" },
+        })
     );
-    const docB = Automerge.change(Automerge.clone(initial), (m) =>
-      applyUpdatePosEntry(m, {
-        rexUuid: "rex",
-        posEntryUuid: kept.uuid,
-        changes: { notes: "Keep this edit" },
-      })
-    );
-    expect(Automerge.merge(docA, docB).rexes.rex.posEntries).toEqual([
+    expect(merged.rexes.rex.posEntries).toEqual([
       { ...kept, notes: "Keep this edit", updatedAt: expect.any(Number) },
     ]);
   });
@@ -111,13 +104,12 @@ describe("position entry collaboration", () => {
     const entryA = generateBlankPosEntry();
     const entryB = generateBlankPosEntry();
     const initial = createMission([entryA, entryB]);
-    const docA = Automerge.change(Automerge.clone(initial), (m) =>
-      applyDeletePosEntry(m, { rexUuid: "rex", posEntryUuid: entryA.uuid })
+    const merged = mergeConcurrentChanges(
+      initial,
+      (m) => applyDeletePosEntry(m, { rexUuid: "rex", posEntryUuid: entryA.uuid }),
+      (m) => applyDeletePosEntry(m, { rexUuid: "rex", posEntryUuid: entryB.uuid })
     );
-    const docB = Automerge.change(Automerge.clone(initial), (m) =>
-      applyDeletePosEntry(m, { rexUuid: "rex", posEntryUuid: entryB.uuid })
-    );
-    expect(Automerge.merge(docA, docB).rexes.rex.posEntries).toEqual([]);
+    expect(merged.rexes.rex.posEntries).toEqual([]);
   });
 });
 

@@ -3,7 +3,10 @@ import { getUnindexedMissionListings, createMissionSummary } from "./missionCata
 import { serverLogger } from "utils/logging/serverLogger";
 
 // TEMPORARY: remove this function and its startup call in the next MR after catalog rollout.
-export async function populateMissionCatalogOnce(repo: ServerHistoryRepo, missionIds?: number[]): Promise<void> {
+export async function populateMissionCatalogOnce(
+  repo: ServerHistoryRepo,
+  missionIds?: number[]
+): Promise<void> {
   const pending = (await getUnindexedMissionListings()).filter(
     (listing) => !missionIds || missionIds.includes(listing.missionId)
   );

@@ -1,24 +1,16 @@
 import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });
-import { Repo } from "@automerge/automerge-repo/slim";
-import type {
-  AutomergeUrl,
-  DocHandle,
-  StorageAdapterInterface,
-} from "@automerge/automerge-repo/slim";
-import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
-import pg from "pg";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 
 import { getAutomergeDocListing } from "server/express/routes/docListing";
 import { missionValidator } from "utils/validateSchemaServer";
-import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
-import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { Doc_Listing_db } from "server/database/models/_allModels";
+import { createMissionSummary } from "server/missionCatalog/missionCatalog";
+import { createToolHistoryRepo } from "server/historyStore/tools/createToolHistoryRepo";
 import {
   apollo14Layers,
   apollo14StmLevel1s,
@@ -31,30 +23,15 @@ import {
 
 const SEED_MISSION_NAME = "Apollo 14";
 
-// This is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
-initializeBase64Wasm(automergeWasmBase64);
-
-// Connect to the automerge database that stores all the docs
-const dbPool: pg.Pool = new pg.Pool({
-  user: "postgres",
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASS,
-  port: 5432,
-});
-const storageAdapter: StorageAdapterInterface = new PostgresStorageAdapter(
-  "automerge_native_db",
-  dbPool
-);
-const automergeRepo = new Repo({ storage: storageAdapter });
+const { repo: historyRepo, pool: dbPool } = createToolHistoryRepo();
 
 /**
  * Standalone seed script that creates the "Apollo 14" demo mission from nothing:
- *  - creates the mission Automerge document
+ *  - creates the mission history document ("history:<uuid>")
  *  - adds the doc-listing row (which assigns the next available mission id)
  *  - stamps that id onto the mission and every entity
  *  - seeds the mission's map layers/sublayers
- *  - backs the mission up to the mission-backup table
+ *  - writes the mission catalog summary
  *
  * The mission id is taken from the doc-listing auto-increment.
  * If an "Apollo 14" mission already exists it exits without doing anything.
@@ -71,11 +48,10 @@ const seed = async (): Promise<void> => {
   const existingMissions = await Promise.all(
     existingListings.map(async (listing) => {
       try {
-        const handle: DocHandle<Mission> = await automergeRepo.find(
-          listing.automergeUrl as AutomergeUrl
-        );
-        await handle.whenReady();
-        return handle.doc();
+        const handle = await historyRepo.find<Mission>(listing.automergeUrl);
+        const name = handle.doc().name;
+        await historyRepo.removeFromCache(handle.documentId);
+        return { name };
       } catch {
         return null;
       }
@@ -99,9 +75,12 @@ const seed = async (): Promise<void> => {
     throw new Error(`Seeded mission is invalid: ${JSON.stringify(missionValidator.errors)}`);
   }
 
-  // Create the mission Automerge document.
-  const missionDocHandle = automergeRepo.create<Mission>(seedMission);
-  await missionDocHandle.whenReady();
+  // Create the mission history document and wait for row 0 to be persisted.
+  const missionDocHandle = historyRepo.create<Mission>(seedMission);
+  await missionDocHandle.flush();
+  if (!historyRepo.store.isLoaded(missionDocHandle.documentId)) {
+    throw new Error(`Failed to persist history document ${missionDocHandle.documentId}`);
+  }
 
   // Add a doc-listing row and flush to get the assigned (next available) mission id.
   const em = globalValues.orm.em.fork();
@@ -117,14 +96,12 @@ const seed = async (): Promise<void> => {
   // map layers, preset, and STM) so their missionIds match the id the database handed out.
   missionDocHandle.change((m) => stampMissionId(m, missionId));
 
-  const mission = missionDocHandle.doc();
-
-  // The Repo persists documents via a debounced/throttled save timer rather than
-  // writing synchronously on create. This script calls process.exit() as soon as it
-  // finishes, so without flush() the seeded document could be lost before the timer
-  // fires. flush() bypasses the debounce and awaits the storage write for every cached
-  // handle.
-  await automergeRepo.flush();
+  await historyRepo.flush();
+  const mission = historyRepo.store.getConfirmedState(missionDocHandle.documentId) as Mission;
+  if (mission?.id !== missionId) {
+    throw new Error(`Mission id stamp was not persisted to ${missionDocHandle.documentId}`);
+  }
+  await createMissionSummary(historyRepo, missionDocHandle, undefined, true);
 
   serverLogger.info({
     logId: "automerge-seed:seedApollo14:seededApollo14MissionWithEntityCounts",
@@ -149,7 +126,6 @@ seed()
       logValue: "Seed complete. Exiting.",
     });
     process.exitCode = 0;
-    process.exit();
   })
   .catch((err: unknown) => {
     serverLogger.error(
@@ -160,5 +136,9 @@ seed()
       err instanceof Error ? err : new Error(String(err))
     );
     process.exitCode = 1;
+  })
+  .finally(async () => {
+    await globalValues.orm?.close();
+    await dbPool.end();
     process.exit();
   });

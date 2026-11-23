@@ -50,7 +50,6 @@ import {
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { buildTerrainProfiles } from "store/terrainProfiles";
-import type { DocHandle } from "@automerge/automerge-repo/slim";
 
 const app = express();
 app.use(express.json());

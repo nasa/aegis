@@ -369,11 +369,13 @@ async function upsertSublayers(missionId: number, sublayers: Sublayer[]): Promis
       `Unknown layerUuid(s): ${[...new Set(unknownLayerUuids.map(String))].join(", ")}`
     );
   }
-  let normalized: Sublayer[] = [];
-  handle.change((m: Mission) => {
-    normalized = sublayers.map((record) => normalizeSublayerInput(m, record));
-    applyUpsertSublayers(m, normalized);
-  });
+  // Returned from the callback so values copied from the draft are snapshotted.
+  const normalized =
+    handle.change((m: Mission) => {
+      const records = sublayers.map((record) => normalizeSublayerInput(m, record));
+      applyUpsertSublayers(m, records);
+      return records;
+    }) ?? [];
   await globalValues.historyRepo.flush();
   return normalized;
 }

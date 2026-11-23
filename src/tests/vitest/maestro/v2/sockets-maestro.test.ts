@@ -113,7 +113,7 @@ beforeEach(() => {
     on: vi.fn(),
     off: vi.fn(),
   };
-  globalValues.automergeRepo = { find: vi.fn().mockResolvedValue(defaultDocHandle) } as never;
+  globalValues.historyRepo = { find: vi.fn().mockResolvedValue(defaultDocHandle) } as never;
   mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://default-url" }]);
   // getEverything wraps its work in RequestContext.create(globalValues.orm.em, ...),
   // which is mocked as a pass-through, so only a stub em is required here.

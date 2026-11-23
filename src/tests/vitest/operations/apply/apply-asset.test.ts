@@ -1,4 +1,3 @@
-import * as Automerge from "@automerge/automerge";
 import {
   getMissionDocHandle,
   setMissionAutomergeDocHandle,
@@ -18,6 +17,7 @@ import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankPoi } from "store/storeUtils/poi";
 import { checkMissionIntegrity } from "server/automerge/checkMissionIntegrity";
+import { mergeConcurrentChanges } from "../../helpers/concurrentChanges";
 
 const getMission = (): Mission => getMissionDocHandle().doc();
 const membership = (assetUuid: string) =>
@@ -152,19 +152,14 @@ describe("apply-asset", () => {
   it("merges concurrent edits from two clients without losing membership", () => {
     const asset = generateBlankAsset({ name: "Drill" });
     const folder = generateBlankFolder({ type: "asset" });
-    let docA = Automerge.from({ ...generateBlankMission() });
-    docA = Automerge.change(docA, (m) => {
-      applyCreateAsset(m, asset);
-      applyUpsertFolder(m, folder);
-    });
-    let docB = Automerge.clone(docA);
-    docA = Automerge.change(docA, (m) =>
-      applyMoveAssetToFolder(m, { assetUuid: asset.uuid, folderUuid: folder.uuid })
+    const base = generateBlankMission();
+    applyCreateAsset(base, asset);
+    applyUpsertFolder(base, folder);
+    const merged = mergeConcurrentChanges(
+      base,
+      (m) => applyMoveAssetToFolder(m, { assetUuid: asset.uuid, folderUuid: folder.uuid }),
+      (m) => applyUpdateAsset(m, { assetUuid: asset.uuid, changes: { notes: "from B" } })
     );
-    docB = Automerge.change(docB, (m) =>
-      applyUpdateAsset(m, { assetUuid: asset.uuid, changes: { notes: "from B" } })
-    );
-    const merged = Automerge.merge(docA, docB);
     expect(merged.assets[asset.uuid].notes).toBe("from B");
     expect(merged.folders[folder.uuid].items).toEqual([asset.uuid]);
   });

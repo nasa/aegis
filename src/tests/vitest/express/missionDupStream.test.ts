@@ -20,7 +20,7 @@ const { em, sourceHandle, copiedHandle, copyGISAssets, createMission, authorized
 vi.mock("server/express/global", () => ({
   globalValues: {
     orm: { em },
-    automergeRepo: {
+    historyRepo: {
       find: (url: string) => (url === "automerge:source" ? sourceHandle : copiedHandle),
     },
   },

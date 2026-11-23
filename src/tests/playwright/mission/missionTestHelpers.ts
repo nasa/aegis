@@ -19,7 +19,7 @@ export { toggleEditMode as ensureEditModeOn } from "../helpers";
  * Navigate to the mission section and verify that we are on Mission Configuration.
  */
 export async function goToV2MissionSection(page: Page): Promise<void> {
-  await page.goto("http://localhost:4000/mission/22");
+  await page.goto("/mission/22");
   await waitForPageReady(page);
   await page.getByLabel("mission Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
@@ -34,7 +34,7 @@ export async function goToV2MissionSection(page: Page): Promise<void> {
  * Navigate to the v1 mission section and verify that we are on Mission Configuration.
  */
 export async function goToV1MissionSection(page: Page): Promise<void> {
-  await page.goto("http://localhost:4000/mission/47");
+  await page.goto("/mission/47");
   await waitForPageReady(page);
   await page.getByLabel("mission Section", { exact: true }).click();
   await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(

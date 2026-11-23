@@ -1,4 +1,5 @@
 // @vitest-environment node
+import "@automerge/automerge";
 import { Repo } from "@automerge/automerge-repo/slim";
 import type { StorageAdapterInterface, StorageKey } from "@automerge/automerge-repo/slim";
 import { releaseMissionDocument } from "server/automerge/releaseMissionDocument";

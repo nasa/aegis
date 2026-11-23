@@ -7,10 +7,7 @@ import packageJSON from "../../../package.json" with { type: "json" };
 // Remove the previous build directory
 rmSync("./.local/express/dist/loadTest", { recursive: true, force: true });
 
-// Build load test separately with automerge as external
-// This is necessary because worker threads need to load WASM from node_modules
-//    instead of using the bundled version that the main application uses. I think
-//    the worker threads have a different working directory/module resolution
+// Build load test separately; the bundled workers run in Node worker threads
 const loadTestContext = await esbuild.context({
   entryPoints: {
     startLoadTest: "./src/tests/loadTest/startLoadTest.ts",
@@ -24,12 +21,6 @@ const loadTestContext = await esbuild.context({
   banner: {
     js: "import { createRequire as _importRequire } from 'module'; const require = _importRequire(import.meta.url);",
   },
-  external: [
-    // Keep automerge packages external so they can load WASM files from node_modules
-    "@automerge/automerge",
-    "@automerge/automerge-repo",
-    "@automerge/automerge-repo-network-websocket",
-  ],
   outdir: "./.local/express/dist/loadTest",
   tsconfig: "./tsconfig.json",
   define: {

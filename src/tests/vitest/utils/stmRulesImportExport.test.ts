@@ -1,4 +1,4 @@
-import { from, change } from "@automerge/automerge";
+import { LocalDocHandle } from "historyStore/LocalDocHandle";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStmLvl3, generateBlankStmRule } from "store/storeUtils/stm";
 import { applyImportStmRules, exportStmRules, parseStmRules } from "utils/stmRulesImportExport";
@@ -13,21 +13,22 @@ const fixture = () => {
 };
 
 describe("mission rules import/export", () => {
-  it("round trips all fields and replaces rules in an Automerge change", () => {
+  it("round trips all fields and replaces rules in a document change", () => {
     const { mission, rule } = fixture();
     const json = exportStmRules(mission);
     expect(parseStmRules(json, mission)).toEqual([rule]);
-    const doc = from({ ...mission });
-    const imported = change(doc, (draft) => {
+    const handle = new LocalDocHandle(mission);
+    const original = handle.doc();
+    handle.change((draft) => {
       applyImportStmRules(draft, json);
     });
-    expect(imported.stmRules).toEqual(mission.stmRules);
-    expect(doc.stmRules).toEqual(mission.stmRules);
-    const cleared = change(imported, (draft) => {
+    expect(handle.doc().stmRules).toEqual(mission.stmRules);
+    expect(original.stmRules).toEqual(mission.stmRules);
+    handle.change((draft) => {
       applyImportStmRules(draft, '{"version":1,"stmRules":[]}');
     });
-    expect(cleared.stmRules).toEqual({});
-    expect(cleared.stmLevel3s).toEqual(mission.stmLevel3s);
+    expect(handle.doc().stmRules).toEqual({});
+    expect(handle.doc().stmLevel3s).toEqual(mission.stmLevel3s);
   });
 
   it.each([

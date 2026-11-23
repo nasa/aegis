@@ -21,7 +21,7 @@ export async function presetTest(page: Page): Promise<string> {
   const presetBaseName = `Playwright Test Preset ${suffix}`;
   const copyName = `${presetBaseName} (copy`;
 
-  await page.goto("http://localhost:4000/mission/22");
+  await page.goto("/mission/22");
   //go to preset section
   await waitForPageReady(page);
   await page.getByLabel("preset Section", { exact: true }).click();

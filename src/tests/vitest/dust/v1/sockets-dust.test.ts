@@ -81,7 +81,7 @@ beforeEach(() => {
     off: vi.fn(),
     doc: vi.fn().mockReturnValue(undefined),
   };
-  globalValues.automergeRepo = { find: vi.fn().mockResolvedValue(defaultDocHandle) } as never;
+  globalValues.historyRepo = { find: vi.fn().mockResolvedValue(defaultDocHandle) } as never;
   mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://default-url" }]);
   globalValues.dustV1.socketio = null;
   globalValues.dustV1.docListeners = new Map();

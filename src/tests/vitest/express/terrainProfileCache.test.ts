@@ -13,7 +13,6 @@ import { applyDeleteRexStage } from "operations/apply/apply-rex";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { watchTerrainCache } from "server/terrain/terrainProfileCache";
-import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { profileInputSignature } from "utils/terrainProfileInputs";
 import {
   cachedTerrainProfile,

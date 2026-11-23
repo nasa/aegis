@@ -92,7 +92,10 @@ export abstract class HistoryDocHandle<T> {
     return this;
   }
 
-  once<K extends keyof HistoryDocHandleEvents<T>>(event: K, fn: HistoryDocHandleEvents<T>[K]): this {
+  once<K extends keyof HistoryDocHandleEvents<T>>(
+    event: K,
+    fn: HistoryDocHandleEvents<T>[K]
+  ): this {
     const wrapped = ((...args: unknown[]) => {
       this.off(event, wrapped);
       (fn as (...a: unknown[]) => void)(...args);

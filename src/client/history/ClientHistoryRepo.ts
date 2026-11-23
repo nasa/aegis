@@ -81,6 +81,11 @@ export class ClientDocHandle<T> extends HistoryDocHandle<T> {
     this.settleFlushWaiters();
   }
 
+  /** Re-send edits the server has not answered for a while. */
+  resendStalePending(): void {
+    this.store?.checkForOldPendingActions();
+  }
+
   failToLoad(error: Error): void {
     this.markUnavailable(error);
   }
@@ -108,6 +113,7 @@ export class ClientHistoryRepo {
   private serverEpochUuid: string;
   private userId: string | number;
   private onConnectionStatusChange?: (status: ConnectionStatus) => void;
+  private resendTimer: ReturnType<typeof setInterval>;
 
   constructor(props: {
     serverURL: string;
@@ -136,6 +142,17 @@ export class ClientHistoryRepo {
     this.socket.on("documentDeleted", ({ documentId }) => {
       this.handles[documentId]?.deleteRemotely();
     });
+    // A lost acknowledgement would otherwise leave an edit pending until other traffic arrives.
+    this.resendTimer = setInterval(() => {
+      if (!this.socket.connected) return;
+      for (const handle of Object.values(this.handles)) handle.resendStalePending();
+    }, 2000);
+  }
+
+  /** Disconnect and stop syncing every document. */
+  close(): void {
+    clearInterval(this.resendTimer);
+    this.socket.close();
   }
 
   /** Returns the handle for a document, joining it on first use. Resolves once it is loaded. */

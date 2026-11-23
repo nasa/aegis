@@ -68,10 +68,15 @@ const recordRecentSlowMainThreadOperation = (operation: MainThreadOperationTimin
     recentSlowMainThreadOperations.shift();
 };
 
-const missionIdForDocument = (repo: ServerHistoryRepo, documentId: string | undefined): number | undefined => {
+const missionIdForDocument = (
+  repo: ServerHistoryRepo,
+  documentId: string | undefined
+): number | undefined => {
   if (!documentId) return undefined;
   try {
-    return (repo.handles[documentId as keyof ServerHistoryRepo["handles"]]?.doc() as Mission | undefined)?.id;
+    return (
+      repo.handles[documentId as keyof ServerHistoryRepo["handles"]]?.doc() as Mission | undefined
+    )?.id;
   } catch {
     return undefined;
   }

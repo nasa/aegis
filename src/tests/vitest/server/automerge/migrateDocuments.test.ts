@@ -1,5 +1,5 @@
 import { Repo } from "@automerge/automerge-repo";
-import type { StorageAdapterInterface } from "@automerge/automerge-repo";
+import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo";
 import type { MikroORM } from "@mikro-orm/postgresql";
 import { migrateDocuments } from "server/automerge/migrateDocuments";
 import { generateBlankMission } from "store/storeUtils/mission";

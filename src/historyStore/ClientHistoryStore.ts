@@ -105,7 +105,8 @@ export class ClientHistoryStore<S> {
     nextState?: S
   ): PendingHistoryAction | Error {
     try {
-      const newState = nextState ?? this.rootReducer(this.pendingState, action as BaseHistoryAction);
+      const newState =
+        nextState ?? this.rootReducer(this.pendingState, action as BaseHistoryAction);
       const historyAction = deepFreeze(
         anyActionToPending({
           action: { ...action, meta: { unixtime: Date.now() } },
@@ -157,7 +158,12 @@ export class ClientHistoryStore<S> {
       this.confirmedState = this.pendingState;
       this.pendingActions = [];
     } else {
-      this.pendingActions = filterByIds(this.pendingActions, "historyId", confirmedIds, "nonmatches");
+      this.pendingActions = filterByIds(
+        this.pendingActions,
+        "historyId",
+        confirmedIds,
+        "nonmatches"
+      );
       this.recalculatePendingState(patchesOf(result.completeActions));
       this.checkForOldPendingActions();
     }

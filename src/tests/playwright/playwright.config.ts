@@ -4,6 +4,8 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// Override to run against a dev server on another port.
+const baseURL = process.env.AEGIS_BASE_URL ?? "http://localhost:4000";
 const storageStatePath = path.resolve(__dirname, "../../../.local/playwright/auth.json");
 
 // Smoke tests are read-only and parallelize cleanly.
@@ -35,7 +37,7 @@ export default defineConfig({
 
   use: {
     // Base URL to use in actions like `await page.goto('/')`.
-    baseURL: "http://localhost:4000/",
+    baseURL: `${baseURL}/`,
 
     headless: true, // Ensure headless mode is enabled
     viewport: { width: 1960, height: 1080 }, // Set screen resolution
@@ -79,7 +81,7 @@ export default defineConfig({
   // In CI, run a modified dev command that has already built the API server
   webServer: {
     command: process.env.CI ? "npm run dev:ci" : "npm run dev",
-    url: "http://localhost:4000",
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000,
     cwd: path.resolve(__dirname, "../../.."),

@@ -1,13 +1,13 @@
 // @vitest-environment node
 import { MikroORM, OptimisticLockError } from "@mikro-orm/postgresql";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo/slim";
-import { Repo } from "@automerge/automerge-repo/slim";
 import pg from "pg";
 import supertest from "supertest";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import app from "server/express/restApi";
-import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
+import { HistoryPersistence } from "server/historyStore/historyPersistence";
+import { ServerHistoryRepo } from "server/historyStore/ServerHistoryRepo";
+import { ServerHistoryStore } from "server/historyStore/ServerHistoryStore";
 import { getMissionSummaries, getMissionIdsForEva } from "server/missionCatalog/missionCatalog";
 import * as missionCatalog from "server/missionCatalog/missionCatalog";
 import {
@@ -22,17 +22,17 @@ import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex, generateBlankPosEntry } from "store/storeUtils/rex";
 import { getRexesByEva } from "server/maestro/v2/routes/getRexesByEva";
-import * as Automerge from "@automerge/automerge";
 import { populateMissionCatalogOnce } from "server/missionCatalog/populateMissionCatalogOnce";
 import {
   Doc_Listing_db,
   Mission_Catalog_db,
   Mission_Eva_Catalog_db,
 } from "server/database/models/_allModels";
+import { insertRemoteChange } from "../helpers/memoryHistoryRepo";
 
-let repo: Repo;
+let repo: ServerHistoryRepo;
 let pool: pg.Pool;
-let storage: PostgresStorageAdapter;
+let persistence: HistoryPersistence;
 let handles: DocHandle<Mission>[];
 let ids: number[];
 
@@ -45,12 +45,17 @@ beforeAll(async () => {
     user: "postgres",
     password: config.password as string,
   });
-  storage = new PostgresStorageAdapter("automerge_native_db", pool);
+  persistence = new HistoryPersistence(pool);
 });
 
+/** A fresh repo over the same database, as after a server restart. */
+function startRepo() {
+  repo = new ServerHistoryRepo(new ServerHistoryStore<unknown>(persistence));
+  globalValues.historyRepo = repo;
+}
+
 beforeEach(() => {
-  repo = new Repo({ storage });
-  globalValues.automergeRepo = repo;
+  startRepo();
   handles = [];
   ids = [];
 });
@@ -62,7 +67,7 @@ async function createMission(fields: Partial<Mission> = {}) {
       ...fields,
     })
   );
-  const handle = await repo.find<Mission>(listing.automergeUrl as AutomergeUrl);
+  const handle = await repo.find<Mission>(listing.automergeUrl);
   handles.push(handle);
   ids.push(listing.missionId);
   return handle;
@@ -74,7 +79,7 @@ afterEach(async () => {
   const em = globalValues.orm.em.fork();
   await em.nativeDelete(Doc_Listing_db, { missionId: { $in: ids } });
   for (const handle of handles) {
-    await storage.removeRange([handle.documentId]);
+    await persistence.deleteDocumentHistory(handle.documentId);
   }
   globalValues.orm.em.clear();
 });
@@ -89,8 +94,7 @@ test("restart and homepage/admin/Maestro discovery load zero documents", async (
   await createMission({ evas: { [eva.uuid]: eva } });
   await createMission({ archivedAt: 123, name: "Archived" });
   await repo.shutdown();
-  repo = new Repo({ storage });
-  globalValues.automergeRepo = repo;
+  startRepo();
   const find = vi.spyOn(repo, "find");
   await populateMissionCatalogOnce(repo, ids);
   expect(await getMissionSummaries([])).toEqual([]);
@@ -132,7 +136,7 @@ test("persisted edits update names, archives, EVA membership and the small REX c
   const eva = generateBlankEVA();
   const handle = await createMission({ evas: { [eva.uuid]: eva } });
   const rex = generateBlankRex({ evaUuid: eva.uuid, isRunning: true, petRunning: true });
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   try {
     handle.change((m) => {
       m.name = "Renamed";
@@ -186,7 +190,7 @@ test("persisted edits update names, archives, EVA membership and the small REX c
 test("an edit saved during summary creation queues another update", async () => {
   const handle = await createMission();
   const originalFlush = repo.flush.bind(repo);
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   try {
     vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
       handle.change((m) => {
@@ -208,45 +212,36 @@ test("an edit saved during summary creation queues another update", async () => 
 });
 
 test("summary creation never publishes an edit made after its document flush", async () => {
-  // Prevent the repo's background save timer from hiding an unsaved concurrent edit.
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
-  const reader = new Repo({ storage });
-  try {
-    const handle = await createMission();
-    const originalFlush = repo.flush.bind(repo);
-    vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
-      await originalFlush(documents);
-      handle.change((m) => {
-        m.name = "Not persisted yet";
-      });
-    });
+  const handle = await createMission();
+  const originalFlush = repo.flush.bind(repo);
+  let persistedName: string;
+  vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
+    await originalFlush(documents);
+    persistedName = (repo.store.getConfirmedState(handle.documentId) as Mission).name;
     handle.change((m) => {
-      m.name = "Persisted edit";
+      m.name = "Not persisted yet";
     });
+  });
+  handle.change((m) => {
+    m.name = "Persisted edit";
+  });
 
-    await refreshMissionCatalog(repo, handle);
-    const persisted = await reader.find<Mission>(handle.url);
-    expect(persisted.doc().name).toBe("Persisted edit");
-    expect((await getMissionSummaries(ids))[0].name).toBe(persisted.doc().name);
+  await refreshMissionCatalog(repo, handle);
+  expect(persistedName).toBe("Persisted edit");
+  expect((await getMissionSummaries(ids))[0].name).toBe("Persisted edit");
 
-    // A later save must still recognize the concurrent edit as needing summary creation.
-    await refreshMissionCatalog(repo, handle);
-    expect((await getMissionSummaries(ids))[0].name).toBe("Not persisted yet");
-  } finally {
-    await reader.shutdown();
-    vi.useRealTimers();
-  }
+  // A later save must still recognize the concurrent edit as needing summary creation.
+  await refreshMissionCatalog(repo, handle);
+  expect((await getMissionSummaries(ids))[0].name).toBe("Not persisted yet");
 });
 
-test("merged remote edits are indexed through storage, without an HTTP mutation", async () => {
+test("remote client edits are indexed through the history store, without an HTTP mutation", async () => {
   const handle = await createMission();
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   try {
-    const remote = Automerge.change(Automerge.clone(handle.doc()), (m) => {
+    await insertRemoteChange<Mission>(repo, handle.documentId, (m) => {
       m.name = "Remote rename";
     });
-    repo.import(Automerge.save(remote), { docId: handle.documentId });
-    await repo.flush();
     await vi.waitFor(
       async () => expect((await getMissionSummaries(ids))[0].name).toBe("Remote rename"),
       { timeout: 5_000 }
@@ -256,7 +251,7 @@ test("merged remote edits are indexed through storage, without an HTTP mutation"
   }
 });
 
-test("unrelated changes and sync-state saves do not rewrite catalog rows", async () => {
+test("unrelated changes do not rewrite catalog rows", async () => {
   const eva = generateBlankEVA();
   const handle = await createMission({ evas: { [eva.uuid]: eva } });
   const em = globalValues.orm.em.fork();
@@ -272,14 +267,6 @@ test("unrelated changes and sync-state saves do not rewrite catalog rows", async
   });
   await refreshMissionCatalog(repo, handle);
   expect(await versions()).toEqual(before);
-  const onSave = vi.fn();
-  storage.onDocumentSaved = onSave;
-  try {
-    await storage.save([handle.documentId, "sync-state", "test-peer"], new Uint8Array([1]));
-    expect(onSave).not.toHaveBeenCalled();
-  } finally {
-    storage.onDocumentSaved = undefined;
-  }
 });
 
 test("summary versions increment only for changed summaries and reject stale ORM updates", async () => {
@@ -323,7 +310,7 @@ test("unrelated local and remote edits, including timestamp changes, perform no 
     rexes: { [running.uuid]: running, [inactive.uuid]: inactive },
   });
   const originalUpdatedAt = handle.doc().updatedAt;
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   const fork = vi.spyOn(globalValues.orm.em, "fork");
   const flush = vi.spyOn(repo, "flush");
   try {
@@ -343,12 +330,10 @@ test("unrelated local and remote edits, including timestamp changes, perform no 
     expect(fork).not.toHaveBeenCalled();
     expect(flush).not.toHaveBeenCalled();
 
-    const remote = Automerge.change(Automerge.clone(handle.doc()), (m) => {
+    await insertRemoteChange<Mission>(repo, handle.documentId, (m) => {
       m.description = "Remote unrelated edit";
       m.updatedAt += 1;
     });
-    repo.import(Automerge.save(remote), { docId: handle.documentId });
-    await repo.flush();
     flush.mockClear();
     await runtime.refresh();
     expect(fork).not.toHaveBeenCalled();
@@ -372,7 +357,7 @@ test("unrelated local and remote edits, including timestamp changes, perform no 
 
 test("a failed summary creation is not remembered as indexed and retries on the next save", async () => {
   const handle = await createMission();
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   try {
     vi.spyOn(globalValues.orm.em, "fork").mockImplementationOnce(() => {
       throw new Error("Test catalog write failure");
@@ -433,8 +418,7 @@ test("one-time population resumes missing summaries and repeated startup loads n
   await repo.flush(); // Simulate dying before summary creation ran.
   await globalValues.orm.em.fork().nativeDelete(Mission_Catalog_db, { missionId: ids[1] });
   await repo.shutdown();
-  repo = new Repo({ storage });
-  globalValues.automergeRepo = repo;
+  startRepo();
   const find = vi.spyOn(repo, "find");
   await populateMissionCatalogOnce(repo, ids);
   expect(find.mock.calls.map(([url]) => url)).toEqual([second.url]);
@@ -447,7 +431,7 @@ test("one-time population resumes missing summaries and repeated startup loads n
   const reloaded = await repo.find<Mission>(second.url);
   expect(reloaded.doc().name).toBe("Vitest Catalog Mission");
   find.mockClear();
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   try {
     await repo.find(first.url);
     await runtime.refresh();
@@ -472,7 +456,7 @@ test("idle runtime does not query the catalog or flush documents on a timer", as
   vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
   const fork = vi.spyOn(globalValues.orm.em, "fork");
   const flush = vi.spyOn(repo, "flush");
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   try {
     await vi.advanceTimersByTimeAsync(120_000);
     expect(fork).not.toHaveBeenCalled();
@@ -487,7 +471,7 @@ test.each(["name", "description"] as const)(
   "idle eviction preserves HTTP consumers and persists %s edits before releasing",
   async (field) => {
     const handle = await createMission();
-    const runtime = startMissionCatalogRuntime(repo, storage, 0);
+    const runtime = startMissionCatalogRuntime(repo, 0);
     const release = retainMissionDocuments();
     try {
       await runtime.refresh();
@@ -515,7 +499,7 @@ test("reads, edits and saves do not extend an unused mission's four-hour grace p
   vi.spyOn(Date, "now").mockImplementation(() => now);
   await repo.find(first.url);
   await repo.find(second.url);
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   try {
     now += MISSION_IDLE_MS - 1;
     await runtime.refresh();
@@ -559,9 +543,9 @@ test.each(["user", "maestro", "dust", "rex"] as const)(
     }
     let now = Date.now();
     vi.spyOn(Date, "now").mockImplementation(() => now);
-    // An unrelated connected Automerge peer must not pin the entire cache.
+    // An unrelated connected peer must not pin the entire cache.
     vi.spyOn(repo, "peers", "get").mockReturnValue(["unrelated-peer" as never]);
-    const runtime = startMissionCatalogRuntime(repo, storage);
+    const runtime = startMissionCatalogRuntime(repo);
     try {
       now += MISSION_IDLE_MS + 1;
       await runtime.refresh();
@@ -600,7 +584,7 @@ test("a mission joined while eviction is flushing stays loaded", async () => {
   const handle = await createMission();
   let now = Date.now();
   vi.spyOn(Date, "now").mockImplementation(() => now);
-  const runtime = startMissionCatalogRuntime(repo, storage);
+  const runtime = startMissionCatalogRuntime(repo);
   const flush = repo.flush.bind(repo);
   vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {
     await flush(documents);
@@ -629,8 +613,7 @@ test("startup preloads running REX missions, including paused PET clocks, from t
   // Restrict the preload to this test's fixtures when running against a populated local DB.
   vi.spyOn(missionCatalog, "getRunningMissionListings").mockResolvedValue(runningListings);
   await repo.shutdown();
-  repo = new Repo({ storage });
-  globalValues.automergeRepo = repo;
+  startRepo();
   await loadRunningMissionDocuments(repo);
   expect(repo.handles[active.documentId]?.isReady()).toBe(true);
   expect(repo.handles[idle.documentId]).toBeUndefined();
@@ -642,7 +625,7 @@ test.each(["request", "edit"] as const)(
     const handle = await createMission();
     let now = Date.now();
     vi.spyOn(Date, "now").mockImplementation(() => now);
-    const runtime = startMissionCatalogRuntime(repo, storage);
+    const runtime = startMissionCatalogRuntime(repo);
     const flush = repo.flush.bind(repo);
     let release: (() => void) | undefined;
     vi.spyOn(repo, "flush").mockImplementationOnce(async (documents) => {

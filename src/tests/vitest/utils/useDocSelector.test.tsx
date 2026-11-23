@@ -3,7 +3,7 @@
  * ref-based safety.
  *
  * The emptyDoc overload exists to handle the race between component mount and
- * Automerge handle resolution. Without it, the return type is `TSel | undefined`
+ * history document handle resolution. Without it, the return type is `TSel | undefined`
  * and every consumer must guard against undefined. With emptyDoc the return type
  * narrows to `TSel`, giving consumers a guaranteed initial value.
  *
@@ -15,18 +15,17 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { useDocSelector } from "utils/useDocSelector";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { generateBlankMission } from "store/storeUtils/mission";
 
-// Mock useDocHandle from @automerge/automerge-repo-react-hooks so we can
+// Mock useDocHandle from client/history/historyReact so we can
 // control whether the handle is resolved or not in each test.
 const mockUseDocHandle = vi.fn();
 
-vi.mock("@automerge/automerge-repo-react-hooks", () => ({
+vi.mock("client/history/historyReact", () => ({
   useDocHandle: (...args: unknown[]) => mockUseDocHandle(...args),
 }));
 
-const FAKE_URL = "automerge:fake-url" as AutomergeUrl;
+const FAKE_URL = "automerge:fake-url" as HistoryDocumentId;
 
 /**
  * Minimal functional component harness. Calls useDocSelector with emptyDoc and

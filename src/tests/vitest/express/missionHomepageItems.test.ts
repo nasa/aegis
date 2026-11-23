@@ -6,7 +6,7 @@ import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
 import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
-import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
+import { createMockHistoryRepo } from "../helpers/mockHistoryRepo";
 import { seedMissionCatalog } from "../helpers/seedMissionCatalog";
 
 let testAppUserNoPerms: App_User_db;
@@ -46,7 +46,7 @@ beforeAll(async () => {
     },
   ];
   // Last, create mock automerge repo with test missions partials from above
-  globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
+  globalValues.historyRepo = createMockHistoryRepo(testMissionsPartial);
   await seedMissionCatalog(testAutomergeDocListings);
 
   testAppUserNoPerms = await new AppUserFactory(em).createOne({

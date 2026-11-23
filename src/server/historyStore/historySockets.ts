@@ -1,4 +1,7 @@
+import type { Request } from "express";
 import type { Namespace, Socket } from "socket.io";
+import { DOCUMENT_PATCH } from "historyStore/documentReducer";
+import { getUser } from "packages/getUser";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { ServerHistoryRepo } from "./ServerHistoryRepo";
@@ -24,6 +27,10 @@ export const setupHistoryNamespace = (repo: ServerHistoryRepo): HistoryNamespace
   });
 
   nsp.on("connection", (socket: HistorySocket) => {
+    // Edits are attributed to the authenticated user, not whatever the client claims.
+    const user = getUser(socket.request as Request);
+    const authenticatedUserId = user instanceof Error ? undefined : user.auid;
+
     socket.on("join", async ({ documentId, serverEpochUuid }, ack) => {
       try {
         if (serverEpochUuid !== globalValues.appVersion.serverEpochUuid) {
@@ -66,7 +73,19 @@ export const setupHistoryNamespace = (repo: ServerHistoryRepo): HistoryNamespace
           throw new Error("Invalid actions payload");
         }
         await repo.find(documentId);
-        const result = await repo.store.insert(documentId, actions);
+        // Browsers may only send patches; document init/replace are server-only.
+        const notAllowed = actions
+          .filter((a) => a?.type !== DOCUMENT_PATCH)
+          .map((a) => a?.historyId);
+        const allowed = actions
+          .filter((a) => a?.type === DOCUMENT_PATCH)
+          .map((a) => ({
+            ...a,
+            historyIndex: false as const,
+            userId: authenticatedUserId ?? `unverified:${String(a.userId)}`,
+          }));
+        const result = await repo.store.insert(documentId, allowed);
+        result.rejected.push(...notAllowed);
         if (result.error && !result.confirmed.length) {
           serverLogger.notice({
             logId: "history-socket:sendActions:actionsRejected",

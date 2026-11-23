@@ -11,7 +11,7 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
 import { waitForPageReady, minimizeRexMenu } from "../helpers";
 
-const MISSION_URL = "http://localhost:4000/mission/22";
+const MISSION_URL = "/mission/22";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -293,7 +293,7 @@ test.describe("Mission 22 — Page Navigation", () => {
     await page.locator(".ol-viewport").first().waitFor({ state: "visible", timeout: 15000 });
 
     // Navigate away to the mission listing
-    await page.goto("http://localhost:4000/");
+    await page.goto("/");
     await waitForPageReady(page);
 
     // Navigate back
@@ -421,7 +421,7 @@ test.describe("Mission 22 — Eyeball Menu State", () => {
 // ===========================================================================
 
 test.describe("Mission 22 — Dashboard Integration", () => {
-  const DASHBOARD_URL = "http://localhost:4000/dashboard/22";
+  const DASHBOARD_URL = "/dashboard/22";
 
   test("dashboard page loads without JS errors", async ({ page }) => {
     const errors: string[] = [];

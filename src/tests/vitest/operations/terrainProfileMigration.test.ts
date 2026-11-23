@@ -4,11 +4,10 @@ import { Migration20261022010000 } from "server/automerge/migrations/Migration20
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { generateBlankStation } from "store/storeUtils/station";
-import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
+import { createAutomergeMigrationHandle } from "../helpers/automergeMigrationHandle";
 
 it("removes legacy arrays, preserves geometry and is idempotent", async () => {
-  setMissionAutomergeDocHandle(null);
-  const handle = getMissionDocHandle();
+  const handle = createAutomergeMigrationHandle();
   const traverse = generateBlankTraverse({
     path: [
       { lat: 1, lng: 2 },
@@ -40,8 +39,7 @@ it("removes legacy arrays, preserves geometry and is idempotent", async () => {
 });
 
 it("preserves the historical slope migration until the terrain cleanup runs", async () => {
-  setMissionAutomergeDocHandle(null);
-  const handle = getMissionDocHandle();
+  const handle = createAutomergeMigrationHandle();
   const missingSlopes = generateBlankTraverse();
   const savedSlopes = generateBlankTraverse();
   const legacyTraverses = {

@@ -14,8 +14,8 @@ import { getLayers, upsertLayers } from "http-client/layer";
 import { getSublayers } from "http-client/sublayer";
 import { getAutomergeDocListing } from "http-client/docListing";
 import { useAdminMission } from "components/admin/useAdminMission";
-import { generateAutomergeUrl } from "@automerge/automerge-repo";
-import { useDocument } from "@automerge/automerge-repo-react-hooks";
+import { v4 as uuidv4 } from "uuid";
+import { useDocument } from "client/history/historyReact";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
 
 vi.mock("http-client/login", () => ({
@@ -41,7 +41,7 @@ vi.mock("components/admin/uploadFile", () => ({ default: (): null => null }));
 vi.mock("components/admin/downloadFromBox", () => ({ default: (): null => null }));
 vi.mock("components/admin/layerSublayerEdit", () => ({ default: (): null => null }));
 vi.mock("http-client/docListing", () => ({ getAutomergeDocListing: vi.fn() }));
-vi.mock("@automerge/automerge-repo-react-hooks", () => {
+vi.mock("client/history/historyReact", () => {
   const repo = { find: vi.fn() };
   return { useDocument: vi.fn(() => [undefined]), useRepo: vi.fn(() => repo) };
 });
@@ -283,7 +283,7 @@ describe("admin mission document loading", () => {
     vi.mocked(useDocument).mockReturnValue([undefined, vi.fn()]);
     harness.render(<MissionName />);
     await expect.element(page.getByRole("status")).toMatchTextContent("Loading mission");
-    const url = generateAutomergeUrl();
+    const url = `history:${uuidv4()}`;
     record.resolve({
       status: "success",
       message: "",

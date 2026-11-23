@@ -17,7 +17,6 @@ import { profileInputSignature } from "utils/terrainProfileInputs";
 import { createCustomTestStore } from "tests/vitest/fixtures/store";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
-import type { DocHandle } from "@automerge/automerge-repo";
 
 const profile = { elevationsMeters: [[10, 20]], terrainSlopesDegrees: [[1, 2]] };
 const populatedState = (terrainProfiles: TerrainProfilesState): WholeStoreState => ({

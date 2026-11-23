@@ -6,7 +6,7 @@ import DocListingFactory from "../../fixtures/entityFactories/DocListingFactory"
 import AppUserFactory from "../../fixtures/entityFactories/AppUserFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
-import { createMockAutomergeRepo } from "../../helpers/mockAutomergeRepo";
+import { createMockHistoryRepo } from "../../helpers/mockHistoryRepo";
 
 let testAutomergeDocListings: Doc_Listing_db[];
 let testMissionsPartial: Partial<Mission>[];
@@ -45,7 +45,7 @@ beforeAll(async () => {
     },
   ];
 
-  globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
+  globalValues.historyRepo = createMockHistoryRepo(testMissionsPartial);
 
   // A user with view perm on mission[0] only.
   testAppUser = await new AppUserFactory(em).createOne({

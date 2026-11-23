@@ -1,4 +1,6 @@
-import * as Automerge from "@automerge/automerge";
+import { documentReducer } from "historyStore/documentReducer";
+import type { LocalDocHandle } from "historyStore/LocalDocHandle";
+import { mergeConcurrentChanges } from "../../helpers/concurrentChanges";
 import { createCustomTestStore } from "../../fixtures/store";
 import {
   thunkDocCreateRex,
@@ -414,14 +416,17 @@ describe("Thunk Rex Tests", () => {
         m.rexes[rex.uuid] = rex;
       });
 
-      const remote = Automerge.change(Automerge.clone(getMission()), (m) => {
-        m.rexes[rex.uuid].posEntries[0].notes = "Remote notes";
-      });
+      const before = getMission();
+      const { actions } = getMissionDocHandle() as LocalDocHandle<Mission>;
       const store = createCustomTestStore({});
       await store.dispatch(thunkDocCreateInitialPosEntries({ rexUuid: rex.uuid }));
 
-      const entries = Automerge.merge(Automerge.clone(getMission()), remote).rexes[rex.uuid]
-        .posEntries;
+      // The remote edit is confirmed first; the local change is then applied on top of it.
+      const remote = mergeConcurrentChanges(before, (m) => {
+        m.rexes[rex.uuid].posEntries[0].notes = "Remote notes";
+      });
+      const merged = documentReducer(remote, { ...actions.at(-1), historyId: "", userId: "" });
+      const entries = merged.rexes[rex.uuid].posEntries;
       expect(entries.length).toBe(1 + rex.posSources.length);
       expect(entries[0].uuid).toBe(preExisting.uuid);
       expect(entries[0].notes).toBe("Remote notes");

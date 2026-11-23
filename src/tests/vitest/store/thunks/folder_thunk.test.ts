@@ -1,4 +1,6 @@
-import * as Automerge from "@automerge/automerge";
+import { documentReducer } from "historyStore/documentReducer";
+import type { LocalDocHandle } from "historyStore/LocalDocHandle";
+import { mergeConcurrentChanges } from "../../helpers/concurrentChanges";
 import Cookies from "js-cookie";
 import { getMissionDocHandle, setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { createCustomTestStore } from "tests/vitest/fixtures/store";
@@ -86,19 +88,21 @@ describe("shared folder visibility", () => {
       const cookieWrite = vi.spyOn(Cookies, "set");
       const store = makeStore();
       const localState = store.getState().interface;
-      const before = Automerge.clone(handle.doc());
+      const before = handle.doc();
+      const { actions } = handle as LocalDocHandle<Mission>;
+      const actionCount = actions.length;
 
       await store.dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid })).unwrap();
       expect(handle.doc().folders[folder.uuid].visible).toBe(false);
-      expect(Automerge.getChanges(before, handle.doc())).toHaveLength(1);
+      expect(actions).toHaveLength(actionCount + 1);
       expect(store.getState().interface).toBe(localState);
       expect(cookieWrite).not.toHaveBeenCalled();
 
       // A second user's concurrent rename must survive the visibility change.
-      const peer = Automerge.change(Automerge.clone(before), (m) => {
+      const peer = mergeConcurrentChanges(before, (m) => {
         applyRenameFolder(m, { folderUuid: folder.uuid, name: "Renamed remotely" });
       });
-      const merged = Automerge.merge(peer, handle.doc());
+      const merged = documentReducer(peer, { ...actions.at(-1), historyId: "", userId: "" });
       expect(merged.folders[folder.uuid]).toMatchObject({
         visible: false,
         name: "Renamed remotely",
@@ -115,15 +119,15 @@ describe("shared folder visibility", () => {
     handle.change((m) => {
       m.folders[folder.uuid] = folder;
     });
-    const heads = Automerge.getHeads(handle.doc());
+    const before = handle.doc();
     await makeStore(false)
       .dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }))
       .unwrap();
-    expect(Automerge.getHeads(handle.doc())).toEqual(heads);
+    expect(handle.doc()).toBe(before);
     await makeStore(true, false)
       .dispatch(thunkToggleFolderVisible({ folderUuid: folder.uuid }))
       .unwrap();
-    expect(Automerge.getHeads(handle.doc())).toEqual(heads);
+    expect(handle.doc()).toBe(before);
   });
 
   it("ignores deleted folders and folder types without map visibility controls", async () => {
@@ -133,24 +137,24 @@ describe("shared folder visibility", () => {
         m.folders[type] = generateBlankFolder({ uuid: type, type });
       }
     });
-    const heads = Automerge.getHeads(handle.doc());
+    const before = handle.doc();
     const store = makeStore();
     for (const folderUuid of ["deleted", "eva", "layer", "preset"]) {
       await store.dispatch(thunkToggleFolderVisible({ folderUuid })).unwrap();
     }
-    expect(Automerge.getHeads(handle.doc())).toEqual(heads);
+    expect(handle.doc()).toBe(before);
   });
 
   it("keeps expand/collapse local and drops legacy visibility when saving the folder cookie", async () => {
     const store = makeStore(false);
     const handle = getMissionDocHandle();
-    const heads = Automerge.getHeads(handle.doc());
+    const before = handle.doc();
     Cookies.set(cookieKey, JSON.stringify({ folder: { visible: false, isOpen: true } }));
     await store.dispatch(thunkToggleFolderOpen({ folderUuid: "folder" })).unwrap();
     expect(JSON.parse(Cookies.get(cookieKey)).folder).toEqual({ isOpen: false });
     expect(getFolderInterface(store.getState().interface.foldersInterface, "folder").isOpen).toBe(
       false
     );
-    expect(Automerge.getHeads(handle.doc())).toEqual(heads);
+    expect(handle.doc()).toBe(before);
   });
 });

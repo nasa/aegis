@@ -5,11 +5,10 @@ import { Doc_Listing_db } from "server/database/models/_allModels";
 import DocListingFactory from "../../../fixtures/entityFactories/DocListingFactory";
 import supertest from "supertest";
 import app from "server/express/restApi";
-import { createMockAutomergeRepo } from "../../../helpers/mockAutomergeRepo";
+import { createMockHistoryRepo } from "../../../helpers/mockHistoryRepo";
 import { seedMissionCatalog } from "../../../helpers/seedMissionCatalog";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 
 let testAutomergeDocListings: Doc_Listing_db[];
 let testMissionsPartial: Partial<Mission>[];
@@ -58,7 +57,7 @@ beforeAll(async () => {
     },
   ];
 
-  globalValues.automergeRepo = createMockAutomergeRepo(testMissionsPartial);
+  globalValues.historyRepo = createMockHistoryRepo(testMissionsPartial);
   await seedMissionCatalog(testAutomergeDocListings);
 });
 
@@ -154,8 +153,8 @@ describe("GET REXES BY EVA Endpoint (Maegistro V2)", () => {
 
     test("Does not retrieve rex if it has a maestroEventId", async () => {
       // Mutate one rex directly on the mock automerge doc.
-      const docHandle = await globalValues.automergeRepo.find(
-        testAutomergeDocListings[0].automergeUrl as AutomergeUrl
+      const docHandle = await globalValues.historyRepo.find(
+        testAutomergeDocListings[0].automergeUrl as HistoryDocumentId
       );
       docHandle.change((m: Mission) => {
         m.rexes[testRexes[0].uuid].maestroEventId = "some-event-uuid";

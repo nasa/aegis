@@ -8,7 +8,7 @@ import supertest from "supertest";
 import app from "server/express/restApi";
 import { generateBlankLayer } from "store/storeUtils/layer";
 import { generateBlankPreset } from "store/storeUtils/preset";
-import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
+import { createMockHistoryRepo } from "../helpers/mockHistoryRepo";
 import { getAutomergeMissionHandle } from "server/express/routes/missionAutomerge";
 
 let testAppUser: App_User_db;
@@ -24,7 +24,7 @@ beforeAll(async () => {
     automergeUrl: "automerge:VitestLayerRouteMission",
   });
   missionId = testDocListing.missionId;
-  globalValues.automergeRepo = createMockAutomergeRepo([
+  globalValues.historyRepo = createMockHistoryRepo([
     {
       id: missionId,
       name: "Vitest Layer Route Mission",
@@ -270,7 +270,7 @@ afterAll(async () => {
 
   await globalValues.orm.close();
   globalValues.orm = null;
-  globalValues.automergeRepo = null;
+  globalValues.historyRepo = null;
 
   vi.restoreAllMocks();
 });

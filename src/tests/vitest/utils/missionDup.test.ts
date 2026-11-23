@@ -7,8 +7,7 @@ import AppUserFactory from "../fixtures/entityFactories/AppUserFactory";
 import { getAll } from "../../../server/express/routes/all";
 import isEqual from "lodash/isEqual";
 import { deleteAutomergeMissions } from "server/express/routes/missionAutomerge";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { createMockAutomergeRepo } from "../helpers/mockAutomergeRepo";
+import { createMockHistoryRepo } from "../helpers/mockHistoryRepo";
 import DocListingFactory from "../fixtures/entityFactories/DocListingFactory";
 import { seedDatabaseAndGenerateAutomergeMission } from "../fixtures/database";
 import type * as FileModule from "server/file/file";
@@ -85,8 +84,8 @@ const getDuplicatedMission = async (): Promise<Mission> => {
   const em = globalValues.orm.em.fork();
   const docListing = await em.findOne(Doc_Listing_db, { missionId: duplicatedMissionId });
   if (!docListing) throw new Error("Duplicated mission doc listing not found");
-  const handle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-    docListing.automergeUrl as AutomergeUrl
+  const handle: DocHandle<Mission> = await globalValues.historyRepo.find(
+    docListing.automergeUrl as HistoryDocumentId
   );
   await handle.whenReady();
   _duplicatedMissionDoc = handle.doc();
@@ -105,7 +104,7 @@ describe("Mission Duplication Tests", () => {
     const em = globalValues.orm.em.fork();
 
     // Set up the mock automerge repo with our test mission shape
-    globalValues.automergeRepo = createMockAutomergeRepo([{ name: "Vitest Dup Test Mission" }]);
+    globalValues.historyRepo = createMockHistoryRepo([{ name: "Vitest Dup Test Mission" }]);
 
     // Create a doc listing entry in the real DB using the mock's predictable URL
     const docListing = await new DocListingFactory(em).createOne({
@@ -114,8 +113,8 @@ describe("Mission Duplication Tests", () => {
     const missionId = docListing.missionId;
 
     // Update the mock handle's doc to have the correct DB-assigned mission ID
-    const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-      MOCK_AUTOMERGE_URL as AutomergeUrl
+    const missionDocHandle: DocHandle<Mission> = await globalValues.historyRepo.find(
+      MOCK_AUTOMERGE_URL as HistoryDocumentId
     );
     await missionDocHandle.whenReady();
     missionDocHandle.change((doc: Mission) => {
@@ -173,8 +172,8 @@ describe("Mission Duplication Tests", () => {
       });
       expect(duplicatedAutomergeRecord).toBeDefined();
 
-      const duplicatedDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-        duplicatedAutomergeRecord.automergeUrl as AutomergeUrl
+      const duplicatedDocHandle: DocHandle<Mission> = await globalValues.historyRepo.find(
+        duplicatedAutomergeRecord.automergeUrl as HistoryDocumentId
       );
       await duplicatedDocHandle.whenReady();
       const duplicatedMission = duplicatedDocHandle.doc();
@@ -570,8 +569,8 @@ describe("Mission Duplication Tests", () => {
 
       const docListing = await em.findOne(Doc_Listing_db, { missionId: duplicatedMissionId });
       expect(docListing).toBeDefined();
-      const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-        docListing.automergeUrl as AutomergeUrl
+      const missionDocHandle: DocHandle<Mission> = await globalValues.historyRepo.find(
+        docListing.automergeUrl as HistoryDocumentId
       );
       await missionDocHandle.whenReady();
       const duplicatedMission = missionDocHandle.doc();

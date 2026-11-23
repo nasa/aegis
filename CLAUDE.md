@@ -89,11 +89,11 @@ Log through `clientLogger` (`utils/logging/clientLogger`) in browser code and `s
 - **Format:** `<category>:<function or handler>:<verbose camelCase description of the event>`, e.g. `socket-maestro-v2:sendMDAU:rejectedPayloadFailedSchemaValidation`. The first segment is the area of code (`server`, `automerge-migration`, `thunk-eva`, `socket-dust-v1`, ...), so you can still filter by area with a prefix query.
 - **`serverLogger.apiRoute()`** requires a `logId` in the form `api-route:<routeName>:<HTTP METHOD>:<description>`, e.g. `api-route:appUsers:GET:unauthorizedRequest`.
 - **Maestro v2 socket connection logs:** the `/maestro/v2` namespace logs every connection (`socket-maestro-v2:connection:maestroClientConnectedOrReconnected`, with `connectionStateRecovered` = Socket.IO's `socket.recovered`) and every disconnect, as `info` for client- or server-requested reasons and `warning` for lost connections (ping timeout, transport close/error). The disconnect log includes the Socket.IO `reason`, `description`, Maestro name, and joined mission ids. Connection state recovery is not enabled on the Socket.IO server, so `socket.recovered` is currently always `false`, and a reconnecting client arrives as a new socket id.
-- **Main-thread stall diagnostics** (`startMainThreadStallDiagnostics` in `src/server/express/server.ts`): Socket.IO (5 s ping interval / 5 s timeout) and the Automerge websocket keepalive (5 s) drop every client when the main thread blocks for roughly 5–10 s. To find what blocked it:
+- **Main-thread stall diagnostics** (`startMainThreadStallDiagnostics` in `src/server/express/server.ts`): Socket.IO (5 s ping interval / 5 s timeout), which also carries history store sync, drops every client when the main thread blocks for roughly 5–10 s. To find what blocked it:
   - `server:mainThreadStallMonitor:mainThreadBlockedLongEnoughToRiskDroppingSockets` (warning): a 250 ms timer fired more than 1 s late. Includes the stall length, the slowest Automerge operations and GC pauses in the 5 s before it, peer and socket counts, and memory.
-  - `server:automergeDocMetrics:slowAutomergeOperationOnMainThread` (notice, ≥ 250 ms) and `...:automergeOperationBlockedMainThreadForOverOneSecond` (warning, ≥ 1 s): one `repo.on("doc-metrics")` event (`doc-loaded`, `doc-saved`, `doc-compacted`, `generate-sync-message`, `receive-sync-message`) with mission id and peer id. At most 30 are logged per minute; the per-minute summary reports how many were suppressed (`slowAutomergeOperationLogsSuppressed`).
+  - `server:automergeDocMetrics:slowAutomergeOperationOnMainThread` (notice, ≥ 250 ms) and `...:automergeOperationBlockedMainThreadForOverOneSecond` (warning, ≥ 1 s): one `repo.on("doc-metrics")` event. Since the history store swap, the only event is `doc-loaded` (a history document load: snapshot read plus tail replay); the log ids keep their Automerge names. At most 30 are logged per minute; the per-minute summary reports how many were suppressed (`slowAutomergeOperationLogsSuppressed`).
   - `server:garbageCollectionObserver:longGarbageCollectionPauseOnMainThread` (warning, ≥ 500 ms).
-  - `server:automergeDocMetrics:automergeUsedSignificantMainThreadTimeInOneMinute` (notice): Automerge operations used ≥ 2 s of main-thread time in a minute, with per-type counts, totals, and maximums.
+  - `server:automergeDocMetrics:automergeUsedSignificantMainThreadTimeInOneMinute` (notice): document loads used ≥ 2 s in a minute, with per-type counts, totals, and maximums.
 
 ## Map / OpenLayers
 
@@ -115,22 +115,24 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 | `src/components/interface/map/` | OpenLayers map implementation (active map layer)             |
 | `src/pages/`                    | Top-level page components routed by React Router             |
 | `src/store/`                    | Redux Toolkit slices, thunks, selectors, and store utilities |
-| `src/client/`                   | Automerge doc handle access and the gated network adapter    |
+| `src/client/`                   | Mission doc handle access and the history store client repo  |
 | `src/operations/`               | Automerge mutation helpers (`apply*`, `stage*`, helpers)     |
 | `src/http-client/`              | Typed `fetch` wrappers for every REST endpoint               |
 | `src/utils/`                    | Shared helpers: logging, formatting, permissions, socket ops |
 | `src/packages/`                 | Lightweight shared utilities (fetchFns, user helpers)        |
 | `src/server/express/`           | Express app, REST routes, Socket.io setup                    |
 | `src/server/database/`          | MikroORM config, entity models, migrations, seeds            |
-| `src/server/automerge/`         | PostgreSQL storage adapter for Automerge documents           |
+| `src/historyStore/`             | History store core shared by client and server               |
+| `src/server/historyStore/`      | Server history store, persistence, `/history/v1` sockets     |
+| `src/server/automerge/`         | Legacy Automerge migrations and import tooling (pre-cutover) |
 
 ### Frontend
 
 - **React 18** SPA bootstrapped by Vite.
 - **Redux Toolkit** manages UI state only. Slices live in `src/store/` (no `slices/` subdirectory), async operations in `src/store/thunk/`, memoized selectors in `src/store/selectors.ts`. Entity data (missions, EVAs, stations, POIs, etc.) is **not** stored in Redux — it lives exclusively in Automerge documents. Redux slices track only UI state: selected items, expanded panels, navigation state, etc.
 - **OpenLayers** drives the map canvas. Map-related components live under `src/components/interface/map/` (the three entry points are `AegisMapEditor.tsx`, `AegisMapDashboard.tsx`, and `AegisMapMinimap.tsx`). See `src/components/interface/map/CLAUDE.md` for full architecture details.
-- **Automerge** (v3 + automerge-repo) is the primary data layer for all collaborative entities. The repo is initialized in `src/index.tsx` with a WebSocket adapter pointed at `/api/automergeSocket/`. All entity mutations (mission, EVA, station, POI, traverse, action, rex) go through Automerge; mutation helpers are in `src/operations/`. Selectors in `src/store/selectors.ts` read directly from Automerge doc state (e.g. `selectAsPlannedStations(mission: Mission)`) rather than from Redux.
-- **Automerge mutation architecture** is organised into three layers to guarantee that each logical operation produces exactly one `.change()` patch (no half-built state visible to peers):
+- **History store** (a port of Maestro's history store) is the primary data layer for all collaborative entities; it replaced Automerge. Each mission is one history document. `DocHandle.change(fn)` runs `fn` on an Immer draft and submits the resulting patches as one action, which the server sequences, persists in `mission_history_db`, and broadcasts to every viewer over the `/history/v1` Socket.IO namespace. The client repo (`ClientHistoryRepo`) is created in `src/index.tsx`; React hooks (`useDocHandle`, `useDocument`, `useRepo`) are in `src/client/history/historyReact.ts`. Arrays merge last-writer-wins as a whole; edits to an entity another user deleted are rejected. Read `docs/history-store.md` before changing sync or persistence.
+- **Mutation architecture** is organised into three layers to guarantee that each logical operation produces exactly one `.change()` patch (no half-built state visible to peers):
   - `apply*` (`src/operations/apply/`): inner draft mutators that receive `(m: Mission, args)` and mutate the doc. Pure sync; never call `.change()` or import `missionDocHandle`. _(ESLint-enforced.)_
   - `stage*` (`src/operations/stage/`): plan builders that receive a `Mission` snapshot and return a typed `*StageData` object (in `src/typings/thunkStageData.d.ts`) with all new uuids pre-allocated. Used for cascading multi-entity operations and any reusable plan-building logic shared across thunks. Two tiers exist:
     - **Sync stages** (default, most common): pure sync, no I/O. Examples: `stageDuplicateEva`, `stageDeleteRex`.
@@ -139,7 +141,7 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
   - `thunk*` (`src/store/thunk/*`): async orchestrators that may pre-fetch elevation/REST, then run a single `.change()` per logical operation.
   - **`withMissionChange`** (`src/client/automergeDocHandles.ts`): the only sanctioned mutation entry-point for components. Wraps the null-guard and `.change()` call so callers never have to handle either: `withMissionChange((m) => applyFoo(m, args))`. Composing multiple `apply*` inside one call is atomic.
   - See `src/operations/README.md` for the full convention with examples.
-- **Socket.io** client syncs non-Automerge real-time events (connection status, heartbeats, version checks).
+- **Socket.io** client syncs the history store (`/history/v1`) and other real-time events (connection status, heartbeats, version checks).
 - Vite path aliases map `"store"`, `"components"`, `"utils"`, etc. directly to `src/` subdirectories — use these aliases in imports.
 - **Form fields** — use the exported components in `src/components/interface/form/globalFields.tsx` (`InLineEditInput`, `TextArea`, `Checkbox`, `Dropdown`, ...) or the Automerge variants in `globalFieldsAutomerge.tsx`. The final-form `FFInput` / `FFTextArea` are internal to `globalFields.tsx` and not exported. Validate with the `validators` from `formValidators.ts`; the components apply the matching input filters (for example, digits only for `mustBeNumber`) and the standard error border and warning-icon tooltip. `validators.required` treats whitespace-only text as empty. Do not add per-feature validators that repeat these checks.
 
@@ -151,7 +153,7 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
 
 ### Backend
 
-- **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, grids, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse/folder/preset/STM is **not** handled via REST — those operations go through Automerge. The `layer` and `sublayer` routes are kept for the GIS pipeline (`register.py`) and the admin layers page; they read and write the mission Automerge doc on the server.
+- **Express 5** REST API on port 4001. Routes are organized by resource under `src/server/express/routes/`. REST routes cover infrastructure and admin concerns (auth, users, doc listings, elevation, grids, mission management utilities). Entity create/read/update/delete for action/eva/poi/rex/station/traverse/folder/preset/STM is **not** handled via REST — those operations go through Automerge. The `layer` and `sublayer` routes are kept for the GIS pipeline (`register.py`) and the admin layers page; they read and write the mission doc on the server.
 - **Elevation sampling** runs natively in the API through `src/server/raster/` and
   `src/server/elevation/`. It reads each mission's configured GeoTIFF directly from `STATIC_DIR`;
   there is no separate GDAL/Python runtime service. A configured DEM missing from disk (`ENOENT`,
@@ -180,17 +182,17 @@ The following type declaration files define the contract between AEGIS and the e
 - `src/server/maestro/v2/types/aegisSlice.d.ts` — `AegisSlice` namespace (outbound payload shape)
 - `src/server/maestro/v2/types/mdau.d.ts` — `MDAU` namespace (inbound payload shape)
 
-- **Automerge repo** network adapter mounts at `/api/automergeSocket/` via WebSocket upgrade, using a custom `PostgresStorageAdapter` to persist documents to PostgreSQL.
+- **History store** — `ServerHistoryStore` (`src/server/historyStore/`) is the single source of truth for mission documents. `globalValues.historyRepo` (`ServerHistoryRepo`) gives server code DocHandle-compatible handles whose `change()` is applied at once and persisted in the background; `await repo.flush()` before responding when a route must report a persisted edit. `globalValues.automergeRepo` exists only for the legacy Automerge migration script.
 - **Authentication** is delegated to `@emss/oauth2-proxy-backend`; secrets and environment config come from `env.secret.ts` (gitignored) and dotenv.
 
-### Automerge Socket Epoch Gate (`serverEpochUuid`)
+### History Socket Epoch Gate (`serverEpochUuid`)
 
-A browser tab left open across a server restart holds in-memory Automerge state authored against the pre-restart document. Reconnecting would merge those stale changes back in — most damaging right after a schema migration. The gate prevents that by refusing the reconnect and forcing a full page reload, which discards all client Automerge state (the client `Repo` has no storage adapter, so nothing survives a reload).
+A browser tab left open across a server restart may hold pending edits authored against the pre-restart documents, which a schema migration may have changed. The gate refuses to rejoin and forces a full page reload.
 
-- **`serverEpochUuid`** identifies one server lifetime. It is a uuid generated at boot in `src/server/express/server.ts` and carried on `AppVersion` alongside `version`/`gitCommit`, so `GET /api/v1/version` and the Socket.IO `version` event both serve it. Any restart of the apiv1 process — including a normal deploy, where a bare `compose up -d` recreates apiv1 — produces a new value.
-- **Server gate (authoritative)** — the HTTP `upgrade` handler in `src/server/express/server.ts` compares the `?serverEpochUuid=` query parameter against the current value and answers a raw `426 Upgrade Required` on any mismatch or omission. It must `return` silently for every non-Automerge path, since Socket.IO shares the same `upgrade` listener.
-- **Client adapter** — `VersionGatedNetworkAdapter` (`src/client/automerge-network-adapter.ts`) wraps the vendor WebSocket adapter, appends the epoch to the URL, and polls `/api/v1/version` every 5s while disconnected. A matching epoch reconnects; a differing one blocks permanently and redirects to `/versionCheck`. A failed fetch (server down mid-deploy) keeps polling without redirecting. It never emits `close` (that would permanently remove it from the `NetworkSubsystem`) and force-readies after ~1s so a blocked gate cannot hang `whenReady()` callers.
-- **Read-only UI** — `connection.automergeConnectionStatus` feeds `isConnected` in `src/store/selectors.ts`, so losing only the Automerge socket now also disables the Edit toggle and form Save buttons.
+- **`serverEpochUuid`** identifies one server lifetime. It is a uuid generated at boot in `src/server/express/server.ts` and carried on `AppVersion` alongside `version`/`gitCommit`, so `GET /api/v1/version` and the Socket.IO `version` event both serve it. Any restart of the apiv1 process produces a new value.
+- **Server gate** — the `/history/v1` `join` handler (`src/server/historyStore/historySockets.ts`) answers `{ status: "error", code: "epochMismatch" }` when the client's epoch differs.
+- **Client** — `ClientHistoryRepo` (`src/client/history/ClientHistoryRepo.ts`) joins every open document on each socket connect; on `epochMismatch` it disconnects and redirects to `/versionCheck`. A reconnect to the same server lifetime re-joins, takes the latest state, and re-sends pending actions.
+- **Read-only UI** — `connection.automergeConnectionStatus` (name kept from Automerge) tracks the history socket and feeds `isConnected` in `src/store/selectors.ts`, so losing it disables the Edit toggle and form Save buttons.
 - Note for local development: nodemon restarts the API process, so saving a server file changes the epoch and forces open dev tabs to reload.
 
 ### Notification Banners
@@ -205,7 +207,7 @@ Change the lander location only through `thunkDocUpdateLanderLocation` (`src/sto
 
 ```
 Browser ──HTTP──▶ Express REST routes ──▶ MikroORM ──▶ PostgreSQL
-       ──WS──▶   Automerge repo adapter ──▶ PostgresStorageAdapter ──▶ PostgreSQL
+       ──WS──▶   /history/v1 (Socket.IO) ──▶ ServerHistoryStore ──▶ mission_history_db
        ──WS──▶   Socket.io handlers
 ```
 
@@ -213,9 +215,9 @@ REST responses are wrapped as `WrappedResponse<T>` with a `status` field (`"succ
 
 ### Domain Concepts
 
-The app organizes around these core entities. Since the Automerge entity migration, the storage layer differs per entity — see the table below:
+The app organizes around these core entities. Since the entity migration into the mission document, the storage layer differs per entity — see the table below:
 
-| Entity                      | Automerge helpers (`src/operations/apply/`)          | Redux slice (UI state only) | DB model   | REST routes     |
+| Entity                      | Mutation helpers (`src/operations/apply/`)           | Redux slice (UI state only) | DB model   | REST routes     |
 | --------------------------- | ---------------------------------------------------- | --------------------------- | ---------- | --------------- |
 | **Mission**                 | `apply-mission.ts` + sub-files                       | `mission.ts`                | ✅         | ✅              |
 | **EVA**                     | `apply-eva.ts`                                       | `eva.ts`                    | ❌ dropped | ❌ removed      |
@@ -230,18 +232,18 @@ The app organizes around these core entities. Since the Automerge entity migrati
 | **Folder**                  | `apply-mission-folder.ts`                            | `interface.ts`              | ❌ dropped | ❌ removed      |
 | **Asset**                   | `apply-asset.ts`                                     | `asset.ts`                  | ❌ none    | ❌ none         |
 
-- **Mission** — top-level planning container; Automerge document root. Per-mission doc holds all collaborative entity data.
-- **EVA** — Extra-Vehicular Activity; lives inside the mission Automerge doc.
-- **POI** — Points of Interest on the lunar surface; lives inside the mission Automerge doc.
-- **Station** — named surface locations; lives inside the mission Automerge doc.
-- **Traverse** — planned paths between stations; lives inside the mission Automerge doc.
-- **Action / ActionTemplate** — reusable task definitions; live inside the mission Automerge doc.
-- **Rex** — Resource/exploration data; lives inside the mission Automerge doc.
-- **STM** — Science Traceability Matrix (`stmLevel1s` → `stmLevel2s` → `stmLevel3s`, plus `stmRules`); lives inside the mission Automerge doc. `action.stmPriorities` and `stmRule.stmUuid` reference level 3 uuids.
-- **Layers / Sublayers** — GIS map layers (`layers`, `sublayers`); live inside the mission Automerge doc. Adding, moving, or deleting a layer or sublayer updates every preset's `layerOrder` and `mapSublayerControls` in the same change.
-- **Preset** — saved map display configurations (`presets`); live inside the mission Automerge doc and are edited with the global edit toggle like stations.
+- **Mission** — top-level planning container; history document root. Per-mission doc holds all collaborative entity data.
+- **EVA** — Extra-Vehicular Activity; lives inside the mission doc.
+- **POI** — Points of Interest on the lunar surface; lives inside the mission doc.
+- **Station** — named surface locations; lives inside the mission doc.
+- **Traverse** — planned paths between stations; lives inside the mission doc.
+- **Action / ActionTemplate** — reusable task definitions; live inside the mission doc.
+- **Rex** — Resource/exploration data; lives inside the mission doc.
+- **STM** — Science Traceability Matrix (`stmLevel1s` → `stmLevel2s` → `stmLevel3s`, plus `stmRules`); lives inside the mission doc. `action.stmPriorities` and `stmRule.stmUuid` reference level 3 uuids.
+- **Layers / Sublayers** — GIS map layers (`layers`, `sublayers`); live inside the mission doc. Adding, moving, or deleting a layer or sublayer updates every preset's `layerOrder` and `mapSublayerControls` in the same change.
+- **Preset** — saved map display configurations (`presets`); live inside the mission doc and are edited with the global edit toggle like stations.
 - **Asset** — tracked point assets (`assets`); mission data, not EVA/REX data, so one asset appears in every EVA and REX. Edited from the Assets tab of the floating map widget with mission edit permission and the global Edit toggle, through a Redux edit session (`state.asset.inEdit`, covering both Add and Edit) written in one change on Save. `location` and `placement` (the running-REX/PET record from when the location was set) are both null until placed. Grouped by `type: "asset"` folders whose `visible` flag, like each asset's own `visible`, is shared on every viewer's maps.
-- **Folder** — left-panel folders for POIs, stations, EVAs, and presets (`folders`); live inside the mission Automerge doc. Deleting an entity removes it from every folder in the same change. Station and POI folder map visibility (`folder.visible`) is shared through the doc; folder open/closed state is UI-only (`interface.foldersInterface`, cookie-backed).
+- **Folder** — left-panel folders for POIs, stations, EVAs, and presets (`folders`); live inside the mission doc. Deleting an entity removes it from every folder in the same change. Station and POI folder map visibility (`folder.visible`) is shared through the doc; folder open/closed state is UI-only (`interface.foldersInterface`, cookie-backed).
 
 > **Note**: "DB model (legacy)" means a MikroORM model still exists and is used by `src/server/automerge/migration.ts` to seed Automerge docs from existing PostgreSQL data, but is no longer written at runtime.
 
@@ -278,7 +280,7 @@ Deleting cascades along the same relationship: deleting an as-planned EVA also d
 
 ## Technology Stack
 
-- **Frontend**: React 18, Redux Toolkit, Vite, TypeScript, OpenLayers, Automerge 3, Socket.io-client, Axios, React Router 7, React Final Form, Paper.js, Dayjs
-- **Backend**: Express 5, Node 26 LTS, Socket.io, Automerge-Repo, MikroORM 6, PostgreSQL 17
+- **Frontend**: React 18, Redux Toolkit, Vite, TypeScript, OpenLayers, Immer (history store patches), Socket.io-client, Axios, React Router 7, React Final Form, Paper.js, Dayjs
+- **Backend**: Express 5, Node 26 LTS, Socket.io, history store (ported from Maestro), MikroORM 6, PostgreSQL 17
 - **Testing**: Vitest (unit), Vitest browser mode (component/DOM), Playwright (E2E)
 - **Linting**: ESLint, StyleLint, Prettier

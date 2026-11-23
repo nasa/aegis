@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { page } from "vitest/browser";
-import { generateAutomergeUrl } from "@automerge/automerge-repo";
-import { useDocument } from "@automerge/automerge-repo-react-hooks";
+import { v4 as uuidv4 } from "uuid";
+import { useDocument } from "client/history/historyReact";
 import MissionRulesImportExport from "components/admin/missionRulesImportExport";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankStmLvl3, generateBlankStmRule } from "store/storeUtils/stm";
 import { exportStmRules } from "utils/stmRulesImportExport";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
 
-vi.mock("@automerge/automerge-repo-react-hooks", () => ({ useDocument: vi.fn() }));
+vi.mock("client/history/historyReact", () => ({ useDocument: vi.fn() }));
 
-const url = generateAutomergeUrl();
+const url = `history:${uuidv4()}`;
 let harness: ReactHarness;
 let mission: Mission;
 let changeMission: Mock<(update: (doc: Mission) => void) => void>;

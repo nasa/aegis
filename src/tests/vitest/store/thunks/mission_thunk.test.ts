@@ -1,4 +1,3 @@
-import * as Automerge from "@automerge/automerge";
 import type { StoreType } from "store";
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { createTestStoreWithAutomergeMission } from "tests/vitest/fixtures/store";
@@ -61,9 +60,6 @@ describe("Thunk Mission Tests", () => {
         for (const s of stations) {
           // Lander stations move with the lander and never get a walkback.
           if (s.location && !s.isLanderXgress) {
-            // Spread proxy refs into plain objects — assigning a live Automerge
-            // proxy directly into an array inside .change() throws
-            // "cannot create a reference to an existing document object".
             s.walkbackPath = [{ ...s.location }, { ...m.landerLocation }];
           }
         }
@@ -161,11 +157,11 @@ describe("Thunk Mission Tests", () => {
 
     it("skips the update when the location is unchanged", async () => {
       const unchangedLocation = { ...getMission().landerLocation };
-      const headsBefore = Automerge.getHeads(getMission());
+      const before = getMission();
 
       await store.dispatch(thunkDocUpdateLanderLocation({ location: unchangedLocation }));
 
-      expect(Automerge.getHeads(getMission())).toEqual(headsBefore);
+      expect(getMission()).toBe(before);
       expect(mockThunkFetchPointElevationFactory).not.toHaveBeenCalled();
     });
 

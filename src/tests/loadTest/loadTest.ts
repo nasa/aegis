@@ -12,9 +12,7 @@ import reduxStore from "store/index";
 import { workerData, parentPort } from "worker_threads";
 import { createHash } from "crypto";
 import { setAppUser } from "store/user";
-import { BrowserWebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
-import type { NetworkAdapterInterface } from "@automerge/automerge-repo";
-import { Repo } from "@automerge/automerge-repo";
+import { ClientHistoryRepo } from "client/history/ClientHistoryRepo";
 import { setClientAppVersion } from "store/connection";
 
 /**
@@ -84,26 +82,19 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
     });
     const serverAppVersion: AppVersion = await versionRes.json();
 
-    // connect to the automerge repo
+    // Join the mission document over the /history/v1 Socket.IO namespace
     const repoClientID = `loadTestClient-${Math.random().toString(36).slice(2, 5)}`;
-    const automergeRepo = new Repo({
-      network: [
-        new BrowserWebSocketClientAdapter(
-          `${serverURL}/api/automergeSocket/?serverEpochUuid=${encodeURIComponent(
-            serverAppVersion.serverEpochUuid
-          )}`
-        ) as unknown as NetworkAdapterInterface, // connect back to the server via sockets
-      ],
-      // storage: new IndexedDBStorageAdapter(),
-      /** @ts-expect-error @type {(import("@automerge/automerge-repo").PeerId)}  */
-      peerId: repoClientID,
+    const historyRepo = new ClientHistoryRepo({
+      serverURL,
+      serverEpochUuid: serverAppVersion.serverEpochUuid,
+      userId: repoClientID,
     });
 
     // initialize and populate the store.
     const wholeStoreState = await populateStore({
       missionId: TEST_MISSION_ID,
       runAudit: false,
-      automergeRepo,
+      automergeRepo: historyRepo,
       loadTestOptions: { serverURL, cookies: formattedCookieStr },
     });
     dispatch(setAllSliceStores(wholeStoreState));
@@ -147,6 +138,7 @@ new Promise(async (resolve: (value: { finalState: RootState }) => void) => {
       keepAlive = false;
       detachSocketListeners();
       socket.disconnect();
+      historyRepo.close();
       const finalStoreState: RootState = reduxStore.getState();
       resolve({ finalState: finalStoreState });
     }, duration);

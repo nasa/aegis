@@ -12,7 +12,7 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
 import { waitForPageReady, minimizeRexMenu } from "../helpers";
 
-const MISSION_URL = "http://localhost:4000/mission/22";
+const MISSION_URL = "/mission/22";
 
 // ---------------------------------------------------------------------------
 // Helpers

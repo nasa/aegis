@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { HistoryDocHandle } from "historyStore/HistoryDocHandle";
 import { documentReducer } from "historyStore/documentReducer";
-import { anyActionToPending, deepFreeze, reduceManyActions } from "historyStore/util";
+import { anyActionToPending, deepFreeze } from "historyStore/util";
 import { serverLogger } from "utils/logging/serverLogger";
 import type { ServerHistoryStore } from "./ServerHistoryStore";
 
@@ -35,8 +35,13 @@ export class ServerDocHandle<T> extends HistoryDocHandle<T> {
 
   /** Called by the repo when the document is loaded or created. */
   setReady(state: T): void {
-    this.confirmedState = state;
+    this.confirmedState ??= state;
     this.markReady();
+  }
+
+  /** Initial state of a document still being created. */
+  setState(state: T): void {
+    this.confirmedState = state;
   }
 
   setUnavailable(error: Error): void {
@@ -55,8 +60,8 @@ export class ServerDocHandle<T> extends HistoryDocHandle<T> {
         userId: this.userId,
       })
     );
-    this.pending.push({ action: pendingAction, next });
     this.localState = deepFreeze(next);
+    this.pending.push({ action: pendingAction, next: this.localState });
     this.emitChange(this.localState, action.payload.patches);
     this.chain = this.chain.then(async () => {
       const result = await this.store.insert(this.documentId, [pendingAction]);
@@ -75,24 +80,40 @@ export class ServerDocHandle<T> extends HistoryDocHandle<T> {
 
   /** Called by the repo for every confirmed batch on this document, from any source. */
   receiveConfirmed(confirmed: ConfirmedHistoryAction[], confirmedState: T): void {
-    this.confirmedState = confirmedState;
     const ids = confirmed.map((a) => a.historyId);
-    this.dropPending(ids, confirmed.flatMap((a) => a.payload?.patches ?? []));
+    const ownInOrder =
+      ids.length > 0 &&
+      ids.length <= this.pending.length &&
+      ids.every((id, i) => this.pending[i].action.historyId === id);
+    if (ownInOrder) {
+      // Our own edits came back unchanged: keep the state object callers already have.
+      this.confirmedState = this.pending[ids.length - 1].next;
+      this.pending = this.pending.slice(ids.length);
+      if (!this.pending.length) this.localState = undefined;
+      return;
+    }
+    this.confirmedState = confirmedState;
+    this.dropPending(
+      ids,
+      confirmed.flatMap((a) => a.payload?.patches ?? [])
+    );
   }
 
+  /** Remove the given pending edits and replay the rest onto the confirmed state. */
   private dropPending(historyIds: string[], patches: HistoryPatch[] = []): void {
     const ids = new Set(historyIds);
-    this.pending = this.pending.filter(({ action }) => !ids.has(action.historyId));
-    if (!this.pending.length) {
-      this.localState = undefined;
-    } else {
-      const result = reduceManyActions(
-        this.confirmedState,
-        documentReducer as (s: T, a: BaseHistoryAction) => T,
-        this.pending.map(({ action }) => action)
-      );
-      this.localState = deepFreeze(result.newState);
+    const remaining = this.pending.filter(({ action }) => !ids.has(action.historyId));
+    this.pending = [];
+    let state = this.confirmedState;
+    for (const entry of remaining) {
+      try {
+        state = deepFreeze(documentReducer(state, entry.action));
+        this.pending.push({ action: entry.action, next: state });
+      } catch {
+        // No longer applies on top of the new state; the server rejects it too.
+      }
     }
+    this.localState = this.pending.length ? state : undefined;
     this.emitChange(this.doc(), patches);
   }
 
@@ -171,28 +192,22 @@ export class ServerHistoryRepo {
       handle.setReady(this.store.getConfirmedState(documentId) as T);
       for (const fn of this.listeners["doc-metrics"])
         fn({ type: "doc-loaded", documentId, durationMillis: performance.now() - started });
-      for (const fn of this.listeners.document) fn({ handle: handle as ServerDocHandle<unknown> });
+      for (const fn of this.listeners.document) fn({ handle });
     }
     await handle.whenReady();
     return handle;
   }
 
   /**
-   * Create a new document. The handle is ready immediately; edits made before the initial
-   * state is persisted are queued behind it. `flush()` waits for both.
+   * Create a new document. The handle becomes ready once the initial state is persisted;
+   * `doc()` returns the initial state immediately.
    */
-  create<T>(initialState: T, documentId: HistoryDocumentId = `history:${uuidv4()}`): ServerDocHandle<T> {
+  create<T>(
+    initialState: T,
+    documentId: HistoryDocumentId = `history:${uuidv4()}`
+  ): ServerDocHandle<T> {
     const state = deepFreeze(JSON.parse(JSON.stringify(initialState)) as T);
     const started = this.store.startEvent(documentId, state, SERVER_USER_ID);
-    started.catch((err) =>
-      serverLogger.error(
-        {
-          logId: "history-repo:create:failedToPersistNewDocument",
-          logValue: `Failed to create history document ${documentId}`,
-        },
-        err instanceof Error ? err : new Error(String(err))
-      )
-    );
     const handle = new ServerDocHandle<T>(
       documentId,
       this.store as ServerHistoryStore<T>,
@@ -200,8 +215,25 @@ export class ServerHistoryRepo {
       started
     );
     this.handles[documentId] = handle;
-    handle.setReady(state);
-    for (const fn of this.listeners.document) fn({ handle: handle as ServerDocHandle<unknown> });
+    handle.setState(state);
+    started.then(
+      () => {
+        handle.setReady(state);
+        for (const fn of this.listeners.document) fn({ handle });
+      },
+      (err) => {
+        const error = err instanceof Error ? err : new Error(String(err));
+        serverLogger.error(
+          {
+            logId: "history-repo:create:failedToPersistNewDocument",
+            logValue: `Failed to create history document ${documentId}`,
+          },
+          error
+        );
+        delete this.handles[documentId];
+        handle.setUnavailable(error);
+      }
+    );
     return handle;
   }
 

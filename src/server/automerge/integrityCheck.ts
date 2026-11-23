@@ -1,8 +1,8 @@
 /**
  * integrityCheck.ts
  *
- * Standalone FK integrity check for Automerge Mission documents.
- * Connects to the Automerge Postgres storage, reads every mission doc,
+ * Standalone FK integrity check for history store Mission documents.
+ * Loads every listed mission doc from the history store (mission_history_db),
  * checks all intra-doc UUID references, writes a JSON report to
  * .local/integrity-report-<timestamp>.json, and exits.
  * Does NOT run migrations or modify any document.
@@ -15,13 +15,9 @@ import dotenv from "dotenv";
 dotenv.config({ override: true, quiet: true });
 import fs from "fs";
 import path from "node:path";
-import { isValidAutomergeUrl, Repo } from "@automerge/automerge-repo/slim";
-import type { DocHandle, StorageAdapterInterface } from "@automerge/automerge-repo/slim";
-import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
-import pg from "pg";
-import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
-import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { serverLogger } from "utils/logging/serverLogger";
+import { isValidDocumentId } from "historyStore/util";
+import { createToolHistoryRepo } from "server/historyStore/tools/createToolHistoryRepo";
 
 import { getAutomergeDocListing } from "server/express/routes/docListing";
 import { MikroORM } from "@mikro-orm/postgresql";
@@ -34,21 +30,7 @@ import {
 export type { IntegrityFinding };
 export { checkMissionIntegrity };
 
-// Required on the server: Vite handles WASM loading on the client.
-initializeBase64Wasm(automergeWasmBase64);
-
-const dbPool: pg.Pool = new pg.Pool({
-  user: "postgres",
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASS,
-  port: 5432,
-});
-const storageAdapter: StorageAdapterInterface = new PostgresStorageAdapter(
-  "automerge_native_db",
-  dbPool
-);
-const automergeRepo = new Repo({ storage: storageAdapter });
+const { repo: historyRepo } = createToolHistoryRepo();
 
 const getORM = async () => {
   globalValues.orm = await MikroORM.init(config);
@@ -65,11 +47,11 @@ getORM()
     const allFindings: IntegrityFinding[] = [];
 
     for (const docListing of allDocListings) {
-      if (!isValidAutomergeUrl(docListing.automergeUrl)) continue;
+      if (!isValidDocumentId(docListing.automergeUrl)) continue;
 
-      const docHandle: DocHandle<Mission> = await automergeRepo.find(docListing.automergeUrl);
-      await docHandle.whenReady();
+      const docHandle = await historyRepo.find<Mission>(docListing.automergeUrl);
       const doc = docHandle.doc();
+      await historyRepo.removeFromCache(docHandle.documentId);
 
       if (!doc) {
         serverLogger.error(

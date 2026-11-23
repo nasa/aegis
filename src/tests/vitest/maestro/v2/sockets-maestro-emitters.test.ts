@@ -109,7 +109,7 @@ beforeEach(() => {
     on: vi.fn(),
     off: vi.fn(),
   };
-  globalValues.automergeRepo = {
+  globalValues.historyRepo = {
     find: vi
       .fn()
       .mockResolvedValue({ ...defaultDocHandle, doc: vi.fn().mockReturnValue(undefined) }),
@@ -126,7 +126,7 @@ beforeEach(() => {
 
 test("leaving while a document is loading does not retain an orphaned Maestro subscription", async () => {
   let resolveFind: (handle: unknown) => void;
-  vi.mocked(globalValues.automergeRepo.find).mockImplementationOnce(
+  vi.mocked(globalValues.historyRepo.find).mockImplementationOnce(
     () =>
       new Promise((resolve) => {
         resolveFind = resolve;
@@ -144,7 +144,7 @@ test("leaving while a document is loading does not retain an orphaned Maestro su
 });
 
 test("failed Maestro loads release their reservation so a later join can retry", async () => {
-  vi.mocked(globalValues.automergeRepo.find).mockRejectedValueOnce(new Error("load failed"));
+  vi.mocked(globalValues.historyRepo.find).mockRejectedValueOnce(new Error("load failed"));
   await addMaestroDocListenerForMission(MISSION_ID);
   expect(globalValues.maestroV2.docListeners.has(MISSION_ID)).toBe(false);
   await addMaestroDocListenerForMission(MISSION_ID);
@@ -210,7 +210,7 @@ describe("cleanupSocketRoom", () => {
       off: vi.fn(),
       doc: vi.fn(),
     };
-    globalValues.automergeRepo = {
+    globalValues.historyRepo = {
       find: vi.fn().mockResolvedValue(mockDocHandle),
     } as never;
     mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://snapshot-url" }]);
@@ -286,7 +286,7 @@ describe("addMaestroDocListenerForMission", () => {
       off: vi.fn(),
       doc: vi.fn().mockReturnValue(undefined),
     };
-    globalValues.automergeRepo = {
+    globalValues.historyRepo = {
       find: vi.fn().mockResolvedValue(mockDocHandle),
     } as never;
     mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://test-url" }]);

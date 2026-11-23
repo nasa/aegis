@@ -303,11 +303,13 @@ export async function getLayers(missionId: number, layerUuid?: string): Promise<
 async function upsertLayers(missionId: number, layers: Layer[]): Promise<Layer[]> {
   const handle = await getAutomergeMissionHandle(missionId);
   if (!handle) throw new Error(`No mission document found for mission ${missionId}`);
-  let normalized: Layer[] = [];
-  handle.change((m: Mission) => {
-    normalized = layers.map((record) => normalizeLayerInput(m, record));
-    applyUpsertLayers(m, normalized);
-  });
+  // Returned from the callback so values copied from the draft are snapshotted.
+  const normalized =
+    handle.change((m: Mission) => {
+      const records = layers.map((record) => normalizeLayerInput(m, record));
+      applyUpsertLayers(m, records);
+      return records;
+    }) ?? [];
   await globalValues.historyRepo.flush();
   return normalized;
 }

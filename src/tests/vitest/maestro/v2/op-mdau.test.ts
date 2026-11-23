@@ -7,7 +7,6 @@ import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation, generateLanderXgressStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { serverLogger } from "utils/logging/serverLogger";
-import type { DocHandle } from "@automerge/automerge-repo";
 import type { MDAU } from "server/maestro/v2/types/mdau";
 
 const MISSION_ID = 9999;

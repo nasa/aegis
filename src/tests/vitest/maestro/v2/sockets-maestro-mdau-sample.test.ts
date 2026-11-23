@@ -20,7 +20,6 @@ import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
-import type { DocHandle } from "@automerge/automerge-repo";
 import type { MDAU } from "server/maestro/v2/types/mdau";
 import sampleFile from "./fixtures/mdau-sample.json";
 

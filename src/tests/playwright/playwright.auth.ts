@@ -4,7 +4,7 @@ import { test as setup, expect } from "@playwright/test";
 const authFile = "./.local/playwright/auth.json";
 
 setup("authenticate", async ({ page }) => {
-  await page.goto("http://localhost:4000");
+  await page.goto("/");
   await page.getByLabel("Username").click();
   await page.getByLabel("Username").fill("Playwright admin");
   await page.getByLabel("Username").press("Tab");

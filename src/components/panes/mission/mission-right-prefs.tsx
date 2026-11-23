@@ -38,7 +38,9 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   // useMissionDocSelector (to read) and updateMissionByField (to write). This is because for this
   // component, in particular, we access most/all of the properties of mission and it is simpler
   const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, shallowEqual);
-  const [automergeMission, changeMissionDoc] = useDocument<Mission>(automergeUrl as HistoryDocumentId);
+  const [automergeMission, changeMissionDoc] = useDocument<Mission>(
+    automergeUrl as HistoryDocumentId
+  );
 
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 

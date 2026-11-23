@@ -2,7 +2,7 @@ import { globalValues } from "server/express/global";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex } from "store/storeUtils/rex";
 import type * as SocketsDustEmitters from "server/dust/v1/sockets-dust-emitters";
-import type * as AutomergeRepo from "@automerge/automerge-repo";
+import { createMemoryHistoryRepo } from "../../helpers/memoryHistoryRepo";
 import {
   applyCreatePosEntry,
   applyDeletePosEntry,
@@ -520,7 +520,7 @@ describe("addDustDocListenerForMission", () => {
       off: vi.fn(),
       doc: vi.fn().mockReturnValue(undefined),
     };
-    globalValues.automergeRepo = {
+    globalValues.historyRepo = {
       find: vi.fn().mockResolvedValue(mockDocHandle),
     } as never;
     mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://test-url" }]);
@@ -546,10 +546,9 @@ describe("addDustDocListenerForMission", () => {
     expect(globalValues.dustV1.docListeners.has(MISSION_ID)).toBe(true);
   });
 
-  it("broadcasts list additions, field edits, and deletions from a real Automerge handle", async () => {
-    const { Repo } = await vi.importActual<typeof AutomergeRepo>("@automerge/automerge-repo");
-    const repo = new Repo();
-    const previousRepo = globalValues.automergeRepo;
+  it("broadcasts list additions, field edits, and deletions from a real history handle", async () => {
+    const repo = createMemoryHistoryRepo();
+    const previousRepo = globalValues.historyRepo;
     const ns = connectDustVisitor();
     const existing = buildPosEntry();
     const added = buildPosEntry({ uuid: "added-position" });
@@ -557,7 +556,7 @@ describe("addDustDocListenerForMission", () => {
     const handle = repo.create<Mission>(
       buildMockMission({ evas: [asPlannedEva, rexEva], rexes: [rex] })
     );
-    globalValues.automergeRepo = repo;
+    globalValues.historyRepo = repo;
     mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: handle.url }]);
     try {
       await addDustDocListenerForMission(MISSION_ID);
@@ -606,7 +605,7 @@ describe("addDustDocListenerForMission", () => {
       });
     } finally {
       cleanupDust(MISSION_ID);
-      globalValues.automergeRepo = previousRepo;
+      globalValues.historyRepo = previousRepo;
       await repo.shutdown();
     }
   });
@@ -695,7 +694,7 @@ describe("addDustDocListenerForMission", () => {
   it("rejects when the automerge repo cannot find the document", async () => {
     const { serverLogger } = await import("utils/logging/serverLogger");
     vi.spyOn(serverLogger, "error").mockImplementation(() => {});
-    globalValues.automergeRepo = {
+    globalValues.historyRepo = {
       find: vi.fn().mockRejectedValue(new Error("doc not found")),
     } as never;
 
@@ -728,7 +727,7 @@ describe("addDustDocListenerForMission", () => {
           resolveFind = resolve;
         })
     );
-    globalValues.automergeRepo = { find } as never;
+    globalValues.historyRepo = { find } as never;
 
     const setupPromise = addDustDocListenerForMission(MISSION_ID);
     // Let the doc listing await settle so setup is parked inside find().
@@ -795,7 +794,7 @@ describe("cleanupDust", () => {
       off: vi.fn(),
       doc: vi.fn().mockReturnValue(mission),
     };
-    globalValues.automergeRepo = {
+    globalValues.historyRepo = {
       find: vi.fn().mockResolvedValue(mockDocHandle),
     } as never;
     mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://throttle-url" }]);
@@ -827,7 +826,7 @@ describe("cleanupDust", () => {
       off: vi.fn(),
       doc: vi.fn(),
     };
-    globalValues.automergeRepo = {
+    globalValues.historyRepo = {
       find: vi.fn().mockResolvedValue(mockDocHandle),
     } as never;
     mockGetAutomergeDocListing.mockResolvedValue([{ automergeUrl: "automerge://snapshot-url" }]);

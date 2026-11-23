@@ -1,4 +1,4 @@
-import { getHeads, getObjectId } from "@automerge/automerge";
+import type { LocalDocHandle } from "historyStore/LocalDocHandle";
 import { createCustomTestStore } from "../../fixtures/store";
 import { initialState as evaInitialState } from "store/eva";
 import { initialState as mapInitialState } from "store/map";
@@ -59,8 +59,8 @@ describe("Thunk Traverse Tests", () => {
     handle.change((m) => {
       m.traverses[traverse.uuid] = traverse;
     });
-    const heads = getHeads(handle.doc());
-    const objectId = getObjectId(handle.doc().traverses[traverse.uuid]);
+    const before = handle.doc();
+    const { actions } = handle as LocalDocHandle<Mission>;
     const path = [
       { lat: 5, lng: 6 },
       { lat: 7, lng: 8 },
@@ -69,12 +69,16 @@ describe("Thunk Traverse Tests", () => {
     await store.dispatch(
       thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path, preview: true })
     );
-    expect(getHeads(handle.doc())).toEqual(heads);
+    expect(handle.doc()).toBe(before);
     expect(store.getState().terrainProfiles.previews[traverse.uuid].path).toEqual(path);
     await store.dispatch(thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path }));
     expect(store.getState().terrainProfiles.previews[traverse.uuid]).toBeUndefined();
     expect(handle.doc().traverses[traverse.uuid].path).toEqual(path);
-    expect(getObjectId(handle.doc().traverses[traverse.uuid])).toEqual(objectId);
+    // Field-level patches, so concurrent edits to other traverse fields are kept.
+    for (const patch of actions.at(-1).payload.patches) {
+      expect(patch.path.slice(0, 2)).toEqual(["traverses", traverse.uuid]);
+      expect(patch.path.length).toBeGreaterThan(2);
+    }
     expect(handle.doc().traverses[traverse.uuid]).not.toHaveProperty("pathSegmentElevations");
   });
 

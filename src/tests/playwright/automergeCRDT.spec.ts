@@ -19,7 +19,7 @@ test("Continuous automerge edits", async ({ browser }) => {
 
   const page = await context.newPage();
 
-  await page.goto("http://localhost:4000/mission/1");
+  await page.goto("/mission/1");
   await waitForPageReady(page);
   await page.getByLabel("mission Section").locator("path").click();
   await page.getByLabel("Edit").click();
