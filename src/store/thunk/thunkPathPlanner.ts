@@ -39,7 +39,7 @@ import type { AppDispatch } from "utils/useAppDispatch";
 import type { RootState } from "store";
 
 /** Wait this long after the last point or parameter change before asking Newton. */
-export const NEWTON_TOOL_DEBOUNCE_MS = 2_000;
+export const NEWTON_TOOL_DEBOUNCE_MS = 750;
 /** Slope limit (degrees) for new plans; always sent, so Newton's own default never applies. */
 export const NEWTON_DEFAULT_SLOPE_LIMIT = 20;
 /** Points closer than this are not sent. */

@@ -190,12 +190,17 @@ describe("PathPlanner panel", () => {
     store.dispatch(
       updateMapDirective({ uuid, mapItemType: "pathPlan", mapAction: "editPolyline" })
     );
+    const finished = page.getByText("Finished", { exact: true });
+    await expect.element(finished).toBeInTheDocument();
     await store.dispatch(thunkUpdatePathPlanPoints({ uuid, path: [START, GOAL] }));
     expect(plan().request.status).toBe("debouncing");
 
+    // A DOM click is synchronous, so the send can be timed against the debounce.
     const sentAt = Date.now();
-    await page.getByText("Finished", { exact: true }).click();
-    await vi.waitFor(() => expect(postNewtonTraverses).toHaveBeenCalledTimes(1));
+    (finished.element() as HTMLElement).click();
+    await vi.waitFor(() => expect(postNewtonTraverses).toHaveBeenCalledTimes(1), {
+      interval: 10,
+    });
     expect(Date.now() - sentAt).toBeLessThan(NEWTON_TOOL_DEBOUNCE_MS);
     expect(postNewtonTraverses.mock.calls[0][1][0].waypoints[1]).toEqual(GOAL);
     await vi.waitFor(() => expect(plan().request.status).toBe("ready"));
