@@ -169,6 +169,11 @@ The app is a monolithic full-stack TypeScript project with a React SPA frontend 
   (`src/server/newton/v1/convert.ts`), which only copies allowed fields. Configured by
   `NEWTON_BASE_URL` (empty disables it) and `NEWTON_TIMEOUT_MS`. Wire types are the ambient
   `Newton` namespace in `src/server/newton/v1/types/newton.d.ts`.
+- **NASA CA bundle** — Newton's certificate is NASA-signed, so Node must trust the NASA CAs in
+  `.env.local.cert.pem` (repo root, gitignored by `*.pem`). The apiv1 image copies it and sets
+  `NODE_EXTRA_CA_CERTS`; CI writes it from the `ENV_LOCAL_CERT_PEM` variable in the
+  `.buildah-build-template` `before_script`. The image build fails without the file. Native dev
+  must export `NODE_EXTRA_CA_CERTS` in the shell, since Node reads it only at startup.
 - **Newton traverses** — AEGIS keeps no Newton state; Newton queues, caches (`cached`) and
   de-duplicates (`deduplicated`) jobs itself. `src/server/newton/traverses.ts` wraps the
   client calls for the routes in `src/server/express/routes/newton.ts`, which all check

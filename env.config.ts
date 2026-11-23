@@ -215,7 +215,8 @@ export const config: DotenvConfig<typeof environments> = {
   /**
    * Newton
    * Base URL (including `/api/v1`) of the Newton traverse-planning API, used by the API
-   * server only. Leave empty to disable Newton requests.
+   * server only. Leave empty to disable Newton requests. Newton's certificate is NASA-signed, so
+   * the API needs `NODE_EXTRA_CA_CERTS` pointing at `.env.local.cert.pem` (see the README).
    */
   NEWTON_BASE_URL: { default: "https://jsxim-gisproc1.ndc.nasa.gov/api/v1" },
   // Per-request timeout. Just over the ~60 s proxy timeout in front of Newton.
