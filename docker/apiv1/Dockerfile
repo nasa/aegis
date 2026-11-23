@@ -46,6 +46,10 @@ RUN npm run api:build
 # Our final build image. This should be as small as possible
 FROM base AS prod
 
+# NASA CA bundle, so the API trusts NASA-signed certificates such as Newton's
+COPY .env.local.cert.pem /
+ENV NODE_EXTRA_CA_CERTS=/.env.local.cert.pem
+
 # Copy over only stuff we need to keep the image small
 # esbuild bundle from the build stage
 COPY --from=build /app/.local/express/dist/api/api.js /app/.local/express/dist/api/api.js

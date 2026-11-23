@@ -171,7 +171,13 @@ We need to setup the local environment before spinning up the app.
 4. Get the secret values from another AEGIS developer and paste them into a new file called `env.secret.ts`
 5. Create a `./.env` file by running `npm run make-dotenv` in the terminal.
 6. Run `./scripts/make-dev-ssl-cert.sh` in a terminal to setup a self-signed certificate.
-7. **Workstation Admin privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
+7. Get the NASA CA certificate bundle. The API needs it to trust NASA-signed certificates, such as the Newton path planning server's.
+   1. Go to https://cset.nasa.gov/ascs/application/trust-anchor-management-ntam-for-linux/
+   2. In section "Installation for Linux Desktop Use Cases (RHEL only)" (the Linux variety is fine for all OSes) go to the "Manual Installation" section
+   3. Download the zip file
+   4. Extract the zip and put the `.pem` file into the AEGIS root directory named `.env.local.cert.pem`. The Docker image build requires it.
+   5. For native local dev (`npm run dev`), also export it in the shell that starts the API: `export NODE_EXTRA_CA_CERTS="$PWD/.env.local.cert.pem"`. Node reads this variable only at startup, so setting it in `.env` has no effect.
+8. **Workstation Admin privileges required:** Add `127.0.0.1 aegis-local.fit.nasa.gov` to your "hosts" file.
    1. Windows: Open the start menu, type "notepad", right-click on "Notepad" and select "open as administrator". In Notepad go to `C:\Windows\System32\drivers\etc`, show all files, and open the `hosts` file.
    2. Mac: Edit `/etc/hosts`
    3. Content to add at the bottom of the file (add CODA/Maestro/Labs while you're at it):
@@ -182,7 +188,7 @@ We need to setup the local environment before spinning up the app.
       127.0.0.1 talkybot-local.fit.nasa.gov
       127.0.0.1 emss-labs-local.fit.nasa.gov
       ```
-8. Import a Prod Database Dump
+9. Import a Prod Database Dump
    1. Download a DB dump sql file from the `z:db-export:prod` job in one of the AEGIS pipelines
       1. Visit https://eegitlab.fit.nasa.gov/emss/aegis/-/pipelines
       2. Under the Actions column, download a job artifact for `z:db-export:prod`
@@ -191,7 +197,7 @@ We need to setup the local environment before spinning up the app.
    2. If a `.local/db-init` folder does not exist in this repo, create it
    3. Copy/move `aegis.sql` to `.local/db-init/aegis.sql`
    4. If a `.local/database` directory already exists in this repo, delete it
-9. Perform steps for either **Step 2: Option 1: Development with service containers** or **Step 2: Option 2: Development with No docker** or **Step 2: Option 3: Preview a Fully Dockerized Application** below.
+10. Perform steps for either **Step 2: Option 1: Development with service containers** or **Step 2: Option 2: Development with No docker** or **Step 2: Option 3: Preview a Fully Dockerized Application** below.
 
 ### Step 2, Option 1: Development with service containers (PREFERRED)
 

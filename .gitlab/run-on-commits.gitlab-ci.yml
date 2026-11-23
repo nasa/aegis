@@ -375,6 +375,9 @@ test-automerge-integrity:
   extends: .buildah-build
   needs:
     - make-dotenv:fit
+  before_script:
+    # NASA CA bundle for the apiv1 image (see docker/apiv1/Dockerfile)
+    - echo "${ENV_LOCAL_CERT_PEM}" > ./.env.local.cert.pem
   variables:
     TARGET_STAGE: prod
     # Retag jobs promote preview images after the required checks pass.
