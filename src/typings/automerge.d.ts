@@ -5,7 +5,8 @@ type AutomergeDocListing = {
 
 type DocListing_db_type = AutomergeDocListing;
 
-type DocHandle<T> = import("@automerge/automerge-repo").DocHandle<T>;
+/** A mission document handle, backed by the history store (`src/historyStore`). */
+type DocHandle<T> = import("historyStore/HistoryDocHandle").HistoryDocHandle<T>;
 
 /** Main-thread time of one synchronous Automerge operation or garbage collection pause. */
 type MainThreadOperationTiming = {

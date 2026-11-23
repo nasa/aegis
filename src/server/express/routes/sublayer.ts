@@ -374,7 +374,7 @@ async function upsertSublayers(missionId: number, sublayers: Sublayer[]): Promis
     normalized = sublayers.map((record) => normalizeSublayerInput(m, record));
     applyUpsertSublayers(m, normalized);
   });
-  await globalValues.automergeRepo.flush();
+  await globalValues.historyRepo.flush();
   return normalized;
 }
 
@@ -388,6 +388,6 @@ async function deleteSublayers(missionId: number, uuids: string[]): Promise<stri
   const deletedUuids = (uuids ?? []).filter((uuid) => uuid in existing);
   if (!handle || deletedUuids.length === 0) return [];
   handle.change((m: Mission) => applyDeleteSublayers(m, deletedUuids));
-  await globalValues.automergeRepo.flush();
+  await globalValues.historyRepo.flush();
   return deletedUuids;
 }

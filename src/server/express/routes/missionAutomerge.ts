@@ -3,8 +3,8 @@ import type { Request, Response } from "express";
 import express from "express";
 import { hasPerms, emssTokenIsValid } from "utils/permissions";
 import { getAutomergeDocListing } from "./docListing";
+import { broadcastDocumentDeleted } from "server/historyStore/historySockets";
 import { globalValues } from "../global";
-import type { DocHandle, AutomergeUrl, DocumentId } from "@automerge/automerge-repo/slim";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { generateBlankMission, missionHasLanderDependentEntities } from "store/storeUtils/mission";
@@ -12,8 +12,8 @@ import { Doc_Listing_db } from "server/database/models/doc_listing.model";
 import type { RequiredEntityData } from "@mikro-orm/core";
 import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
-import { createMissionSummary } from "server/automerge/missionCatalog";
-import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
+import { createMissionSummary } from "server/missionCatalog/missionCatalog";
+import { refreshMissionCatalog } from "server/missionCatalog/missionCatalogRuntime";
 
 /**
  * Endpoint for working with the mission document in automerge
@@ -48,7 +48,7 @@ router.post("/archive", async (req: Request, res: Response) => {
     handle.change((mission) => {
       mission.archivedAt = archive ? Date.now() : null;
     });
-    await refreshMissionCatalog(globalValues.automergeRepo, handle);
+    await refreshMissionCatalog(globalValues.historyRepo, handle);
     res.json({ status: "success", message: "Mission archive status updated" });
   } catch (error) {
     serverLogger.error(
@@ -387,8 +387,8 @@ export async function getAutomergeMissionHandle(
 ): Promise<DocHandle<Mission> | null> {
   const listings = await getAutomergeDocListing([missionId]);
   if (!listings.length) return null;
-  const handle = await globalValues.automergeRepo.find<Mission>(
-    listings[0].automergeUrl as AutomergeUrl
+  const handle = await globalValues.historyRepo.find<Mission>(
+    listings[0].automergeUrl as HistoryDocumentId
   );
   await handle.whenReady();
   return handle;
@@ -404,8 +404,8 @@ export async function getAutomergeMissions(missionIds?: number[]): Promise<Missi
   const automergeListings = await getAutomergeDocListing(missionIds);
   const missionsToReturn: Mission[] = [];
   for (const listing of automergeListings) {
-    const handle = await globalValues.automergeRepo.find<Mission>(
-      listing.automergeUrl as AutomergeUrl
+    const handle = await globalValues.historyRepo.find<Mission>(
+      listing.automergeUrl as HistoryDocumentId
     );
     await handle.whenReady();
     missionsToReturn.push(handle.doc());
@@ -420,7 +420,7 @@ export async function createAutomergeMission(
 ): Promise<AutomergeDocListing> {
   // create new mission automerge doc and add it to the doc listing table
   const newMission: Mission = sourceMission || generateBlankMission();
-  const missionDocHandle = globalValues.automergeRepo.create<Mission>(newMission);
+  const missionDocHandle = globalValues.historyRepo.create<Mission>(newMission);
   await missionDocHandle.whenReady();
   const docListing: Partial<AutomergeDocListing> = {
     automergeUrl: missionDocHandle.url,
@@ -443,7 +443,7 @@ export async function createAutomergeMission(
   });
 
   // Use the caller's entity manager: duplication can create the listing inside a transaction.
-  await createMissionSummary(globalValues.automergeRepo, missionDocHandle, em);
+  await createMissionSummary(globalValues.historyRepo, missionDocHandle, em);
   return dbReference as AutomergeDocListing;
 }
 
@@ -461,20 +461,13 @@ export async function deleteAutomergeMissions(missionIds: number[]): Promise<num
     // delete from automerge table
     const entity = await em.findOne(Doc_Listing_db, { missionId });
     if (!entity) continue;
-    const automergeUrl = entity.automergeUrl as AutomergeUrl;
+    const automergeUrl = entity.automergeUrl as HistoryDocumentId;
     if (entity) em.remove(entity);
     await em.flush();
 
-    // delete the doc handler the server is holding
-    const allHandles: Record<DocumentId, DocHandle<unknown>> = globalValues.automergeRepo.handles;
-    for (const docId in allHandles) {
-      if (docId === automergeUrl.toString().slice(10)) {
-        allHandles[docId as DocumentId].delete();
-        break;
-      }
-    }
-    // delete the doc from the automerge repo storage system
-    globalValues.automergeRepo.delete(automergeUrl as AutomergeUrl);
+    // delete the document and its history; browsers viewing it are told it is gone
+    await globalValues.historyRepo.delete(automergeUrl);
+    broadcastDocumentDeleted(automergeUrl);
 
     await waitForTerrainCache(missionId);
 

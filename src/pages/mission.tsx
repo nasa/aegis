@@ -1,3 +1,4 @@
+import { useRepo } from "client/history/historyReact";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams, useSearchParams } from "react-router";
@@ -20,7 +21,6 @@ import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/map
 import { setGridCornerPoint } from "store/map";
 import { clientLogger } from "utils/logging/clientLogger";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { useEffect, useState } from "react";
 import { LoadingOverlay } from "components/interface/_global-elements";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";

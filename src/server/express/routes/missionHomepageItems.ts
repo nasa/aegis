@@ -5,7 +5,7 @@ import express from "express";
 import { emssTokenIsValid } from "utils/permissions";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
-import { getMissionSummaries } from "server/automerge/missionCatalog";
+import { getMissionSummaries } from "server/missionCatalog/missionCatalog";
 
 const router = express.Router();
 

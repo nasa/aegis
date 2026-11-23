@@ -1,6 +1,5 @@
 import { getAccurateNow } from "utils/formatting";
 import { generateDefaultActionDefinitions } from "store/storeUtils/mission";
-import type { DocHandle } from "@automerge/automerge-repo";
 import { clientLogger } from "utils/logging/clientLogger";
 import { withMissionChange } from "client/automergeDocHandles";
 

@@ -9,7 +9,6 @@ import { insertElevationPending, removeElevationPending } from "store/interface"
 
 import appCreateAsyncThunk from "./thunkUtil";
 
-import type { DocHandle } from "@automerge/automerge-repo";
 import type { StoreType } from "store";
 import {
   buildTerrainProfiles,

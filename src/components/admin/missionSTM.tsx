@@ -1,3 +1,4 @@
+import { useDocHandle } from "client/history/historyReact";
 import AsyncStatus from "components/admin/asyncStatus";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { useCallback, useState } from "react";
@@ -7,10 +8,8 @@ import STMEdit from "components/admin/stmEdit";
 import stmStyles from "./stmEdit.module.css";
 import { faCaretDown, faCaretRight, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocSelector } from "utils/useDocSelector";
 import { deepEqual } from "utils/useAppSelector";
-import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import { selectStmLevel1s, selectStmLevel2s, selectStmLevel3s } from "store/selectors";
 import {
   applyDeleteStmLevel,
@@ -26,7 +25,7 @@ const STM_COLLECTION_BY_TYPE = {
 
 const MissionSTM: FunctionComponent<{
   missionId: number;
-  automergeUrl: AutomergeUrl;
+  automergeUrl: HistoryDocumentId;
 }> = ({ missionId, automergeUrl }) => {
   const missionDocHandle = useDocHandle<Mission>(automergeUrl);
   const stmTree = useDocSelector<
@@ -137,7 +136,7 @@ const Level1List: FunctionComponent<{
     stmType: "Level1" | "Level2" | "Level3",
     stm: STMLevel1 | STMLevel2 | STMLevel3
   ) => void;
-  automergeUrl: AutomergeUrl;
+  automergeUrl: HistoryDocumentId;
 }> = ({ level1s, level2s, level3s, delSTM, saveSTM, automergeUrl }) => {
   const [collapsedSTMLevel1s, setCollapsedSTMLevel1s] = useState<string[]>([]);
   const [collapsedSTMLevel2s, setCollapsedSTMLevel2s] = useState<string[]>([]);

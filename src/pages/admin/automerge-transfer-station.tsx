@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import type { ChangeFn } from "@automerge/automerge-repo";
 import { applyDuplicateActionsStage } from "operations/apply/apply-action";
 import { applyUpdateStationByField } from "operations/apply/apply-station";
 import { stageDuplicateActions } from "operations/stage/stage-actions";

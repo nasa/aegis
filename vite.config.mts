@@ -9,6 +9,8 @@ import { fileURLToPath } from "url";
 import packageJSON from "./package.json" with { type: "json" };
 import wasm from "vite-plugin-wasm";
 
+const apiTarget = `http://localhost:${process.env.API_PORT ?? "4001"}`;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -27,6 +29,7 @@ export const aliases = {
   server: path.resolve(__dirname, "./src/server"),
   client: path.resolve(__dirname, "./src/client"),
   operations: path.resolve(__dirname, "./src/operations"),
+  historyStore: path.resolve(__dirname, "./src/historyStore"),
 };
 
 export const config: UserConfig = {
@@ -43,25 +46,20 @@ export const config: UserConfig = {
     // None of these proxies are hit when running under docker:dev because nginx intercepts them
     // Targets must NOT have a trailing slash: http-proxy-middleware appends the request URL to
     // target, so a trailing-slash target produces a double-slash path that
-    // won't match the server's strict URL check for the automerge upgrade.
+    // won't match the server's strict URL check.
     proxy: {
       "/api/v1": {
-        target: "http://localhost:4001",
-        changeOrigin: true,
-        ws: true,
-      },
-      "/api/automergeSocket": {
-        target: "http://localhost:4001",
+        target: apiTarget,
         changeOrigin: true,
         ws: true,
       },
       "/api/socket": {
-        target: "http://localhost:4001",
+        target: apiTarget,
         changeOrigin: true,
         ws: true,
       },
       "/static": {
-        target: "http://localhost:4001",
+        target: apiTarget,
         changeOrigin: true,
       },
     },
@@ -70,7 +68,7 @@ export const config: UserConfig = {
       ignored: ["**/node_modules/**", "**/.local/**", "**/public/**", "**/static/**"],
     },
     host: "0.0.0.0", // all hosts
-    port: 4000,
+    port: Number(process.env.VITE_PORT ?? 4000),
   },
   build: {
     outDir: "../.local/vite/dist",

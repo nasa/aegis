@@ -8,22 +8,22 @@ import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
 import app from "server/express/restApi";
 import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
-import { getMissionSummaries, getMissionIdsForEva } from "server/automerge/missionCatalog";
-import * as missionCatalog from "server/automerge/missionCatalog";
+import { getMissionSummaries, getMissionIdsForEva } from "server/missionCatalog/missionCatalog";
+import * as missionCatalog from "server/missionCatalog/missionCatalog";
 import {
   refreshMissionCatalog,
   retainMissionDocuments,
   startMissionCatalogRuntime,
   loadRunningMissionDocuments,
   MISSION_IDLE_MS,
-} from "server/automerge/missionCatalogRuntime";
+} from "server/missionCatalog/missionCatalogRuntime";
 import { createAutomergeMission } from "server/express/routes/missionAutomerge";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankRex, generateBlankPosEntry } from "store/storeUtils/rex";
 import { getRexesByEva } from "server/maestro/v2/routes/getRexesByEva";
 import * as Automerge from "@automerge/automerge";
-import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
+import { populateMissionCatalogOnce } from "server/missionCatalog/populateMissionCatalogOnce";
 import {
   Doc_Listing_db,
   Mission_Catalog_db,

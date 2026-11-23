@@ -50,7 +50,7 @@ import missionAutomergeRoutes from "./routes/missionAutomerge";
 
 import dustRoute from "./routes/external/dust";
 import missionCatalogRoutes from "./routes/missionCatalog";
-import { retainMissionDocuments } from "server/automerge/missionCatalogRuntime";
+import { retainMissionDocuments } from "server/missionCatalog/missionCatalogRuntime";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

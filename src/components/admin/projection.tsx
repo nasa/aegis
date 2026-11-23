@@ -3,7 +3,6 @@ import adminStyles from "./admin.module.css";
 import adminCommon from "pages/admin/adminCommon.module.css";
 import { InLineEditInput } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
-import type { ChangeFn } from "@automerge/automerge-repo";
 
 const { mustBeNumber } = validators;
 

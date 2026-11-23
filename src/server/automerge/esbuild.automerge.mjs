@@ -71,6 +71,16 @@ const missionValidatorCtx = await esbuild.context({
   outfile: "./.local/automerge/dist/missionValidator.js",
 });
 
+// Build the one-time Automerge -> history store importer
+const historyImportCtx = await esbuild.context({
+  ...sharedOptions,
+  entryPoints: ["src/server/historyStore/importAutomergeDocuments.ts"],
+  outfile: "./.local/automerge/dist/importAutomergeDocuments.js",
+});
+
+await historyImportCtx.rebuild();
+await historyImportCtx.dispose();
+
 await migrationCtx.rebuild();
 await migrationCtx.dispose();
 

@@ -1,6 +1,5 @@
 import { globalValues } from "server/express/global";
 import { getAutomergeDocListing } from "../../express/routes/docListing";
-import type { DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getSequenceStationUuids, getSequenceTraverseUuids } from "operations/helpers/evaSequence";
@@ -45,8 +44,8 @@ export const addMaestroDocListenerForMission = async (missionId: number): Promis
   try {
     // Get automerge doc handle
     const automergeListing = (await getAutomergeDocListing([missionId]))[0];
-    const missionDocHandle = await globalValues.automergeRepo.find<Mission>(
-      automergeListing.automergeUrl as DocumentId
+    const missionDocHandle = await globalValues.historyRepo.find<Mission>(
+      automergeListing.automergeUrl as HistoryDocumentId
     );
 
     // A leave/disconnect can cancel this join while the document is loading. Don't

@@ -5,7 +5,6 @@ import {
 } from "server/terrain/terrainProfileCache";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Request, Response } from "express";

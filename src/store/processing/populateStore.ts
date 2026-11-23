@@ -1,3 +1,5 @@
+import type { ClientHistoryRepo } from "client/history/ClientHistoryRepo";
+import { isValidDocumentId } from "historyStore/util";
 import { populateTerrainProfiles } from "store/thunk/thunkTerrainProfile";
 import { initialState as wholeStoreInitialState } from "store/index";
 import { getAll } from "http-client/all";
@@ -5,8 +7,6 @@ import cloneDeep from "lodash/cloneDeep";
 import Cookies from "js-cookie";
 import { auditActionDefinitions, auditActions, auditMissionGrid } from "./audits";
 import { getAutomergeDocListing } from "http-client/docListing";
-import type { DocHandle, Repo, AutomergeUrl } from "@automerge/automerge-repo";
-import { isValidAutomergeUrl } from "@automerge/automerge-repo";
 import { setMissionAutomergeDocHandle } from "client/automergeDocHandles";
 import { validateMission } from "utils/validateSchemaClient";
 import { clientLogger } from "utils/logging/clientLogger";
@@ -27,7 +27,7 @@ export const populateStore = async (params: {
     serverURL?: string;
     cookies?: string;
   };
-  automergeRepo: Repo;
+  automergeRepo: ClientHistoryRepo;
 }): Promise<WholeStoreState> => {
   const { missionId, runAudit, loadTestOptions, automergeRepo } = params;
   // Get all data for a mission from a single endpoint
@@ -43,12 +43,12 @@ export const populateStore = async (params: {
 
   // Get automerge URL and mission doc handle
   const amDocListing = (await getAutomergeDocListing(missionId, loadTestOptions)).data[0];
-  if (!isValidAutomergeUrl(amDocListing?.automergeUrl)) {
+  if (!isValidDocumentId(amDocListing?.automergeUrl)) {
     throw new Error("Invalid Automerge URL");
   }
   wholeStoreState.mission.automergeUrl = amDocListing?.automergeUrl; // put url in the store
   const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(
-    amDocListing.automergeUrl as AutomergeUrl
+    amDocListing.automergeUrl as HistoryDocumentId
   );
   if (!missionDocHandle) {
     throw new Error("Mission doc handle not found in repo");

@@ -1,7 +1,7 @@
 import express from "express";
 import type { Request, Response } from "express";
 import { emssTokenIsValid } from "utils/permissions";
-import { getMissionSummaries } from "server/automerge/missionCatalog";
+import { getMissionSummaries } from "server/missionCatalog/missionCatalog";
 import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 

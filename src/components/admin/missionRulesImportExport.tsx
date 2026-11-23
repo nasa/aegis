@@ -1,6 +1,5 @@
+import { useDocument } from "client/history/historyReact";
 import { useState, type ReactElement } from "react";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import { applyImportStmRules, exportStmRules, parseStmRules } from "utils/stmRulesImportExport";
 import AsyncStatus from "./asyncStatus";
 import { useAsyncStatus } from "./useAsyncStatus";
@@ -11,7 +10,7 @@ import styles from "./missionPriorityImportExport.module.css";
 export default function MissionRulesImportExport({
   automergeUrl,
 }: {
-  automergeUrl: AutomergeUrl;
+  automergeUrl: HistoryDocumentId;
 }): ReactElement {
   const [mission, changeMission] = useDocument<Mission>(automergeUrl);
   const [json, setJson] = useState("");

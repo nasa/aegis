@@ -1,10 +1,9 @@
+import { useDocHandle, useDocument } from "client/history/historyReact";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { Link, useNavigate, useParams } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { isLoggedIn } from "http-client/login";
-import { useDocHandle, useDocument } from "@automerge/automerge-repo-react-hooks";
-import type { AutomergeUrl, ChangeFn, DocHandleChangePayload } from "@automerge/automerge-repo";
 import { applyChange, diff } from "deep-diff";
 import type { ErrorObject } from "ajv";
 import Ajv from "ajv";
@@ -25,15 +24,15 @@ const ManageAutomergeDoc: React.FunctionComponent = () => {
   // useMissionDocSelector (to read) and useDocHandle (to write). This is because for this
   // component, in particular, we access most/all of the properties of mission and it is simpler
   const [automergeMission, changeMissionDoc] = useDocument<Mission>(
-    params.automergeUrl as AutomergeUrl
+    params.automergeUrl as HistoryDocumentId
   );
   const [jsonField, setJsonField] = useState("");
   const [importExportStatus, setImportExportStatus] = useState("");
-  const missionDocHandle = useDocHandle<Mission>(params.automergeUrl as AutomergeUrl);
+  const missionDocHandle = useDocHandle<Mission>(params.automergeUrl as HistoryDocumentId);
 
-  // console log every diff from the automerge doc
-  const clgAutomergeDiffs = useCallback((payload: DocHandleChangePayload<Mission>) => {
-    console.log(diff(payload.patchInfo.before, payload.patchInfo.after));
+  // console log the patches of every change to the mission document
+  const clgAutomergeDiffs = useCallback((payload: HistoryDocChangePayload<Mission>) => {
+    console.log(payload.patches);
   }, []);
 
   useEffect(() => {

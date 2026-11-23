@@ -1,5 +1,4 @@
 import { globalValues } from "server/express/global";
-import type { DocHandle } from "@automerge/automerge-repo";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getMaestroSocketRoomName } from "./sockets-maestro";
 import { buildAegisSliceForMaestro } from "server/maestro/v2/buildAegisSlice";

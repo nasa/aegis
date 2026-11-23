@@ -1,6 +1,6 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo/slim";
 import { globalValues } from "server/express/global";
-import { createMissionSummary } from "server/automerge/missionCatalog";
+import { createMissionSummary } from "server/missionCatalog/missionCatalog";
 
 /** Catalog fixtures are persisted explicitly; list endpoints must never fall back to doc loads. */
 export async function seedMissionCatalog(listings: AutomergeDocListing[]): Promise<void> {

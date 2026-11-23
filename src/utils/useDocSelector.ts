@@ -1,6 +1,5 @@
+import { useDocHandle } from "client/history/historyReact";
 import * as React from "react";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
-import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import { refEqual, useAppSelector, type EqualityFn } from "utils/useAppSelector";
 
 // Union type for all supported automerge document types.
@@ -99,18 +98,18 @@ function getStore<TDoc extends SupportedDocTypes>(handle: DocHandle<TDoc>): Hand
  *   allocating a new object on every render.
  */
 export function useDocSelector<TDoc extends SupportedDocTypes, TSel>(
-  url: AutomergeUrl,
+  url: HistoryDocumentId,
   selector: (doc: TDoc) => TSel,
   isEqual: EqualityFn,
   emptyDoc: TDoc
 ): TSel;
 export function useDocSelector<TDoc extends SupportedDocTypes, TSel>(
-  url: AutomergeUrl,
+  url: HistoryDocumentId,
   selector: (doc: TDoc) => TSel,
   isEqual?: EqualityFn
 ): TSel | undefined;
 export function useDocSelector<TDoc extends SupportedDocTypes, TSel>(
-  url: AutomergeUrl,
+  url: HistoryDocumentId,
   selector: (doc: TDoc) => TSel,
   isEqual: EqualityFn = Object.is,
   emptyDoc?: TDoc
@@ -197,5 +196,5 @@ export function useMissionDocSelector<TSel>(
 ): TSel | undefined {
   // get automerge URL for this mission from the store. This is okay because we're only reading a configuration, not application data
   const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, refEqual);
-  return useDocSelector<Mission, TSel>(automergeUrl as AutomergeUrl, selector, isEqual);
+  return useDocSelector<Mission, TSel>(automergeUrl as HistoryDocumentId, selector, isEqual);
 }

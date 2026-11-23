@@ -9,6 +9,7 @@ export const globalValues: GlobalValues = {
   appVersion: null,
   isEmssApiEnabled: true,
   automergeRepo: null,
+  historyRepo: null,
   maestroV2: {
     visitorData: {},
     socketio: null,

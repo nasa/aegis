@@ -1,3 +1,4 @@
+import { useDocument } from "client/history/historyReact";
 import type { FunctionComponent } from "react";
 import { useCallback, useState } from "react";
 import paneStyles from "../global-pane-styles.module.css";
@@ -27,8 +28,6 @@ import { toDecimal } from "utils/formatting";
 import { thunkUpdateMapDirective } from "store/thunk/thunkMap";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
-import { useDocument } from "@automerge/automerge-repo-react-hooks";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { thunkDocUpdateLanderLocation } from "store/thunk/thunkMission";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 
@@ -39,7 +38,7 @@ const Info_Panel: FunctionComponent<{ editMode: boolean }> = ({ editMode }) => {
   // useMissionDocSelector (to read) and updateMissionByField (to write). This is because for this
   // component, in particular, we access most/all of the properties of mission and it is simpler
   const automergeUrl = useAppSelector((state) => state.mission.automergeUrl, shallowEqual);
-  const [automergeMission, changeMissionDoc] = useDocument<Mission>(automergeUrl as AutomergeUrl);
+  const [automergeMission, changeMissionDoc] = useDocument<Mission>(automergeUrl as HistoryDocumentId);
 
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 

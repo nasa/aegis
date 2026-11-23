@@ -1,4 +1,4 @@
-import type { DocHandle, Repo } from "@automerge/automerge-repo/slim";
+import type { ServerHistoryRepo } from "server/historyStore/ServerHistoryRepo";
 import { LockMode } from "@mikro-orm/postgresql";
 import type { EntityManager } from "@mikro-orm/postgresql";
 import isEqual from "lodash/isEqual";
@@ -141,7 +141,7 @@ export async function getRunningMissionListings(): Promise<AutomergeDocListing[]
  * Returns true when a summary was written, false when no index work was needed.
  */
 export async function createMissionSummary(
-  repo: Repo,
+  repo: ServerHistoryRepo,
   handle: DocHandle<Mission>,
   em?: EntityManager,
   force = false

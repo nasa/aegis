@@ -308,7 +308,7 @@ async function upsertLayers(missionId: number, layers: Layer[]): Promise<Layer[]
     normalized = layers.map((record) => normalizeLayerInput(m, record));
     applyUpsertLayers(m, normalized);
   });
-  await globalValues.automergeRepo.flush();
+  await globalValues.historyRepo.flush();
   return normalized;
 }
 
@@ -322,6 +322,6 @@ async function deleteLayers(missionId: number, uuids: string[]): Promise<string[
   const deletedUuids = (uuids ?? []).filter((uuid) => uuid in existing);
   if (!handle || deletedUuids.length === 0) return [];
   handle.change((m: Mission) => applyDeleteLayers(m, deletedUuids));
-  await globalValues.automergeRepo.flush();
+  await globalValues.historyRepo.flush();
   return deletedUuids;
 }

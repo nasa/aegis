@@ -3,7 +3,6 @@
  * Mutates EVERYTHING — stations, traverses, evas, actions, and rexes — inside
  * ONE `docHandle.change()`.
  */
-import type { DocHandle } from "@automerge/automerge-repo";
 import { stageAdjacentTraverseRenames } from "operations/stage/stage-traverse";
 import { globalValues } from "server/express/global";
 import {

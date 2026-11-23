@@ -5,7 +5,7 @@ import express from "express";
 
 import { serverLogger } from "utils/logging/serverLogger";
 import { emssTokenIsValid } from "utils/permissions";
-import { getMissionSummaries, getAsPlannedEvaSummaries } from "server/automerge/missionCatalog";
+import { getMissionSummaries, getAsPlannedEvaSummaries } from "server/missionCatalog/missionCatalog";
 
 // used in getMissions maestro route
 export type MissionsWithEvas = {

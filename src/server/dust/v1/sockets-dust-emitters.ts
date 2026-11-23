@@ -1,5 +1,4 @@
 import { globalValues } from "server/express/global";
-import type { DocHandle, DocumentId } from "@automerge/automerge-repo";
 import throttle from "lodash/throttle";
 import { serverLogger } from "utils/logging/serverLogger";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
@@ -176,8 +175,8 @@ export const addDustDocListenerForMission = async (missionId: number): Promise<v
   try {
     // Get automerge doc handle
     const automergeListing = (await getAutomergeDocListing([missionId]))[0];
-    const missionDocHandle = await globalValues.automergeRepo.find<Mission>(
-      automergeListing.automergeUrl as DocumentId
+    const missionDocHandle = await globalValues.historyRepo.find<Mission>(
+      automergeListing.automergeUrl as HistoryDocumentId
     );
 
     // The last visitor may have disconnected while the lookups above were awaiting.

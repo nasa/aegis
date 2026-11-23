@@ -5,15 +5,15 @@ import { createServer } from "http";
 import { v4 as uuidv4 } from "uuid";
 import { Server as SocketServer } from "socket.io";
 import type { DefaultEventsMap } from "socket.io";
-import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
-import { Repo } from "@automerge/automerge-repo/slim";
-import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
+import { populateMissionCatalogOnce } from "server/missionCatalog/populateMissionCatalogOnce";
 import {
   loadRunningMissionDocuments,
   startMissionCatalogRuntime,
-} from "server/automerge/missionCatalogRuntime";
-import type { DocHandle } from "@automerge/automerge-repo/slim";
-import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket";
+} from "server/missionCatalog/missionCatalogRuntime";
+import { ServerHistoryRepo } from "server/historyStore/ServerHistoryRepo";
+import { ServerHistoryStore } from "server/historyStore/ServerHistoryStore";
+import { HistoryPersistence } from "server/historyStore/historyPersistence";
+import { setupHistoryNamespace } from "server/historyStore/historySockets";
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
@@ -26,21 +26,16 @@ import config from "server/database/mikro-orm.config";
 
 import { serverLogger } from "utils/logging/serverLogger";
 import pg from "pg";
-import { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
-import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
-import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { closeRasterSamplingWorkerPool } from "server/raster/rasterSamplingWorkerPool";
 import { performance, PerformanceObserver } from "node:perf_hooks";
-
-// this is only required on the server since we are using esbuild. On the client, vite handles the wasm loading
-initializeBase64Wasm(automergeWasmBase64);
 
 // ==========================================================================
 // Main-thread stall diagnostics
 // ==========================================================================
 
-// Socket.IO and the Automerge websocket both drop every client after roughly 5–10 s without a
-// heartbeat, so any synchronous work of that length on the main thread disconnects everyone.
+// Socket.IO (which also carries the history store sync) drops every client after roughly 5–10 s
+// without a heartbeat, so any synchronous work of that length on the main thread disconnects
+// everyone.
 // These diagnostics record what ran on the main thread just before such a stall.
 const MAIN_THREAD_STALL_CHECK_INTERVAL_MS = 250;
 const MAIN_THREAD_STALL_WARNING_MS = 1_000;
@@ -73,20 +68,17 @@ const recordRecentSlowMainThreadOperation = (operation: MainThreadOperationTimin
     recentSlowMainThreadOperations.shift();
 };
 
-const missionIdForDocument = (repo: Repo, documentId: string | undefined): number | undefined => {
+const missionIdForDocument = (repo: ServerHistoryRepo, documentId: string | undefined): number | undefined => {
   if (!documentId) return undefined;
   try {
-    return (repo.handles[documentId as keyof Repo["handles"]]?.doc() as Mission | undefined)?.id;
+    return (repo.handles[documentId as keyof ServerHistoryRepo["handles"]]?.doc() as Mission | undefined)?.id;
   } catch {
     return undefined;
   }
 };
 
-function startMainThreadStallDiagnostics(repo: Repo): void {
+function startMainThreadStallDiagnostics(repo: ServerHistoryRepo): void {
   repo.on("doc-metrics", (event) => {
-    if (!("durationMillis" in event)) return;
-    const peerId =
-      "forPeer" in event ? event.forPeer : "fromPeer" in event ? event.fromPeer : undefined;
     const typeTotals = automergeOperationTotalsThisReport.get(event.type) ?? {
       count: 0,
       totalMs: 0,
@@ -101,7 +93,6 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
       durationMs: event.durationMillis,
       endedAt: performance.now(),
       documentId: event.documentId,
-      peerId,
     });
 
     if (event.durationMillis < SLOW_AUTOMERGE_OPERATION_NOTICE_MS) return;
@@ -118,10 +109,7 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
       durationMs: Math.round(event.durationMillis),
       documentId: event.documentId,
       missionId: missionIdForDocument(repo, event.documentId),
-      peerId,
-      numOps: "numOps" in event ? event.numOps : undefined,
-      numChanges: "numChanges" in event ? event.numChanges : undefined,
-      connectedAutomergePeers: repo.peers.length,
+      connectedSocketIoClients: globalValues.socketio?.engine.clientsCount,
     };
     if (event.durationMillis >= SLOW_AUTOMERGE_OPERATION_WARNING_MS)
       serverLogger.warning({
@@ -230,7 +218,7 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
 
   globalValues.orm = await MikroORM.init(config);
 
-  // Raw pg pool used by the automerge storage adapter
+  // Raw pg pool used by the history store
   const dbConfig: pg.Pool = new pg.Pool({
     user: "postgres",
     host: process.env.DB_HOST,
@@ -282,6 +270,8 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
     // to detect dead connections within ~10s
     pingInterval: 5000,
     pingTimeout: 5000,
+    // History store batches carry Immer patches, which can be large (layer imports).
+    maxHttpBufferSize: 50 * 1024 * 1024,
   });
 
   setupSocketIO();
@@ -296,104 +286,30 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
   server.on("request", app);
 
   // ==========================================================================
-  // Automerge
+  // History store (mission documents)
   // ==========================================================================
 
-  // setup autoMerge sync server
-  const wss = new WebSocketServer({ noServer: true });
-
-  // upgrade an already established client/server connection to a
-  //    different protocol (over the same transport protocol).
-  // Socket.IO's own upgrade listener (auto-attached during SocketServer
-  // construction above) handles /api/socket; this one handles the Automerge WS.
-  server.on("upgrade", (request, socket, head) => {
-    let url: URL;
-    try {
-      // request.url is always origin-relative, so a placeholder base is required.
-      url = new URL(request.url ?? "", "http://localhost");
-    } catch {
-      return;
-    }
-
-    // Socket.IO shares this upgrade event, so only look for the automerge socket
-    // and leave everything else alone.
-    if (url.pathname !== "/api/automergeSocket/") return;
-
-    // The client appends ?serverEpochUuid=<value> from the version it was served
-    // at page load. A missing or stale value means the tab predates the current
-    // server, so the upgrade is refused
-    const clientEpoch = url.searchParams.get("serverEpochUuid");
-    if (clientEpoch !== serverEpochUuid) {
-      const forwardedFor = request.headers["x-forwarded-for"];
-      const clientIp =
-        (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(",")[0]?.trim()) ??
-        request.socket.remoteAddress ??
-        "(unknown)";
-      serverLogger.warning({
-        logId:
-          "server:automergeUpgradeHandler:rejectedAutomergeWebSocketUpgradeDueToServerEpochMismatchOrMissingEpoch",
-        logValue: `Rejected automerge upgrade (${
-          clientEpoch ? "epoch mismatch" : "no epoch supplied"
-        }). client epoch: ${clientEpoch ?? "(missing)"}, server epoch: ${serverEpochUuid}, client ip: ${clientIp}.`,
-      });
-      socket.write("HTTP/1.1 426 Upgrade Required\r\nConnection: close\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit("connection", ws, request);
-    });
-  });
-
-  // ==========================================================================
-  // Automerge repo
-  // ==========================================================================
-
-  // hook up the network (socket server) and storage to a new automerge repo
-  const networkAdapter = new NodeWSServerAdapter(wss);
-  const storageAdapter = new PostgresStorageAdapter("automerge_native_db", dbConfig);
-  // store the automerge repo in global so we can access it later on the server
-  const missionRepo = new Repo({
-    network: [networkAdapter],
-    storage: storageAdapter,
-    /** @ts-expect-error @type {(import("@automerge/automerge-repo").PeerId)}  */
-    peerId: `storage-server`,
-    sharePolicy: async () => false,
-  });
-  globalValues.automergeRepo = missionRepo;
+  const historyStore = new ServerHistoryStore<unknown>(new HistoryPersistence(dbConfig));
+  const missionRepo = new ServerHistoryRepo(historyStore);
+  globalValues.historyRepo = missionRepo;
+  setupHistoryNamespace(missionRepo);
   // Start before documents load so slow loads during startup are also recorded.
   startMainThreadStallDiagnostics(missionRepo);
-
-  // Observe storage loads before catalog population and running missions load documents.
-  const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
-  await populateMissionCatalogOnce(missionRepo);
-  await loadRunningMissionDocuments(missionRepo);
-  server.listen(4001, () => {
-    serverLogger.info({
-      logId: "server:httpServerListen:serverListeningOnPort4001",
-      logValue: "Server listening on port 4001",
-      startupMs: Date.now() - bootStarted,
-      loadedDocuments: Object.keys(missionRepo.handles).length,
-      rssBytes: process.memoryUsage.rss(),
-    });
-  });
-
-  globalValues.automergeRepo.on("document", ({ handle }) => {
+  missionRepo.on("document", ({ handle }) => {
     watchTerrainCache(handle as DocHandle<Mission>);
   });
 
-  // clg peers as they come and go
-  globalValues.automergeRepo.networkSubsystem.on("peer", (peerPayload) => {
-    serverLogger.debug({
-      logId: "server:automergeNetworkSubsystem:automergePeerConnected",
-      logValue: "automerge peer connected: " + peerPayload.peerId,
-    });
-  });
-  globalValues.automergeRepo.networkSubsystem.on("peer-disconnected", (peerPayload) => {
-    serverLogger.debug({
-      logId: "server:automergeNetworkSubsystem:automergePeerDisconnected",
-      logValue: "automerge peer disconnected: " + peerPayload.peerId,
+  const missionCatalog = startMissionCatalogRuntime(missionRepo);
+  await populateMissionCatalogOnce(missionRepo);
+  await loadRunningMissionDocuments(missionRepo);
+  const port = Number(process.env.API_PORT ?? 4001);
+  server.listen(port, () => {
+    serverLogger.info({
+      logId: "server:httpServerListen:serverListeningOnPort4001",
+      logValue: `Server listening on port ${port}`,
+      startupMs: Date.now() - bootStarted,
+      loadedDocuments: Object.keys(missionRepo.handles).length,
+      rssBytes: process.memoryUsage.rss(),
     });
   });
 
@@ -418,20 +334,20 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
     }, 30000); // 30 seconds
     shutdownTimeout.unref(); // Don't keep process alive just for this
 
-    // Shutdown automerge repo
-    if (globalValues.automergeRepo) {
+    // Persist pending server-side edits
+    if (globalValues.historyRepo) {
       try {
-        await globalValues.automergeRepo.shutdown();
+        await globalValues.historyRepo.shutdown();
         await missionCatalog.stop();
         serverLogger.debug({
-          logId: "server:gracefulShutdown:automergeRepoShutDownSuccessfully",
-          logValue: "Automerge repo shut down",
+          logId: "server:gracefulShutdown:historyRepoFlushedSuccessfully",
+          logValue: "History repo flushed",
         });
       } catch (err) {
         serverLogger.error(
           {
-            logId: "server:gracefulShutdown:failedToShutDownAutomergeRepo",
-            logValue: "Error shutting down automerge repo",
+            logId: "server:gracefulShutdown:failedToFlushHistoryRepo",
+            logValue: "Error flushing history repo",
           },
           err instanceof Error ? err : new Error(String(err))
         );

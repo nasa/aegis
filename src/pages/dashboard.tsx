@@ -1,3 +1,4 @@
+import { useRepo } from "client/history/historyReact";
 import { populateStore } from "store/processing/populateStore";
 import { setAllSliceStores } from "store/crossActions";
 import store from "store";
@@ -26,7 +27,6 @@ import { setSelectedRexUuid } from "store/rex";
 import { setSectionSelected } from "store/interface";
 import { clearLoadedGrid, getGridRenderMode, loadAndReturnGrid } from "utils/mapping/grid";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import { clientLogger } from "utils/logging/clientLogger";
 import { LoadingOverlay } from "components/interface/_global-elements";
 

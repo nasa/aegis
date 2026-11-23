@@ -26,7 +26,9 @@ type Namespace<ClientToServerEvents, ServerToClientEvents, InterServerEvents, So
     SocketData
   >;
 
+/** Legacy Automerge repo, used only by the pre-cutover migration and import tooling. */
 type Repo = import("@automerge/automerge-repo").Repo;
+type ServerHistoryRepo = import("server/historyStore/ServerHistoryRepo").ServerHistoryRepo;
 type DefaultEventsMap = import("socket.io").DefaultEventsMap;
 type GlobalValues = {
   orm: MikroORM;
@@ -37,7 +39,10 @@ type GlobalValues = {
   notificationBannerTimer: NodeJS.Timeout | null;
   appVersion: AppVersion;
   isEmssApiEnabled: boolean;
+  /** Legacy Automerge repo; set only by the Automerge migration script. */
   automergeRepo: Repo;
+  /** Every mission document, backed by the history store. */
+  historyRepo: ServerHistoryRepo;
   maestroV2: {
     visitorData: { [missionId: string]: MaestroVisitorV2[] };
     socketio: Namespace<
@@ -57,7 +62,7 @@ type GlobalValues = {
      * Key is missionId. Populated by addMaestroDocListenerForMission, cleared by cleanupSocketRoom.
      * Used to avoid a DB round-trip on every isRelevantToSubscribedEvas check.
      */
-    docHandles: Map<number, import("@automerge/automerge-repo").DocHandle<Mission>>;
+    docHandles: Map<number, DocHandle<Mission>>;
     evaSubscriptions: Map<number, string[]>; // key is missionId, value is array of eva uuids subscribed to
   };
   dustV1: {
@@ -78,7 +83,7 @@ type GlobalValues = {
      * Cached automerge DocHandles for missions that Dust is actively listening to.
      * Key is missionId. Populated by addDustDocListenerForMission, cleared by cleanupDust.
      */
-    docHandles: Map<number, import("@automerge/automerge-repo").DocHandle<Mission>>;
+    docHandles: Map<number, DocHandle<Mission>>;
   };
 };
 

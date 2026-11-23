@@ -1,7 +1,6 @@
+import { useDocHandle } from "client/history/historyReact";
 import type { FunctionComponent } from "react";
 import { useState } from "react";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import adminStyles from "./admin.module.css";
 import adminCommon from "pages/admin/adminCommon.module.css";
 import priorityStyles from "./missionPriorityImportExport.module.css";
@@ -116,7 +115,7 @@ const parseImportJson = (
  * per-row editor lives in the mission right pane; this replaces the whole set at once.
  */
 const MissionPriorityImportExport: FunctionComponent<{
-  automergeUrl: AutomergeUrl;
+  automergeUrl: HistoryDocumentId;
 }> = ({ automergeUrl }) => {
   return (
     <div className={adminStyles.sectionDiv}>
@@ -134,7 +133,7 @@ const MissionPriorityImportExport: FunctionComponent<{
 export default MissionPriorityImportExport;
 
 const ExportMissionPriorities: FunctionComponent<{
-  automergeUrl: AutomergeUrl;
+  automergeUrl: HistoryDocumentId;
 }> = ({ automergeUrl }) => {
   const categories = useDocSelector<Mission, MissionPriorityImportCategory[]>(
     automergeUrl,
@@ -192,7 +191,7 @@ const ExportMissionPriorities: FunctionComponent<{
 };
 
 const ImportMissionPriorities: FunctionComponent<{
-  automergeUrl: AutomergeUrl;
+  automergeUrl: HistoryDocumentId;
 }> = ({ automergeUrl }) => {
   const missionPriorityDocHandle = useDocHandle<Mission>(automergeUrl);
   const [importJson, setImportJson] = useState<string>("");

@@ -10,10 +10,8 @@ import {
   setClientAppVersion,
 } from "store/connection";
 import ErrorBoundary from "./components/ErrorBoundary";
-import type { NetworkAdapterInterface } from "@automerge/automerge-repo";
-import { Repo } from "@automerge/automerge-repo";
-import { RepoContext } from "@automerge/automerge-repo-react-hooks";
-import { VersionGatedNetworkAdapter } from "client/automerge-network-adapter";
+import { ClientHistoryRepo } from "client/history/ClientHistoryRepo";
+import { RepoContext } from "client/history/historyReact";
 
 import "./styles/globals.css";
 import "./styles/fonts.css";
@@ -57,11 +55,11 @@ if (!user || user instanceof Error) {
   repoClientID = `${user.auid}-${Math.random().toString(36).slice(2, 5)}`;
 }
 clientLogger.info({
-  logId: "automergeId:clientStartup:automergeRepoClientIdAssigned",
-  automergeId: `${repoClientID}`,
+  logId: "historyStore:clientStartup:historyClientIdAssigned",
+  historyClientId: `${repoClientID}`,
 });
 
-// The database epoch must be known before the Automerge socket is opened
+// The server epoch must be known before the history socket joins any document
 let serverAppVersion: AppVersion;
 try {
   serverAppVersion = await fetchServerAppVersion();
@@ -98,21 +96,17 @@ clientLogger.info({
   version: `AEGIS Client Version: ${clientAppVersion.version}, Git Commit: ${clientAppVersion.gitCommit}, Server Epoch: ${clientAppVersion.serverEpochUuid}`,
 });
 
-const repo = new Repo({
-  network: [
-    new VersionGatedNetworkAdapter({
-      url: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/automergeSocket/`,
-      serverEpochUuid: serverAppVersion.serverEpochUuid,
-      onConnectionStatusChange: (status) => {
-        store.dispatch(setAutomergeConnectionStatus(status));
-        if (status === "disconnected") {
-          store.dispatch(clearAllEditing());
-        }
-      },
-    }) as unknown as NetworkAdapterInterface, // connect back to the server via sockets
-  ],
-  /** @ts-expect-error @type {(import("@automerge/automerge-repo").PeerId)}  */
-  peerId: repoClientID,
+// Mission documents sync through the history store over Socket.IO (`/history/v1`).
+const repo = new ClientHistoryRepo({
+  serverURL: window.location.origin,
+  serverEpochUuid: serverAppVersion.serverEpochUuid,
+  userId: user && !(user instanceof Error) ? user.auid : repoClientID,
+  onConnectionStatusChange: (status) => {
+    store.dispatch(setAutomergeConnectionStatus(status));
+    if (status === "disconnected") {
+      store.dispatch(clearAllEditing());
+    }
+  },
 });
 
 // Add window event listeners for browser/OS network online and offline events

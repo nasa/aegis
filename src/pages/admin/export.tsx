@@ -1,3 +1,4 @@
+import { useRepo } from "client/history/historyReact";
 import { populateStore } from "store/processing/populateStore";
 import { setAllSliceStores } from "store/crossActions";
 import { syncMissionTerrainProfiles } from "store/thunk/thunkTerrainProfile";
@@ -12,7 +13,6 @@ import { isLoggedIn } from "http-client/login";
 import { dumpMission } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
 import adminCommon from "./adminCommon.module.css";
 import { makeExportString } from "utils/export";
 

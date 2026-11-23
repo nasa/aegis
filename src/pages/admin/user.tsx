@@ -1,3 +1,4 @@
+import { useRepo } from "client/history/historyReact";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useEffect, useState } from "react";
@@ -8,8 +9,6 @@ import React from "react";
 import { generateBlankAppUser } from "store/storeUtils/appUser";
 import { getAccurateNow } from "utils/formatting";
 import { getAutomergeDocListing } from "http-client/docListing";
-import { useRepo } from "@automerge/automerge-repo-react-hooks";
-import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUsers } from "@fortawesome/free-solid-svg-icons";
 import adminCommon from "./adminCommon.module.css";
@@ -49,7 +48,7 @@ const User: React.FunctionComponent = () => {
         // get their names
         for (const record of automergeDocListings) {
           const missionDocHandle: DocHandle<Mission> = await automergeRepo.find(
-            record.automergeUrl as AutomergeUrl
+            record.automergeUrl as HistoryDocumentId
           );
           const mission = missionDocHandle.doc();
           missionNamesAndIds.push({ id: record.missionId, name: mission.name });

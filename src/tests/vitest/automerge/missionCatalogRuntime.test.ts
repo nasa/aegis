@@ -7,17 +7,17 @@ import type {
 } from "@automerge/automerge-repo/slim";
 import { Repo } from "@automerge/automerge-repo/slim";
 import type { PostgresStorageAdapter } from "server/automerge/automerge-storage-adapter-postgres";
-import { createMissionSummary } from "server/automerge/missionCatalog";
+import { createMissionSummary } from "server/missionCatalog/missionCatalog";
 import {
   MISSION_CATALOG_DEBOUNCE_MS,
   MISSION_IDLE_MS,
   retainMissionDocuments,
   startMissionCatalogRuntime,
-} from "server/automerge/missionCatalogRuntime";
+} from "server/missionCatalog/missionCatalogRuntime";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
 
-vi.mock("server/automerge/missionCatalog", () => ({
+vi.mock("server/missionCatalog/missionCatalog", () => ({
   createMissionSummary: vi.fn().mockResolvedValue(false),
   getRunningMissionListings: vi.fn(),
 }));

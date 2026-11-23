@@ -7,7 +7,6 @@ import { serverLogger } from "utils/logging/serverLogger";
 import { asError } from "@emss/utils";
 import { globalValues } from "../global";
 import type { EntityManager } from "@mikro-orm/postgresql";
-import type { DocHandle, AutomergeUrl } from "@automerge/automerge-repo/slim";
 import { Doc_Listing_db } from "server/database/models/_allModels";
 import { getAccurateNow } from "utils/formatting";
 import { createAutomergeMission } from "server/express/routes/missionAutomerge";
@@ -204,8 +203,8 @@ export const createMissionCopy = async (
     // create an mission automerge document; entities ride along and are scoped by the new doc
     const docListing: AutomergeDocListing = await createAutomergeMission(newMission);
     // retrieve the mission object
-    const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-      docListing.automergeUrl as AutomergeUrl
+    const missionDocHandle: DocHandle<Mission> = await globalValues.historyRepo.find(
+      docListing.automergeUrl as HistoryDocumentId
     );
     await missionDocHandle.whenReady();
     const newMissionId = missionDocHandle.doc().id;
@@ -242,8 +241,8 @@ export const fetchMissionSourceData = async (
     throw new Error(`Automerge document listing for mission ID ${missionId} not found`);
   }
 
-  const missionDocHandle: DocHandle<Mission> = await globalValues.automergeRepo.find(
-    automergeDocListing.automergeUrl as AutomergeUrl
+  const missionDocHandle: DocHandle<Mission> = await globalValues.historyRepo.find(
+    automergeDocListing.automergeUrl as HistoryDocumentId
   );
   await missionDocHandle.whenReady();
   return { mission: missionDocHandle.doc() };

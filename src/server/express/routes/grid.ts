@@ -407,7 +407,7 @@ async function upsertGrid(
   if (handle.doc()?.serverFileGrid?.fileName !== grid.gridDefinition.fileName) {
     throw new Error(`Could not update grid metadata for mission ${missionId}`);
   }
-  await globalValues.automergeRepo.flush();
+  await globalValues.historyRepo.flush();
 
   if (
     upsertFullGrid &&
@@ -449,7 +449,7 @@ async function deleteGrid(missionId: number): Promise<boolean> {
   if (handle.doc()?.serverFileGrid !== null) {
     throw new Error(`Could not clear grid metadata for mission ${missionId}`);
   }
-  await globalValues.automergeRepo.flush();
+  await globalValues.historyRepo.flush();
   await deleteGridFile(missionId, definition.fileName);
   return true;
 }

@@ -1,10 +1,10 @@
+import { useDocument } from "client/history/historyReact";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
 import { useCallback, useEffect, useState } from "react";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Link, useParams } from "react-router";
 import adminStyles from "components/admin/admin.module.css";
-import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import { getElevationSinglePoint } from "http-client/terrainProfile";
 import FileManager from "components/admin/fileManager";
 import { InLineEditInput, TextArea } from "components/interface/form/globalFields";
@@ -12,7 +12,6 @@ import { validators } from "components/interface/form/formValidators";
 import Projection from "components/admin/projection";
 import AdminMissionGrid from "components/admin/gridUpload";
 import adminCommon from "./adminCommon.module.css";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
@@ -33,7 +32,7 @@ const Mission: React.FunctionComponent = () => {
   // useMissionDocSelector (to read) and useDocHandle (to write). This is because for this
   // component, in particular, we access most/all of the properties of mission and it is simpler
   const [automergeMission, changeMissionDoc] = useDocument<Mission>(
-    params.automergeUrl as AutomergeUrl
+    params.automergeUrl as HistoryDocumentId
   );
 
   // wrapper to also update the updatedAt field when any change is made

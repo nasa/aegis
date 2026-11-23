@@ -10,7 +10,6 @@ import {
   generateBlankStmLvl3,
 } from "store/storeUtils/stm";
 import { Checkbox, InLineEditInput } from "components/interface/form/globalFields";
-import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { getAccurateNow } from "utils/formatting";
 import { useDocSelector } from "utils/useDocSelector";
 import { applyReplaceStmTree, applyUpsertStmLevel } from "operations/apply/apply-mission-stm";
@@ -23,7 +22,7 @@ type ChangeMission = (updateFn: (m: Mission) => void) => void;
 const STMEdit: FunctionComponent<{
   changeMission: ChangeMission;
   missionId: number;
-  automergeUrl: AutomergeUrl;
+  automergeUrl: HistoryDocumentId;
   allLevel1s: STMLevel1[];
   allLevel2s: STMLevel2[];
   allLevel3s: STMLevel3[];
@@ -145,7 +144,7 @@ const destructiveImportSTM = (stmJson: string, missionId: number, changeMission:
 };
 
 const LevelNames: FunctionComponent<{
-  automergeUrl: AutomergeUrl;
+  automergeUrl: HistoryDocumentId;
   changeMission: ChangeMission;
 }> = ({ automergeUrl, changeMission }) => {
   const partialMission = useDocSelector(

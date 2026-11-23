@@ -12,6 +12,7 @@ import {
 import { Mission_Catalog_db, Mission_Catalog_dbSchema } from "./mission_catalog.model";
 import { Mission_Eva_Catalog_db, Mission_Eva_Catalog_dbSchema } from "./mission_eva_catalog.model";
 import { Notification_Banner_db, Notification_Banner_dbSchema } from "./notification_banner.model";
+import { Mission_History_db, Mission_History_dbSchema } from "./mission_history.model";
 
 export const allSchemas = [
   App_User_dbSchema,
@@ -21,6 +22,7 @@ export const allSchemas = [
   EnvironmentConfig_dbSchema,
   Mission_Catalog_dbSchema,
   Mission_Eva_Catalog_dbSchema,
+  Mission_History_dbSchema,
   Notification_Banner_dbSchema,
   Terrain_Profile_Cache_dbSchema,
 ];
@@ -33,6 +35,7 @@ export {
   EnvironmentConfig_db,
   Mission_Catalog_db,
   Mission_Eva_Catalog_db,
+  Mission_History_db,
   Notification_Banner_db,
   Terrain_Profile_Cache_db,
 };

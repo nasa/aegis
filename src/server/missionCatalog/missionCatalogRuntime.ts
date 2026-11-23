@@ -1,23 +1,18 @@
 import type {
-  AutomergeUrl,
-  DocHandle,
-  DocumentId,
-  Repo,
-  RepoEvents,
-} from "@automerge/automerge-repo/slim";
+  ServerHistoryRepo,
+  ServerHistoryRepoEvents,
+} from "server/historyStore/ServerHistoryRepo";
 import { getRunningMissionListings, createMissionSummary } from "./missionCatalog";
-import { releaseMissionDocument } from "./releaseMissionDocument";
 import { globalValues } from "server/express/global";
 import { serverLogger } from "utils/logging/serverLogger";
-import type { PostgresStorageAdapter } from "./automerge-storage-adapter-postgres";
 
 export const refreshMissionCatalog = createMissionSummary;
 export const MISSION_IDLE_MS = 4 * 60 * 60 * 1000;
 export const MISSION_CATALOG_DEBOUNCE_MS = 3_000;
 
-export async function loadRunningMissionDocuments(repo: Repo): Promise<void> {
+export async function loadRunningMissionDocuments(repo: ServerHistoryRepo): Promise<void> {
   for (const listing of await getRunningMissionListings()) {
-    await repo.find<Mission>(listing.automergeUrl as AutomergeUrl);
+    await repo.find<Mission>(listing.automergeUrl as HistoryDocumentId);
   }
 }
 
@@ -38,8 +33,7 @@ export function retainMissionDocuments(): () => void {
  * Queue work outside storage.save(): summary creation flushes the repo and must not block its own save.
  */
 export function startMissionCatalogRuntime(
-  repo: Repo,
-  storage: PostgresStorageAdapter,
+  repo: ServerHistoryRepo,
   idleMs = MISSION_IDLE_MS
 ): {
   refresh: () => Promise<void>;
@@ -49,11 +43,11 @@ export function startMissionCatalogRuntime(
   let maintenance: Promise<void> | undefined;
   let stopped = false;
   // Document IDs awaiting a catalog update; repeated save notifications share one entry.
-  const pendingCatalogWrites = new Set<DocumentId>();
-  const catalogDebounces = new Map<DocumentId, ReturnType<typeof setTimeout>>();
+  const pendingCatalogWrites = new Set<HistoryDocumentId>();
+  const catalogDebounces = new Map<HistoryDocumentId, ReturnType<typeof setTimeout>>();
   // Start a grace period when a mission is first observed unused. Reads, edits and saves
   // do not extend it; a connected consumer or running REX keeps the mission loaded.
-  const unusedSince = new Map<DocumentId, number>();
+  const unusedSince = new Map<HistoryDocumentId, number>();
   const inUse = (handle: DocHandle<Mission>) => {
     const mission = handle.doc();
     return (
@@ -73,7 +67,7 @@ export function startMissionCatalogRuntime(
     if (handle.isReady() && !inUse(handle)) unusedSince.set(handle.documentId, Date.now());
   }
 
-  const reportError = (error: unknown, documentId?: DocumentId) => {
+  const reportError = (error: unknown, documentId?: HistoryDocumentId) => {
     serverLogger.error(
       {
         logId:
@@ -107,7 +101,7 @@ export function startMissionCatalogRuntime(
       });
     return running;
   };
-  const markCatalogWritePending = (id: DocumentId) => {
+  const markCatalogWritePending = (id: HistoryDocumentId) => {
     if (stopped) return;
     const handle = repo.handles[id];
     if (handle?.isReady()) {
@@ -132,7 +126,7 @@ export function startMissionCatalogRuntime(
     }
     catalogDebounces.clear();
   };
-  const onDocMetrics: RepoEvents["doc-metrics"] = async (event) => {
+  const onDocMetrics: ServerHistoryRepoEvents["doc-metrics"] = async (event) => {
     if (event.type !== "doc-loaded") return;
     markCatalogWritePending(event.documentId);
     const handle = repo.handles[event.documentId];
@@ -159,12 +153,12 @@ export function startMissionCatalogRuntime(
       durationMs: event.durationMillis,
     });
   };
-  storage.onDocumentSaved = markCatalogWritePending;
+  repo.onDocumentSaved = markCatalogWritePending;
   repo.on("doc-metrics", onDocMetrics);
 
   const evictIdle = async () => {
     for (const [idString, handle] of Object.entries(repo.handles)) {
-      const id = idString as DocumentId;
+      const id = idString as HistoryDocumentId;
       if (!handle.isReady()) continue;
       if (inUse(handle)) {
         unusedSince.delete(id);
@@ -185,7 +179,7 @@ export function startMissionCatalogRuntime(
       }
       if (activeRequests > 0 || handle.doc() !== document || unusedSince.get(id) !== idleStarted)
         continue;
-      await releaseMissionDocument(repo, id);
+      await repo.removeFromCache(id);
       unusedSince.delete(id);
     }
     for (const id of unusedSince.keys()) {
@@ -220,7 +214,7 @@ export function startMissionCatalogRuntime(
     stop: async () => {
       clearInterval(timer);
       stopped = true;
-      storage.onDocumentSaved = undefined;
+      repo.onDocumentSaved = undefined;
       repo.off("doc-metrics", onDocMetrics);
       flushCatalogDebounces();
       await maintenance;
