@@ -389,7 +389,7 @@ const PositionDetails: FunctionComponent<{
           data-tooltip-id="aegis-tooltip"
           data-tooltip-content="Radius of the uncertainty circle, in meters"
         >
-          Uncert. (m)
+          Radius (m)
         </span>
         <div className={`${assetStyles.fieldControls} ${posStyles.detailsValue}`}>
           <span data-testid="position-details-uncertainty">{entry.uncertaintyMeters ?? 0}</span>

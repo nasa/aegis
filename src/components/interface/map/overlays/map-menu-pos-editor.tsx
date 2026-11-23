@@ -310,7 +310,7 @@ export const PositionEditor: FunctionComponent<PositionEditorProps> = ({
           data-tooltip-id="aegis-tooltip"
           data-tooltip-content="Radius of the uncertainty circle, in meters"
         >
-          Uncert. (m)
+          Radius (m)
         </span>
         <div className={assetStyles.fieldControls}>
           <InLineEditInput
