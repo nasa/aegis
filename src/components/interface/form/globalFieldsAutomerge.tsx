@@ -503,8 +503,8 @@ export const ValidatedInputField: FunctionComponent<{
     setIsRightAligned(wouldOverflow);
 
     if (wouldOverflow) {
-      // Position dialog right-aligned to match container's right edge
-      dialogChildrenRef.current.style.right = `${window.innerWidth - rect.right}px`;
+      // Position dialog right-aligned to keep right edge on screen
+      dialogChildrenRef.current.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
       dialogChildrenRef.current.style.left = "auto";
     } else {
       // Position dialog left-aligned to match container's left edge
