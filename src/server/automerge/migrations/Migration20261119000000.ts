@@ -1,4 +1,7 @@
+import { unlink } from "node:fs/promises";
+import { asError } from "@emss/utils";
 import type { AutomergeMigration } from "server/automerge/migrations/types";
+import { serverLogger } from "utils/logging/serverLogger";
 
 type MigrationPlanet = "earth" | "moon" | "mars";
 type LegacyMission = Omit<Mission, "planet"> & {
@@ -60,17 +63,42 @@ function recalculateMissionDistances(mission: LegacyMission): void {
   }
 }
 
+/** Deletes a non-Earth mission's uploaded grid file; a missing file is ignored. */
+async function deleteUploadedGridFile(missionId: number, fileName: string): Promise<void> {
+  const filePath = `${process.env.STATIC_DIR}/missionFiles/${missionId}/Data/${fileName}`;
+  try {
+    await unlink(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    serverLogger.error(
+      {
+        logId: "automerge-migration:Migration20261119000000:failedToDeleteNonEarthGridFile",
+        logValue: `Error deleting grid file ${filePath}`,
+        missionId,
+      },
+      asError(error)
+    );
+  }
+}
+
 export const Migration20261119000000: AutomergeMigration = {
   version: 20261119000000,
   name: "configure-mission-planet-and-grid",
   migrate: async (docHandle) => {
+    let removedGrid: { missionId: number; fileName: string } | null = null;
     docHandle.change((mission: LegacyMission) => {
       migrateMissionPlanet(mission);
       delete mission.gridSystem;
       if (mission.earthGridLabelScheme === undefined) mission.earthGridLabelScheme = "lunar-acc";
-      if (mission.planet !== "earth") mission.serverFileGrid = null;
+      if (mission.planet !== "earth") {
+        if (mission.serverFileGrid) {
+          removedGrid = { missionId: mission.id, fileName: mission.serverFileGrid.fileName };
+        }
+        mission.serverFileGrid = null;
+      }
       if (!mission.demFilePath) mission.landerElevationMeters = null;
       recalculateMissionDistances(mission);
     });
+    if (removedGrid) await deleteUploadedGridFile(removedGrid.missionId, removedGrid.fileName);
   },
 };
