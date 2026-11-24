@@ -319,8 +319,11 @@ export const thunkDocUpdateWalkback = appCreateAsyncThunk<
 
   const profile =
     profileResponse.meta.requestStatus === "fulfilled"
-      ? (profileResponse.payload as TerrainProfile)
+      ? (profileResponse.payload as TerrainProfile | null)
       : null;
+  // A superseded sample resolves to null; the newer request still in flight
+  // will supply this preview, so leave the existing one alone.
+  if (!profile && profileResponse.meta.requestStatus === "fulfilled") return;
   dispatch(
     setTerrainPreview({
       uuid: stationUuid,

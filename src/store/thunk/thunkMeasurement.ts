@@ -93,7 +93,9 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   );
   if (!currentMeasurement) return;
 
-  const profile = profileResponse.payload as TerrainProfile;
+  // A superseded sample resolves to null; a newer request is already in flight.
+  const profile = profileResponse.payload as TerrainProfile | null;
+  if (!profile) return;
   const currentSegmentCount = currentMeasurement.pathSegmentDistances.length;
   if (
     !profileMatchesSegmentCount(profile.elevationsMeters, currentSegmentCount) ||
@@ -169,7 +171,7 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
     );
     const profile =
       profileResponse.meta.requestStatus === "fulfilled"
-        ? (profileResponse.payload as TerrainProfile)
+        ? (profileResponse.payload as TerrainProfile | null)
         : null;
 
     const gridSystem = getMissionCoordinateSystem(mission);
