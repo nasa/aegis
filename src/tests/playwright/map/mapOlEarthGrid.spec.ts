@@ -3,13 +3,13 @@
  *
  * Creates a throwaway Earth mission at JSC (UTM 15R) on the default EPSG:3857 projection with
  * grid coordinates and the dynamic grid enabled, labelled in Earth ACC by default. Checks the
- * mouse readout and its scheme tag in ACC, switches the map menu's Grid Scheme to MGRS and back
+ * mouse readout and its scheme tag in ACC, switches the mission's label scheme to MGRS and back
  * without reloading, and checks that turning on the grid in a preset draws it. The mission is
  * deleted when the test finishes.
  */
 
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
-import { test, expect } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
 import { minimizeRexMenu, toggleEditMode, waitForPageReady } from "../helpers";
 
 const JSC = { lat: 29.5593, lng: -95.09 };
@@ -52,12 +52,32 @@ async function createEarthMission(request: APIRequestContext): Promise<number> {
   }
 }
 
+async function setLabelScheme(
+  request: APIRequestContext,
+  missionId: number,
+  earthGridLabelScheme: GridLabelScheme
+): Promise<void> {
+  const response = await request.post("/api/v1/missionAutomerge/fields", {
+    data: { missionId, fields: { earthGridLabelScheme } satisfies MissionFieldsUpdate },
+  });
+  expect(response.ok()).toBe(true);
+}
+
 async function deleteMission(request: APIRequestContext, missionId: number): Promise<void> {
   const response = await request.delete("/api/v1/missionAutomerge", {
     data: { missionIds: [missionId] },
   });
   expect(response.ok()).toBe(true);
 }
+
+// Teardown runs in its own timeout slot, so the mission is deleted even after a test timeout.
+const test = base.extend<{ missionId: number }>({
+  missionId: async ({ page }, provide) => {
+    const missionId = await createEarthMission(page.request);
+    await provide(missionId);
+    await deleteMission(page.request, missionId);
+  },
+});
 
 /** Number of non-transparent pixels across the map's canvases (the mission has no tile layers). */
 async function countMapPixels(page: Page): Promise<number> {
@@ -88,23 +108,6 @@ async function setGridCheckbox(page: Page, label: string, checked: boolean): Pro
   await expect(checkbox).toBeChecked({ checked });
 }
 
-/** Open the eyeball (Map Item Visibility) menu. */
-async function openMapMenu(page: Page): Promise<Locator> {
-  const menuPanel = page.getByTestId("map-menu-floating-panel");
-  if (!(await menuPanel.isVisible().catch(() => false))) {
-    await page.getByTestId("map-menu-launcher").click();
-  }
-  await expect(menuPanel.getByText("Map Item Visibility", { exact: true })).toBeVisible();
-  return menuPanel;
-}
-
-/** Clicks a scheme in the map menu's Grid Scheme row and waits for it to be active. */
-async function chooseScheme(menuPanel: Locator, name: "ACC" | "MGRS"): Promise<void> {
-  const button = menuPanel.getByTestId("map-menu-grid-scheme").getByText(name, { exact: true });
-  await button.click();
-  await expect(button).toHaveAttribute("aria-pressed", "true");
-}
-
 /** Expects the grid readout to match `pattern`, tagged with the scheme `tag`. */
 async function expectGridReadout(mapPanel: Locator, pattern: RegExp, tag: string): Promise<void> {
   const tagElement = mapPanel.getByTestId("mouse-grid-scheme");
@@ -119,82 +122,77 @@ async function expectGridReadout(mapPanel: Locator, pattern: RegExp, tag: string
 }
 
 test.describe("Earth mission — UTM grid in ACC and MGRS", () => {
-  test("readout and grid follow the Grid Scheme toggle without a reload", async ({ page }) => {
-    const missionId = await createEarthMission(page.request);
+  test("readout and grid follow the mission label scheme without a reload", async ({
+    page,
+    missionId,
+  }) => {
+    await page.goto(`/mission/${missionId}`);
+    await waitForPageReady(page);
+    const mapPanel = page.getByTestId("mission-panel-map");
+    const viewport = mapPanel.locator(".ol-viewport").first();
+    await viewport.waitFor({ state: "visible", timeout: 15000 });
+    await minimizeRexMenu(page);
+    let loads = 0;
+    page.on("load", () => loads++);
 
-    try {
-      await page.goto(`/mission/${missionId}`);
-      await waitForPageReady(page);
-      const mapPanel = page.getByTestId("mission-panel-map");
-      const viewport = mapPanel.locator(".ol-viewport").first();
-      await viewport.waitFor({ state: "visible", timeout: 15000 });
-      await minimizeRexMenu(page);
-      let loads = 0;
-      page.on("load", () => loads++);
+    const box = await viewport.boundingBox();
+    expect(box).not.toBeNull();
+    // Off-centre so the pointer is not over the lander marker.
+    const hover = async () => {
+      await page.mouse.move(box!.x + box!.width * 0.4, box!.y + box!.height * 0.4);
+      await page.mouse.move(box!.x + box!.width * 0.4 + 5, box!.y + box!.height * 0.4 + 5);
+    };
 
-      const box = await viewport.boundingBox();
-      expect(box).not.toBeNull();
-      // Off-centre so the pointer is not over the lander marker.
-      const hover = async () => {
-        await page.mouse.move(box!.x + box!.width * 0.4, box!.y + box!.height * 0.4);
-        await page.mouse.move(box!.x + box!.width * 0.4 + 5, box!.y + box!.height * 0.4 + 5);
-      };
+    await test.step("mouse readout shows lat/lng and a full Earth ACC string", async () => {
+      await hover();
+      const latLng = mapPanel.getByText(LAT_LNG_READOUT);
+      await expect(latLng).toBeVisible({ timeout: 5000 });
+      const [, lat, lng] = (await latLng.textContent())!.match(LAT_LNG_READOUT)!;
+      expect(Math.abs(Number(lat) - JSC.lat)).toBeLessThan(0.25);
+      expect(Math.abs(Number(lng) - JSC.lng)).toBeLessThan(0.25);
 
-      await test.step("mouse readout shows lat/lng and a full Earth ACC string", async () => {
-        await hover();
-        const latLng = mapPanel.getByText(LAT_LNG_READOUT);
-        await expect(latLng).toBeVisible({ timeout: 5000 });
-        const [, lat, lng] = (await latLng.textContent())!.match(LAT_LNG_READOUT)!;
-        expect(Math.abs(Number(lat) - JSC.lat)).toBeLessThan(0.25);
-        expect(Math.abs(Number(lng) - JSC.lng)).toBeLessThan(0.25);
+      await expectGridReadout(mapPanel, ACC_READOUT, "ACC");
+    });
 
-        await expectGridReadout(mapPanel, ACC_READOUT, "ACC");
-      });
+    await test.step("switching the scheme to MGRS relabels the readout", async () => {
+      await setLabelScheme(page.request, missionId, "mgrs");
+      // The readout follows the switch before the pointer moves again.
+      await expectGridReadout(mapPanel, MGRS_READOUT, "MGRS");
+      await hover();
+      await expectGridReadout(mapPanel, MGRS_READOUT, "MGRS");
+    });
 
-      await test.step("switching the scheme to MGRS relabels the readout", async () => {
-        const menuPanel = await openMapMenu(page);
-        await chooseScheme(menuPanel, "MGRS");
-        // The readout follows the switch before the pointer returns to the map.
-        await expectGridReadout(mapPanel, MGRS_READOUT, "MGRS");
-        await hover();
-        await expectGridReadout(mapPanel, MGRS_READOUT, "MGRS");
-      });
+    await test.step("dynamic grid renders when enabled in a preset", async () => {
+      await page.getByLabel("preset Section", { exact: true }).click();
+      await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
+        "Map Display Presets"
+      );
+      await toggleEditMode(page);
+      await page.getByLabel("Add", { exact: true }).click();
+      await expect(
+        page.getByLabel("selectedPreset", { exact: true }).getByLabel("leftPresetName")
+      ).toBeVisible();
 
-      await test.step("dynamic grid renders when enabled in a preset", async () => {
-        await page.getByLabel("preset Section", { exact: true }).click();
-        await expect(page.getByLabel("leftPanelTitle", { exact: true })).toContainText(
-          "Map Display Presets"
-        );
-        await toggleEditMode(page);
-        await page.getByLabel("Add", { exact: true }).click();
-        await expect(
-          page.getByLabel("selectedPreset", { exact: true }).getByLabel("leftPresetName")
-        ).toBeVisible();
+      await page.getByLabel("grid_panel", { exact: true }).click();
+      await expect(page.getByLabel("rightBodyTitle", { exact: true })).toContainText(
+        "Grid Preferences"
+      );
 
-        await page.getByLabel("grid_panel", { exact: true }).click();
-        await expect(page.getByLabel("rightBodyTitle", { exact: true })).toContainText(
-          "Grid Preferences"
-        );
+      const withoutGrid = await countMapPixels(page);
+      await setGridCheckbox(page, "Show Grid", true);
+      await setGridCheckbox(page, "Show Grid Labels", true);
+      await expect
+        .poll(() => countMapPixels(page), { timeout: 10000 })
+        .toBeGreaterThan(withoutGrid + 1000);
 
-        const withoutGrid = await countMapPixels(page);
-        await setGridCheckbox(page, "Show Grid", true);
-        await setGridCheckbox(page, "Show Grid Labels", true);
-        await expect
-          .poll(() => countMapPixels(page), { timeout: 10000 })
-          .toBeGreaterThan(withoutGrid + 1000);
+      await toggleEditMode(page);
+    });
 
-        await toggleEditMode(page);
-      });
-
-      await test.step("switching back to ACC restores the ACC readout", async () => {
-        const menuPanel = await openMapMenu(page);
-        await chooseScheme(menuPanel, "ACC");
-        await hover();
-        await expectGridReadout(mapPanel, ACC_READOUT, "ACC");
-        expect(loads).toBe(0);
-      });
-    } finally {
-      await deleteMission(page.request, missionId);
-    }
+    await test.step("switching back to ACC restores the ACC readout", async () => {
+      await setLabelScheme(page.request, missionId, "lunar-acc");
+      await hover();
+      await expectGridReadout(mapPanel, ACC_READOUT, "ACC");
+      expect(loads).toBe(0);
+    });
   });
 });
