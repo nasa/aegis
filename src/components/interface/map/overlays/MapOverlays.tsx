@@ -1,7 +1,7 @@
 /**
  * MapOverlays — visible React UI components positioned on top of the OL map.
  *
- * Composes: MapMenu (eyeball), MapDistanceOverlays, MouseCoordinateDisplay, SunEarth.
+ * Composes: MapMenu (eyeball), ScaleBar, MouseCoordinateDisplay, SunEarth.
  *
  * This component renders as a React subtree positioned absolutely over the
  * map canvas. It does NOT use ol/Overlay (which is for map-coordinate-anchored
@@ -10,7 +10,7 @@
 
 import { useEffect, useState, type FunctionComponent } from "react";
 
-import { MapDistanceOverlays } from "./MapDistanceOverlays";
+import { ScaleBar } from "./ScaleBar";
 import { MouseCoordinateDisplay } from "./MouseCoordinateDisplay";
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -131,7 +131,8 @@ export function MapOverlays(): JSX.Element {
         </div>
       )}
 
-      <MapDistanceOverlays showScaleBar={display.showScaleBar} />
+      {/* Scale bar — bottom left */}
+      {display.showScaleBar && <ScaleBar />}
 
       {/* Mouse coordinates — bottom right (editor only) */}
       {config.map.showMouseCoords && display.showMouseLatLon && (

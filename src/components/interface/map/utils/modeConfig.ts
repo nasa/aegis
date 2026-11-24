@@ -136,6 +136,9 @@ export interface ModeConfig {
     labelFontSize: number;
   };
 
+  // Scale bar overlay
+  scaleBar: ScaleBarConfig;
+
   // GIS data sublayer labels
   dataLayer: DataLayerConfig;
 }
@@ -214,6 +217,10 @@ const EDITOR_CONFIG: ModeConfig = {
     labelsEnabled: true,
     labelFontSize: 12,
   },
+  scaleBar: {
+    fontScale: 1,
+    showTickLabels: true,
+  },
   dataLayer: {
     labelsEnabled: true,
     gazetteerFontSize: 13,
@@ -288,6 +295,10 @@ const DASHBOARD_CONFIG: ModeConfig = {
     labelsEnabled: true,
     labelFontSize: 18,
   },
+  scaleBar: {
+    fontScale: 2,
+    showTickLabels: false,
+  },
   dataLayer: {
     labelsEnabled: true,
     gazetteerFontSize: 20,
@@ -361,6 +372,10 @@ const MINIMAP_CONFIG: ModeConfig = {
   grid: {
     labelsEnabled: false,
     labelFontSize: 11,
+  },
+  scaleBar: {
+    fontScale: 2,
+    showTickLabels: false,
   },
   dataLayer: {
     labelsEnabled: false,

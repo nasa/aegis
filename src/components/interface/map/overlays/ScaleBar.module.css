@@ -1,5 +1,9 @@
 .graphic {
-  margin-inline: 8px;
+  position: absolute;
+  bottom: 15px;
+  left: 18px;
+  z-index: 100;
+  pointer-events: none;
 }
 
 .labels {
@@ -17,6 +21,11 @@
   -webkit-text-stroke: 2px #111111;
   paint-order: stroke fill;
   transform: translateX(-50%);
+}
+
+.totalTick {
+  justify-self: center;
+  transform: none;
 }
 
 .unit {

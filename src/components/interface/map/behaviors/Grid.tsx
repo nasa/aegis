@@ -29,7 +29,6 @@ import {
   gridCellWidth,
   GRID_LABEL_MIN_PX,
   MINIMAP_MIN_LINE_PX,
-  nominalGridInterval,
 } from "utils/mapping/gridSpacing";
 import { adjustGridIndex, findClosestPointInGlobalGrid } from "utils/mapping/geoMath";
 import { getLgrsCompatibility } from "utils/lgrs/compatibility";
@@ -47,11 +46,7 @@ import { useCoordConverters } from "../hooks/useCoordConverters";
 import { useMissionGridSystem } from "../hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { createGridLabelStyleFn, createGridLineStyles, gridLabelFits } from "../utils/styles/grid";
-import {
-  getGroundMetersPerPixel,
-  GRID_INTERVAL_PROPERTY,
-  type DrawnGridInterval,
-} from "../utils/mapScale";
+import { getGroundMetersPerPixel } from "../utils/mapScale";
 import { Z_INDEX } from "../utils/zIndex";
 
 export function Grid(): null {
@@ -125,7 +120,6 @@ export function Grid(): null {
     return () => {
       map.removeLayer(lineLayer);
       map.removeLayer(labelLayer);
-      map.set(GRID_INTERVAL_PROPERTY, null);
       lineLayerRef.current = null;
       labelLayerRef.current = null;
     };
@@ -311,9 +305,6 @@ export function Grid(): null {
     // Note the separate statement: `publishSpacing?.(drawGrid())` would skip the
     // draw entirely on maps that don't publish.
     const spacing = drawGrid();
-    const interval: DrawnGridInterval =
-      spacing === "lgrs-zones" ? spacing : spacing && nominalGridInterval(spacing.line);
-    map.set(GRID_INTERVAL_PROPERTY, interval);
     // The dashboard publishes what it drew so the minimap can mirror it.
     publishSpacing?.(spacing === "lgrs-zones" ? null : spacing);
   }, [

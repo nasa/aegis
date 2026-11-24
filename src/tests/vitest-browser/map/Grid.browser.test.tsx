@@ -47,7 +47,6 @@ import {
   type DashboardBoundsContextValue,
 } from "components/interface/map/DashboardBoundsProvider";
 import { Grid } from "components/interface/map/behaviors/Grid";
-import { GRID_INTERVAL_PROPERTY } from "components/interface/map/utils/mapScale";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { MODE_CONFIGS } from "components/interface/map/utils/modeConfig";
 import { createGridLabelStyleFn, gridLabelFits } from "components/interface/map/utils/styles/grid";
@@ -658,10 +657,8 @@ describe("Grid", () => {
 
     // 3×3 grid over the whole viewport → stride 1 → spacing == base spacing.
     await expect.poll(() => bounds.ctx?.gridSpacing).toEqual({ line: 10, label: 10 });
-    expect(map.get(GRID_INTERVAL_PROPERTY)).toBe(10);
 
     map.getView().setResolution(2);
-    await expect.poll(() => map.get(GRID_INTERVAL_PROPERTY)).toBe(100);
     await expect.poll(() => bounds.ctx?.gridSpacing).toEqual({ line: 100, label: 100 });
   });
 

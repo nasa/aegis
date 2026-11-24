@@ -443,7 +443,7 @@ for the timeline astronaut renders above all vector layers regardless.
 algorithm everywhere; only the numbers/flags differ per mode. Behaviors read from it rather than
 branching on mode. Sections: `map`, `lander`, `station`, `asset` (markers + label styling),
 `circle`,
-`traverse`, `markerLabel`, `pos`, `grid`, `dataLayer`. Notable flags that gate behavior:
+`traverse`, `markerLabel`, `pos`, `grid`, `scaleBar`, `dataLayer`. Notable flags that gate behavior:
 
 - editor: fully interactive; `station.zIndexOffset: 2000`; draggable/hoverable stations.
 - dashboard: larger icons and label fonts throughout, `tooltipOpacity 0.65`, `hoverable: false`
@@ -582,8 +582,9 @@ Overlay gotchas:
   The readout is Roboto Mono so the box doesn't resize as the digits change; the scheme tag is
   pinned to the right edge.
 - `ScaleBar` measures ground resolution at the view centre using the projection and mission
-  radius and updates while the view moves. `MapDistanceOverlays` shows the rendered grid interval
-  in a row above the bar.
+  radius and updates while the view moves. It sits in the bottom-left corner.
+  `MODE_CONFIGS[mode].scaleBar` sets its font scale and whether intermediate ticks are labelled;
+  the dashboard and minimap use 2× text and label only the total length.
 
 ---
 

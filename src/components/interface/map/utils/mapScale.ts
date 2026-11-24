@@ -2,9 +2,6 @@ import type View from "ol/View";
 import { toLonLat } from "ol/proj";
 import { getDistance } from "ol/sphere";
 
-export const GRID_INTERVAL_PROPERTY = "aegisGridInterval";
-export type DrawnGridInterval = number | "lgrs-zones" | null;
-
 const formatNumber = new Intl.NumberFormat(undefined, { maximumSignificantDigits: 3 });
 const distanceUnits = [
   { meters: 1000, symbol: "km" },
@@ -17,12 +14,8 @@ function getDistanceUnit(meters: number) {
   return distanceUnits.find((candidate) => meters >= candidate.meters) ?? distanceUnits[3];
 }
 
-export function formatMapDistance(meters: number): string {
-  const unit = getDistanceUnit(meters);
-  return `${formatNumber.format(meters / unit.meters)} ${unit.symbol}`;
-}
-
 const maxScaleBarWidth = 150;
+const minUnlabelledSegmentPixels = 12;
 // Each total has subdivisions whose steps are 1, 2, 2.5, or 5 times a power of ten.
 const scaleBarTotals = [
   { multiplier: 5, segmentCounts: [10, 5, 2, 1] },
@@ -36,7 +29,10 @@ type ScaleBarLayout = {
   symbol: string;
 };
 
-export function getScaleBarLayout(metersPerPixel: number): ScaleBarLayout | null {
+export function getScaleBarLayout(
+  metersPerPixel: number,
+  { fontScale, showTickLabels }: ScaleBarConfig = { fontScale: 1, showTickLabels: true }
+): ScaleBarLayout | null {
   // Allow a fraction of a pixel for rounding at an exact distance threshold.
   const maxDistance = (maxScaleBarWidth + 1e-6) * metersPerPixel;
   if (!Number.isFinite(maxDistance) || maxDistance <= 0) return null;
@@ -53,16 +49,20 @@ export function getScaleBarLayout(metersPerPixel: number): ScaleBarLayout | null
   const unit = getDistanceUnit(distance);
   const value = distance / unit.meters;
 
+  // At 0.8em, allow roughly 7.5px per character plus 3px between labels for the halos.
+  const charPixels = 7.5 * fontScale;
   for (const segments of total.segmentCounts) {
     const stepPixels = width / segments;
     const ticks = Array.from({ length: segments + 1 }, (_, index) =>
       formatNumber.format((index / segments) * value)
     );
-    // At 0.8em, allow roughly 7.5px per character plus 3px between labels for the halos.
-    const labelsFit = ticks.every(
-      (label, index) =>
-        index === 0 || stepPixels >= ((label.length + ticks[index - 1].length) * 7.5) / 2 + 3
-    );
+    const labelsFit = showTickLabels
+      ? ticks.every(
+          (label, index) =>
+            index === 0 ||
+            stepPixels >= ((label.length + ticks[index - 1].length) * charPixels) / 2 + 3
+        )
+      : stepPixels >= minUnlabelledSegmentPixels;
     if (labelsFit) return { width, ticks, symbol: unit.symbol };
   }
 

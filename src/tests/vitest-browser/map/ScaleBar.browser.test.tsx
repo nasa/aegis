@@ -3,7 +3,7 @@
  *
  * Mounts the ScaleBar against a hand-rolled OL Map (via MapContext directly,
  * bypassing the full MapProvider which needs an Automerge mission doc). The
- * scale bar derives its width from ground resolution and sits below the grid interval.
+ * scale bar derives its width from ground resolution.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -12,9 +12,7 @@ import Map from "ol/Map";
 import View from "ol/View";
 import { fromLonLat } from "ol/proj";
 import { MapContext } from "components/interface/map/MapProvider";
-import { MapDistanceOverlays } from "components/interface/map/overlays/MapDistanceOverlays";
 import { ScaleBar } from "components/interface/map/overlays/ScaleBar";
-import { GRID_INTERVAL_PROPERTY } from "components/interface/map/utils/mapScale";
 import { createReactHarness, type ReactHarness } from "./helpers/reactBrowserHarness";
 
 let harness: ReactHarness;
@@ -23,16 +21,19 @@ let mapContainer: HTMLDivElement;
 
 /** Render the ScaleBar and wait for the post-mount effect to flush
  *  (effect calls setScale → triggers a re-render that emits the DOM). */
-async function renderScaleBar(planetRadius = 6378137): Promise<HTMLDivElement | null> {
+async function renderScaleBar(
+  planetRadius = 6378137,
+  mode: MapMode = "editor"
+): Promise<HTMLDivElement | null> {
   harness.render(
-    <MapContext.Provider value={{ map, mode: "editor", planetRadius }}>
+    <MapContext.Provider value={{ map, mode, planetRadius }}>
       <ScaleBar className="scaleBarTest" />
     </MapContext.Provider>
   );
   await new Promise((r) => setTimeout(r, 0));
   // Re-render to drain any pending state updates from the effect
   harness.render(
-    <MapContext.Provider value={{ map, mode: "editor", planetRadius }}>
+    <MapContext.Provider value={{ map, mode, planetRadius }}>
       <ScaleBar className="scaleBarTest" />
     </MapContext.Provider>
   );
@@ -172,48 +173,28 @@ describe("ScaleBar", () => {
     expect(parseFloat(scaleGraphic().style.width)).toBeCloseTo(200 / ((5 * 1737400) / 6378137));
   });
 
-  it("shows the grid interval in its own box above the scale bar", async () => {
-    map.set(GRID_INTERVAL_PROPERTY, 100);
-    const renderOverlays = (showScaleBar: boolean) => {
-      harness.render(
-        <MapContext.Provider value={{ map, mode: "editor", planetRadius: 6378137 }}>
-          <MapDistanceOverlays showScaleBar={showScaleBar} />
-        </MapContext.Provider>
-      );
-    };
-    renderOverlays(true);
-    await expect.poll(() => scaleGraphic()?.getAttribute("aria-label")).toMatch(/^Map scale /);
-    const bar = scaleGraphic();
-    const intervalRow = bar.previousElementSibling!;
-    const readout = bar.parentElement!;
-    const scaleWidth = bar.getBoundingClientRect().width;
-    const intervalBounds = intervalRow.getBoundingClientRect();
-    expect(intervalRow.textContent).toBe("Grid 100 m");
-    expect(readout.children).toHaveLength(2);
-    expect(getComputedStyle(intervalRow).backgroundColor).toBe("rgb(66, 70, 83)");
-    expect(getComputedStyle(readout).backgroundColor).toBe("rgba(0, 0, 0, 0)");
-    expect(getComputedStyle(readout).pointerEvents).toBe("none");
-    expect(intervalBounds.bottom).toBeLessThan(bar.getBoundingClientRect().top);
+  it.each(["dashboard", "minimap"] as const)(
+    "labels only the total at double font size on the %s map",
+    async (mode) => {
+      await renderScaleBar(6378137, "editor");
+      const editorFontSize = parseFloat(getComputedStyle(scaleGraphic().children[0]).fontSize);
 
-    flushSync(() => {
-      map.getView().setResolution(12.5);
-      map.dispatchEvent("moveend");
-    });
-    expect(bar.getBoundingClientRect().width).toBeLessThan(scaleWidth);
-    expect(intervalRow.getBoundingClientRect().width).toBe(intervalBounds.width);
-    expect(intervalRow.textContent).toBe("Grid 100 m");
+      await renderScaleBar(6378137, mode);
+      const labels = scaleGraphic().children[0];
+      expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 1 km");
+      expect(labels.textContent).toBe("1 km");
+      expect(parseFloat(getComputedStyle(labels).fontSize)).toBeCloseTo(editorFontSize * 2);
+      expect(scaleGraphic().children[1].children.length).toBeGreaterThan(1);
+    }
+  );
 
-    flushSync(() => map.set(GRID_INTERVAL_PROPERTY, null));
-    expect(readout.children).toHaveLength(1);
-    expect(readout.firstElementChild).toBe(bar);
-
-    flushSync(() => map.set(GRID_INTERVAL_PROPERTY, "lgrs-zones"));
-    renderOverlays(false);
-    expect(scaleGraphic()).toBeNull();
-    expect(readout.textContent).toBe("LGRS zones");
-    flushSync(() => map.set(GRID_INTERVAL_PROPERTY, null));
-    expect(readout.children).toHaveLength(0);
-    expect(getComputedStyle(readout).display).toBe("none");
+  it("sits in the bottom-left corner without blocking map input", async () => {
+    await renderScaleBar();
+    const style = getComputedStyle(scaleGraphic());
+    expect(style.position).toBe("absolute");
+    expect(style.left).toBe("18px");
+    expect(style.bottom).toBe("15px");
+    expect(style.pointerEvents).toBe("none");
   });
 
   it("removes its moveend listener on unmount (no leak)", async () => {

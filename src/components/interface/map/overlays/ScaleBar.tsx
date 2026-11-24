@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 
 import { useMapContext } from "../MapProvider";
 import { getGroundMetersPerPixel, getScaleBarLayout } from "../utils/mapScale";
+import { MODE_CONFIGS } from "../utils/modeConfig";
 import overlayStyles from "./mapOverlays.module.css";
 import styles from "./ScaleBar.module.css";
 
 export function ScaleBar({ className }: { className?: string }): JSX.Element | null {
-  const { map, planetRadius } = useMapContext();
+  const { map, mode, planetRadius } = useMapContext();
+  const config = MODE_CONFIGS[mode].scaleBar;
   const [metersPerPixel, setMetersPerPixel] = useState(0);
 
   useEffect(() => {
@@ -31,30 +33,37 @@ export function ScaleBar({ className }: { className?: string }): JSX.Element | n
     };
   }, [map, planetRadius]);
 
-  const layout = getScaleBarLayout(metersPerPixel);
+  const layout = getScaleBarLayout(metersPerPixel, config);
   if (!layout) return null;
   const { width, ticks, symbol } = layout;
   const divisions = ticks.length - 1;
+  const total = `${ticks[divisions]} ${symbol}`;
 
   return (
     <div
       className={`${styles.graphic} ${className ?? ""}`}
       role="img"
-      aria-label={`Map scale ${ticks[divisions]} ${symbol}`}
-      style={{ width }}
+      aria-label={`Map scale ${total}`}
+      style={{ width, fontSize: `${config.fontScale}em` }}
     >
-      <div
-        className={`${overlayStyles.mapReadoutText} ${styles.labels}`}
-        aria-hidden="true"
-        style={{ gridTemplateColumns: `repeat(${divisions}, minmax(0, 1fr)) 0` }}
-      >
-        {ticks.map((value, index) => (
-          <span key={value} className={styles.tick}>
-            <span>{value}</span>
-            {index === divisions && <span className={styles.unit}> {symbol}</span>}
-          </span>
-        ))}
-      </div>
+      {config.showTickLabels ? (
+        <div
+          className={`${overlayStyles.mapReadoutText} ${styles.labels}`}
+          aria-hidden="true"
+          style={{ gridTemplateColumns: `repeat(${divisions}, minmax(0, 1fr)) 0` }}
+        >
+          {ticks.map((value, index) => (
+            <span key={value} className={styles.tick}>
+              <span>{value}</span>
+              {index === divisions && <span className={styles.unit}> {symbol}</span>}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className={`${overlayStyles.mapReadoutText} ${styles.labels}`} aria-hidden="true">
+          <span className={`${styles.tick} ${styles.totalTick}`}>{total}</span>
+        </div>
+      )}
       <div className={styles.bar} aria-hidden="true">
         {Array.from({ length: divisions }, (_, index) => (
           <span key={index} className={styles.segment} />

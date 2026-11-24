@@ -24,7 +24,7 @@ import { AssetMarkers } from "./behaviors/AssetMarkers";
 import { AssetUncertainty } from "./behaviors/AssetUncertainty";
 import { BigMapBoundsBox } from "./behaviors/BigMapBoundsBox";
 import { AutoFitBounds } from "./behaviors/AutoFitBounds";
-import { MapDistanceOverlays } from "./overlays/MapDistanceOverlays";
+import { ScaleBar } from "./overlays/ScaleBar";
 
 export function AegisMapMinimap(): JSX.Element {
   // Scale bar visibility mirrors the dashboard eyeball menu (the minimap has no
@@ -47,7 +47,7 @@ export function AegisMapMinimap(): JSX.Element {
         <AutoFitBounds />
         <MinimapMenuSubscriber />
 
-        <MapDistanceOverlays showScaleBar={showScaleBar} />
+        {showScaleBar && <ScaleBar />}
       </AegisMap>
     </MapMenuProvider>
   );
