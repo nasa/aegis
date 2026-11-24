@@ -58,6 +58,25 @@ export const makeTraverseRateString = (
   }
 };
 
+/**
+ * The status to display for a sequence item or action.
+ *
+ * Maestro reports `rexStatus` and the per-crew percentages independently, and
+ * leaves an activity `in-progress` while an IV step is still unchecked even
+ * though both crew members have finished it. Both crews at 100% is what the
+ * crew actually experienced, so it wins over a stale `in-progress`. Every
+ * place that renders a status must derive it this way, or the row color and
+ * the status checkbox disagree.
+ */
+export const resolveDisplayedRexStatus = (rexActivityEntry: ActivityEntry | null): RexStatus => {
+  if (
+    rexActivityEntry?.maestroPercentCompleteEv1 === 100 &&
+    rexActivityEntry?.maestroPercentCompleteEv2 === 100
+  )
+    return "complete";
+  return rexActivityEntry?.rexStatus;
+};
+
 export const getRexStatusDisplayProperties = (
   rexStatus: RexStatus
 ): {
@@ -140,31 +159,30 @@ export const getSequenceItemRowStyles = ({
 }): { rowClassName: string; nameClassName: string } => {
   let rowClassName = "";
   let nameClassName = "";
-  const rexStatusComplete =
-    rexActivityEntry?.rexStatus === "complete" ||
-    (rexActivityEntry?.maestroPercentCompleteEv1 === 100 &&
-      rexActivityEntry?.maestroPercentCompleteEv2 === 100);
+  // Must match the status the checkbox shows, so the row never reads
+  // "in progress" green against a checked-off complete box.
+  const rexStatus = resolveDisplayedRexStatus(rexActivityEntry);
 
   if (isSelected) {
     rowClassName = evaStyles.evaItemSelected;
     nameClassName = evaStyles.evaItemNameSelected;
     if (isRexEva) {
-      if (rexActivityEntry?.rexStatus === "in-progress") {
+      if (rexStatus === "in-progress") {
         rowClassName = evaStyles.evaItemRexInProgressSelected;
         nameClassName = evaStyles.evaItemNameRexInProgressSelected;
-      } else if (rexActivityEntry?.rexStatus === "skipped") {
+      } else if (rexStatus === "skipped") {
         rowClassName = evaStyles.evaItemRexSkippedSelected;
         nameClassName = evaStyles.evaItemNameRexSkippedSelected;
       }
       // "complete" + selected falls through to the normal selected styling
     }
-  } else if (isRexEva && rexActivityEntry?.rexStatus === "in-progress") {
+  } else if (isRexEva && rexStatus === "in-progress") {
     rowClassName = evaStyles.evaItemRexInProgress;
     nameClassName = evaStyles.evaItemNameRexInProgress;
-  } else if (isRexEva && rexStatusComplete) {
+  } else if (isRexEva && rexStatus === "complete") {
     rowClassName = evaStyles.evaItemRexComplete;
     // text color provided by customTextClassName (headingCompleted)
-  } else if (isRexEva && rexActivityEntry?.rexStatus === "skipped") {
+  } else if (isRexEva && rexStatus === "skipped") {
     rowClassName = evaStyles.evaItemRexSkipped;
     // text color provided by customTextClassName (headingSkipped)
   } else if (isHovered) {

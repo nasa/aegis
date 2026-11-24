@@ -7,7 +7,11 @@ import { hmmFromMinutes, isNotNumber } from "utils/formatting";
 import { setHoverUuidsForSequence } from "store/hover";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { thunkSelectEVASequenceItem } from "store/thunk/crossThunk";
-import { getRexStatusDisplayProperties, getSequenceItemRowStyles } from "utils/component-helpers";
+import {
+  getRexStatusDisplayProperties,
+  getSequenceItemRowStyles,
+  resolveDisplayedRexStatus,
+} from "utils/component-helpers";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
@@ -141,13 +145,7 @@ const SequenceItemTraverse: FunctionComponent<{
     isRexEva,
   });
 
-  let rexStatus = traverseActivityEntry?.rexStatus;
-  if (
-    traverseActivityEntry?.maestroPercentCompleteEv1 === 100 &&
-    traverseActivityEntry?.maestroPercentCompleteEv2 === 100
-  ) {
-    rexStatus = "complete";
-  }
+  const rexStatus = resolveDisplayedRexStatus(traverseActivityEntry);
 
   return (
     <div className={evaStyles.evaSequence}>

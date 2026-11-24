@@ -6,7 +6,7 @@ import evaStyles from "../eva/eva.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { thunkDocAddRexStatusEntry } from "store/thunk/thunkRex";
 import { useAppDispatch } from "utils/useAppDispatch";
-import { getRexStatusDisplayProperties } from "utils/component-helpers";
+import { getRexStatusDisplayProperties, resolveDisplayedRexStatus } from "utils/component-helpers";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import RexSkippedIcon from "assets/draw-rex-skipped-icon.svg?react";
 
@@ -28,13 +28,7 @@ export const RexStatusMenu: FunctionComponent<{
   maestroControlled,
 }): JSX.Element => {
   const dispatch = useAppDispatch();
-  let rexStatus = rexActivityEntry?.rexStatus;
-  if (
-    rexActivityEntry?.maestroPercentCompleteEv1 === 100 &&
-    rexActivityEntry?.maestroPercentCompleteEv2 === 100
-  ) {
-    rexStatus = "complete";
-  }
+  const rexStatus = resolveDisplayedRexStatus(rexActivityEntry);
   const rexStatusDisplayProperties = getRexStatusDisplayProperties(rexStatus);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
