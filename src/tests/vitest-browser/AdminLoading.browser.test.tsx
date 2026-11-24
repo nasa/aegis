@@ -13,6 +13,7 @@ import { listFiles, deleteFile } from "http-client/file";
 import { getLayers, upsertLayers } from "http-client/layer";
 import { getSublayers } from "http-client/sublayer";
 import { getAutomergeDocListing } from "http-client/docListing";
+import { getMissionSummaries } from "http-client/mission";
 import { useAdminMission } from "components/admin/useAdminMission";
 import { generateAutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
@@ -41,6 +42,7 @@ vi.mock("components/admin/uploadFile", () => ({ default: (): null => null }));
 vi.mock("components/admin/downloadFromBox", () => ({ default: (): null => null }));
 vi.mock("components/admin/layerSublayerEdit", () => ({ default: (): null => null }));
 vi.mock("http-client/docListing", () => ({ getAutomergeDocListing: vi.fn() }));
+vi.mock("http-client/mission", () => ({ getMissionSummaries: vi.fn() }));
 vi.mock("@automerge/automerge-repo-react-hooks", () => {
   const repo = { find: vi.fn() };
   return { useDocument: vi.fn(() => [undefined]), useRepo: vi.fn(() => repo) };
@@ -239,7 +241,7 @@ describe("admin user dialogs", () => {
       message: "",
     });
     vi.mocked(getAppUsers).mockResolvedValue({ status: "success", data: [user], message: "" });
-    vi.mocked(getAutomergeDocListing).mockResolvedValueOnce({
+    vi.mocked(getMissionSummaries).mockResolvedValueOnce({
       status: "success",
       data: [],
       message: "",
