@@ -185,6 +185,7 @@ describe("ScaleBar", () => {
       expect(labels.textContent).toBe("1 km");
       expect(parseFloat(getComputedStyle(labels).fontSize)).toBeCloseTo(editorFontSize * 2);
       expect(scaleGraphic().children[1].children.length).toBeGreaterThan(1);
+      expect(scaleGraphic().children[1].getBoundingClientRect().height).toBe(8);
     }
   );
 

@@ -171,6 +171,8 @@ type GridLabelStyleFn = (text: string, centered: boolean) => import("ol/style").
 interface ScaleBarConfig {
   /** Multiplier applied to the scale bar label font size. */
   fontScale: number;
+  /** Bar thickness (px). */
+  barHeight: number;
   /** When false, only the total length and unit are labelled. */
   showTickLabels: boolean;
 }

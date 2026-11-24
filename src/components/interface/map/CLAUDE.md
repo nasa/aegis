@@ -583,8 +583,9 @@ Overlay gotchas:
   pinned to the right edge.
 - `ScaleBar` measures ground resolution at the view centre using the projection and mission
   radius and updates while the view moves. It sits in the bottom-left corner.
-  `MODE_CONFIGS[mode].scaleBar` sets its font scale and whether intermediate ticks are labelled;
-  the dashboard and minimap use 2× text and label only the total length.
+  `MODE_CONFIGS[mode].scaleBar` sets its font scale, bar thickness, and whether intermediate ticks
+  are labelled;
+  the dashboard and minimap use 2× text, a thicker bar, and label only the total length.
 
 ---
 

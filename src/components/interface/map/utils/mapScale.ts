@@ -31,7 +31,10 @@ type ScaleBarLayout = {
 
 export function getScaleBarLayout(
   metersPerPixel: number,
-  { fontScale, showTickLabels }: ScaleBarConfig = { fontScale: 1, showTickLabels: true }
+  { fontScale, showTickLabels }: Pick<ScaleBarConfig, "fontScale" | "showTickLabels"> = {
+    fontScale: 1,
+    showTickLabels: true,
+  }
 ): ScaleBarLayout | null {
   // Allow a fraction of a pixel for rounding at an exact distance threshold.
   const maxDistance = (maxScaleBarWidth + 1e-6) * metersPerPixel;

@@ -219,6 +219,7 @@ const EDITOR_CONFIG: ModeConfig = {
   },
   scaleBar: {
     fontScale: 1,
+    barHeight: 5,
     showTickLabels: true,
   },
   dataLayer: {
@@ -297,6 +298,7 @@ const DASHBOARD_CONFIG: ModeConfig = {
   },
   scaleBar: {
     fontScale: 2,
+    barHeight: 8,
     showTickLabels: false,
   },
   dataLayer: {
@@ -375,6 +377,7 @@ const MINIMAP_CONFIG: ModeConfig = {
   },
   scaleBar: {
     fontScale: 2,
+    barHeight: 8,
     showTickLabels: false,
   },
   dataLayer: {

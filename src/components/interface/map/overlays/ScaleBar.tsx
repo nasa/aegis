@@ -64,7 +64,7 @@ export function ScaleBar({ className }: { className?: string }): JSX.Element | n
           <span className={`${styles.tick} ${styles.totalTick}`}>{total}</span>
         </div>
       )}
-      <div className={styles.bar} aria-hidden="true">
+      <div className={styles.bar} aria-hidden="true" style={{ height: config.barHeight }}>
         {Array.from({ length: divisions }, (_, index) => (
           <span key={index} className={styles.segment} />
         ))}
