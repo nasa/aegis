@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 /**
  * MeasurementLines — behavior component for measurement polylines.
  *
@@ -42,7 +43,7 @@ export function MeasurementLines(): null {
     refEqual
   );
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
-  const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
+  const planetRadius = useMissionDocSelector((m) => getPlanetRadius(m), refEqual);
   const gridSystem = useMissionCoordinateSystem();
 
   // While any map directive is active — a marker/path edit OR a crew-position

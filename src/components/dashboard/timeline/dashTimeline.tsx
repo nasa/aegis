@@ -35,7 +35,7 @@ const DashTimeline: FunctionComponent = () => {
       demResolution: mission.demResolution,
       landerElevationMeters: mission.landerElevationMeters,
       landerLocation: mission.landerLocation,
-      planetRadius: mission.planetRadius,
+      planet: mission.planet,
       defaultEvaDuration: mission.defaultEvaDuration,
     }),
     deepEqual

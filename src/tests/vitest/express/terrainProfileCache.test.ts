@@ -254,6 +254,7 @@ it("cleans a deleted REX's profiles through the server document observer", async
   const callbacks = new Map<string, () => void>();
   const handle = {
     doc: () => mission,
+    isReady: () => true,
     whenReady: async () => {},
     on: (event: string, callback: () => void) => callbacks.set(event, callback),
     off: vi.fn(),

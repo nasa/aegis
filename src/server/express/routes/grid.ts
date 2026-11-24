@@ -1,3 +1,4 @@
+import { supportsUploadedGrid } from "utils/planets";
 import type { Request, Response } from "express";
 import type { Query } from "express-serve-static-core";
 
@@ -214,6 +215,14 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const handle = await getAutomergeMissionHandle(missionId);
+    if (handle && !supportsUploadedGrid(handle.doc())) {
+      res.status(400).json({
+        status: "error",
+        message: "Grid uploads are supported only for Earth missions",
+      });
+      return;
+    }
     const upsertResponse: MissionGrid = await upsertGrid(missionId, grid, upsertFullGrid);
 
     res.status(200).json({
@@ -316,7 +325,7 @@ export async function getGrid(
 ): Promise<MissionGrid | null> {
   const handle = await getAutomergeMissionHandle(missionId);
   const mission = handle?.doc();
-  if (mission?.gridRenderMode === "dynamic-lgrs") return null;
+  if (!mission || !supportsUploadedGrid(mission)) return null;
   const definition = mission?.serverFileGrid;
   if (!definition) return null;
 
@@ -364,7 +373,7 @@ async function getClosestPoints(
 ): Promise<GridIndex[]> {
   const handle = await getAutomergeMissionHandle(missionId);
   const mission = handle?.doc();
-  if (mission?.gridRenderMode === "dynamic-lgrs") return [];
+  if (!mission || !supportsUploadedGrid(mission)) return [];
   const definition = mission?.serverFileGrid;
   if (!definition) return [];
 

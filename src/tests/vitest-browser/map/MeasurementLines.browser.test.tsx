@@ -62,8 +62,8 @@ vi.mock("utils/useDocSelector", async (importOriginal) => {
   const actual = await importOriginal<typeof UseDocSelectorModule>();
   return {
     ...actual,
-    useMissionDocSelector: (selector: (m: { planetRadius: number }) => unknown) =>
-      selector({ planetRadius: 1737400 }),
+    useMissionDocSelector: (selector: (m: { planet: Planet }) => unknown) =>
+      selector({ planet: "moon" }),
   };
 });
 

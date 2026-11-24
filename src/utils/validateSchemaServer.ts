@@ -16,15 +16,19 @@ const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });
 const missionSchema = JSON.parse(fs.readFileSync(path.join(SCHEMA_DIR, "mission.json"), "utf8"));
 export const currentMissionValidator = ajv.compile<Mission>(missionSchema);
 
-// The history-compaction migration validates legacy documents before the grid backfill.
-const gridSettings = ["gridSystem", "earthGridLabelScheme"] as const;
-type GridSetting = (typeof gridSettings)[number];
-type LegacyMission = Omit<Mission, GridSetting> & Partial<Pick<Mission, GridSetting>>;
-export const missionValidator = ajv.compile<LegacyMission>({
-  ...missionSchema,
-  required: missionSchema.required.filter((field: string) =>
-    gridSettings.every((setting) => setting !== field)
-  ),
+// History compaction validates documents before the planet migration has run.
+const legacyMissionSchema = structuredClone(missionSchema);
+delete legacyMissionSchema.properties.planet;
+legacyMissionSchema.properties.gridSystem = { enum: ["moon-m2025", "earth-wgs84"] };
+legacyMissionSchema.properties.planetRadius = { type: ["number", "null"] };
+legacyMissionSchema.properties.usingLGRSCoordinates = { type: "boolean" };
+legacyMissionSchema.properties.gridRenderMode = { enum: ["server-file", "dynamic-lgrs"] };
+legacyMissionSchema.required = legacyMissionSchema.required
+  .filter((field: string) => field !== "planet")
+  .concat(["planetRadius", "usingLGRSCoordinates", "gridRenderMode"]);
+export const missionValidator = ajv.compile({
+  definitions: missionSchema.definitions,
+  anyOf: [missionSchema, legacyMissionSchema],
 });
 
 // Maegistro V2 for sendMDAU

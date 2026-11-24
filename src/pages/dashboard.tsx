@@ -43,7 +43,10 @@ const Main = (): JSX.Element => {
     (doc) => ({
       name: doc.name,
       serverFileGrid: doc.serverFileGrid,
-      gridRenderMode: doc.gridRenderMode,
+      planet: doc.planet,
+      landerLocation: doc.landerLocation,
+      projIsCustom: doc.projIsCustom,
+      projProj4String: doc.projProj4String,
     }),
     deepEqual
   );
@@ -127,7 +130,7 @@ const Main = (): JSX.Element => {
   // in it's own useEffect in case grid changes while user is on the page
   useEffect(() => {
     if (!partialMission) return;
-    if (getGridRenderMode(partialMission) === "dynamic-lgrs" || !partialMission.serverFileGrid) {
+    if (getGridRenderMode(partialMission) !== "server-file" || !partialMission.serverFileGrid) {
       clearLoadedGrid();
       dispatch(setGridCornerPoint(null));
       return;

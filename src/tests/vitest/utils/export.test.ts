@@ -13,6 +13,7 @@ import {
   makeEquipmentReadable,
   makeExportEvas,
   makeExportString,
+  makeExportMission,
   makeReadableActionDefinition,
   makeReadableMissionPriority,
 } from "utils/export";
@@ -200,7 +201,6 @@ describe("Export tests", () => {
 
   test("exports full LGRS coordinates", () => {
     const mission = generateBlankMission({ name: "LGRS Export Mission" });
-    mission.usingLGRSCoordinates = true;
     mission.landerLocation = { lat: -89, lng: -133 };
 
     const output = makeExportString({
@@ -227,7 +227,6 @@ describe("Export tests", () => {
     ["LPS N", { lat: 80, lng: 10 }, "ZCA B47 B40"],
   ])("exports full %s LGRS coordinates for every entity", (_system, location, expected) => {
     const mission = generateBlankMission({ name: "Whole-Moon LGRS Export Mission" });
-    mission.usingLGRSCoordinates = true;
     mission.landerLocation = location;
     const poi = generateBlankPoi({ location });
     const station = generateBlankStation({ location });
@@ -344,30 +343,28 @@ describe("Export tests", () => {
       return { output, located, bearings };
     };
 
-    test("gives null grid coordinates on an Earth mission with grid coordinates off", () => {
+    test("derives ACC coordinates and grid bearings for Earth", () => {
       const { output, located, bearings } = exportAll({
-        planetRadius: 6378137,
-        gridSystem: "earth-wgs84",
-        usingLGRSCoordinates: false,
+        planet: "earth",
       });
       expect(output.exportMission).toMatchObject({
-        gridSystem: "earth-wgs84",
+        planet: "earth",
         earthGridLabelScheme: "lunar-acc",
       });
       for (const item of located) {
-        expect(item).toMatchObject({ gridCoordinates: null });
+        expect(item).toMatchObject({ gridCoordinates: "15RTNDC X51 W77" });
         expect(item).not.toHaveProperty("mgrsCoordinates");
       }
-      // True-north great-circle azimuths without grid coordinates.
       for (const bearing of bearings) {
-        expect(bearing).toBe(getTrueBearingFromLatLngPoints(path[0], path[1]));
+        expect(bearing).toBe(
+          getLgrsGridBearing(getGridSystem("earth-wgs84", "lunar-acc"), path[0], path[1])
+        );
       }
     });
 
     test("gives null grid coordinates for an item without a location", () => {
       const { output } = exportAll({
-        gridSystem: "earth-wgs84",
-        usingLGRSCoordinates: true,
+        planet: "earth",
         landerLocation: { lat: null, lng: null },
       });
       expect(output.exportMission.gridCoordinates).toBeNull();
@@ -381,10 +378,8 @@ describe("Export tests", () => {
       "exports %s grid coordinates in the mission's label scheme",
       (earthGridLabelScheme, expected) => {
         const { output, located, bearings } = exportAll({
-          planetRadius: 6378137,
-          gridSystem: "earth-wgs84",
+          planet: "earth",
           earthGridLabelScheme,
-          usingLGRSCoordinates: true,
         });
         expect(output.exportMission.earthGridLabelScheme).toBe(earthGridLabelScheme);
         for (const item of located) {
@@ -402,35 +397,52 @@ describe("Export tests", () => {
       }
     );
 
-    test.each([true, false])(
-      "keeps lunar exports unchanged with usingLGRSCoordinates %s",
-      (usingLGRSCoordinates) => {
-        const { output, located, bearings } = exportAll({
-          gridSystem: "moon-m2025",
-          earthGridLabelScheme: "mgrs",
-          usingLGRSCoordinates,
-        });
-        expect(output.exportMission).toMatchObject({
-          gridSystem: "moon-m2025",
-          earthGridLabelScheme: "lunar-acc",
-        });
-        for (const item of located) {
-          expect(item).not.toHaveProperty("mgrsCoordinates");
-          expect(item.gridCoordinates).toBe(
-            usingLGRSCoordinates ? moonGridSystem.formatPoint(JSC.lat, JSC.lng, 10, "full") : null
-          );
-        }
-        // Lunar exports have always used LGRS grid north, whatever usingLGRSCoordinates.
-        for (const bearing of bearings) {
-          expect(bearing).toBe(getLgrsGridBearing(moonGridSystem, path[0], path[1]));
-        }
+    test("keeps lunar exports in ACC", () => {
+      const { output, located, bearings } = exportAll({
+        planet: "moon",
+        earthGridLabelScheme: "mgrs",
+      });
+      expect(output.exportMission).toMatchObject({
+        planet: "moon",
+        earthGridLabelScheme: "lunar-acc",
+      });
+      for (const item of located) {
+        expect(item).not.toHaveProperty("mgrsCoordinates");
+        expect(item.gridCoordinates).toBe(moonGridSystem.formatPoint(JSC.lat, JSC.lng, 10, "full"));
       }
-    );
+      for (const bearing of bearings) {
+        expect(bearing).toBe(getLgrsGridBearing(moonGridSystem, path[0], path[1]));
+      }
+    });
 
-    test("treats a mission without a grid system as lunar", () => {
-      const { output, located } = exportAll({ gridSystem: undefined, planetRadius: 6378137 });
-      expect(output.exportMission.gridSystem).toBe("moon-m2025");
+    test("leaves Mars without a grid reference system", () => {
+      const { output, located, bearings } = exportAll({ planet: "mars" });
+      expect(output.exportMission.gridSystem).toBeNull();
+      for (const bearing of bearings)
+        expect(bearing).toBe(getTrueBearingFromLatLngPoints(path[0], path[1]));
       for (const item of located) expect(item).not.toHaveProperty("mgrsCoordinates");
     });
   });
+});
+
+test("uploaded Earth grids keep custom labels", () => {
+  const point = { lat: 29.5593, lng: -95.09 };
+  const mission = generateBlankMission({
+    planet: "earth",
+    landerLocation: point,
+    serverFileGrid: { name: "USGS", fileName: "usgs.json", numRows: 3, numCols: 3 },
+  });
+  const exported = makeExportMission({
+    mission,
+    missionGrid: Array.from({ length: 3 }, (_, row) =>
+      Array.from({ length: 3 }, (_, col) => ({
+        id: row * 3 + col,
+        index: { row, col },
+        coordinates: { lat: point.lat + (1 - row) * 0.001, lng: point.lng + (col - 1) * 0.001 },
+        name: "Custom A-1",
+      }))
+    ),
+  });
+  expect(exported.gridCoordinates).toBe("Custom A-1");
+  expect(exported).not.toHaveProperty("mgrsCoordinates");
 });

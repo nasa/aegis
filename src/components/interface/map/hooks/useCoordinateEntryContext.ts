@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { getPlanetRadius } from "utils/planets";
 import { deepEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { useResolvedMissionGrid } from "./useResolvedMissionGrid";
@@ -9,8 +10,9 @@ export function useCoordinateEntryContext(): CoordinateEntryContext {
   const resolvedGrid = useResolvedMissionGrid();
   const mission = useMissionDocSelector(
     (m) => ({
-      usingLGRSCoordinates: m.usingLGRSCoordinates,
-      planetRadius: m.planetRadius,
+      // Typed grid labels currently use the lunar parser.
+      usingLGRSCoordinates: m.planet === "moon",
+      planetRadius: getPlanetRadius(m),
       landerLocation: m.landerLocation,
     }),
     deepEqual

@@ -15,7 +15,7 @@ export const SunEarth: FunctionComponent<{
   const azimuths = useSunEarthAzimuths(true);
   const selectedEvaUuid = useAppSelector((s) => s.eva.selectedEvaUuid, refEqual);
   const evaStartTime = useMissionDocSelector((m) => m.evas?.[selectedEvaUuid]?.datetime, refEqual);
-  const isLunar = useMissionDocSelector((m) => m.planetRadius === 1737400, refEqual);
+  const showEarth = useMissionDocSelector((m) => m.planet !== "earth", refEqual);
   const tooltipId = useId();
   const info =
     azimuths.warning ||
@@ -26,7 +26,7 @@ export const SunEarth: FunctionComponent<{
     <div
       className={`${type === "editor" ? styles.sunEarthContainerEditor : styles.sunEarthContainerDashboard} ${!azimuths.available ? styles.unavailable : ""}`}
       role="group"
-      aria-label={`Sun/${isLunar ? "Earth" : "Moon"} value source`}
+      aria-label={`Sun/${showEarth ? "Earth" : "Moon"} value source`}
       aria-description={type === "editor" ? info : undefined}
       data-tooltip-id={type === "editor" ? tooltipId : undefined}
       tabIndex={type === "editor" ? 0 : undefined}
@@ -57,7 +57,7 @@ export const AzimuthIndicator: FunctionComponent<{
   azimuth: number | null;
   dashboard: boolean;
 }> = ({ sunEarth, azimuth, dashboard }) => {
-  const isLunar = useMissionDocSelector((m) => m.planetRadius === 1737400, refEqual);
+  const showEarth = useMissionDocSelector((m) => m.planet !== "earth", refEqual);
   const sunEarthRef = useRef(null);
   useEffect(() => {
     if (!sunEarthRef.current) return;
@@ -102,7 +102,7 @@ export const AzimuthIndicator: FunctionComponent<{
             }}
           >
             <FontAwesomeIcon
-              icon={sunEarth === "sun" ? faSun : isLunar ? faEarthAmerica : faMoon}
+              icon={sunEarth === "sun" ? faSun : showEarth ? faEarthAmerica : faMoon}
             />
           </div>
         </div>

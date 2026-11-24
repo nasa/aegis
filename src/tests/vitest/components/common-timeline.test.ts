@@ -4,11 +4,13 @@ import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankStation } from "store/storeUtils/station";
 import { generateBlankTraverse } from "store/storeUtils/traverse";
 import { getDistanceBetweenTwoCoordinates } from "utils/mapping/geoMath";
+import { getPlanetRadius } from "utils/planets";
 
 test("keeps the timeline finite after a millimeter-scale traverse", () => {
   const landerLocation = { lat: -84.2, lng: 33 };
   const stationLocation = { lat: -84.2, lng: 33.0000005 };
-  const planetRadius = 1737400;
+  const planet: Planet = "moon";
+  const planetRadius = getPlanetRadius({ planet });
   const traverseRate = 2;
   const traverse = generateBlankTraverse({
     path: [landerLocation, stationLocation],
@@ -31,7 +33,7 @@ test("keeps the timeline finite after a millimeter-scale traverse", () => {
     storeRef,
     partialMission: {
       landerLocation,
-      planetRadius,
+      planet,
       traverseRate,
       walkbackRate: 2,
       demResolution: 1,

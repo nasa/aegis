@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import { decodeEmoji } from "./formatting";
 import { buildActionDefinitionName } from "store/storeUtils/mission";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
@@ -5,7 +6,6 @@ import {
   getMissionCoordinateSystem,
   getMissionLabelScheme,
   getMissionGridSystemId,
-  resolveMissionGridSystem,
 } from "./lgrs/system";
 import {
   getCalcFieldsForEva,
@@ -24,22 +24,15 @@ const exportCoordinates = (
 ): ExportCoordinates => ({
   gridCoordinates: getGridCoordinatesFromPoint(
     point,
-    mission.planetRadius,
+    getPlanetRadius(mission),
     getMissionCoordinateSystem(mission),
     missionGrid,
     "full"
   ),
 });
 
-/**
- * The system for exported traverse bearings. Earth missions use grid north only with
- * `usingLGRSCoordinates` and true-north azimuths otherwise; lunar exports have always used
- * LGRS grid north.
- */
-const getExportBearingSystem = (mission: Mission): LgrsGridSystem | null =>
-  getMissionGridSystemId(mission) === "earth-wgs84"
-    ? getMissionCoordinateSystem(mission)
-    : resolveMissionGridSystem(mission);
+/** Dynamic grids use grid north; uploaded grids and unsupported bodies use true north. */
+const getExportBearingSystem = getMissionCoordinateSystem;
 
 export const makeEquipmentReadable = (params: {
   equipmentItems: EquipmentItemUsages;
