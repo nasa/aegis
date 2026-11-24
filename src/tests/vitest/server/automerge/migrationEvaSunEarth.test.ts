@@ -5,7 +5,7 @@ import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
 import { generateBlankEVA } from "store/storeUtils/eva";
 import { generateBlankMission } from "store/storeUtils/mission";
 import { generateBlankPreset } from "store/storeUtils/preset";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator } from "utils/validateSchemaServer";
 
 const fields = ["sunEarthFromDate", "sunAzimuth", "earthAzimuth"] as const;
 
@@ -56,8 +56,8 @@ describe("EVA Sun/Earth migration", () => {
         },
       });
       const before = Automerge.toJS(doc);
-      expect(missionValidator(before)).toBe(false);
-      expect(missionValidator.errors).toEqual(
+      expect(currentMissionValidator(before)).toBe(false);
+      expect(currentMissionValidator.errors).toEqual(
         expect.arrayContaining(
           fields.map((field) =>
             expect.objectContaining({ keyword: "required", params: { missingProperty: field } })
@@ -70,7 +70,7 @@ describe("EVA Sun/Earth migration", () => {
         },
       } as DocHandle<Mission>;
       await Migration20261022000000.migrate(handle, null);
-      expect(missionValidator(Automerge.toJS(doc))).toBe(true);
+      expect(currentMissionValidator(Automerge.toJS(doc))).toBe(true);
       expect(doc.evas.legacy).toEqual({
         ...before.evas.legacy,
         sunEarthFromDate: true,

@@ -36,8 +36,6 @@ SHP_TO_GEOJSON = ROOT / "vector" / "shp_to_geojson.py"
 DEM_PRODUCTS = ROOT / "products" / "dem_products.py"
 LYRX_TO_RAMP = ROOT / "products" / "lyrx_to_ramp.py"
 WRITE_PROPERTIES = ROOT / "properties" / "write_properties.py"
-GENERATE_LGRS = ROOT / "grid" / "generate_lgrs.py"
-CONVERT_LGRS = ROOT / "grid" / "convert_lgrs.py"
 ARCGIS_CACHE_TO_PMTILES = ROOT / "vectortile" / "arcgis_cache_to_pmtiles.py"
 DEM_TO_CONTOURS_PMTILES = ROOT / "vectortile" / "dem_to_contours_pmtiles.py"
 TIMEAWARE_COGS = ROOT / "timeaware" / "timeaware_cogs.py"
@@ -524,64 +522,6 @@ def step_horizons(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         out = p.data / f"{source.stem}.geojson"
         tee(f"  horizon: {source} → {out}")
         run([PYTHON, SHP_TO_GEOJSON, source, out])
-
-
-def step_grid(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """LGRS mission grid from the lander location → AEGIS grid GeoJSON (default 10 km square)."""
-    banner(
-        f"grid — LGRS grid ({args.grid_extent}, {args.grid_precision} m) → AEGIS GeoJSON"
-    )
-    if args.lander_lat is None or args.lander_lng is None:
-        tee(
-            "  [skip] grid needs --lander-lat/--lander-lng (lander location).",
-            file=sys.stderr,
-        )
-        return
-
-    p.data.mkdir(parents=True, exist_ok=True)
-    grid_out = p.out / config.OUT_GRID_SOURCE_PATH
-    scratch = p.out / "scratch_grid"
-    scratch.mkdir(parents=True, exist_ok=True)
-    raw = scratch / "raw_grid.geojson"
-    try:
-        run(
-            [
-                PYTHON,
-                GENERATE_LGRS,
-                "--lat",
-                str(args.lander_lat),
-                "--lng",
-                str(args.lander_lng),
-                "--extent",
-                args.grid_extent,
-                "--precision",
-                str(args.grid_precision),
-                "-o",
-                raw,
-            ]
-        )
-        run([PYTHON, CONVERT_LGRS, raw, "-o", scratch])
-        cleaned = scratch / f"Cleaned_{raw.stem}.geojson"
-        if not cleaned.exists():
-            tee(
-                f"  ERROR: expected converted grid not found: {cleaned}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        shutil.move(str(cleaned), str(grid_out))
-        legacy_grid_out = p.out / config.OUT_GRID_SOURCE_NAME
-        if legacy_grid_out != grid_out and legacy_grid_out.is_file():
-            legacy_grid_out.unlink()
-            tee(f"  removed legacy grid source {legacy_grid_out}")
-        tee(f"  grid → {grid_out}")
-    finally:
-        raw.unlink(missing_ok=True)
-        for leftover in scratch.glob("*.geojson"):
-            leftover.unlink(missing_ok=True)
-        try:
-            scratch.rmdir()
-        except OSError:
-            pass
 
 
 def _pmtiles_name(cache_dir: Path) -> str:
@@ -1315,8 +1255,8 @@ def step_lyrx_cogs(p: config.PipelinePaths, args: argparse.Namespace) -> None:
 
 
 def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
-    """Register mission fields + the 'All Layers' header + sublayers + active grid on the AEGIS server."""
-    banner("register — AEGIS mission fields + layers + sublayers + grid")
+    """Register mission fields + the 'All Layers' header + sublayers on the AEGIS server."""
+    banner("register — AEGIS mission fields + layers + sublayers")
     if args.mission_id is None:
         tee("ERROR: --mission-id is required for the register step.", file=sys.stderr)
         sys.exit(1)
@@ -1351,10 +1291,6 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
             dem_resolution=dem_resolution,
         )
 
-    grid_geojson = (
-        None if args.register_no_grid else (p.out / config.OUT_GRID_SOURCE_PATH)
-    )
-
     client = AegisApiClient(args.aegis_url, token)
     register_mission(
         client,
@@ -1362,7 +1298,6 @@ def step_register(p: config.PipelinePaths, args: argparse.Namespace) -> None:
         out_dir=p.out,
         mission_fields=mission_fields,
         include_external_nac=not args.register_no_external_nac,
-        grid_geojson=grid_geojson,
         dry_run=args.dry_run,
     )
 
@@ -1441,10 +1376,9 @@ STEPS: list[tuple[str, str]] = [
         "lyrx-cogs",
         "Rasters + .lyrx class breaks (--in-lyrx-raster) → classified RGBA COGs",
     ),
-    ("grid", "Lander location → LGRS mission grid GeoJSON (default 10km)"),
     (
         "register",
-        "Set mission fields + header layers/sublayers + active grid via AEGIS API",
+        "Set mission fields + header layers/sublayers via AEGIS API",
     ),
     ("box", "Zip Data/ + each layer and upload to Box"),
 ]
@@ -1466,7 +1400,6 @@ STEP_FNS = {
     "viewshed-cogs": step_viewshed_cogs,
     "keepout-cogs": step_keepout_cogs,
     "lyrx-cogs": step_lyrx_cogs,
-    "grid": step_grid,
     "register": step_register,
     "box": step_box,
 }
@@ -1491,7 +1424,6 @@ DATA_STEPS = {
     "viewshed-cogs",
     "keepout-cogs",
     "lyrx-cogs",
-    "grid",
 }
 
 
@@ -1530,12 +1462,6 @@ def default_steps(args: argparse.Namespace, p: config.PipelinePaths) -> list[str
         chosen.append("keepout-cogs")
     if args.in_lyrx_raster:
         chosen.append("lyrx-cogs")
-    if (
-        getattr(args, "grid", False)
-        and args.lander_lat is not None
-        and args.lander_lng is not None
-    ):
-        chosen.append("grid")
     if args.register:
         chosen.append("register")
     if args.box:

@@ -24,6 +24,7 @@ import { getDistanceBetweenTwoCoordinates, getSegmentBearing } from "utils/mappi
 import { useMapContext } from "../MapProvider";
 import { useFeatureSourcesContext } from "../FeatureSourcesProvider";
 import { useCoordConverters } from "../hooks/useCoordConverters";
+import { useMissionCoordinateSystem } from "../hooks/useMissionGridSystem";
 import { reconcileFeatures, type FeatureDescriptor } from "../utils/featureReconciler";
 import { buildMeasurementStyleFunction } from "../utils/styles/polylines";
 import { Z_INDEX } from "../utils/zIndex";
@@ -42,7 +43,7 @@ export function MeasurementLines(): null {
   );
   const mapDirective = useAppSelector((s) => s.map.mapDirective, refEqual);
   const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
-  const usingLGRSCoordinates = useMissionDocSelector((m) => m.usingLGRSCoordinates, refEqual);
+  const gridSystem = useMissionCoordinateSystem();
 
   // While any map directive is active — a marker/path edit OR a crew-position
   // placement — reference features stay visible but are made non-interactive.
@@ -163,8 +164,8 @@ export function MeasurementLines(): null {
   );
   const getSegmentBearingDegrees = useCallback(
     (a: Coordinate, b: Coordinate): number =>
-      getSegmentBearing(toAegisPoint(a), toAegisPoint(b), usingLGRSCoordinates),
-    [toAegisPoint, usingLGRSCoordinates]
+      getSegmentBearing(toAegisPoint(a), toAegisPoint(b), gridSystem),
+    [toAegisPoint, gridSystem]
   );
 
   // --- Style function ---

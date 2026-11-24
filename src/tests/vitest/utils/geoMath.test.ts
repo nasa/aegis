@@ -11,18 +11,27 @@ import {
   formatBearingDegrees,
 } from "utils/mapping/geoMath";
 import { getLgrsGridBearing } from "utils/lgrs/bearing";
+import { moonGridSystem } from "@bfeist/planetary-grid-reference/moon";
 
 describe("Geomath Functions", () => {
   const earthRadius = 6371000; //6378137;
 
   describe("getGridCoordinatesFromPoint", () => {
     test("uses the LGRS display port for LGRS grid coordinates", () => {
-      expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true)).toBe("B95 D44");
+      expect(getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, moonGridSystem)).toBe(
+        "B95 D44"
+      );
     });
 
     test("uses the full ACC identifier for dynamic LGRS grids", () => {
       expect(
-        getGridCoordinatesFromPoint({ lat: -89, lng: -133 }, 1737400, true, undefined, true)
+        getGridCoordinatesFromPoint(
+          { lat: -89, lng: -133 },
+          1737400,
+          moonGridSystem,
+          undefined,
+          "full"
+        )
       ).toBe("AZM B95 D44");
     });
 
@@ -36,16 +45,20 @@ describe("Geomath Functions", () => {
       [{ lat: 79.9, lng: 10 }, "K62 V59", "24XFG K62 V59"],
       [{ lat: 80, lng: 10 }, "B47 B40", "ZCA B47 B40"],
     ])("formats %o for LTM and north LPS", (point, condensed, full) => {
-      expect(getGridCoordinatesFromPoint(point, 1737400, true)).toBe(condensed);
-      expect(getGridCoordinatesFromPoint(point, 1737400, true, undefined, true)).toBe(full);
+      expect(getGridCoordinatesFromPoint(point, 1737400, moonGridSystem)).toBe(condensed);
+      expect(getGridCoordinatesFromPoint(point, 1737400, moonGridSystem, undefined, "full")).toBe(
+        full
+      );
     });
 
     test("returns null if point not given", () => {
-      expect(getGridCoordinatesFromPoint(null, 1737400, true, undefined, true)).toBe(null);
+      expect(getGridCoordinatesFromPoint(null, 1737400, moonGridSystem, undefined, "full")).toBe(
+        null
+      );
     });
 
     test("returns null without LGRS or a global grid", () => {
-      expect(getGridCoordinatesFromPoint({ lat: 0, lng: 0 }, 1737400, false)).toBe(null);
+      expect(getGridCoordinatesFromPoint({ lat: 0, lng: 0 }, 1737400, null)).toBe(null);
     });
   });
 
@@ -242,11 +255,11 @@ describe("getSegmentBearing()", () => {
 
   describe("Mercator / non-LGRS missions (true-north azimuth)", () => {
     test("a horizontal east-west line reads ~90°", () => {
-      expect(getSegmentBearing(horizontalWest, horizontalEast, false)).toBeCloseTo(90, 1);
+      expect(getSegmentBearing(horizontalWest, horizontalEast, null)).toBeCloseTo(90, 1);
     });
 
     test("delegates to getTrueBearingFromLatLngPoints", () => {
-      expect(getSegmentBearing(horizontalWest, horizontalEast, false)).toBe(
+      expect(getSegmentBearing(horizontalWest, horizontalEast, null)).toBe(
         getTrueBearingFromLatLngPoints(horizontalWest, horizontalEast)
       );
     });
@@ -255,33 +268,33 @@ describe("getSegmentBearing()", () => {
   describe("LGRS / lunar missions (grid bearing in the origin's LGRS CRS)", () => {
     test("an east-west line reads the LTM grid bearing, close to but not exactly 90°", () => {
       // LTM zone 10N; grid north differs from true north by the meridian convergence.
-      const bearing = getSegmentBearing(horizontalWest, horizontalEast, true);
+      const bearing = getSegmentBearing(horizontalWest, horizontalEast, moonGridSystem);
       expect(bearing).toBeCloseTo(89.8385637380594, 9);
     });
 
     test("delegates to getLgrsGridBearing", () => {
-      expect(getSegmentBearing(horizontalWest, horizontalEast, true)).toBe(
-        getLgrsGridBearing(horizontalWest, horizontalEast)
+      expect(getSegmentBearing(horizontalWest, horizontalEast, moonGridSystem)).toBe(
+        getLgrsGridBearing(moonGridSystem, horizontalWest, horizontalEast)
       );
     });
 
     test("keeps the south LPS grid bearing", () => {
       const origin: AEGISPoint = { lat: -89.5, lng: 10 };
       const destination: AEGISPoint = { lat: -89.4, lng: 12 };
-      expect(getSegmentBearing(origin, destination, true)).toBe(
-        getLgrsGridBearing(origin, destination)
+      expect(getSegmentBearing(origin, destination, moonGridSystem)).toBe(
+        getLgrsGridBearing(moonGridSystem, origin, destination)
       );
     });
 
     test("returns NaN when a point cannot be projected", () => {
-      expect(getSegmentBearing({ lat: 95, lng: 0 }, horizontalEast, true)).toBeNaN();
+      expect(getSegmentBearing({ lat: 95, lng: 0 }, horizontalEast, moonGridSystem)).toBeNaN();
     });
   });
 
   test("returns 0 when the segment has no direction", () => {
     const point: AEGISPoint = { lat: -89, lng: -133 };
-    expect(getSegmentBearing(point, point, true)).toBe(0);
-    expect(getSegmentBearing(point, point, false)).toBe(0);
+    expect(getSegmentBearing(point, point, moonGridSystem)).toBe(0);
+    expect(getSegmentBearing(point, point, null)).toBe(0);
   });
 });
 

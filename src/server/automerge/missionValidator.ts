@@ -18,7 +18,7 @@ import { getAutomergeDocListing } from "server/express/routes/docListing";
 import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 import { globalValues } from "server/express/global";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator } from "utils/validateSchemaServer";
 
 /** A single schema violation, trimmed down from the raw AJV error. */
 type SchemaViolation = {
@@ -145,14 +145,14 @@ getORM()
 
       // structuredClone instead of cloneDeep so no extra dependency is pulled into
       // the esbuild bundle. Detaches the doc from the Automerge proxy before AJV walks it.
-      const isValid = missionValidator(structuredClone(doc));
+      const isValid = currentMissionValidator(structuredClone(doc));
 
       if (isValid) {
         validCount += 1;
         continue;
       }
 
-      const violations = (missionValidator.errors ?? []).map(toSchemaViolation);
+      const violations = (currentMissionValidator.errors ?? []).map(toSchemaViolation);
       failures.push({
         missionId: doc.id,
         missionName: doc.name,

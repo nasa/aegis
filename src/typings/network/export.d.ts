@@ -1,8 +1,11 @@
-interface ExportMission extends Mission {
+/** Coordinate fields of an exported item with a location. */
+type ExportCoordinates = {
   gridCoordinates: string;
-}
+};
 
-interface ExportAction extends Action {
+type ExportMission = Mission & ExportCoordinates;
+
+interface ExportAction extends Action, ExportCoordinates {
   _itemType: string;
   parentPoiName: string;
   parentStationName: string;
@@ -15,7 +18,6 @@ interface ExportAction extends Action {
   actionDefinitionReadable: ActionDefinitionReadable | null;
   missionPriorityReadable: MissionPriorityReadable | null;
   stmPrioritiesReadable: StmPriorityReadable[] | null;
-  gridCoordinates: string;
   rexUuid: string | null; // the rex uuid if this action is in an EVA that is in a rex
 }
 
@@ -38,13 +40,12 @@ interface StmPriorityReadable {
   priority: number;
 }
 
-interface ExportPOI extends POI {
+interface ExportPOI extends POI, ExportCoordinates {
   _itemType: string;
   actionsReadable: ExportAction[];
   calculatedFields: PoiCalculatedFields;
   elevationRelative: number;
   iconEmojiDecoded: string;
-  gridCoordinates: string;
 }
 
 type PoiSummaryReadable = {
@@ -52,7 +53,7 @@ type PoiSummaryReadable = {
   description: string;
 };
 
-interface ExportStation extends Station {
+interface ExportStation extends Station, ExportCoordinates {
   _itemType: string;
   actionsReadable: ExportAction[];
   calculatedFields: ExportStationCalculatedFields;
@@ -61,7 +62,6 @@ interface ExportStation extends Station {
   elevationRelative: number;
   iconEmojiDecoded: string;
   poisAssociatedReadable: PoiSummaryReadable[];
-  gridCoordinates: string;
   actionOrderRefUuids: string[];
   rexUuid: string | null; // the rex uuid if this station is in an EVA that is in a rex
 }

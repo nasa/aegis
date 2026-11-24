@@ -162,19 +162,6 @@ TRI_RAMP_BY_RESOLUTION = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Mission grid (LGRS) defaults
-# ---------------------------------------------------------------------------
-# Square grid extent centred on the lander and cell size (metres) for grid/generate_lgrs.py.
-GRID_EXTENT_DEFAULT = "10km"
-GRID_PRECISION_DEFAULT = 100
-GRID_DEFAULT_NAME = "LGRS"
-# The AEGIS mission-grid GeoJSON produced by the grid step. It is kept in Data/ alongside the
-# active grid coordinates, but excluded from normal vector-sublayer registration.
-OUT_GRID_SOURCE_NAME = "grid_source.geojson"
-OUT_GRID_SOURCE_PATH = Path(OUT_DATA_DIRNAME) / OUT_GRID_SOURCE_NAME
-
-
 def tri_ramp_for_resolution(resolution: float | None) -> Path:
     """Return the TRI colour ramp matching the DEM resolution (legacy tri.txt fallback)."""
     name = (

@@ -5,7 +5,7 @@ import { isValidAutomergeUrl } from "@automerge/automerge-repo/slim";
 import type { Repo } from "@automerge/automerge-repo/slim";
 import type { MikroORM } from "@mikro-orm/postgresql";
 import type { AutomergeMigration } from "./migrations/types";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator } from "utils/validateSchemaServer";
 import { serverLogger } from "utils/logging/serverLogger";
 
 const logProgress = (message: string) => {
@@ -57,13 +57,15 @@ export const migrateDocuments = async (
       phase = "validation";
       let start = performance.now();
       logProgress(`${label}: validation started`);
-      if (!missionValidator(structuredClone(handle.doc()))) {
+      if (!currentMissionValidator(structuredClone(handle.doc()))) {
         // AJV verbose errors include document data; log only the failing paths and keywords.
-        const errors = missionValidator.errors?.map(({ instancePath, keyword, message }) => ({
-          instancePath,
-          keyword,
-          message,
-        }));
+        const errors = currentMissionValidator.errors?.map(
+          ({ instancePath, keyword, message }) => ({
+            instancePath,
+            keyword,
+            message,
+          })
+        );
         throw new Error(`Invalid mission: ${JSON.stringify(errors)}`);
       }
       logProgress(`${label}: validation completed in ${Math.round(performance.now() - start)} ms`);

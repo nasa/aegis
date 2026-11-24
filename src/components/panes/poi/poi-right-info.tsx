@@ -27,6 +27,7 @@ import { getCalcFieldsForPoi } from "store/processing/calculatedFields";
 import { findGlobalGridCoordsFromPoint } from "utils/mapping/geoMath";
 import { formatLgrsFromLatLon, LGRS_DISPLAY_PRECISION_METERS } from "utils/lgrs/display";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useMissionCoordinateSystem } from "components/interface/map/hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "components/interface/map/hooks/useResolvedMissionGrid";
 import { createQuickMapLinkState, isQuickMapPoint, openQuickMap } from "utils/quickMap";
 
@@ -35,9 +36,9 @@ const Info_Panel: FunctionComponent<{
 }> = ({ editMode }) => {
   const dispatch = useAppDispatch();
   const resolvedGrid = useResolvedMissionGrid();
+  const gridSystem = useMissionCoordinateSystem();
   const partialMission = useMissionDocSelector(
     (mission) => ({
-      usingLGRSCoordinates: mission.usingLGRSCoordinates,
       planetRadius: mission.planetRadius,
       projBoundsMinY: mission.projBoundsMinY,
       projBoundsMaxY: mission.projBoundsMaxY,
@@ -106,9 +107,10 @@ const Info_Panel: FunctionComponent<{
 
   const gridCornerPoint = useAppSelector((state) => state.map.gridCornerPoint, refEqual);
   const poiGridCoordinates = useMemo(() => {
-    if (selectedPoi?.location && partialMission.usingLGRSCoordinates) {
+    if (selectedPoi?.location && gridSystem) {
       return (
         formatLgrsFromLatLon(
+          gridSystem,
           selectedPoi.location,
           LGRS_DISPLAY_PRECISION_METERS,
           resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed"
@@ -123,13 +125,7 @@ const Info_Panel: FunctionComponent<{
     } else {
       return "Not set";
     }
-  }, [
-    selectedPoi,
-    partialMission.usingLGRSCoordinates,
-    partialMission.planetRadius,
-    gridCornerPoint,
-    resolvedGrid,
-  ]);
+  }, [selectedPoi, gridSystem, partialMission.planetRadius, gridCornerPoint, resolvedGrid]);
 
   const mapAction = thisMapDirective?.mapAction ? thisMapDirective.mapAction : null;
 

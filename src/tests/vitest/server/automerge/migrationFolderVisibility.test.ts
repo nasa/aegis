@@ -4,7 +4,7 @@ import { Migration20261014000000 } from "server/automerge/migrations/Migration20
 import { AUTOMERGE_MIGRATIONS } from "server/automerge/migrations";
 import { generateBlankFolder } from "store/storeUtils/folder";
 import { generateBlankMission } from "store/storeUtils/mission";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator } from "utils/validateSchemaServer";
 
 describe("shared folder visibility migration", () => {
   it("runs after the migration that moves folders into Automerge", () => {
@@ -26,8 +26,8 @@ describe("shared folder visibility migration", () => {
     folders.shown = generateBlankFolder({ uuid: "shown", visible: true });
     let doc = Automerge.from({ ...generateBlankMission({ folders }) });
     const before = Automerge.toJS(doc);
-    expect(missionValidator(before)).toBe(false);
-    expect(missionValidator.errors).toEqual(
+    expect(currentMissionValidator(before)).toBe(false);
+    expect(currentMissionValidator.errors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ keyword: "required", params: { missingProperty: "visible" } }),
       ])
@@ -39,7 +39,7 @@ describe("shared folder visibility migration", () => {
     } as DocHandle<Mission>;
 
     await Migration20261014000000.migrate(handle, null);
-    expect(missionValidator(Automerge.toJS(doc))).toBe(true);
+    expect(currentMissionValidator(Automerge.toJS(doc))).toBe(true);
     for (const type of types) {
       expect(doc.folders[type]).toEqual({ ...before.folders[type], visible: true });
     }

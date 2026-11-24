@@ -1,6 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { getAccurateNow } from "utils/formatting";
+import { suggestGridSystemId } from "components/interface/map/utils/planetScale";
+
+const MOON_RADIUS_METERS = 1737400;
 
 /**
  * Generate a blank mission
@@ -14,6 +17,9 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     maestroDocId: null,
     usingLGRSCoordinates: false,
     gridRenderMode: "server-file",
+    // New missions pre-select their grid system from the radius.
+    gridSystem: suggestGridSystemId(partialMission?.planetRadius ?? MOON_RADIUS_METERS),
+    earthGridLabelScheme: "lunar-acc",
     description: "",
     actionSystemVersion: 1,
     actionDefinitions: null,
@@ -29,7 +35,7 @@ export const generateBlankMission = (partialMission?: Partial<Mission>): Mission
     geographicUnits: {},
     missionPriorities: {},
     serverFileGrid: null,
-    planetRadius: 1737400, // moon
+    planetRadius: MOON_RADIUS_METERS,
     initialZoom: 14,
     demFilePath: "",
     demResolution: 0,

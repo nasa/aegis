@@ -2,6 +2,12 @@ import { decodeEmoji } from "./formatting";
 import { buildActionDefinitionName } from "store/storeUtils/mission";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
+  getMissionCoordinateSystem,
+  getMissionLabelScheme,
+  getMissionGridSystemId,
+  resolveMissionGridSystem,
+} from "./lgrs/system";
+import {
   getCalcFieldsForEva,
   getCalcFieldsForPoi,
   getCalcFieldsForStation,
@@ -9,6 +15,31 @@ import {
 } from "store/processing/calculatedFields";
 import { resolveMissionGrid } from "./mapping/grid";
 import * as jsonKeysSort from "json-keys-sort";
+
+/** Coordinate fields of an exported item at `point`, in the mission's label scheme. */
+const exportCoordinates = (
+  point: AEGISPoint,
+  mission: Mission,
+  missionGrid: MissionGridPoint[][]
+): ExportCoordinates => ({
+  gridCoordinates: getGridCoordinatesFromPoint(
+    point,
+    mission.planetRadius,
+    getMissionCoordinateSystem(mission),
+    missionGrid,
+    "full"
+  ),
+});
+
+/**
+ * The system for exported traverse bearings. Earth missions use grid north only with
+ * `usingLGRSCoordinates` and true-north azimuths otherwise; lunar exports have always used
+ * LGRS grid north.
+ */
+const getExportBearingSystem = (mission: Mission): LgrsGridSystem | null =>
+  getMissionGridSystemId(mission) === "earth-wgs84"
+    ? getMissionCoordinateSystem(mission)
+    : resolveMissionGridSystem(mission);
 
 export const makeEquipmentReadable = (params: {
   equipmentItems: EquipmentItemUsages;
@@ -92,13 +123,7 @@ export const makeExportActions = (params: {
             priority,
           }))
         : null,
-      gridCoordinates: getGridCoordinatesFromPoint(
-        action.location,
-        mission.planetRadius,
-        mission.usingLGRSCoordinates,
-        missionGrid,
-        true
-      ),
+      ...exportCoordinates(action.location, mission, missionGrid),
       rexUuid,
     };
     return exportAction;
@@ -134,13 +159,7 @@ export const makeExportPois = (params: {
       calculatedFields: poiCalculatedFields,
       elevationRelative: poi.elevation - mission.landerElevationMeters,
       iconEmojiDecoded: decodeEmoji(poi.icon),
-      gridCoordinates: getGridCoordinatesFromPoint(
-        poi.location,
-        mission.planetRadius,
-        mission.usingLGRSCoordinates,
-        missionGrid,
-        true
-      ),
+      ...exportCoordinates(poi.location, mission, missionGrid),
     };
     return exportPoi;
   });
@@ -223,13 +242,7 @@ export const makeExportStations = (params: {
           };
         }
       }),
-      gridCoordinates: getGridCoordinatesFromPoint(
-        station.location,
-        mission.planetRadius,
-        mission.usingLGRSCoordinates,
-        missionGrid,
-        true
-      ),
+      ...exportCoordinates(station.location, mission, missionGrid),
       actionOrderRefUuids: station.actionOrderUuids?.map(
         (actionOrderUuid) => mission.actions[actionOrderUuid]?.refUuid
       ),
@@ -265,6 +278,7 @@ export const makeExportTraverses = (params: {
       missionTraverseRate: mission.traverseRate,
       evaTraverseRate: traverseEva?.traverseRate,
       traverseActions,
+      gridSystem: getExportBearingSystem(mission),
     });
     let actionsReadable: ExportAction[] = null;
     if (exportActions) {
@@ -428,13 +442,9 @@ export const makeExportMission = (params: {
   if (!mission) throw new Error("Mission is required to export");
   const exportMission: ExportMission = {
     ...mission,
-    gridCoordinates: getGridCoordinatesFromPoint(
-      mission.landerLocation,
-      mission.planetRadius,
-      mission.usingLGRSCoordinates,
-      missionGrid,
-      true
-    ),
+    gridSystem: getMissionGridSystemId(mission),
+    earthGridLabelScheme: getMissionLabelScheme(mission),
+    ...exportCoordinates(mission.landerLocation, mission, missionGrid),
   };
 
   return exportMission;
