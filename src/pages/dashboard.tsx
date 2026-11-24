@@ -9,7 +9,7 @@ import { useParams } from "react-router";
 import styles from "./dashboard.module.css";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { setAppUser } from "store/user";
-import Tooltip from "components/interface/aegis-tooltip";
+import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router";
 

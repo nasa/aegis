@@ -5,7 +5,7 @@ import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { deepEqual } from "utils/useAppSelector";
 import uniqBy from "lodash/uniqBy";
 import uniq from "lodash/uniq";
-import Tooltip from "components/interface/aegis-tooltip";
+import { Tooltip } from "react-tooltip";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { selectStmLevel1s, selectStmLevel2s, selectStmLevel3s } from "store/selectors";
 

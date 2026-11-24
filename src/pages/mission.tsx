@@ -3,7 +3,7 @@ import { useAppSelector, deepEqual, refEqual } from "utils/useAppSelector";
 import { useParams, useSearchParams } from "react-router";
 import styles from "./mission.module.css";
 import { setAppUser } from "store/user";
-import Tooltip from "components/interface/aegis-tooltip";
+import { Tooltip } from "react-tooltip";
 import { isLoggedIn } from "http-client/login";
 import { useNavigate } from "react-router";
 import Header from "components/interface/header";
