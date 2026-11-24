@@ -5,6 +5,41 @@ import find from "lodash/find";
 import isEqual from "lodash/isEqual";
 import { globalValues } from "./global";
 import type { DefaultEventsMap, Socket } from "socket.io";
+import { Server as SocketServer } from "socket.io";
+import type { RequestListener, Server as HttpServer } from "http";
+import { createServer } from "http";
+
+/**
+ * Creates the parent http server with `requestHandler` (the Express app) as its request listener,
+ * then attaches the Socket.IO server on /api/socket.
+ *
+ * The order matters. When Socket.IO attaches, it takes the server's existing request listeners
+ * and calls them only for requests outside its path. A request listener added after that also
+ * receives /api/socket requests. For a plain HTTP request such as
+ * `GET /api/socket/?EIO=4&transport=polling`, Socket.IO answers 400 and Express then sets a header
+ * on the already-sent response, which throws ERR_HTTP_HEADERS_SENT outside any try/catch and
+ * exits the process.
+ */
+export const createHttpServerWithSocketIo = (
+  requestHandler: RequestListener
+): { server: HttpServer; socketio: GlobalValues["socketio"] } => {
+  const server = createServer(requestHandler);
+  const socketio = new SocketServer<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    DefaultEventsMap,
+    {}
+  >(server, {
+    transports: ["websocket"],
+    path: "/api/socket",
+    addTrailingSlash: false,
+    // Reduce ping interval and timeout from Socket.IO defaults
+    // to detect dead connections within ~10s
+    pingInterval: 5000,
+    pingTimeout: 5000,
+  });
+  return { server, socketio };
+};
 
 export const setupSocketIO = (): void => {
   const visitorsData: VisitorData[] = globalValues.serverSocketStatus.visitorsData;

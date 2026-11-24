@@ -45,6 +45,13 @@ path `/api/socket`. It is shared by every page and stays open across in-app navi
 
 ## Server (`server/express/sockets.ts`)
 
+- `createHttpServerWithSocketIo(app)` creates the http server with the Express app as its request
+  listener and then attaches Socket.IO. Socket.IO only hides listeners that exist when it
+  attaches, so Express must not be added later with `server.on("request", app)`. If it is,
+  Express also receives plain HTTP requests to `/api/socket`, such as
+  `GET /api/socket/?EIO=4&transport=polling`. Socket.IO has already answered those with 400, so
+  Express throws `ERR_HTTP_HEADERS_SENT` and the API process exits. This crashed prod and gold on
+  2026-11-24.
 - `visitorsData` holds one `VisitorData` per connected tab, including tabs not on a mission
   (`missionId: null`). Mission editor/viewer counts and the 10 s `statusFromServer` heartbeat
   consider only entries with a `missionId`. The mission catalog keeps a mission document loaded
@@ -64,3 +71,5 @@ path `/api/socket`. It is shared by every page and stays open across in-app navi
 - `tests/vitest/utils/clientSocketHelpers.test.ts` — `getVisitorPageData`, connect/reconnect
   messages, handler cleanup, `joinInspectorRoom`.
 - `tests/vitest/express/sockets.test.ts` — server visitor handlers, room moves, malformed payloads.
+- `tests/vitest/express/socketIoHttpServer.test.ts` — a plain HTTP polling request to
+  `/api/socket` gets a 400 from Socket.IO, never reaches Express, and the server keeps serving.
