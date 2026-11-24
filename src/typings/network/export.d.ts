@@ -1,8 +1,6 @@
 /** Coordinate fields of an exported item with a location. */
 type ExportCoordinates = {
   gridCoordinates: string;
-  /** Canonical 10 m MGRS; present on every located item of an `earth-wgs84` mission only. */
-  mgrsCoordinates?: string | null;
 };
 
 type ExportMission = Mission & ExportCoordinates;

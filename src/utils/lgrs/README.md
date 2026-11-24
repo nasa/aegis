@@ -8,7 +8,7 @@ Python oracle, benchmarks, source methodology, and upstream issue notes.
 
 ## Application boundary
 
-- `system.ts` maps mission settings and user label-scheme overrides to the library's
+- `system.ts` maps mission settings, including the admin label scheme, to the library's
   grid systems. Missing mission fields retain lunar defaults.
 - `mapProjection.ts` maps mission projection settings to the library's map projection input.
 - `compatibility.ts` applies mission radius and projection policy and supplies admin messages.
@@ -30,9 +30,9 @@ lines and condensed labels can differ. Missions that must match those maps use
 manually generated grids in `server-file` mode. Switching label schemes does not
 change the dynamic grid origin.
 
-Earth missions support ACC and canonical MGRS labels. User overrides affect the
-map and readouts; exports use the mission default and retain canonical Earth
-`mgrsCoordinates`. The Moon uses LGRS/ACC. Existing mission identifiers and scheme
+Earth missions support ACC and canonical MGRS labels, chosen per mission in the
+admin editor. The map, readouts, and exported `gridCoordinates` all use that scheme.
+The Moon uses LGRS/ACC. Existing mission identifiers and scheme
 values remain compatible with saved missions.
 
 ## Validation

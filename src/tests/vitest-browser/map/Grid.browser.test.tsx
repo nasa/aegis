@@ -49,7 +49,7 @@ import {
 import { Grid } from "components/interface/map/behaviors/Grid";
 import { Z_INDEX } from "components/interface/map/utils/zIndex";
 import { presetSlice } from "store/preset";
-import { interfaceSlice, setGridLabelSchemeOverride } from "store/interface";
+import { interfaceSlice } from "store/interface";
 import { formatLgrsFromLatLon } from "utils/lgrs/display";
 import { getEarthGridSystem } from "@bfeist/planetary-grid-reference/analogs";
 import { createLgrsRenderPlan } from "@bfeist/planetary-grid-reference/grid";
@@ -886,7 +886,7 @@ describe("Grid dynamic Earth grid", () => {
     });
   });
 
-  it("draws the same lines in both schemes and relabels on a live scheme switch", async () => {
+  it("draws the same lines in both schemes and relabels when the mission scheme changes", () => {
     setEarthView("mercator", 30, -96, 20, "lunar-acc");
     saveFixedSpacing(1000);
     renderGrid();
@@ -895,8 +895,8 @@ describe("Grid dynamic Earth grid", () => {
     expect(accTexts.length).toBeGreaterThan(0);
     expect(accTexts.every((t) => /^[-A-Z] [-A-Z]$/.test(t))).toBe(true);
 
-    const { flushSync } = await import("react-dom");
-    flushSync(() => store.dispatch(setGridLabelSchemeOverride("mgrs")));
+    mockMissionDoc.earthGridLabelScheme = "mgrs";
+    renderGrid();
 
     expect(lineFeatures().map((f) => f.getGeometry()!.getFlatCoordinates())).toEqual(accLines);
     expect(labelTexts()).toHaveLength(accTexts.length);

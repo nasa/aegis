@@ -93,8 +93,6 @@ interface InterfaceState {
   timelineShowElevation: boolean;
   slopeColorMode: SlopeColorMode;
   foldersInterface: FoldersInterfaceState;
-  /** Per-user label scheme for Earth missions (cookie-backed); null uses the mission default. */
-  gridLabelSchemeOverride: GridLabelScheme | null;
 }
 
 interface ConnectionState {

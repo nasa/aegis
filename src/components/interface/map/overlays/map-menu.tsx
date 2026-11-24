@@ -11,19 +11,14 @@ import {
   getFixedGridSpacings,
   LGRS_GRID_BASE_SPACING_METERS,
 } from "@bfeist/planetary-grid-reference/grid";
-import { GRID_COORDINATE_DESCRIPTIONS, GRID_LABEL_SCHEME_NAMES } from "utils/lgrs/display";
-import { getMissionDefaultLabelScheme } from "utils/lgrs/system";
 import { useMissionGridSystem } from "../hooks/useMissionGridSystem";
 import { useResolvedMissionGrid } from "../hooks/useResolvedMissionGrid";
 import { setMapMenuIsOpen } from "store/interface";
 import { thunkCancelAssetMapDirective } from "store/thunk/thunkAsset";
-import { thunkSetGridLabelSchemeOverride } from "store/thunk/thunkInterface";
 import { useMapMenuContext, useMapMenuSetters } from "../MapMenuProvider";
 
 /** Fixed spacings offered for server-file grids, which no grid system draws. */
 const FILE_GRID_SPACINGS: readonly number[] = [10, 100, 1000];
-
-const GRID_LABEL_SCHEMES: readonly GridLabelScheme[] = ["lunar-acc", "mgrs"];
 
 function formatSpacingLabel(meters: number): string {
   return meters >= 1000 ? `${meters / 1000}km` : `${meters}m`;
@@ -162,14 +157,6 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
   const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
   const resolvedGrid = useResolvedMissionGrid();
   const gridSystem = useMissionGridSystem();
-  const missionLabelScheme = useMissionDocSelector(
-    (m) =>
-      getMissionDefaultLabelScheme({
-        gridSystem: m.gridSystem,
-        earthGridLabelScheme: m.earthGridLabelScheme,
-      }),
-    refEqual
-  );
   const dynamicGrid = resolvedGrid.kind === "dynamic-lgrs";
   const gridSpacingOptions = useMemo(
     () =>
@@ -744,39 +731,6 @@ export const MapMenu: FunctionComponent<MapMenuProps> = ({
                 Distances
               </div>
             </div>
-            {gridSystem.id === "earth-wgs84" && (
-              <div
-                className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}
-                data-testid="map-menu-grid-scheme"
-              >
-                Grid Scheme
-                {GRID_LABEL_SCHEMES.map((scheme, idx) => (
-                  <div
-                    key={scheme}
-                    className={`${idx === 0 ? styles.toggleLeft : styles.toggleRight} ${
-                      styles.center
-                    } ${gridSystem.scheme === scheme ? styles.toggleSelected : ""}`}
-                    aria-pressed={gridSystem.scheme === scheme}
-                    data-tooltip-id="aegis-tooltip"
-                    data-tooltip-content={`${GRID_COORDINATE_DESCRIPTIONS[GRID_LABEL_SCHEME_NAMES[scheme]]} ${
-                      scheme === missionLabelScheme
-                        ? "Mission default."
-                        : "Overrides the mission default."
-                    }`}
-                    onClick={() => {
-                      // Choosing the mission default clears the override, so it follows the mission.
-                      dispatch(
-                        thunkSetGridLabelSchemeOverride(
-                          scheme === missionLabelScheme ? null : scheme
-                        )
-                      );
-                    }}
-                  >
-                    {GRID_LABEL_SCHEME_NAMES[scheme]}
-                  </div>
-                ))}
-              </div>
-            )}
             <div className={`${styles.toggleMenuItemRow} ${styles.menuItemTitle}`}>
               Grid
               {gridSpacingOptions.map((opt, idx) => {

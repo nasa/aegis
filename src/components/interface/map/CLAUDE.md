@@ -146,11 +146,9 @@ components use `useMissionGridSystem()` / `useMissionCoordinateSystem()`
 The system comes from `mission.gridSystem` (lunar when unset). The mission admin editor keeps
 this field aligned with the planet radius and enables computed coordinate readouts for dynamic
 grids; server-file mode uses the uploaded grid's readouts. Earth
-missions (`earth-wgs84`) are labelled in the user's override
-(`interface.gridLabelSchemeOverride`, cookie `AEGIS_Grid_Label_Scheme`, set from the map
-menu's Grid Scheme row) or else `mission.earthGridLabelScheme`; the Moon ignores the override.
-Exports always use the mission default. The mouse readout identifies `ACC` / `MGRS` on Earth
-and `LGRS` on the Moon, with explanatory tooltips shared with the map menu's scheme toggle.
+missions (`earth-wgs84`) are labelled in `mission.earthGridLabelScheme`, set in the mission
+admin editor; the Moon always uses ACC. Map, readouts and exports share that scheme. The mouse
+readout identifies `ACC` / `MGRS` on Earth and `LGRS` on the Moon, with explanatory tooltips.
 `MapMenuProvider` keeps any saved fixed grid spacing but
 exposes it only while the active system offers it (`getFixedGridSpacings`), otherwise `auto`.
 `getLgrsMapProjector(getLgrsMapProjection(mission))` is the

@@ -16,7 +16,7 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
-import { getMissionDefaultLabelScheme, getMissionGridSystem } from "utils/lgrs/system";
+import { getMissionLabelScheme, getMissionGridSystem } from "utils/lgrs/system";
 import { getGridRenderMode } from "utils/mapping/grid";
 import { suggestGridSystemId } from "components/interface/map/utils/planetScale";
 import { missionHasLanderDependentEntities } from "store/storeUtils/mission";
@@ -608,7 +608,7 @@ const Mission: React.FunctionComponent = () => {
                             <input
                               type="radio"
                               name="earthGridLabelScheme"
-                              checked={getMissionDefaultLabelScheme(automergeMission) === scheme}
+                              checked={getMissionLabelScheme(automergeMission) === scheme}
                               onChange={() => {
                                 changeAutomergeMission((m: Mission) => {
                                   m.earthGridLabelScheme = scheme;

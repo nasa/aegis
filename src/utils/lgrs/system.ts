@@ -11,44 +11,24 @@ export function getMissionGridSystemId(mission: LgrsMissionGridSelection): Missi
   return mission.gridSystem ?? "moon-m2025";
 }
 
-/** A mission's default label scheme, ignoring any user override. */
-export function getMissionDefaultLabelScheme(mission: LgrsMissionGridSelection): GridLabelScheme {
+/** The label scheme a mission is shown in: `earthGridLabelScheme` on Earth, ACC on the Moon. */
+export function getMissionLabelScheme(mission: LgrsMissionGridSelection): GridLabelScheme {
   return getMissionGridSystemId(mission) === "earth-wgs84"
     ? (mission.earthGridLabelScheme ?? DEFAULT_LABEL_SCHEME)
     : DEFAULT_LABEL_SCHEME;
 }
 
 /**
- * A mission's grid system, labelled in the user's scheme override or else the mission default.
- * The override applies only to Earth missions. Cheap: use it where compatibility is not needed
- * (readouts, bearings, exports).
+ * A mission's grid system, labelled in the mission's scheme. Cheap: use it where compatibility
+ * is not needed (readouts, bearings, exports).
  */
-export function resolveMissionGridSystem(
-  mission: LgrsMissionGridSelection,
-  userSchemeOverride?: GridLabelScheme | null
-): LgrsGridSystem {
-  return getGridSystem(
-    getMissionGridSystemId(mission),
-    getMissionLabelScheme(mission, userSchemeOverride)
-  );
-}
-
-/** The label scheme a mission is shown in: the user's override on Earth, else the default. */
-export function getMissionLabelScheme(
-  mission: LgrsMissionGridSelection,
-  userSchemeOverride?: GridLabelScheme | null
-): GridLabelScheme {
-  return getMissionGridSystemId(mission) === "earth-wgs84"
-    ? (userSchemeOverride ?? getMissionDefaultLabelScheme(mission))
-    : DEFAULT_LABEL_SCHEME;
+export function resolveMissionGridSystem(mission: LgrsMissionGridSelection): LgrsGridSystem {
+  return getGridSystem(getMissionGridSystemId(mission), getMissionLabelScheme(mission));
 }
 
 /** A mission's grid system and whether its dynamic grid can be drawn. */
-export function getMissionGridSystem(
-  mission: LgrsMissionGridFields,
-  userSchemeOverride?: GridLabelScheme | null
-): LgrsMissionGridSystem {
-  const system = resolveMissionGridSystem(mission, userSchemeOverride);
+export function getMissionGridSystem(mission: LgrsMissionGridFields): LgrsMissionGridSystem {
+  const system = resolveMissionGridSystem(mission);
   return { system, compatibility: getLgrsCompatibility(system, mission) };
 }
 
@@ -57,10 +37,7 @@ export function getMissionGridSystem(
  * shows grid coordinates (`usingLGRSCoordinates`), otherwise null.
  */
 export function getMissionCoordinateSystem(
-  mission: LgrsMissionGridSelection & Pick<Mission, "usingLGRSCoordinates">,
-  userSchemeOverride?: GridLabelScheme | null
+  mission: LgrsMissionGridSelection & Pick<Mission, "usingLGRSCoordinates">
 ): LgrsGridSystem | null {
-  return mission.usingLGRSCoordinates
-    ? resolveMissionGridSystem(mission, userSchemeOverride)
-    : null;
+  return mission.usingLGRSCoordinates ? resolveMissionGridSystem(mission) : null;
 }

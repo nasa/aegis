@@ -3,11 +3,10 @@ import { buildActionDefinitionName } from "store/storeUtils/mission";
 import { getGridCoordinatesFromPoint } from "./mapping/geoMath";
 import {
   getMissionCoordinateSystem,
-  getMissionDefaultLabelScheme,
+  getMissionLabelScheme,
   getMissionGridSystemId,
   resolveMissionGridSystem,
 } from "./lgrs/system";
-import { getEarthGridSystem } from "@bfeist/planetary-grid-reference/analogs";
 import {
   getCalcFieldsForEva,
   getCalcFieldsForPoi,
@@ -17,38 +16,20 @@ import {
 import { resolveMissionGrid } from "./mapping/grid";
 import * as jsonKeysSort from "json-keys-sort";
 
-/** Precision of exported MGRS, the same as the exported grid coordinates. */
-const MGRS_EXPORT_PRECISION_METERS: LgrsPrecision = 10;
-
-/**
- * Coordinate fields of an exported item at `point`. `gridCoordinates` is the full form in the
- * mission's default label scheme, never a user's override. Earth missions always add canonical
- * MGRS at 10 m, whatever the scheme or `usingLGRSCoordinates`; lunar items have no such field.
- */
+/** Coordinate fields of an exported item at `point`, in the mission's label scheme. */
 const exportCoordinates = (
   point: AEGISPoint,
   mission: Mission,
   missionGrid: MissionGridPoint[][]
-): ExportCoordinates => {
-  const gridCoordinates = getGridCoordinatesFromPoint(
+): ExportCoordinates => ({
+  gridCoordinates: getGridCoordinatesFromPoint(
     point,
     mission.planetRadius,
     getMissionCoordinateSystem(mission),
     missionGrid,
     "full"
-  );
-  if (getMissionGridSystemId(mission) !== "earth-wgs84") return { gridCoordinates };
-  const mgrsCoordinates =
-    point && Number.isFinite(point.lat) && Number.isFinite(point.lng)
-      ? getEarthGridSystem("mgrs").formatPoint(
-          point.lat,
-          point.lng,
-          MGRS_EXPORT_PRECISION_METERS,
-          "full"
-        )
-      : null;
-  return { gridCoordinates, mgrsCoordinates };
-};
+  ),
+});
 
 /**
  * The system for exported traverse bearings. Earth missions use grid north only with
@@ -462,7 +443,7 @@ export const makeExportMission = (params: {
   const exportMission: ExportMission = {
     ...mission,
     gridSystem: getMissionGridSystemId(mission),
-    earthGridLabelScheme: getMissionDefaultLabelScheme(mission),
+    earthGridLabelScheme: getMissionLabelScheme(mission),
     ...exportCoordinates(mission.landerLocation, mission, missionGrid),
   };
 

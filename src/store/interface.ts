@@ -16,7 +16,6 @@ export const initialState: InterfaceState = {
   timelineShowElevation: true,
   slopeColorMode: "standard",
   foldersInterface: {},
-  gridLabelSchemeOverride: null,
 };
 
 /** Folder UI state for a folder, with defaults for folders that have no saved state yet. */
@@ -75,9 +74,6 @@ export const interfaceSlice = createSlice({
     setShowElevation: (state, action: { payload: boolean }) => {
       state.timelineShowElevation = action.payload;
     },
-    setGridLabelSchemeOverride: (state, action: { payload: GridLabelScheme | null }) => {
-      state.gridLabelSchemeOverride = action.payload;
-    },
     setSlopeColorMode: (state, action: { payload: SlopeColorMode }) => {
       state.slopeColorMode = action.payload;
     },
@@ -135,7 +131,6 @@ export const {
   setShowDistanceFromLander,
   setShowElevation,
   setSlopeColorMode,
-  setGridLabelSchemeOverride,
   folderToggleOpenClose,
   setFolderInterfaceEditing,
   setFolderInterfaceNameValue,

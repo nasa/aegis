@@ -1,23 +1,19 @@
 import { useMemo } from "react";
 
-import { refEqual, useAppSelector } from "utils/useAppSelector";
+import { refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { resolveMissionGridSystem } from "utils/lgrs/system";
 
 /**
- * The mission's grid system in the active label scheme: the user's override, else the mission
- * default. Grid systems are cached instances, so there is one instance per `system.key`.
+ * The mission's grid system in the mission's label scheme. Grid systems are cached instances,
+ * so there is one instance per `system.key`.
  */
 export function useMissionGridSystem(): LgrsGridSystem {
   const gridSystem = useMissionDocSelector((m) => m.gridSystem, refEqual);
   const earthGridLabelScheme = useMissionDocSelector((m) => m.earthGridLabelScheme, refEqual);
-  const userSchemeOverride = useAppSelector(
-    (state) => state.interface.gridLabelSchemeOverride,
-    refEqual
-  );
   return useMemo(
-    () => resolveMissionGridSystem({ gridSystem, earthGridLabelScheme }, userSchemeOverride),
-    [gridSystem, earthGridLabelScheme, userSchemeOverride]
+    () => resolveMissionGridSystem({ gridSystem, earthGridLabelScheme }),
+    [gridSystem, earthGridLabelScheme]
   );
 }
 

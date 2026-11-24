@@ -344,7 +344,7 @@ describe("Export tests", () => {
       return { output, located, bearings };
     };
 
-    test("adds MGRS to every located item of an Earth mission with grid coordinates off", () => {
+    test("gives null grid coordinates on an Earth mission with grid coordinates off", () => {
       const { output, located, bearings } = exportAll({
         planetRadius: 6378137,
         gridSystem: "earth-wgs84",
@@ -355,7 +355,8 @@ describe("Export tests", () => {
         earthGridLabelScheme: "lunar-acc",
       });
       for (const item of located) {
-        expect(item).toMatchObject({ gridCoordinates: null, mgrsCoordinates: JSC_MGRS });
+        expect(item).toMatchObject({ gridCoordinates: null });
+        expect(item).not.toHaveProperty("mgrsCoordinates");
       }
       // True-north great-circle azimuths without grid coordinates.
       for (const bearing of bearings) {
@@ -363,12 +364,13 @@ describe("Export tests", () => {
       }
     });
 
-    test("gives null MGRS for an item without a location", () => {
+    test("gives null grid coordinates for an item without a location", () => {
       const { output } = exportAll({
         gridSystem: "earth-wgs84",
+        usingLGRSCoordinates: true,
         landerLocation: { lat: null, lng: null },
       });
-      expect(output.exportMission).toHaveProperty("mgrsCoordinates", null);
+      expect(output.exportMission.gridCoordinates).toBeNull();
     });
 
     // Depends on the Earth grid system (`getGridSystem("earth-wgs84", scheme)`).
@@ -376,7 +378,7 @@ describe("Export tests", () => {
       ["lunar-acc", "15RTNDC X51 W77"],
       ["mgrs", JSC_MGRS],
     ] as const)(
-      "exports %s grid coordinates in the mission default scheme, plus MGRS",
+      "exports %s grid coordinates in the mission's label scheme",
       (earthGridLabelScheme, expected) => {
         const { output, located, bearings } = exportAll({
           planetRadius: 6378137,
@@ -386,7 +388,8 @@ describe("Export tests", () => {
         });
         expect(output.exportMission.earthGridLabelScheme).toBe(earthGridLabelScheme);
         for (const item of located) {
-          expect(item).toMatchObject({ gridCoordinates: expected, mgrsCoordinates: JSC_MGRS });
+          expect(item).toMatchObject({ gridCoordinates: expected });
+          expect(item).not.toHaveProperty("mgrsCoordinates");
         }
         // Grid north in the origin's UTM zone, the same in either scheme.
         const gridBearing = getLgrsGridBearing(
