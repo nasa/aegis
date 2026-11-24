@@ -184,10 +184,17 @@ describe("ScaleBar", () => {
       expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 1 km");
       expect(labels.textContent).toBe("1 km");
       expect(parseFloat(getComputedStyle(labels).fontSize)).toBeCloseTo(editorFontSize * 2);
-      expect(scaleGraphic().children[1].children.length).toBeGreaterThan(1);
+      expect(scaleGraphic().children[1].children).toHaveLength(2);
       expect(scaleGraphic().children[1].getBoundingClientRect().height).toBe(8);
     }
   );
+
+  it("splits an unlabelled 500 m bar into five 100 m segments", async () => {
+    map.getView().setResolution(5);
+    await renderScaleBar(6378137, "dashboard");
+    expect(scaleGraphic().getAttribute("aria-label")).toBe("Map scale 500 m");
+    expect(scaleGraphic().children[1].children).toHaveLength(5);
+  });
 
   it("sits in the bottom-left corner without blocking map input", async () => {
     await renderScaleBar();

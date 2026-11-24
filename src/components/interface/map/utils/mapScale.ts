@@ -15,12 +15,12 @@ function getDistanceUnit(meters: number) {
 }
 
 const maxScaleBarWidth = 150;
-const minUnlabelledSegmentPixels = 12;
 // Each total has subdivisions whose steps are 1, 2, 2.5, or 5 times a power of ten.
+// Unlabelled bars use few whole-number steps so segments are easy to count.
 const scaleBarTotals = [
-  { multiplier: 5, segmentCounts: [10, 5, 2, 1] },
-  { multiplier: 2, segmentCounts: [10, 4, 2, 1] },
-  { multiplier: 1, segmentCounts: [10, 5, 4, 2, 1] },
+  { multiplier: 5, segmentCounts: [10, 5, 2, 1], unlabelledSegments: 5 },
+  { multiplier: 2, segmentCounts: [10, 4, 2, 1], unlabelledSegments: 2 },
+  { multiplier: 1, segmentCounts: [10, 5, 4, 2, 1], unlabelledSegments: 2 },
 ];
 
 type ScaleBarLayout = {
@@ -52,20 +52,23 @@ export function getScaleBarLayout(
   const unit = getDistanceUnit(distance);
   const value = distance / unit.meters;
 
+  const getTicks = (segments: number) =>
+    Array.from({ length: segments + 1 }, (_, index) =>
+      formatNumber.format((index / segments) * value)
+    );
+  if (!showTickLabels) {
+    return { width, ticks: getTicks(total.unlabelledSegments), symbol: unit.symbol };
+  }
+
   // At 0.8em, allow roughly 7.5px per character plus 3px between labels for the halos.
   const charPixels = 7.5 * fontScale;
   for (const segments of total.segmentCounts) {
     const stepPixels = width / segments;
-    const ticks = Array.from({ length: segments + 1 }, (_, index) =>
-      formatNumber.format((index / segments) * value)
+    const ticks = getTicks(segments);
+    const labelsFit = ticks.every(
+      (label, index) =>
+        index === 0 || stepPixels >= ((label.length + ticks[index - 1].length) * charPixels) / 2 + 3
     );
-    const labelsFit = showTickLabels
-      ? ticks.every(
-          (label, index) =>
-            index === 0 ||
-            stepPixels >= ((label.length + ticks[index - 1].length) * charPixels) / 2 + 3
-        )
-      : stepPixels >= minUnlabelledSegmentPixels;
     if (labelsFit) return { width, ticks, symbol: unit.symbol };
   }
 
