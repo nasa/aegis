@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 
 import { faBars, faEye, faPen, faPersonWalkingArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Tooltip } from "react-tooltip";
+import Tooltip from "components/interface/aegis-tooltip";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import type { FunctionComponent } from "react";
 import { useState } from "react";

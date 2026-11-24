@@ -9,7 +9,7 @@ import {
   setMissionArchived,
 } from "http-client/mission";
 import { isLoggedIn } from "http-client/login";
-import { Tooltip } from "react-tooltip";
+import Tooltip from "components/interface/aegis-tooltip";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { initialState as wholeStoreInitialState } from "store/index";
 import { setAllSliceStores } from "store/crossActions";

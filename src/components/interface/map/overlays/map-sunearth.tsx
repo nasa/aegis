@@ -3,7 +3,7 @@ import { useEffect, useId, useRef } from "react";
 import styles from "./map-sunearth.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEarthAmerica, faMoon, faSun } from "@fortawesome/free-solid-svg-icons";
-import { Tooltip } from "react-tooltip";
+import Tooltip from "components/interface/aegis-tooltip";
 import { longDateFromDateNumeric } from "utils/formatting";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { refEqual, useAppSelector } from "utils/useAppSelector";

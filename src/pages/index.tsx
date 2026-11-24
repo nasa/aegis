@@ -9,7 +9,7 @@ import { thunkObliterateMissionSpecificData } from "store/thunk/crossThunk";
 import PetInterval from "components/page/petInterval";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faPersonWalkingArrowRight, faTv } from "@fortawesome/free-solid-svg-icons";
-import { Tooltip } from "react-tooltip";
+import Tooltip from "components/interface/aegis-tooltip";
 import aegisTooltipStyles from "styles/aegis-tooltip.module.css";
 import { setAppUser } from "store/user";
 import { deepEqual, useAppSelector } from "utils/useAppSelector";
