@@ -10,6 +10,11 @@ import { getCalcFieldsForEva } from "store/processing/calculatedFields";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getHighlightedActions } from "store/selectors";
+import {
+  buildActionOrdinalLabels,
+  findRexUuidForEntity,
+  useRexExecuteEditMode,
+} from "utils/rexExecuteEditMode";
 
 const Actions_Panel: FunctionComponent = () => {
   const partialMission = useMissionDocSelector(
@@ -90,6 +95,31 @@ const Actions_Panel: FunctionComponent = () => {
 
   const editPerms = useAppSelector((state) => state.user.missionPerms.permissions.edit, refEqual);
 
+  // Scope the restriction to the REX owning this EVA rather than the Redux
+  // selection, matching how the station and traverse action panels resolve it.
+  const evaRexUuid = useMissionDocSelector(
+    (mission) => findRexUuidForEntity(mission, { evaUuid: selectedEvaUuid }),
+    refEqual
+  );
+
+  // This read-only view lists every sequence parent's actions, so it has to
+  // derive the same letters the station and traverse action panels show.
+  const {
+    mode: rexEditMode,
+    isEntityAdded,
+    baselineActionOrderFor,
+  } = useRexExecuteEditMode(evaRexUuid ?? null);
+  const ordinalLabelsFor = useCallback(
+    (parentUuid: string, actionOrderUuids: string[]) =>
+      buildActionOrdinalLabels({
+        actionOrderUuids,
+        usePinnedLetters: rexEditMode === "limited",
+        parentWasAddedUnderLimitedEdit: isEntityAdded(parentUuid),
+        baselineActionOrder: baselineActionOrderFor(parentUuid),
+      }),
+    [rexEditMode, isEntityAdded, baselineActionOrderFor]
+  );
+
   const evaActionOrderUuids = selectedEva?.sequence.flatMap((sequenceItem) => {
     if (sequenceItem.type === "station") {
       return sequenceStations.find((station) => station.uuid === sequenceItem.uuid)
@@ -168,6 +198,7 @@ const Actions_Panel: FunctionComponent = () => {
                     <ActionList
                       editMode={false}
                       actionOrderUuids={station.actionOrderUuids}
+                      actionOrdinalLabels={ordinalLabelsFor(station.uuid, station.actionOrderUuids)}
                       parentType="station"
                       highlightActions={highlightActions}
                       isActionHighlighted={isActionHighlighted}
@@ -194,6 +225,10 @@ const Actions_Panel: FunctionComponent = () => {
                   <ActionList
                     editMode={false}
                     actionOrderUuids={traverse?.actionOrderUuids}
+                    actionOrdinalLabels={ordinalLabelsFor(
+                      traverse?.uuid,
+                      traverse?.actionOrderUuids
+                    )}
                     parentType="traverse"
                     highlightActions={highlightActions}
                     isActionHighlighted={isActionHighlighted}
