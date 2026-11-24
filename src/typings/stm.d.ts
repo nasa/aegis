@@ -78,6 +78,7 @@ type EvaReportColumn = {
   isRex: boolean;
   rexUuid?: string;
   campaignUuid?: string;
+  /** The EVA name, REX name, or campaign set label. */
   label: string;
   groupKey: string;
   groupLabel: string;

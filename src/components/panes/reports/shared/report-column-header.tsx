@@ -8,7 +8,11 @@ import { refEqual, shallowEqual, useAppSelector } from "utils/useAppSelector";
 import { useAppDispatch } from "utils/useAppDispatch";
 import { reportSetHoveredTopItem, reportToggleColumnExpansion } from "store/report";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { groupCoverageColumns } from "utils/evaReportColumns";
+import {
+  formatReportColumnLabel,
+  groupCoverageColumns,
+  STM_COVERAGE_ORPHAN_GROUP_KEY,
+} from "utils/evaReportColumns";
 import { EmojiRenderer } from "components/interface/emojis";
 import {
   StmTierTitle,
@@ -19,22 +23,6 @@ import {
   EVA_COMPARISON_STATION_CELL_WIDTH,
 } from "../../stm-rules/stm-rules-tier-titles";
 import { useReportId } from "../reports-context";
-
-/** Column title: the EVA name for plan columns, "REX: <name>" for executions. */
-const columnTitle = (column: EvaReportColumn) =>
-  column.isRex
-    ? `REX: ${column.label}`
-    : column.campaignUuid
-      ? `${column.groupLabel}: ${column.label}`
-      : column.label;
-
-/** Tooltip title: like columnTitle but names the parent EVA on REX columns. */
-const columnTooltipName = (column: EvaReportColumn) =>
-  column.isRex
-    ? `REX: ${column.label} (${column.groupLabel})`
-    : column.campaignUuid
-      ? `${column.groupLabel}: ${column.label}`
-      : column.label;
 
 /**
  * The shared column-header band for the column-family reports. Columns are
@@ -146,7 +134,7 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
         isBaseline={isBaseline}
         isExpanded={false}
         cellKey={column.key}
-        label={columnTitle(column)}
+        label={formatReportColumnLabel(column)}
       />
     );
   }
@@ -170,7 +158,7 @@ const ColumnHeader: FunctionComponent<{ column: EvaReportColumn }> = ({ column }
           isBaseline={isBaseline}
           isExpanded={true}
           cellKey={column.key}
-          label={`${columnTitle(column)} (Total)`}
+          label={`${formatReportColumnLabel(column)} (Total)`}
         />
         {sequenceItems.map((item) => (
           <SequenceHeaderCell key={item.uuid} column={column} item={item} />
@@ -192,6 +180,10 @@ const SummaryHeaderCell: FunctionComponent<{
   const hoveredTopItem = useAppSelector((state) => state.report[reportId].hoveredTopItem, refEqual);
   const toggleExpansion = () =>
     dispatch(reportToggleColumnExpansion({ reportId, columnKey: column.key }));
+  const tooltipName =
+    column.isRex && column.groupKey !== STM_COVERAGE_ORPHAN_GROUP_KEY
+      ? `${formatReportColumnLabel(column)} (${column.groupLabel})`
+      : formatReportColumnLabel(column);
   const expansionLabel = isExpanded
     ? column.campaignUuid
       ? "Collapse EVAs"
@@ -203,11 +195,12 @@ const SummaryHeaderCell: FunctionComponent<{
   return (
     <div
       className={`${styles.columnHeaderCell} ${isBaseline ? styles.columnHeaderCellBaseline : ""}`}
+      data-executed={column.isRex || column.kind === "campaignExecuted"}
       style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
       role="button"
       tabIndex={0}
       aria-expanded={isExpanded}
-      aria-label={`${columnTooltipName(column)}: ${expansionLabel}`}
+      aria-label={`${tooltipName}: ${expansionLabel}`}
       onClick={toggleExpansion}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -217,7 +210,7 @@ const SummaryHeaderCell: FunctionComponent<{
       }}
       onMouseEnter={() => dispatch(reportSetHoveredTopItem({ reportId, item: cellKey }))}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={`${columnTooltipName(column)}${isBaseline ? " (baseline)" : ""} — ${expansionLabel}`}
+      data-tooltip-content={`${tooltipName}${isBaseline ? " (baseline)" : ""} — ${expansionLabel}`}
       data-tooltip-place="left-start"
     >
       <div className={styles.rotatedLabel}>{label}</div>
@@ -228,7 +221,7 @@ const SummaryHeaderCell: FunctionComponent<{
           toggleExpansion();
         }}
         data-tooltip-id="aegis-tooltip"
-        data-tooltip-html={expansionLabel}
+        data-tooltip-content={expansionLabel}
       >
         <FontAwesomeIcon icon={isExpanded ? faMinusCircle : faPlusCircle} />
       </span>
@@ -253,10 +246,11 @@ const SequenceHeaderCell: FunctionComponent<{
   return (
     <div
       className={styles.stationHeaderCell}
+      data-executed={column.kind === "campaignExecuted"}
       style={hoveredTopItem === cellKey ? { backgroundColor: "var(--stmCoverageHover)" } : null}
       onMouseEnter={() => dispatch(reportSetHoveredTopItem({ reportId, item: cellKey }))}
       data-tooltip-id="aegis-tooltip"
-      data-tooltip-html={item.name}
+      data-tooltip-content={item.name}
       data-tooltip-place="left-start"
     >
       <div className={styles.rotatedLabel}>{item.name}</div>

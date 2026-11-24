@@ -301,6 +301,8 @@ describe("POI action family tree", () => {
     expect(branches[0].textContent).toContain("EVA 4");
     expect(branches[0].textContent).toContain("Completed");
     expect(branches[0].textContent).toContain("Skipped");
+    expect(branches[0].textContent).toContain("REX: Run 1");
+    expect(branches[0].textContent).toContain("REX: Run 2");
     expect(branches[1].textContent).toContain("EVA 6");
     expect(branches[1].textContent).toContain("No execution recorded");
     expect(branches[1].textContent).not.toContain("Completed");

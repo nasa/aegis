@@ -1,6 +1,7 @@
 import type { FunctionComponent } from "react";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
+import { getReportRexName } from "utils/evaReportColumns";
 import TraceIcon from "../poi-traceability/trace-icon";
 import RightAction from "components/panes/actions-action";
 import styles from "../poi-traceability/poi-traceability.module.css";
@@ -105,9 +106,7 @@ const ActionPreview: FunctionComponent<{
               )}
               {rex && (
                 <div>
-                  REX:{" "}
-                  <span style={{ color: "var(--rex)" }}>{rex.name || "Unnamed execution"}</span> /{" "}
-                  {REX_STATUS[entry?.rexStatus ?? "pending"]}
+                  REX: {getReportRexName(rex.name)} / {REX_STATUS[entry?.rexStatus ?? "pending"]}
                 </div>
               )}
             </div>

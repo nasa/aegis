@@ -3,6 +3,7 @@ import { useState } from "react";
 import styles from "./poi-traceability.module.css";
 import { getAsPlannedEvaFromRefUuid } from "store/selectors";
 import { getActionDisplayName } from "utils/component-helpers";
+import { getReportRexName } from "utils/evaReportColumns";
 import ActionPreview, { type ActionPreviewTarget } from "../shared/action-preview";
 import TraceIcon from "./trace-icon";
 import ReportActionTitle from "../shared/report-action-title";
@@ -213,7 +214,9 @@ const PoiTraceabilityDrilldown: FunctionComponent<{ row: PoiTraceRow; mission: M
                                   >
                                     {STATUS_LABEL[execution.status]}
                                   </span>
-                                  <span>{execution.rexName || "Unnamed execution"}</span>
+                                  <span className={styles.rexName}>
+                                    REX: {getReportRexName(execution.rexName)}
+                                  </span>
                                   {execution.actionUuid && (
                                     <button
                                       type="button"

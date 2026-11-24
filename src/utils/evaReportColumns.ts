@@ -6,6 +6,15 @@ import { getAsPlannedEvaFromRefUuid, selectEvaStations, selectEvaTraverses } fro
 export const STM_COVERAGE_ORPHAN_GROUP_KEY = "__orphanRexes__";
 export const STM_COVERAGE_ORPHAN_GROUP_LABEL = "Other REXes";
 
+export const getReportRexName = (name: string): string => name.trim() || "Unnamed execution";
+
+export const formatReportColumnLabel = (column: EvaReportColumn): string =>
+  column.isRex
+    ? `REX: ${column.label}`
+    : column.campaignUuid
+      ? `${column.groupLabel}: ${column.label}`
+      : column.label;
+
 /** As-planned EVAs in the same case-insensitive name order used by EVA Coverage. */
 export const getAsPlannedEvas = (mission: Mission): Eva[] => {
   const rexEvaUuids = new Set(Object.values(mission.rexes ?? {}).map((rex) => rex.evaUuid));
@@ -55,9 +64,7 @@ export const getEvaColumns = (mission: Mission): EvaReportColumn[] => {
     evaUuid: rex.evaUuid,
     isRex: true,
     rexUuid: rex.uuid,
-    label:
-      getAsPlannedEvaFromRefUuid(mission, mission.evas?.[rex.evaUuid]?.refUuid ?? "")?.name ??
-      rex.name,
+    label: getReportRexName(rex.name),
     groupKey,
     groupLabel,
   });
@@ -237,7 +244,7 @@ export const getCampaignMemberItems = (
         ? getAsPlannedEvaFromRefUuid(mission, mission.evas?.[rex.evaUuid]?.refUuid ?? "")
         : undefined;
       return eva && rex && asPlannedRexEva
-        ? [{ type: "eva" as const, uuid: eva.uuid, name: `REX: ${asPlannedRexEva.name}` }]
+        ? [{ type: "eva" as const, uuid: eva.uuid, name: `REX: ${getReportRexName(rex.name)}` }]
         : [];
     });
   }

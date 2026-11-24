@@ -9,6 +9,7 @@ import { diffLevel3Actions, groupMatchesBySequenceItem } from "utils/stmEvaCover
 import { groupCampaignMatchesByMember } from "utils/evaReportColumns";
 import { BaseCell } from "../shared/report-cell";
 import { useReportId } from "../reports-context";
+import { formatReportColumnLabel } from "utils/evaReportColumns";
 
 const REPORT_ID: ColumnReportId = "stmCoverage";
 
@@ -157,22 +158,23 @@ const SummaryCell: FunctionComponent<{
   let content: React.ReactNode;
   let statusClass = "";
   let tooltip: string;
+  const columnLabel = formatReportColumnLabel(column);
   if (coverage.status === "noRules") {
     content = "—";
     statusClass = STATUS_CLASS.noRules;
-    tooltip = `${column.label}: ${STATUS_LABEL.noRules}`;
+    tooltip = `${columnLabel}: ${STATUS_LABEL.noRules}`;
   } else if (!showDiff || !actionsDiff || !baselineCoverage) {
     content = `${coverage.totalMatches}`;
     statusClass = STATUS_CLASS[coverage.status];
     const satisfiedRules = coverage.rules.filter((rc) => rc.satisfied).length;
-    tooltip = `${column.label}: ${coverage.totalMatches} matching actions, ${satisfiedRules}/${coverage.rules.length} rules satisfied (${STATUS_LABEL[coverage.status]})`;
+    tooltip = `${columnLabel}: ${coverage.totalMatches} matching actions, ${satisfiedRules}/${coverage.rules.length} rules satisfied (${STATUS_LABEL[coverage.status]})`;
   } else {
     const { added, removed } = actionsDiff;
     const net = added - removed;
     if (added === 0 && removed === 0) {
       content = "=";
       statusClass = styles.cellDiffEqual;
-      tooltip = `${column.label}: same coverage as baseline`;
+      tooltip = `${columnLabel}: same coverage as baseline`;
     } else {
       content = (
         <span className={styles.cellDiffValues}>
@@ -186,7 +188,7 @@ const SummaryCell: FunctionComponent<{
           : net < 0
             ? styles.cellDiffNegative
             : styles.cellDiffEqual;
-      tooltip = `${column.label}: ${added} added, ${removed} removed vs baseline`;
+      tooltip = `${columnLabel}: ${added} added, ${removed} removed vs baseline`;
     }
     if (baselineCoverage.status !== coverage.status) {
       statusClass = `${statusClass} ${styles.cellStatusChanged}`;

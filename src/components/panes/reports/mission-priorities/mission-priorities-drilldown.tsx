@@ -13,7 +13,9 @@ import {
 } from "store/report";
 import {
   actionBelongsToCampaignMember,
+  formatReportColumnLabel,
   getActionRexStatus,
+  getCampaignMemberItems,
   resolveCampaignExecutionRexes,
 } from "utils/evaReportColumns";
 import { selectEvaStations, selectEvaTraverses } from "store/selectors";
@@ -154,8 +156,13 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
     </>
   ) : cellSelection.traverseUuid ? (
     mission.traverses?.[cellSelection.traverseUuid]?.name
-  ) : cellSelection.evaUuid ? (
-    <span style={{ color: "var(--eva)" }}>{mission.evas?.[cellSelection.evaUuid]?.name}</span>
+  ) : cellSelection.evaUuid && column ? (
+    <span style={{ color: column.kind === "campaignPlanned" ? "var(--eva)" : undefined }}>
+      {
+        getCampaignMemberItems(mission, column).find((item) => item.uuid === cellSelection.evaUuid)
+          ?.name
+      }
+    </span>
   ) : null;
 
   const matchesScope = (action: Action | undefined): boolean => {
@@ -218,14 +225,10 @@ const MissionPrioritiesDrilldown: FunctionComponent<{
     );
 
   const columnTitleNode = column ? (
-    column.isRex ? (
-      <span style={{ color: "var(--rex)" }}>REX: {column.label}</span>
-    ) : column.campaignUuid ? (
-      <>
-        {column.groupLabel}: {column.label}
-      </>
-    ) : (
+    column.kind === "eva" ? (
       <span style={{ color: "var(--eva)" }}>{column.label}</span>
+    ) : (
+      formatReportColumnLabel(column)
     )
   ) : (
     "Mission-wide usages"

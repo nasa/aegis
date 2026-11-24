@@ -94,9 +94,7 @@ describe("getEvaColumns()", () => {
 
     const columns = getEvaColumns(mission);
     expect(columns.map((c) => c.key)).toEqual(["eva1", "rexA", "rexB", "eva2"]);
-    // REX columns label with their as-planned EVA's name (the header prefixes
-    // "REX:"); both rexes copy Alpha, so both read "Alpha".
-    expect(columns.map((c) => c.label)).toEqual(["Alpha", "Alpha", "Alpha", "Bravo"]);
+    expect(columns.map((c) => c.label)).toEqual(["Alpha", "Rex Alpha", "Rex Bravo", "Bravo"]);
     expect(columns.map((c) => c.isRex)).toEqual([false, true, true, false]);
     expect(columns.map((c) => c.groupKey)).toEqual(["eva1", "eva1", "eva1", "eva2"]);
     expect(columns.map((c) => c.groupLabel)).toEqual(["Alpha", "Alpha", "Alpha", "Bravo"]);
@@ -113,6 +111,7 @@ describe("getEvaColumns()", () => {
 
     const columns = getEvaColumns(mission);
     expect(columns.map((c) => c.key)).toEqual(["eva1", "rexX"]);
+    expect(columns[1].label).toBe("Rex X");
     expect(columns[1].groupKey).toBe(STM_COVERAGE_ORPHAN_GROUP_KEY);
     expect(columns[1].groupLabel).toBe(STM_COVERAGE_ORPHAN_GROUP_LABEL);
   });
