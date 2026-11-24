@@ -267,6 +267,62 @@ describe("MouseCoordinateDisplay", () => {
     });
   });
 
+  it("hides the scheme tag for an uploaded grid", async () => {
+    setEarthMission("mgrs");
+    mockResolvedGrid = {
+      kind: "server-file",
+      grid: { coordinates: [] } as unknown as MissionGrid,
+    };
+    renderMouseCoordinateDisplay("editor");
+
+    pointerMove(toMap(35.574972, -111.704697));
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain("35.574972, -111.704697");
+    });
+    expect(document.querySelector('[data-testid="mouse-grid-scheme"]')).toBeNull();
+  });
+
+  it("keeps the lat/lng readout on one line", async () => {
+    renderMouseCoordinateDisplay("editor");
+
+    pointerMove(toMap(-35.574972, -111.704697));
+
+    const readout = await vi.waitFor(() => {
+      const el = [...document.querySelectorAll("div")].find(
+        (d) => d.children.length === 0 && d.textContent === "-35.574972, -111.704697"
+      );
+      expect(el).toBeDefined();
+      return el!;
+    });
+    // A narrow, shrink-to-fit parent like the bottom-right overlay box.
+    readout.parentElement!.style.cssText = "position: absolute; width: 0";
+
+    // Every text fragment sits on the same line.
+    const range = document.createRange();
+    range.selectNodeContents(readout);
+    const lineTops = new Set([...range.getClientRects()].map((rect) => Math.round(rect.top)));
+    expect(lineTops.size).toBe(1);
+  });
+
+  it("keeps the readout width as the digits change", async () => {
+    setEarthMission("mgrs");
+    mockResolvedGrid = { kind: "dynamic-lgrs" };
+    renderMouseCoordinateDisplay("editor");
+    const container = harness.container.firstElementChild as HTMLElement;
+    container.style.cssText = "position: absolute; width: max-content";
+
+    const widthAt = async (lat: number, lng: number, latLng: string) => {
+      pointerMove(toMap(lat, lng));
+      await vi.waitFor(() => expect(container.firstElementChild?.textContent).toBe(latLng));
+      return container.getBoundingClientRect().width;
+    };
+
+    const firstWidth = await widthAt(11.111111, -111.111111, "11.111111, -111.111111");
+    const secondWidth = await widthAt(48.888888, -108.888888, "48.888888, -108.888888");
+    expect(secondWidth).toBe(firstWidth);
+  });
+
   it("does not show a grid coordinate without LGRS or a grid", async () => {
     mockGridCoordResult = "A-3";
     renderMouseCoordinateDisplay("editor");

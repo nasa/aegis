@@ -100,9 +100,25 @@
   background-color: var(--grey2);
 }
 
+/* One line of the mouse readout. Monospace, so the box keeps its size as the digits change. */
+.mouseReadout {
+  padding: 5px;
+  border: 1px solid var(--grey3, #666666);
+  font-family: "Roboto Mono", monospace;
+  font-size: 0.8em;
+  white-space: nowrap;
+}
+
+/* Grid readout with the scheme tag pinned to the right edge. */
+.mouseGridReadout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Active coordinate system beside the grid readout. */
 .gridSchemeTag {
-  margin-left: 6px;
+  margin-left: auto;
   padding: 0 3px;
   border: 1px solid var(--grey4);
   border-radius: var(--radius);

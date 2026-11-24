@@ -35,12 +35,6 @@ interface MouseCoordinateDisplayProps {
   className?: string;
 }
 
-const READOUT_STYLE = {
-  fontSize: "0.8em",
-  border: "1px solid var(--grey3, #666)",
-  padding: "5px",
-};
-
 export function MouseCoordinateDisplay({
   className,
 }: MouseCoordinateDisplayProps): JSX.Element | null {
@@ -63,8 +57,11 @@ export function MouseCoordinateDisplay({
     let formatGrid: MouseCoordinateInputs["formatGrid"] = () => null;
     let schemeTag: string | null = null;
     if (gridSystem) {
-      schemeTag =
-        gridSystem.id === "earth-wgs84" ? GRID_LABEL_SCHEME_NAMES[gridSystem.scheme] : "LGRS";
+      // Uploaded grids use their own labelling, so no scheme tag.
+      if (resolvedGrid.kind !== "server-file") {
+        schemeTag =
+          gridSystem.id === "earth-wgs84" ? GRID_LABEL_SCHEME_NAMES[gridSystem.scheme] : "LGRS";
+      }
       const style: LgrsDisplayStyle = resolvedGrid.kind === "dynamic-lgrs" ? "full" : "condensed";
       formatGrid = (point) =>
         formatLgrsFromLatLon(gridSystem, point, LGRS_DISPLAY_PRECISION_METERS, style);
@@ -137,10 +134,10 @@ export function MouseCoordinateDisplay({
 
   return (
     <div className={className}>
-      {readout && <div style={{ ...READOUT_STYLE, width: "150px" }}>{readout.latLng}</div>}
+      {readout && <div className={styles.mouseReadout}>{readout.latLng}</div>}
       {readout?.grid && (
-        <div style={{ ...READOUT_STYLE, minWidth: "150px" }}>
-          {readout.grid}
+        <div className={`${styles.mouseReadout} ${styles.mouseGridReadout}`}>
+          <span>{readout.grid}</span>
           {readout.schemeTag && (
             <span
               className={styles.gridSchemeTag}

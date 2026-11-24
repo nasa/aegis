@@ -148,7 +148,8 @@ this field aligned with the planet radius and enables computed coordinate readou
 grids; server-file mode uses the uploaded grid's readouts. Earth
 missions (`earth-wgs84`) are labelled in `mission.earthGridLabelScheme`, set in the mission
 admin editor; the Moon always uses ACC. Map, readouts and exports share that scheme. The mouse
-readout identifies `ACC` / `MGRS` on Earth and `LGRS` on the Moon, with explanatory tooltips.
+readout identifies `ACC` / `MGRS` on Earth and `LGRS` on the Moon, with explanatory tooltips
+(no tag for an uploaded `server-file` grid).
 `MapMenuProvider` keeps any saved fixed grid spacing but
 exposes it only while the active system offers it (`getFixedGridSpacings`), otherwise `auto`.
 `getLgrsMapProjector(getLgrsMapProjection(mission))` is the
@@ -578,6 +579,8 @@ Overlay gotchas:
   `requestAnimationFrame`, and only sets state when the formatted text changes. The Earth scheme
   tag is stored with the formatted string, and a scheme switch reformats the last pointer
   position, so the string and tag never disagree (the pointer is usually over the menu then).
+  The readout is Roboto Mono so the box doesn't resize as the digits change; the scheme tag is
+  pinned to the right edge.
 - `ScaleBar` assumes resolution == meters/pixel — only exact for a metric projected CRS;
   approximate on EPSG:3857 away from the equator. Updates on `moveend` only.
 
