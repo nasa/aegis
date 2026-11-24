@@ -29,6 +29,7 @@ import { setOriginalPoints, updateMapDirective } from "store/map";
 import { makeTraverseRateString } from "utils/component-helpers";
 import { getCalcFieldsForTraverse } from "store/processing/calculatedFields";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { useMissionCoordinateSystem } from "components/interface/map/hooks/useMissionGridSystem";
 import { withMissionChange } from "client/automergeDocHandles";
 import { applyUpdateTraverseByField } from "operations/apply/apply-traverse";
 import CalculatedDwell from "../calculated-dwell";
@@ -45,10 +46,7 @@ const Info_Panel: FunctionComponent<{
   const pathEditMode = pathEditModeProp ?? editMode;
   const dispatch = useAppDispatch();
   const missionTraverseRate = useMissionDocSelector((mission) => mission.traverseRate, refEqual);
-  const usingLGRSCoordinates = useMissionDocSelector(
-    (mission) => mission.usingLGRSCoordinates,
-    refEqual
-  );
+  const gridSystem = useMissionCoordinateSystem();
 
   const selectedEvaSequenceItemUuid = useAppSelector(
     (state) => state.eva.selectedEvaSequenceItemUuid,
@@ -122,7 +120,7 @@ const Info_Panel: FunctionComponent<{
       missionTraverseRate,
       evaTraverseRate: traverseEvaTraverseRate,
       traverseActions,
-      usingLGRSCoordinates,
+      gridSystem,
     });
   }, [
     terrainProfiles,
@@ -130,7 +128,7 @@ const Info_Panel: FunctionComponent<{
     selectedTraverse,
     missionTraverseRate,
     traverseEvaTraverseRate,
-    usingLGRSCoordinates,
+    gridSystem,
   ]);
   const mapDirective = useAppSelector((state) => state.map.mapDirective, shallowEqual);
   const thisMapDirective = useMemo(

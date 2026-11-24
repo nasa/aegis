@@ -1,3 +1,4 @@
+import { moonGridSystem } from "@bfeist/planetary-grid-reference/moon";
 import {
   findGridCellCenterByName,
   findGlobalGridCoordsFromPoint,
@@ -25,6 +26,7 @@ export function formatCoordinateEntry(
   if (!location || !Number.isFinite(location.lat) || !Number.isFinite(location.lng)) return "";
   if (context.usingLGRSCoordinates) {
     const label = formatLgrsFromLatLon(
+      moonGridSystem,
       location,
       LGRS_DISPLAY_PRECISION_METERS,
       context.dynamicLgrs ? "full" : "condensed"

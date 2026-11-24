@@ -1,8 +1,9 @@
-import { classifyLatLon, getLtmCentralMeridian } from "utils/lgrs/crs";
+import { moonGridSystem } from "@bfeist/planetary-grid-reference/moon";
+import { classifyLatLon, getLtmCentralMeridian } from "@bfeist/planetary-grid-reference/moon";
 import { formatLgrsFromLatLon } from "utils/lgrs/display";
-import { formatLatLonAsLgrs } from "utils/lgrs/format";
+import { formatLatLonAsLgrs } from "@bfeist/planetary-grid-reference/moon";
 import { isPartialLgrsLabel, parseLgrsLabel } from "utils/lgrs/parse";
-import { projectLatLon } from "utils/lgrs/projection";
+import { projectLatLon } from "@bfeist/planetary-grid-reference/moon";
 
 const POLAR_POINTS = [-89.5, -85.3, -80, 80, 85.3, 89.5].flatMap((lat) =>
   [-170.1, -45.2, 0, 45.2, 170.1].map((lng) => ({ lat, lng }))
@@ -66,12 +67,12 @@ describe("parseLgrsLabel", () => {
     { lat: 0, lng: -180 },
     { lat: 79.9, lng: 179.9 },
   ])("resolves spaced, lowercase and condensed labels near %o", (point) => {
-    const full = formatLgrsFromLatLon(point, 10, "full");
-    const condensed = formatLgrsFromLatLon(point, 10, "condensed");
+    const full = formatLgrsFromLatLon(moonGridSystem, point, 10, "full");
+    const condensed = formatLgrsFromLatLon(moonGridSystem, point, 10, "condensed");
     for (const label of [full, full.toLowerCase(), condensed.toLowerCase()]) {
       const parsed = parseLgrsLabel(label, point);
       expect(parsed).not.toBeNull();
-      expect(formatLgrsFromLatLon(parsed, 10, "full")).toBe(full);
+      expect(formatLgrsFromLatLon(moonGridSystem, parsed, 10, "full")).toBe(full);
     }
   });
 

@@ -16,14 +16,20 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
-import { getLgrsCompatibility } from "utils/lgrs/compatibility";
+import { getMissionLabelScheme, getMissionGridSystem } from "utils/lgrs/system";
 import { getGridRenderMode } from "utils/mapping/grid";
+import { suggestGridSystemId } from "components/interface/map/utils/planetScale";
 import { missionHasLanderDependentEntities } from "store/storeUtils/mission";
 
 type RouteParams = {
   id: string;
   automergeUrl: string;
 };
+
+const EARTH_LABEL_SCHEME_OPTIONS: readonly { scheme: GridLabelScheme; label: string }[] = [
+  { scheme: "lunar-acc", label: "ACC (lunar-style letters)" },
+  { scheme: "mgrs", label: "MGRS" },
+];
 
 const Mission: React.FunctionComponent = () => {
   const elevationStatus = useAsyncStatus();
@@ -36,11 +42,13 @@ const Mission: React.FunctionComponent = () => {
     params.automergeUrl as AutomergeUrl
   );
 
-  // wrapper to also update the updatedAt field when any change is made
+  // Keep the grid configuration consistent with the radius and rendering mode.
   const changeAutomergeMission = useCallback(
     (updateFn: (m: Mission) => void) => {
       changeMissionDoc((m: Mission) => {
         updateFn(m);
+        m.gridSystem = suggestGridSystemId(m.planetRadius);
+        m.usingLGRSCoordinates = getGridRenderMode(m) === "dynamic-lgrs";
         m.updatedAt = new Date().getTime();
       });
     },
@@ -87,12 +95,30 @@ const Mission: React.FunctionComponent = () => {
   const [maestroError, setMaestroError] = useState<string | null>(null);
   const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
-  const dynamicLgrsCompatibility = automergeMission ? getLgrsCompatibility(automergeMission) : null;
+  const gridSystemId = automergeMission ? suggestGridSystemId(automergeMission.planetRadius) : null;
+  const isEarthGrid = gridSystemId === "earth-wgs84";
+  const gridRenderMode = automergeMission ? getGridRenderMode(automergeMission) : "server-file";
+  const dynamicLgrsCompatibility = automergeMission
+    ? getMissionGridSystem({ ...automergeMission, gridSystem: gridSystemId }).compatibility
+    : null;
   const dynamicLgrsCompatible = dynamicLgrsCompatibility?.compatible ?? false;
   // Changing the lander here would not move stations, walkbacks, or traverses with it.
   const landerFieldsLocked = automergeMission
     ? missionHasLanderDependentEntities(automergeMission)
     : false;
+
+  useEffect(() => {
+    if (
+      !automergeMission ||
+      (automergeMission.gridSystem === gridSystemId &&
+        automergeMission.usingLGRSCoordinates === (gridRenderMode === "dynamic-lgrs"))
+    )
+      return;
+    changeAutomergeMission((m) => {
+      m.gridSystem = gridSystemId;
+      m.usingLGRSCoordinates = gridRenderMode === "dynamic-lgrs";
+    });
+  }, [automergeMission, gridSystemId, gridRenderMode, changeAutomergeMission]);
 
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
@@ -537,29 +563,17 @@ const Mission: React.FunctionComponent = () => {
                 <section className={adminCommon.section} style={{ marginBottom: 16 }}>
                   <h2 className={adminCommon.sectionHeading}>Coordinate System</h2>
                   <div className={adminCommon.details}>
-                    <div id="usingLGRSCoordinates">
-                      <div className={adminStyles.editDiv}>
-                        <label className={adminCommon.checkboxItem}>
-                          <input
-                            type="checkbox"
-                            checked={!!automergeMission.usingLGRSCoordinates}
-                            onChange={(e) => {
-                              changeAutomergeMission((m: Mission) => {
-                                m.usingLGRSCoordinates = e.target.checked;
-                              });
-                            }}
-                          />
-                          Using LGRS Coordinate System
-                        </label>
-                      </div>
-                    </div>
+                    <p className={adminCommon.formHint}>
+                      {isEarthGrid ? "Earth (WGS84 UTM/UPS)" : "Moon (LGRS)"}, selected from the
+                      planet radius.
+                    </p>
                     <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
                       <legend className={adminStyles.editLabel}>Grid Rendering</legend>
                       <label className={adminCommon.checkboxItem}>
                         <input
                           type="radio"
                           name="gridRenderMode"
-                          checked={getGridRenderMode(automergeMission) === "server-file"}
+                          checked={gridRenderMode === "server-file"}
                           onChange={() => {
                             changeAutomergeMission((m: Mission) => {
                               m.gridRenderMode = "server-file";
@@ -572,7 +586,7 @@ const Mission: React.FunctionComponent = () => {
                         <input
                           type="radio"
                           name="gridRenderMode"
-                          checked={getGridRenderMode(automergeMission) === "dynamic-lgrs"}
+                          checked={gridRenderMode === "dynamic-lgrs"}
                           disabled={!dynamicLgrsCompatible}
                           onChange={() => {
                             changeAutomergeMission((m: Mission) => {
@@ -580,12 +594,39 @@ const Mission: React.FunctionComponent = () => {
                             });
                           }}
                         />
-                        Dynamic LGRS
+                        Dynamic Grid
                       </label>
                       {dynamicLgrsCompatibility && !dynamicLgrsCompatible ? (
                         <p>{dynamicLgrsCompatibility.reason}</p>
                       ) : null}
                     </fieldset>
+                    {gridRenderMode === "dynamic-lgrs" && isEarthGrid ? (
+                      <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+                        <legend className={adminStyles.editLabel}>Default Label Scheme</legend>
+                        {EARTH_LABEL_SCHEME_OPTIONS.map(({ scheme, label }) => (
+                          <label key={scheme} className={adminCommon.checkboxItem}>
+                            <input
+                              type="radio"
+                              name="earthGridLabelScheme"
+                              checked={getMissionLabelScheme(automergeMission) === scheme}
+                              onChange={() => {
+                                changeAutomergeMission((m: Mission) => {
+                                  m.earthGridLabelScheme = scheme;
+                                });
+                              }}
+                            />
+                            {label}
+                          </label>
+                        ))}
+                        <p className={adminCommon.formHint}>
+                          ACC uses MGRS with LGRS-like labels. MGRS uses standard Earth grid
+                          references. Users can switch labels from the map menu.
+                        </p>
+                      </fieldset>
+                    ) : null}
+                    {gridRenderMode === "dynamic-lgrs" && !isEarthGrid ? (
+                      <p className={adminCommon.formHint}>Labels use lunar ACC coordinates.</p>
+                    ) : null}
                   </div>
                 </section>
 

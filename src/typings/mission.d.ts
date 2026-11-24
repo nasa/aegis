@@ -9,6 +9,10 @@ interface Mission {
   missionBanner: string | null;
   usingLGRSCoordinates: boolean;
   gridRenderMode: GridRenderMode;
+  /** Grid system for grid coordinates, grid-north bearings and the dynamic grid. */
+  gridSystem: MissionGridSystemId;
+  /** Default label scheme on `earth-wgs84`; each user may override it. */
+  earthGridLabelScheme: GridLabelScheme;
   actionSystemVersion: number;
   actionDefinitions: ActionDefinitions | null;
   landerLocation: AEGISPoint;

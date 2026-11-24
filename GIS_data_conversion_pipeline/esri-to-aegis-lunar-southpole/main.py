@@ -4,7 +4,7 @@
 Turns a mission's GIS inputs into AEGIS-ready map products **and** registers them on a
 running AEGIS server. Given a mission id (already created in the AEGIS admin), the pipeline
 writes products into ``<static>/missionFiles/<id>/`` and then, over HTTP, sets the mission's
-projection/DEM/lander/grid fields, creates the header layers, and registers every generated
+projection/DEM/lander fields, creates the header layers, and registers every generated
 layer as a sublayer — so no admin "import from file" clicking is needed.
 
 This file stays a thin CLI: the step functions, helpers, output capture, and summary live in
@@ -13,7 +13,7 @@ the cap-grid projection profile + path resolution live in ``config.py``; the AEG
 logic in ``register.py`` / ``box_publish.py``.
 
 Data steps (each runs only when its input is present): dem · slope · products · vector ·
-rasters · vectors · horizons · time-cogs. Opt-in data steps: contours (--contours) · grid (--grid). Publish steps
+rasters · vectors · horizons · time-cogs. Opt-in data step: contours (--contours). Publish steps
 (opt-in): register · box. Every run writes a
 ``Data/conversion_report.md`` capturing the full console log + per-step timings.
 
@@ -446,7 +446,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Prefix for every generated layer folder AND its AEGIS layer name "
             '(e.g. --layer-prefix LOLA → Layers/LOLA_hillshade, "LOLA_hillshade"). '
             "Lets multiple DEM runs coexist in one mission without clobbering each "
-            "other's layer folders. Does not affect Data/ outputs (DEM COG, grid, vectors)."
+            "other's layer folders. Does not affect Data/ outputs (DEM COG, vectors)."
         ),
     )
 
@@ -513,24 +513,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Deepest cap-grid LOD for contours (default: derived from --dem-resolution).",
     )
 
-    grid = parser.add_argument_group("Grid (--grid*)")
-    grid.add_argument(
-        "--grid",
-        action="store_true",
-        help="Generate the LGRS mission grid GeoJSON from the lander location (requires --lander-lat/--lander-lng).",
-    )
-    grid.add_argument(
-        "--grid-extent",
-        default=config.GRID_EXTENT_DEFAULT,
-        help=f"LGRS grid square extent around the lander (default: {config.GRID_EXTENT_DEFAULT}). Only used when --grid is passed.",
-    )
-    grid.add_argument(
-        "--grid-precision",
-        type=int,
-        default=config.GRID_PRECISION_DEFAULT,
-        help=f"LGRS grid cell size in metres (default: {config.GRID_PRECISION_DEFAULT}). Only used when --grid is passed.",
-    )
-
     publish = parser.add_argument_group("Publish")
     publish.add_argument(
         "--register",
@@ -548,12 +530,6 @@ def build_parser() -> argparse.ArgumentParser:
         dest="register_no_external_nac",
         action="store_true",
         help="Do not register the external NAC layer.",
-    )
-    publish.add_argument(
-        "--register-no-grid",
-        dest="register_no_grid",
-        action="store_true",
-        help="Do not register the LGRS mission grid during the register step (grid GeoJSON is still built if --grid is passed).",
     )
     publish.add_argument(
         "--box", action="store_true", help="Zip Data/ + each layer and upload to Box."

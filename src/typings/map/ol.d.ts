@@ -148,14 +148,18 @@ type MapMode = "editor" | "dashboard" | "minimap";
 
 /** Per-mission inputs of `MouseCoordinateDisplay`, resolved once rather than per pointer event. */
 type MouseCoordinateInputs = {
-  adapter: LgrsMapAdapter;
+  projector: LgrsMapProjector;
   formatGrid: (point: AEGISPoint) => string | null;
+  /** Coordinate tag (`ACC` / `MGRS` on Earth, `LGRS` on the Moon), or null. */
+  schemeTag: string | null;
 };
 
 /** Text shown by `MouseCoordinateDisplay`. */
 type MouseCoordinateReadout = {
   latLng: string;
   grid: string | null;
+  /** Scheme the grid string was formatted in, shown as a tag; null without one. */
+  schemeTag: string | null;
 };
 
 type GridLineStyles = { grid: import("ol/style").Style; seam: import("ol/style").Style };

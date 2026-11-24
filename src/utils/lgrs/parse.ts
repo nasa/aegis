@@ -1,3 +1,4 @@
+import { conformLongitude } from "@bfeist/planetary-grid-reference";
 import {
   ACC_1KM_LETTERS,
   LGRS_AREA_METERS,
@@ -9,19 +10,18 @@ import {
   LTM_LATITUDE_BAND_LETTERS,
   LTM_NORTHING_AREA_LETTER_SETS,
   LTM_ZONE_WIDTH_DEGREES,
-} from "./constants";
+} from "@bfeist/planetary-grid-reference/moon";
 import {
   classifyLatLon,
-  conformLongitude,
   getCrsLatitudeLimits,
   getLpsCrsId,
   getLtmCrsId,
   getLtmZone,
   getLtmZoneWestLongitude,
   isLpsCrs,
-} from "./crs";
-import { formatLatLonAsLgrs } from "./format";
-import { projectLatLon, unprojectToLatLon } from "./projection";
+} from "@bfeist/planetary-grid-reference/moon";
+import { formatLatLonAsLgrs } from "@bfeist/planetary-grid-reference/moon";
+import { projectLatLon, unprojectToLatLon } from "@bfeist/planetary-grid-reference/moon";
 
 const AXIS = "([A-HJ-NP-Z-])(\\d{0,3})";
 const AXES = `${AXIS}${AXIS}`;

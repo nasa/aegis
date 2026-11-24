@@ -52,28 +52,25 @@ The lunar south-pole cap grid is the single projection profile (see [`config.py`
 | **viewshed-cogs**    | classified viewsheds (`--in-viewshed-raster`, repeatable)                                    | `Layers/<name>/<name>_cog.tif` each                       | classes 0/1 transparent; class 2 opaque `#FFA77F`; optional nodata transparent |
 | **keepout-cogs**     | classified slope keep-out masks (`--in-keepout-raster`)                                      | `Layers/<name>/<name>_cog.tif` each                       | class 0 opaque `#FF0000`; nodata transparent                                   |
 | **lyrx-cogs**        | single-band raster + classified `.lyrx` (`--in-lyrx-raster`, `--lyrx-raster-style`)          | `Layers/<name>/<name>_cog.tif` each                       | apply `.lyrx` class breaks + per-class alpha → RGBA COG + visible-class legend |
-| **grid**             | `--grid` + lander `--lander-lat/--lander-lng`                                                | `Data/grid_source.geojson` (10 km dflt)                   | LGRS grid → AEGIS mission-grid GeoJSON; opt-in, not auto-triggered             |
-| **register**         | the built `<out>` + `--mission-id`                                                           | mission fields + sublayers + active grid                  | POST fields + layers/sublayers + grid                                          |
+| **register**         | the built `<out>` + `--mission-id`                                                           | mission fields + sublayers                                | POST fields + layers/sublayers                                                 |
 | **box**              | the built `<out>` + `--mission-name`                                                         | zips uploaded to Box (parallel)                           | zip `Data/` + each layer → upload                                              |
 
 Every tile layer also gets a `properties.json` (name/description/legend) that the AEGIS
 admin auto-imports — see [`properties/`](properties/). The **register** step reads those
 sidecars (plus each `tilemapresource.xml`) to build sublayers directly via the REST API:
 external NAC → `Common_LSP` header, tile layers → `Raster` header, GeoJSON → `Vector` header.
-It also POSTs the **mission grid** (active) and sets the mission GIS fields, including
+It also sets the mission GIS fields, including
 `actionSystemVersion = 2` and `usingLGRSCoordinates = true`. Steps run only when their inputs
 are present (default), or pick explicitly with `--steps`. Each run writes a
 `Data/conversion_report.md` capturing the full console log + per-step timings.
 
 ## Standalone converters (inputs not part of the ESRI drop)
 
-| Tool                                              | Input                                | Output                                           |
-| ------------------------------------------------- | ------------------------------------ | ------------------------------------------------ |
-| [`grid/generate_lgrs.py`](grid/)                  | lander `--lat/--lng` + `--extent`    | raw LGRS grid GeoJSON (feeds `convert_lgrs.py`)  |
-| [`grid/convert_lgrs.py`](grid/)                   | raw LGRS GeoJSON (generated or ESRI) | AEGIS mission-grid GeoJSON (`Cleaned_*.geojson`) |
-| [`timeaware/singleband_timeaware.py`](timeaware/) | dir of single-band time rasters      | tiled time layers + `manifest.json`              |
-| [`timeaware/timeaware_cogs.py`](timeaware/)       | one or more time raster directories  | nested COG time layer + `manifest.json`          |
-| [`../mercator/tile_mercator.py`](../mercator/)    | Earth/Moon non-polar raster          | Web-Mercator / geodetic tile pyramid             |
+| Tool                                              | Input                               | Output                                  |
+| ------------------------------------------------- | ----------------------------------- | --------------------------------------- |
+| [`timeaware/singleband_timeaware.py`](timeaware/) | dir of single-band time rasters     | tiled time layers + `manifest.json`     |
+| [`timeaware/timeaware_cogs.py`](timeaware/)       | one or more time raster directories | nested COG time layer + `manifest.json` |
+| [`../mercator/tile_mercator.py`](../mercator/)    | Earth/Moon non-polar raster         | Web-Mercator / geodetic tile pyramid    |
 
 ---
 
@@ -84,8 +81,8 @@ esri-to-aegis-lunar-southpole/
 ├── main.py            # thin CLI runner (--mission-id / --in-root / --steps / --register / --box)
 ├── pipeline/          # runner internals: reporting (output capture), steps, summary
 ├── config.py          # cap-grid profile + path resolution + header/external-NAC constants
-├── aegis_api.py       # stdlib HTTP client for the AEGIS REST API (mission/layer/sublayer/grid)
-├── register.py        # build + POST mission fields, header layers, sublayers, active grid
+├── aegis_api.py       # stdlib HTTP client for the AEGIS REST API (mission/layer/sublayer)
+├── register.py        # build + POST mission fields, header layers, sublayers
 ├── box_publish.py     # zip Data/ + each layer and upload to Box, in parallel (ported BoxClient)
 ├── common/            # shared across data types + general raster tools
 │   ├── tile_to_cap_grid.py   # tile any raster onto the south-pole cap grid
@@ -103,9 +100,6 @@ esri-to-aegis-lunar-southpole/
 │   └── default_color_ramps/  # built-in fallback ramps (used when no .lyrx is delivered)
 ├── properties/
 │   └── write_properties.py   # GDAL colour ramp → AEGIS properties.json (name/description/legend)
-├── grid/
-│   ├── generate_lgrs.py      # lander lat/lng → raw LGRS grid GeoJSON (USGS lgrs package)
-│   └── convert_lgrs.py       # raw LGRS GeoJSON → AEGIS mission-grid GeoJSON (stdlib only)
 ├── timeaware/
 │   └── singleband_timeaware.py  # single-band time series → tiles + manifest.json
 ├── vector/
@@ -144,16 +138,14 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --in-dem F:/drop/dem.tif --dem-products hillshade slope aspect tri \
     --in-raster F:/drop/nac_mosaic.tif --raster-name NAC_mosaic \
     --in-raster F:/drop/keepout.tif --in-vector F:/drop/stations.shp \
-    --grid --register --box
+    --register --box
 
-# DEM-only mission (A03MP026 MS3): derive all four products from the DEM + LGRS grid.
-# Pass --grid to generate the LGRS mission grid (default 10 km square).
+# DEM-only mission (A03MP026 MS3): derive all four products from the DEM.
 pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --in-root F:/tempF/MS3_data_drop \
     --dem-products hillshade slope aspect tri \
-    --grid --grid-extent 10km --grid-precision 100 \
     --register --box
 
 # Selected steps (names or indices) — e.g. only (re)register without rebuilding tiles
@@ -187,7 +179,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 pixi run python esri-to-aegis-lunar-southpole/main.py \
   --mission-id <mission-id> \
   --steps register \
-  --register-no-mission-fields --register-no-grid --register-no-external-nac
+  --register-no-mission-fields --register-no-external-nac
 ```
 
 `--in-vector` normalizes shapefiles and GeoJSON through their declared CRS. The `horizons` step
@@ -283,9 +275,9 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id 123 --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --in-dem F:/drop/dem.tif \
-    --dem-products hillshade slope aspect tri --grid
+    --dem-products hillshade slope aspect tri
 
-# 2a. Register ONLY (mission fields + header layers + sublayers + active grid).
+# 2a. Register ONLY (mission fields + header layers + sublayers).
 #     Reads the built folder; needs --mission-id + an EMSS token (--token or .env).
 #     --dry-run previews without calling the API.
 pixi run python esri-to-aegis-lunar-southpole/main.py \
@@ -311,12 +303,12 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 
 Steps: `0 stage · 1 dem · 2 slope · 3 products · 4 vector · 5 rasters · 6 vectors ·
 7 horizons · 8 vectortiles · 9 contours · 10 cogs · 11 time-cogs · 12 categorical-cogs ·
-13 viewshed-cogs · 14 keepout-cogs · 15 lyrx-cogs · 16 grid · 17 register · 18 box`. By default the pipeline
+13 viewshed-cogs · 14 keepout-cogs · 15 lyrx-cogs · 16 register · 17 box`. By default the pipeline
 runs only the steps whose inputs are present — `vectortiles` runs when `--in-esri-vector-tiles` is
 given, `contours` when `--contours` is given (needs `--in-dem`), `cogs`
 when `--in-cog` is given, `categorical-cogs` when `--in-categorical-raster` is given,
 `viewshed-cogs` when `--in-viewshed-raster` is given,
-`keepout-cogs` when `--in-keepout-raster` is given, `lyrx-cogs` when `--in-lyrx-raster` is given, `grid` when `--grid` is passed (needs `--lander-lat`/`--lander-lng`), and
+`keepout-cogs` when `--in-keepout-raster` is given, `lyrx-cogs` when `--in-lyrx-raster` is given, and
 `register`/`box` when `--register`/`--box` are passed; `--steps` overrides this.
 Inputs default to the A03MP026 layout under `--in-root`; override any with `--in-dem`, `--in-slope`,
 `--in-lyrx`, `--in-ellipse`, `--in-raster`, `--in-vector`. Use `--out-dir` to override the
@@ -365,7 +357,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
 `Layers/LOLA_slope/`, `Layers/LOLA_<raster-name>/`, `Layers/LOLA_contours_100m/`, and contour display
 names like `"LOLA Contours (100 m)"`. This lets you process **multiple DEMs into one mission**
 without a later run overwriting an earlier run's layer folders. Only `Layers/` outputs are
-prefixed; `Data/` products (the DEM COG `demFilePath`, the LGRS grid, and vector GeoJSONs)
+prefixed; `Data/` products (the DEM COG `demFilePath` and vector GeoJSONs)
 are mission-level and stay unprefixed. `register`/`box` need no extra flags — they discover
 folders under `Layers/`, so the prefixed folders are picked up (and named) automatically.
 
@@ -429,10 +421,8 @@ A03MP026/Ellipse_shapefile/A03MP026_Ellipse.shp    # vector
 ```text
 <out>/
 ├── Data/
-│   ├── grid_source.geojson       # AEGIS mission-grid GeoJSON (register POSTs it; not a vector layer)
 │   ├── <source>_deflate_cog.tif  # demFilePath (keeps the source filename, e.g. mp2-sfs-dem_MoonSP_COG_deflate_cog.tif)
 │   ├── ellipse.geojson           # vector sublayer (if a vector step ran)
-│   ├── LGRS.json                 # active grid coordinates (written by the grid API on register)
 │   └── conversion_report.md      # captured run log + per-step timings
 └── Layers/
     ├── <name>/                   # raster tile sublayer → Layers/<name>/{z}/{x}/{y}.png
@@ -479,9 +469,6 @@ already-registered `(header, path)` pairs):
   plus the ellipse + custom GeoJSON as `vector` sublayers (`path = <file>.geojson`) and the shared
   external NAC (`path = <S3 base URL>`). bbox/zoom come from each `tilemapresource.xml`;
   name/description/legend from each `properties.json`.
-- **Mission grid** — `POST /api/v1/grid` (with `upsertFullGrid`) uploads `Data/grid_source.geojson`
-  as the **active** grid: the server writes its coordinates to `Data/LGRS.json` and sets the
-  mission's `serverFileGrid`. Replaces the manual upload at `/admin/mission_grid/<id>`.
 
 `--summary` prints the exact field values without calling the API. `--dry-run` previews the
 register/box actions. Run `register` alone with `--steps register` to (re)register an
@@ -513,7 +500,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --mission-id <LOCAL_ID> --mission-name "A03MP026 - ART3 Surface EVA MS 3" \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --in-dem F:/drop/dem.tif \
-    --grid --register --box
+    --register --box
 ```
 
 To include a **vector-tile layer built from source**, add `--in-esri-vector-tiles` pointing at a
@@ -532,7 +519,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --in-dem F:/drop/dem.tif \
     --in-esri-vector-tiles F:/drop/AggregatedContour/p12 \
-    --grid --register --box
+    --register --box
 ```
 
 To generate **elevation contours from the DEM** (no delivered cache needed), add `--contours`.
@@ -550,7 +537,7 @@ pixi run python esri-to-aegis-lunar-southpole/main.py \
     --lander-lat -84.223397 --lander-lng 33.5021945 \
     --in-dem F:/drop/dem.tif --dem-resolution 1 \
     --contours --contours-major 100 --contours-minor 20 \
-    --grid --register --box
+    --register --box
 # -> Layers/contours_100m/contours_100m.pmtiles  +  Layers/contours_20m/contours_20m.pmtiles
 
 # Contours only, into an existing build (rebuild the two layers):
@@ -597,8 +584,6 @@ you can drop `--out-dir`.)
 
 Other AEGIS import targets produced by the standalone converters:
 
-- **Mission grid** — upload `Cleaned_*.geojson` from `grid/convert_lgrs.py` at the mission
-  grid admin (`/admin/mission_grid/<id>`).
 - **Time-aware layer** — register either the legacy `*_singleband_time-aware_data/` tile folder
   or a `time-cogs` output folder (both contain `manifest.json`) as a tile sublayer; AEGIS marks it
   `isTimeBased`. A manifest `dirName` may point to a frame tile directory or a nested `.tif` COG,

@@ -12,7 +12,7 @@ import { MikroORM } from "@mikro-orm/postgresql";
 import config from "server/database/mikro-orm.config";
 
 import { getAutomergeDocListing } from "server/express/routes/docListing";
-import { missionValidator } from "utils/validateSchemaServer";
+import { currentMissionValidator } from "utils/validateSchemaServer";
 import { automergeWasmBase64 } from "@automerge/automerge/automerge.wasm.base64.js";
 import { initializeBase64Wasm } from "@automerge/automerge/slim";
 import { globalValues } from "server/express/global";
@@ -95,8 +95,8 @@ const seed = async (): Promise<void> => {
 
   // Validate against the mission schema before anything is persisted, so an invalid
   // mission never reaches storage.
-  if (!missionValidator(structuredClone(seedMission))) {
-    throw new Error(`Seeded mission is invalid: ${JSON.stringify(missionValidator.errors)}`);
+  if (!currentMissionValidator(structuredClone(seedMission))) {
+    throw new Error(`Seeded mission is invalid: ${JSON.stringify(currentMissionValidator.errors)}`);
   }
 
   // Create the mission Automerge document.

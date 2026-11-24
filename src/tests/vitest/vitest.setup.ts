@@ -13,21 +13,6 @@ vi.mock("box-node-sdk", () => ({
   getPreconfiguredInstance: () => vi.fn(),
 }));
 
-// Mock schema validators to avoid file system reads which will fail in tests
-vi.mock("utils/validateSchemaServer", async () => {
-  const Ajv = (await import("ajv")).default;
-  const missionSchema = await import("../../../.local/schemas/mission.json");
-  const mdauSchema = await import("../../../.local/schemas/mdau.json");
-  const missionFieldsSchema = await import("../../../.local/schemas/missionFields.json");
-  const ajv = new Ajv({ verbose: true, allowUnionTypes: true, allErrors: true });
-
-  return {
-    missionValidator: ajv.compile(missionSchema),
-    mdauSchemaValidator: ajv.compile(mdauSchema),
-    missionFieldsValidator: ajv.compile(missionFieldsSchema),
-  };
-});
-
 /**
  * Mock @automerge/automerge-repo for client side testing
  * We need this mock to prevent any module initialization side effects at loading
