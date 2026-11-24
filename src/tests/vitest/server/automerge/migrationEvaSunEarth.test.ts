@@ -38,7 +38,7 @@ describe("EVA Sun/Earth migration", () => {
       const cleanPreset = generateBlankPreset({ uuid: "clean-preset" });
       let doc = Automerge.from({
         ...generateBlankMission({
-          planetRadius,
+          planet: planetRadius === 1737400 ? "moon" : "earth",
           evas: { legacy, partial, manual },
         }),
         presets: {

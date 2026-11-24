@@ -2,8 +2,7 @@
  * Browser-mode tests for `MouseCoordinateDisplay`.
  *
  * Mocks:
- *  - `utils/useDocSelector` — provides projection, planetRadius, usingLGRSCoordinates and the
- *    grid system fields
+ *  - `utils/useDocSelector` — provides projection, planet, serverFileGrid and label scheme
  *  - `utils/mapping/geoMath` — stubs getGridCoordinatesFromPoint (server-file grid path)
  *  - `useResolvedMissionGrid` — provides the resolved grid kind
  *
@@ -43,9 +42,8 @@ const mockMissionDoc = {
   projIsCustom: true,
   projEpsg: "TEST:MOON-EQC",
   projProj4String: MOON_EQC,
-  planetRadius: 1737400,
-  usingLGRSCoordinates: false,
-  gridSystem: undefined as MissionGridSystemId | undefined,
+  planet: "mars" as Planet,
+  serverFileGrid: null as MissionGridDefinition | null,
   earthGridLabelScheme: undefined as GridLabelScheme | undefined,
 };
 
@@ -97,10 +95,8 @@ function setEarthMission(scheme: GridLabelScheme | undefined) {
   mockMissionDoc.projIsCustom = false;
   mockMissionDoc.projEpsg = "EPSG:3857";
   mockMissionDoc.projProj4String = "";
-  mockMissionDoc.planetRadius = 6378137;
-  mockMissionDoc.gridSystem = "earth-wgs84";
+  mockMissionDoc.planet = "earth";
   mockMissionDoc.earthGridLabelScheme = scheme;
-  mockMissionDoc.usingLGRSCoordinates = true;
 }
 
 /** Map coordinate of a lat/lng in the mocked mission projection. */
@@ -118,12 +114,11 @@ function nextFrame(): Promise<void> {
 }
 
 beforeEach(() => {
+  mockMissionDoc.serverFileGrid = null;
   mockGridCoordResult = null;
   mockResolvedGrid = { kind: "none" };
-  mockMissionDoc.usingLGRSCoordinates = false;
-  mockMissionDoc.gridSystem = undefined;
+  mockMissionDoc.planet = "mars";
   mockMissionDoc.earthGridLabelScheme = undefined;
-  mockMissionDoc.planetRadius = 1737400;
   setMockProjection("TEST:MOON-EQC", MOON_EQC);
   renderCount = 0;
   harness = createReactHarness();
@@ -183,7 +178,7 @@ describe("MouseCoordinateDisplay", () => {
   ])("shows $expected for $name (dynamic grid: $dynamic)", async (testCase) => {
     const { lat, lng, dynamic, expected, south } = testCase;
     if (south) setMockProjection("TEST:SOUTH-CAP", SOUTH_CAP);
-    mockMissionDoc.usingLGRSCoordinates = true;
+    mockMissionDoc.planet = "moon";
     mockResolvedGrid = dynamic ? { kind: "dynamic-lgrs" } : { kind: "none" };
     renderMouseCoordinateDisplay("editor");
 
@@ -233,26 +228,17 @@ describe("MouseCoordinateDisplay", () => {
     await vi.waitFor(() => expect(readout()).toBe("15R TN 9751 7177MGRS"));
   });
 
-  it.each([
-    { gridSystem: "moon-m2025", usingLGRSCoordinates: false },
-    { gridSystem: "earth-wgs84", usingLGRSCoordinates: false },
-  ] as const)(
-    "shows no scheme for $gridSystem with grid coordinates $usingLGRSCoordinates",
-    async ({ gridSystem, usingLGRSCoordinates }) => {
-      mockMissionDoc.gridSystem = gridSystem;
-      mockMissionDoc.usingLGRSCoordinates = usingLGRSCoordinates;
-      renderMouseCoordinateDisplay("editor");
+  it("shows no scheme for Mars", async () => {
+    mockMissionDoc.planet = "mars";
+    renderMouseCoordinateDisplay();
+    pointerMove(toMap(0, 0));
+    await nextFrame();
+    expect(harness.container.querySelector("[data-testid='mouse-grid-scheme']")).toBeNull();
+  });
 
-      pointerMove(toMap(45, 90));
-
-      await vi.waitFor(() => {
-        expect(document.body.textContent).toContain("45.000000, 90.000000");
-      });
-      expect(document.querySelector("[data-testid='mouse-grid-scheme']")).toBeNull();
-    }
-  );
-
-  it("shows the server-file grid coordinate when one is found", async () => {
+  it("shows an uploaded Earth grid coordinate with no planetary scheme tag", async () => {
+    mockMissionDoc.planet = "earth";
+    mockMissionDoc.serverFileGrid = { name: "USGS", fileName: "usgs.json", numRows: 1, numCols: 1 };
     mockGridCoordResult = "A-3";
     mockResolvedGrid = {
       kind: "server-file",
@@ -264,6 +250,7 @@ describe("MouseCoordinateDisplay", () => {
 
     await vi.waitFor(() => {
       expect(document.body.textContent).toContain("A-3");
+      expect(document.querySelector("[data-testid='mouse-grid-scheme']")).toBeNull();
     });
   });
 
@@ -336,7 +323,7 @@ describe("MouseCoordinateDisplay", () => {
   });
 
   it("coalesces pointermoves into one update per animation frame", async () => {
-    mockMissionDoc.usingLGRSCoordinates = true;
+    mockMissionDoc.planet = "moon";
     renderMouseCoordinateDisplay("editor");
     const rendersBefore = renderCount;
 
@@ -352,7 +339,7 @@ describe("MouseCoordinateDisplay", () => {
   });
 
   it("does not re-render when the displayed text is unchanged", async () => {
-    mockMissionDoc.usingLGRSCoordinates = true;
+    mockMissionDoc.planet = "moon";
     renderMouseCoordinateDisplay("editor");
 
     const coordinate = toMap(45, 90);

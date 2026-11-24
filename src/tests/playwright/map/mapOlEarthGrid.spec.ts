@@ -31,13 +31,10 @@ async function createEarthMission(request: APIRequestContext): Promise<number> {
   const fields: MissionFieldsUpdate = {
     name: `_PLAYWRIGHT Earth Grid ${Math.floor(Math.random() * 1_000_000).toString(36)}`,
     landerLocation: JSC,
-    planetRadius: 6378137,
+    planet: "earth",
     initialZoom: 14,
     projIsCustom: false,
     projEpsg: "EPSG:3857",
-    usingLGRSCoordinates: true,
-    gridRenderMode: "dynamic-lgrs",
-    gridSystem: "earth-wgs84",
     earthGridLabelScheme: "lunar-acc",
   };
   try {

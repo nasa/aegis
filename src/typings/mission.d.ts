@@ -1,3 +1,5 @@
+type Planet = "earth" | "moon" | "mars";
+
 /**
  * The mission object
  */
@@ -7,17 +9,13 @@ interface Mission {
   description: string | null;
   maestroDocId: string | null;
   missionBanner: string | null;
-  usingLGRSCoordinates: boolean;
-  gridRenderMode: GridRenderMode;
-  /** Grid system for grid coordinates, grid-north bearings and the dynamic grid. */
-  gridSystem: MissionGridSystemId;
-  /** Default label scheme on `earth-wgs84`; each user may override it. */
-  earthGridLabelScheme: GridLabelScheme;
+  /** Default labels for Earth grids; users may override them in the map menu. */
+  earthGridLabelScheme?: GridLabelScheme;
   actionSystemVersion: number;
   actionDefinitions: ActionDefinitions | null;
   landerLocation: AEGISPoint;
   landerElevationMeters: number | null;
-  planetRadius: number | null;
+  planet: Planet;
   initialZoom: number | null;
   traverseRate: number | null;
   defaultEvaDuration: number | null;
@@ -105,6 +103,13 @@ type ActionTemplate = Omit<
 type DemConfig = {
   dem: string;
   resolution: number;
+};
+
+/** GeoTIFF selection metadata. Resolution is detected in metres per pixel. */
+type MissionDem = {
+  filePath: string;
+  resolution: number | null;
+  error: string | null;
 };
 
 type GISfile = {
@@ -233,14 +238,14 @@ type MissionGrid = {
   coordinates: MissionGridPoint[][];
 };
 
-type GridRenderMode = "server-file" | "dynamic-lgrs";
+type GridRenderMode = "none" | "server-file" | "dynamic-lgrs";
 
 type ResolvedMissionGrid =
   { kind: "none" } | { kind: "dynamic-lgrs" } | { kind: "server-file"; grid: MissionGrid };
 
 /**
  * Grid metadata stored on the mission Automerge doc (`mission.serverFileGrid`).
- * There is exactly one grid per mission; the coordinate array lives on disk
+ * Earth missions may have one uploaded grid; the coordinate array lives on disk
  * (Data/<fileName>) and is loaded into `globalGrid` at runtime.
  */
 type MissionGridDefinition = {

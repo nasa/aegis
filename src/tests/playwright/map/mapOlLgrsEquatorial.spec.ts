@@ -28,12 +28,10 @@ async function createLgrsMission(request: APIRequestContext): Promise<number> {
   const fields: MissionFieldsUpdate = {
     name: `_PLAYWRIGHT LGRS Equatorial ${Math.floor(Math.random() * 1_000_000).toString(36)}`,
     landerLocation: LANDER,
-    planetRadius: 1737400,
+    planet: "moon",
     initialZoom: 14,
     projIsCustom: false,
     projEpsg: "EPSG:3857",
-    usingLGRSCoordinates: true,
-    gridRenderMode: "dynamic-lgrs",
   };
   try {
     const fieldsResponse = await request.post("/api/v1/missionAutomerge/fields", {

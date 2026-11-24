@@ -9,6 +9,10 @@ export type OpenRaster = {
 
 export const openRaster = async (absolutePath: string): Promise<OpenRaster> => {
   const { image } = await getCachedRaster(absolutePath);
+  return { image, metadata: await getRasterMetadata(image) };
+};
+
+export const getRasterMetadata = async (image: RasterImage): Promise<RasterMetadata> => {
   if (image.getFileDirectory().hasTag("ModelTransformation")) {
     // The pixel conversion assumes an axis-aligned origin and scale. A transformation matrix
     // could also encode rotation or shear, which would require affine inversion.
@@ -49,5 +53,5 @@ export const openRaster = async (absolutePath: string): Promise<OpenRaster> => {
     offset: parseBandNumber("OFFSET", 0),
     geoKeys: (image.getGeoKeys() ?? {}) as Record<string, unknown>,
   };
-  return { image, metadata };
+  return metadata;
 };

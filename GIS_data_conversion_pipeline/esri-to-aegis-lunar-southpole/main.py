@@ -112,7 +112,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--dem-resolution",
         type=float,
         default=config.DEFAULT_DEM_RESOLUTION,
-        help="DEM resolution m/px (mission demResolution).",
+        help="DEM resolution m/px for derived product processing.",
     )
     mission.add_argument(
         "--token", default=None, help="EMSS token (default: EMSS_TOKEN from .env)."

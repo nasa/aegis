@@ -19,8 +19,8 @@ export default function EvaSunEarth({
   editMode: boolean;
 }): JSX.Element {
   const azimuths = useSunEarthAzimuths();
-  const planetRadius = useMissionDocSelector((m) => m.planetRadius, refEqual);
-  const secondaryBodyLabel = planetRadius === 1737400 ? "Earth" : "Moon";
+  const planet = useMissionDocSelector((m) => m.planet, refEqual);
+  const secondaryBodyLabel = planet === "earth" ? "Moon" : "Earth";
   const fromDate = eva.sunEarthFromDate;
   const update = <K extends keyof Eva>(fieldName: K, value: Eva[K]) =>
     withMissionChange((m) => applyUpdateEvaByField(m, { evaUuid: eva.uuid, fieldName, value }));
@@ -59,7 +59,7 @@ export default function EvaSunEarth({
           {fromDate ? "Calculated from EVA Date/Time" : "Manually set"}
         </div>
       )}
-      {planetRadius !== 1737400 ? (
+      {planet !== "moon" ? (
         <div className={styles.note}>
           Calculated values are unavailable because this mission is not on the Moon.
         </div>

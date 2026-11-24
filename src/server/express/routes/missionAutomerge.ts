@@ -14,12 +14,97 @@ import { deleteFile } from "server/file/file";
 import { missionFieldsValidator } from "utils/validateSchemaServer";
 import { createMissionSummary } from "server/automerge/missionCatalog";
 import { refreshMissionCatalog } from "server/automerge/missionCatalogRuntime";
+import { listMissionDems, readMissionDem } from "server/raster/missionDems";
+import { applyMissionPlanet } from "operations/apply/apply-mission";
+import { supportsUploadedGrid } from "utils/planets";
 
 /**
  * Endpoint for working with the mission document in automerge
  */
 
 const router = express.Router();
+
+router.get("/dems", async (req: Request, res: Response): Promise<void> => {
+  const missionId = Number(req.query.missionId);
+  const routeName = "missionAutomerge/dems";
+  const appUsername = req.session?.appUser?.username;
+  if (!Number.isSafeInteger(missionId) || missionId <= 0) {
+    serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/dems:GET:rejectedInvalidMissionId",
+      logLevel: "notice",
+      httpMethod: "GET",
+      responseStatus: 400,
+      routeName,
+      appUsername,
+      message: "Invalid mission ID",
+    });
+    res.status(400).json({ status: "error", message: "Invalid mission ID" });
+    return;
+  }
+  if (
+    !hasPerms({
+      missionId,
+      permission: "edit",
+      appUser: req.session?.appUser,
+      emssToken: req.headers["emss-token"] as string,
+    })
+  ) {
+    serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/dems:GET:unauthorizedRequestMissingEditPermission",
+      logLevel: "warning",
+      httpMethod: "GET",
+      responseStatus: 401,
+      routeName,
+      appUsername,
+      missionId,
+      message: "Unauthorized",
+    });
+    res.status(401).json({ status: "failure", message: "Unauthorized" });
+    return;
+  }
+  try {
+    if (!(await getAutomergeMissionHandle(missionId))) {
+      serverLogger.apiRoute({
+        logId: "api-route:missionAutomerge/dems:GET:missionDocumentNotFound",
+        logLevel: "notice",
+        httpMethod: "GET",
+        responseStatus: 404,
+        routeName,
+        appUsername,
+        missionId,
+        message: "Mission not found",
+      });
+      res.status(404).json({ status: "failure", message: "Mission not found" });
+      return;
+    }
+    const dems = await listMissionDems(missionId);
+    serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/dems:GET:listedMissionDems",
+      logLevel: "info",
+      httpMethod: "GET",
+      responseStatus: 200,
+      routeName,
+      appUsername,
+      missionId,
+      message: "Listed mission DEM files",
+    });
+    res.json({ status: "success", data: dems });
+  } catch (error) {
+    const cause = asError(error);
+    serverLogger.apiRoute({
+      logId: "api-route:missionAutomerge/dems:GET:failedToListMissionDems",
+      logLevel: "error",
+      httpMethod: "GET",
+      responseStatus: 500,
+      routeName,
+      appUsername,
+      missionId,
+      message: "Could not list mission DEM files",
+      error: cause,
+    });
+    res.status(500).json({ status: "error", message: cause.message });
+  }
+});
 
 // Await persistence and summary creation so an immediate admin-list refresh sees the archive change.
 router.post("/archive", async (req: Request, res: Response) => {
@@ -211,7 +296,7 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  if (!missionId || isNaN(missionId)) {
+  if (!Number.isSafeInteger(missionId) || missionId <= 0) {
     res.status(400).json({ status: "error", message: "Invalid mission ID" });
     return;
   }
@@ -262,8 +347,38 @@ router.post("/fields", async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    let demResolution: number | null | undefined;
+    if (fields.demFilePath !== undefined) {
+      try {
+        demResolution = fields.demFilePath
+          ? (await readMissionDem(missionId, fields.demFilePath)).resolution
+          : null;
+      } catch (error) {
+        const cause = asError(error);
+        serverLogger.apiRoute({
+          logId: "api-route:missionAutomerge/fields:POST:rejectedInvalidMissionDem",
+          logLevel: "notice",
+          httpMethod: "POST",
+          responseStatus: 400,
+          routeName: "missionAutomerge/fields",
+          appUsername: req.session?.appUser?.username,
+          missionId,
+          message: `Invalid DEM: ${cause.message}`,
+        });
+        res.status(400).json({ status: "error", message: `Invalid DEM: ${cause.message}` });
+        return;
+      }
+    }
+
     handle.change((m: Mission) => {
+      const demChanged =
+        fields.demFilePath !== undefined &&
+        (fields.demFilePath !== m.demFilePath || demResolution !== m.demResolution);
+      if (fields.planet !== undefined) applyMissionPlanet(m, fields.planet);
       Object.assign(m, fields);
+      if (!supportsUploadedGrid(m)) m.serverFileGrid = null;
+      if (demResolution !== undefined) m.demResolution = demResolution;
+      if (demChanged || landerLocationChanged) m.landerElevationMeters = null;
       m.updatedAt = new Date().getTime();
     });
 

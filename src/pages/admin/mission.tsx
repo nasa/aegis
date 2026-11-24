@@ -1,11 +1,15 @@
+import { PLANETS, supportsUploadedGrid } from "utils/planets";
+import { getMissionDems } from "http-client/mission";
+import { getElevationSinglePoint } from "http-client/terrainProfile";
+import { isKnownElevation } from "utils/elevation";
+import { applyMissionPlanet } from "operations/apply/apply-mission";
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAsyncStatus } from "components/admin/useAsyncStatus";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppSelector, shallowEqual } from "utils/useAppSelector";
 import { Link, useParams } from "react-router";
 import adminStyles from "components/admin/admin.module.css";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
-import { getElevationSinglePoint } from "http-client/terrainProfile";
 import FileManager from "components/admin/fileManager";
 import { InLineEditInput, TextArea } from "components/interface/form/globalFields";
 import { validators } from "components/interface/form/formValidators";
@@ -16,9 +20,8 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { maestroCreateDoc } from "http-client/maestro";
 import { getCurrentUser } from "packages/getCurrentUser";
 import type { MaestroAccessControl } from "server/maestro/v2/types/clientTypesMaestro";
+
 import { getMissionLabelScheme, getMissionGridSystem } from "utils/lgrs/system";
-import { getGridRenderMode } from "utils/mapping/grid";
-import { suggestGridSystemId } from "components/interface/map/utils/planetScale";
 import { missionHasLanderDependentEntities } from "store/storeUtils/mission";
 
 type RouteParams = {
@@ -26,14 +29,49 @@ type RouteParams = {
   automergeUrl: string;
 };
 
-const EARTH_LABEL_SCHEME_OPTIONS: readonly { scheme: GridLabelScheme; label: string }[] = [
-  { scheme: "lunar-acc", label: "ACC (lunar-style letters)" },
-  { scheme: "mgrs", label: "MGRS" },
-];
+const formatDemResolution = (resolution: number | null): string =>
+  resolution == null ? "unknown" : Number(resolution.toPrecision(10)).toString();
+
+const getElevationInputs = (mission: Mission) => ({
+  missionId: mission.id,
+  lat: mission.landerLocation?.lat,
+  lng: mission.landerLocation?.lng,
+  demFilePath: mission.demFilePath,
+  demResolution: mission.demResolution,
+});
+
+function canCalculateElevation({
+  missionId,
+  demFilePath,
+  lat,
+  lng,
+}: ReturnType<typeof getElevationInputs>) {
+  return (
+    !!missionId &&
+    !!demFilePath &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lng) <= 180
+  );
+}
+
+function setLanderElevation(mission: Mission, elevation: number | null) {
+  mission.landerElevationMeters = elevation;
+  for (const station of Object.values(mission.stations ?? {})) {
+    if (station.isLanderXgress) station.elevation = elevation;
+  }
+}
 
 const Mission: React.FunctionComponent = () => {
-  const elevationStatus = useAsyncStatus();
   const maestroStatus = useAsyncStatus();
+  const demStatus = useAsyncStatus();
+  const elevationStatus = useAsyncStatus();
+  const { run: runElevationTask, clearError: clearElevationError } = elevationStatus;
+  const { run: runDemTask } = demStatus;
+  const [dems, setDems] = useState<MissionDem[]>([]);
+  const demRequest = useRef(0);
+  const elevationRequest = useRef<AbortController>(null);
   const params = useParams<RouteParams>();
   // Access the automerge mission document via the useDocument hook instead of the
   // useMissionDocSelector (to read) and useDocHandle (to write). This is because for this
@@ -42,18 +80,91 @@ const Mission: React.FunctionComponent = () => {
     params.automergeUrl as AutomergeUrl
   );
 
-  // Keep the grid configuration consistent with the radius and rendering mode.
+  const missionId = automergeMission?.id;
+  const refreshDems = useCallback(() => {
+    if (!missionId) return;
+    const request = ++demRequest.current;
+    return runDemTask("Reading DEM files...", async () => {
+      try {
+        const files = await getMissionDems(missionId);
+        if (request === demRequest.current) setDems(files);
+      } catch (error) {
+        if (request === demRequest.current) throw error;
+      }
+    });
+  }, [missionId, runDemTask]);
+
+  useEffect(
+    () => () => {
+      demRequest.current++;
+      elevationRequest.current?.abort();
+    },
+    [missionId, changeMissionDoc]
+  );
+
+  // wrapper to also update the updatedAt field when any change is made
   const changeAutomergeMission = useCallback(
     (updateFn: (m: Mission) => void) => {
       changeMissionDoc((m: Mission) => {
         updateFn(m);
-        m.gridSystem = suggestGridSystemId(m.planetRadius);
-        m.usingLGRSCoordinates = getGridRenderMode(m) === "dynamic-lgrs";
+        if (!supportsUploadedGrid(m)) m.serverFileGrid = null;
         m.updatedAt = new Date().getTime();
       });
     },
     [changeMissionDoc]
   );
+
+  function calculateElevation(inputs: ReturnType<typeof getElevationInputs>) {
+    elevationRequest.current?.abort();
+    clearElevationError();
+    if (!canCalculateElevation(inputs)) return;
+    const { missionId, lat, lng, demFilePath, demResolution } = inputs;
+    const request = new AbortController();
+    elevationRequest.current = request;
+    runElevationTask("Calculating lander elevation...", async () => {
+      try {
+        const response = await getElevationSinglePoint({
+          missionId,
+          point: { lat, lng },
+          expectedDem: { demFilePath, demResolution },
+        });
+        if (request.signal.aborted) return;
+        if (response.status !== "success" || !isKnownElevation(response.data))
+          throw new Error(response.message || "The DEM has no elevation at this location");
+        changeMissionDoc((m) => {
+          if (
+            shallowEqual(inputs, getElevationInputs(m)) &&
+            !isKnownElevation(m.landerElevationMeters)
+          ) {
+            setLanderElevation(m, response.data);
+          }
+        });
+      } catch (error) {
+        if (!request.signal.aborted) throw error;
+      }
+    });
+  }
+
+  function updateElevationInputs(update: (mission: Mission) => void) {
+    let inputs: ReturnType<typeof getElevationInputs>;
+    changeAutomergeMission((mission) => {
+      const previous = getElevationInputs(mission);
+      update(mission);
+      const next = getElevationInputs(mission);
+      if (shallowEqual(previous, next)) return;
+      inputs = next;
+      setLanderElevation(mission, null);
+    });
+    if (inputs) calculateElevation(inputs);
+  }
+
+  function updateLanderCoordinate(axis: "lat" | "lng", value: string) {
+    updateElevationInputs((mission) => {
+      if (!missionHasLanderDependentEntities(mission)) {
+        mission.landerLocation[axis] = value ? +value : null;
+      }
+    });
+  }
 
   useEffect(() => {
     //put missionId in sessionStorage
@@ -62,64 +173,17 @@ const Mission: React.FunctionComponent = () => {
     window.sessionStorage.setItem("socketId", "null");
   }, [params]);
 
-  //calculate the lander elevation based on the lander location
-  const calcLanderElevation = useCallback(async () => {
-    if (!automergeMission) return;
-    if (
-      automergeMission.landerLocation.lat == null ||
-      automergeMission.landerLocation.lng == null ||
-      !automergeMission.planetRadius ||
-      !automergeMission.demFilePath
-    ) {
-      throw new Error(
-        "Missing data. Must have lander location lat/lng, planet radius, and demFilePath"
-      );
-    }
-
-    const elevation = (
-      await getElevationSinglePoint({
-        missionId: automergeMission.id,
-        point: automergeMission.landerLocation,
-      })
-    ).data;
-
-    // save back out to automerge doc
-    changeAutomergeMission((m: Mission) => {
-      m.landerElevationMeters = elevation;
-    });
-  }, [automergeMission, changeAutomergeMission]);
-
   // Maestro section state
   const [maestroAccessControl, setMaestroAccessControl] = useState<MaestroAccessControl>("public");
   const maestroLoading = !!maestroStatus.pending;
   const [maestroError, setMaestroError] = useState<string | null>(null);
   const [maestroResponseMeta, setMaestroResponseMeta] = useState<unknown | null>(null);
   const maestroCurrentUser = useAppSelector((state) => state.user.launchpadUser, shallowEqual);
-  const gridSystemId = automergeMission ? suggestGridSystemId(automergeMission.planetRadius) : null;
-  const isEarthGrid = gridSystemId === "earth-wgs84";
-  const gridRenderMode = automergeMission ? getGridRenderMode(automergeMission) : "server-file";
-  const dynamicLgrsCompatibility = automergeMission
-    ? getMissionGridSystem({ ...automergeMission, gridSystem: gridSystemId }).compatibility
-    : null;
-  const dynamicLgrsCompatible = dynamicLgrsCompatibility?.compatible ?? false;
-  // Changing the lander here would not move stations, walkbacks, or traverses with it.
-  const landerFieldsLocked = automergeMission
-    ? missionHasLanderDependentEntities(automergeMission)
-    : false;
-
-  useEffect(() => {
-    if (
-      !automergeMission ||
-      (automergeMission.gridSystem === gridSystemId &&
-        automergeMission.usingLGRSCoordinates === (gridRenderMode === "dynamic-lgrs"))
-    )
-      return;
-    changeAutomergeMission((m) => {
-      m.gridSystem = gridSystemId;
-      m.usingLGRSCoordinates = gridRenderMode === "dynamic-lgrs";
-    });
-  }, [automergeMission, gridSystemId, gridRenderMode, changeAutomergeMission]);
-
+  const grid = automergeMission ? getMissionGridSystem(automergeMission) : null;
+  const isEarthGrid = automergeMission?.planet === "earth";
+  const elevationInputs = automergeMission && getElevationInputs(automergeMission);
+  const landerFieldsLocked =
+    automergeMission != null && missionHasLanderDependentEntities(automergeMission);
   const handleCreateMaestroProject = useCallback(async () => {
     if (!automergeMission?.id) return;
     setMaestroError(null);
@@ -314,33 +378,25 @@ const Mission: React.FunctionComponent = () => {
                 <section className={adminCommon.section} style={{ marginBottom: 16 }}>
                   <h2 className={adminCommon.sectionHeading}>Location &amp; Physics</h2>
                   <div className={adminCommon.details}>
-                    <div id="planetRadiusDiv">
-                      <div className={adminStyles.editDiv}>
-                        <InLineEditInput
-                          value={automergeMission.planetRadius?.toString()}
-                          editing={true}
-                          fieldProps={{
-                            name: "planetRadius",
-                            ariaLabel: "Planet Radius",
-                            style: { width: "100%" },
-                            validators: [validators.mustBeNumber, validators.maxLength(8)],
-                            label: {
-                              label: "Planet Radius (m)",
-                              className: adminStyles.editLabel,
-                            },
-                          }}
-                          onSubmit={(value) => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.planetRadius = +value || null;
-                            });
-                          }}
-                          key={`${automergeMission.id}-planetRadius`}
-                          debounceSubmit={false}
-                        />
-                        <span className={adminCommon.formHint}>
-                          (Moon: 1737400, Earth: 6378137)
-                        </span>
-                      </div>
+                    <div className={adminStyles.editDiv}>
+                      <label htmlFor="missionPlanet" className={adminStyles.editLabel}>
+                        Planet
+                      </label>
+                      <select
+                        id="missionPlanet"
+                        className={adminCommon.formInput}
+                        value={automergeMission.planet}
+                        onChange={(event) => {
+                          const planet = event.target.value as Planet;
+                          changeAutomergeMission((m) => applyMissionPlanet(m, planet));
+                        }}
+                      >
+                        {(Object.keys(PLANETS) as Planet[]).map((planet) => (
+                          <option key={planet} value={planet}>
+                            {PLANETS[planet].name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     {landerFieldsLocked && (
                       <p className={adminCommon.formHint}>
@@ -365,11 +421,7 @@ const Mission: React.FunctionComponent = () => {
                             },
                             inputProps: { disabled: landerFieldsLocked },
                           }}
-                          onSubmit={(value) => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.landerLocation.lat = value ? +value : null;
-                            });
-                          }}
+                          onSubmit={(value) => updateLanderCoordinate("lat", value)}
                           key={`${automergeMission.id}-landerLocation.lat`}
                           debounceSubmit={false}
                         />
@@ -391,59 +443,36 @@ const Mission: React.FunctionComponent = () => {
                             },
                             inputProps: { disabled: landerFieldsLocked },
                           }}
-                          onSubmit={(value) => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.landerLocation.lng = value ? +value : null;
-                            });
-                          }}
+                          onSubmit={(value) => updateLanderCoordinate("lng", value)}
                           key={`${automergeMission.id}-landerLocation.lng`}
                           debounceSubmit={false}
                         />
                       </div>
                     </div>
-                    <div id="landerEleDiv">
-                      <div className={adminStyles.editDiv}>
-                        <InLineEditInput
-                          value={automergeMission.landerElevationMeters?.toString()}
-                          editing={true}
-                          fieldProps={{
-                            name: "landerElevationMeters",
-                            ariaLabel: "Lander Location Elevation",
-                            style: { width: "100%" },
-                            validators: [validators.mustBeNumber],
-                            label: {
-                              label: "Lander Location Elevation",
-                              className: adminStyles.editLabel,
-                            },
-                            inputProps: { disabled: landerFieldsLocked },
-                          }}
-                          onSubmit={(value) => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.landerElevationMeters = +value || null;
-                            });
-                          }}
-                          key={`${automergeMission.id}-landerElevationMeters`}
-                          debounceSubmit={false}
-                        />
-                        <button
-                          className={adminCommon.button}
-                          type="button"
-                          disabled={landerFieldsLocked || !!elevationStatus.pending}
-                          onClick={() =>
-                            elevationStatus.run(
-                              "Calculating lander elevation...",
-                              calcLanderElevation
-                            )
-                          }
-                        >
-                          Calculate
-                        </button>
-                        <AsyncStatus {...elevationStatus} />
-                        <span className={adminCommon.formHint}>
-                          {" "}
-                          Lander Location must have value for elevation graph to show
-                        </span>
-                      </div>
+                    <div id="landerEleDiv" className={adminStyles.editDiv}>
+                      <span className={adminStyles.editLabel}>Lander Elevation (m)</span>
+                      <output aria-label="Lander Elevation">
+                        {automergeMission.landerElevationMeters?.toFixed(0) ?? "Unknown"}
+                      </output>
+                      <AsyncStatus {...elevationStatus} />
+                      {!isKnownElevation(automergeMission.landerElevationMeters) &&
+                        canCalculateElevation(elevationInputs) && (
+                          <button
+                            type="button"
+                            className={adminCommon.button}
+                            disabled={!!elevationStatus.pending}
+                            onClick={() => calculateElevation(elevationInputs)}
+                          >
+                            {elevationStatus.error ? "Retry elevation" : "Calculate elevation"}
+                          </button>
+                        )}
+                      <p className={adminCommon.formHint}>
+                        {!automergeMission.demFilePath
+                          ? "Add a DEM below to determine the lander elevation automatically."
+                          : canCalculateElevation(elevationInputs)
+                            ? "Changing the DEM or lander coordinates recalculates elevation. If a sample is unavailable, check that the DEM covers the lander location."
+                            : "Set a valid lander latitude and longitude to calculate elevation from the DEM."}
+                      </p>
                     </div>
                   </div>
                 </section>
@@ -563,70 +592,60 @@ const Mission: React.FunctionComponent = () => {
                 <section className={adminCommon.section} style={{ marginBottom: 16 }}>
                   <h2 className={adminCommon.sectionHeading}>Coordinate System</h2>
                   <div className={adminCommon.details}>
-                    <p className={adminCommon.formHint}>
-                      {isEarthGrid ? "Earth (WGS84 UTM/UPS)" : "Moon (LGRS)"}, selected from the
-                      planet radius.
+                    <p>
+                      Coordinates:{" "}
+                      {isEarthGrid && automergeMission.serverFileGrid
+                        ? `Uploaded grid (${automergeMission.serverFileGrid.name})`
+                        : grid?.system
+                          ? isEarthGrid
+                            ? "Earth (WGS84 UTM/UPS)"
+                            : "LGRS"
+                          : "Latitude / Longitude"}
+                      . The reference system is selected automatically from the mission planet.
                     </p>
-                    <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
-                      <legend className={adminStyles.editLabel}>Grid Rendering</legend>
-                      <label className={adminCommon.checkboxItem}>
-                        <input
-                          type="radio"
-                          name="gridRenderMode"
-                          checked={gridRenderMode === "server-file"}
-                          onChange={() => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.gridRenderMode = "server-file";
-                            });
-                          }}
-                        />
-                        Server File
-                      </label>
-                      <label className={adminCommon.checkboxItem}>
-                        <input
-                          type="radio"
-                          name="gridRenderMode"
-                          checked={gridRenderMode === "dynamic-lgrs"}
-                          disabled={!dynamicLgrsCompatible}
-                          onChange={() => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.gridRenderMode = "dynamic-lgrs";
-                            });
-                          }}
-                        />
-                        Dynamic Grid
-                      </label>
-                      {dynamicLgrsCompatibility && !dynamicLgrsCompatible ? (
-                        <p>{dynamicLgrsCompatibility.reason}</p>
-                      ) : null}
-                    </fieldset>
-                    {gridRenderMode === "dynamic-lgrs" && isEarthGrid ? (
-                      <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
-                        <legend className={adminStyles.editLabel}>Default Label Scheme</legend>
-                        {EARTH_LABEL_SCHEME_OPTIONS.map(({ scheme, label }) => (
-                          <label key={scheme} className={adminCommon.checkboxItem}>
-                            <input
-                              type="radio"
-                              name="earthGridLabelScheme"
-                              checked={getMissionLabelScheme(automergeMission) === scheme}
-                              onChange={() => {
-                                changeAutomergeMission((m: Mission) => {
-                                  m.earthGridLabelScheme = scheme;
-                                });
-                              }}
-                            />
-                            {label}
-                          </label>
-                        ))}
-                        <p className={adminCommon.formHint}>
-                          ACC uses MGRS with LGRS-like labels. MGRS uses standard Earth grid
-                          references. Users can switch labels from the map menu.
+                    {automergeMission.planet === "moon" && (
+                      <p>
+                        The LGRS grid is generated dynamically across the whole Moon. No grid upload
+                        is needed.
+                      </p>
+                    )}
+                    {isEarthGrid && (
+                      <>
+                        <p>
+                          {automergeMission.serverFileGrid
+                            ? "Using the uploaded Earth grid. Remove it to use the dynamic grid."
+                            : "The Earth grid is generated dynamically. Upload a custom grid below when needed."}
                         </p>
-                      </fieldset>
-                    ) : null}
-                    {gridRenderMode === "dynamic-lgrs" && !isEarthGrid ? (
-                      <p className={adminCommon.formHint}>Labels use lunar ACC coordinates.</p>
-                    ) : null}
+                        <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+                          <legend className={adminStyles.editLabel}>Default Label Scheme</legend>
+                          {(["lunar-acc", "mgrs"] as const).map((scheme) => (
+                            <label key={scheme} className={adminCommon.checkboxItem}>
+                              <input
+                                type="radio"
+                                name="earthGridLabelScheme"
+                                checked={getMissionLabelScheme(automergeMission) === scheme}
+                                onChange={() =>
+                                  changeAutomergeMission((m) => {
+                                    m.earthGridLabelScheme = scheme;
+                                  })
+                                }
+                              />
+                              {scheme === "mgrs" ? "MGRS" : "ACC (lunar-style letters)"}
+                            </label>
+                          ))}
+                          <p className={adminCommon.formHint}>
+                            Used for the dynamic grid. Users can override its labels from the map
+                            menu.
+                          </p>
+                        </fieldset>
+                      </>
+                    )}
+                    {grid && !grid.compatibility.compatible && grid.system && (
+                      <p>{grid.compatibility.reason}</p>
+                    )}
+                    {automergeMission.planet === "mars" && (
+                      <p>No dynamic grid is available for Mars.</p>
+                    )}
                   </div>
                 </section>
 
@@ -634,56 +653,52 @@ const Mission: React.FunctionComponent = () => {
                 <section className={adminCommon.section} style={{ marginBottom: 16 }}>
                   <h2 className={adminCommon.sectionHeading}>Digital Elevation Model (DEM)</h2>
                   <div className={adminCommon.details}>
-                    <div id="demFilePathDiv">
-                      <div className={adminStyles.editDiv}>
-                        <InLineEditInput
-                          value={automergeMission.demFilePath}
-                          editing={true}
-                          fieldProps={{
-                            name: "demFilePath",
-                            ariaLabel: "DEM File Path",
-                            style: { width: "100%" },
-                            label: { label: "DEM File Path", className: adminStyles.editLabel },
-                          }}
-                          onSubmit={(value) => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.demFilePath = value || "";
-                            });
-                          }}
-                          key={`${automergeMission.id}-demFilePath`}
-                          debounceSubmit={false}
-                        />
-                      </div>
-                    </div>
-                    <div id="demResolutionDiv">
-                      <div className={adminStyles.editDiv}>
-                        <InLineEditInput
-                          value={automergeMission.demResolution?.toString()}
-                          editing={true}
-                          fieldProps={{
-                            name: "demResolution",
-                            ariaLabel: "DEM Resolution",
-                            style: { width: "100%" },
-                            validators: [
-                              validators.mustBeNumber,
-                              validators.mustBeInteger,
-                              validators.maxLength(8),
-                            ],
-                            label: {
-                              label: "DEM Resolution (m per pixel)",
-                              className: adminStyles.editLabel,
-                            },
-                          }}
-                          onSubmit={(value) => {
-                            changeAutomergeMission((m: Mission) => {
-                              m.demResolution = +value || null;
-                            });
-                          }}
-                          key={`${automergeMission.id}-demResolution`}
-                          debounceSubmit={false}
-                        />
-                      </div>
-                    </div>
+                    <label htmlFor="missionDem" className={adminStyles.editLabel}>
+                      DEM file
+                    </label>
+                    <select
+                      id="missionDem"
+                      className={adminCommon.formInput}
+                      value={automergeMission.demFilePath}
+                      disabled={!!demStatus.pending || !automergeMission.id}
+                      onChange={(event) => {
+                        const demFilePath = event.target.value;
+                        const dem = dems.find((item) => item.filePath === demFilePath);
+                        if (demFilePath && (!dem || dem.error)) return;
+                        updateElevationInputs((m) => {
+                          m.demFilePath = demFilePath;
+                          m.demResolution = dem?.resolution ?? null;
+                        });
+                      }}
+                    >
+                      <option value="">No DEM</option>
+                      {automergeMission.demFilePath &&
+                        !dems.some((dem) => dem.filePath === automergeMission.demFilePath) && (
+                          <option value={automergeMission.demFilePath} disabled>
+                            {automergeMission.demFilePath} (unavailable - refresh files)
+                          </option>
+                        )}
+                      {dems.map((dem) => (
+                        <option key={dem.filePath} value={dem.filePath} disabled={!!dem.error}>
+                          {dem.filePath.slice(5)} -{" "}
+                          {dem.error || `${formatDemResolution(dem.resolution)} m/pixel`}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={adminCommon.formHint}>
+                      GeoTIFFs in this mission's Data folder. Resolution is detected from the file.
+                      {automergeMission.demFilePath &&
+                        ` Current resolution: ${formatDemResolution(automergeMission.demResolution)} m/pixel.`}
+                    </p>
+                    <button
+                      type="button"
+                      className={adminCommon.buttonCancel}
+                      disabled={!!demStatus.pending || !automergeMission.id}
+                      onClick={refreshDems}
+                    >
+                      Refresh DEM files
+                    </button>
+                    <AsyncStatus {...demStatus} />
                   </div>
                 </section>
 
@@ -860,6 +875,7 @@ const Mission: React.FunctionComponent = () => {
                         missionId={automergeMission.id}
                         path={`missionFiles/${automergeMission.id}/Data`}
                         zipOnly={false}
+                        setFileList={refreshDems}
                       />
                     ) : (
                       <div className={adminCommon.emptyState}>
@@ -870,11 +886,12 @@ const Mission: React.FunctionComponent = () => {
                 </section>
 
                 {/* Grid Section */}
-                <AdminMissionGrid
-                  missionId={automergeMission.id}
-                  grid={automergeMission.serverFileGrid ?? null}
-                  gridRenderMode={getGridRenderMode(automergeMission)}
-                />
+                {supportsUploadedGrid(automergeMission) && (
+                  <AdminMissionGrid
+                    missionId={automergeMission.id}
+                    grid={automergeMission.serverFileGrid ?? null}
+                  />
+                )}
               </div>
             </div>
           </>

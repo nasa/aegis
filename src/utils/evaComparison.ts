@@ -1,3 +1,4 @@
+import { getPlanetRadius } from "utils/planets";
 import {
   getCalcFieldsForEva,
   getCalcFieldsForStation,
@@ -232,7 +233,7 @@ export const EVA_COMPARISON_METRIC_ROWS: EvaComparisonMetricRow[] = [
 export const getMaxDistanceFromLander = (mission: Mission, evaUuid: string): number => {
   const landerLocation = mission?.landerLocation;
   if (!landerLocation || landerLocation.lat == null || landerLocation.lng == null) return 0;
-  const radius = mission?.planetRadius ?? DEFAULT_PLANET_RADIUS_METERS;
+  const radius = getPlanetRadius(mission);
 
   const points: AEGISPoint[] = [];
   for (const station of selectEvaStations(mission, evaUuid)) {
@@ -403,7 +404,7 @@ export const computeComparisonColumnValues = ({
   mission: Mission;
   column: EvaReportColumn;
 }): EvaComparisonColumnValues => {
-  const planetRadius = mission?.planetRadius ?? DEFAULT_PLANET_RADIUS_METERS;
+  const planetRadius = getPlanetRadius(mission);
   const values: EvaComparisonColumnValues = {};
 
   if (column.kind === "eva") {
@@ -495,7 +496,7 @@ export const computeSequenceItemMetrics = ({
   const eva = column.evaUuid ? mission.evas?.[column.evaUuid] : undefined;
   if (!eva) return values;
 
-  const planetRadius = mission?.planetRadius ?? DEFAULT_PLANET_RADIUS_METERS;
+  const planetRadius = getPlanetRadius(mission);
   const landerLocation = mission?.landerLocation;
   const hasLander = !!landerLocation && landerLocation.lat != null && landerLocation.lng != null;
   const itemActions = Object.values(mission.actions ?? {}).filter(

@@ -368,6 +368,13 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
   // Observe storage loads before catalog population and running missions load documents.
   const missionCatalog = startMissionCatalogRuntime(missionRepo, storageAdapter);
   await populateMissionCatalogOnce(missionRepo);
+  // Repo 2.5.6 reports document loads/saves through metrics; it no longer emits "document".
+  missionRepo.on("doc-metrics", ({ type, documentId }) => {
+    if (type !== "doc-loaded" && type !== "doc-saved" && type !== "doc-compacted") return;
+    const handle = missionRepo.handles[documentId] as DocHandle<Mission> | undefined;
+    if (!handle) return;
+    watchTerrainCache(handle);
+  });
   await loadRunningMissionDocuments(missionRepo);
   server.listen(4001, () => {
     serverLogger.info({
@@ -377,10 +384,6 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
       loadedDocuments: Object.keys(missionRepo.handles).length,
       rssBytes: process.memoryUsage.rss(),
     });
-  });
-
-  globalValues.automergeRepo.on("document", ({ handle }) => {
-    watchTerrainCache(handle as DocHandle<Mission>);
   });
 
   // clg peers as they come and go

@@ -1,3 +1,4 @@
+import { generateBlankMission } from "store/storeUtils/mission";
 import {
   getGridBaseSpacingMeters,
   getGridRenderMode,
@@ -57,23 +58,56 @@ describe("resolveMissionGrid", () => {
   ]);
   const serverFileGrid = serverGrid.gridDefinition;
 
-  test("defaults existing missions without a mode to server-file", () => {
-    expect(getGridRenderMode({})).toBe("server-file");
-    expect(resolveMissionGrid({ serverFileGrid }, serverGrid)).toEqual({
+  test("uses an uploaded grid for Earth missions", () => {
+    const mission = generateBlankMission({ planet: "earth", serverFileGrid });
+    expect(getGridRenderMode(mission)).toBe("server-file");
+    expect(resolveMissionGrid(mission, serverGrid)).toEqual({
       kind: "server-file",
       grid: serverGrid,
     });
   });
 
-  test("resolves dynamic mode without exposing an uploaded matrix", () => {
+  test("automatically selects dynamic LGRS without requiring a saved mode or projection", () => {
     expect(
-      resolveMissionGrid({ serverFileGrid, gridRenderMode: "dynamic-lgrs" }, serverGrid)
+      resolveMissionGrid(
+        generateBlankMission({
+          serverFileGrid,
+          landerLocation: { lat: -85, lng: 0 },
+          projIsCustom: false,
+          projProj4String: "",
+        }),
+        serverGrid
+      )
     ).toEqual({ kind: "dynamic-lgrs" });
   });
 
-  test("resolves an absent server-file grid to none", () => {
+  test("uses a dynamic Earth grid without an uploaded grid", () => {
     expect(
-      resolveMissionGrid({ serverFileGrid: null, gridRenderMode: "server-file" }, serverGrid)
-    ).toEqual({ kind: "none" });
+      resolveMissionGrid(
+        generateBlankMission({ planet: "earth", serverFileGrid: null }),
+        serverGrid
+      )
+    ).toEqual({ kind: "dynamic-lgrs" });
+  });
+
+  test.each([
+    { planet: "mars" as Planet, lat: -85 },
+    { planet: "moon" as Planet, lat: -80 },
+    { planet: "moon" as Planet, lat: 0 },
+    { planet: "moon" as Planet, lat: 85 },
+    { planet: "moon" as Planet, lat: null },
+  ])("ignores uploaded grids for unsupported bodies and locations: %s", ({ planet, lat }) => {
+    const mission = generateBlankMission({
+      planet,
+      landerLocation: { lat, lng: 0 },
+      serverFileGrid,
+      projIsCustom: true,
+      projProj4String:
+        "+proj=stere +lat_0=-90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=1737400 +b=1737400 +units=m +no_defs",
+    });
+    expect(getGridRenderMode(mission)).toBe(planet === "mars" ? "none" : "dynamic-lgrs");
+    expect(resolveMissionGrid(mission, serverGrid)).toEqual({
+      kind: planet === "mars" ? "none" : "dynamic-lgrs",
+    });
   });
 });

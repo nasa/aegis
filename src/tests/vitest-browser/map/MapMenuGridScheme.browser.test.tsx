@@ -2,7 +2,7 @@
  * Browser-mode tests for the map menu's Earth label scheme handling.
  *
  * Mocks:
- *  - `utils/useDocSelector` — provides the mission's grid system fields
+ *  - `utils/useDocSelector` — provides the mission's planet and label scheme
  *  - `useResolvedMissionGrid` — no grid, or the dynamic grid
  *
  * Verifies:
@@ -75,15 +75,12 @@ afterEach(() => {
 });
 
 describe("map menu grid scheme", () => {
-  it.each([undefined, "moon-m2025", "earth-wgs84"] as const)(
-    "has no scheme toggle for grid system %s",
-    (gridSystem) => {
-      mockMissionDoc.gridSystem = gridSystem;
-      mockMissionDoc.earthGridLabelScheme = "mgrs";
-      renderMenu();
-      expect(harness.container.querySelector("[data-testid='map-menu-grid-scheme']")).toBeNull();
-    }
-  );
+  it.each(["moon", "earth", "mars"] as const)("has no scheme toggle for planet %s", (planet) => {
+    mockMissionDoc.planet = planet;
+    mockMissionDoc.earthGridLabelScheme = "mgrs";
+    renderMenu();
+    expect(harness.container.querySelector("[data-testid='map-menu-grid-scheme']")).toBeNull();
+  });
 
   it.each([
     { scheme: "lunar-acc", expected: ["Auto", "10m", "100m", "1km"] },
@@ -91,7 +88,7 @@ describe("map menu grid scheme", () => {
   ] as const)(
     "offers the $scheme mission scheme's fixed spacings for the dynamic grid",
     ({ scheme, expected }) => {
-      mockMissionDoc.gridSystem = "earth-wgs84";
+      mockMissionDoc.planet = "earth";
       mockMissionDoc.earthGridLabelScheme = scheme;
       mockResolvedGrid = { kind: "dynamic-lgrs" };
       renderMenu();
