@@ -662,6 +662,8 @@ export function MarkerLabels(): null {
 
     const drags = dragCoordsRef.current;
     const existingIds = new Set<string>();
+    /** Set when this pass actually alters a label, to avoid a no-op repaint. */
+    let mutated = false;
 
     // 1. Position every label feature
     for (const info of labelInfos) {
@@ -681,14 +683,39 @@ export function MarkerLabels(): null {
 
       let feature = labelSource.getFeatureById(info.id) as Feature<Point> | null;
       if (feature) {
-        // Don't move dragged labels — their geometry is already at dragCoord
+        // Only touch what actually changed. runLayout re-runs on every PET
+        // tick, and both `setCoordinates` and a fresh `anchorCoord` array
+        // fire a change event on identity alone, which repaints every label
+        // on the map 10x a second even when nothing about it moved.
         if (!dragCoord) {
-          feature.getGeometry()!.setCoordinates(labelCoord);
+          const geometry = feature.getGeometry()!;
+          const current = geometry.getCoordinates();
+          if (current[0] !== labelCoord[0] || current[1] !== labelCoord[1]) {
+            geometry.setCoordinates(labelCoord);
+            mutated = true;
+          }
         }
-        feature.set("anchorCoord", info.anchorCoord);
-        feature.set("name", info.name);
-        feature.set("labelType", info.labelType);
-        feature.set("isHover", info.isHover ?? false);
+        const currentAnchor = feature.get("anchorCoord") as [number, number] | undefined;
+        if (
+          !currentAnchor ||
+          currentAnchor[0] !== info.anchorCoord[0] ||
+          currentAnchor[1] !== info.anchorCoord[1]
+        ) {
+          feature.set("anchorCoord", info.anchorCoord);
+          mutated = true;
+        }
+        if (feature.get("name") !== info.name) {
+          feature.set("name", info.name);
+          mutated = true;
+        }
+        if (feature.get("labelType") !== info.labelType) {
+          feature.set("labelType", info.labelType);
+          mutated = true;
+        }
+        if (feature.get("isHover") !== (info.isHover ?? false)) {
+          feature.set("isHover", info.isHover ?? false);
+          mutated = true;
+        }
       } else {
         feature = new Feature({ geometry: new Point(labelCoord) });
         feature.setId(info.id);
@@ -697,6 +724,7 @@ export function MarkerLabels(): null {
         feature.set("labelType", info.labelType);
         feature.set("isHover", info.isHover ?? false);
         labelSource.addFeature(feature);
+        mutated = true;
       }
     }
 
@@ -706,6 +734,7 @@ export function MarkerLabels(): null {
       if (!existingIds.has(id)) {
         labelSource.removeFeature(feature);
         drags.delete(id);
+        mutated = true;
       }
     }
 
@@ -740,11 +769,15 @@ export function MarkerLabels(): null {
       if (feature) {
         // Hover tooltips always render at full opacity regardless of overlap
         const isHover = feature.get("isHover") as boolean;
-        feature.set("labelOpacity", isHover ? 1.0 : opacity);
+        const nextOpacity = isHover ? 1.0 : opacity;
+        if (feature.get("labelOpacity") !== nextOpacity) {
+          feature.set("labelOpacity", nextOpacity);
+          mutated = true;
+        }
       }
     }
 
-    layerRef.current?.changed();
+    if (mutated) layerRef.current?.changed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, labelInfos, labelSource, dragVersion]);
 

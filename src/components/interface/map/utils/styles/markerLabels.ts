@@ -32,6 +32,16 @@ const TEXT_PADDING_H = 6;
 const TEXT_PADDING_V = 4;
 const DOT_RADIUS = 3;
 
+/**
+ * Cap on cached label canvases. A running REX relabels every crew position
+ * once a second ("04m17s ago / EV1 (T)"), so each tick is a new cache key that
+ * is never read again. Without a cap the canvases — and the OL icon-image
+ * entries keyed off them — grow without bound for the length of the EVA.
+ * Evicting in least-recently-used order keeps the labels actually on screen,
+ * which are re-requested every frame.
+ */
+const MAX_LABEL_CANVASES = 256;
+
 // Colors per label type
 const LABEL_COLORS: Record<string, { text: string; bg: string }> = {
   lander: {
@@ -90,7 +100,8 @@ export function createMarkerLabelStyle(
   // visual proportion as the line thickens (short dashes on a thick line read
   // as a muddy solid colour). Base ratio: 4px dash at 1.5px width.
   const dashLen = Math.round(connectorWidth * 6);
-  // Cache static label images by name+type+font (base style, no connector)
+  // Cache static label images by name+type+font (base style, no connector),
+  // bounded LRU — see MAX_LABEL_CANVASES.
   const baseLabelCache = new Map<string, HTMLCanvasElement>();
 
   return (feature: Feature, resolution: number): Style | Style[] | undefined => {
@@ -123,7 +134,12 @@ export function createMarkerLabelStyle(
     // Build base label canvas (text box only)
     const baseCacheKey = `${name}-${labelType}-${fontPx}-${fontWeight}-${dpr}`;
     let baseLabelImg = baseLabelCache.get(baseCacheKey);
-    if (!baseLabelImg) {
+    if (baseLabelImg) {
+      // Refresh recency: re-inserting moves the key to the end of the Map's
+      // iteration order, so the eviction below drops the least recently used.
+      baseLabelCache.delete(baseCacheKey);
+      baseLabelCache.set(baseCacheKey, baseLabelImg);
+    } else {
       baseLabelImg = renderBaseLabelCanvas(
         name,
         boxColors.text,
@@ -134,6 +150,11 @@ export function createMarkerLabelStyle(
       );
       if (!baseLabelImg) return undefined;
       baseLabelCache.set(baseCacheKey, baseLabelImg);
+      while (baseLabelCache.size > MAX_LABEL_CANVASES) {
+        const oldest = baseLabelCache.keys().next();
+        if (oldest.done) break;
+        baseLabelCache.delete(oldest.value);
+      }
     }
 
     const zIndex = labelType === "lander" ? 200 : labelType === "station" ? 150 : 100;
