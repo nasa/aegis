@@ -57,7 +57,7 @@ export const AssetDetails: FunctionComponent<{
           data-tooltip-id="aegis-tooltip"
           data-tooltip-content="Radius of the uncertainty circle, in meters"
         >
-          Uncert. (m)
+          Radius (m)
         </span>
         <div className={styles.fieldControls}>
           <div data-testid="asset-editor-uncertainty">
