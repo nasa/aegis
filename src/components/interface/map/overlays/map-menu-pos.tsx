@@ -55,11 +55,19 @@ export const MapPositionMenu: FunctionComponent = () => {
     >
       <div className={assetStyles.toolbar}>
         <span className={posStyles.toolbarTitle}>
-          <span className={posStyles.evaName} title={source.eva || undefined}>
+          <span
+            className={posStyles.evaName}
+            title={source.eva || undefined}
+            data-testid="positions-menu-eva"
+          >
             {source.eva || "—"}
           </span>
           <span>/</span>
-          <span className={posStyles.rexName} title={source.rex || undefined}>
+          <span
+            className={posStyles.rexName}
+            title={source.rex || undefined}
+            data-testid="positions-menu-rex"
+          >
             {source.rex || "—"}
           </span>
         </span>

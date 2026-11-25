@@ -557,4 +557,58 @@ describe("MapPositionMenu", () => {
     );
     expect(store.getState().rex.posEntryInEdit!.values.petSeconds).toBe(600);
   });
+
+  it("shows yellow for EVA name and green for REX name in header", () => {
+    document.documentElement.style.setProperty("--eva", "#ffc700");
+    document.documentElement.style.setProperty("--rex", "#52f075");
+
+    setRex({ posEntries: [makeEntry("e1", 100, [EV1.uuid])] });
+    renderMapPositionMenu(makeStore());
+
+    const evaName = () =>
+      harness.container.querySelector<HTMLElement>("[data-testid='positions-menu-eva']")!;
+    const rexName = () =>
+      harness.container.querySelector<HTMLElement>("[data-testid='positions-menu-rex']")!;
+
+    expect(getComputedStyle(evaName()).color).toBe("rgb(255, 199, 0)");
+    expect(getComputedStyle(rexName()).color).toBe("rgb(82, 240, 117)");
+  });
+
+  it("shows the as-planned EVA name and falls back to the REX uuid when the REX has no name", () => {
+    setRex({ name: "" });
+    mockMissionDoc.evas = {
+      "eva-uuid-1": { uuid: "eva-uuid-1", refUuid: "eva-ref-1", name: "REX copy" },
+      "eva-uuid-planned": { uuid: "eva-uuid-planned", refUuid: "eva-ref-1", name: "Geology EVA" },
+    } as unknown as Mission["evas"];
+
+    renderMapPositionMenu(makeStore());
+
+    const evaName = harness.container.querySelector<HTMLElement>(
+      "[data-testid='positions-menu-eva']"
+    )!;
+    const rexName = harness.container.querySelector<HTMLElement>(
+      "[data-testid='positions-menu-rex']"
+    )!;
+    expect(evaName.textContent).toBe("Geology EVA");
+    expect(evaName.title).toBe("Geology EVA");
+    expect(rexName.textContent).toBe(REX_UUID);
+    expect(rexName.title).toBe(REX_UUID);
+  });
+
+  it("renders the placeholder text when no REX is selected", () => {
+    setRex();
+
+    const store = makeStore();
+    store.dispatch(rexSlice.actions.setSelectedRexUuid(null));
+
+    renderMapPositionMenu(store);
+
+    expect(harness.container.querySelector("[data-testid='positions-menu']")).toBeNull();
+
+    const placeholder = harness.container.querySelector<HTMLElement>(
+      "[data-testid='positions-no-rex']"
+    );
+    expect(placeholder).not.toBeNull();
+    expect(placeholder?.textContent).toBe("Select a REX to see positions.");
+  });
 });
