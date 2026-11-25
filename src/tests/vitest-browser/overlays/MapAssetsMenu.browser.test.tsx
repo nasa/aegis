@@ -319,7 +319,7 @@ describe("MapAssetsMenu", () => {
     const editor = q("[data-testid='asset-editor']")!;
     expect(editor.scrollHeight).toBeLessThanOrEqual(editor.clientHeight);
     expect(q("[data-testid='assets-map-menu']")!.scrollWidth).toBeLessThanOrEqual(420);
-    expect(byText("Uncert. (m)")).toBeDefined();
+    expect(byText("Radius (m)")).toBeDefined();
   });
 
   it("ends the table at the last folder without a trailing empty strip", () => {
