@@ -7,25 +7,17 @@ export const NEWTON_ROUND_DIGITS = 7;
 
 const ROUND_FACTOR = 10 ** NEWTON_ROUND_DIGITS;
 
-/** Above this radius a mission is Earth-scale; below it, Moon-scale. */
-const EARTH_MOON_THRESHOLD_M = 4_000_000;
-const MOON_RADIUS_M = 1_737_400;
-const PLANET_RADIUS_TOLERANCE = 0.01;
-
 export function roundNewtonCoord(value: number): number {
   return Math.round(value * ROUND_FACTOR) / ROUND_FACTOR;
 }
 
 /**
- * The Newton planet for a mission's `planetRadius`. A missing radius is the Moon (the
- * AEGIS default). Moon-scale radii other than the Moon's (e.g. Mars) are unsupported.
+ * The Newton planet for a mission's planet. A missing planet is the Moon (the AEGIS default);
+ * planets Newton has no maps for (e.g. Mars) are unsupported.
  */
-export function planetFromRadius(planetRadius: number | null | undefined): Newton.Planet | null {
-  if (planetRadius == null) return "moon";
-  if (!Number.isFinite(planetRadius) || planetRadius <= 0) return null;
-  if (planetRadius > EARTH_MOON_THRESHOLD_M) return "earth";
-  const relative = Math.abs(planetRadius - MOON_RADIUS_M) / MOON_RADIUS_M;
-  return relative <= PLANET_RADIUS_TOLERANCE ? "moon" : null;
+export function newtonPlanet(planet: Planet | null | undefined): Newton.Planet | null {
+  if (planet == null || planet === "moon") return "moon";
+  return planet === "earth" ? "earth" : null;
 }
 
 /**

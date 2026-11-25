@@ -1,7 +1,7 @@
 import {
   canonicalNewtonRequest,
   newtonInputSignature,
-  planetFromRadius,
+  newtonPlanet,
   roundNewtonCoord,
 } from "utils/newtonInputs";
 
@@ -15,18 +15,15 @@ describe("roundNewtonCoord", () => {
   });
 });
 
-describe("planetFromRadius", () => {
-  it.each([
-    [1737400, "moon"],
-    [1737100, "moon"],
+describe("newtonPlanet", () => {
+  it.each<[Planet | null | undefined, Newton.Planet | null]>([
+    ["moon", "moon"],
     [null, "moon"],
-    [6371000, "earth"],
-    [6378137, "earth"],
-    [3389500, null],
-    [0, null],
-    [Number.NaN, null],
-  ])("%s → %s", (radius, planet) => {
-    expect(planetFromRadius(radius)).toBe(planet);
+    [undefined, "moon"],
+    ["earth", "earth"],
+    ["mars", null],
+  ])("%s → %s", (planet, expected) => {
+    expect(newtonPlanet(planet)).toBe(expected);
   });
 });
 

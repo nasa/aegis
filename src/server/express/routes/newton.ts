@@ -14,7 +14,7 @@ import {
   submitNewtonTraverse,
 } from "server/newton/traverses";
 import { serverLogger } from "utils/logging/serverLogger";
-import { planetFromRadius } from "utils/newtonInputs";
+import { newtonPlanet } from "utils/newtonInputs";
 import { emssTokenIsValid, hasPerms } from "utils/permissions";
 
 import { getAutomergeMissionHandle } from "./missionAutomerge";
@@ -186,7 +186,7 @@ async function missionPlanet(
     res.status(404).json({ status: "failure", message: `Mission ${missionId} not found` });
     return null;
   }
-  const planet = planetFromRadius(handle.doc()?.planetRadius);
+  const planet = newtonPlanet(handle.doc()?.planet);
   if (!planet) {
     res
       .status(400)

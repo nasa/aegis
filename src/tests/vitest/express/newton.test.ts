@@ -61,17 +61,17 @@ const getUrl = (ids: string, extra = "") =>
   `/api/v1/newton/traverses?missionId=7&ids=${ids}${extra}`;
 const deleteUrl = (id: string) => `/api/v1/newton/traverses/${id}?missionId=7`;
 
-let planetRadius: number | null;
+let planet: Planet;
 
 beforeEach(() => {
   vi.clearAllMocks();
   appUser = { username: "newton-test", permissionList: [] };
-  planetRadius = 1_737_400;
+  planet = "moon";
   mocks.emssTokenIsValid.mockReturnValue(false);
   mocks.hasPerms.mockReturnValue(true);
   mocks.isNewtonEnabled.mockReturnValue(true);
   mocks.getAutomergeMissionHandle.mockImplementation(async () => ({
-    doc: () => ({ planetRadius }),
+    doc: () => ({ planet }),
   }));
   mocks.submitNewtonTraverse.mockResolvedValue(submitted);
 });
@@ -103,8 +103,8 @@ describe("POST /traverses", () => {
     });
   });
 
-  it("reads earth from planetRadius", async () => {
-    planetRadius = 6_371_000;
+  it("reads earth from the mission's planet", async () => {
+    planet = "earth";
     await supertest(app)
       .post(POST)
       .send({ traverses: [{ waypoints }] });
@@ -112,7 +112,7 @@ describe("POST /traverses", () => {
   });
 
   it("is 400 for a mission whose planet Newton doesn't support", async () => {
-    planetRadius = 3_389_500;
+    planet = "mars";
     const response = await supertest(app)
       .post(POST)
       .send({ traverses: [{ waypoints }] });

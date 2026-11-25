@@ -9,19 +9,15 @@ import {
   newtonOptionsFromEnv,
   newtonPostTraverse,
 } from "server/newton/v1/http-newton";
-import { EARTH_RADIUS } from "utils/consts";
 import { pathSegmentDistances, simplifyPathToEndpoints } from "utils/mapping/simplifyPath";
 import { canonicalNewtonRequest } from "utils/newtonInputs";
+import { getPlanetRadius } from "utils/planets";
 
-const MOON_RADIUS_M = 1_737_400;
 const DEFAULT_SLOPE_RESOLUTION_M = 1;
 /** Newton calls made at once for one batch. */
 export const NEWTON_BATCH_CONCURRENCY = 4;
 
 export const isNewtonEnabled = (): boolean => !!newtonOptionsFromEnv().baseUrl;
-
-const planetRadius = (planet: Newton.Planet): number =>
-  planet === "earth" ? EARTH_RADIUS : MOON_RADIUS_M;
 
 /** Half the slope map's resolution, the tolerance used when simplifying Newton's path. */
 export function simplifyToleranceM(mapInfo: readonly Newton.MapInfo[] | null | undefined): number {
@@ -98,7 +94,7 @@ export function toNewtonTraverseResult(
   const waypoints = (problem?.waypoints ?? []).map(lonLatToAegisPoint);
   const rawPoints = traverse.status === "succeeded" ? lineStringToAegisPoints(traverse.path) : [];
   const usable = rawPoints.length >= 2 && waypoints.length >= 2;
-  const radius = planetRadius(problem?.planet);
+  const radius = getPlanetRadius({ planet: problem?.planet });
   const path = usable
     ? simplifyPathToEndpoints(
         rawPoints,
