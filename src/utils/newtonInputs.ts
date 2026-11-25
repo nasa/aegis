@@ -1,7 +1,5 @@
 /**
- * Newton request identity, shared by client and server. A Newton row applies to a
- * traverse or measurement when its `inputSignature` equals `newtonInputSignature` of the
- * current geometry and parameters.
+ * Newton request identity, shared by client and server.
  */
 
 /** Waypoints are rounded to this many decimal degrees (≤ 1.1 cm). */
