@@ -78,7 +78,6 @@ interface CircleUIState {
 
 type Preset = {
   uuid: string;
-  ownerId: number | null;
   name: string;
   description: string;
   missionDefault: boolean;

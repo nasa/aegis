@@ -34,7 +34,6 @@ export function stageEvaXgressChange(
     /** A station uuid, or `"lander"` to pin the position to the lander. */
     newStationUuidOrLander: string;
     isRexEva: boolean;
-    ownerId?: number;
   }
 ): EvaXgressChangeStageData | undefined {
   const { evaUuid, xgressType, newStationUuidOrLander, isRexEva } = args;
@@ -67,7 +66,6 @@ export function stageEvaXgressChange(
       xgressType,
       location: mission.landerLocation,
       elevation: mission.landerElevationMeters ?? null,
-      ownerId: args.ownerId,
       duration: oldStation?.duration, // Set duration of the new lander copy to the old station's duration
     });
     newStationUuid = newLanderStation.uuid;

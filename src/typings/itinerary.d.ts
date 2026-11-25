@@ -14,7 +14,6 @@ interface Eva {
   duration: number | null; // minutes
   traverseRate: number | null; // km/h
   traverseColor: string | null;
-  ownerId: number;
   datetime: number | null;
 
   createdAt?: number;
@@ -69,7 +68,6 @@ interface Station {
   uuid: string;
   refUuid: string; // assigned on creation and is preserved when duplication for a rex
 
-  ownerId: number;
   poiUuids?: string[];
   actionOrderUuids: string[];
 
@@ -116,7 +114,6 @@ interface POI {
    * uuid of the POI
    */
   uuid: string;
-  ownerId: number;
   actionOrderUuids: string[];
 
   /**

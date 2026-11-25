@@ -10,7 +10,6 @@ import { getAccurateNow } from "utils/formatting";
 export const generateBlankPoi = (partialPoi?: Partial<POI>): POI => {
   const defaultNewPoi: POI = {
     uuid: uuidv4(),
-    ownerId: 0,
     name: "",
     description: "",
     actionOrderUuids: [],

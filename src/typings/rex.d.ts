@@ -25,7 +25,6 @@ type RexExecuteEditState = {
 
 type Rex = {
   uuid: string;
-  ownerId: number;
   name: string;
   petStartStopTimestamp: string | null; // the timestamp the play/pause button was clicked
   petValueAtStartStop: string; // the value of the pet timer when the play/pause button was clicked in "+hh:mm:ss"

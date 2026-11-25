@@ -11,7 +11,6 @@ export function stageCreateRex(
   mission: Mission,
   args: {
     asPlannedEvaUuid: string;
-    ownerId: number | null;
   }
 ): RexCreationStageData | undefined {
   if (!args.asPlannedEvaUuid) {
@@ -40,7 +39,6 @@ export function stageCreateRex(
   const newRex = generateBlankRex({
     name: newRexName,
     evaUuid: newEvaStagedData.newEvaUuid,
-    ownerId: args.ownerId,
   });
 
   return {

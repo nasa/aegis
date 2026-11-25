@@ -11,7 +11,6 @@ export const generateBlankEVA = (partialEVA?: Partial<Eva>): Eva => {
   const defaultNewEVA: Eva = {
     uuid: uuidv4(),
     refUuid: uuidv4(),
-    ownerId: 0,
     name: "",
     status: "Candidate",
     sequence: [],

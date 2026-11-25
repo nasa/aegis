@@ -78,31 +78,27 @@ export const thunkDocDeletePoi = appCreateAsyncThunk<{
   dispatch(thunkSetRightPanelIsOpenIfAuto(false)); // close right panel
 });
 
-export const thunkDocCreatePoi = appCreateAsyncThunk<void>(
-  "poiCreate",
-  async (_, { getState, dispatch }) => {
-    const missionDocHandle = getMissionDocHandle();
-    if (!missionDocHandle) return;
+export const thunkDocCreatePoi = appCreateAsyncThunk<void>("poiCreate", async (_, { dispatch }) => {
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
 
-    // Step 1: Build the new POI object synchronously from the current doc
-    const existingPois = Object.values(missionDocHandle.doc()?.pois ?? {});
-    const randomName = generateUniqueName({
-      dictName: "animals",
-      existingNames: existingPois.map((item: POI) => item.name),
-    });
-    const blankPoi = generateBlankPoi({
-      name: randomName,
-      ownerId: getState().user?.appUser?.id ?? null,
-    });
+  // Step 1: Build the new POI object synchronously from the current doc
+  const existingPois = Object.values(missionDocHandle.doc()?.pois ?? {});
+  const randomName = generateUniqueName({
+    dictName: "animals",
+    existingNames: existingPois.map((item: POI) => item.name),
+  });
+  const blankPoi = generateBlankPoi({
+    name: randomName,
+  });
 
-    // Step 2: Insert the new POI into the Automerge doc
-    missionDocHandle.change((m: Mission) => applyUpsertPoi(m, blankPoi));
+  // Step 2: Insert the new POI into the Automerge doc
+  missionDocHandle.change((m: Mission) => applyUpsertPoi(m, blankPoi));
 
-    // Step 3: UI side-effects
-    dispatch(selectPoi({ uuid: blankPoi.uuid }));
-    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-  }
-);
+  // Step 3: UI side-effects
+  dispatch(selectPoi({ uuid: blankPoi.uuid }));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
+});
 
 export const thunkDocDuplicatePoi = appCreateAsyncThunk<{ poiUuid: string }>(
   "poiDuplicate",

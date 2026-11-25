@@ -12,11 +12,12 @@ import { migrateLegacyCircleControlHaloStyles } from "store/storeUtils/preset";
 import { serverLogger } from "utils/logging/serverLogger";
 
 // Historical entity shapes include mission IDs and stored terrain profiles.
-type LegacyPoi = POI & { missionId: number };
+type LegacyPoi = POI & { missionId: number; ownerId?: number | null };
 type LegacyAction = Action & { missionId: number | null };
 type LegacyStation = Station & {
   missionId: number;
   walkbackPathSegmentElevations: number[][] | null;
+  ownerId?: number | null;
 };
 type LegacyTraverse = Traverse & {
   missionId: number;
@@ -32,6 +33,7 @@ type LegacyEva = EvaBeforeSunEarth & {
   ingressDuration?: number | null;
   egressLocationUuid?: string | null;
   ingressLocationUuid?: string | null;
+  ownerId?: number | null;
 };
 
 type LegacyRex = Rex & {
@@ -39,6 +41,7 @@ type LegacyRex = Rex & {
   xgressEntries?: Record<string, { rexStatus: RexStatus }> | null;
   maestroActivityPropertiesByRefUuid?: MaestroActivityProperties | null;
   description?: string;
+  ownerId?: number | null;
 };
 
 export const Migration20260416000000: AutomergeMigration = {

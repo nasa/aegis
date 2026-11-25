@@ -101,79 +101,72 @@ export const thunkDocDeleteEva = appCreateAsyncThunk<{
   dispatch(thunkSetRightPanelIsOpenIfAuto(false));
 });
 
-export const thunkDocCreateEva = appCreateAsyncThunk<void>(
-  "evaCreate",
-  async (_, { getState, dispatch }) => {
-    const missionDocHandle = getMissionDocHandle();
-    if (!missionDocHandle) return;
-    const mission = missionDocHandle.doc();
+export const thunkDocCreateEva = appCreateAsyncThunk<void>("evaCreate", async (_, { dispatch }) => {
+  const missionDocHandle = getMissionDocHandle();
+  if (!missionDocHandle) return;
+  const mission = missionDocHandle.doc();
 
-    // Step 1: Build the new EVA and traverse objects synchronously
-    const existingEvaNames = Object.values(mission?.evas ?? {}).map((e) => e.name);
-    const randomName = generateUniqueName({
-      dictName: "colors",
-      existingNames: existingEvaNames,
-    });
+  // Step 1: Build the new EVA and traverse objects synchronously
+  const existingEvaNames = Object.values(mission?.evas ?? {}).map((e) => e.name);
+  const randomName = generateUniqueName({
+    dictName: "colors",
+    existingNames: existingEvaNames,
+  });
 
-    const ownerId = getState().user?.appUser?.id ?? null;
-    const blankEva: Eva = generateBlankEVA({
-      name: randomName,
-      traverseRate: mission.traverseRate,
-      duration: mission.defaultEvaDuration,
-      ownerId,
-    });
+  const blankEva: Eva = generateBlankEVA({
+    name: randomName,
+    traverseRate: mission.traverseRate,
+    duration: mission.defaultEvaDuration,
+  });
 
-    // Create an empty traverse and pre-build its path (lander → lander)
-    const newTraverse: Traverse = generateBlankTraverse();
+  // Create an empty traverse and pre-build its path (lander → lander)
+  const newTraverse: Traverse = generateBlankTraverse();
 
-    // Add new xgress stations at the lander
-    const egressStation = generateLanderXgressStation({
-      xgressType: "egress",
-      location: mission.landerLocation,
-      elevation: mission.landerElevationMeters ?? null,
-      ownerId: ownerId ?? undefined,
-    });
-    const ingressStation = generateLanderXgressStation({
-      xgressType: "ingress",
-      location: mission.landerLocation,
-      elevation: mission.landerElevationMeters ?? null,
-      ownerId: ownerId ?? undefined,
-    });
+  // Add new xgress stations at the lander
+  const egressStation = generateLanderXgressStation({
+    xgressType: "egress",
+    location: mission.landerLocation,
+    elevation: mission.landerElevationMeters ?? null,
+  });
+  const ingressStation = generateLanderXgressStation({
+    xgressType: "ingress",
+    location: mission.landerLocation,
+    elevation: mission.landerElevationMeters ?? null,
+  });
 
-    blankEva.sequence.push(
-      { type: "station", uuid: egressStation.uuid },
-      { type: "traverse", uuid: newTraverse.uuid },
-      { type: "station", uuid: ingressStation.uuid }
-    );
+  blankEva.sequence.push(
+    { type: "station", uuid: egressStation.uuid },
+    { type: "traverse", uuid: newTraverse.uuid },
+    { type: "station", uuid: ingressStation.uuid }
+  );
 
-    // The default lander→lander path has zero-length segments
-    const landerLocation = mission.landerLocation;
-    const traversePath: AEGISPoint[] = [cloneDeep(landerLocation), cloneDeep(landerLocation)];
-    const traversePathSegmentDistances: number[] = [0];
+  // The default lander→lander path has zero-length segments
+  const landerLocation = mission.landerLocation;
+  const traversePath: AEGISPoint[] = [cloneDeep(landerLocation), cloneDeep(landerLocation)];
+  const traversePathSegmentDistances: number[] = [0];
 
-    // Build the fully-populated traverse
-    const populatedTraverse: Traverse = {
-      ...newTraverse,
-      name: `${egressStation.name} to ${ingressStation.name}`,
-      path: traversePath,
-      pathSegmentDistances: traversePathSegmentDistances,
-    };
+  // Build the fully-populated traverse
+  const populatedTraverse: Traverse = {
+    ...newTraverse,
+    name: `${egressStation.name} to ${ingressStation.name}`,
+    path: traversePath,
+    pathSegmentDistances: traversePathSegmentDistances,
+  };
 
-    // Step 2: Upsert the EVA, its two lander stations, and the fully-populated
-    // traverse in a single .change()
-    missionDocHandle.change((m: Mission) => {
-      applyUpsertStation(m, egressStation);
-      applyUpsertStation(m, ingressStation);
-      applyUpsertEva(m, blankEva);
-      applyUpsertTraverse(m, populatedTraverse);
-    });
+  // Step 2: Upsert the EVA, its two lander stations, and the fully-populated
+  // traverse in a single .change()
+  missionDocHandle.change((m: Mission) => {
+    applyUpsertStation(m, egressStation);
+    applyUpsertStation(m, ingressStation);
+    applyUpsertEva(m, blankEva);
+    applyUpsertTraverse(m, populatedTraverse);
+  });
 
-    // Step 3: UI side-effects
-    dispatch(selectEva({ uuid: blankEva.uuid }));
-    dispatch(thunkSetRightPanelIsOpenIfAuto(true));
-    dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: null }));
-  }
-);
+  // Step 3: UI side-effects
+  dispatch(selectEva({ uuid: blankEva.uuid }));
+  dispatch(thunkSetRightPanelIsOpenIfAuto(true));
+  dispatch(thunkSelectEVASequenceItem({ sequenceItemUuid: null }));
+});
 
 /**
  * Duplicate an EVA. Automatically saves it to automerge.
@@ -563,7 +556,6 @@ export const thunkDocChangeIngressEgress = appCreateAsyncThunk<{
       xgressType: type,
       newStationUuidOrLander,
       isRexEva,
-      ownerId: getState().user?.appUser?.id ?? undefined,
     });
     if (!stageData) return;
 

@@ -11,7 +11,6 @@ export const generateBlankStation = (partialStation?: Partial<Station>): Station
   const defaultNewStation: Station = {
     uuid: uuidv4(),
     refUuid: uuidv4(),
-    ownerId: 0,
     poiUuids: [],
     actionOrderUuids: [],
     name: "",
@@ -53,7 +52,6 @@ export function generateLanderXgressStation(
     icon: "landerIcon",
     ...overrides,
     location: cloneDeep(overrides.location),
-    ownerId: overrides.ownerId ?? 0,
     duration: overrides.duration ?? 10,
     isLanderXgress: true,
   });

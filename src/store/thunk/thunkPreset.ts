@@ -121,7 +121,6 @@ export const thunkCreatePreset = appCreateAsyncThunk<void>(
 
     const blankPreset = generateBlankPreset({
       name: randomName,
-      ownerId: null,
       layerOrder: defaultOrder,
       mapSublayerControls: blankMapSublayerControls,
       mapCircleControls: blankMapCircleControls,

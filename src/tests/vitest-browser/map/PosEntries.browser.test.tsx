@@ -118,7 +118,6 @@ function makePosSource(uuid: string, abbr = "S", pathColor = "#ffffff"): PosSour
 function makeRex(overrides: Partial<Rex> = {}): Rex {
   return {
     uuid: REX_UUID,
-    ownerId: 1,
     name: "Test REX",
     petStartStopTimestamp: null,
     petValueAtStartStop: "+00:00:00",

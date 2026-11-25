@@ -23,7 +23,6 @@ const COPIED_STATION_FIELDS = [
   "description",
   "radius",
   "duration",
-  "ownerId",
   "createdAt",
   "updatedAt",
 ] as const satisfies readonly (keyof Station)[];

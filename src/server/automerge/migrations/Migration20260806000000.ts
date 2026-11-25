@@ -6,6 +6,7 @@ import { serverLogger } from "utils/logging/serverLogger";
 type LegacyStation = Station & {
   missionId: number;
   walkbackPathSegmentElevations: number[][] | null;
+  ownerId?: number | null;
 };
 
 type LegacyEva = Eva & {
@@ -13,6 +14,7 @@ type LegacyEva = Eva & {
   ingressDuration?: number | null;
   egressLocationUuid?: string | null;
   ingressLocationUuid?: string | null;
+  ownerId?: number | null;
 };
 
 type LegacyRex = Rex & {
