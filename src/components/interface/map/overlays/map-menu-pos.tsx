@@ -26,12 +26,13 @@ export const MapPositionMenu: FunctionComponent = () => {
     (m) => (selectedRexUuid ? (m.rexes?.[selectedRexUuid] ?? null) : null),
     deepEqual
   );
-  const evaAndRexName = useMissionDocSelector((m) => {
+  const source = useMissionDocSelector((m) => {
     const rex = selectedRexUuid ? m.rexes?.[selectedRexUuid] : null;
-    if (!rex) return "";
-    const eva = m.evas?.[rex.evaUuid];
-    if (!eva) return rex.name ?? "";
-    return `${getAsPlannedEvaFromRefUuid(m, eva.refUuid)?.name ?? ""} - ${rex.name ?? ""}`;
+    const eva = rex ? m.evas?.[rex.evaUuid] : null;
+    return {
+      eva: eva ? getAsPlannedEvaFromRefUuid(m, eva.refUuid)?.name : null,
+      rex: rex?.name || selectedRexUuid,
+    };
   }, refEqual);
   const coordinateContext = useCoordinateEntryContext();
 
@@ -53,8 +54,14 @@ export const MapPositionMenu: FunctionComponent = () => {
       data-testid="positions-menu"
     >
       <div className={assetStyles.toolbar}>
-        <span className={posStyles.toolbarTitle} title={evaAndRexName}>
-          {evaAndRexName}
+        <span className={posStyles.toolbarTitle}>
+          <span className={posStyles.evaName} title={source.eva || undefined}>
+            {source.eva || "—"}
+          </span>
+          <span>/</span>
+          <span className={posStyles.rexName} title={source.rex || undefined}>
+            {source.rex || "—"}
+          </span>
         </span>
         {hasEditPermission && (
           <Button

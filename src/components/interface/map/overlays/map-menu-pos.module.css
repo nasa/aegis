@@ -70,12 +70,28 @@
 }
 
 .toolbarTitle {
+  display: flex;
   flex: 1 1 auto;
+  gap: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.evaName,
+.rexName {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--grey5);
+}
+
+.evaName {
+  color: var(--eva);
+}
+
+.rexName {
+  color: var(--rex);
 }
 
 .toggleGroup {
