@@ -14,6 +14,11 @@ const destRoot = process.env.STATIC_DIR;
  *        [layerName]/
  */
 
+function isMacOsMetadata(entryName: string): boolean {
+  const segments = entryName.split("/");
+  return segments[0] === "__MACOSX" || segments.at(-1) === ".DS_Store";
+}
+
 /**
  * Unzips files into a directory. Deletes original file upon completion.
  * @param filename filename of the .zip file
@@ -41,7 +46,23 @@ export async function unzip(
       logValue: `Unzipping with overwrite: ${destRoot}/${filename}`,
     });
     const zip = new StreamZip.async({ file: `${destRoot}/${filename}` });
-    const numFiles = await zip.extract(null, unzipDirectory);
+    let numFiles = 0;
+    const skippedFiles: string[] = [];
+    for (const entry of Object.values(await zip.entries())) {
+      if (isMacOsMetadata(entry.name)) {
+        skippedFiles.push(entry.name);
+        continue;
+      }
+      const outputPath = path.join(unzipDirectory, entry.name);
+      if (entry.isDirectory) {
+        await mkdir(outputPath, { recursive: true });
+        continue;
+      }
+      await mkdir(path.dirname(outputPath), { recursive: true });
+      await zip.extract(entry.name, outputPath);
+      numFiles++;
+    }
+
     await zip.close();
 
     //delete the original file
@@ -51,6 +72,13 @@ export async function unzip(
       logId: "file:unzip:unzipSucceededAndZipDeleted",
       logValue: `File unzip success. Extracted ${numFiles} files. Deleted .zip`,
     });
+
+    if (skippedFiles.length > 0) {
+      serverLogger.info({
+        logId: "file:unzip:skippedMacOsMetadata",
+        logValue: `Skipped ${skippedFiles.length} macOS metadata files (.DS_Store, __MACOSX)`,
+      });
+    }
   } catch (e) {
     //cleanup
     if (subfolder) {
