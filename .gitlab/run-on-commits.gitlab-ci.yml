@@ -376,6 +376,8 @@ test-automerge-integrity:
   needs:
     - make-dotenv:fit
   before_script:
+    # Keep the template's registry logins; replacing them makes `buildah push` fail with a 403.
+    - !reference [.buildah-build, before_script]
     # NASA CA bundle for the apiv1 image (see docker/apiv1/Dockerfile)
     - echo "${ENV_LOCAL_CERT_PEM}" > ./.env.local.cert.pem
   variables:
