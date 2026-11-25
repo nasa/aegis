@@ -6,12 +6,10 @@ const formatNumber = new Intl.NumberFormat(undefined, { maximumSignificantDigits
 const distanceUnits = [
   { meters: 1000, symbol: "km" },
   { meters: 1, symbol: "m" },
-  { meters: 0.01, symbol: "cm" },
-  { meters: 0.001, symbol: "mm" },
 ];
 
 function getDistanceUnit(meters: number) {
-  return distanceUnits.find((candidate) => meters >= candidate.meters) ?? distanceUnits[3];
+  return distanceUnits.find((candidate) => meters >= candidate.meters) ?? distanceUnits[1];
 }
 
 const maxScaleBarWidth = 150;
