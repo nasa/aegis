@@ -1,10 +1,6 @@
 import "utils/loadEnv";
 import { watchTerrainCache } from "server/terrain/terrainProfileCache";
-import type { Server as NetServer } from "http";
-import { createServer } from "http";
 import { v4 as uuidv4 } from "uuid";
-import { Server as SocketServer } from "socket.io";
-import type { DefaultEventsMap } from "socket.io";
 import { WebSocketServer } from "isomorphic-ws"; // included in automerge repo network websocket
 import { Repo } from "@automerge/automerge-repo/slim";
 import { populateMissionCatalogOnce } from "server/automerge/populateMissionCatalogOnce";
@@ -17,6 +13,7 @@ import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket
 import app from "./restApi";
 
 import { setupSocketIO } from "./sockets";
+import { createHttpServerWithSocketIo } from "./httpServer";
 import { rescheduleBannerTimer } from "./routes/notificationBanner";
 import { setupMaestroNamespace as setupMaestroNamespaceV2 } from "../maestro/v2/sockets-maestro";
 import { setupDustNamespace as setupDustNamespaceV1 } from "../dust/v1/sockets-dust";
@@ -261,28 +258,14 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
   // HTTP server + Socket.IO
   // ==========================================================================
 
-  // parent http server
-  const server: NetServer = createServer();
-
   // Socket.IO server on /api/socket for all AEGIS internal traffic and Maegistro v2.
   serverLogger.debug({
     logId: "server:startServer:startingSocketIoServerOnApiSocketPath",
     logValue: "Starting Socket.IO on /api/socket",
   });
-  globalValues.socketio = new SocketServer<
-    ClientToServerEvents,
-    ServerToClientEvents,
-    DefaultEventsMap,
-    {}
-  >(server, {
-    transports: ["websocket"],
-    path: "/api/socket",
-    addTrailingSlash: false,
-    // Reduce ping interval and timeout from Socket.IO defaults
-    // to detect dead connections within ~10s
-    pingInterval: 5000,
-    pingTimeout: 5000,
-  });
+  // parent http server, with the express app as its request handler
+  const { server, socketio } = createHttpServerWithSocketIo(app);
+  globalValues.socketio = socketio;
 
   setupSocketIO();
   // Start the server timer for active banners
@@ -291,9 +274,6 @@ function startMainThreadStallDiagnostics(repo: Repo): void {
   setupMaestroNamespaceV2(globalValues.socketio);
   // v1 DUST lives on the /api/socket server under the /dust/v1 namespace.
   setupDustNamespaceV1(globalValues.socketio);
-
-  // express request handler
-  server.on("request", app);
 
   // ==========================================================================
   // Automerge
