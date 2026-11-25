@@ -43,7 +43,7 @@ path `/api/socket`. It is shared by every page and stays open across in-app navi
   route's mission, so a visitor is never counted with another mission's permission.
 - The server re-sends a `visitorJoin` without resetting page, mission, or `connectedAt`.
 
-## Server (`server/express/sockets.ts`)
+## HTTP server (`server/express/httpServer.ts`)
 
 - `createHttpServerWithSocketIo(app)` creates the http server with the Express app as its request
   listener and then attaches Socket.IO. Socket.IO only hides listeners that exist when it
@@ -52,6 +52,11 @@ path `/api/socket`. It is shared by every page and stays open across in-app navi
   `GET /api/socket/?EIO=4&transport=polling`. Socket.IO has already answered those with 400, so
   Express throws `ERR_HTTP_HEADERS_SENT` and the API process exits. This crashed prod and gold on
   2026-11-24.
+- nginx rejects any `/api/socket/` request without `Upgrade: websocket` with a 400, as a second
+  layer of protection (`docker/nginx/nginx.conf`).
+
+## Server (`server/express/sockets.ts`)
+
 - `visitorsData` holds one `VisitorData` per connected tab, including tabs not on a mission
   (`missionId: null`). Mission editor/viewer counts and the 10 s `statusFromServer` heartbeat
   consider only entries with a `missionId`. The mission catalog keeps a mission document loaded

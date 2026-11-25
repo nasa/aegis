@@ -12,7 +12,8 @@ import type { DocHandle } from "@automerge/automerge-repo/slim";
 import { NodeWSServerAdapter } from "@automerge/automerge-repo-network-websocket";
 import app from "./restApi";
 
-import { createHttpServerWithSocketIo, setupSocketIO } from "./sockets";
+import { setupSocketIO } from "./sockets";
+import { createHttpServerWithSocketIo } from "./httpServer";
 import { rescheduleBannerTimer } from "./routes/notificationBanner";
 import { setupMaestroNamespace as setupMaestroNamespaceV2 } from "../maestro/v2/sockets-maestro";
 import { setupDustNamespace as setupDustNamespaceV1 } from "../dust/v1/sockets-dust";

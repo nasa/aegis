@@ -1,11 +1,8 @@
 // @vitest-environment node
 import type { AddressInfo } from "net";
 import type { RequestListener } from "http";
-import { MikroORM } from "@mikro-orm/postgresql";
-import config from "server/database/mikro-orm.config";
-import { globalValues } from "server/express/global";
-import app from "server/express/restApi";
-import { createHttpServerWithSocketIo } from "server/express/sockets";
+import express from "express";
+import { createHttpServerWithSocketIo } from "server/express/httpServer";
 
 // Errors thrown synchronously by the Express app, and every url it was asked to handle. Without
 // the try/catch, a throw here is an uncaught exception that exits the API process.
@@ -15,7 +12,11 @@ let baseUrl: string;
 let closeServer: () => Promise<void>;
 
 beforeAll(async () => {
-  globalValues.orm = await MikroORM.init(config);
+  // A bare Express app still sets X-Powered-By, which is what threw on the already-sent response.
+  const app = express();
+  app.get("/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
 
   const recordingExpressHandler: RequestListener = (request, response) => {
     expressRequestUrls.push(request.url);
@@ -38,7 +39,6 @@ beforeEach(() => {
 
 afterAll(async () => {
   await closeServer();
-  await globalValues.orm.close();
 });
 
 describe("http server with Socket.IO on /api/socket", () => {
@@ -54,11 +54,11 @@ describe("http server with Socket.IO on /api/socket", () => {
 
   test("the server keeps serving Express routes after a polling request to /api/socket", async () => {
     await fetch(`${baseUrl}/api/socket/?EIO=4&transport=polling`);
-    const response = await fetch(`${baseUrl}/api/v1/health`);
+    const response = await fetch(`${baseUrl}/health`);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "ok" });
-    expect(expressRequestUrls).toEqual(["/api/v1/health"]);
+    expect(expressRequestUrls).toEqual(["/health"]);
     expect(expressErrors).toEqual([]);
   });
 });
