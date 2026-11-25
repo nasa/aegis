@@ -35,8 +35,10 @@ const ServerSocketStatus: React.FunctionComponent = () => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [missionNames, setMissionNames] = useState<Map<number, string>>(new Map());
-  const visitorsData = serverSocketStatus?.visitorsData ?? [];
-  const uniqueUserCount = uniq(visitorsData.map((v) => v.launchpadUser?.uupic)).length;
+  const visitorDataCount = serverSocketStatus?.visitorsData?.length;
+  const uniqueUserCount = uniq(
+    serverSocketStatus?.visitorsData.map((v) => v.launchpadUser?.uupic)
+  ).length;
 
   //on load check login
   useEffect(() => {
@@ -150,7 +152,7 @@ const ServerSocketStatus: React.FunctionComponent = () => {
               <FontAwesomeIcon icon={faUsers} className={adminCommon.mutedIcon} />
               <span className={adminCommon.infoLabel}> Total Visitors: </span>
               <span className={adminCommon.infoValue}>
-                {serverSocketStatus ? visitorsData.length : "—"}
+                {serverSocketStatus ? visitorDataCount : "—"}
               </span>
             </div>
             <div>
@@ -162,7 +164,7 @@ const ServerSocketStatus: React.FunctionComponent = () => {
           </div>
         </section>
 
-        {!serverSocketStatus?.visitorsData?.length ? (
+        {!visitorDataCount ? (
           <div className={adminCommon.emptyState}>No visitors connected.</div>
         ) : (
           <PrintUserLists
