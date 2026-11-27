@@ -69,4 +69,28 @@ describe("Thunk Elevation Tests", () => {
     expect(httpClientTerrainProfile.getTerrainProfile).toHaveBeenCalledTimes(1);
     expect(store.getState().interface.elevationPendingItemUuids.includes(dummyUuid)).toBeFalsy();
   });
+  it("thunkFetchTerrainProfile fulfills with null when the server supersedes the request", async () => {
+    const missionDocHandle = getMissionDocHandle();
+    missionDocHandle.change((mission) => {
+      mission.demFilePath = "somefake/path/here.TIF";
+    });
+    vi.mocked(httpClientTerrainProfile.getTerrainProfile).mockResolvedValueOnce({
+      status: "error",
+      message: "Raster sampling job was superseded by newer queued work",
+      httpStatus: 409,
+    });
+    const path: AEGISPoint[] = [
+      { lat: 1, lng: 1 },
+      { lat: 2, lng: 2 },
+    ];
+    const dummyUuid = uuidv4();
+    const thunkRes = await store.dispatch(
+      thunkFetchTerrainProfile({ path, pathSegmentDistances: [0], uuid: dummyUuid })
+    );
+    // A supersede is a cancellation, not an error, so it must not reject and
+    // trip the rejected-action logger.
+    expect(thunkRes.meta.requestStatus).toBe("fulfilled");
+    expect(thunkRes.payload).toBeNull();
+    expect(store.getState().interface.elevationPendingItemUuids.includes(dummyUuid)).toBeFalsy();
+  });
 });

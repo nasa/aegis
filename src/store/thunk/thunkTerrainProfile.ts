@@ -20,6 +20,14 @@ import {
 const RETRY_BASE_MS = 2_000;
 const RETRY_MAX_MS = 60_000;
 
+/**
+ * The server coalesces queued preview samples per entity and answers the older
+ * request with 409. A newer request for the same geometry is already in flight,
+ * so this is a cancellation rather than a sampling failure.
+ * Both server and client use 409 to mean superseded
+ */
+const SUPERSEDED_HTTP_STATUS = 409;
+
 let stopTerrainProfiles: (() => void) | undefined;
 export function stopMissionTerrainProfiles(): void {
   stopTerrainProfiles?.();
@@ -257,10 +265,14 @@ export const thunkFetchPointElevation = appCreateAsyncThunk<
   }
 });
 
-/** Fetch a drag-preview profile; committed profiles are loaded during population and document updates. */
+/**
+ * Fetch a drag-preview profile; committed profiles are loaded during population
+ * and document updates. Resolves to `null` when the server superseded the
+ * request, which means a newer sample for this entity is already queued.
+ */
 export const thunkFetchTerrainProfile = appCreateAsyncThunk<
   { path: AEGISPoint[]; pathSegmentDistances: number[]; uuid: string },
-  TerrainProfile,
+  TerrainProfile | null,
   false
 >(
   "getTerrainProfile",
@@ -277,6 +289,7 @@ export const thunkFetchTerrainProfile = appCreateAsyncThunk<
         entityUuid: uuid,
         preview: true,
       });
+      if (response.httpStatus === SUPERSEDED_HTTP_STATUS) return null;
       if (response.status !== "success") throw new Error("API terrain profile returned failure");
       const profile = normalizeTerrainProfile(response.data, path, pathSegmentDistances);
       if (!profile) throw new Error("API terrain profile returned misaligned data");

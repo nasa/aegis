@@ -24,7 +24,13 @@ const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
 });
 vi.mock("store/thunk/thunkTerrainProfile", () => ({
   thunkFetchPointElevation: () => mockThunkFetchPointElevation,
-  thunkFetchTerrainProfile: () => mockThunkFetchTerrainProfile,
+  // Callers narrow the result with fulfilled.match, so the mock needs one too.
+  thunkFetchTerrainProfile: Object.assign(() => mockThunkFetchTerrainProfile, {
+    fulfilled: {
+      match: (action: { meta?: { requestStatus?: string } } | null) =>
+        action?.meta?.requestStatus === "fulfilled",
+    },
+  }),
 }));
 
 const mockThunkDocUpdateTraversesAroundStation = vi.fn();
@@ -245,6 +251,53 @@ describe("Thunk Station Tests", () => {
       expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(1);
       expect(getMission().stations[station.uuid].walkbackPath).toBeNull();
       const preview = store.getState().terrainProfiles.previews[station.uuid];
+      expect(preview.status).toBe("ready");
+      expect(preview.profile).toEqual(profile);
+    });
+
+    test("keeps the current preview when a later preview sample is superseded", async () => {
+      const profile = { elevationsMeters: [[0, 100, 200]], terrainSlopesDegrees: [[1, 2, 3]] };
+      mockThunkFetchTerrainProfile
+        .mockReturnValueOnce({ meta: { requestStatus: "fulfilled" }, payload: profile })
+        // Another client's request for this walkback superseded this sample.
+        .mockReturnValueOnce({ meta: { requestStatus: "fulfilled" }, payload: null });
+
+      const station: Station = generateBlankStation({
+        name: "Vitest Station-WalkbackSuperseded",
+        location: { lat: 1, lng: 2 },
+      });
+      getMissionDocHandle().change((m) => {
+        m.stations[station.uuid] = station;
+      });
+      const store = createCustomTestStore({});
+
+      await store.dispatch(
+        thunkStation.thunkDocUpdateWalkback({
+          path: [
+            { lat: 1, lng: 2 },
+            { lat: 2, lng: 3 },
+          ],
+          stationUuid: station.uuid,
+          preview: true,
+        })
+      );
+      const firstPreview = store.getState().terrainProfiles.previews[station.uuid];
+      expect(firstPreview.status).toBe("ready");
+
+      await store.dispatch(
+        thunkStation.thunkDocUpdateWalkback({
+          path: [
+            { lat: 1, lng: 2 },
+            { lat: 4, lng: 5 },
+          ],
+          stationUuid: station.uuid,
+          preview: true,
+        })
+      );
+
+      expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(2);
+      const preview = store.getState().terrainProfiles.previews[station.uuid];
+      expect(preview).toEqual(firstPreview);
       expect(preview.status).toBe("ready");
       expect(preview.profile).toEqual(profile);
     });

@@ -84,7 +84,7 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
     })
   );
 
-  if (profileResponse.meta.requestStatus !== "fulfilled") return;
+  if (!thunkFetchTerrainProfile.fulfilled.match(profileResponse)) return;
   if (getMissionDocHandle() !== missionDocHandle || getState().user.appUser?.username !== username)
     return;
 
@@ -93,7 +93,9 @@ export const thunkUpdateMeasurementPath = appCreateAsyncThunk<
   );
   if (!currentMeasurement) return;
 
-  const profile = profileResponse.payload as TerrainProfile;
+  // A superseded sample resolves to null; a newer request is already in flight.
+  const profile = profileResponse.payload;
+  if (!profile) return;
   const currentSegmentCount = currentMeasurement.pathSegmentDistances.length;
   if (
     !profileMatchesSegmentCount(profile.elevationsMeters, currentSegmentCount) ||
@@ -167,10 +169,9 @@ export const thunkAddNewMeasurement = appCreateAsyncThunk<void>(
         uuid: measurementUuid,
       })
     );
-    const profile =
-      profileResponse.meta.requestStatus === "fulfilled"
-        ? (profileResponse.payload as TerrainProfile)
-        : null;
+    const profile = thunkFetchTerrainProfile.fulfilled.match(profileResponse)
+      ? profileResponse.payload
+      : null;
 
     const gridSystem = getMissionCoordinateSystem(mission);
     const pathSegmentBearings: number[] = [];
