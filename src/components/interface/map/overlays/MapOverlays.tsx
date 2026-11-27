@@ -132,15 +132,11 @@ export function MapOverlays(): JSX.Element {
       )}
 
       {/* Scale bar — bottom left */}
-      {display.showScaleBar && (
-        <div className={mapStyles.mapScaleDisplay}>
-          <ScaleBar />
-        </div>
-      )}
+      {display.showScaleBar && <ScaleBar />}
 
       {/* Mouse coordinates — bottom right (editor only) */}
       {config.map.showMouseCoords && display.showMouseLatLon && (
-        <div className={mapStyles.mapPositionDisplay}>
+        <div className={`${mapStyles.mapPositionDisplay} ${mapStyles.mapReadout}`}>
           <MouseCoordinateDisplay />
         </div>
       )}

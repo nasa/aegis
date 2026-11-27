@@ -1,0 +1,59 @@
+.graphic {
+  position: absolute;
+  bottom: 15px;
+  left: 18px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.labels {
+  display: grid;
+  margin-bottom: 3px;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.tick {
+  position: relative;
+  justify-self: start;
+  width: max-content;
+  font-weight: 600;
+  -webkit-text-stroke: 2px #111111;
+  paint-order: stroke fill;
+  transform: translateX(-50%);
+}
+
+.totalTick {
+  justify-self: center;
+  transform: none;
+}
+
+.unit {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 100%;
+  white-space: pre;
+}
+
+.bar {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 1px #111111;
+}
+
+.bar::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #ffffff;
+  content: "";
+}
+
+.segment {
+  flex: 1;
+}
+
+.segment:nth-child(even) {
+  background-color: #111111;
+}
