@@ -61,14 +61,19 @@ export const makeTraverseRateString = (
 /**
  * The status to display for a sequence item or action.
  *
- * Maestro reports `rexStatus` and the per-crew percentages independently, and
+ * A manual `skipped` for rex-status always wins regardless of the crew
+ *
+ *  * Maestro reports `rexStatus` and the per-crew percentages independently, and
  * leaves an activity `in-progress` while an IV step is still unchecked even
  * though both crew members have finished it. Both crews at 100% is what the
  * crew actually experienced, so it wins over a stale `in-progress`. Every
  * place that renders a status must derive it this way, or the row color and
  * the status checkbox disagree.
  */
-export const resolveDisplayedRexStatus = (rexActivityEntry: ActivityEntry | null): RexStatus => {
+export const resolveDisplayedRexStatus = (
+  rexActivityEntry: ActivityEntry | null | undefined
+): RexStatus | undefined => {
+  if (rexActivityEntry?.rexStatus === "skipped") return "skipped";
   if (
     rexActivityEntry?.maestroPercentCompleteEv1 === 100 &&
     rexActivityEntry?.maestroPercentCompleteEv2 === 100
@@ -78,7 +83,7 @@ export const resolveDisplayedRexStatus = (rexActivityEntry: ActivityEntry | null
 };
 
 export const getRexStatusDisplayProperties = (
-  rexStatus: RexStatus
+  rexStatus: RexStatus | null | undefined
 ): {
   icon: IconDefinition;
   iconStyle: string;
@@ -159,8 +164,6 @@ export const getSequenceItemRowStyles = ({
 }): { rowClassName: string; nameClassName: string } => {
   let rowClassName = "";
   let nameClassName = "";
-  // Must match the status the checkbox shows, so the row never reads
-  // "in progress" green against a checked-off complete box.
   const rexStatus = resolveDisplayedRexStatus(rexActivityEntry);
 
   if (isSelected) {

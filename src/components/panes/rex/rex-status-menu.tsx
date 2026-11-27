@@ -122,7 +122,7 @@ export const RexStatusMenu: FunctionComponent<{
         data-tooltip-id="aegis-tooltip"
         data-tooltip-content={rexStatusDisplayProperties.tooltip}
       >
-        {rexActivityEntry?.rexStatus !== "skipped" ? (
+        {rexStatus !== "skipped" ? (
           <FontAwesomeIcon
             icon={rexStatusDisplayProperties.icon}
             className={`${evaStyles.rexStatusIcon} ${rexStatusDisplayProperties.iconStyle}`}

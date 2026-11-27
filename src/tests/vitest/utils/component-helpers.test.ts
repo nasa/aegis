@@ -31,6 +31,16 @@ describe("resolveDisplayedRexStatus", () => {
     ).toBe("in-progress");
   });
 
+  test("keeps skipped when both crew members are at 100%", () => {
+    expect(
+      resolveDisplayedRexStatus({
+        rexStatus: "skipped",
+        maestroPercentCompleteEv1: 100,
+        maestroPercentCompleteEv2: 100,
+      })
+    ).toBe("skipped");
+  });
+
   test("passes through the status when Maestro sends no percentages", () => {
     expect(resolveDisplayedRexStatus({ rexStatus: "skipped" })).toBe("skipped");
     expect(resolveDisplayedRexStatus(null)).toBeUndefined();
@@ -63,6 +73,22 @@ describe("getSequenceItemRowStyles", () => {
       maestroPercentCompleteEv2: 0,
     });
     expect(rowClassName).toBe(evaStyles.evaItemRexInProgress);
+  });
+
+  test("renders a skipped row when skipped with both crews at 100%", () => {
+    const skippedAtFullCompletion: ActivityEntry = {
+      rexStatus: "skipped",
+      maestroPercentCompleteEv1: 100,
+      maestroPercentCompleteEv2: 100,
+    };
+    expect(rowFor(skippedAtFullCompletion).rowClassName).toBe(evaStyles.evaItemRexSkipped);
+    const selectedRow = getSequenceItemRowStyles({
+      rexActivityEntry: skippedAtFullCompletion,
+      isSelected: true,
+      isHovered: false,
+      isRexEva: true,
+    });
+    expect(selectedRow.rowClassName).toBe(evaStyles.evaItemRexSkippedSelected);
   });
 
   test("still renders a complete row from rexStatus alone", () => {

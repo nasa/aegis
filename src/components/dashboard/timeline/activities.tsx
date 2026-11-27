@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 import { deepEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { EmojiRenderer } from "components/interface/emojis";
+import { resolveDisplayedRexStatus } from "utils/component-helpers";
 import styles from "./activities.module.css";
 
 const Activities: FunctionComponent<{
@@ -56,10 +57,11 @@ const Activity: FunctionComponent<{
         ? (rex?.traverseEntries?.[sequenceItem.uuid] ?? null)
         : null;
 
-  const inProgress = entry?.rexStatus === "in-progress";
+  const rexStatus = resolveDisplayedRexStatus(entry);
+  const inProgress = rexStatus === "in-progress";
   // The activity as a whole, which finishes both crews regardless of what
-  // Maestro reported per crew.
-  const activityComplete = entry?.rexStatus === "complete" || entry?.rexStatus === "skipped";
+  // Maestro reported per crew. The dashboard shows skipped with the complete grey.
+  const activityComplete = rexStatus === "complete" || rexStatus === "skipped";
   const ev1PercentComplete = entry?.maestroPercentCompleteEv1 || 0;
   const ev2PercentComplete = entry?.maestroPercentCompleteEv2 || 0;
 
