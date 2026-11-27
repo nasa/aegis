@@ -24,7 +24,7 @@ import { thunkDocUpdateActionLocation } from "store/thunk/thunkAction";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { setHoverUuidsForSequence, clearMapItemHover } from "store/hover";
 import { updateMapDirective } from "store/map";
-import { getActionDisplayName } from "utils/component-helpers";
+import { getActionDisplayName, resolveDisplayedRexStatus } from "utils/component-helpers";
 
 import { useMapContext } from "../MapProvider";
 import { MODE_CONFIGS } from "../utils/modeConfig";
@@ -77,10 +77,10 @@ export function ActionMarkers(): null {
     if (!runningRex) return [];
     const uuids: string[] = [];
     for (const [uuid, entry] of Object.entries(runningRex.stationEntries ?? {})) {
-      if (entry.rexStatus === "in-progress") uuids.push(uuid);
+      if (resolveDisplayedRexStatus(entry) === "in-progress") uuids.push(uuid);
     }
     for (const [uuid, entry] of Object.entries(runningRex.traverseEntries ?? {})) {
-      if (entry.rexStatus === "in-progress") uuids.push(uuid);
+      if (resolveDisplayedRexStatus(entry) === "in-progress") uuids.push(uuid);
     }
     return uuids;
   }, deepEqual);

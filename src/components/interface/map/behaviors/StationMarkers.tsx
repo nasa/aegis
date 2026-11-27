@@ -25,6 +25,7 @@ import { selectAsPlannedStations, EMPTY_DOC_LIST } from "store/selectors";
 import { thunkMarkerOnClick } from "store/thunk/thunkMap";
 import { thunkDocUpdateStationLocation } from "store/thunk/thunkStation";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { resolveDisplayedRexStatus } from "utils/component-helpers";
 import { setHoverUuidsForSequence, clearMapItemHover } from "store/hover";
 import { updateMapDirective } from "store/map";
 
@@ -83,7 +84,7 @@ export function StationMarkers(): null {
       .filter(
         (item) =>
           item.type === "station" &&
-          runningRex.stationEntries?.[item.uuid]?.rexStatus === "in-progress"
+          resolveDisplayedRexStatus(runningRex.stationEntries?.[item.uuid]) === "in-progress"
       )
       .map((item) => item.uuid);
   }, deepEqual);
