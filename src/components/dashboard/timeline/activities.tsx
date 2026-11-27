@@ -76,8 +76,9 @@ const Activity: FunctionComponent<{
   const crewComplete = (percentComplete: number) => activityComplete || percentComplete === 100;
   const crewBackgroundColor = (percentComplete: number): string | null => {
     if (crewComplete(percentComplete)) return "var(--grey4)";
-    // With no per-crew percentage from Maestro, both boxes follow the activity.
-    if (inProgress || percentComplete > 0) return "var(--rex)";
+    // Maestro does not report whether a crew has started, so a crew at 0%
+    // stays uncolored even while the activity is in progress.
+    if (inProgress && percentComplete > 0) return "var(--rex)";
     return null;
   };
 
