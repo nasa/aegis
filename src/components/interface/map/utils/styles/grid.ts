@@ -1,4 +1,5 @@
 import { Fill, Stroke, Style, Text } from "ol/style";
+import { measureTextHeight, measureTextWidth } from "ol/render/canvas";
 
 import { defaultGridStyle } from "store/storeUtils/sublayer";
 
@@ -8,6 +9,7 @@ import { withAlpha } from "../layers/layerFactory";
 const SEAM_WIDTH_FACTOR = 2.5;
 /** Panning produces new label texts; the cache is cleared wholesale past this size. */
 const LABEL_CACHE_LIMIT = 2000;
+const labelSizes = new WeakMap<Style, number>();
 
 function resolveGridStyle(style: Partial<MapSublayerStyle> | undefined): MapSublayerStyle {
   return { ...defaultGridStyle, ...(style ?? {}) };
@@ -70,4 +72,19 @@ export function createGridLabelStyleFn(
     }
     return cached;
   };
+}
+
+export function gridLabelFits(style: Style, cellPixels: number): boolean {
+  let size = labelSizes.get(style);
+  if (size === undefined) {
+    const textStyle = style.getText()!;
+    const text = textStyle.getText();
+    if (typeof text !== "string") return false;
+    const font = textStyle.getFont()!;
+    const width = measureTextWidth(font, text) + Math.abs(textStyle.getOffsetX());
+    const height = measureTextHeight(font) / 2 + Math.abs(textStyle.getOffsetY());
+    size = Math.max(width, height) + (textStyle.getStroke()?.getWidth() ?? 0) + 4;
+    labelSizes.set(style, size);
+  }
+  return size <= cellPixels;
 }

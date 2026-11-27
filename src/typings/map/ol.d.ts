@@ -166,3 +166,13 @@ type GridLineStyles = { grid: import("ol/style").Style; seam: import("ol/style")
 
 /** Grid label style for `text`, cached per builder. */
 type GridLabelStyleFn = (text: string, centered: boolean) => import("ol/style").Style;
+
+/** Per-mode scale bar label styling. */
+interface ScaleBarConfig {
+  /** Multiplier applied to the scale bar label font size. */
+  fontScale: number;
+  /** Bar thickness (px). */
+  barHeight: number;
+  /** When false, only the total length and unit are labelled. */
+  showTickLabels: boolean;
+}
