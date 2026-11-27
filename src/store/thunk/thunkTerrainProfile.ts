@@ -24,6 +24,7 @@ const RETRY_MAX_MS = 60_000;
  * The server coalesces queued preview samples per entity and answers the older
  * request with 409. A newer request for the same geometry is already in flight,
  * so this is a cancellation rather than a sampling failure.
+ * Both server and client use 409 to mean superseded
  */
 const SUPERSEDED_HTTP_STATUS = 409;
 

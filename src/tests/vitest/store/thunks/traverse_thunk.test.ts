@@ -20,7 +20,13 @@ const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
 vi.mock("store/thunk/thunkTerrainProfile", () => ({
-  thunkFetchTerrainProfile: () => mockThunkFetchTerrainProfile,
+  // Callers narrow the result with fulfilled.match, so the mock needs one too.
+  thunkFetchTerrainProfile: Object.assign(() => mockThunkFetchTerrainProfile, {
+    fulfilled: {
+      match: (action: { meta?: { requestStatus?: string } } | null) =>
+        action?.meta?.requestStatus === "fulfilled",
+    },
+  }),
 }));
 
 const getMission = (): Mission => getMissionDocHandle().doc();
@@ -180,6 +186,49 @@ describe("Thunk Traverse Tests", () => {
       else expect(preview).toBeUndefined();
     }
   );
+
+  it("keeps the current preview when a later preview sample is superseded", async () => {
+    const traverse = generateBlankTraverse({
+      path: [
+        { lat: 0, lng: 0 },
+        { lat: 1, lng: 1 },
+      ],
+    });
+    getMissionDocHandle().change((m) => {
+      m.traverses[traverse.uuid] = traverse;
+    });
+    const profile = { elevationsMeters: [[10, 20]], terrainSlopesDegrees: [[1, 2]] };
+    mockThunkFetchTerrainProfile
+      .mockReturnValueOnce({ meta: { requestStatus: "fulfilled" }, payload: profile })
+      // Another client's request for this traverse superseded this sample.
+      .mockReturnValueOnce({ meta: { requestStatus: "fulfilled" }, payload: null });
+    const store = createCustomTestStore({});
+    const firstPath = [
+      { lat: 2, lng: 2 },
+      { lat: 3, lng: 3 },
+    ];
+    await store.dispatch(
+      thunkDocUpdateTraverse({ traverseUuid: traverse.uuid, path: firstPath, preview: true })
+    );
+    const firstPreview = store.getState().terrainProfiles.previews[traverse.uuid];
+    expect(firstPreview.status).toBe("ready");
+
+    await store.dispatch(
+      thunkDocUpdateTraverse({
+        traverseUuid: traverse.uuid,
+        path: [
+          { lat: 4, lng: 4 },
+          { lat: 5, lng: 5 },
+        ],
+        preview: true,
+      })
+    );
+
+    expect(mockThunkFetchTerrainProfile).toHaveBeenCalledTimes(2);
+    expect(store.getState().terrainProfiles.previews[traverse.uuid]).toEqual(firstPreview);
+    expect(store.getState().terrainProfiles.previews[traverse.uuid].path).toEqual(firstPath);
+    expect(store.getState().terrainProfiles.previews[traverse.uuid].profile).toEqual(profile);
+  });
 
   it("thunkDocUpdateTraverse() updates path/distances/name and persists to automerge", async () => {
     const traverseEgress: Traverse = generateBlankTraverse({ name: "Vitest Traverse-1" });

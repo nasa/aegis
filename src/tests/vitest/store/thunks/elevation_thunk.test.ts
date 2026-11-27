@@ -83,12 +83,14 @@ describe("Thunk Elevation Tests", () => {
       { lat: 1, lng: 1 },
       { lat: 2, lng: 2 },
     ];
+    const dummyUuid = uuidv4();
     const thunkRes = await store.dispatch(
-      thunkFetchTerrainProfile({ path, pathSegmentDistances: [0], uuid: uuidv4() })
+      thunkFetchTerrainProfile({ path, pathSegmentDistances: [0], uuid: dummyUuid })
     );
     // A supersede is a cancellation, not an error, so it must not reject and
     // trip the rejected-action logger.
     expect(thunkRes.meta.requestStatus).toBe("fulfilled");
     expect(thunkRes.payload).toBeNull();
+    expect(store.getState().interface.elevationPendingItemUuids.includes(dummyUuid)).toBeFalsy();
   });
 });
