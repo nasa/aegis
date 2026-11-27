@@ -10,11 +10,7 @@ import { getCalcFieldsForEva } from "store/processing/calculatedFields";
 import { EmojiRenderer } from "components/interface/emojis";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { getHighlightedActions } from "store/selectors";
-import {
-  buildActionOrdinalLabels,
-  findRexUuidForEntity,
-  useRexExecuteEditMode,
-} from "utils/rexExecuteEditMode";
+import { findRexUuidForEntity, useActionOrdinalLabels } from "utils/rexExecuteEditMode";
 
 const Actions_Panel: FunctionComponent = () => {
   const partialMission = useMissionDocSelector(
@@ -104,21 +100,7 @@ const Actions_Panel: FunctionComponent = () => {
 
   // This read-only view lists every sequence parent's actions, so it has to
   // derive the same letters the station and traverse action panels show.
-  const {
-    mode: rexEditMode,
-    isEntityAdded,
-    baselineActionOrderFor,
-  } = useRexExecuteEditMode(evaRexUuid ?? null);
-  const ordinalLabelsFor = useCallback(
-    (parentUuid: string, actionOrderUuids: string[]) =>
-      buildActionOrdinalLabels({
-        actionOrderUuids,
-        usePinnedLetters: rexEditMode === "limited",
-        parentWasAddedUnderLimitedEdit: isEntityAdded(parentUuid),
-        baselineActionOrder: baselineActionOrderFor(parentUuid),
-      }),
-    [rexEditMode, isEntityAdded, baselineActionOrderFor]
-  );
+  const ordinalLabelsFor = useActionOrdinalLabels(evaRexUuid ?? null);
 
   const evaActionOrderUuids = selectedEva?.sequence.flatMap((sequenceItem) => {
     if (sequenceItem.type === "station") {
@@ -160,7 +142,7 @@ const Actions_Panel: FunctionComponent = () => {
           showDwell={true}
           highlightActions={highlightActions}
           actionsCalculatedFields={evaActionsCalcFields}
-          rexUuid={selectedRexPartial?.uuid}
+          rexUuid={evaRexUuid ?? undefined}
         />
         <ActionsListHeadings
           editMode={false}
@@ -204,7 +186,7 @@ const Actions_Panel: FunctionComponent = () => {
                       isActionHighlighted={isActionHighlighted}
                       stations={sequenceStations}
                       pois={null}
-                      rexUuid={selectedRexPartial?.uuid}
+                      rexUuid={evaRexUuid ?? undefined}
                     />
                   </div>
                 );
@@ -234,7 +216,7 @@ const Actions_Panel: FunctionComponent = () => {
                     isActionHighlighted={isActionHighlighted}
                     stations={sequenceStations}
                     pois={null}
-                    rexUuid={selectedRexPartial?.uuid}
+                    rexUuid={evaRexUuid ?? undefined}
                   />
                 </div>
               );
