@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 import { deepEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { EmojiRenderer } from "components/interface/emojis";
+import { resolveDisplayedRexStatus } from "utils/component-helpers";
 import styles from "./activities.module.css";
 
 const Activities: FunctionComponent<{
@@ -49,39 +50,32 @@ const Activity: FunctionComponent<{
     }
   }, [sequenceItem, pixelsPerSecondY]);
 
-  let complete = false;
-  let inProgress = false;
-  let ev1PercentComplete = 0;
-  let ev2PercentComplete = 0;
-  if (sequenceItem.type === "station") {
-    const entry = rex?.stationEntries ? rex?.stationEntries[sequenceItem.uuid] : null;
-    inProgress = entry?.rexStatus === "in-progress";
-    ev1PercentComplete = entry?.maestroPercentCompleteEv1 || 0;
-    ev2PercentComplete = entry?.maestroPercentCompleteEv2 || 0;
-    complete =
-      entry?.rexStatus === "complete" ||
-      entry?.rexStatus === "skipped" ||
-      (ev1PercentComplete === 100 && ev2PercentComplete === 100);
-  } else if (sequenceItem.type === "traverse") {
-    // find the traverseEntry in the rex for this traverse
-    const traverseEntry = rex?.traverseEntries ? rex?.traverseEntries[sequenceItem.uuid] : null;
-    inProgress = traverseEntry?.rexStatus === "in-progress";
-    ev1PercentComplete = traverseEntry?.maestroPercentCompleteEv1 || 0;
-    ev2PercentComplete = traverseEntry?.maestroPercentCompleteEv2 || 0;
-    complete =
-      traverseEntry?.rexStatus === "complete" ||
-      traverseEntry?.rexStatus === "skipped" ||
-      (ev1PercentComplete === 100 && ev2PercentComplete === 100);
-  }
+  const entry =
+    sequenceItem.type === "station"
+      ? (rex?.stationEntries?.[sequenceItem.uuid] ?? null)
+      : sequenceItem.type === "traverse"
+        ? (rex?.traverseEntries?.[sequenceItem.uuid] ?? null)
+        : null;
+
+  const rexStatus = resolveDisplayedRexStatus(entry);
+  const inProgress = rexStatus === "in-progress";
+  // The activity as a whole, which finishes both crews regardless of what
+  // Maestro reported per crew. The dashboard shows skipped with the complete grey.
+  const activityComplete = rexStatus === "complete" || rexStatus === "skipped";
+  const ev1PercentComplete = entry?.maestroPercentCompleteEv1 || 0;
+  const ev2PercentComplete = entry?.maestroPercentCompleteEv2 || 0;
 
   const boxColor = maestroActivityProperties[sequenceItem.uuid]?.color;
 
-  let backgroundColor = null;
-  if (complete) {
-    backgroundColor = "var(--grey4)";
-  } else if (inProgress) {
-    backgroundColor = "var(--rex)";
-  }
+  // Each crew's box follows its own Maestro percentage and the activity status.
+  const crewComplete = (percentComplete: number) => activityComplete || percentComplete === 100;
+  const crewBackgroundColor = (percentComplete: number): string | null => {
+    if (crewComplete(percentComplete)) return "var(--grey4)";
+    // Maestro does not report whether a crew has started, so a crew at 0%
+    // stays uncolored even while the activity is in progress.
+    if (inProgress && percentComplete > 0) return "var(--rex)";
+    return null;
+  };
 
   // set display number to what was provided by maestro. If nothing was provided, use the iterative number from parent component
   const displayNumber = maestroActivityProperties[sequenceItem.uuid]?.number || activityNumber;
@@ -90,14 +84,12 @@ const Activity: FunctionComponent<{
   const stationIcon = <EmojiRenderer iconValue={sequenceItem.icon ? sequenceItem.icon : "2754"} />;
 
   return (
-    <div
-      ref={activityRef}
-      className={styles.activityIndicator}
-      style={{
-        backgroundColor: backgroundColor,
-      }}
-    >
-      <div className={styles.evBox}>
+    <div ref={activityRef} className={styles.activityIndicator}>
+      <div
+        className={styles.evBox}
+        style={{ backgroundColor: crewBackgroundColor(ev1PercentComplete) }}
+        data-testid={`activity-ev1-${sequenceItem.uuid}`}
+      >
         <div className={styles.evBoxColorLine} style={{ backgroundColor: boxColor }}></div>
         <div className={styles.evBoxMain}>
           <div
@@ -108,7 +100,7 @@ const Activity: FunctionComponent<{
           {sequenceItem.type === "station" && (
             <div className={styles.stationIcon}>{stationIcon}</div>
           )}
-          {!complete && (
+          {!crewComplete(ev1PercentComplete) && (
             <div
               className={styles.progressIndicator}
               style={{ height: `${ev1PercentComplete}%` }}
@@ -116,20 +108,24 @@ const Activity: FunctionComponent<{
           )}
         </div>
       </div>
-      <div className={styles.evBox}>
+      <div
+        className={styles.evBox}
+        style={{ backgroundColor: crewBackgroundColor(ev2PercentComplete) }}
+        data-testid={`activity-ev2-${sequenceItem.uuid}`}
+      >
         <div className={styles.evBoxColorLine} style={{ backgroundColor: boxColor }}></div>
         <div className={styles.evBoxMain}>
           <div className={styles.activityNumber}>{displayNumber}</div>
           {sequenceItem.type === "station" && (
             <div className={styles.stationIcon}>{stationIcon}</div>
           )}
+          {!crewComplete(ev2PercentComplete) && (
+            <div
+              className={styles.progressIndicator}
+              style={{ height: `${ev2PercentComplete}%` }}
+            ></div>
+          )}
         </div>
-        {!complete && (
-          <div
-            className={styles.progressIndicator}
-            style={{ height: `${ev2PercentComplete}%` }}
-          ></div>
-        )}
       </div>
     </div>
   );

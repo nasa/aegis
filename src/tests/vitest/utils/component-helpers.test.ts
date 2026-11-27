@@ -1,9 +1,100 @@
 import {
   getActionDisplayName,
   getAlertColor,
+  getSequenceItemRowStyles,
   makeTraverseRateString,
+  resolveDisplayedRexStatus,
 } from "utils/component-helpers";
+import evaStyles from "components/panes/eva/eva.module.css";
 import { sortActionDefinitionItems } from "components/interface/actionDefDropdown";
+
+describe("resolveDisplayedRexStatus", () => {
+  test("reports complete when both crew members are at 100%", () => {
+    // Maestro leaves an activity "in-progress" while an IV step is unchecked,
+    // even though both crew members have finished it.
+    expect(
+      resolveDisplayedRexStatus({
+        rexStatus: "in-progress",
+        maestroPercentCompleteEv1: 100,
+        maestroPercentCompleteEv2: 100,
+      })
+    ).toBe("complete");
+  });
+
+  test("stays in-progress when only one crew member is finished", () => {
+    expect(
+      resolveDisplayedRexStatus({
+        rexStatus: "in-progress",
+        maestroPercentCompleteEv1: 100,
+        maestroPercentCompleteEv2: 40,
+      })
+    ).toBe("in-progress");
+  });
+
+  test("keeps skipped when both crew members are at 100%", () => {
+    expect(
+      resolveDisplayedRexStatus({
+        rexStatus: "skipped",
+        maestroPercentCompleteEv1: 100,
+        maestroPercentCompleteEv2: 100,
+      })
+    ).toBe("skipped");
+  });
+
+  test("passes through the status when Maestro sends no percentages", () => {
+    expect(resolveDisplayedRexStatus({ rexStatus: "skipped" })).toBe("skipped");
+    expect(resolveDisplayedRexStatus(null)).toBeUndefined();
+  });
+});
+
+describe("getSequenceItemRowStyles", () => {
+  const rowFor = (rexActivityEntry: ActivityEntry) =>
+    getSequenceItemRowStyles({
+      rexActivityEntry,
+      isSelected: false,
+      isHovered: false,
+      isRexEva: true,
+    });
+
+  test("renders a complete row rather than in-progress green when both crews are done", () => {
+    // The status checkbox shows complete for this entry, so the row must too.
+    const { rowClassName } = rowFor({
+      rexStatus: "in-progress",
+      maestroPercentCompleteEv1: 100,
+      maestroPercentCompleteEv2: 100,
+    });
+    expect(rowClassName).toBe(evaStyles.evaItemRexComplete);
+  });
+
+  test("keeps in-progress green while a crew member is still working", () => {
+    const { rowClassName } = rowFor({
+      rexStatus: "in-progress",
+      maestroPercentCompleteEv1: 100,
+      maestroPercentCompleteEv2: 0,
+    });
+    expect(rowClassName).toBe(evaStyles.evaItemRexInProgress);
+  });
+
+  test("renders a skipped row when skipped with both crews at 100%", () => {
+    const skippedAtFullCompletion: ActivityEntry = {
+      rexStatus: "skipped",
+      maestroPercentCompleteEv1: 100,
+      maestroPercentCompleteEv2: 100,
+    };
+    expect(rowFor(skippedAtFullCompletion).rowClassName).toBe(evaStyles.evaItemRexSkipped);
+    const selectedRow = getSequenceItemRowStyles({
+      rexActivityEntry: skippedAtFullCompletion,
+      isSelected: true,
+      isHovered: false,
+      isRexEva: true,
+    });
+    expect(selectedRow.rowClassName).toBe(evaStyles.evaItemRexSkippedSelected);
+  });
+
+  test("still renders a complete row from rexStatus alone", () => {
+    expect(rowFor({ rexStatus: "complete" }).rowClassName).toBe(evaStyles.evaItemRexComplete);
+  });
+});
 
 describe("getAlertColor", () => {
   test("returns 'var(--alert)' for reportItems with 'error'", () => {
