@@ -67,12 +67,7 @@ const Activity: FunctionComponent<{
 
   const boxColor = maestroActivityProperties[sequenceItem.uuid]?.color;
 
-  /**
-   * Each crew's box is colored from that crew's own progress, so one crew can
-   * read complete (grey) while the other is still working (green). Maestro
-   * reports the two percentages independently and keeps the activity
-   * "in-progress" until both are done.
-   */
+  // Each crew's box follows its own Maestro percentage and the activity status.
   const crewComplete = (percentComplete: number) => activityComplete || percentComplete === 100;
   const crewBackgroundColor = (percentComplete: number): string | null => {
     if (crewComplete(percentComplete)) return "var(--grey4)";

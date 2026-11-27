@@ -5,7 +5,7 @@
  * keeps the activity "in-progress" until both are finished.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import Activities from "components/dashboard/timeline/activities";
 import { createReactHarness, type ReactHarness } from "./map/helpers/reactBrowserHarness";
 import "styles/globals.css";
@@ -57,8 +57,14 @@ const resolvedColor = (variable: string): string => {
   return color;
 };
 
-const COMPLETE = resolvedColor("--grey4");
 const UNCOLORED = "rgba(0, 0, 0, 0)";
+let COMPLETE: string;
+let IN_PROGRESS: string;
+
+beforeAll(() => {
+  COMPLETE = resolvedColor("--grey4");
+  IN_PROGRESS = resolvedColor("--rex");
+});
 
 const boxColors = () => {
   const read = (crew: "ev1" | "ev2") =>
@@ -84,8 +90,7 @@ describe("dashboard activity crew boxes", () => {
 
     const { ev1, ev2 } = boxColors();
     expect(ev1).toBe(COMPLETE);
-    expect(ev2).not.toBe(COMPLETE);
-    expect(ev2).not.toBe(ev1);
+    expect(ev2).toBe(IN_PROGRESS);
   });
 
   it("greys out both boxes once both crews finish", () => {
@@ -124,10 +129,7 @@ describe("dashboard activity crew boxes", () => {
       maestroPercentCompleteEv2: 0,
     });
 
-    const { ev1, ev2 } = boxColors();
-    expect(ev1).not.toBe(UNCOLORED);
-    expect(ev1).not.toBe(COMPLETE);
-    expect(ev2).toBe(UNCOLORED);
+    expect(boxColors()).toEqual({ ev1: IN_PROGRESS, ev2: UNCOLORED });
   });
 
   it("leaves a pending activity uncolored even with crew progress", () => {
