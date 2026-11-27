@@ -58,6 +58,7 @@ const resolvedColor = (variable: string): string => {
 };
 
 const COMPLETE = resolvedColor("--grey4");
+const UNCOLORED = "rgba(0, 0, 0, 0)";
 
 const boxColors = () => {
   const read = (crew: "ev1" | "ev2") =>
@@ -104,20 +105,54 @@ describe("dashboard activity crew boxes", () => {
     expect(boxColors()).toEqual({ ev1: COMPLETE, ev2: COMPLETE });
   });
 
-  it("shows both boxes in progress when Maestro sends no per-crew progress", () => {
-    renderWith({ rexStatus: "in-progress" });
+  it("leaves both boxes uncolored while the activity is in progress at 0%", () => {
+    // Maestro marks the activity in progress as soon as either crew's first
+    // step becomes current, without saying which crew started.
+    renderWith({
+      rexStatus: "in-progress",
+      maestroPercentCompleteEv1: 0,
+      maestroPercentCompleteEv2: 0,
+    });
+
+    expect(boxColors()).toEqual({ ev1: UNCOLORED, ev2: UNCOLORED });
+  });
+
+  it("colors only the crew that has made progress", () => {
+    renderWith({
+      rexStatus: "in-progress",
+      maestroPercentCompleteEv1: 40,
+      maestroPercentCompleteEv2: 0,
+    });
 
     const { ev1, ev2 } = boxColors();
-    expect(ev1).toBe(ev2);
+    expect(ev1).not.toBe(UNCOLORED);
     expect(ev1).not.toBe(COMPLETE);
+    expect(ev2).toBe(UNCOLORED);
+  });
+
+  it("leaves a pending activity uncolored even with crew progress", () => {
+    renderWith({
+      rexStatus: "pending",
+      maestroPercentCompleteEv1: 30,
+      maestroPercentCompleteEv2: 0,
+    });
+
+    expect(boxColors()).toEqual({ ev1: UNCOLORED, ev2: UNCOLORED });
+  });
+
+  it("greys out both boxes when the activity is skipped", () => {
+    renderWith({
+      rexStatus: "skipped",
+      maestroPercentCompleteEv1: 20,
+      maestroPercentCompleteEv2: 0,
+    });
+
+    expect(boxColors()).toEqual({ ev1: COMPLETE, ev2: COMPLETE });
   });
 
   it("leaves a pending activity uncolored", () => {
     renderWith({ rexStatus: "pending" });
 
-    expect(boxColors()).toEqual({
-      ev1: "rgba(0, 0, 0, 0)",
-      ev2: "rgba(0, 0, 0, 0)",
-    });
+    expect(boxColors()).toEqual({ ev1: UNCOLORED, ev2: UNCOLORED });
   });
 });

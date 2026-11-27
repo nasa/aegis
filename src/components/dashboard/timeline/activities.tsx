@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 import { deepEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
 import { EmojiRenderer } from "components/interface/emojis";
+import { resolveDisplayedRexStatus } from "utils/component-helpers";
 import styles from "./activities.module.css";
 
 const Activities: FunctionComponent<{
@@ -56,10 +57,11 @@ const Activity: FunctionComponent<{
         ? (rex?.traverseEntries?.[sequenceItem.uuid] ?? null)
         : null;
 
-  const inProgress = entry?.rexStatus === "in-progress";
+  const rexStatus = resolveDisplayedRexStatus(entry);
+  const inProgress = rexStatus === "in-progress";
   // The activity as a whole, which finishes both crews regardless of what
-  // Maestro reported per crew.
-  const activityComplete = entry?.rexStatus === "complete" || entry?.rexStatus === "skipped";
+  // Maestro reported per crew. The dashboard shows skipped with the complete grey.
+  const activityComplete = rexStatus === "complete" || rexStatus === "skipped";
   const ev1PercentComplete = entry?.maestroPercentCompleteEv1 || 0;
   const ev2PercentComplete = entry?.maestroPercentCompleteEv2 || 0;
 
@@ -74,8 +76,9 @@ const Activity: FunctionComponent<{
   const crewComplete = (percentComplete: number) => activityComplete || percentComplete === 100;
   const crewBackgroundColor = (percentComplete: number): string | null => {
     if (crewComplete(percentComplete)) return "var(--grey4)";
-    // With no per-crew percentage from Maestro, both boxes follow the activity.
-    if (inProgress || percentComplete > 0) return "var(--rex)";
+    // Maestro does not report whether a crew has started, so a crew at 0%
+    // stays uncolored even while the activity is in progress.
+    if (inProgress && percentComplete > 0) return "var(--rex)";
     return null;
   };
 

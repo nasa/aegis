@@ -17,7 +17,11 @@ import {
   thunkDocDeleteStationFromEva,
   thunkDocReorderStationInEva,
 } from "store/thunk/thunkEva";
-import { getRexStatusDisplayProperties, getSequenceItemRowStyles } from "utils/component-helpers";
+import {
+  getRexStatusDisplayProperties,
+  getSequenceItemRowStyles,
+  resolveDisplayedRexStatus,
+} from "utils/component-helpers";
 import { RexStatusMenu } from "../rex/rex-status-menu";
 import { thunkSetRightPanelIsOpenIfAuto } from "store/thunk/thunkInterface";
 import { getCalcFieldsForStation } from "store/processing/calculatedFields";
@@ -221,13 +225,7 @@ const SequenceItemStation: FunctionComponent<{
     isRexEva,
   });
 
-  let rexStatus = stationActivityEntry?.rexStatus;
-  if (
-    stationActivityEntry?.maestroPercentCompleteEv1 === 100 &&
-    stationActivityEntry?.maestroPercentCompleteEv2 === 100
-  ) {
-    rexStatus = "complete";
-  }
+  const rexStatus = resolveDisplayedRexStatus(stationActivityEntry);
 
   return (
     <div className={evaStyles.evaSequence}>

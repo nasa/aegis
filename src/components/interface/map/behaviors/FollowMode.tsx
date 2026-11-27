@@ -13,6 +13,7 @@ import { boundingExtent } from "ol/extent";
 import type { Coordinate } from "ol/coordinate";
 import { deepEqual, refEqual } from "utils/useAppSelector";
 import { useMissionDocSelector } from "utils/useDocSelector";
+import { resolveDisplayedRexStatus } from "utils/component-helpers";
 import { getLatestPosEntriesByType } from "utils/posEntries";
 import { PLANETS } from "utils/planets";
 import { useMapContext } from "../MapProvider";
@@ -89,14 +90,18 @@ export function FollowMode(): null {
     const stationsFromDoc = allStationsFromDoc ?? [];
     const stationEntries = runningRex?.stationEntries;
     if (!stationEntries) return [];
-    return stationsFromDoc.filter((s) => stationEntries[s.uuid]?.rexStatus === "in-progress");
+    return stationsFromDoc.filter(
+      (s) => resolveDisplayedRexStatus(stationEntries[s.uuid]) === "in-progress"
+    );
   }, [runningRex, allStationsFromDoc]);
 
   const traversesInProgress = useMemo(() => {
     const traversesFromDoc = allTraversesFromDoc ?? [];
     const traverseEntries = runningRex?.traverseEntries;
     if (!traverseEntries) return [];
-    return traversesFromDoc.filter((t) => traverseEntries[t.uuid]?.rexStatus === "in-progress");
+    return traversesFromDoc.filter(
+      (t) => resolveDisplayedRexStatus(traverseEntries[t.uuid]) === "in-progress"
+    );
   }, [runningRex, allTraversesFromDoc]);
 
   // --- Auto-pan/zoom ---
