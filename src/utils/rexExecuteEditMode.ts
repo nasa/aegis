@@ -137,6 +137,20 @@ export const useRexExecuteEditMode = (
   };
 };
 
+/** Returns a lookup that builds the display ordinals for one parent's action list in a REX scope. */
+export const useActionOrdinalLabels = (
+  rexUuid: string | null
+): ((parentUuid: string, actionOrderUuids: string[]) => string[]) => {
+  const { mode, isEntityAdded, baselineActionOrderFor } = useRexExecuteEditMode(rexUuid);
+  return (parentUuid, actionOrderUuids) =>
+    buildActionOrdinalLabels({
+      actionOrderUuids,
+      usePinnedLetters: mode === "limited",
+      parentWasAddedUnderLimitedEdit: isEntityAdded(parentUuid),
+      baselineActionOrder: baselineActionOrderFor(parentUuid),
+    });
+};
+
 /** Permits everything, for non-REX lists and any list outside a restricted scope. */
 export const UNRESTRICTED_ACTION_EDIT_CAPABILITIES: ActionEditCapabilities = {
   crewAssigned: true,

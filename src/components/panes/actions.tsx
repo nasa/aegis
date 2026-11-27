@@ -21,8 +21,8 @@ import { applyCreateAction } from "operations/apply/apply-action";
 import { applyRegisterAddedAction } from "operations/apply/apply-rex";
 import { getHighlightedActions } from "store/selectors";
 import {
-  buildActionOrdinalLabels,
   canEditInRexScope,
+  useActionOrdinalLabels,
   useRexExecuteEditMode,
 } from "utils/rexExecuteEditMode";
 
@@ -69,11 +69,8 @@ const Actions: FunctionComponent<{
 
   // The parent this list belongs to, used to scope the REX edit restrictions.
   const actionParentEntityUuid = actionParentUuid?.stationUuid ?? actionParentUuid?.traverseUuid;
-  const {
-    mode: rexEditMode,
-    isEntityAdded,
-    baselineActionOrderFor,
-  } = useRexExecuteEditMode(rexUuid ?? null);
+  const { mode: rexEditMode, isEntityAdded } = useRexExecuteEditMode(rexUuid ?? null);
+  const ordinalLabelsFor = useActionOrdinalLabels(rexUuid ?? null);
   const parentWasAddedUnderLimitedEdit = isEntityAdded(actionParentEntityUuid);
   const canAddAction = canEditInRexScope(rexEditMode, "actionCreate", {
     entityWasAdded: parentWasAddedUnderLimitedEdit,
@@ -81,12 +78,7 @@ const Actions: FunctionComponent<{
   const canReorderActions = canEditInRexScope(rexEditMode, "actionReorder", {
     entityWasAdded: parentWasAddedUnderLimitedEdit,
   });
-  const actionOrdinalLabels = buildActionOrdinalLabels({
-    actionOrderUuids,
-    usePinnedLetters: rexEditMode === "limited",
-    parentWasAddedUnderLimitedEdit,
-    baselineActionOrder: baselineActionOrderFor(actionParentEntityUuid),
-  });
+  const actionOrdinalLabels = ordinalLabelsFor(actionParentEntityUuid, actionOrderUuids);
 
   const [isActionHighlighted, setIsActionHighlighted] = useState<ActionHighlight[]>([]);
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>("");
