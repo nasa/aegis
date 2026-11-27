@@ -25,6 +25,9 @@ vi.mock("components/admin/fileManager", () => ({
 }));
 vi.mock("components/admin/gridUpload", () => ({ default: () => <div>Server File Grid</div> }));
 vi.mock("components/admin/projection", () => ({ default: (): null => null }));
+vi.mock("http-client/login", () => ({
+  isLoggedIn: vi.fn(async () => ({ status: "success", data: { isAdmin: true } })),
+}));
 
 const makeStore = () => configureStore({ reducer: { user: userSlice.reducer } });
 let harness: ReactHarness;
@@ -43,7 +46,7 @@ function useMissionDocument(): ReturnType<typeof useDocument<Mission>> {
   return [useSyncExternalStore(subscribe, () => mission), changeMission];
 }
 let store: ReturnType<typeof makeStore>;
-function render() {
+async function render() {
   vi.mocked(useDocument).mockImplementation(useMissionDocument);
   harness.render(
     <Provider store={store}>
@@ -54,6 +57,7 @@ function render() {
       </MemoryRouter>
     </Provider>
   );
+  await vi.waitFor(() => expect(harness.container.querySelector("main")).not.toBeNull());
 }
 beforeEach(() => {
   vi.clearAllMocks();
@@ -73,7 +77,7 @@ beforeEach(() => {
 afterEach(() => harness.unmount());
 
 test("selects a planet and derives its coordinate system", async () => {
-  render();
+  await render();
   await expect.element(page.getByLabelText("Planet", { exact: true })).toBeVisible();
   expect(harness.container.textContent).toContain("Coordinates: LGRS");
   await page.getByLabelText("Planet", { exact: true }).selectOptions("mars");
@@ -89,7 +93,7 @@ test("lists nested DEMs with detected resolution, disables invalid files, and sa
     { filePath: "Data/NAC_DTM_APOLLO14.TIF", resolution: 2.000000000006, error: null },
     { filePath: "Data/broken.tiff", resolution: null, error: "Missing georeferencing" },
   ]);
-  render();
+  await render();
   await expect
     .element(page.getByRole("option", { name: "nested/elevation.tif - 0.5 m/pixel" }))
     .toBeInTheDocument();
@@ -115,7 +119,7 @@ test("clearing a DEM clears its resolution and derived elevation in the document
     demResolution: 0.5,
     landerElevationMeters: 123,
   };
-  render();
+  await render();
   await expect
     .element(page.getByRole("option", { name: "nested/elevation.tif - 0.5 m/pixel" }))
     .toBeInTheDocument();
@@ -134,7 +138,7 @@ test("selecting a DEM samples the existing endpoint and updates lander stations,
     message: "Sampled",
     data: 0,
   });
-  render();
+  await render();
   await expect
     .element(page.getByRole("option", { name: "nested/elevation.tif - 0.5 m/pixel" }))
     .toBeInTheDocument();
@@ -151,7 +155,7 @@ test("selecting a DEM samples the existing endpoint and updates lander stations,
   changeMission((m) => {
     m.name = "Renamed";
   });
-  render();
+  await render();
   expect(getElevationSinglePoint).toHaveBeenCalledTimes(1);
 });
 
@@ -162,7 +166,7 @@ test("opening the admin page leaves unknown elevation untouched until requested"
     message: "Sampled",
     data: 123,
   });
-  render();
+  await render();
   const calculate = page.getByRole("button", { name: "Calculate elevation" });
   await expect.element(calculate).toBeVisible();
   await expect
@@ -188,7 +192,7 @@ test("changing admin coordinates discards an older elevation response", async ()
         })
     )
     .mockResolvedValue({ status: "success", message: "Sampled", data: -35 });
-  render();
+  await render();
   await page.getByRole("button", { name: "Calculate elevation" }).click();
   await vi.waitFor(() => expect(getElevationSinglePoint).toHaveBeenCalledTimes(1));
   await page.getByLabelText("Lander Location Latitude", { exact: true }).fill("-86");
@@ -213,7 +217,7 @@ test("clearing a DEM while sampling prevents the late result from restoring elev
         finish = resolve;
       })
   );
-  render();
+  await render();
   await expect
     .element(page.getByRole("option", { name: "nested/elevation.tif - 0.5 m/pixel" }))
     .toBeInTheDocument();
@@ -227,7 +231,7 @@ test("clearing a DEM while sampling prevents the late result from restoring elev
 test("sampling failures stay unknown and show an error without retrying unrelated edits", async () => {
   mission.demFilePath = "Data/nested/elevation.tif";
   vi.mocked(getElevationSinglePoint).mockRejectedValueOnce(new Error("DEM is unavailable"));
-  render();
+  await render();
   await page.getByRole("button", { name: "Calculate elevation" }).click();
   await expect
     .element(page.getByRole("alert"))
@@ -236,7 +240,7 @@ test("sampling failures stay unknown and show an error without retrying unrelate
   changeMission((m) => {
     m.name = "Renamed";
   });
-  render();
+  await render();
   expect(getElevationSinglePoint).toHaveBeenCalledTimes(1);
   vi.mocked(getElevationSinglePoint).mockResolvedValueOnce({
     status: "success",
@@ -251,7 +255,7 @@ test("sampling failures stay unknown and show an error without retrying unrelate
 
 test("lists DEMs once on load, shows failures, and refreshes after file changes", async () => {
   vi.mocked(getMissionDems).mockRejectedValueOnce(new Error("Could not list Data files"));
-  render();
+  await render();
   await expect
     .element(page.getByRole("alert"))
     .toHaveTextContent("Reading DEM files: Could not list Data files");
@@ -264,8 +268,8 @@ test("lists DEMs once on load, shows failures, and refreshes after file changes"
   expect(getMissionDems).toHaveBeenCalledTimes(3);
 });
 
-test("unknown lander elevation encourages adding a DEM, and elevation cannot be typed", () => {
-  render();
+test("unknown lander elevation encourages adding a DEM, and elevation cannot be typed", async () => {
+  await render();
   expect(
     harness.container.querySelector('output[aria-label="Lander Elevation"]')?.textContent
   ).toBe("Unknown");
@@ -279,45 +283,45 @@ test.each([
   [0, "0"],
   [-1063.60498046875, "-1064"],
   [123.456, "123"],
-])("displays the detected lander elevation %s", (elevation, expected) => {
+])("displays the detected lander elevation %s", async (elevation, expected) => {
   mission = {
     ...mission,
     demFilePath: "Data/nested/elevation.tif",
     landerElevationMeters: elevation,
   };
-  render();
+  await render();
   expect(
     harness.container.querySelector('output[aria-label="Lander Elevation"]')?.textContent
   ).toBe(expected);
   expect(getElevationSinglePoint).not.toHaveBeenCalled();
 });
 
-test("Moon missions have automatic LGRS and no uploaded-grid controls; Earth keeps them", () => {
-  render();
+test("Moon missions have automatic LGRS and no uploaded-grid controls; Earth keeps them", async () => {
+  await render();
   expect(harness.container.textContent).toContain("The LGRS grid is generated dynamically");
   expect(harness.container.textContent).not.toContain("Server File Grid");
   expect(harness.container.querySelector('input[name="gridRenderMode"]')).toBeNull();
   mission = { ...mission, planet: "earth" };
-  render();
+  await render();
   expect(harness.container.textContent).toContain("Server File Grid");
 });
 
-test.each([-85, 0, 85])("Moon latitude %s uses dynamic LGRS", (lat) => {
+test.each([-85, 0, 85])("Moon latitude %s uses dynamic LGRS", async (lat) => {
   mission.landerLocation = { lat, lng: 0 };
-  render();
+  await render();
   expect(harness.container.textContent).toContain("across the whole Moon");
   expect(harness.container.textContent).not.toContain("Server File Grid");
 });
 
-test("Earth without an upload uses dynamic grids; an upload selects the custom grid", () => {
+test("Earth without an upload uses dynamic grids; an upload selects the custom grid", async () => {
   mission.planet = "earth";
-  render();
+  await render();
   expect(harness.container.textContent).toContain("The Earth grid is generated dynamically");
   mission = {
     ...mission,
     serverFileGrid: { name: "Custom", fileName: "grid.json", numRows: 2, numCols: 2 },
   };
-  render();
+  await render();
   expect(harness.container.textContent).toContain("Using the uploaded Earth grid");
   expect(harness.container.textContent).toContain("Default Label Scheme");
 });

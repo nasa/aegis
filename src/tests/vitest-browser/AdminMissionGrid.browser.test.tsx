@@ -32,6 +32,9 @@ vi.mock("utils/useAppSelector", async (importOriginal) => ({
 }));
 vi.mock("components/admin/fileManager", () => ({ default: (): null => null }));
 vi.mock("components/admin/projection", () => ({ default: (): null => null }));
+vi.mock("http-client/login", () => ({
+  isLoggedIn: vi.fn(async () => ({ status: "success", data: { isAdmin: true } })),
+}));
 vi.mock("components/admin/gridUpload", () => ({ default: (): null => null }));
 vi.mock("http-client/mission", () => ({
   getMissionDems: async (): Promise<MissionDem[]> => [],
@@ -40,7 +43,7 @@ vi.mock("packages/getCurrentUser", () => ({ getCurrentUser: vi.fn() }));
 
 let harness: ReactHarness;
 
-function renderEditor() {
+async function renderEditor() {
   harness.render(
     <MemoryRouter initialEntries={["/admin/mission/42/test-doc"]}>
       <Routes>
@@ -48,6 +51,7 @@ function renderEditor() {
       </Routes>
     </MemoryRouter>
   );
+  await vi.waitFor(() => expect(harness.container.querySelector("main")).not.toBeNull());
 }
 
 beforeEach(() => {
@@ -60,7 +64,7 @@ afterEach(() => harness.unmount());
 
 describe("mission admin grid settings", () => {
   it("switches Earth labels and derives the reference system without persisting it", async () => {
-    renderEditor();
+    await renderEditor();
     await page.getByRole("radio", { name: "MGRS", exact: true }).click();
     await expect.element(page.getByRole("radio", { name: "MGRS", exact: true })).toBeChecked();
     expect(mission.earthGridLabelScheme).toBe("mgrs");
@@ -74,7 +78,7 @@ describe("mission admin grid settings", () => {
   it("preserves the Earth preference through lunar and Mars selections", async () => {
     mission.earthGridLabelScheme = "mgrs";
     mission.planet = "moon";
-    renderEditor();
+    await renderEditor();
     expect(harness.container.textContent).toContain("across the whole Moon");
     await expect
       .element(page.getByRole("radio", { name: "MGRS", exact: true }))
@@ -91,11 +95,11 @@ describe("mission admin grid settings", () => {
     await expect.element(page.getByRole("radio", { name: "MGRS", exact: true })).toBeChecked();
   });
 
-  it("explains invalid projections without writing mission fields on load", () => {
+  it("explains invalid projections without writing mission fields on load", async () => {
     mission.projIsCustom = true;
     mission.projEpsg = "INVALID";
     mission.projProj4String = "+proj=invalid";
-    renderEditor();
+    await renderEditor();
     expect(harness.container.textContent).toContain("proj4 can parse");
     expect(changeMission).not.toHaveBeenCalled();
   });

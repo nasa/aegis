@@ -21,6 +21,7 @@ vi.mock("server/express/global", () => ({
   globalValues: {
     orm: { em },
     automergeRepo: {
+      delete: vi.fn().mockResolvedValue(undefined),
       find: (url: string) => (url === "automerge:source" ? sourceHandle : copiedHandle),
     },
   },
@@ -172,7 +173,8 @@ test("rejects unauthorized requests before starting the stream or copying", asyn
   expect(em.begin).not.toHaveBeenCalled();
 });
 
-test.each([undefined, null, true, [], [50], "50junk", "", 0, -1, 1.5])(
+// Keep array inputs as one argument instead of Vitest expanding them as rows.
+test.each([undefined, null, true, [], [50], "50junk", "", 0, -1, 1.5].map((id) => [id]))(
   "rejects invalid mission ID %j before starting duplication",
   async (missionId) => {
     const res = await supertest(app)

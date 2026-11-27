@@ -274,15 +274,26 @@ const User: React.FunctionComponent = () => {
                               <label className={adminCommon.checkboxItem}>
                                 <input
                                   type="checkbox"
-                                  onChange={() => {
-                                    const userPermissionUpdated = user.permissionList.map((p) => {
-                                      if (p.missionId === mission.id) {
-                                        p.permissions.view = !p.permissions.view;
-                                      }
-                                      return p;
-                                    });
-                                    setUser({ ...user, permissionList: userPermissionUpdated });
-                                  }}
+                                  onChange={() =>
+                                    setUser((currentUser) => {
+                                      if (!currentUser) return currentUser;
+                                      return {
+                                        ...currentUser,
+                                        permissionList: (currentUser.permissionList ?? []).map(
+                                          (permission) =>
+                                            permission.missionId === mission.id
+                                              ? {
+                                                  ...permission,
+                                                  permissions: {
+                                                    ...permission.permissions,
+                                                    view: !permission.permissions.view,
+                                                  },
+                                                }
+                                              : permission
+                                        ),
+                                      };
+                                    })
+                                  }
                                   checked={
                                     user?.permissionList?.some(
                                       (p) => p.missionId === mission.id && p.permissions.view
@@ -296,18 +307,30 @@ const User: React.FunctionComponent = () => {
                               <label className={adminCommon.checkboxItem}>
                                 <input
                                   type="checkbox"
-                                  onChange={() => {
-                                    const userPermissionUpdated = user.permissionList.map((p) => {
-                                      if (p.missionId === mission.id) {
-                                        p.permissions.edit = !p.permissions.edit;
-                                        if (p.permissions.edit) {
-                                          p.permissions.view = true;
-                                        }
-                                      }
-                                      return p;
-                                    });
-                                    setUser({ ...user, permissionList: userPermissionUpdated });
-                                  }}
+                                  onChange={() =>
+                                    setUser((currentUser) => {
+                                      if (!currentUser) return currentUser;
+                                      return {
+                                        ...currentUser,
+                                        permissionList: (currentUser.permissionList ?? []).map(
+                                          (permission) => {
+                                            if (permission.missionId !== mission.id) {
+                                              return permission;
+                                            }
+                                            const edit = !permission.permissions.edit;
+                                            return {
+                                              ...permission,
+                                              permissions: {
+                                                ...permission.permissions,
+                                                edit,
+                                                view: edit || permission.permissions.view,
+                                              },
+                                            };
+                                          }
+                                        ),
+                                      };
+                                    })
+                                  }
                                   checked={
                                     user?.permissionList?.some(
                                       (p) => p.missionId === mission.id && p.permissions.edit

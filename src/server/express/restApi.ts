@@ -75,7 +75,7 @@ app.use(
   })
 );
 // static asset passthrough for dev. This path is relative to the esbuild output dir (.local/express/dist/api)
-app.use("/static", express.static(path.join(__dirname, `../../../../${process.env.STATIC_DIR}`)));
+app.use("/static", express.static(path.resolve(__dirname, "../../../..", process.env.STATIC_DIR)));
 
 // socket stuff
 app.use("/api/v1/socket/serverSocketStatus", serverSocketStatus);

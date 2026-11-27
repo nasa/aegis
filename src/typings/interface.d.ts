@@ -27,6 +27,7 @@ interface PanelType {
   icon?: IconProp;
   svgComponent?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   ariaLabel?: string;
+  statusDescription?: string;
   panelGroup?: string[];
 }
 

@@ -102,6 +102,7 @@ export function drawGraphAxis(
   storeRef: MutableRefObject<EvaCalculated_PaperJS>
 ): void {
   const paperVars = paperDataRef.current.paperVars;
+  if (paperVars.graphHeight <= 0 || paperVars.timelineWidth <= 0) return;
   const axisGroup = new paper.Group();
 
   //draw top and bottom lines

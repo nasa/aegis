@@ -133,49 +133,24 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
     const iso = numericDatetimeToISO(selectedEva?.datetime);
     return iso ? iso.split("T")[1].replace("Z", "") : "";
   });
-  const [currentEvaUuid, setCurrentEvaUuid] = useState("");
-
   useEffect(() => {
-    if (currentEvaUuid !== selectedEva?.uuid || !editMode) {
-      let parsedEvaDate = "";
-      let parsedEvaTime = "";
-      const isoDatetime = numericDatetimeToISO(selectedEva?.datetime);
-      if (isoDatetime && isISOString(isoDatetime)) {
-        const roundedIsoDatetime = roundUpSecondsFromISOString(isoDatetime);
-        const [date] = getDateAndTimeFromISOString(roundedIsoDatetime);
-        parsedEvaDate = date;
-        parsedEvaTime = hhmmssFromDateString(roundedIsoDatetime);
-      }
-      setEvaDate(parsedEvaDate);
-      setEvaTime(parsedEvaTime);
-      setCurrentEvaUuid(selectedEva?.uuid);
-    } else {
-      const newIso = evaDate?.length > 0 && evaTime?.length > 0 ? `${evaDate}T${evaTime}Z` : null;
-      const newDatetime = toNumericDatetime(newIso);
-      if (newDatetime !== selectedEva?.datetime) {
-        withMissionChange((m) =>
-          applyUpdateEvaByField(m, {
-            evaUuid: selectedEvaUuid,
-            fieldName: "datetime",
-            value: newDatetime,
-          })
-        );
-      }
+    let parsedEvaDate = "";
+    let parsedEvaTime = "";
+    const isoDatetime = numericDatetimeToISO(selectedEva?.datetime);
+    if (isoDatetime && isISOString(isoDatetime)) {
+      const roundedIsoDatetime = roundUpSecondsFromISOString(isoDatetime);
+      const [date] = getDateAndTimeFromISOString(roundedIsoDatetime);
+      parsedEvaDate = date;
+      parsedEvaTime = hhmmssFromDateString(roundedIsoDatetime);
     }
-  }, [
-    currentEvaUuid,
-    editMode,
-    evaDate,
-    evaTime,
-    selectedEva?.datetime,
-    selectedEva?.uuid,
-    selectedEvaUuid,
-  ]);
+    setEvaDate(parsedEvaDate);
+    setEvaTime(parsedEvaTime);
+  }, [selectedEva?.datetime, selectedEva?.uuid]);
 
-  function handleDatetimeSubmit() {
-    const isoString = `${evaDate}T${evaTime}Z`;
+  function handleDatetimeSubmit(date: string, time: string) {
+    const isoString = `${date}T${time}Z`;
     const newDatetime = isISOString(isoString)
-      ? toNumericDatetime(getISOStringFromDateAndTime(evaDate, evaTime))
+      ? toNumericDatetime(getISOStringFromDateAndTime(date, time))
       : null;
     withMissionChange((m) =>
       applyUpdateEvaByField(m, {
@@ -240,7 +215,7 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
             </div>
             <div className={paneStyles.panelSectionRow}>
               <div className={paneStyles.panelSection2Column}>
-                <div className={paneStyles.panelColumnTable} onSubmit={handleDatetimeSubmit}>
+                <div className={paneStyles.panelColumnTable}>
                   <div className={paneStyles.panelColumnTableRow}>
                     <div className={paneStyles.panelColumnTableCell}>
                       <div className={paneStyles.inputFieldLabel}>YYYY-MM-DD:</div>
@@ -256,7 +231,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             validators: [validators.mustBeYYYYMMDD],
                           }}
                           styleContainer={{ width: "100px", marginRight: "5px" }}
-                          onSubmit={(val: string) => setEvaDate(val)}
+                          onSubmit={(val: string) => {
+                            setEvaDate(val);
+                            handleDatetimeSubmit(val, evaTime);
+                          }}
                           key={`${selectedEva.uuid}-date`}
                         />
                       </div>
@@ -275,7 +253,10 @@ const EvaRightEvaInfo: FunctionComponent<{ editMode: boolean }> = ({ editMode })
                             validators: [validators.mustBeHHMMSS],
                           }}
                           styleContainer={{ width: "115px", marginLeft: "5px", marginRight: "5px" }}
-                          onSubmit={(val: string) => setEvaTime(val)}
+                          onSubmit={(val: string) => {
+                            setEvaTime(val);
+                            handleDatetimeSubmit(evaDate, val);
+                          }}
                           key={`${selectedEva.uuid}-time`}
                         />
                       </div>

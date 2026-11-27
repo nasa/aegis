@@ -183,9 +183,12 @@ describe("Admin user with Edit permissions", () => {
     const res = await supertest(app)
       .delete("/api/v1/file/delete")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissionIds[0], path: "vitestTest/testAPIDelete.txt" });
+      .query({
+        missionId: testMissionIds[0],
+        path: "missionFiles/1000/vitestTest/testAPIDelete.txt",
+      });
     expect(res.statusCode).toBe(200);
-    expect(mockDelete).toHaveBeenCalledWith("vitestTest/testAPIDelete.txt");
+    expect(mockDelete).toHaveBeenCalledWith("missionFiles/1000/vitestTest/testAPIDelete.txt");
   });
 
   test("List: Success", async () => {
@@ -196,9 +199,9 @@ describe("Admin user with Edit permissions", () => {
     const res = await supertest(app)
       .get("/api/v1/file/list")
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
-      .query({ missionId: testMissionIds[0], path: "vitestTest" });
+      .query({ missionId: testMissionIds[0], path: "missionFiles/1000/vitestTest" });
     expect(res.statusCode).toBe(200);
-    expect(mockList).toHaveBeenCalledWith("vitestTest");
+    expect(mockList).toHaveBeenCalledWith("missionFiles/1000/vitestTest");
   });
 
   test("Rename: Success", async () => {
@@ -211,12 +214,74 @@ describe("Admin user with Edit permissions", () => {
       .set("Cookie", [aegisSessionCookie, aegisSessionSigCookie])
       .query({
         missionId: testMissionIds[0],
-        path: "vitestTest",
+        path: "missionFiles/1000/vitestTest",
         oldname: "test.txt",
         newname: "testRenamed.txt",
       });
     expect(res.statusCode).toBe(200);
-    expect(mockRename).toHaveBeenCalledWith("vitestTest", "test.txt", "testRenamed.txt");
+    expect(mockRename).toHaveBeenCalledWith(
+      "missionFiles/1000/vitestTest",
+      "test.txt",
+      "testRenamed.txt"
+    );
+  });
+
+  test("File routes use the validated path without a second URL decode", async () => {
+    const literalPath = "missionFiles/1000/%2e%2e/1001";
+    const mockDelete = vi.spyOn(fileFunctions, "deleteFile").mockResolvedValue(true);
+    const mockList = vi.spyOn(fileFunctions, "listFiles").mockResolvedValue([]);
+    const mockRename = vi.spyOn(fileFunctions, "renameFile").mockResolvedValue(true);
+    const query = { missionId: testMissionIds[0], path: literalPath };
+    const cookies = [aegisSessionCookie, aegisSessionSigCookie];
+
+    expect(
+      (await supertest(app).delete("/api/v1/file/delete").set("Cookie", cookies).query(query))
+        .statusCode
+    ).toBe(200);
+    expect(mockDelete).toHaveBeenCalledWith(literalPath);
+
+    expect(
+      (await supertest(app).get("/api/v1/file/list").set("Cookie", cookies).query(query)).statusCode
+    ).toBe(200);
+    expect(mockList).toHaveBeenCalledWith(literalPath);
+
+    expect(
+      (
+        await supertest(app)
+          .get("/api/v1/file/rename")
+          .set("Cookie", cookies)
+          .query({ ...query, oldname: "original%20name.txt", newname: "new%20name.txt" })
+      ).statusCode
+    ).toBe(200);
+    expect(mockRename).toHaveBeenCalledWith(literalPath, "original%20name.txt", "new%20name.txt");
+  });
+
+  test("File routes reject traversal into another mission before invoking filesystem helpers", async () => {
+    const mockDelete = vi.spyOn(fileFunctions, "deleteFile");
+    const mockList = vi.spyOn(fileFunctions, "listFiles");
+    const mockRename = vi.spyOn(fileFunctions, "renameFile");
+    const query = {
+      missionId: testMissionIds[0],
+      path: "missionFiles/1000/../1001",
+      oldname: "original.txt",
+      newname: "new.txt",
+    };
+    const cookies = [aegisSessionCookie, aegisSessionSigCookie];
+
+    expect(
+      (await supertest(app).delete("/api/v1/file/delete").set("Cookie", cookies).query(query))
+        .statusCode
+    ).toBe(500);
+    expect(
+      (await supertest(app).get("/api/v1/file/list").set("Cookie", cookies).query(query)).statusCode
+    ).toBe(500);
+    expect(
+      (await supertest(app).get("/api/v1/file/rename").set("Cookie", cookies).query(query))
+        .statusCode
+    ).toBe(500);
+    expect(mockDelete).not.toHaveBeenCalled();
+    expect(mockList).not.toHaveBeenCalled();
+    expect(mockRename).not.toHaveBeenCalled();
   });
 });
 

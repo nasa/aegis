@@ -5,12 +5,6 @@ FROM node:26.13.0-alpine AS base
 # Set the working directory. It will create if doesn't exist
 WORKDIR /app
 
-# Make GIT_COMMIT available in the image so it can be baked into the code at build time
-# The GIT_COMMIT value is passed as a build argument from the job pipeline.
-# When building this container locally, this is not available so "localDev" will be used as default value
-ARG GIT_COMMIT=localDev
-ENV GIT_COMMIT=$GIT_COMMIT
-
 # The * after npmrc ensure copy operation will not fail if the file does not exist
 COPY .npmrc* .
 COPY package*.json .
@@ -37,6 +31,12 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked npm ci
 # Copy the rest of the files and build the app
 COPY . /app
 
+# Keep dependency layers reusable; every commit gets a fresh application build.
+# Make GIT_COMMIT available in the image so it can be baked into the code at build time
+# The GIT_COMMIT value is passed as a build argument from the job pipeline.
+# When building this container locally, this is not available so "localDev" will be used as default value
+ARG GIT_COMMIT=localDev
+ENV GIT_COMMIT=$GIT_COMMIT
 RUN npm run api:build
 
 # # # # # # # #

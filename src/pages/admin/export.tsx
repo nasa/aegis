@@ -8,6 +8,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { refEqual, useAppSelector } from "utils/useAppSelector";
 
+import { getAutomergeDocListing } from "http-client/docListing";
 import { isLoggedIn } from "http-client/login";
 import { dumpMission } from "http-client/mission";
 import { useAppDispatch } from "utils/useAppDispatch";
@@ -50,6 +51,7 @@ const ExportPage: React.FunctionComponent = () => {
   const [selectRexes, setSelectRexes] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     runLoad("Loading mission for export...", async () => {
       const response = await isLoggedIn();
       if (
@@ -59,15 +61,30 @@ const ExportPage: React.FunctionComponent = () => {
         navigate("/");
         return;
       }
+      const listing = await getAutomergeDocListing(intMissionId);
+      if (cancelled) return;
+      if (
+        !Number.isInteger(intMissionId) ||
+        intMissionId <= 0 ||
+        listing.status !== "success" ||
+        !listing.data?.some((record) => record.missionId === intMissionId)
+      ) {
+        throw new Error(`Mission ${slug} was not found or is unavailable.`);
+      }
       const wholeStoreState = await populateStore({
         missionId: intMissionId,
         runAudit: false,
         automergeRepo,
       });
+      if (cancelled) return;
+      if (!wholeStoreState) throw new Error(`Mission ${slug} was not found or is unavailable.`);
       dispatch(setAllSliceStores(wholeStoreState));
       syncMissionTerrainProfiles(store);
     });
-  }, [intMissionId, automergeRepo, dispatch, navigate, runLoad]);
+    return () => {
+      cancelled = true;
+    };
+  }, [intMissionId, automergeRepo, dispatch, navigate, runLoad, slug]);
 
   return (
     <main className={adminCommon.page}>
@@ -76,7 +93,7 @@ const ExportPage: React.FunctionComponent = () => {
           ← Missions
         </Link>
         <h1 className={adminCommon.pageTitle}>Export Mission</h1>
-        {missionName && (
+        {!loading.pending && !loading.error && missionName && (
           <div className={adminCommon.missionSubheader}>
             <span className={adminCommon.missionSubheaderLabel}>Mission</span>
             <span className={adminCommon.missionSubheaderName}>{missionName}</span>
@@ -86,197 +103,208 @@ const ExportPage: React.FunctionComponent = () => {
         <AsyncStatus {...loading} />
         <AsyncStatus {...action} />
 
-        <section className={adminCommon.section}>
-          <h2>Export</h2>
-          <div className={adminCommon.details}>
-            <p className={adminCommon.descriptionText}>Select parts of mission data to export:</p>
-            <div className={adminCommon.checkboxGroup} style={{ userSelect: "none" }}>
-              <label className={adminCommon.checkboxItem}>
-                <input
-                  type="checkbox"
-                  id="export-all-evas"
-                  checked={selectEvas}
-                  onChange={() => setSelectEvas(!selectEvas)}
-                />
-                All EVAs (including stations with associated actions and traverses)
-              </label>
-              <label className={adminCommon.checkboxItem}>
-                <input
-                  type="checkbox"
-                  id="export-pois"
-                  checked={selectPois}
-                  onChange={() => setSelectPois(!selectPois)}
-                />
-                All POIs (including associated actions)
-              </label>
-              <label className={adminCommon.checkboxItem}>
-                <input
-                  type="checkbox"
-                  id="export-stations"
-                  checked={selectStations}
-                  onChange={() => setSelectStations(!selectStations)}
-                />
-                All Stations (including associated actions)
-              </label>
-              <label className={adminCommon.checkboxItem}>
-                <input
-                  type="checkbox"
-                  id="export-actions"
-                  checked={selectActions}
-                  onChange={() => setSelectActions(!selectActions)}
-                />
-                All Actions (including associated STMs)
-              </label>
-              <label className={adminCommon.checkboxItem}>
-                <input
-                  type="checkbox"
-                  id="export-traverses"
-                  checked={selectTraverses}
-                  onChange={() => setSelectTraverses(!selectTraverses)}
-                />
-                All Traverses
-              </label>
-              <label className={adminCommon.checkboxItem}>
-                <input
-                  type="checkbox"
-                  id="export-mission"
-                  checked={selectMission}
-                  onChange={() => setSelectMission(!selectMission)}
-                />
-                Mission Details
-              </label>
-              <label className={adminCommon.checkboxItem}>
-                <input
-                  type="checkbox"
-                  id="export-rexes"
-                  checked={selectRexes}
-                  onChange={() => setSelectRexes(!selectRexes)}
-                />
-                All Real-time Execution Items (REXes)
-              </label>
-            </div>
-            <div className={adminCommon.formActions}>
-              <button
-                disabled={
-                  !!loading.pending || !!loading.error || !!action.pending || !terrainSettled
-                }
-                className={adminCommon.button}
-                title={terrainSettled ? undefined : "Loading terrain profiles"}
-                onClick={() => {
-                  const makeExportStringAsync = async () => {
-                    const output = makeExportString({
-                      terrainProfiles: store.getState().terrainProfiles.profiles,
-                      mission,
-                      selectEvas,
-                      selectMission,
-                      selectPois,
-                      selectStations,
-                      selectActions,
-                      selectTraverses,
-                      selectRexes,
-                    });
-                    setSelectedOutput(output);
-                  };
-                  action.run("Generating export...", async () => {
-                    await new Promise<void>((resolve) =>
-                      requestAnimationFrame(() => setTimeout(resolve, 0))
-                    );
-                    await makeExportStringAsync();
-                  });
-                }}
-              >
-                Export JSON to Text Field
-              </button>
-              <button
-                disabled={
-                  !!loading.pending || !!loading.error || !!action.pending || !terrainSettled
-                }
-                className={adminCommon.button}
-                title={terrainSettled ? undefined : "Loading terrain profiles"}
-                onClick={() => {
-                  const makeExportStringAsync = async () => {
-                    const output = makeExportString({
-                      terrainProfiles: store.getState().terrainProfiles.profiles,
-                      mission,
-                      selectEvas,
-                      selectMission,
-                      selectPois,
-                      selectStations,
-                      selectActions,
-                      selectTraverses,
-                      selectRexes,
-                    });
-                    setSelectedOutput(output);
-
-                    const element = document.createElement("a");
-                    const file = new Blob([output], { type: "text/json" });
-                    element.href = URL.createObjectURL(file);
-                    let filename = `${missionName}_`;
-                    if (selectEvas) filename += "evas_";
-                    if (selectMission) filename += "mission_";
-                    if (selectPois) filename += "pois_";
-                    if (selectStations) filename += "stations_";
-                    if (selectActions) filename += "actions_";
-                    if (selectTraverses) filename += "traverses_";
-                    if (selectRexes) filename += "rexes_";
-                    filename += "export.json";
-                    element.download = filename;
-                    document.body.appendChild(element); // Required for this to work in FireFox
-                    element.click();
-                  };
-                  action.run("Generating export...", async () => {
-                    await new Promise<void>((resolve) =>
-                      requestAnimationFrame(() => setTimeout(resolve, 0))
-                    );
-                    await makeExportStringAsync();
-                  });
-                }}
-              >
-                Export JSON to File
-              </button>
-            </div>
-            <textarea className={adminCommon.logTextarea} value={selectedOutput} readOnly={true} />
-          </div>
-        </section>
-
-        <section className={adminCommon.section}>
-          <h2>Database Dump</h2>
-          <div className={adminCommon.details}>
-            <p className={adminCommon.descriptionText}>
-              This will create a JSON file that represents the raw content of the database for the
-              selected mission. The JSON file will include all entities related to the mission.
-              <br /> Note that there is no &quot;import&quot; functionality for this data.
-            </p>
-            <div className={adminCommon.formActions}>
-              <button
-                disabled={!!loading.pending || !!loading.error || !!action.pending}
-                className={adminCommon.buttonPrimary}
-                type="button"
-                onClick={() =>
-                  action.run("Preparing mission database dump...", async () => {
-                    const response = await dumpMission(intMissionId);
-                    if (response.status !== "success" || !response.data) {
-                      throw new Error(response.message || "Unknown error occurred");
+        {!loading.pending && !loading.error && (
+          <>
+            <section className={adminCommon.section}>
+              <h2>Export</h2>
+              <div className={adminCommon.details}>
+                <p className={adminCommon.descriptionText}>
+                  Select parts of mission data to export:
+                </p>
+                <div className={adminCommon.checkboxGroup} style={{ userSelect: "none" }}>
+                  <label className={adminCommon.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id="export-all-evas"
+                      checked={selectEvas}
+                      onChange={() => setSelectEvas(!selectEvas)}
+                    />
+                    All EVAs (including stations with associated actions and traverses)
+                  </label>
+                  <label className={adminCommon.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id="export-pois"
+                      checked={selectPois}
+                      onChange={() => setSelectPois(!selectPois)}
+                    />
+                    All POIs (including associated actions)
+                  </label>
+                  <label className={adminCommon.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id="export-stations"
+                      checked={selectStations}
+                      onChange={() => setSelectStations(!selectStations)}
+                    />
+                    All Stations (including associated actions)
+                  </label>
+                  <label className={adminCommon.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id="export-actions"
+                      checked={selectActions}
+                      onChange={() => setSelectActions(!selectActions)}
+                    />
+                    All Actions (including associated STMs)
+                  </label>
+                  <label className={adminCommon.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id="export-traverses"
+                      checked={selectTraverses}
+                      onChange={() => setSelectTraverses(!selectTraverses)}
+                    />
+                    All Traverses
+                  </label>
+                  <label className={adminCommon.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id="export-mission"
+                      checked={selectMission}
+                      onChange={() => setSelectMission(!selectMission)}
+                    />
+                    Mission Details
+                  </label>
+                  <label className={adminCommon.checkboxItem}>
+                    <input
+                      type="checkbox"
+                      id="export-rexes"
+                      checked={selectRexes}
+                      onChange={() => setSelectRexes(!selectRexes)}
+                    />
+                    All Real-time Execution Items (REXes)
+                  </label>
+                </div>
+                <div className={adminCommon.formActions}>
+                  <button
+                    disabled={
+                      !!loading.pending || !!loading.error || !!action.pending || !terrainSettled
                     }
-                    const jsonString = JSON.stringify(response.data, null, 2);
-                    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-                    const filename = `mission_${intMissionId}_dump_${timestamp}.json`;
+                    className={adminCommon.button}
+                    title={terrainSettled ? undefined : "Loading terrain profiles"}
+                    onClick={() => {
+                      const makeExportStringAsync = async () => {
+                        const output = makeExportString({
+                          terrainProfiles: store.getState().terrainProfiles.profiles,
+                          mission,
+                          selectEvas,
+                          selectMission,
+                          selectPois,
+                          selectStations,
+                          selectActions,
+                          selectTraverses,
+                          selectRexes,
+                        });
+                        setSelectedOutput(output);
+                      };
+                      action.run("Generating export...", async () => {
+                        await new Promise<void>((resolve) =>
+                          requestAnimationFrame(() => setTimeout(resolve, 0))
+                        );
+                        await makeExportStringAsync();
+                      });
+                    }}
+                  >
+                    Export JSON to Text Field
+                  </button>
+                  <button
+                    disabled={
+                      !!loading.pending || !!loading.error || !!action.pending || !terrainSettled
+                    }
+                    className={adminCommon.button}
+                    title={terrainSettled ? undefined : "Loading terrain profiles"}
+                    onClick={() => {
+                      const makeExportStringAsync = async () => {
+                        const output = makeExportString({
+                          terrainProfiles: store.getState().terrainProfiles.profiles,
+                          mission,
+                          selectEvas,
+                          selectMission,
+                          selectPois,
+                          selectStations,
+                          selectActions,
+                          selectTraverses,
+                          selectRexes,
+                        });
+                        setSelectedOutput(output);
 
-                    const element = document.createElement("a");
-                    const file = new Blob([jsonString], { type: "application/json" });
-                    element.href = URL.createObjectURL(file);
-                    element.download = filename;
-                    document.body.appendChild(element);
-                    element.click();
-                    document.body.removeChild(element);
-                  })
-                }
-              >
-                Dump Mission to JSON File
-              </button>
-            </div>
-          </div>
-        </section>
+                        const element = document.createElement("a");
+                        const file = new Blob([output], { type: "text/json" });
+                        element.href = URL.createObjectURL(file);
+                        let filename = `${missionName}_`;
+                        if (selectEvas) filename += "evas_";
+                        if (selectMission) filename += "mission_";
+                        if (selectPois) filename += "pois_";
+                        if (selectStations) filename += "stations_";
+                        if (selectActions) filename += "actions_";
+                        if (selectTraverses) filename += "traverses_";
+                        if (selectRexes) filename += "rexes_";
+                        filename += "export.json";
+                        element.download = filename;
+                        document.body.appendChild(element); // Required for this to work in FireFox
+                        element.click();
+                      };
+                      action.run("Generating export...", async () => {
+                        await new Promise<void>((resolve) =>
+                          requestAnimationFrame(() => setTimeout(resolve, 0))
+                        );
+                        await makeExportStringAsync();
+                      });
+                    }}
+                  >
+                    Export JSON to File
+                  </button>
+                </div>
+                <textarea
+                  className={adminCommon.logTextarea}
+                  value={selectedOutput}
+                  readOnly={true}
+                />
+              </div>
+            </section>
+
+            <section className={adminCommon.section}>
+              <h2>Database Dump</h2>
+              <div className={adminCommon.details}>
+                <p className={adminCommon.descriptionText}>
+                  This will create a JSON file that represents the raw content of the database for
+                  the selected mission. The JSON file will include all entities related to the
+                  mission.
+                  <br /> Note that there is no &quot;import&quot; functionality for this data.
+                </p>
+                <div className={adminCommon.formActions}>
+                  <button
+                    disabled={!!loading.pending || !!loading.error || !!action.pending}
+                    className={adminCommon.buttonPrimary}
+                    type="button"
+                    onClick={() =>
+                      action.run("Preparing mission database dump...", async () => {
+                        const response = await dumpMission(intMissionId);
+                        if (response.status !== "success" || !response.data) {
+                          throw new Error(response.message || "Unknown error occurred");
+                        }
+                        const jsonString = JSON.stringify(response.data, null, 2);
+                        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                        const filename = `mission_${intMissionId}_dump_${timestamp}.json`;
+
+                        const element = document.createElement("a");
+                        const file = new Blob([jsonString], { type: "application/json" });
+                        element.href = URL.createObjectURL(file);
+                        element.download = filename;
+                        document.body.appendChild(element);
+                        element.click();
+                        document.body.removeChild(element);
+                      })
+                    }
+                  >
+                    Dump Mission to JSON File
+                  </button>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </main>
   );

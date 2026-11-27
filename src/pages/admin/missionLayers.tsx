@@ -1,6 +1,8 @@
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAdminMission } from "components/admin/useAdminMission";
-import { Link, useParams } from "react-router";
+import { isLoggedIn } from "http-client/login";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
 import Layers from "components/admin/layers";
 import adminCommon from "./adminCommon.module.css";
 
@@ -9,6 +11,21 @@ type RouteParams = {
 };
 
 const MissionLayersPage: React.FunctionComponent = () => {
+  const navigate = useNavigate();
+  const [authorized, setAuthorized] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    isLoggedIn()
+      .then((result) => {
+        if (result.status === "success" && (result.data?.isSuperAdmin || result.data?.isAdmin)) {
+          if (mounted) setAuthorized(true);
+        } else navigate("/");
+      })
+      .catch(() => navigate("/"));
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
@@ -16,6 +33,8 @@ const MissionLayersPage: React.FunctionComponent = () => {
   const mission = useAdminMission(intMissionId);
   const { mission: missionDoc } = mission;
   const missionName = missionDoc?.name;
+
+  if (!authorized) return null;
 
   return (
     <main className={adminCommon.page}>

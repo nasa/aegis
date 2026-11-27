@@ -216,9 +216,10 @@ const NavTimeline: FunctionComponent = () => {
 
     // check if there is a filter on positions by source
     const mapDisplayPosUuids = display.submenuPos.sourceUuids;
+    const posEntries = selectedRex.posEntries ?? [];
     const selectedPos = mapDisplayPosUuids.length
-      ? selectedRex.posEntries.filter((pos) => mapDisplayPosUuids.includes(pos.posSourceUuid))
-      : selectedRex.posEntries;
+      ? posEntries.filter((pos) => mapDisplayPosUuids.includes(pos.posSourceUuid))
+      : posEntries;
 
     for (const posEntry of selectedPos || []) {
       const distFromLander = getDistanceBetweenTwoCoordinates(
@@ -433,8 +434,8 @@ const NavTimeline: FunctionComponent = () => {
       if (animationFrame !== null) cancelAnimationFrame(animationFrame);
       animationFrame = requestAnimationFrame(() => {
         animationFrame = null;
-        const width = canvasElement.clientWidth;
-        const height = canvasElement.clientHeight;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
         if (
           width <= 0 ||
           height <= 0 ||

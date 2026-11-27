@@ -65,7 +65,8 @@ export async function createMission(
 export async function duplicateMission(
   missionId: number,
   missionRequestedBy: string,
-  onProgress?: (progress: MissionDuplicationProgress) => void
+  onProgress?: (progress: MissionDuplicationProgress) => void,
+  copyAssets = true
 ): Promise<WrappedResponse<number>> {
   const res = await fetch(`/api/v1/missionDup`, {
     method: "POST",
@@ -73,7 +74,7 @@ export async function duplicateMission(
       "Content-Type": "application/json",
       Accept: "application/x-ndjson",
     },
-    body: JSON.stringify({ missionId, missionRequestedBy }),
+    body: JSON.stringify({ missionId, missionRequestedBy, copyAssets }),
   });
   if (res.status !== 200) {
     let errorMessage = `${res.status} ${res.statusText}`;

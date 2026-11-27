@@ -14,15 +14,33 @@ import { playwright } from "@vitest/browser-playwright";
 import path from "path";
 import dotenv from "dotenv";
 import { aliases, config as viteConfig } from "../../../vite.config.mts";
+import { missionSchemaPlugin } from "./missionSchemaPlugin";
+import { mapPointerCommands } from "./behavior/mapPointerCommands";
 
 const workspaceRoot = path.resolve(__dirname, "../../..");
+const parityFiles = [
+  "src/tests/vitest-browser/behavior/smoke.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/actions.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/accessibilityCoverage.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/mapEditing.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/celestialControls.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/celestialManual.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/crewPositionSources.browser.test.tsx",
+  "src/tests/vitest-browser/behavior/timelineSlopeLegend.browser.test.tsx",
+];
+const hidpiFiles = ["src/tests/vitest-browser/behavior/*.hidpi.browser.test.tsx"];
 
 dotenv.config({ path: path.resolve(workspaceRoot, ".env"), override: true, quiet: true });
 
 export default defineConfig(
   mergeConfig(viteConfig, {
     root: workspaceRoot,
+    cacheDir: path.resolve(
+      workspaceRoot,
+      process.env.VITEST_BROWSER_CACHE_DIR ?? "node_modules/.vite-browser"
+    ),
     publicDir: path.resolve(workspaceRoot, "src/public"),
+    plugins: [missionSchemaPlugin(workspaceRoot)],
     resolve: {
       alias: aliases,
       // Prevent multiple React copies when third-party deps are pre-bundled —
@@ -32,28 +50,44 @@ export default defineConfig(
     },
     optimizeDeps: {
       // Paper.js requires CommonJS interop, so it must remain pre-bundled.
-      include: ["paper"],
+      include: [
+        "paper",
+        "use-window-size-v2",
+        "@emss/oauth2-proxy-frontend",
+        "@emss/utils",
+        "@automerge/automerge-repo-network-websocket",
+        "deep-diff",
+        "eventemitter3",
+      ],
       needsInterop: ["paper"],
     },
     test: {
       globals: true,
       // Keep the browser API outside ports commonly reserved by Windows Hyper-V.
-      api: { port: 15315 },
+      api: { port: Number(process.env.VITEST_BROWSER_PORT ?? 15315) },
+      // Local default; CI uses one worker in each coverage shard and parity job.
+      maxWorkers: 3,
       browser: {
         enabled: true,
-        provider: playwright(),
+        commands: mapPointerCommands,
+        provider: playwright({ contextOptions: { viewport: { width: 1960, height: 1080 } } }),
         headless: true,
-        instances: [{ browser: "chromium" }],
-        api: {
-          // Vitest's default browser port (63315) sits in the Windows dynamic port range
-          // (49152-65535), chunks of which are permanently reserved by Hyper-V/WSL
-          // (netsh excludedportrange), so the server bind fails with EACCES on machines
-          // whose reservation covers it. Pin a low port outside that range; Vite
-          // increments it if already in use. Loopback only: browser tests never need
-          // network exposure.
-          host: "127.0.0.1",
-          port: 15315,
-        },
+        instances: [
+          { browser: "chromium", exclude: hidpiFiles },
+          { browser: "firefox", include: parityFiles },
+          { browser: "webkit", include: parityFiles },
+          ...(["chromium", "firefox", "webkit"] as const).map((browser) => ({
+            name: `${browser}-hidpi`,
+            browser,
+            include: hidpiFiles,
+            provider: playwright({
+              contextOptions: {
+                deviceScaleFactor: 2,
+                viewport: { width: 1960, height: 1080 },
+              },
+            }),
+          })),
+        ],
       },
       include: [
         "src/tests/vitest-browser/**/*.browser.test.ts",
@@ -85,7 +119,7 @@ export default defineConfig(
           "src/server/automerge/seeder/seedApollo14.ts",
         ],
       },
-      testTimeout: 15000,
+      testTimeout: 30000,
     },
   })
 );

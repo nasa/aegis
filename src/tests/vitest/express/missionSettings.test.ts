@@ -25,7 +25,7 @@ import gridRouter, { getGrid } from "server/express/routes/grid";
 const app = express();
 app.use(express.json());
 app.use((req, _res, next) => {
-  req.session = {} as typeof req.session;
+  req.session = { appUser: { isAdmin: true } } as unknown as typeof req.session;
   next();
 });
 app.use("/mission", router);

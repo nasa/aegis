@@ -116,6 +116,20 @@ describe("File Functions", () => {
       ).rejects.toThrow();
       expect(fs.existsSync(path.join(staticTestDir, "/testZipContentsDoesNotExist/"))).toBe(false);
     });
+
+    test("Unzip File: Failure preserves an existing destination", async () => {
+      const destination = path.join(staticTestDir, "existingZipContents");
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, "existing.txt"), "existing asset");
+
+      await expect(
+        unzip("testZipDoesNotExist.zip", "vitestTest", "existingZipContents")
+      ).rejects.toThrow();
+
+      expect(fs.readFileSync(path.join(destination, "existing.txt"), "utf8")).toBe(
+        "existing asset"
+      );
+    });
   });
 
   describe("Move File", () => {
@@ -134,6 +148,21 @@ describe("File Functions", () => {
 
       const deletedFile = await deleteFile("vitestTest/testUnzipContents/testUnzip.zip");
       expect(deletedFile).toBe(true);
+    });
+
+    test("Move File: replaces an existing file with the destination name", async () => {
+      const destinationDirectory = path.join(staticTestDir, "moveOverwrite");
+      fs.mkdirSync(destinationDirectory, { recursive: true });
+      fs.writeFileSync(path.join(destinationDirectory, "upload.txt"), "existing");
+      fs.writeFileSync(path.join(staticTestDir, "staged-upload.txt"), "replacement");
+
+      await moveFile("vitestTest/staged-upload.txt", "vitestTest", "moveOverwrite", "upload.txt");
+
+      expect(fs.readFileSync(path.join(destinationDirectory, "upload.txt"), "utf8")).toBe(
+        "replacement"
+      );
+      expect(fs.existsSync(path.join(staticTestDir, "staged-upload.txt"))).toBe(false);
+      expect(fs.readdirSync(destinationDirectory)).toEqual(["upload.txt"]);
     });
 
     test("Unzip File: Failure zip file doesn't exist", async () => {

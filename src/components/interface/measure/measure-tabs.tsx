@@ -80,7 +80,8 @@ const MeasureTab: FunctionComponent<{ uuid: string; color: string }> = ({ uuid, 
         className={styles.measureTabRemove}
         data-tooltip-id="aegis-tooltip"
         data-tooltip-content="Remove Measurement"
-        onClick={() => {
+        onClick={(event) => {
+          event.stopPropagation();
           dispatch(thunkRemoveMeasurement({ measurementUuid: uuid }));
         }}
       >

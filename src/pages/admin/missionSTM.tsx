@@ -1,6 +1,8 @@
 import AsyncStatus from "components/admin/asyncStatus";
 import { useAdminMission } from "components/admin/useAdminMission";
-import { Link, useParams } from "react-router";
+import { isLoggedIn } from "http-client/login";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
 import MissionSTM from "components/admin/missionSTM";
 import MissionPriorityImportExport from "components/admin/missionPriorityImportExport";
 import MissionRulesImportExport from "components/admin/missionRulesImportExport";
@@ -11,6 +13,21 @@ type RouteParams = {
 };
 
 const MissionSTMPage: React.FunctionComponent = () => {
+  const navigate = useNavigate();
+  const [authorized, setAuthorized] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    isLoggedIn()
+      .then((result) => {
+        if (result.status === "success" && (result.data?.isSuperAdmin || result.data?.isAdmin)) {
+          if (mounted) setAuthorized(true);
+        } else navigate("/");
+      })
+      .catch(() => navigate("/"));
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
   const params = useParams<RouteParams>();
   const slug = params.id;
   const intMissionId = parseInt(slug);
@@ -18,6 +35,8 @@ const MissionSTMPage: React.FunctionComponent = () => {
   const mission = useAdminMission(intMissionId);
   const { automergeUrl, mission: missionDoc } = mission;
   const missionName = missionDoc?.name;
+
+  if (!authorized) return null;
 
   return (
     <main className={adminCommon.page}>

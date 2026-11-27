@@ -11,7 +11,12 @@ import { titleCase } from "utils/formatting";
 import uniq from "lodash/uniq";
 import sortBy from "lodash/sortBy";
 import { useMissionDocSelector } from "utils/useDocSelector";
-import { selectStmLevel1s, selectStmLevel2s, selectStmLevel3s } from "store/selectors";
+import {
+  selectAsPlannedStations,
+  selectStmLevel1s,
+  selectStmLevel2s,
+  selectStmLevel3s,
+} from "store/selectors";
 
 const STMListTable: FunctionComponent = () => {
   const level1s = useMissionDocSelector((mission) => selectStmLevel1s(mission), shallowEqual) ?? [];
@@ -165,6 +170,10 @@ const STMLevel3: FunctionComponent<{
 }> = ({ level3 }) => {
   const dispatch = useAppDispatch();
   const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
+  const plannedStationUuids = useMissionDocSelector(
+    (mission) => selectAsPlannedStations(mission).map((station) => station.uuid),
+    shallowEqual
+  );
   const level1Numbering = useMissionDocSelector((mission) => {
     const level2 = mission.stmLevel2s?.[level3.level2Uuid];
     return mission.stmLevel1s?.[level2.level1Uuid]?.numbering || "";
@@ -185,6 +194,8 @@ const STMLevel3: FunctionComponent<{
         action.stmPriorities &&
         Object.keys(action.stmPriorities).includes(level3.uuid) &&
         action.stationUuid &&
+        action.enabled &&
+        plannedStationUuids.includes(action.stationUuid) &&
         state.stm.stmViewSelectedActionTypes.includes(action.type)
     ).length;
   }, refEqual);
@@ -245,13 +256,19 @@ const STMLevel3: FunctionComponent<{
 
 const Level3ActionTypes: FunctionComponent<{ level3Uuid: string }> = ({ level3Uuid }) => {
   const allActionRecords = useMissionDocSelector((mission) => mission.actions, deepEqual) ?? {};
+  const plannedStationUuids = useMissionDocSelector(
+    (mission) => selectAsPlannedStations(mission).map((station) => station.uuid),
+    shallowEqual
+  );
   const level3ActionTypes = useAppSelector((state: RootState) => {
     const actionsWithThisLevel3: Action[] = [];
     for (const action of Object.values(allActionRecords)) {
       if (
         action.stmPriorities &&
         Object.keys(action.stmPriorities).includes(level3Uuid) &&
-        action.stationUuid
+        action.stationUuid &&
+        action.enabled &&
+        plannedStationUuids.includes(action.stationUuid)
       ) {
         actionsWithThisLevel3.push(action);
       }
@@ -288,13 +305,16 @@ const Level3ActionType: FunctionComponent<{
 }> = ({ actionType, level3Uuid }) => {
   const dispatch = useAppDispatch();
   const actions = useMissionDocSelector((mission) => {
+    const plannedStationUuids = selectAsPlannedStations(mission).map((station) => station.uuid);
     return (
       Object.values(mission.actions).filter(
         (action) =>
           action.type === actionType &&
           action.stmPriorities &&
           action.stmPriorities[level3Uuid] &&
-          action.stationUuid
+          action.stationUuid &&
+          action.enabled &&
+          plannedStationUuids.includes(action.stationUuid)
       ) || []
     );
   }, deepEqual);
