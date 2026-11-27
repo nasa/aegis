@@ -94,10 +94,11 @@ export const thunkDocUpdateTraverse = appCreateAsyncThunk<
         return;
 
       if (preview) {
-        const profile =
-          profileResponse.meta.requestStatus === "fulfilled"
-            ? (profileResponse.payload as TerrainProfile)
-            : null;
+        const profileFetchFulfilled = thunkFetchTerrainProfile.fulfilled.match(profileResponse);
+        const profile = profileFetchFulfilled ? profileResponse.payload : null;
+        // Superseded by a newer preview request for this entity (possibly from
+        // another client); keep the current preview rather than showing an error.
+        if (profileFetchFulfilled && !profile) return;
         dispatch(
           setTerrainPreview({
             uuid: traverseUuid,

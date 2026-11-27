@@ -12,7 +12,13 @@ const mockThunkFetchTerrainProfile = vi.fn().mockReturnValue({
   meta: { requestStatus: "rejected" },
 });
 vi.mock("store/thunk/thunkTerrainProfile", () => ({
-  thunkFetchTerrainProfile: () => mockThunkFetchTerrainProfile,
+  // Callers narrow the result with fulfilled.match, so the mock needs one too.
+  thunkFetchTerrainProfile: Object.assign(() => mockThunkFetchTerrainProfile, {
+    fulfilled: {
+      match: (action: { meta?: { requestStatus?: string } } | null) =>
+        action?.meta?.requestStatus === "fulfilled",
+    },
+  }),
 }));
 
 beforeAll(() => {
