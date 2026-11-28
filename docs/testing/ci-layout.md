@@ -69,9 +69,9 @@ Vitest's blob reporter embeds coverage and supports replay through
 
 `docker:retag` waits for merged coverage, all `test-vitest:browser:chromium` shards
 and `test-vitest:browser:nonChromium`, along with its other required checks. Development retagging keeps its
-existing policy. Automatic browser jobs have no dependency on the manual
-Playwright launch. Playwright remains required before merge readiness: trigger
-the launch and wait for all four shards for the exact candidate commit.
+existing policy. Automatic browser jobs have no dependency on the Playwright
+launch. Playwright runs automatically on every pipeline and remains required
+before merge readiness: wait for all four shards for the exact candidate commit.
 
 When changing this layout, keep matrix entries, shard totals, blob paths, merge
 guards, deployment gates, `CLAUDE.md` and the MR checklist synchronized. An old
@@ -87,4 +87,4 @@ logs and generated reports in CI artifacts or ignored local directories.
 
 Local checks validate the configuration. GitLab pipeline
 performance and merge-readiness gates require the actual candidate pipeline;
-local checks do not replace the manual four-shard launch.
+local checks do not replace the four-shard CI run.

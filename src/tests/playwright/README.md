@@ -72,7 +72,7 @@ does not become a dependency of container image builds or production deployment.
 ## CI preparation and build caching
 
 `docker:build:apiv1` exports the API, migration tools, and schemas from the actual
-deployment image. After the manual launch, `prepare-playwright` installs the
+deployment image. After `test-playwright:start`, `prepare-playwright` installs the
 locked dependencies once in the same Ubuntu image used by the four shards,
 alongside the deployment image builds. Each shard downloads those dependencies
 and the API build, restores its own database, and runs the prepared migrations;
@@ -94,12 +94,10 @@ published application image as the current pipeline's result.
 
 ## Before merging
 
-Run affected tests locally while developing. When you think the MR is ready to
-merge, push the final changes and manually click Play once on
-`test-playwright:start` in that commit's GitLab pipeline. This releases all four
-shards automatically. Together they run the full configured suite: authentication
-setup, Chromium regression tests, and Firefox/WebKit smoke and selected parity
-workflows. Full Playwright execution is not required on every development push.
+Run affected tests locally while developing. Every pipeline runs
+`test-playwright:start` automatically, which releases all four shards. Together
+they run the full configured suite: authentication setup, Chromium regression
+tests, and Firefox/WebKit smoke and selected parity workflows.
 
 Keep the MR in Draft until every shard and the other required pipeline checks
 pass. Record the tested commit, pipeline link, and any retries or skipped tests
@@ -110,7 +108,7 @@ local run is optional; `npm run test:playwright` without filters or sharding is
 available for diagnosis. `npm run test:all` does not run Playwright.
 
 New commits invalidate the recorded result and checkbox. Return the MR to Draft
-and trigger a fresh full CI run when the updated candidate is ready, including
+and wait for a fresh full CI run on the updated candidate, including
 after incorporating target-branch changes. Review changed functionality against
 the test fixtures and assertions, update affected tests, and record the scope and
 remaining gaps using the [functionality audit guide](../../../docs/testing/README.md). See
